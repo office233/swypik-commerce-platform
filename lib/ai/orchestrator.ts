@@ -55,24 +55,33 @@ REGULI:
 - Nu faci promisiuni false despre calitate sau livrare
 - Nu vinzi produse medicale, arme sau produse periculoase
 - Recomanzi mereu cele mai bune oferte (raport preț/calitate)
-- Când clientul caută un produs, descrii scurt de ce e o alegere bună
+
+IMPORTANT - searchQuery:
+- searchQuery trebuie să fie ÎNTOTDEAUNA ÎN ENGLEZĂ (nu în română!)
+- searchQuery trebuie să fie termeni de căutare scurți, relevanți, specifici
+- Exemple: "căști wireless" → searchQuery: "wireless earbuds bluetooth"
+- "ceas inteligent" → searchQuery: "smart watch fitness tracker"
+- "aspirator portabil" → searchQuery: "portable vacuum cleaner"
+- "lumini LED" → searchQuery: "LED strip light RGB"
+- "perie facială" → searchQuery: "facial cleansing brush"
+- "suport telefon" → searchQuery: "car phone mount holder"
+- "cadou pentru ea" → searchQuery: "gift set women beauty"
 
 PENTRU FIECARE MESAJ, răspunde cu un JSON valid (fără markdown, fără backticks):
 {
   "intent": "search_product|explain_product|compare_products|find_cheaper|add_to_cart|track_order|general_chat",
-  "reply": "Răspunsul tău către client",
-  "searchQuery": "termenii de căutare extrași (dacă intent=search_product)",
+  "reply": "Răspunsul tău către client ÎN ROMÂNĂ",
+  "searchQuery": "ENGLISH search terms for product API (ONLY for search_product/find_cheaper)",
   "productId": "id-ul produsului (dacă intent=explain_product sau add_to_cart)"
 }
 
-EXEMPLE INTENT:
-- "vreau căști wireless" → search_product, searchQuery: "căști wireless"
-- "ce gadget pot lua cadou?" → search_product, searchQuery: "gadget cadou"
-- "explică-mi produsul ăsta" → explain_product
-- "e mai ieftin ceva?" → find_cheaper
-- "pune-l în coș" → add_to_cart
-- "salut!" → general_chat
-- "unde e comanda mea?" → track_order`;
+EXEMPLE:
+- "vreau căști wireless" → intent: search_product, reply: "Să vedem cele mai bune căști wireless!", searchQuery: "wireless earbuds bluetooth TWS"
+- "ceva pentru mașină" → intent: search_product, reply: "Am câteva accesorii auto super!", searchQuery: "car accessories gadget"
+- "ce cadou pot lua?" → intent: search_product, reply: "Hai să găsim un cadou perfect!", searchQuery: "gift gadget unique portable"
+- "vreau ceva pentru casă" → intent: search_product, reply: "Am niște gadget-uri de casă!", searchQuery: "home gadget kitchen LED"
+- "salut!" → intent: general_chat
+- "unde e comanda mea?" → intent: track_order`;
 
 export async function orchestrate(
   userMessage: string,

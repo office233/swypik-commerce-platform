@@ -36,14 +36,20 @@ type ChatMessage = {
   timestamp: Date;
 };
 
-/* ─── Quick actions ─── */
+/* ─── Quick action categories ─── */
 const QUICK_ACTIONS = [
-  { label: "🎧 Tech", query: "gadget tech casti wireless" },
-  { label: "💄 Beauty", query: "beauty perie facial skincare" },
-  { label: "🏋️ Fitness", query: "fitness ceas smart watch" },
-  { label: "🚗 Auto", query: "auto accesorii masina" },
-  { label: "🏠 Casă", query: "casa lampa led decor" },
+  { label: "🎧 Căști", query: "vreau căști wireless bluetooth" },
+  { label: "📱 Telefon", query: "accesorii telefon husa incarcator" },
+  { label: "💄 Beauty", query: "produse beauty skincare" },
+  { label: "🏋️ Fitness", query: "echipament fitness sport" },
+  { label: "🚗 Auto", query: "accesorii auto mașină" },
+  { label: "🏠 Casă", query: "gadget pentru casă bucătărie" },
+  { label: "💡 LED", query: "lumini LED bandă RGB" },
+  { label: "⌚ Ceasuri", query: "ceas smart watch inteligent" },
+  { label: "🎮 Gaming", query: "accesorii gaming mouse tastatura" },
   { label: "🎁 Cadouri", query: "cadou gadget unic" },
+  { label: "👕 Fashion", query: "accesorii fashion bijuterii" },
+  { label: "📷 Foto", query: "cameră foto accesorii" },
 ];
 
 /* ─── Gradient map for product cards ─── */
@@ -54,6 +60,15 @@ const CATEGORY_ICONS: Record<string, any> = {
   auto: "🚗",
   casa: "🏠",
   gadgets: "🔌",
+  fashion: "👕",
+  home: "🏠",
+  electronics: "📱",
+  sport: "⚽",
+  gaming: "🎮",
+  jewelry: "💎",
+  led: "💡",
+  phone: "📱",
+  camera: "📷",
 };
 
 export default function ChatInterface() {
@@ -243,15 +258,15 @@ export default function ChatInterface() {
           </button>
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions — Category grid */}
         <div className="mt-5 w-full">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/40">Categorii populare</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {QUICK_ACTIONS.map((action) => (
               <button
                 key={action.label}
                 onClick={() => sendMessage(action.query)}
-                className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-white/80 transition-all hover:bg-white/10 hover:scale-105 active:scale-95"
+                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm font-semibold text-white/80 transition-all hover:bg-white/10 hover:scale-105 active:scale-95"
               >
                 {action.label}
               </button>
