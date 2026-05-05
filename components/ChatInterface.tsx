@@ -469,8 +469,20 @@ function ProductCard({ product, onViewDetails, onAddToCart }: { product: ChatPro
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05] shadow-xl backdrop-blur-xl animate-slideUp">
       {/* Product image area */}
-      <div className={`relative flex h-36 items-center justify-center bg-gradient-to-br ${product.gradient}`}>
-        <ShoppingBag className="text-black/30" size={48} />
+      <div className={`relative h-44 overflow-hidden bg-gradient-to-br ${product.gradient}`}>
+        {product.images?.[0] ? (
+          <img
+            src={product.images[0]}
+            alt={product.title}
+            className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <ShoppingBag className="text-black/30" size={48} />
+          </div>
+        )}
         {/* Badge */}
         <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur-sm">
           {product.dealLabel}
@@ -552,8 +564,20 @@ function ProductDetailModal({ product, onClose, onAddToCart }: { product: ChatPr
         </div>
 
         {/* Product image */}
-        <div className={`grid h-48 place-items-center rounded-2xl bg-gradient-to-br ${product.gradient}`}>
-          <ShoppingBag className="text-black/30" size={64} />
+        <div className={`overflow-hidden rounded-2xl bg-gradient-to-br ${product.gradient}`}>
+          {product.images?.[0] ? (
+            <img
+              src={product.images[0]}
+              alt={product.title}
+              className="h-56 w-full object-cover"
+              loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className="grid h-48 place-items-center">
+              <ShoppingBag className="text-black/30" size={64} />
+            </div>
+          )}
         </div>
 
         {/* Title + price */}
