@@ -85,11 +85,32 @@ export default function ChatInterface() {
   const [dealsLoading, setDealsLoading] = useState(false);
   const [browseProducts, setBrowseProducts] = useState<ChatProduct[]>([]);
   const [browseTitle, setBrowseTitle] = useState("");
+  const [trendingProducts, setTrendingProducts] = useState<ChatProduct[]>([]);
+  const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSessionId(crypto.randomUUID());
+    // Preload trending products for homepage
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "trending", sessionId: "preload", directCjQuery: "best seller trending popular cheap" }),
+    }).then(r => r.json()).then(d => setTrendingProducts(d.products || [])).catch(() => {});
+  }, []);
+
+  // Countdown timer — resets at midnight
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const end = new Date(now); end.setHours(23, 59, 59, 999);
+      const diff = end.getTime() - now.getTime();
+      setCountdown({ h: Math.floor(diff / 3600000), m: Math.floor((diff % 3600000) / 60000), s: Math.floor((diff % 60000) / 1000) });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
   }, []);
 
   const scrollToBottom = useCallback(() => {
@@ -331,32 +352,37 @@ export default function ChatInterface() {
           </div>
         </div>
 
-        {/* Feature cards */}
-        <div className="mt-6 grid w-full grid-cols-2 gap-3">
-          <FeatureCard
-            icon={<Bot size={20} />}
-            title="AI Asistent"
-            desc="Recomandări personalizate"
-            gradient="from-violet-500/20 to-violet-500/5"
-          />
-          <FeatureCard
-            icon={<Tag size={20} />}
-            title="Prețuri Bune"
-            desc="Filtrate automat"
-            gradient="from-cyan-500/20 to-cyan-500/5"
-          />
-          <FeatureCard
-            icon={<Truck size={20} />}
-            title="Livrare Rapidă"
-            desc="8-25 zile în România"
-            gradient="from-emerald-500/20 to-emerald-500/5"
-          />
-          <FeatureCard
-            icon={<Star size={20} />}
-            title="Rating 4.5+"
-            desc="Doar produse verificate"
-            gradient="from-amber-500/20 to-amber-500/5"
-          />
+        {/* Trending Products on Homepage */}
+        {trendingProducts.length > 0 && (
+          <div className="mt-6 w-full">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/40">🔥 Trending acum</p>
+              <button onClick={() => { setActiveTab("deals"); loadDeals(); }} className="text-[10px] text-violet-400 font-bold">Vezi toate →</button>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {trendingProducts.slice(0, 8).map((p) => (
+                <div key={p.id} onClick={() => setSelectedProduct(p)} className="flex-shrink-0 w-36 cursor-pointer rounded-xl border border-white/10 bg-white/[0.04] overflow-hidden transition hover:scale-105">
+                  <div className="relative h-28">
+                    {p.images?.[0] ? <img src={p.images[0]} alt="" className="h-full w-full object-cover" loading="lazy" /> : <div className="grid h-full place-items-center bg-violet-900/20"><Package className="text-white/20" size={24} /></div>}
+                    {p.discountPercent > 0 && <span className="absolute top-1 right-1 rounded bg-red-500 px-1 py-0.5 text-[8px] font-black text-white">-{p.discountPercent}%</span>}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-[10px] text-white/70 line-clamp-2 leading-tight">{p.title}</p>
+                    <p className="mt-1 text-sm font-black text-emerald-400">{p.price} lei</p>
+                    <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} className="mt-1.5 w-full rounded-lg bg-violet-500/20 py-1 text-[9px] font-bold text-violet-300">+ Coș</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Trust strip */}
+        <div className="mt-6 w-full grid grid-cols-4 gap-2">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-center"><p className="text-lg">🔒</p><p className="text-[9px] text-white/40 mt-0.5">Plată securizată</p></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-center"><p className="text-lg">🚚</p><p className="text-[9px] text-white/40 mt-0.5">Transport gratuit</p></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-center"><p className="text-lg">📦</p><p className="text-[9px] text-white/40 mt-0.5">Retur 30 zile</p></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-center"><p className="text-lg">✅</p><p className="text-[9px] text-white/40 mt-0.5">Garanție</p></div>
         </div>
       </div>
     );
@@ -440,9 +466,16 @@ export default function ChatInterface() {
     return (
       <div className="px-4 pt-4 pb-36 animate-fadeIn">
         {!browseTitle && (
-          <div className="mb-4 rounded-xl bg-gradient-to-r from-red-600/90 to-orange-500/90 p-3 text-center">
-            <p className="text-xs font-black text-white animate-pulse">⚡ OFERTE LIMITATE — Se termină în curând!</p>
-            <p className="text-[10px] text-white/80 mt-0.5">Prețuri valabile doar azi • Stoc limitat</p>
+          <div className="mb-4 rounded-xl bg-gradient-to-r from-red-600/90 to-orange-500/90 p-3">
+            <p className="text-xs font-black text-white text-center animate-pulse">⚡ OFERTE LIMITATE — Se termină în:</p>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <span className="rounded bg-black/30 px-2 py-1 text-sm font-black text-white">{String(countdown.h).padStart(2,'0')}h</span>
+              <span className="text-white font-black">:</span>
+              <span className="rounded bg-black/30 px-2 py-1 text-sm font-black text-white">{String(countdown.m).padStart(2,'0')}m</span>
+              <span className="text-white font-black">:</span>
+              <span className="rounded bg-black/30 px-2 py-1 text-sm font-black text-white">{String(countdown.s).padStart(2,'0')}s</span>
+            </div>
+            <p className="text-[10px] text-white/80 mt-1 text-center">{products.length} produse • Stoc limitat</p>
           </div>
         )}
         <div className="flex items-center justify-between mb-3">
@@ -464,7 +497,7 @@ export default function ChatInterface() {
                   <span className="text-base font-black text-emerald-400">{p.price} lei</span>
                   <span className="text-[10px] text-white/30 line-through">{p.oldPrice} lei</span>
                 </div>
-                <p className="mt-1 text-[9px] text-amber-300/70">🚚 Livrare gratuită</p>
+                <p className="mt-1 text-[9px] text-amber-300/70">🚚 Gratuit • 👁 {Math.floor(Math.random() * 30 + 5)} se uită acum</p>
                 <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} className="mt-2 w-full rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 py-1.5 text-[11px] font-black text-black">🛒 Adaugă în coș</button>
               </div>
             </div>
