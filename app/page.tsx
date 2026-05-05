@@ -1,3 +1,5 @@
+import ProductCard from "../components/ProductCard";
+import ChatBox from "../components/ChatBox";
 import { Search } from "lucide-react";
 
 export default function Home() {
@@ -9,29 +11,21 @@ export default function Home() {
 
       <div className="bg-zinc-900 p-4 rounded-2xl flex items-center gap-2">
         <Search />
-        <input
-          className="bg-transparent outline-none flex-1"
-          placeholder="Ex: căști wireless sub 150 lei"
-        />
+        <input className="bg-transparent outline-none flex-1" placeholder="Ex: căști wireless" />
       </div>
 
       <button className="mt-4 w-full bg-gradient-to-r from-purple-500 to-blue-500 p-4 rounded-2xl font-semibold">
         Caută cu AI
       </button>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        {[
-          "Reduceri",
-          "Tech",
-          "Casă",
-          "Beauty",
-          "Fitness",
-          "Auto"
-        ].map((cat) => (
-          <div key={cat} className="bg-zinc-900 p-4 rounded-xl text-center">
-            {cat}
-          </div>
-        ))}
+      <ChatBox />
+
+      <h2 className="mt-6 mb-2 font-semibold">🔥 Reduceri azi</h2>
+      <div className="grid grid-cols-2 gap-3">
+        <ProductCard />
+        <ProductCard />
+        <ProductCard />
+        <ProductCard />
       </div>
     </main>
   );
