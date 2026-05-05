@@ -1,6 +1,6 @@
 /**
  * Chat API — Main endpoint
- * Handles AI chat, product search, and cart operations
+ * Handles AI chat, product search (CJ Dropshipping + fallback), and cart operations
  */
 
 import { NextResponse } from "next/server";
@@ -8,8 +8,58 @@ import { orchestrate } from "@/lib/ai/orchestrator";
 import { rewriteProduct } from "@/lib/ai/rewriter";
 import { safetyCheck } from "@/lib/ai/safety-filter";
 import { calculatePricing } from "@/lib/pricing";
+import { cjSearch } from "@/lib/suppliers/cj-supplier";
 import { mockSearch } from "@/lib/suppliers/mock-supplier";
 import type { SupplierProduct } from "@/lib/types";
+
+// Romanian → English search term translation for CJ API
+const RO_TO_EN: Record<string, string> = {
+  "casti": "earbuds wireless bluetooth",
+  "căști": "earbuds wireless bluetooth",
+  "telefon": "phone accessories",
+  "masina": "car accessories",
+  "mașină": "car accessories",
+  "auto": "car auto accessories",
+  "lampa": "LED lamp light",
+  "lampă": "LED lamp light",
+  "led": "LED strip light",
+  "ceas": "smart watch",
+  "smartwatch": "smart watch fitness",
+  "beauty": "beauty skincare",
+  "frumusete": "beauty facial brush",
+  "fitness": "fitness sport accessories",
+  "sport": "sport fitness",
+  "casa": "home kitchen gadget",
+  "casă": "home kitchen gadget",
+  "cadou": "gift gadget unique",
+  "gadget": "gadget tech portable",
+  "aspirator": "vacuum cleaner portable",
+  "incarcator": "wireless charger",
+  "încărcător": "wireless charger",
+  "masaj": "massager neck electric",
+  "blender": "portable blender juicer",
+  "perie": "facial cleansing brush",
+  "suport": "phone mount holder",
+  "lumina": "LED light lamp",
+  "decor": "LED RGB ambient decor",
+  "wireless": "wireless bluetooth",
+  "tech": "tech gadget electronic",
+};
+
+function translateQuery(roQuery: string): string {
+  const words = roQuery.toLowerCase().split(/\s+/);
+  const translated: string[] = [];
+
+  for (const word of words) {
+    if (RO_TO_EN[word]) {
+      translated.push(RO_TO_EN[word]);
+    } else {
+      translated.push(word);
+    }
+  }
+
+  return translated.join(" ");
+}
 
 export async function POST(req: Request) {
   try {
@@ -26,8 +76,25 @@ export async function POST(req: Request) {
     if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper") {
       const query = aiResult.searchQuery || message;
 
-      // Search supplier
-      const supplierProducts = mockSearch(query);
+      // Translate Romanian to English for CJ API
+      const enQuery = translateQuery(query);
+      console.log(`[Chat] Search: "${query}" → CJ: "${enQuery}"`);
+
+      // Try CJ Dropshipping first, fallback to mock
+      let supplierProducts: SupplierProduct[] = [];
+
+      if (process.env.CJ_API_KEY) {
+        supplierProducts = await cjSearch(enQuery, 1, 20);
+        if (supplierProducts.length > 0) {
+          console.log(`[Chat] ✅ CJ returned ${supplierProducts.length} real products`);
+        }
+      }
+
+      // Fallback to mock if CJ returns nothing
+      if (supplierProducts.length === 0) {
+        console.log("[Chat] ⚠️ CJ empty, using mock fallback");
+        supplierProducts = mockSearch(query);
+      }
 
       // Filter, score, rewrite, and price products
       const processedProducts = await processProducts(supplierProducts);
