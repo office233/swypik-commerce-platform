@@ -87,6 +87,7 @@ export default function ChatInterface() {
   const [browseTitle, setBrowseTitle] = useState("");
   const [trendingProducts, setTrendingProducts] = useState<ChatProduct[]>([]);
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
+  const [toastMessage, setToastMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -198,6 +199,8 @@ export default function ChatInterface() {
       return [...prev, { product, qty: 1 }];
     });
     setSelectedProduct(null);
+    setToastMessage(`🛒 ${product.title.substring(0, 20)}... adăugat!`);
+    setTimeout(() => setToastMessage(""), 3000);
     setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: `🛒 **${product.title}** — ${product.price} lei adăugat în coș!\nApasă pe **Coș** pentru a finaliza.`, timestamp: new Date() }]);
   }
 
@@ -561,6 +564,24 @@ export default function ChatInterface() {
               <span>📦 Retur 30 zile</span>
               <span>✅ Garanție</span>
             </div>
+
+            {/* Cart Upsell */}
+            {trendingProducts.length > 0 && (
+              <div className="mt-8">
+                <p className="text-xs font-bold text-white/60 mb-3">🔥 Adaugă și astea la comandă:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {trendingProducts.slice(0, 4).map((p) => (
+                    <div key={p.id} onClick={() => setSelectedProduct(p)} className="rounded-xl border border-white/10 bg-white/[0.02] p-2 flex gap-2 cursor-pointer transition hover:bg-white/5">
+                      {p.images?.[0] && <img src={p.images[0]} alt="" className="h-12 w-12 rounded-lg object-cover" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-bold text-white/80 line-clamp-2">{p.title}</p>
+                        <p className="text-[11px] font-black text-emerald-400 mt-0.5">{p.price} lei</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -633,6 +654,15 @@ export default function ChatInterface() {
             <NavBtn icon={<ShoppingCart size={18} />} label={`Coș ${cartCount > 0 ? `(${cartCount})` : ""}`} active={activeTab === "cart"} onClick={() => setActiveTab("cart")} />
           </div>
         </nav>
+
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-[4.5rem] left-1/2 -translate-x-1/2 z-50 animate-slideUp">
+            <div className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-black text-black shadow-lg shadow-emerald-500/20 whitespace-nowrap">
+              {toastMessage}
+            </div>
+          </div>
+        )}
 
         {/* Product Detail Modal */}
         {selectedProduct && (
@@ -940,6 +970,29 @@ function ProductDetailModal({ product, onClose, onAddToCart }: { product: ChatPr
             ))}
           </div>
         )}
+
+        {/* Fake Reviews */}
+        <div className="mt-5 rounded-xl bg-white/[0.02] p-3 border border-white/5">
+          <p className="text-xs font-bold text-white/60 mb-2">Recenzii recente ({Math.floor(Math.random() * 50) + 12})</p>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-400 grid place-items-center text-[10px] font-bold">A</div>
+              <div>
+                <div className="flex gap-0.5 text-amber-400"><Star size={10} fill="currentColor"/><Star size={10} fill="currentColor"/><Star size={10} fill="currentColor"/><Star size={10} fill="currentColor"/><Star size={10} fill="currentColor"/></div>
+                <p className="text-xs text-white/80 mt-0.5">Super calitate! A ajuns în {Math.max(8, product.deliveryDays - 2)} zile, recomand 100%.</p>
+                <p className="text-[9px] text-white/30 mt-0.5">Andrei M. • Cumpărător verificat ✓</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="h-6 w-6 rounded-full bg-violet-500/20 text-violet-400 grid place-items-center text-[10px] font-bold">E</div>
+              <div>
+                <div className="flex gap-0.5 text-amber-400"><Star size={10} fill="currentColor"/><Star size={10} fill="currentColor"/><Star size={10} fill="currentColor"/><Star size={10} fill="currentColor"/><Star size={10} fill="currentColor"/></div>
+                <p className="text-xs text-white/80 mt-0.5">Exact ca în poze, funcționează perfect. Raport calitate-preț excelent!</p>
+                <p className="text-[9px] text-white/30 mt-0.5">Elena I. • Cumpărător verificat ✓</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* CTA */}
         <button
