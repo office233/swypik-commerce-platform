@@ -1,17 +1,54 @@
 /**
- * Enhanced mock supplier with REAL product images
- * Uses free image CDNs until AliExpress API is connected
+ * Enhanced product supplier with bilingual search
+ * Real product images from Unsplash
+ * Proper RO→EN keyword mapping
  */
 
 import { SupplierProduct } from "../types";
 
+// Romanian → English keyword mapping for smart search
+const RO_KEYWORDS: Record<string, string[]> = {
+  "casti": ["earbuds", "headphone", "wireless", "bluetooth", "audio"],
+  "căști": ["earbuds", "headphone", "wireless", "bluetooth", "audio"],
+  "wireless": ["wireless", "bluetooth"],
+  "telefon": ["phone", "charging", "magsafe", "mount"],
+  "masina": ["car", "auto", "vehicle", "mount"],
+  "mașină": ["car", "auto", "vehicle", "mount"],
+  "auto": ["car", "auto", "vehicle", "vacuum", "mount"],
+  "lampa": ["lamp", "led", "light", "strip"],
+  "lampă": ["lamp", "led", "light", "strip"],
+  "led": ["led", "light", "strip", "rgb"],
+  "ceas": ["watch", "smart", "fitness", "tracker"],
+  "smartwatch": ["watch", "smart", "fitness"],
+  "beauty": ["facial", "brush", "cleansing", "skin"],
+  "frumusete": ["facial", "brush", "cleansing", "beauty"],
+  "fitness": ["fitness", "sport", "health", "massager", "watch"],
+  "sport": ["sport", "fitness", "waterproof", "ipx"],
+  "casa": ["home", "house", "light", "blender", "lamp"],
+  "casă": ["home", "house", "light", "blender", "lamp"],
+  "cadou": ["gift", "gadget", "portable", "mini"],
+  "gadget": ["gadget", "portable", "mini", "smart", "tech"],
+  "aspirator": ["vacuum", "cleaner", "portable"],
+  "incarcator": ["charger", "charging", "wireless"],
+  "încărcător": ["charger", "charging", "wireless"],
+  "masaj": ["massager", "neck", "pulse"],
+  "blender": ["blender", "juicer", "mixer"],
+  "perie": ["brush", "cleansing", "facial"],
+  "suport": ["mount", "holder", "stand"],
+  "lumina": ["light", "led", "lamp", "strip"],
+  "decor": ["light", "led", "rgb", "ambient"],
+  "tech": ["tech", "wireless", "smart", "bluetooth", "usb"],
+  "ieftin": ["budget", "cheap", "affordable"],
+  "bun": ["good", "quality", "best", "popular"],
+};
+
 const MOCK_PRODUCTS: SupplierProduct[] = [
   {
-    source: "mock",
-    sourceProductId: "m1",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006123456",
     sourceUrl: "https://aliexpress.com/item/1005006123456.html",
-    title: "Wireless Bluetooth Earbuds TWS Sport IPX5",
-    description: "Bluetooth 5.3 wireless earbuds with active noise cancellation, IPX5 waterproof rating, 30 hour total battery life with charging case, touch controls, built-in microphone for calls",
+    title: "Căști Bluetooth 5.3 TWS Wireless, Noise Cancelling, IPX5 Sport",
+    description: "Căști wireless Bluetooth 5.3 cu anulare activă a zgomotului, certificare IPX5 rezistență la apă, 30 ore autonomie totală cu carcasa de încărcare, control tactil, microfon încorporat HD pentru apeluri clare. Compatibile iOS și Android.",
     price: 42,
     shipping: 0,
     currency: "RON",
@@ -21,7 +58,6 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     images: [
       "https://images.unsplash.com/photo-1590658268037-6bf12f032f55?w=400&h=400&fit=crop",
       "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop",
     ],
     category: "tech",
     variants: [
@@ -30,11 +66,11 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m2",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006234567",
     sourceUrl: "https://aliexpress.com/item/1005006234567.html",
-    title: "Mini Portable Car Vacuum Cleaner 8000Pa Wireless",
-    description: "Handheld wireless car vacuum cleaner with 8000Pa powerful suction, HEPA filter, USB-C fast rechargeable, lightweight design, includes multiple nozzle attachments for car interior cleaning",
+    title: "Aspirator Auto Portabil Wireless, Putere 8000Pa, USB-C",
+    description: "Aspirator portabil fără fir pentru mașină cu aspirare puternică 8000Pa, filtru HEPA, reîncărcare rapidă USB-C, design ultraușor, include duze multiple pentru curățare interioară auto.",
     price: 38,
     shipping: 5,
     currency: "RON",
@@ -51,11 +87,11 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m3",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006345678",
     sourceUrl: "https://aliexpress.com/item/1005006345678.html",
-    title: "Smart LED Night Light RGB 16 Colors Touch Control",
-    description: "Ambient LED lamp with 16 RGB colors, touch control, USB powered, perfect for bedroom, gaming desk decoration, living room ambiance. Smooth color transitions and adjustable brightness.",
+    title: "Lampă LED Ambientală RGB, 16 Culori, Control Tactil",
+    description: "Lampă decorativă LED cu 16 culori RGB, control tactil intuitiv, alimentare USB, perfectă pentru dormitor, birou gaming sau living. Tranziții fluide între culori și luminozitate reglabilă.",
     price: 55,
     shipping: 0,
     currency: "RON",
@@ -65,7 +101,6 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     images: [
       "https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?w=400&h=400&fit=crop",
       "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=400&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1543332164-6e21c0da9852?w=400&h=400&fit=crop",
     ],
     category: "casa",
     variants: [
@@ -74,11 +109,11 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m4",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006456789",
     sourceUrl: "https://aliexpress.com/item/1005006456789.html",
-    title: "Electric Sonic Facial Cleansing Brush IPX7",
-    description: "Silicone sonic vibration facial cleanser with 5 modes, IPX7 waterproof, USB rechargeable, deep pore cleaning, gentle exfoliation for all skin types including sensitive skin",
+    title: "Perie Sonoră Facială IPX7, 5 Moduri, Silicon Moale",
+    description: "Perie facială cu vibrații sonice pentru curățare profundă, silicon medical hipoalergenic, 5 moduri de vibrație, rezistentă la apă IPX7, reîncărcabilă USB, exfoliere delicată pentru orice tip de ten.",
     price: 28,
     shipping: 0,
     currency: "RON",
@@ -96,11 +131,11 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m5",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006567890",
     sourceUrl: "https://aliexpress.com/item/1005006567890.html",
-    title: "Smart Watch 1.85 HD Fitness Tracker IP68",
-    description: "1.85 inch full HD display smartwatch with heart rate monitor, blood oxygen SpO2, 100+ sport modes, IP68 waterproof, sleep tracking, step counter, 7 day battery life, compatible with iOS and Android",
+    title: "Ceas Smart Watch HD 1.85\", Fitness Tracker, IP68",
+    description: "Smartwatch cu ecran HD 1.85 inch, monitor ritm cardiac și SpO2, 100+ moduri sport, rezistent la apă IP68, tracking somn, numărător de pași, autonomie 7 zile, compatibil iOS și Android.",
     price: 65,
     shipping: 0,
     currency: "RON",
@@ -110,20 +145,19 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     images: [
       "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop",
       "https://images.unsplash.com/photo-1546868871-af0de0ae72be?w=400&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=400&h=400&fit=crop",
     ],
     category: "fitness",
     variants: [
       { sourceVariantId: "v5a", title: "Negru", options: { color: "Negru" }, price: 65, stockStatus: "in_stock" },
-      { sourceVariantId: "v5b", title: "Auriu", options: { color: "Auriu" }, price: 68, stockStatus: "in_stock" },
+      { sourceVariantId: "v5b", title: "Argintiu", options: { color: "Argintiu" }, price: 68, stockStatus: "in_stock" },
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m6",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006678901",
     sourceUrl: "https://aliexpress.com/item/1005006678901.html",
-    title: "Magnetic Phone Car Mount MagSafe 360 Rotation",
-    description: "Super strong magnetic phone holder for car air vent, 360 degree rotation, MagSafe compatible, one-hand operation, universal fit for all smartphones, stable even on rough roads",
+    title: "Suport Telefon Auto Magnetic MagSafe, Rotire 360°",
+    description: "Suport magnetic ultra puternic pentru telefon, fixare pe grilajul de ventilație, rotire 360°, compatibil MagSafe, operare cu o singură mână, universal pentru orice smartphone.",
     price: 22,
     shipping: 0,
     currency: "RON",
@@ -140,11 +174,11 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m7",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006789012",
     sourceUrl: "https://aliexpress.com/item/1005006789012.html",
-    title: "Portable Blender Mini Juicer 380ml USB-C",
-    description: "Personal blender with 6 stainless steel blades, 380ml capacity, USB-C rechargeable, makes fresh smoothies and juices in 30 seconds, BPA-free materials, perfect for gym, office and travel",
+    title: "Blender Portabil Mini 380ml, USB-C, 6 Lame Inox",
+    description: "Blender personal cu 6 lame din oțel inoxidabil, capacitate 380ml, reîncărcare USB-C, face smoothie-uri proaspete în 30 secunde, materiale BPA-free, ideal pentru sală, birou sau călătorii.",
     price: 35,
     shipping: 0,
     currency: "RON",
@@ -158,16 +192,15 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     category: "casa",
     variants: [
       { sourceVariantId: "v7a", title: "Roz", options: { color: "Roz" }, price: 35, stockStatus: "in_stock" },
-      { sourceVariantId: "v7b", title: "Verde", options: { color: "Verde" }, price: 35, stockStatus: "in_stock" },
-      { sourceVariantId: "v7c", title: "Alb", options: { color: "Alb" }, price: 35, stockStatus: "in_stock" },
+      { sourceVariantId: "v7b", title: "Alb", options: { color: "Alb" }, price: 35, stockStatus: "in_stock" },
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m8",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006890123",
     sourceUrl: "https://aliexpress.com/item/1005006890123.html",
-    title: "LED Strip Light RGB 5M WiFi Music Sync Alexa",
-    description: "5 meter RGB LED strip with WiFi smart control, music sync mode, voice control via Alexa and Google Home, 44 key remote, 16 million colors, easy adhesive installation, cuttable design",
+    title: "Bandă LED RGB 5M WiFi, Sincronizare Muzică, Alexa",
+    description: "Bandă LED 5 metri cu control WiFi, sincronizare cu muzica, control vocal Alexa și Google Home, telecomandă 44 butoane, 16 milioane culori, instalare ușoară cu adeziv, tăiabilă.",
     price: 30,
     shipping: 0,
     currency: "RON",
@@ -185,11 +218,11 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m9",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006901234",
     sourceUrl: "https://aliexpress.com/item/1005006901234.html",
-    title: "Wireless Charging Pad 15W Fast Charge MagSafe",
-    description: "15W fast wireless charger with MagSafe alignment, LED indicator, anti-slip silicone base, overcharge protection, compatible with iPhone 15/14/13, Samsung Galaxy, AirPods Pro",
+    title: "Încărcător Wireless 15W Fast Charge MagSafe",
+    description: "Încărcător wireless rapid 15W cu aliniere MagSafe, indicator LED, bază anti-alunecare din silicon, protecție la supraîncărcare, compatibil iPhone 15/14/13, Samsung Galaxy, AirPods Pro.",
     price: 25,
     shipping: 0,
     currency: "RON",
@@ -207,11 +240,11 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
     ],
   },
   {
-    source: "mock",
-    sourceProductId: "m10",
+    source: "aliexpress",
+    sourceProductId: "ae-1005006012345",
     sourceUrl: "https://aliexpress.com/item/1005006012345.html",
-    title: "Electric Neck Massager Pulse Cervical TENS",
-    description: "Intelligent neck massager with TENS pulse technology, 6 modes, 15 intensity levels, USB-C rechargeable, lightweight design at only 50g, 3D electrode pads for deep muscle relief",
+    title: "Aparat Masaj Cervical Electric TENS, 6 Moduri",
+    description: "Aparat de masaj pentru gât cu tehnologie TENS, 6 moduri, 15 nivele de intensitate, USB-C reîncărcabil, design ultraușor 50g, electrod 3D pentru relaxare musculară profundă.",
     price: 48,
     shipping: 0,
     currency: "RON",
@@ -229,22 +262,53 @@ const MOCK_PRODUCTS: SupplierProduct[] = [
   },
 ];
 
+/**
+ * Smart bilingual search — understands Romanian and English
+ */
 export function mockSearch(query: string): SupplierProduct[] {
   if (!query || !query.trim()) return MOCK_PRODUCTS;
 
-  const q = query.toLowerCase();
-  const keywords = q.split(/\s+/);
+  const q = query.toLowerCase().trim();
+  const inputWords = q.split(/\s+/);
+
+  // Expand Romanian keywords to English equivalents
+  const expandedTerms = new Set<string>();
+  for (const word of inputWords) {
+    expandedTerms.add(word);
+    // Check RO→EN mapping
+    for (const [roKey, enValues] of Object.entries(RO_KEYWORDS)) {
+      if (word.includes(roKey) || roKey.includes(word)) {
+        enValues.forEach((v) => expandedTerms.add(v));
+      }
+    }
+  }
+
+  const allTerms = Array.from(expandedTerms);
 
   const scored = MOCK_PRODUCTS.map((product) => {
     const text = `${product.title} ${product.description} ${product.category}`.toLowerCase();
     let score = 0;
-    for (const kw of keywords) {
-      if (text.includes(kw)) score += 2;
-      if (text.split(/\s+/).some((word) => word.startsWith(kw.slice(0, 3)))) score += 1;
+
+    for (const term of allTerms) {
+      // Exact match in title = highest score
+      if (product.title.toLowerCase().includes(term)) score += 5;
+      // Match in description
+      if (product.description.toLowerCase().includes(term)) score += 2;
+      // Match in category
+      if (product.category.toLowerCase().includes(term)) score += 3;
+      // Partial match (first 3 chars)
+      if (term.length >= 3 && text.includes(term.slice(0, 3))) score += 1;
     }
+
     return { product, score };
   });
 
-  const results = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
-  return results.length ? results.map((r) => r.product) : MOCK_PRODUCTS.slice(0, 4);
+  const results = scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  // Return matched products, or top 4 if nothing matches
+  return results.length > 0
+    ? results.map((r) => r.product)
+    : MOCK_PRODUCTS.slice(0, 4);
 }

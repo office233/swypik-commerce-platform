@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         intent: aiResult.intent,
         reply: processedProducts.length > 0
-          ? `Am găsit ${processedProducts.length} produse bune pentru tine! 🎯`
+          ? aiResult.reply || `Am găsit ${processedProducts.length} produse bune pentru tine! 🎯`
           : "Nu am găsit produse care să treacă filtrul de calitate. Încearcă altceva!",
         products: processedProducts,
         sessionId: sessionId || crypto.randomUUID(),
