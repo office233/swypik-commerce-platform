@@ -1,40 +1,38 @@
 /**
  * Shopify Product Sync & Checkout Service
- * Uses ADMIN API (Draft Orders) instead of Storefront API
- * No Headless channel needed!
+ * Uses ADMIN API with REST fallback for reliable product creation
  */
 
 import { getShopifyAccessToken } from "./auth";
 
 const API_VERSION = "2026-04";
 
-async function shopifyAdminGQL(query: string, variables?: Record<string, unknown>) {
+async function shopifyAdminREST(endpoint: string, method = "GET", body?: any) {
   const token = await getShopifyAccessToken();
   const store = process.env.SHOPIFY_STORE!;
 
-  const res = await fetch(`https://${store}/admin/api/${API_VERSION}/graphql.json`, {
-    method: "POST",
+  const res = await fetch(`https://${store}/admin/api/${API_VERSION}/${endpoint}`, {
+    method,
     headers: {
       "Content-Type": "application/json",
       "X-Shopify-Access-Token": token,
     },
-    body: JSON.stringify({ query, variables }),
+    body: body ? JSON.stringify(body) : undefined,
   });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Shopify Admin API error: ${res.status} — ${err}`);
+    throw new Error(`Shopify REST ${res.status}: ${err.slice(0, 200)}`);
   }
 
-  const json = await res.json();
-  return json;
+  return res.json();
 }
 
 // Cache: sourceProductId -> { shopifyProductId, shopifyVariantId }
 const productCache = new Map<string, { shopifyProductId: string; shopifyVariantId: string }>();
 
 /**
- * Creates product in Shopify if it doesn't exist yet
+ * Creates product in Shopify using REST API (more reliable than GraphQL for product creation)
  */
 export async function ensureProductInShopify(product: {
   id: string;
@@ -45,117 +43,140 @@ export async function ensureProductInShopify(product: {
   category: string;
   images: string[];
 }): Promise<{ shopifyProductId: string; shopifyVariantId: string }> {
-  // Check cache
   if (productCache.has(product.id)) {
     return productCache.get(product.id)!;
   }
 
   try {
-    const mutation = `
-      mutation productCreate($input: ProductInput!) {
-        productCreate(input: $input) {
-          product {
-            id
-            variants(first: 1) {
-              edges { node { id } }
-            }
-          }
-          userErrors { field message }
-        }
-      }
-    `;
+    // Build image objects
+    const imageObjects = (product.images || [])
+      .filter((url) => url && url.startsWith("http"))
+      .slice(0, 3)
+      .map((src) => ({ src }));
 
-    const variables = {
-      input: {
+    const payload = {
+      product: {
         title: product.title,
-        descriptionHtml: `<p>${product.description}</p>`,
-        productType: product.category,
+        body_html: `<p>${product.description || product.title}</p>`,
+        product_type: product.category || "General",
         vendor: "AICeVrei",
-        tags: ["ai-generated", product.category],
-        status: "ACTIVE",
+        tags: `ai-import, ${product.category || "general"}`,
+        status: "active",
         variants: [{
           price: product.price.toFixed(2),
-          compareAtPrice: product.oldPrice.toFixed(2),
-          sku: `ACV-${product.id}`,
-          requiresShipping: true,
+          compare_at_price: product.oldPrice > product.price ? product.oldPrice.toFixed(2) : null,
+          sku: `ACV-${product.id.slice(0, 20)}`,
+          requires_shipping: true,
+          inventory_management: null, // Don't track inventory
         }],
+        images: imageObjects,
       },
     };
 
-    const json = await shopifyAdminGQL(mutation, variables);
-    const data = json.data;
+    const json = await shopifyAdminREST("products.json", "POST", payload);
 
-    if (data?.productCreate?.userErrors?.length > 0) {
-      console.error("[Shopify] Product errors:", data.productCreate.userErrors);
-      throw new Error(JSON.stringify(data.productCreate.userErrors));
+    if (!json.product) {
+      console.error("[Shopify] Product creation failed:", JSON.stringify(json).slice(0, 300));
+      throw new Error("No product returned");
     }
 
     const result = {
-      shopifyProductId: data.productCreate.product.id,
-      shopifyVariantId: data.productCreate.product.variants.edges[0].node.id,
+      shopifyProductId: String(json.product.id),
+      shopifyVariantId: String(json.product.variants[0].id),
     };
 
     productCache.set(product.id, result);
-    console.log(`[Shopify] ✅ Created: ${product.title} → ${result.shopifyProductId}`);
+    console.log(`[Shopify] ✅ Product created: "${product.title}" → ID: ${result.shopifyProductId}`);
     return result;
   } catch (error: any) {
-    console.error("[Shopify] Product creation error:", error.message);
+    console.error("[Shopify] Product error:", error.message);
+    // Don't return mock IDs — return empty so checkout uses line item only
     return {
-      shopifyProductId: `mock-product-${product.id}`,
-      shopifyVariantId: `mock-variant-${product.id}`,
+      shopifyProductId: "",
+      shopifyVariantId: "",
     };
   }
 }
 
 /**
- * Creates a Draft Order with checkout URL
- * Uses Admin API — no Headless channel or Storefront API needed!
+ * Creates a Draft Order with customer info and checkout URL
  */
 export async function createCheckout(product: {
   title: string;
   price: number;
   variantId?: string;
+}, customer?: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  county?: string;
 }): Promise<{ checkoutUrl: string | null; orderId: string | null }> {
   try {
-    const mutation = `
-      mutation draftOrderCreate($input: DraftOrderInput!) {
-        draftOrderCreate(input: $input) {
-          draftOrder {
-            id
-            invoiceUrl
-            name
-            totalPrice
-          }
-          userErrors { field message }
-        }
-      }
-    `;
+    // Build line items
+    const lineItems: any[] = [];
 
-    const variables = {
-      input: {
-        lineItems: [{
-          title: product.title,
-          quantity: 1,
-          originalUnitPrice: product.price.toFixed(2),
-        }],
-        useCustomerDefaultAddress: false,
+    if (product.variantId && !product.variantId.startsWith("mock")) {
+      // Use real Shopify variant
+      lineItems.push({
+        variant_id: parseInt(product.variantId),
+        quantity: 1,
+      });
+    } else {
+      // Custom line item (no Shopify product needed)
+      lineItems.push({
+        title: product.title,
+        quantity: 1,
+        price: product.price.toFixed(2),
+      });
+    }
+
+    // Build draft order payload
+    const payload: any = {
+      draft_order: {
+        line_items: lineItems,
+        use_customer_default_address: false,
       },
     };
 
-    const json = await shopifyAdminGQL(mutation, variables);
-    const data = json.data;
+    // Add customer data if provided
+    if (customer?.name || customer?.email || customer?.phone) {
+      const nameParts = (customer.name || "").trim().split(" ");
+      payload.draft_order.customer = {
+        first_name: nameParts[0] || "",
+        last_name: nameParts.slice(1).join(" ") || "",
+        email: customer.email || undefined,
+        phone: customer.phone || undefined,
+      };
 
-    if (data?.draftOrderCreate?.userErrors?.length > 0) {
-      console.error("[Shopify] Draft order errors:", data.draftOrderCreate.userErrors);
+      if (customer.address || customer.city) {
+        payload.draft_order.shipping_address = {
+          first_name: nameParts[0] || "",
+          last_name: nameParts.slice(1).join(" ") || "",
+          address1: customer.address || "",
+          city: customer.city || "",
+          province: customer.county || "",
+          country: "Romania",
+          country_code: "RO",
+          phone: customer.phone || "",
+        };
+      }
+    }
+
+    const json = await shopifyAdminREST("draft_orders.json", "POST", payload);
+
+    if (!json.draft_order) {
+      console.error("[Shopify] Draft order failed:", JSON.stringify(json).slice(0, 300));
       return { checkoutUrl: null, orderId: null };
     }
 
-    const draftOrder = data.draftOrderCreate.draftOrder;
-    console.log(`[Shopify] ✅ Draft order: ${draftOrder.name} — ${draftOrder.totalPrice}`);
+    const draftOrder = json.draft_order;
+    console.log(`[Shopify] ✅ Draft order: ${draftOrder.name} — ${draftOrder.total_price} RON`);
 
     return {
-      checkoutUrl: draftOrder.invoiceUrl,
-      orderId: draftOrder.id,
+      checkoutUrl: draftOrder.invoice_url || null,
+      orderId: String(draftOrder.id),
     };
   } catch (error: any) {
     console.error("[Shopify] Draft order error:", error.message);
