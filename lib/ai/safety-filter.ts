@@ -61,13 +61,9 @@ export function safetyCheck(product: SupplierProduct): FilterResult {
     return { passed: false, reason: `Categorie blocată: ${product.category}`, score: 0 };
   }
 
-  // Quality checks
-  if (product.rating < 4.5) {
+  // Quality checks — 0 means data not available (e.g. CJ products)
+  if (product.rating > 0 && product.rating < 3.0) {
     return { passed: false, reason: `Rating prea mic: ${product.rating}`, score: 2 };
-  }
-
-  if (product.orders < 50) {
-    return { passed: false, reason: `Prea puține comenzi: ${product.orders}`, score: 3 };
   }
 
   if (product.deliveryDays > 30) {

@@ -144,63 +144,62 @@ export default function ChatInterface() {
     }
   }
 
-  async function addToCart(product: ChatProduct) {
-    setCartCount((c) => c + 1);
+  const [checkoutProduct, setCheckoutProduct] = useState<ChatProduct | null>(null);
+  const [checkoutForm, setCheckoutForm] = useState({ name: "", email: "", phone: "", address: "", city: "", county: "" });
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  function startCheckout(product: ChatProduct) {
+    setCheckoutProduct(product);
     setSelectedProduct(null);
+  }
 
-    // Show "processing" message immediately
-    const processingMsgId = crypto.randomUUID();
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: processingMsgId,
-        role: "assistant",
-        content: `⏳ Pregătesc comanda pentru **${product.title}**...`,
-        timestamp: new Date(),
-      },
-    ]);
+  async function submitOrder() {
+    if (!checkoutProduct) return;
+    if (!checkoutForm.name || !checkoutForm.phone || !checkoutForm.address || !checkoutForm.city) {
+      alert("Completează toate câmpurile obligatorii!");
+      return;
+    }
 
+    setCheckoutLoading(true);
     try {
-      // Call cart API → creates product in Shopify + generates checkout
       const res = await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product, quantity: 1 }),
+        body: JSON.stringify({
+          product: checkoutProduct,
+          quantity: 1,
+          customer: checkoutForm,
+        }),
       });
-
       const data = await res.json();
 
-      // Replace processing message with result
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === processingMsgId
-            ? {
-                ...m,
-                content: data.checkoutUrl
-                  ? `✅ **${product.title}** — ${product.price} lei\n\n🛒 Produsul a fost adăugat! Click mai jos pentru a finaliza comanda pe Shopify:\n\n👉 [Finalizează comanda](${data.checkoutUrl})\n\nSau continuă să cauți alte produse!`
-                  : `✅ **${product.title}** adăugat! (${product.price} lei)\n\nCheckout-ul Shopify se configurează. Între timp, continuă să cauți produse!`,
-              }
-            : m
-        )
-      );
+      setCheckoutProduct(null);
+      setCheckoutForm({ name: "", email: "", phone: "", address: "", city: "", county: "" });
+      setCartCount((c) => c + 1);
 
-      // If we have checkout URL, also open it after a short delay
-      if (data.checkoutUrl) {
-        setTimeout(() => {
-          window.open(data.checkoutUrl, "_blank");
-        }, 1500);
-      }
-    } catch (error) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === processingMsgId
-            ? {
-                ...m,
-                content: `✅ **${product.title}** — ${product.price} lei\n\nProdusul a fost salvat! Checkout-ul va fi disponibil în curând.`,
-              }
-            : m
-        )
-      );
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.checkoutUrl
+            ? `✅ Comanda pentru **${checkoutProduct.title}** (${checkoutProduct.price} lei) a fost creată!\n\n📧 ${checkoutForm.name}, finalizează plata aici:\n👉 [Plătește acum](${data.checkoutUrl})`
+            : `✅ Comanda pentru **${checkoutProduct.title}** a fost înregistrată! Te vom contacta pe ${checkoutForm.phone} cu detalii de plată.`,
+          timestamp: new Date(),
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `❌ Eroare la plasarea comenzii. Încearcă din nou.`,
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setCheckoutLoading(false);
     }
   }
 
@@ -324,7 +323,7 @@ export default function ChatInterface() {
                       key={product.id}
                       product={product}
                       onViewDetails={() => setSelectedProduct(product)}
-                      onAddToCart={() => addToCart(product)}
+                      onAddToCart={() => startCheckout(product)}
                     />
                   ))}
                 </div>
@@ -418,8 +417,98 @@ export default function ChatInterface() {
           <ProductDetailModal
             product={selectedProduct}
             onClose={() => setSelectedProduct(null)}
-            onAddToCart={() => addToCart(selectedProduct)}
+            onAddToCart={() => startCheckout(selectedProduct)}
           />
+        )}
+
+        {/* Inline Checkout Form */}
+        {checkoutProduct && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-fadeIn" onClick={() => setCheckoutProduct(null)}>
+            <div
+              className="w-full max-w-lg rounded-t-[2rem] border-t border-white/10 bg-[#0b0b12] p-5 shadow-2xl animate-slideUp max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-black text-white">Finalizează comanda</h2>
+                <button onClick={() => setCheckoutProduct(null)} className="rounded-full bg-white/10 p-1.5">
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Product summary */}
+              <div className="mb-4 flex items-center gap-3 rounded-xl bg-white/5 p-3">
+                {checkoutProduct.images?.[0] && (
+                  <img src={checkoutProduct.images[0]} alt="" className="h-14 w-14 rounded-lg object-cover" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{checkoutProduct.title}</p>
+                  <p className="text-lg font-black text-emerald-400">{checkoutProduct.price} lei</p>
+                </div>
+              </div>
+
+              {/* Form */}
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Nume complet *"
+                  value={checkoutForm.name}
+                  onChange={(e) => setCheckoutForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-violet-500 focus:outline-none"
+                />
+                <input
+                  type="tel"
+                  placeholder="Telefon *"
+                  value={checkoutForm.phone}
+                  onChange={(e) => setCheckoutForm((f) => ({ ...f, phone: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-violet-500 focus:outline-none"
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={checkoutForm.email}
+                  onChange={(e) => setCheckoutForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-violet-500 focus:outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="Adresă livrare *"
+                  value={checkoutForm.address}
+                  onChange={(e) => setCheckoutForm((f) => ({ ...f, address: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-violet-500 focus:outline-none"
+                />
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    placeholder="Oraș *"
+                    value={checkoutForm.city}
+                    onChange={(e) => setCheckoutForm((f) => ({ ...f, city: e.target.value }))}
+                    className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-violet-500 focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Județ"
+                    value={checkoutForm.county}
+                    onChange={(e) => setCheckoutForm((f) => ({ ...f, county: e.target.value }))}
+                    className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-violet-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                onClick={submitOrder}
+                disabled={checkoutLoading}
+                className="mt-5 w-full rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 py-3.5 text-base font-black text-black transition hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+              >
+                {checkoutLoading ? "Se procesează..." : `Plătește ${checkoutProduct.price} lei 💳`}
+              </button>
+
+              <p className="mt-3 text-center text-[11px] text-white/30">
+                🔒 Plata se procesează securizat prin Shopify
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </main>
@@ -497,14 +586,18 @@ function ProductCard({ product, onViewDetails, onAddToCart }: { product: ChatPro
         {/* Title */}
         <h3 className="text-base font-bold leading-tight">{product.title}</h3>
 
-        {/* Rating & orders */}
+        {/* Rating & delivery */}
         <div className="mt-1.5 flex items-center gap-3 text-xs text-white/50">
-          <span className="flex items-center gap-1 text-amber-300">
-            <Star size={12} fill="currentColor" /> {product.rating}
-          </span>
-          <span>{product.orders.toLocaleString()}+ comenzi</span>
+          {product.rating > 0 && (
+            <span className="flex items-center gap-1 text-amber-300">
+              <Star size={12} fill="currentColor" /> {product.rating.toFixed(1)}
+            </span>
+          )}
+          {product.orders > 0 && (
+            <span>{product.orders.toLocaleString()}+ comenzi</span>
+          )}
           <span className="flex items-center gap-1">
-            <Truck size={12} /> {product.deliveryDays} zile
+            <Truck size={12} /> ~{product.deliveryDays} zile în RO
           </span>
         </div>
 
@@ -538,7 +631,7 @@ function ProductCard({ product, onViewDetails, onAddToCart }: { product: ChatPro
             onClick={onAddToCart}
             className="flex-1 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-black text-black transition hover:scale-[1.02] active:scale-[0.98]"
           >
-            Adaugă 🛒
+            Cumpără 💳
           </button>
         </div>
       </div>
