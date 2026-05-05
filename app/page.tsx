@@ -1,5 +1,5 @@
-import StorefrontApp from "../components/StorefrontApp";
+import ChatInterface from "@/components/ChatInterface";
 
 export default function Home() {
-  return <StorefrontApp />;
+  return <ChatInterface />;
 }

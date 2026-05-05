@@ -1,4 +1,4 @@
-export type SupplierSource = "mock" | "autods" | "aliexpress" | "cj" | "syncee";
+export type SupplierSource = "mock" | "aliexpress" | "cj" | "syncee";
 
 export type SupplierProduct = {
   source: SupplierSource;
@@ -26,28 +26,57 @@ export type ProductVariant = {
   stockStatus: "in_stock" | "low_stock" | "out_of_stock";
 };
 
-export type StoreProduct = SupplierProduct & {
-  aiTitle: string;
-  aiDescription: string;
+export type StoreProduct = {
+  id: string;
+  source: SupplierSource;
+  sourceUrl?: string;
+  originalTitle: string;
+  originalDescription: string;
+  title: string;        // AI rewritten
+  description: string;  // AI rewritten
   benefits: string[];
-  sellPrice: number;
+  dealLabel: string;
+  whyBuy: string;
+  warnings: string[];
+  price: number;        // sell price
+  oldPrice: number;
   discountPercent: number;
   marginPercent: number;
-  score: number;
-  dealLabel: string;
+  rating: number;
+  orders: number;
+  deliveryDays: number;
+  images: string[];
+  category: string;
+  variants: ProductVariant[];
+  qualityScore: number;
+  gradient: string;
+  shopifyProductId?: string;
+  createdAt?: string;
 };
 
 export type ChatIntent =
   | "search_product"
-  | "compare_products"
   | "explain_product"
+  | "compare_products"
   | "find_cheaper"
   | "add_to_cart"
   | "track_order"
-  | "refund_help";
+  | "general_chat";
 
-export type ChatResponse = {
-  intent: ChatIntent;
-  reply: string;
-  products: StoreProduct[];
+export type ChatMessage = {
+  id: string;
+  sessionId: string;
+  role: "user" | "assistant";
+  content: string;
+  intent?: ChatIntent;
+  products?: StoreProduct[];
+  createdAt: string;
+};
+
+export type ChatSession = {
+  id: string;
+  userId?: string;
+  startedAt: string;
+  lastMessageAt: string;
+  messageCount: number;
 };

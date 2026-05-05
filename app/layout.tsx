@@ -1,14 +1,26 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "AICeVrei.ro - Shopping cu AI",
-  description: "Spune-mi ce vrei si iti gasesc cea mai buna oferta.",
+  title: "AICeVrei.ro — Shopping inteligent cu AI",
+  description: "Spune-mi ce vrei și îți găsesc cea mai bună ofertă. Produse verificate, prețuri corecte, livrare în România.",
+  keywords: "shopping, ai, romania, produse, oferte, reduceri, gadgets, tech, beauty",
+  openGraph: {
+    title: "AICeVrei.ro — Shopping inteligent cu AI",
+    description: "Caut produse, compar prețuri, explic detalii — totul într-o conversație cu AI.",
+    type: "website",
+    locale: "ro_RO",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ro">
-      <body>{children}</body>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="theme-color" content="#050507" />
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
+      </head>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
