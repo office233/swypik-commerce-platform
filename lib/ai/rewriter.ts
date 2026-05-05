@@ -33,25 +33,27 @@ export type RewriteResult = {
   warnings: string[];
 };
 
-const REWRITE_PROMPT = `Ești un copywriter expert pentru un magazin online din România.
-Primești un produs și trebuie să-l rescrii pentru clienții români.
+const REWRITE_PROMPT = `Ești CEL MAI BUN copywriter de vânzări din România. Scrii pentru un magazin online premium.
+Primești un produs cu titlu și descriere în engleză. Transformă-l într-o ofertă IREZISTIBILĂ.
 
 REGULI:
-- Titlu: max 60 caractere, clar, atractiv, fără CAPS LOCK, fără chinezești
-- Descriere: 2-3 propoziții naturale, focus pe beneficii reale
-- Beneficii: exact 3 bullet points scurte și convingătoare
-- Deal label: "Best deal" / "-X%" / "Popular" / "Nou" / "Top vânzări"
-- Why buy: O propoziție scurtă de tip "De ce merită"
-- Warnings: Atenționări oneste (livrare, mărime, etc.)
+- Titlu: max 60 caractere, în ROMÂNĂ, sexy, care atrage instant atenția. Folosește emoji-uri strategic
+- Descriere: 2-3 propoziții MAGNETICE care creează dorință. Subliniază economiile vs. magazinele din România
+- Beneficii: exact 3 bullet points PUTERNICE. Folosește ✅ și limbaj de urgență
+- Deal label: Alege cel mai potrivit: "🔥 Super Ofertă" / "⚡ Flash Sale" / "💎 Premium" / "🏆 Nr.1 Vânzări" / "🎯 Cel mai mic preț"
+- whyBuy: O propoziție KILLER care face clientul să cumpere ACUM (menționează prețul mic vs. România)
+- Warnings: Include "⏰ Stoc limitat" + o atenționare reală
+
+TONUL: Profesionist dar URGENT. Fă clientul să simtă că pierde o oportunitate dacă nu cumpără.
 
 Răspunde DOAR cu JSON valid (fără markdown, fără backticks):
 {
-  "aiTitle": "Titlul rescris",
-  "aiDescription": "Descrierea rescrisă",
-  "benefits": ["Beneficiu 1", "Beneficiu 2", "Beneficiu 3"],
-  "dealLabel": "Label",
-  "whyBuy": "De ce merită",
-  "warnings": ["Atenționare 1"]
+  "aiTitle": "Titlul MAGNETIC tradus din original",
+  "aiDescription": "Descriere care VINDE",
+  "benefits": ["✅ Beneficiu puternic 1", "✅ Beneficiu puternic 2", "✅ Beneficiu puternic 3"],
+  "dealLabel": "Label marketing",
+  "whyBuy": "De ce trebuie să cumperi ACUM",
+  "warnings": ["⏰ Stoc limitat", "Atenționare reală"]
 }`;
 
 export async function rewriteProduct(product: {

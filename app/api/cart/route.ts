@@ -1,5 +1,6 @@
 /**
- * Cart API — Creates product in Shopify + Draft Order checkout with customer data
+ * Cart API — Creates Shopify Draft Order with multiple products + customer data
+ * Each product includes: cost CJ + transport RO + markup + TVA
  */
 
 import { NextResponse } from "next/server";
@@ -7,53 +8,54 @@ import { ensureProductInShopify, createCheckout } from "@/lib/shopify/product-sy
 
 export async function POST(req: Request) {
   try {
-    const { product, quantity = 1, customer } = await req.json();
+    const { products, product, quantity = 1, customer } = await req.json();
 
-    if (!product) {
-      return NextResponse.json({ error: "Product required" }, { status: 400 });
+    // Support both single product and array of products
+    const productList = products || (product ? [product] : []);
+
+    if (productList.length === 0) {
+      return NextResponse.json({ error: "No products" }, { status: 400 });
     }
 
-    console.log(`[Cart] Order: "${product.title}" — ${product.price} lei — Customer: ${customer?.name || "anonymous"}`);
+    console.log(`[Cart] Order: ${productList.length} product(s) — Customer: ${customer?.name || "anon"}`);
 
-    // Step 1: Create product in Shopify (with real images)
-    const { shopifyProductId, shopifyVariantId } = await ensureProductInShopify({
-      id: product.id,
-      title: product.title,
-      description: product.description || product.title,
-      price: product.price,
-      oldPrice: product.oldPrice || product.price,
-      category: product.category || "general",
-      images: product.images || [],
-    });
+    // Create all products in Shopify + build line items
+    const lineItems = [];
 
-    // Step 2: Create Draft Order with customer info → checkout URL
-    const { checkoutUrl, orderId } = await createCheckout(
-      {
-        title: product.title,
-        price: product.price,
+    for (const p of productList) {
+      const { shopifyProductId, shopifyVariantId } = await ensureProductInShopify({
+        id: p.id,
+        title: p.title,
+        description: p.description || p.title,
+        price: p.price,
+        oldPrice: p.oldPrice || p.price,
+        category: p.category || "general",
+        images: p.images || [],
+      });
+
+      lineItems.push({
+        title: p.title,
+        price: p.price,
         variantId: shopifyVariantId,
-      },
-      customer
-    );
+        quantity: p.quantity || quantity,
+      });
+    }
+
+    // Create single Draft Order with ALL line items
+    const { checkoutUrl, orderId } = await createCheckout(lineItems, customer);
+
+    const total = lineItems.reduce((sum, li) => sum + li.price * li.quantity, 0);
 
     return NextResponse.json({
       success: true,
       checkoutUrl,
       orderId,
-      shopifyProductId,
-      shopifyVariantId,
-      totalAmount: product.price,
+      totalAmount: total,
+      itemCount: lineItems.length,
       currency: "RON",
     });
   } catch (error: any) {
     console.error("[Cart] Error:", error.message);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Order failed",
-        checkoutUrl: null,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: false, error: error.message, checkoutUrl: null }, { status: 200 });
   }
 }

@@ -1,13 +1,14 @@
 /**
  * Shopify Product Sync & Checkout Service
- * Uses ADMIN API with REST fallback for reliable product creation
+ * REST API — includes shipping cost to Romania in product cost
  */
 
 import { getShopifyAccessToken } from "./auth";
 
 const API_VERSION = "2026-04";
+const SHIPPING_RO_RON = 25; // Estimated CJ shipping to Romania
 
-async function shopifyAdminREST(endpoint: string, method = "GET", body?: any) {
+async function shopifyREST(endpoint: string, method = "GET", body?: any) {
   const token = await getShopifyAccessToken();
   const store = process.env.SHOPIFY_STORE!;
 
@@ -22,17 +23,16 @@ async function shopifyAdminREST(endpoint: string, method = "GET", body?: any) {
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Shopify REST ${res.status}: ${err.slice(0, 200)}`);
+    throw new Error(`Shopify ${res.status}: ${err.slice(0, 200)}`);
   }
 
   return res.json();
 }
 
-// Cache: sourceProductId -> { shopifyProductId, shopifyVariantId }
 const productCache = new Map<string, { shopifyProductId: string; shopifyVariantId: string }>();
 
 /**
- * Creates product in Shopify using REST API (more reliable than GraphQL for product creation)
+ * Creates product in Shopify with cost = CJ price + shipping RO
  */
 export async function ensureProductInShopify(product: {
   id: string;
@@ -48,10 +48,9 @@ export async function ensureProductInShopify(product: {
   }
 
   try {
-    // Build image objects
     const imageObjects = (product.images || [])
       .filter((url) => url && url.startsWith("http"))
-      .slice(0, 3)
+      .slice(0, 5)
       .map((src) => ({ src }));
 
     const payload = {
@@ -60,23 +59,24 @@ export async function ensureProductInShopify(product: {
         body_html: `<p>${product.description || product.title}</p>`,
         product_type: product.category || "General",
         vendor: "AICeVrei",
-        tags: `ai-import, ${product.category || "general"}`,
+        tags: `ai-import, ${product.category || "general"}, transport-inclus`,
         status: "active",
         variants: [{
           price: product.price.toFixed(2),
           compare_at_price: product.oldPrice > product.price ? product.oldPrice.toFixed(2) : null,
           sku: `ACV-${product.id.slice(0, 20)}`,
           requires_shipping: true,
-          inventory_management: null, // Don't track inventory
+          inventory_management: null,
+          // Cost = original CJ price + shipping to Romania
+          cost: (product.price * 0.4 + SHIPPING_RO_RON).toFixed(2),
         }],
         images: imageObjects,
       },
     };
 
-    const json = await shopifyAdminREST("products.json", "POST", payload);
+    const json = await shopifyREST("products.json", "POST", payload);
 
     if (!json.product) {
-      console.error("[Shopify] Product creation failed:", JSON.stringify(json).slice(0, 300));
       throw new Error("No product returned");
     }
 
@@ -86,61 +86,41 @@ export async function ensureProductInShopify(product: {
     };
 
     productCache.set(product.id, result);
-    console.log(`[Shopify] ✅ Product created: "${product.title}" → ID: ${result.shopifyProductId}`);
+    console.log(`[Shopify] ✅ Product: "${product.title}" (${imageObjects.length} imgs) → ID: ${result.shopifyProductId}`);
     return result;
   } catch (error: any) {
     console.error("[Shopify] Product error:", error.message);
-    // Don't return mock IDs — return empty so checkout uses line item only
-    return {
-      shopifyProductId: "",
-      shopifyVariantId: "",
-    };
+    return { shopifyProductId: "", shopifyVariantId: "" };
   }
 }
 
 /**
- * Creates a Draft Order with customer info and checkout URL
+ * Creates Draft Order with multiple line items + customer data
  */
-export async function createCheckout(product: {
-  title: string;
-  price: number;
-  variantId?: string;
-}, customer?: {
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  county?: string;
-}): Promise<{ checkoutUrl: string | null; orderId: string | null }> {
+export async function createCheckout(
+  lineItems: { title: string; price: number; variantId?: string; quantity: number }[],
+  customer?: { name?: string; email?: string; phone?: string; address?: string; city?: string; county?: string }
+): Promise<{ checkoutUrl: string | null; orderId: string | null }> {
   try {
-    // Build line items
-    const lineItems: any[] = [];
+    const draftLineItems = lineItems.map((item) => {
+      if (item.variantId && item.variantId.length > 0 && !item.variantId.startsWith("mock")) {
+        return { variant_id: parseInt(item.variantId), quantity: item.quantity };
+      }
+      return { title: item.title, quantity: item.quantity, price: item.price.toFixed(2) };
+    });
 
-    if (product.variantId && !product.variantId.startsWith("mock")) {
-      // Use real Shopify variant
-      lineItems.push({
-        variant_id: parseInt(product.variantId),
-        quantity: 1,
-      });
-    } else {
-      // Custom line item (no Shopify product needed)
-      lineItems.push({
-        title: product.title,
-        quantity: 1,
-        price: product.price.toFixed(2),
-      });
-    }
-
-    // Build draft order payload
     const payload: any = {
       draft_order: {
-        line_items: lineItems,
+        line_items: draftLineItems,
         use_customer_default_address: false,
+        shipping_line: {
+          title: "Transport România",
+          price: "0.00", // Included in product price
+          custom: true,
+        },
       },
     };
 
-    // Add customer data if provided
     if (customer?.name || customer?.email || customer?.phone) {
       const nameParts = (customer.name || "").trim().split(" ");
       payload.draft_order.customer = {
@@ -164,22 +144,22 @@ export async function createCheckout(product: {
       }
     }
 
-    const json = await shopifyAdminREST("draft_orders.json", "POST", payload);
+    const json = await shopifyREST("draft_orders.json", "POST", payload);
 
     if (!json.draft_order) {
       console.error("[Shopify] Draft order failed:", JSON.stringify(json).slice(0, 300));
       return { checkoutUrl: null, orderId: null };
     }
 
-    const draftOrder = json.draft_order;
-    console.log(`[Shopify] ✅ Draft order: ${draftOrder.name} — ${draftOrder.total_price} RON`);
+    const d = json.draft_order;
+    console.log(`[Shopify] ✅ Draft order: ${d.name} — ${d.total_price} RON — ${d.line_items?.length} items`);
 
     return {
-      checkoutUrl: draftOrder.invoice_url || null,
-      orderId: String(draftOrder.id),
+      checkoutUrl: d.invoice_url || null,
+      orderId: String(d.id),
     };
   } catch (error: any) {
-    console.error("[Shopify] Draft order error:", error.message);
+    console.error("[Shopify] Draft error:", error.message);
     return { checkoutUrl: null, orderId: null };
   }
 }

@@ -36,20 +36,22 @@ type ChatMessage = {
   timestamp: Date;
 };
 
+type CartItem = { product: ChatProduct; qty: number };
+
 /* ─── Quick action categories ─── */
 const QUICK_ACTIONS = [
-  { label: "🎧 Căști", query: "vreau căști wireless bluetooth" },
-  { label: "📱 Telefon", query: "accesorii telefon husa incarcator" },
-  { label: "💄 Beauty", query: "produse beauty skincare" },
-  { label: "🏋️ Fitness", query: "echipament fitness sport" },
-  { label: "🚗 Auto", query: "accesorii auto mașină" },
-  { label: "🏠 Casă", query: "gadget pentru casă bucătărie" },
-  { label: "💡 LED", query: "lumini LED bandă RGB" },
-  { label: "⌚ Ceasuri", query: "ceas smart watch inteligent" },
-  { label: "🎮 Gaming", query: "accesorii gaming mouse tastatura" },
-  { label: "🎁 Cadouri", query: "cadou gadget unic" },
-  { label: "👕 Fashion", query: "accesorii fashion bijuterii" },
-  { label: "📷 Foto", query: "cameră foto accesorii" },
+  { label: "🎧 Căști", displayMsg: "Vreau căști wireless", cjQuery: "wireless earbuds bluetooth headphones" },
+  { label: "📱 Telefon", displayMsg: "Accesorii telefon", cjQuery: "phone accessories case charger" },
+  { label: "💄 Beauty", displayMsg: "Produse beauty", cjQuery: "beauty skincare face cream serum" },
+  { label: "🏋️ Fitness", displayMsg: "Echipament fitness", cjQuery: "fitness equipment resistance bands yoga" },
+  { label: "🚗 Auto", displayMsg: "Accesorii auto", cjQuery: "car accessories interior gadgets" },
+  { label: "🏠 Casă", displayMsg: "Gadgeturi casă", cjQuery: "home gadgets kitchen tools organizer" },
+  { label: "💡 LED", displayMsg: "Lumini LED", cjQuery: "LED strip lights RGB neon room" },
+  { label: "⌚ Ceasuri", displayMsg: "Ceasuri smart", cjQuery: "smart watch fitness tracker band" },
+  { label: "🎮 Gaming", displayMsg: "Accesorii gaming", cjQuery: "gaming mouse keyboard headset RGB" },
+  { label: "🎁 Cadouri", displayMsg: "Cadouri unice", cjQuery: "unique gift gadget novelty" },
+  { label: "👕 Fashion", displayMsg: "Accesorii fashion", cjQuery: "fashion accessories jewelry sunglasses" },
+  { label: "📷 Foto", displayMsg: "Accesorii foto", cjQuery: "camera accessories tripod ring light" },
 ];
 
 /* ─── Gradient map for product cards ─── */
@@ -76,9 +78,13 @@ export default function ChatInterface() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ChatProduct | null>(null);
-  const [cartCount, setCartCount] = useState(0);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [sessionId, setSessionId] = useState("");
   const [activeTab, setActiveTab] = useState<"home" | "chat" | "deals" | "cart">("home");
+  const [dealsProducts, setDealsProducts] = useState<ChatProduct[]>([]);
+  const [dealsLoading, setDealsLoading] = useState(false);
+  const [browseProducts, setBrowseProducts] = useState<ChatProduct[]>([]);
+  const [browseTitle, setBrowseTitle] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -95,7 +101,7 @@ export default function ChatInterface() {
   }, [messages, scrollToBottom]);
 
   /* ─── Send message ─── */
-  async function sendMessage(text?: string) {
+  async function sendMessage(text?: string, directCjQuery?: string) {
     const msg = (text || input).trim();
     if (!msg || isLoading) return;
 
@@ -118,6 +124,7 @@ export default function ChatInterface() {
         body: JSON.stringify({
           message: msg,
           sessionId,
+          directCjQuery: directCjQuery || undefined,
           chatHistory: messages.slice(-10).map((m) => ({
             role: m.role,
             content: m.content,
@@ -159,17 +166,69 @@ export default function ChatInterface() {
     }
   }
 
-  const [checkoutProduct, setCheckoutProduct] = useState<ChatProduct | null>(null);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
   const [checkoutForm, setCheckoutForm] = useState({ name: "", email: "", phone: "", address: "", city: "", county: "" });
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  function startCheckout(product: ChatProduct) {
-    setCheckoutProduct(product);
+  function addToCart(product: ChatProduct) {
+    setCartItems((prev) => {
+      const idx = prev.findIndex((c) => c.product.id === product.id);
+      if (idx >= 0) { const n = [...prev]; n[idx] = { ...n[idx], qty: n[idx].qty + 1 }; return n; }
+      return [...prev, { product, qty: 1 }];
+    });
     setSelectedProduct(null);
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: `🛒 **${product.title}** — ${product.price} lei adăugat în coș!\nApasă pe **Coș** pentru a finaliza.`, timestamp: new Date() }]);
+  }
+
+  function updateQty(index: number, delta: number) {
+    setCartItems((prev) => {
+      const n = [...prev];
+      n[index] = { ...n[index], qty: Math.max(0, n[index].qty + delta) };
+      return n.filter((c) => c.qty > 0);
+    });
+  }
+
+  function removeFromCart(index: number) {
+    setCartItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  const cartTotal = cartItems.reduce((sum, c) => sum + c.product.price * c.qty, 0);
+  const cartCount = cartItems.reduce((sum, c) => sum + c.qty, 0);
+
+  /* ─── Load Deals ─── */
+  async function loadDeals() {
+    if (dealsProducts.length > 0 || dealsLoading) return;
+    setDealsLoading(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "deals", sessionId, directCjQuery: "best sellers top rated cheap" }),
+      });
+      const data = await res.json();
+      setDealsProducts(data.products || []);
+    } catch {} finally { setDealsLoading(false); }
+  }
+
+  /* ─── Load Category Browse ─── */
+  async function loadCategory(label: string, query: string) {
+    setBrowseTitle(label);
+    setBrowseProducts([]);
+    setActiveTab("deals");
+    setDealsLoading(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: label, sessionId, directCjQuery: query }),
+      });
+      const data = await res.json();
+      setBrowseProducts(data.products || []);
+    } catch {} finally { setDealsLoading(false); }
   }
 
   async function submitOrder() {
-    if (!checkoutProduct) return;
+    if (cartItems.length === 0) return;
     if (!checkoutForm.name || !checkoutForm.phone || !checkoutForm.address || !checkoutForm.city) {
       alert("Completează toate câmpurile obligatorii!");
       return;
@@ -181,25 +240,23 @@ export default function ChatInterface() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          product: checkoutProduct,
-          quantity: 1,
+          products: cartItems.flatMap((ci) => Array(ci.qty).fill(ci.product)),
           customer: checkoutForm,
         }),
       });
       const data = await res.json();
 
-      setCheckoutProduct(null);
+      setCartItems([]);
+      setShowCheckoutForm(false);
       setCheckoutForm({ name: "", email: "", phone: "", address: "", city: "", county: "" });
-      setCartCount((c) => c + 1);
+      setActiveTab("chat");
 
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: data.checkoutUrl
-            ? `✅ Comanda pentru **${checkoutProduct.title}** (${checkoutProduct.price} lei) a fost creată!\n\n📧 ${checkoutForm.name}, finalizează plata aici:\n👉 [Plătește acum](${data.checkoutUrl})`
-            : `✅ Comanda pentru **${checkoutProduct.title}** a fost înregistrată! Te vom contacta pe ${checkoutForm.phone} cu detalii de plată.`,
+          content: data.checkoutUrl ? `✅ Comanda (${cartTotal} lei) creată!\n👉 [Plătește acum](${data.checkoutUrl})` : `✅ Comanda înregistrată! Te contactăm pe ${checkoutForm.phone}.`,
           timestamp: new Date(),
         },
       ]);
@@ -265,7 +322,7 @@ export default function ChatInterface() {
             {QUICK_ACTIONS.map((action) => (
               <button
                 key={action.label}
-                onClick={() => sendMessage(action.query)}
+                onClick={() => loadCategory(action.label, action.cjQuery)}
                 className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm font-semibold text-white/80 transition-all hover:bg-white/10 hover:scale-105 active:scale-95"
               >
                 {action.label}
@@ -307,7 +364,12 @@ export default function ChatInterface() {
 
   /* ─── Render chat messages ─── */
   function renderChat() {
-    if (messages.length === 0) return renderHome();
+    if (messages.length === 0) return (
+      <div className="flex flex-col items-center justify-center py-20 animate-fadeIn">
+        <MessageCircle className="mb-4 text-white/20" size={48} />
+        <p className="text-white/40 text-sm">Scrie un mesaj pentru a începe o conversație.</p>
+      </div>
+    );
 
     return (
       <div className="flex flex-col gap-4 px-4 pt-4 pb-32 animate-fadeIn">
@@ -338,7 +400,7 @@ export default function ChatInterface() {
                       key={product.id}
                       product={product}
                       onViewDetails={() => setSelectedProduct(product)}
-                      onAddToCart={() => startCheckout(product)}
+                      onAddToCart={() => addToCart(product)}
                     />
                   ))}
                 </div>
@@ -356,6 +418,118 @@ export default function ChatInterface() {
         {isLoading && <TypingIndicator />}
 
         <div ref={messagesEndRef} />
+      </div>
+    );
+  }
+
+
+  /* ─── Render Deals / Browse Tab ─── */
+  function renderDealsTab() {
+    const products = browseProducts.length > 0 ? browseProducts : dealsProducts;
+    const title = browseTitle || "🔥 Flash Sale";
+    if (dealsLoading) return (
+      <div className="flex flex-col items-center justify-center py-20 animate-fadeIn">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+        <p className="mt-3 text-sm text-white/40">Se încarcă ofertele...</p>
+      </div>
+    );
+    if (products.length === 0) {
+      loadDeals();
+      return <div className="py-20 text-center text-white/40 text-sm">Se încarcă ofertele...</div>;
+    }
+    return (
+      <div className="px-4 pt-4 pb-36 animate-fadeIn">
+        {!browseTitle && (
+          <div className="mb-4 rounded-xl bg-gradient-to-r from-red-600/90 to-orange-500/90 p-3 text-center">
+            <p className="text-xs font-black text-white animate-pulse">⚡ OFERTE LIMITATE — Se termină în curând!</p>
+            <p className="text-[10px] text-white/80 mt-0.5">Prețuri valabile doar azi • Stoc limitat</p>
+          </div>
+        )}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-black">{title}</h2>
+          {browseProducts.length > 0 && <button onClick={() => { setBrowseProducts([]); setBrowseTitle(""); }} className="text-xs text-violet-400 font-bold">← Înapoi</button>}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {products.map((p, idx) => (
+            <div key={p.id} onClick={() => setSelectedProduct(p)} className="cursor-pointer rounded-xl border border-white/10 bg-white/[0.04] overflow-hidden transition hover:border-violet-500/30 hover:scale-[1.02] active:scale-95">
+              <div className="relative h-32 bg-gradient-to-br from-violet-900/30 to-black">
+                {p.images?.[0] ? <img src={p.images[0]} alt="" className="h-full w-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} /> : <div className="grid h-full place-items-center"><Package className="text-white/20" size={32} /></div>}
+                {p.rating > 0 && <span className="absolute top-2 left-2 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">⭐ {p.rating.toFixed(1)}</span>}
+                {p.discountPercent > 0 && <span className="absolute top-2 right-2 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-black text-white">-{p.discountPercent}%</span>}
+                {idx < 3 && <span className="absolute bottom-2 left-2 rounded bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-black">BEST SELLER</span>}
+              </div>
+              <div className="p-2.5">
+                <p className="text-xs font-semibold text-white/80 line-clamp-2 leading-tight">{p.title}</p>
+                <div className="mt-1.5 flex items-end gap-1.5">
+                  <span className="text-base font-black text-emerald-400">{p.price} lei</span>
+                  <span className="text-[10px] text-white/30 line-through">{p.oldPrice} lei</span>
+                </div>
+                <p className="mt-1 text-[9px] text-amber-300/70">🚚 Livrare gratuită</p>
+                <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} className="mt-2 w-full rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 py-1.5 text-[11px] font-black text-black">🛒 Adaugă în coș</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── Render Cart — High Conversion ─── */
+  function renderCartTab() {
+    return (
+      <div className="px-4 pt-4 pb-36 animate-fadeIn">
+        <h2 className="text-2xl font-black mb-2">🛒 Coșul tău</h2>
+        {cartItems.length === 0 ? (
+          <div className="text-center py-16">
+            <ShoppingCart className="mx-auto mb-4 text-white/20" size={48} />
+            <p className="text-white/50 text-base font-bold">Coșul tău e gol</p>
+            <p className="text-white/30 text-sm mt-1">Descoperă produse la prețuri imbatabile!</p>
+            <button onClick={() => setActiveTab("deals")} className="mt-5 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-8 py-3 text-sm font-black text-black">🔥 Vezi ofertele</button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-center">
+              <p className="text-[11px] font-bold text-emerald-400">🚚 TRANSPORT GRATUIT la toate produsele!</p>
+            </div>
+            <div className="space-y-2.5">
+              {cartItems.map((ci, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                  {ci.product.images?.[0] && <img src={ci.product.images[0]} alt="" className="h-16 w-16 rounded-xl object-cover" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{ci.product.title}</p>
+                    <p className="text-[10px] text-white/40">🚚 ~{ci.product.deliveryDays} zile</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <p className="text-lg font-black text-emerald-400">{ci.product.price * ci.qty} lei</p>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => updateQty(i, -1)} className="grid h-7 w-7 place-items-center rounded-lg border border-white/10 text-sm font-bold text-white/60 hover:bg-white/10 active:scale-90">−</button>
+                      <span className="text-sm font-black w-5 text-center">{ci.qty}</span>
+                      <button onClick={() => updateQty(i, 1)} className="grid h-7 w-7 place-items-center rounded-lg border border-white/10 text-sm font-bold text-white/60 hover:bg-white/10 active:scale-90">+</button>
+                    </div>
+                    <button onClick={() => removeFromCart(i)} className="text-[10px] text-red-400/60 hover:text-red-400">Șterge</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white/60">Total ({cartCount} {cartCount === 1 ? "produs" : "produse"})</p>
+                  <p className="text-[10px] text-emerald-400 mt-0.5">Transport gratuit inclus ✓</p>
+                </div>
+                <span className="text-3xl font-black text-emerald-400">{cartTotal} lei</span>
+              </div>
+            </div>
+            <button onClick={() => setShowCheckoutForm(true)} className="mt-4 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-400 py-4 text-base font-black text-black shadow-lg shadow-emerald-500/20 transition hover:scale-[1.01] active:scale-[0.99]">
+              Finalizează comanda — {cartTotal} lei 💳
+            </button>
+            <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-white/30">
+              <span>🔒 Plată securizată</span>
+              <span>📦 Retur 30 zile</span>
+              <span>✅ Garanție</span>
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -394,11 +568,11 @@ export default function ChatInterface() {
 
         {/* Content area */}
         <div className="min-h-[calc(100vh-120px)]">
-          {renderChat()}
+          {activeTab === "home" ? renderHome() : activeTab === "cart" ? renderCartTab() : activeTab === "deals" ? renderDealsTab() : renderChat()}
         </div>
 
         {/* Input bar — always visible */}
-        <div className="fixed bottom-14 left-1/2 z-20 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/80 px-3 py-2 backdrop-blur-xl">
+        <div className="fixed bottom-16 left-1/2 z-20 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/90 px-3 py-2 backdrop-blur-xl">
           <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] p-2">
             <input
               value={input}
@@ -418,11 +592,11 @@ export default function ChatInterface() {
         </div>
 
         {/* Bottom nav */}
-        <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/80 px-4 py-2 backdrop-blur-xl">
+        <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/95 px-4 py-3 backdrop-blur-xl">
           <div className="flex items-center justify-around text-[10px] text-white/40">
-            <NavBtn icon={<Home size={18} />} label="Acasă" active={activeTab === "home" && messages.length === 0} onClick={() => { setActiveTab("home"); if (messages.length === 0) scrollToBottom(); }} />
-            <NavBtn icon={<MessageCircle size={18} />} label="Chat" active={activeTab === "chat" || messages.length > 0} onClick={() => setActiveTab("chat")} />
-            <NavBtn icon={<Tag size={18} />} label="Deals" active={activeTab === "deals"} onClick={() => setActiveTab("deals")} />
+            <NavBtn icon={<Home size={18} />} label="Acasă" active={activeTab === "home"} onClick={() => setActiveTab("home")} />
+            <NavBtn icon={<MessageCircle size={18} />} label="Chat" active={activeTab === "chat"} onClick={() => setActiveTab("chat")} />
+            <NavBtn icon={<Tag size={18} />} label="Deals" active={activeTab === "deals"} onClick={() => { setActiveTab("deals"); loadDeals(); }} />
             <NavBtn icon={<ShoppingCart size={18} />} label={`Coș ${cartCount > 0 ? `(${cartCount})` : ""}`} active={activeTab === "cart"} onClick={() => setActiveTab("cart")} />
           </div>
         </nav>
@@ -432,35 +606,31 @@ export default function ChatInterface() {
           <ProductDetailModal
             product={selectedProduct}
             onClose={() => setSelectedProduct(null)}
-            onAddToCart={() => startCheckout(selectedProduct)}
+            onAddToCart={() => addToCart(selectedProduct)}
           />
         )}
 
         {/* Inline Checkout Form */}
-        {checkoutProduct && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-fadeIn" onClick={() => setCheckoutProduct(null)}>
+        {showCheckoutForm && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-fadeIn" onClick={() => setShowCheckoutForm(false)}>
             <div
               className="w-full max-w-lg rounded-t-[2rem] border-t border-white/10 bg-[#0b0b12] p-5 shadow-2xl animate-slideUp max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-black text-white">Finalizează comanda</h2>
-                <button onClick={() => setCheckoutProduct(null)} className="rounded-full bg-white/10 p-1.5">
+                <h2 className="text-lg font-black text-white">Finalizează ({cartCount} produse)</h2>
+                <button onClick={() => setShowCheckoutForm(false)} className="rounded-full bg-white/10 p-1.5">
                   <X size={16} />
                 </button>
               </div>
 
-              {/* Product summary */}
-              <div className="mb-4 flex items-center gap-3 rounded-xl bg-white/5 p-3">
-                {checkoutProduct.images?.[0] && (
-                  <img src={checkoutProduct.images[0]} alt="" className="h-14 w-14 rounded-lg object-cover" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white truncate">{checkoutProduct.title}</p>
-                  <p className="text-lg font-black text-emerald-400">{checkoutProduct.price} lei</p>
-                </div>
+              {/* Cart summary */}
+              <div className="mb-4 space-y-2">
+                {cartItems.map((ci, i) => (<div key={i} className="flex items-center gap-2 rounded-lg bg-white/5 p-2"><p className="flex-1 text-xs text-white truncate">{ci.qty}x {ci.product.title}</p><p className="text-sm font-bold text-emerald-400">{ci.product.price * ci.qty} lei</p></div>))}
+                <div className="flex items-center justify-between rounded-lg bg-violet-500/10 p-3"><span className="text-sm font-bold">Total</span><span className="text-xl font-black text-emerald-400">{cartTotal} lei</span></div>
               </div>
+              
 
               {/* Form */}
               <div className="space-y-3">
@@ -516,7 +686,7 @@ export default function ChatInterface() {
                 disabled={checkoutLoading}
                 className="mt-5 w-full rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 py-3.5 text-base font-black text-black transition hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
               >
-                {checkoutLoading ? "Se procesează..." : `Plătește ${checkoutProduct.price} lei 💳`}
+                {checkoutLoading ? "Se procesează..." : `Plătește ${cartTotal} lei 💳`}
               </button>
 
               <p className="mt-3 text-center text-[11px] text-white/30">

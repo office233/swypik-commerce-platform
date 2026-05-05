@@ -1,6 +1,7 @@
 /**
  * Chat API — Main endpoint
- * AI translates to English → CJ API searches → AI rewrites to Romanian
+ * Supports: AI chat search + directCjQuery for categories (bypasses AI)
+ * Now uses AliExpress DataHub (via RapidAPI) as primary supplier
  */
 
 import { NextResponse } from "next/server";
@@ -8,57 +9,69 @@ import { orchestrate } from "@/lib/ai/orchestrator";
 import { rewriteProduct } from "@/lib/ai/rewriter";
 import { safetyCheck } from "@/lib/ai/safety-filter";
 import { calculatePricing } from "@/lib/pricing";
+import { aliexpressSearch } from "@/lib/suppliers/aliexpress-supplier";
 import { cjSearch } from "@/lib/suppliers/cj-supplier";
 import { mockSearch } from "@/lib/suppliers/mock-supplier";
 import type { SupplierProduct } from "@/lib/types";
+import { ensureProductInShopify } from "@/lib/shopify/product-sync";
 
 export async function POST(req: Request) {
   try {
-    const { message, sessionId, chatHistory = [] } = await req.json();
+    const { message, sessionId, directCjQuery, chatHistory = [] } = await req.json();
 
     if (!message?.trim()) {
       return NextResponse.json({ error: "Mesajul nu poate fi gol" }, { status: 400 });
     }
 
-    // Step 1: AI Orchestrator — detects intent + translates searchQuery to English
-    const aiResult = await orchestrate(message, chatHistory);
+    // DIRECT CATEGORY SEARCH — bypass AI orchestrator entirely
+    if (directCjQuery) {
+      console.log(`[Chat] DIRECT category search: "${directCjQuery}"`);
 
-    // Step 2: If search intent, find products
-    if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper") {
-      // AI already translated to English for CJ API
-      const enQuery = aiResult.searchQuery || message;
-      console.log(`[Chat] User: "${message}" → CJ search: "${enQuery}"`);
+      let products = await searchAllSuppliers(directCjQuery);
 
-      // Try CJ Dropshipping (real products)
-      let supplierProducts: SupplierProduct[] = [];
-
-      if (process.env.CJ_API_KEY) {
-        supplierProducts = await cjSearch(enQuery, 1, 20);
-        if (supplierProducts.length > 0) {
-          console.log(`[Chat] ✅ CJ: ${supplierProducts.length} real products`);
-        }
+      if (products.length === 0) {
+        console.log("[Chat] All suppliers empty → mock fallback");
+        products = mockSearch(message);
       }
 
-      // Fallback to mock if CJ empty
-      if (supplierProducts.length === 0) {
-        console.log("[Chat] ⚠️ CJ empty → mock fallback");
-        supplierProducts = mockSearch(message);
-      }
-
-      // Process: filter → rewrite → price
-      const processedProducts = await processProducts(supplierProducts);
+      const processed = await processProducts(products);
 
       return NextResponse.json({
-        intent: aiResult.intent,
-        reply: processedProducts.length > 0
-          ? aiResult.reply || `Am găsit ${processedProducts.length} produse pentru tine! 🎯`
-          : "Nu am găsit produse relevante. Încearcă altceva!",
-        products: processedProducts,
+        intent: "search_product",
+        reply: processed.length > 0
+          ? `Am găsit ${processed.length} produse pentru tine! 🎯`
+          : "Nu am găsit produse în această categorie. Încearcă altă căutare!",
+        products: processed,
         sessionId: sessionId || crypto.randomUUID(),
       });
     }
 
-    // Step 3: Other intents
+    // AI ORCHESTRATOR — for free-text messages
+    const aiResult = await orchestrate(message, chatHistory);
+
+    if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper") {
+      const enQuery = aiResult.searchQuery || message;
+      console.log(`[Chat] AI search: "${message}" → "${enQuery}"`);
+
+      let products = await searchAllSuppliers(enQuery);
+
+      if (products.length === 0) {
+        products = mockSearch(message);
+      }
+
+      const processed = await processProducts(products);
+
+      return NextResponse.json({
+        intent: aiResult.intent,
+        reply: processed.length > 0
+          ? aiResult.reply || `Am găsit ${processed.length} produse! 🎯`
+          : "Nu am găsit produse relevante. Reformulează!",
+        products: processed,
+        sessionId: sessionId || crypto.randomUUID(),
+      });
+    }
+
+    // Other intents
     return NextResponse.json({
       intent: aiResult.intent,
       reply: aiResult.reply,
@@ -74,28 +87,74 @@ export async function POST(req: Request) {
   }
 }
 
+/**
+ * Search all suppliers — AliExpress first, CJ as fallback
+ */
+async function searchAllSuppliers(query: string): Promise<SupplierProduct[]> {
+  // Try AliExpress first (primary) - fetch 3 pages in parallel for ~60 products
+  if (process.env.RAPIDAPI_KEY) {
+    const [p1, p2, p3] = await Promise.all([
+      aliexpressSearch(query, 1, 40),
+      aliexpressSearch(query, 2, 40),
+      aliexpressSearch(query, 3, 40),
+    ]);
+    const all = [...p1, ...p2, ...p3];
+    // Deduplicate by ID
+    const seen = new Set<string>();
+    const unique = all.filter(p => { if (seen.has(p.sourceProductId)) return false; seen.add(p.sourceProductId); return true; });
+    if (unique.length > 0) {
+      console.log(`[Suppliers] AliExpress: ${unique.length} unique results (3 pages)`);
+      return unique;
+    }
+  }
+
+  // Fallback to CJ Dropshipping
+  if (process.env.CJ_API_KEY) {
+    const cjProducts = await cjSearch(query, 1, 40);
+    if (cjProducts.length > 0) {
+      console.log(`[Suppliers] CJ fallback: ${cjProducts.length} results`);
+      return cjProducts;
+    }
+  }
+
+  return [];
+}
+
 async function processProducts(products: SupplierProduct[]) {
   const results = [];
 
-  for (const product of products.slice(0, 8)) {
+  for (const product of products.slice(0, 60)) {
     const safety = safetyCheck(product);
-    if (!safety.passed) {
-      console.log(`[Filter] Blocked: ${product.title.slice(0, 40)} — ${safety.reason}`);
-      continue;
+    if (!safety.passed) continue;
+
+    // AI rewrite — only for first 6 products (speed), rest use title as-is
+    let rewrite;
+    if (results.length < 6) {
+      try {
+        rewrite = await rewriteProduct({
+          title: product.title,
+          description: product.description,
+          price: product.price,
+          rating: product.rating,
+          orders: product.orders,
+          category: product.category,
+          deliveryDays: product.deliveryDays,
+        });
+      } catch {
+        rewrite = null;
+      }
+    }
+    if (!rewrite) {
+      rewrite = {
+        aiTitle: product.title,
+        aiDescription: product.description,
+        benefits: [],
+        dealLabel: product.rating >= 4.5 ? "Top Rated" : "Nou",
+        whyBuy: "",
+        warnings: [`Livrare ~${product.deliveryDays} zile`],
+      };
     }
 
-    // AI rewrite to Romanian
-    const rewrite = await rewriteProduct({
-      title: product.title,
-      description: product.description,
-      price: product.price,
-      rating: product.rating,
-      orders: product.orders,
-      category: product.category,
-      deliveryDays: product.deliveryDays,
-    });
-
-    // Calculate pricing with markup + TVA 21%
     const pricing = calculatePricing(product.price, product.shipping, product.category);
 
     results.push({
@@ -104,12 +163,12 @@ async function processProducts(products: SupplierProduct[]) {
       sourceUrl: product.sourceUrl,
       originalTitle: product.title,
       originalDescription: product.description,
-      title: rewrite.aiTitle,
-      description: rewrite.aiDescription,
-      benefits: rewrite.benefits,
-      dealLabel: rewrite.dealLabel,
-      whyBuy: rewrite.whyBuy,
-      warnings: rewrite.warnings,
+      title: rewrite.aiTitle || product.title,
+      description: rewrite.aiDescription || product.description,
+      benefits: rewrite.benefits || [],
+      dealLabel: rewrite.dealLabel || "Nou",
+      whyBuy: rewrite.whyBuy || "",
+      warnings: rewrite.warnings || [],
       price: pricing.sellPrice,
       oldPrice: pricing.oldPrice,
       discountPercent: pricing.discountPercent,
@@ -125,12 +184,27 @@ async function processProducts(products: SupplierProduct[]) {
     });
   }
 
-  return results.sort((a, b) => b.qualityScore - a.qualityScore);
+  const sorted = results.sort((a, b) => b.qualityScore - a.qualityScore);
+
+  // Background sync to Shopify — fire and forget
+  for (const p of sorted) {
+    ensureProductInShopify({
+      id: p.id,
+      title: p.title,
+      description: p.description || p.title,
+      price: p.price,
+      oldPrice: p.oldPrice || p.price,
+      category: p.category || "general",
+      images: p.images || [],
+    }).catch((e) => console.log(`[Shopify Sync] Skip ${p.id}: ${e.message?.slice(0, 60)}`));
+  }
+
+  return sorted;
 }
 
 function getGradient(category: string): string {
   const cat = (category || "").toLowerCase();
-  const gradients: Record<string, string> = {
+  const map: Record<string, string> = {
     tech: "from-violet-500 to-cyan-400",
     auto: "from-amber-400 to-rose-500",
     casa: "from-fuchsia-500 to-blue-500",
@@ -141,9 +215,7 @@ function getGradient(category: string): string {
     home: "from-fuchsia-500 to-blue-500",
     electronics: "from-violet-500 to-cyan-400",
   };
-
-  // Match partial category names
-  for (const [key, value] of Object.entries(gradients)) {
+  for (const [key, value] of Object.entries(map)) {
     if (cat.includes(key)) return value;
   }
   return "from-violet-500 to-cyan-400";

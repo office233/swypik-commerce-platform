@@ -1,6 +1,6 @@
 /**
  * CJ Dropshipping API Client
- * Real products — fetches detail endpoint for multiple images
+ * Parses productImage JSON arrays for multiple images (no extra API calls)
  */
 
 import { SupplierProduct } from "../types";
@@ -25,68 +25,70 @@ async function getCJToken(): Promise<string> {
   });
 
   const json = await res.json();
-  if (!json.result || json.code !== 200) {
-    throw new Error(`CJ auth error: ${json.message}`);
-  }
+  if (!json.result || json.code !== 200) throw new Error(`CJ auth: ${json.message}`);
 
   cachedToken = {
     token: json.data?.accessToken || json.data,
     expires: Date.now() + 23 * 60 * 60 * 1000,
   };
 
-  console.log("[CJ] ✅ Token obtained");
+  console.log("[CJ] ✅ Token OK");
   return cachedToken.token;
 }
 
 /**
- * Fetch product detail to get ALL images (list endpoint only gives 1)
+ * Extract ALL images from CJ's productImage field
+ * It can be: a URL string, a JSON array string, or null
  */
-async function fetchProductImages(pid: string, token: string): Promise<string[]> {
-  try {
-    const res = await fetch(`${CJ_BASE}/product/query?pid=${pid}`, {
-      method: "GET",
-      headers: { "CJ-Access-Token": token },
-    });
+function extractImages(item: any): string[] {
+  const images: string[] = [];
 
-    if (!res.ok) return [];
-
-    const json = await res.json();
-    if (json.code !== 200 || !json.data) return [];
-
-    const images: string[] = [];
-    const data = json.data;
-
-    // productImage can be a JSON array string or a URL
-    if (data.productImage) {
-      try {
-        const parsed = JSON.parse(data.productImage);
-        if (Array.isArray(parsed)) {
-          images.push(...parsed.filter((u: string) => u?.startsWith("http")));
+  // Try productImage (sometimes it's a JSON array!)
+  if (item.productImage) {
+    const pi = item.productImage;
+    if (typeof pi === "string") {
+      // Try parse as JSON array
+      if (pi.startsWith("[")) {
+        try {
+          const arr = JSON.parse(pi);
+          if (Array.isArray(arr)) {
+            for (const url of arr) {
+              if (typeof url === "string" && url.startsWith("http")) images.push(url);
+            }
+          }
+        } catch {
+          if (pi.startsWith("http")) images.push(pi);
         }
-      } catch {
-        if (data.productImage.startsWith("http")) {
-          images.push(data.productImage);
-        }
+      } else if (pi.startsWith("http")) {
+        images.push(pi);
       }
     }
-
-    // productImageSet is usually an array
-    if (Array.isArray(data.productImageSet)) {
-      for (const img of data.productImageSet) {
-        if (img && typeof img === "string" && img.startsWith("http") && !images.includes(img)) {
-          images.push(img);
-        }
-      }
-    }
-
-    return images.slice(0, 6);
-  } catch {
-    return [];
   }
+
+  // Also check productImageSet
+  if (item.productImageSet) {
+    const pis = item.productImageSet;
+    if (Array.isArray(pis)) {
+      for (const url of pis) {
+        if (typeof url === "string" && url.startsWith("http") && !images.includes(url)) {
+          images.push(url);
+        }
+      }
+    } else if (typeof pis === "string" && pis.includes(",")) {
+      for (const url of pis.split(",")) {
+        const trimmed = url.trim();
+        if (trimmed.startsWith("http") && !images.includes(trimmed)) {
+          images.push(trimmed);
+        }
+      }
+    }
+  }
+
+  return images.slice(0, 6);
 }
 
 /**
- * Search CJ products + fetch extra images for top results
+ * Search CJ products
  */
 export async function cjSearch(keyword: string, page = 1, size = 20): Promise<SupplierProduct[]> {
   try {
@@ -106,75 +108,52 @@ export async function cjSearch(keyword: string, page = 1, size = 20): Promise<Su
 
     const json = await res.json();
     if (json.code !== 200 || !json.data?.list) {
-      console.error("[CJ] API error:", json.message);
+      console.error("[CJ] Error:", json.message);
       return [];
     }
 
-    // Map basic products
-    const products = mapProducts(json.data.list);
+    const products = json.data.list
+      .map((item: any) => {
+        const variants = item.variants || [];
+        const prices = variants
+          .map((v: any) => parseFloat(v.variantSellPrice || v.variantPrice || "0"))
+          .filter((p: number) => p > 0);
+        const usdPrice = prices.length > 0 ? Math.min(...prices) : parseFloat(item.sellPrice || "0");
+        const ronCost = Math.round(usdPrice * USD_TO_RON);
 
-    // Fetch extra images for top 8 products (parallel, saves API calls)
-    const top8 = products.slice(0, 8);
-    const imagePromises = top8.map(async (p) => {
-      const extraImages = await fetchProductImages(p.sourceProductId, token);
-      if (extraImages.length > 1) {
-        p.images = extraImages;
-      }
-      return p;
-    });
+        const images = extractImages(item);
 
-    await Promise.all(imagePromises);
+        if (images.length === 0 || ronCost <= 0) return null;
 
-    console.log(`[CJ] ✅ ${products.length} products for "${keyword}" (${top8.length} with extra images)`);
+        return {
+          source: "cj" as const,
+          sourceProductId: item.pid || item.productId || "",
+          sourceUrl: `https://cjdropshipping.com/product/${item.pid || item.productId}`,
+          title: item.productNameEn || item.productName || "",
+          description: item.description || item.productNameEn || "",
+          price: ronCost,
+          shipping: 0,
+          currency: "RON",
+          rating: 0,
+          orders: 0,
+          deliveryDays: 14,
+          images,
+          category: item.categoryName || "",
+          variants: variants.slice(0, 6).map((v: any) => ({
+            sourceVariantId: v.vid || `v-${Math.random().toString(36).slice(2)}`,
+            title: v.variantName || v.variantNameEn || "Standard",
+            options: { variant: v.variantName || "Standard" },
+            price: Math.round(parseFloat(v.variantSellPrice || v.variantPrice || String(usdPrice)) * USD_TO_RON),
+            stockStatus: "in_stock" as const,
+          })),
+        };
+      })
+      .filter((p: any): p is SupplierProduct => p !== null && p.title.length > 0);
+
+    console.log(`[CJ] ✅ ${products.length} products for "${keyword}"`);
     return products;
   } catch (error: any) {
     console.error("[CJ] Error:", error.message);
     return [];
   }
-}
-
-function mapProducts(items: any[]): SupplierProduct[] {
-  return items
-    .map((item: any) => {
-      const variants = item.variants || [];
-      const prices = variants
-        .map((v: any) => parseFloat(v.variantSellPrice || v.variantPrice || "0"))
-        .filter((p: number) => p > 0);
-      const usdPrice = prices.length > 0 ? Math.min(...prices) : parseFloat(item.sellPrice || "0");
-      const ronCost = Math.round(usdPrice * USD_TO_RON);
-
-      // Basic image from list endpoint
-      const images: string[] = [];
-      if (item.productImage && item.productImage.startsWith("http")) {
-        images.push(item.productImage);
-      }
-
-      if (images.length === 0 || ronCost <= 0) return null;
-
-      const categoryName = item.categoryName || item.category || "";
-
-      return {
-        source: "cj" as const,
-        sourceProductId: item.pid || item.productId || "",
-        sourceUrl: `https://cjdropshipping.com/product/${item.pid || item.productId}`,
-        title: item.productNameEn || item.productName || "",
-        description: item.description || item.productNameEn || "",
-        price: ronCost,
-        shipping: 0,
-        currency: "RON",
-        rating: 0,
-        orders: 0,
-        deliveryDays: 14,
-        images,
-        category: categoryName,
-        variants: variants.slice(0, 6).map((v: any) => ({
-          sourceVariantId: v.vid || `v-${Math.random().toString(36).slice(2)}`,
-          title: v.variantName || v.variantNameEn || "Standard",
-          options: { variant: v.variantName || "Standard" },
-          price: Math.round(parseFloat(v.variantSellPrice || v.variantPrice || String(usdPrice)) * USD_TO_RON),
-          stockStatus: "in_stock" as const,
-        })),
-      };
-    })
-    .filter((p): p is SupplierProduct => p !== null && p.title.length > 0);
 }
