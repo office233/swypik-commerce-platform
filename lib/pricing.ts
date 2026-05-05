@@ -43,7 +43,7 @@ export function calculatePricing(
   const markup = (baseMarkup + categoryMultiplier) / 2; // average of both
 
   const rawPrice = totalCost * markup;
-  const withVat = rawPrice * 1.19;
+  const withVat = rawPrice * 1.21; // TVA Romania 21%
 
   // Psychological pricing: round to X9
   const sellPrice = Math.ceil(withVat / 10) * 10 - 1;
