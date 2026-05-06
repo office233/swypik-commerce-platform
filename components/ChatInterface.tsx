@@ -204,6 +204,35 @@ export default function ChatInterface() {
     setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: `🛒 **${product.title}** — ${product.price} lei adăugat în coș!\nApasă pe **Coș** pentru a finaliza.`, timestamp: new Date() }]);
   }
 
+
+  async function addToStore(product: ChatProduct) {
+    setToastMessage(`Uploading "${product.title.substring(0, 25)}..." to store...`);
+    try {
+      const res = await fetch("/api/products/add-to-store", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: product.id,
+          title: product.title,
+          description: product.description || product.title,
+          price: product.price,
+          oldPrice: product.oldPrice || product.price,
+          category: product.category || "general",
+          images: product.images || [],
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToastMessage(`Product added to Shopify!`);
+      } else {
+        setToastMessage(`Error: ${data.error || "Failed to add"}`);
+      }
+    } catch {
+      setToastMessage("Network error!");
+    }
+    setTimeout(() => setToastMessage(""), 4000);
+  }
+
   function updateQty(index: number, delta: number) {
     setCartItems((prev) => {
       const n = [...prev];
@@ -429,7 +458,7 @@ export default function ChatInterface() {
                       key={product.id}
                       product={product}
                       onViewDetails={() => setSelectedProduct(product)}
-                      onAddToCart={() => addToCart(product)}
+                      onAddToCart={() => addToCart(product)} onAddToStore={() => addToStore(product)}
                     />
                   ))}
                 </div>
@@ -802,7 +831,7 @@ function TypingIndicator() {
   );
 }
 
-function ProductCard({ product, onViewDetails, onAddToCart }: { product: ChatProduct; onViewDetails: () => void; onAddToCart: () => void }) {
+function ProductCard({ product, onViewDetails, onAddToCart, onAddToStore }: { product: ChatProduct; onViewDetails: () => void; onAddToCart: () => void; onAddToStore: () => void }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05] shadow-xl backdrop-blur-xl animate-slideUp">
       {/* Product image area */}
@@ -887,7 +916,7 @@ function ProductCard({ product, onViewDetails, onAddToCart }: { product: ChatPro
   );
 }
 
-function ProductDetailModal({ product, onClose, onAddToCart }: { product: ChatProduct; onClose: () => void; onAddToCart: () => void }) {
+function ProductDetailModal({ product, onClose, onAddToCart, onAddToStore }: { product: ChatProduct; onClose: () => void; onAddToCart: () => void; onAddToStore: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
       <div
