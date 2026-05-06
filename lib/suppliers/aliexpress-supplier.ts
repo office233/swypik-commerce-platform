@@ -32,7 +32,7 @@ export async function aliexpressSearch(
   }
 
   try {
-    const url = `https://${API_HOST}/item_search_4?q=${encodeURIComponent(keyword)}&page=${page}&sort=default&region=RO&locale=en_US&currency=EUR`;
+    const url = `https://${API_HOST}/item_search_4?q=${encodeURIComponent(keyword)}&page=${page}&sort=orders&region=RO&locale=en_US&currency=EUR`;
 
     console.log(`[AliExpress] Searching: "${keyword}" (page ${page})`);
 
@@ -175,7 +175,11 @@ function parseSearchItem(item: any): SupplierProduct | null {
 
     const ronPrice = Math.round(priceNum * EUR_TO_RON);
 
-    // Image — can be a string OR an object with imgUrl
+    // QUALITY FILTER: skip garbage products
+    if (priceNum < 2) return null;   // too cheap = junk
+    if (priceNum > 50) return null;  // too expensive for impulse buy
+    const rating = item.averageStarRate || 0;
+    if (rating > 0 && rating < 4.0) return null;  // bad rated
     const images: string[] = [];
     const imgField = item.image;
     if (imgField) {
@@ -192,8 +196,7 @@ function parseSearchItem(item: any): SupplierProduct | null {
     }
     if (images.length === 0) return null;
 
-    // Rating
-    const rating = item.averageStarRate || 4.5;
+    // Rating (already extracted above)
 
     // Sales — can be number or string like "1000+ sold"
     const salesRaw = item.sales ?? item.trade?.tradeDesc ?? 0;

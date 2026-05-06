@@ -40,18 +40,18 @@ type CartItem = { product: ChatProduct; qty: number };
 
 /* ─── Quick action categories ─── */
 const QUICK_ACTIONS = [
-  { label: "🎧 Căști", displayMsg: "Vreau căști wireless", cjQuery: "wireless earbuds bluetooth headphones" },
-  { label: "📱 Telefon", displayMsg: "Accesorii telefon", cjQuery: "phone accessories case charger" },
-  { label: "💄 Beauty", displayMsg: "Produse beauty", cjQuery: "beauty skincare face cream serum" },
-  { label: "🏋️ Fitness", displayMsg: "Echipament fitness", cjQuery: "fitness equipment resistance bands yoga" },
-  { label: "🚗 Auto", displayMsg: "Accesorii auto", cjQuery: "car accessories interior gadgets" },
-  { label: "🏠 Casă", displayMsg: "Gadgeturi casă", cjQuery: "home gadgets kitchen tools organizer" },
-  { label: "💡 LED", displayMsg: "Lumini LED", cjQuery: "LED strip lights RGB neon room" },
-  { label: "⌚ Ceasuri", displayMsg: "Ceasuri smart", cjQuery: "smart watch fitness tracker band" },
-  { label: "🎮 Gaming", displayMsg: "Accesorii gaming", cjQuery: "gaming mouse keyboard headset RGB" },
-  { label: "🎁 Cadouri", displayMsg: "Cadouri unice", cjQuery: "unique gift gadget novelty" },
-  { label: "👕 Fashion", displayMsg: "Accesorii fashion", cjQuery: "fashion accessories jewelry sunglasses" },
-  { label: "📷 Foto", displayMsg: "Accesorii foto", cjQuery: "camera accessories tripod ring light" },
+  { label: "🎧 Căști", displayMsg: "Vreau căști wireless", cjQuery: "wireless earbuds bluetooth 5.3 ANC" },
+  { label: "📱 Huse", displayMsg: "Huse telefon", cjQuery: "phone case iPhone Samsung silicone" },
+  { label: "💄 Beauty", displayMsg: "Produse beauty", cjQuery: "face serum vitamin C hyaluronic acid" },
+  { label: "🏋️ Fitness", displayMsg: "Echipament fitness", cjQuery: "resistance bands gym equipment home" },
+  { label: "🚗 Auto", displayMsg: "Accesorii auto", cjQuery: "car phone holder mount magnetic" },
+  { label: "🏠 Casă", displayMsg: "Gadgeturi casă", cjQuery: "kitchen gadget organizer storage tool" },
+  { label: "💡 LED", displayMsg: "Lumini LED", cjQuery: "LED strip light RGB bedroom decor" },
+  { label: "⌚ Ceasuri", displayMsg: "Ceasuri smart", cjQuery: "smartwatch men women fitness tracker" },
+  { label: "🎮 Gaming", displayMsg: "Accesorii gaming", cjQuery: "gaming mouse pad RGB keyboard" },
+  { label: "🎁 Cadouri", displayMsg: "Cadouri unice", cjQuery: "gift set women men birthday unique" },
+  { label: "👕 Fashion", displayMsg: "Haine trendy", cjQuery: "t-shirt men streetwear summer" },
+  { label: "📷 Tech", displayMsg: "Gadgeturi tech", cjQuery: "USB C hub adapter charger fast" },
 ];
 
 /* ─── Gradient map for product cards ─── */
@@ -97,7 +97,7 @@ export default function ChatInterface() {
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "trending", sessionId: "preload", directCjQuery: "best seller trending popular cheap" }),
+      body: JSON.stringify({ message: "trending", sessionId: "preload", directCjQuery: "smartphone accessories USB LED gadget" }),
     }).then(r => r.json()).then(d => setTrendingProducts(d.products || [])).catch(() => {});
   }, []);
 
@@ -227,7 +227,7 @@ export default function ChatInterface() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "deals", sessionId, directCjQuery: "best sellers top rated cheap" }),
+        body: JSON.stringify({ message: "deals", sessionId, directCjQuery: "wireless earbuds bluetooth portable charger USB gadget" }),
       });
       const data = await res.json();
       setDealsProducts(data.products || []);
