@@ -35,6 +35,7 @@ type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   products?: ChatProduct[];
+  bundleProducts?: ChatProduct[];
   timestamp: Date;
 };
 
@@ -43,12 +44,12 @@ type CartItem = { product: ChatProduct; qty: number };
 type Tab = "home" | "chat" | "deals" | "feed" | "cart";
 
 const QUICK_ACTIONS = [
-  { label: "👗 Rochii", query: "rochii damă elegante" },
-  { label: "👔 Bărbați", query: "tricouri bărbați" },
-  { label: "💎 Bijuterii", query: "bijuterii" },
+  { label: "🎁 Cadou", query: "cadou pentru iubita" },
+  { label: "👗 Outfit", query: "outfit elegant femei" },
+  { label: "💎 Bijuterii", query: "bijuterii elegante" },
   { label: "💄 Beauty", query: "skincare beauty" },
-  { label: "🏠 Casă", query: "casă organizare" },
-  { label: "🎁 Cadouri", query: "cadou" },
+  { label: "🏠 Casă", query: "produse utile pentru casa" },
+  { label: "🔥 Sub 100", query: "produse bune sub 100 lei" },
 ];
 
 export default function ChatInterface() {
@@ -63,6 +64,7 @@ export default function ChatInterface() {
   const [feedProducts, setFeedProducts] = useState<ChatProduct[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ChatProduct | null>(null);
+  const [lastShownProducts, setLastShownProducts] = useState<ChatProduct[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [toastMessage, setToastMessage] = useState("");
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
@@ -90,6 +92,31 @@ export default function ChatInterface() {
   const cartTotal = cartItems.reduce((sum, item) => sum + item.product.price * item.qty, 0);
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
 
+  function addToCart(product: ChatProduct) {
+    setCartItems((prev) => {
+      const idx = prev.findIndex((item) => item.product.id === product.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], qty: next[idx].qty + 1 };
+        return next;
+      }
+      return [...prev, { product, qty: 1 }];
+    });
+    setSelectedProduct(null);
+    setToastMessage(`🛒 ${product.title.slice(0, 24)} adăugat în coș`);
+    setTimeout(() => setToastMessage(""), 2500);
+  }
+
+  function findProductForAI(data: any) {
+    const all = [...lastShownProducts, ...(data.products || []), ...(data.bundleProducts || [])];
+    if (data.productId) return all.find((p) => p.id === data.productId);
+    if (data.productTitle) {
+      const needle = String(data.productTitle).toLowerCase();
+      return all.find((p) => p.title.toLowerCase().includes(needle));
+    }
+    return all.length === 1 ? all[0] : null;
+  }
+
   async function sendMessage(text?: string) {
     const msg = (text || input).trim();
     if (!msg || isLoading) return;
@@ -107,11 +134,21 @@ export default function ChatInterface() {
         body: JSON.stringify({
           message: msg,
           sessionId,
+          productContext: lastShownProducts.slice(0, 12),
           chatHistory: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Nu am putut căuta în Shopify.");
+
+      if (data.intent === "add_to_cart") {
+        const product = findProductForAI(data);
+        if (product) addToCart(product);
+      }
+
+      const products = data.products || [];
+      const bundleProducts = data.bundleProducts || [];
+      if (products.length || bundleProducts.length) setLastShownProducts([...products, ...bundleProducts]);
 
       setMessages((prev) => [
         ...prev,
@@ -119,7 +156,8 @@ export default function ChatInterface() {
           id: crypto.randomUUID(),
           role: "assistant",
           content: data.reply || "Am căutat în magazin.",
-          products: data.products || [],
+          products,
+          bundleProducts,
           timestamp: new Date(),
         },
       ]);
@@ -174,21 +212,6 @@ export default function ChatInterface() {
     }
   }
 
-  function addToCart(product: ChatProduct) {
-    setCartItems((prev) => {
-      const idx = prev.findIndex((item) => item.product.id === product.id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], qty: next[idx].qty + 1 };
-        return next;
-      }
-      return [...prev, { product, qty: 1 }];
-    });
-    setSelectedProduct(null);
-    setToastMessage(`🛒 ${product.title.slice(0, 24)} adăugat în coș`);
-    setTimeout(() => setToastMessage(""), 2500);
-  }
-
   function updateQty(index: number, delta: number) {
     setCartItems((prev) => {
       const next = [...prev];
@@ -226,8 +249,8 @@ export default function ChatInterface() {
     }
   }
 
-  const ProductCard = ({ product }: { product: ChatProduct }) => (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]" onClick={() => setSelectedProduct(product)}>
+  const ProductCard = ({ product, compact = false }: { product: ChatProduct; compact?: boolean }) => (
+    <div className={`${compact ? "w-44 shrink-0" : ""} overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]`} onClick={() => setSelectedProduct(product)}>
       <div className="relative h-36 bg-white/5">
         {product.images?.[0] ? <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center"><Package className="text-white/20" /></div>}
         {product.discountPercent > 0 && <span className="absolute right-2 top-2 rounded-full bg-red-500 px-2 py-1 text-[10px] font-black">-{product.discountPercent}%</span>}
@@ -243,10 +266,26 @@ export default function ChatInterface() {
           <span className="text-lg font-black text-emerald-400">{product.price} lei</span>
           {product.oldPrice > product.price && <span className="text-xs text-white/30 line-through">{product.oldPrice} lei</span>}
         </div>
-        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="mt-3 w-full rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 py-2 text-sm font-black text-black">Adaugă în coș</button>
+        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="mt-3 w-full rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 py-2 text-sm font-black text-black">+ Coș</button>
       </div>
     </div>
   );
+
+  const ProductCarousel = ({ title, products }: { title: string; products?: ChatProduct[] }) => {
+    if (!products?.length) return null;
+    return (
+      <div className="mt-3 text-left">
+        <p className="mb-2 text-xs font-black uppercase tracking-widest text-white/40">{title}</p>
+        <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+          {products.map((p) => (
+            <div key={p.id} className="snap-start">
+              <ProductCard product={p} compact />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <main className="min-h-screen bg-[#050507] text-white">
@@ -256,7 +295,7 @@ export default function ChatInterface() {
             <div className="flex items-center justify-between">
               <button onClick={() => setActiveTab("home")} className="flex items-center gap-2">
                 <span className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 text-sm font-black text-black">AI</span>
-                <div className="text-left"><h1 className="text-lg font-black">AICeVrei.ro</h1><p className="text-[10px] text-white/40">Produse direct din Shopify</p></div>
+                <div className="text-left"><h1 className="text-lg font-black">AICeVrei.ro</h1><p className="text-[10px] text-white/40">AI sales agent Shopify</p></div>
               </button>
               <button onClick={() => setActiveTab("cart")} className="relative rounded-full bg-white/10 p-2.5">
                 <ShoppingCart size={18} />
@@ -270,27 +309,39 @@ export default function ChatInterface() {
           {activeTab === "home" && (
             <div className="px-4 pt-8">
               <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-2xl backdrop-blur-xl">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-300"><Zap size={14} /> Shopify AI Search</div>
-                <h2 className="text-4xl font-black leading-none">Spune-mi ce vrei și caut direct în magazin.</h2>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-300"><Zap size={14} /> AI Sales Agent</div>
+                <h2 className="text-4xl font-black leading-none">Spune-mi ce vrei și îți fac bundle-ul perfect.</h2>
                 <div className="mt-5 flex items-center gap-2 rounded-2xl border border-white/10 bg-black/40 p-3">
                   <Search size={20} className="text-white/40" />
                   <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} className="w-full bg-transparent text-sm outline-none" placeholder="Ex: cadou pentru iubita" />
                 </div>
-                <button onClick={() => sendMessage()} disabled={!input.trim() || isLoading} className="mt-3 w-full rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-400 py-4 font-black text-black disabled:opacity-50">Caută cu AI</button>
+                <button onClick={() => sendMessage()} disabled={!input.trim() || isLoading} className="mt-3 w-full rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-400 py-4 font-black text-black disabled:opacity-50">Caută și fă bundle</button>
               </div>
               <div className="mt-5 grid grid-cols-3 gap-2">
                 {QUICK_ACTIONS.map((a) => <button key={a.label} onClick={() => sendMessage(a.query)} className="rounded-xl border border-white/10 bg-white/[0.06] px-2 py-3 text-xs font-bold text-white/80">{a.label}</button>)}
               </div>
-              {trendingProducts.length > 0 && <div className="mt-6"><h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-white/40">🔥 Trending</h3><div className="grid grid-cols-2 gap-3">{trendingProducts.slice(0, 6).map((p) => <ProductCard key={p.id} product={p} />)}</div></div>}
+              <ProductCarousel title="🔥 Trending acum" products={trendingProducts.slice(0, 10)} />
             </div>
           )}
 
           {activeTab === "chat" && (
             <div className="px-4 pt-4">
-              {messages.length === 0 && <div className="py-20 text-center text-white/40"><MessageCircle className="mx-auto mb-3" size={44} />Întreabă AI-ul ce produs cauți.</div>}
               <div className="space-y-4">
-                {messages.map((m) => <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}><div className={`inline-block max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-gradient-to-r from-violet-500 to-cyan-400 text-black" : "border border-white/10 bg-white/[0.06]"}`}>{m.role === "assistant" && <div className="mb-1 flex items-center gap-1 text-xs font-bold text-violet-300"><Bot size={13} /> AI</div>}<p className="whitespace-pre-wrap">{m.content}</p></div>{m.products && m.products.length > 0 && <div className="mt-3 grid grid-cols-1 gap-3">{m.products.map((p) => <ProductCard key={p.id} product={p} />)}</div>}</div>)}
-                {isLoading && <div className="text-sm text-white/40">AI caută în Shopify...</div>}
+                {messages.map((m) => (
+                  <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}>
+                    <div className={`inline-block max-w-[88%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-gradient-to-r from-violet-500 to-cyan-400 text-black" : "border border-white/10 bg-white/[0.06]"}`}>
+                      {m.role === "assistant" && <div className="mb-1 flex items-center gap-1 text-xs font-bold text-violet-300"><Bot size={13} /> AI Seller</div>}
+                      <p className="whitespace-pre-wrap">{m.content}</p>
+                    </div>
+                    {m.role === "assistant" && (
+                      <>
+                        <ProductCarousel title="🎯 Recomandate pentru tine" products={m.products} />
+                        <ProductCarousel title="🔥 Completează bundle-ul" products={m.bundleProducts} />
+                      </>
+                    )}
+                  </div>
+                ))}
+                {isLoading && <div className="text-sm text-white/40">AI construiește recomandarea...</div>}
                 <div ref={messagesEndRef} />
               </div>
             </div>
