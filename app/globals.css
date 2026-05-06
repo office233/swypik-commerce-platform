@@ -135,14 +135,31 @@ button, nav {
   overflow: hidden;
 }
 
-/* ─── Product Feed (TikTok-style) ─── */
-.feed-container {
+/* ─── Product Feed — Reels-style scroll snap ─── */
+.feed-scroll {
+  width: 100%;
+  height: calc(100vh - 120px);
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  background: #050507;
+  scrollbar-width: none;
+}
+.feed-scroll::-webkit-scrollbar { display: none; }
+
+.feed-card {
   position: relative;
   width: 100%;
   height: calc(100vh - 120px);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
   overflow: hidden;
-  background: #050507;
+  flex-shrink: 0;
 }
+
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* Double-tap heart burst animation */
 @keyframes like-burst {
