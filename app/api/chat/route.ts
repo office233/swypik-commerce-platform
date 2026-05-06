@@ -190,18 +190,25 @@ async function processProducts(products: SupplierProduct[]) {
 
   const sorted = results.sort((a, b) => b.qualityScore - a.qualityScore);
 
-  // Background sync to Shopify — fire and forget
-  for (const p of sorted) {
-    ensureProductInShopify({
-      id: p.id,
-      title: p.title,
-      description: p.description || p.title,
-      price: p.price,
-      oldPrice: p.oldPrice || p.price,
-      category: p.category || "general",
-      images: p.images || [],
-    }).catch((e) => console.log(`[Shopify Sync] Skip ${p.id}: ${e.message?.slice(0, 60)}`));
-  }
+  // Background sync to Shopify — only first 6 (displayed), sequential with delay
+  (async () => {
+    for (const p of sorted.slice(0, 6)) {
+      try {
+        await ensureProductInShopify({
+          id: p.id,
+          title: p.title,
+          description: p.description || p.title,
+          price: p.price,
+          oldPrice: p.oldPrice || p.price,
+          category: p.category || "general",
+          images: p.images || [],
+        });
+        await new Promise(r => setTimeout(r, 600)); // Shopify rate limit: 2/sec
+      } catch (e: any) {
+        console.log(`[Shopify Sync] Skip ${p.id}: ${e.message?.slice(0, 60)}`);
+      }
+    }
+  })();
 
   return sorted;
 }
