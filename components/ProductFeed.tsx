@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Heart, MessageCircle, ShoppingCart, Share2, ChevronUp,
   Volume2, VolumeX, X, Star, Truck, Package,
-  ChevronLeft, ChevronRight, Music,
+  ChevronLeft, ChevronRight, Music, ArrowLeft,
 } from "lucide-react";
 
 type FeedProduct = {
@@ -30,10 +30,11 @@ type Props = {
   products: FeedProduct[];
   onAddToCart: (p: FeedProduct) => void;
   onLoadMore?: () => void;
+  onClose?: () => void;
   isLoading: boolean;
 };
 
-export default function ProductFeed({ products, onAddToCart, onLoadMore, isLoading }: Props) {
+export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose, isLoading }: Props) {
   const [likes, setLikes] = useState<Record<string, boolean>>({});
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [activeSheet, setActiveSheet] = useState<{ type: "comments" | "details"; idx: number } | null>(null);
@@ -46,6 +47,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, isLoadi
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
 
   // Init like counts
   useEffect(() => {
@@ -135,6 +137,24 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, isLoadi
   const getImgIdx = (id: string) => imgIndices[id] || 0;
   const setImgIdx = (id: string, i: number) => setImgIndices(p => ({ ...p, [id]: i }));
 
+  // Horizontal swipe for photos
+  const onCardTouchStart = (e: React.TouchEvent, productId: string) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, id: productId };
+  };
+  const onCardTouchEnd = (e: React.TouchEvent, product: FeedProduct) => {
+    if (!touchStartRef.current || touchStartRef.current.id !== product.id) return;
+    const dx = touchStartRef.current.x - e.changedTouches[0].clientX;
+    const dy = touchStartRef.current.y - e.changedTouches[0].clientY;
+    // Only horizontal swipe (more horizontal than vertical)
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      const ci = getImgIdx(product.id);
+      const maxIdx = (product.images?.length || 1) - 1;
+      if (dx > 0 && ci < maxIdx) setImgIdx(product.id, ci + 1); // swipe left → next photo
+      else if (dx < 0 && ci > 0) setImgIdx(product.id, ci - 1); // swipe right → prev photo
+    }
+    touchStartRef.current = null;
+  };
+
   // ── Loading / empty ──
   if (isLoading && products.length === 0) {
     return (
@@ -170,7 +190,9 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, isLoadi
           const viewers = 8 + ((pIdx * 7) % 25);
 
           return (
-            <div key={product.id} data-feed-card={pIdx} className="feed-card">
+            <div key={product.id} data-feed-card={pIdx} className="feed-card"
+              onTouchStart={(e) => onCardTouchStart(e, product.id)}
+              onTouchEnd={(e) => onCardTouchEnd(e, product)}>
               {/* ── Background image ── */}
               <div className="absolute inset-0 z-0">
                 {product.images?.[ci] ? (
@@ -195,6 +217,11 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, isLoadi
               {/* ── Top bar ── */}
               <div className="absolute top-0 left-0 right-0 z-10 p-3 flex items-center justify-between safe-top">
                 <div className="flex items-center gap-2">
+                  {onClose && (
+                    <button onClick={onClose} className="rounded-full bg-black/40 backdrop-blur-sm p-1.5 text-white/80 hover:bg-white/20">
+                      <ArrowLeft size={16} />
+                    </button>
+                  )}
                   <span className="rounded-full bg-red-500/90 px-2 py-0.5 text-[10px] font-black text-white animate-pulse">🔴 LIVE</span>
                   <span className="rounded-full bg-black/40 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold text-white/70">👁 {viewers}</span>
                 </div>

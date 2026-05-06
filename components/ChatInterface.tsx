@@ -608,6 +608,7 @@ export default function ChatInterface() {
         products={feedProducts}
         onAddToCart={(p) => addToCart(p)}
         onLoadMore={loadMoreFeed}
+        onClose={() => setActiveTab("home")}
         isLoading={feedLoading}
       />
     );
@@ -695,7 +696,8 @@ export default function ChatInterface() {
   return (
     <main className="min-h-screen bg-[#050507] text-white">
       <div className="relative mx-auto min-h-screen max-w-lg overflow-hidden bg-[radial-gradient(circle_at_top,#1a0a3e_0,#050507_50%)]">
-        {/* Header */}
+        {/* Header — hidden on feed for fullscreen */}
+        {activeTab !== "feed" && (
         <header className="sticky top-0 z-20 border-b border-white/10 bg-black/60 px-4 py-3 backdrop-blur-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -722,42 +724,48 @@ export default function ChatInterface() {
             </div>
           </div>
         </header>
+        )}
 
         {/* Content area */}
-        <div className="min-h-[calc(100vh-120px)]">
+        <div className={activeTab === "feed" ? "h-screen" : "min-h-[calc(100vh-120px)]"}>
           {activeTab === "home" ? renderHome() : activeTab === "cart" ? renderCartTab() : activeTab === "deals" ? renderDealsTab() : activeTab === "feed" ? renderFeedTab() : renderChat()}
         </div>
 
-        {/* Input bar — always visible */}
-        <div className="fixed bottom-16 left-1/2 z-20 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/90 px-3 py-2 backdrop-blur-xl">
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] p-2">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-white/30"
-              placeholder="Scrie ce cauți..."
-            />
-            <button
-              onClick={() => sendMessage()}
-              disabled={isLoading || !input.trim()}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 text-black transition-all hover:scale-110 active:scale-95 disabled:opacity-40"
-            >
-              <Send size={16} />
-            </button>
+        {/* Input bar — hidden on feed */}
+        {activeTab !== "feed" && (
+          <div className="fixed bottom-16 left-1/2 z-20 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/90 px-3 py-2 backdrop-blur-xl">
+            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] p-2">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-white/30"
+                placeholder="Scrie ce cauți..."
+              />
+              <button
+                onClick={() => sendMessage()}
+                disabled={isLoading || !input.trim()}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 text-black transition-all hover:scale-110 active:scale-95 disabled:opacity-40"
+              >
+                <Send size={16} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Bottom nav */}
-        <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/95 px-4 py-3 backdrop-blur-xl">
-          <div className="flex items-center justify-around text-[10px] text-white/40">
-            <NavBtn icon={<Home size={18} />} label="Acasă" active={activeTab === "home"} onClick={() => setActiveTab("home")} />
-            <NavBtn icon={<Flame size={18} />} label="Feed" active={activeTab === "feed"} onClick={() => { setActiveTab("feed"); loadFeed(); }} />
-            <NavBtn icon={<MessageCircle size={18} />} label="Chat" active={activeTab === "chat"} onClick={() => setActiveTab("chat")} />
-            <NavBtn icon={<Tag size={18} />} label="Deals" active={activeTab === "deals"} onClick={() => { setActiveTab("deals"); loadDeals(); }} />
-            <NavBtn icon={<ShoppingCart size={18} />} label={`Coș ${cartCount > 0 ? `(${cartCount})` : ""}`} active={activeTab === "cart"} onClick={() => setActiveTab("cart")} />
-          </div>
-        </nav>
+        {/* Bottom nav — hidden on feed for fullscreen */}
+        {activeTab !== "feed" && (
+          <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/95 px-4 py-3 backdrop-blur-xl">
+            <div className="flex items-center justify-around text-[10px] text-white/40">
+              <NavBtn icon={<Home size={18} />} label="Acasă" active={activeTab === "home"} onClick={() => setActiveTab("home")} />
+              <NavBtn icon={<Flame size={18} />} label="Feed" active={activeTab === "feed"} onClick={() => { setActiveTab("feed"); loadFeed(); }} />
+              <NavBtn icon={<MessageCircle size={18} />} label="Chat" active={activeTab === "chat"} onClick={() => setActiveTab("chat")} />
+              <NavBtn icon={<Tag size={18} />} label="Deals" active={activeTab === "deals"} onClick={() => { setActiveTab("deals"); loadDeals(); }} />
+              <NavBtn icon={<ShoppingCart size={18} />} label={`Coș ${cartCount > 0 ? `(${cartCount})` : ""}`} active={activeTab === "cart"} onClick={() => setActiveTab("cart")} />
+            </div>
+          </nav>
+        )}
 
         {/* All Categories Drawer */}
         {showAllCategories && (
