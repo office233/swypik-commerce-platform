@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { orchestrate } from "@/lib/ai/orchestrator";
 import { getShopifyAccessToken } from "@/lib/shopify/auth";
+import { buildSalesSuggestion, inferBundleQueries, pickBundleProducts, rankProducts } from "@/lib/sales/bundle-engine";
 
 const API_VERSION = process.env.SHOPIFY_API_VERSION || "2026-04";
 
@@ -83,13 +84,25 @@ async function getAllProducts(limit = 250) {
 
 function filterProducts(products: ReturnType<typeof transformProduct>[], query: string, limit = 20) {
   const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  return products
-    .filter((p) => {
+  return rankProducts(
+    products.filter((p) => {
       const haystack = `${p.title} ${p.description} ${p.category} ${p.vendor} ${p.sku}`.toLowerCase();
       return terms.length === 0 || terms.some((term) => haystack.includes(term));
     })
-    .sort((a, b) => b.qualityScore + b.discountPercent / 10 - (a.qualityScore + a.discountPercent / 10))
-    .slice(0, limit);
+  ).slice(0, limit);
+}
+
+function uniqueProducts(products: ReturnType<typeof transformProduct>[]) {
+  return products.filter((p, idx, arr) => arr.findIndex((x) => x.id === p.id) === idx);
+}
+
+function buildBundleProducts(mainProducts: ReturnType<typeof transformProduct>[], allProducts: ReturnType<typeof transformProduct>[], bundleQueries: string[]) {
+  const queryBased = bundleQueries.flatMap((query) => filterProducts(allProducts, query, 6));
+  const engineBased = mainProducts.slice(0, 3).flatMap((product) => pickBundleProducts(product, allProducts, 6));
+
+  return uniqueProducts([...engineBased, ...queryBased])
+    .filter((p) => !mainProducts.some((main) => main.id === p.id))
+    .slice(0, 12);
 }
 
 export async function POST(req: Request) {
@@ -103,21 +116,30 @@ export async function POST(req: Request) {
 
     if (directQuery) {
       const products = filterProducts(allProducts, directQuery, 20);
-      return NextResponse.json({ intent: "search_product", reply: products.length ? `Am găsit ${products.length} produse potrivite. Alege unul și îți fac bundle instant. 🔥` : "Nu am găsit produse în Shopify pentru căutarea asta. Încearcă alt termen.", products, bundleProducts: [], sessionId: sessionId || crypto.randomUUID() });
+      const bundleProducts = buildBundleProducts(products, allProducts, inferBundleQueries(directQuery));
+      const suggestion = products[0] ? ` ${buildSalesSuggestion(products[0], bundleProducts.slice(0, 2))}` : "";
+
+      return NextResponse.json({
+        intent: "search_product",
+        reply: products.length ? `Am găsit ${products.length} produse potrivite. Alege unul și îți fac bundle instant. 🔥${suggestion}` : "Nu am găsit produse în Shopify pentru căutarea asta. Încearcă alt termen.",
+        products,
+        bundleProducts,
+        sessionId: sessionId || crypto.randomUUID(),
+      });
     }
 
     const aiResult = await orchestrate(userMessage, chatHistory, productContext);
 
     if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper") {
-      const products = filterProducts(allProducts, aiResult.searchQuery || userMessage, 16);
-      const bundleProducts = (aiResult.bundleQueries || [])
-        .flatMap((query) => filterProducts(allProducts, query, 6))
-        .filter((p, idx, arr) => arr.findIndex((x) => x.id === p.id) === idx && !products.some((main) => main.id === p.id))
-        .slice(0, 12);
+      const query = aiResult.searchQuery || userMessage;
+      const products = filterProducts(allProducts, query, 16);
+      const bundleQueries = [...(aiResult.bundleQueries || []), ...inferBundleQueries(query)];
+      const bundleProducts = buildBundleProducts(products, allProducts, bundleQueries);
+      const suggestion = products[0] ? `\n\n${buildSalesSuggestion(products[0], bundleProducts.slice(0, 2))}` : "";
 
       return NextResponse.json({
         intent: aiResult.intent,
-        reply: aiResult.reply,
+        reply: `${aiResult.reply}${suggestion}`,
         products,
         bundleProducts,
         sessionId: sessionId || crypto.randomUUID(),
