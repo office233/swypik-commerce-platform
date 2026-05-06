@@ -1,3 +1,6 @@
+export type FunnelStage = "discover" | "compare" | "consider" | "cart" | "checkout" | "upsell";
+export type ObjectionType = "price" | "trust" | "delivery" | "choice" | "none";
+
 export type ShoppingSession = {
   budget?: number;
   budgetLabel?: string;
@@ -7,6 +10,9 @@ export type ShoppingSession = {
   category?: string;
   priceSensitivity?: "low" | "medium" | "high";
   mode?: "gift" | "budget" | "premium" | "fashion" | "home" | "beauty" | "general";
+  funnelStage?: FunnelStage;
+  objection?: ObjectionType;
+  lastIntent?: string;
 };
 
 function normalize(value: string) {
@@ -81,13 +87,33 @@ function detectMode(session: ShoppingSession): ShoppingSession["mode"] {
 
 function detectPriceSensitivity(message: string, budget?: number): ShoppingSession["priceSensitivity"] {
   const m = normalize(message);
-  if (m.includes("ieftin") || m.includes("buget") || m.includes("sub") || (budget && budget <= 100)) return "high";
+  if (m.includes("ieftin") || m.includes("buget") || m.includes("sub") || m.includes("scump") || (budget && budget <= 100)) return "high";
   if (m.includes("premium") || m.includes("lux") || (budget && budget >= 300)) return "low";
   return "medium";
 }
 
-export function updateShoppingSession(previous: ShoppingSession = {}, message: string): ShoppingSession {
+function detectObjection(message: string): ObjectionType {
+  const m = normalize(message);
+  if (m.includes("scump") || m.includes("prea mult") || m.includes("ieftin") || m.includes("buget")) return "price";
+  if (m.includes("sigur") || m.includes("teapa") || m.includes("incredere") || m.includes("calitate")) return "trust";
+  if (m.includes("livrare") || m.includes("ajunge") || m.includes("transport")) return "delivery";
+  if (m.includes("nu stiu") || m.includes("nu ma decid") || m.includes("care") || m.includes("aleg")) return "choice";
+  return "none";
+}
+
+function detectFunnelStage(message: string, previous?: FunnelStage): FunnelStage {
+  const m = normalize(message);
+  if (m.includes("checkout") || m.includes("finalizeaza") || m.includes("platesc") || m.includes("comanda")) return "checkout";
+  if (m.includes("adauga") || m.includes("pune") || m.includes("cos") || m.includes("cumpar") || m.includes("iau")) return "cart";
+  if (m.includes("mai ieftin") || m.includes("alternativa") || m.includes("compar") || m.includes("diferenta")) return "compare";
+  if (m.includes("imi place") || m.includes("pare bun") || m.includes("asta") || m.includes("merita")) return "consider";
+  if (previous === "cart") return "upsell";
+  return previous || "discover";
+}
+
+export function updateShoppingSession(previous: ShoppingSession = {}, message: string, lastIntent?: string): ShoppingSession {
   const budget = extractBudget(message) ?? previous.budget;
+  const objection = detectObjection(message);
 
   const next: ShoppingSession = {
     ...previous,
@@ -97,10 +123,13 @@ export function updateShoppingSession(previous: ShoppingSession = {}, message: s
     occasion: detectOccasion(message) ?? previous.occasion,
     category: detectCategory(message) ?? previous.category,
     priceSensitivity: detectPriceSensitivity(message, budget) ?? previous.priceSensitivity,
+    objection: objection !== "none" ? objection : previous.objection,
+    lastIntent: lastIntent || previous.lastIntent,
   };
 
   next.budgetLabel = budget ? `maxim ${budget} lei` : previous.budgetLabel;
   next.mode = detectMode(next);
+  next.funnelStage = detectFunnelStage(message, previous.funnelStage);
 
   return next;
 }
@@ -108,6 +137,8 @@ export function updateShoppingSession(previous: ShoppingSession = {}, message: s
 export function buildSessionPrompt(session: ShoppingSession) {
   const parts = [
     session.mode ? `mod vânzare: ${session.mode}` : null,
+    session.funnelStage ? `etapă funnel: ${session.funnelStage}` : null,
+    session.objection && session.objection !== "none" ? `obiecție activă: ${session.objection}` : null,
     session.budgetLabel ? `buget: ${session.budgetLabel}` : null,
     session.recipient ? `pentru: ${session.recipient}` : null,
     session.style ? `stil: ${session.style}` : null,
@@ -117,5 +148,5 @@ export function buildSessionPrompt(session: ShoppingSession) {
   ].filter(Boolean);
 
   if (parts.length === 0) return "Nu există încă preferințe clare. Pune întrebări scurte pentru a califica intenția.";
-  return `Context client: ${parts.join("; ")}. Folosește acest context pentru recomandări, bundle-uri și CTA-uri.`;
+  return `Context client: ${parts.join("; ")}. Dacă există obiecție de preț, oferă alternativă sau bundle mai accesibil. Dacă etapa este cart/upsell, recomandă complementar. Folosește acest context pentru recomandări, bundle-uri și CTA-uri.`;
 }
