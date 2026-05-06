@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { orchestrate } from "@/lib/ai/orchestrator";
 import { getShopifyAccessToken } from "@/lib/shopify/auth";
 import { buildSalesSuggestion, inferBundleQueries, pickBundleProducts, rankProducts } from "@/lib/sales/bundle-engine";
+import { getCommerceInsights, type ProductInsight } from "@/lib/shopify/commerce-insights";
 
 const API_VERSION = process.env.SHOPIFY_API_VERSION || "2026-04";
 
@@ -68,6 +69,14 @@ function transformProduct(p: ShopifyProduct) {
   };
 }
 
+type ProductModel = ReturnType<typeof transformProduct> & {
+  commerceBadge?: string;
+  commerceScore?: number;
+  soldCount?: number;
+  abandonedCount?: number;
+  revenue?: number;
+};
+
 async function shopifyGET(endpoint: string) {
   const token = await getShopifyAccessToken();
   const store = process.env.SHOPIFY_STORE;
@@ -82,21 +91,61 @@ async function getAllProducts(limit = 250) {
   return (data.products || []).filter((p: ShopifyProduct) => p.status === "active").map(transformProduct);
 }
 
-function filterProducts(products: ReturnType<typeof transformProduct>[], query: string, limit = 20) {
+function insightKeyMap(insights: ProductInsight[]) {
+  const map = new Map<string, ProductInsight>();
+  for (const insight of insights) {
+    if (insight.productId) map.set(String(insight.productId), insight);
+    if (insight.variantId) map.set(String(insight.variantId), insight);
+  }
+  return map;
+}
+
+function enrichProducts(products: ReturnType<typeof transformProduct>[], insights: ProductInsight[] = []): ProductModel[] {
+  const map = insightKeyMap(insights);
+  return products.map((p) => {
+    const insight = map.get(p.id) || map.get(p.variantId || "");
+    const commerceScore = insight?.conversionScore || 0;
+    const commerceBadge = insight
+      ? insight.soldCount >= 5
+        ? "🔥 Se vinde bine"
+        : insight.cartCount >= 3
+          ? "🛒 Des adăugat în coș"
+          : insight.abandonedCount >= 3
+            ? "👀 Foarte comparat"
+            : insight.conversionScore > 0
+              ? "⚡ Alegere sigură"
+              : undefined
+      : undefined;
+
+    return {
+      ...p,
+      commerceBadge,
+      commerceScore,
+      soldCount: insight?.soldCount,
+      abandonedCount: insight?.abandonedCount,
+      revenue: insight?.revenue,
+      qualityScore: p.qualityScore + Math.min(Math.round(commerceScore / 10), 5),
+    };
+  });
+}
+
+function filterProducts(products: ProductModel[], query: string, limit = 20) {
   const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   return rankProducts(
     products.filter((p) => {
       const haystack = `${p.title} ${p.description} ${p.category} ${p.vendor} ${p.sku}`.toLowerCase();
       return terms.length === 0 || terms.some((term) => haystack.includes(term));
     })
-  ).slice(0, limit);
+  )
+    .sort((a, b) => (b.commerceScore || 0) - (a.commerceScore || 0) || b.qualityScore - a.qualityScore)
+    .slice(0, limit);
 }
 
-function uniqueProducts(products: ReturnType<typeof transformProduct>[]) {
+function uniqueProducts(products: ProductModel[]) {
   return products.filter((p, idx, arr) => arr.findIndex((x) => x.id === p.id) === idx);
 }
 
-function buildBundleProducts(mainProducts: ReturnType<typeof transformProduct>[], allProducts: ReturnType<typeof transformProduct>[], bundleQueries: string[]) {
+function buildBundleProducts(mainProducts: ProductModel[], allProducts: ProductModel[], bundleQueries: string[]) {
   const queryBased = bundleQueries.flatMap((query) => filterProducts(allProducts, query, 6));
   const engineBased = mainProducts.slice(0, 3).flatMap((product) => pickBundleProducts(product, allProducts, 6));
 
@@ -111,7 +160,11 @@ export async function POST(req: Request) {
     const userMessage = String(message || "").trim();
     if (!userMessage) return NextResponse.json({ error: "Mesajul nu poate fi gol" }, { status: 400 });
 
-    const allProducts = await getAllProducts();
+    const [rawProducts, commerceInsights] = await Promise.all([
+      getAllProducts(),
+      getCommerceInsights().catch(() => null),
+    ]);
+    const allProducts = enrichProducts(rawProducts, commerceInsights?.productInsights || []);
     const directQuery = String(directCjQuery || "").trim();
 
     if (directQuery) {
@@ -142,6 +195,7 @@ export async function POST(req: Request) {
         reply: `${aiResult.reply}${suggestion}`,
         products,
         bundleProducts,
+        insightSummary: commerceInsights?.totals,
         sessionId: sessionId || crypto.randomUUID(),
       });
     }
@@ -153,6 +207,7 @@ export async function POST(req: Request) {
       bundleProducts: [],
       productId: aiResult.productId,
       productTitle: aiResult.productTitle,
+      insightSummary: commerceInsights?.totals,
       sessionId: sessionId || crypto.randomUUID(),
     });
   } catch (error) {
