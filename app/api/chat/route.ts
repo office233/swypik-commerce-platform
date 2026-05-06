@@ -88,32 +88,25 @@ export async function POST(req: Request) {
 }
 
 /**
- * Search all suppliers — AliExpress first, CJ as fallback
+ * Search all suppliers — CJ Dropshipping first (primary), AliExpress as fallback
  */
 async function searchAllSuppliers(query: string): Promise<SupplierProduct[]> {
-  // Try AliExpress first (primary) - fetch 3 pages in parallel for ~60 products
-  if (process.env.RAPIDAPI_KEY) {
-    const [p1, p2, p3] = await Promise.all([
-      aliexpressSearch(query, 1, 40),
-      aliexpressSearch(query, 2, 40),
-      aliexpressSearch(query, 3, 40),
-    ]);
-    const all = [...p1, ...p2, ...p3];
-    // Deduplicate by ID
-    const seen = new Set<string>();
-    const unique = all.filter(p => { if (seen.has(p.sourceProductId)) return false; seen.add(p.sourceProductId); return true; });
-    if (unique.length > 0) {
-      console.log(`[Suppliers] AliExpress: ${unique.length} unique results (3 pages)`);
-      return unique;
+  // CJ Dropshipping — PRIMARY (free API, fulfillment built-in)
+  // Note: CJ has 1 req/sec rate limit, so we search sequentially
+  if (process.env.CJ_API_KEY) {
+    const p1 = await cjSearch(query, 1, 50);
+    if (p1.length > 0) {
+      console.log(`[Suppliers] CJ: ${p1.length} results`);
+      return p1;
     }
   }
 
-  // Fallback to CJ Dropshipping
-  if (process.env.CJ_API_KEY) {
-    const cjProducts = await cjSearch(query, 1, 40);
-    if (cjProducts.length > 0) {
-      console.log(`[Suppliers] CJ fallback: ${cjProducts.length} results`);
-      return cjProducts;
+  // Fallback to AliExpress (rate limited, no fulfillment)
+  if (process.env.RAPIDAPI_KEY) {
+    const aeProducts = await aliexpressSearch(query, 1, 40);
+    if (aeProducts.length > 0) {
+      console.log(`[Suppliers] AliExpress fallback: ${aeProducts.length} results`);
+      return aeProducts;
     }
   }
 

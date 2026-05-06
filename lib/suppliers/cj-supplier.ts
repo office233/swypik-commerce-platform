@@ -1,12 +1,15 @@
 /**
- * CJ Dropshipping API Client
- * Parses productImage JSON arrays for multiple images (no extra API calls)
+ * CJ Dropshipping API Client v2
+ * Uses listV2 endpoint (Elasticsearch-powered) with proper filters
+ * - countryCode for shipping availability
+ * - price range filters
+ * - trending/new product flags
  */
 
 import { SupplierProduct } from "../types";
 
 const CJ_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
-const USD_TO_RON = 4.6;
+const USD_TO_RON = 4.55;
 
 let cachedToken: { token: string; expires: number } | null = null;
 
@@ -38,16 +41,13 @@ async function getCJToken(): Promise<string> {
 
 /**
  * Extract ALL images from CJ's productImage field
- * It can be: a URL string, a JSON array string, or null
  */
 function extractImages(item: any): string[] {
   const images: string[] = [];
 
-  // Try productImage (sometimes it's a JSON array!)
   if (item.productImage) {
     const pi = item.productImage;
     if (typeof pi === "string") {
-      // Try parse as JSON array
       if (pi.startsWith("[")) {
         try {
           const arr = JSON.parse(pi);
@@ -65,7 +65,6 @@ function extractImages(item: any): string[] {
     }
   }
 
-  // Also check productImageSet
   if (item.productImageSet) {
     const pis = item.productImageSet;
     if (Array.isArray(pis)) {
@@ -88,23 +87,45 @@ function extractImages(item: any): string[] {
 }
 
 /**
- * Search CJ products
+ * Search CJ products using listV2 (Elasticsearch)
+ * Supports: keyword, price range, trending, country filtering
  */
-export async function cjSearch(keyword: string, page = 1, size = 20): Promise<SupplierProduct[]> {
+export async function cjSearch(
+  keyword: string,
+  page = 1,
+  size = 20,
+  options: {
+    minPrice?: number;
+    maxPrice?: number;
+    trending?: boolean;
+  } = {}
+): Promise<SupplierProduct[]> {
   try {
     const token = await getCJToken();
 
-    const url = new URL(`${CJ_BASE}/product/list`);
-    url.searchParams.set("pageNum", String(page));
-    url.searchParams.set("pageSize", String(size));
-    url.searchParams.set("productNameEn", keyword);
+    const url = new URL(`${CJ_BASE}/product/listV2`);
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("size", String(Math.min(size, 100)));
+    url.searchParams.set("keyWord", keyword);
+    
+    // Price filters (in USD)
+    if (options.minPrice !== undefined) url.searchParams.set("startSellPrice", String(options.minPrice));
+    if (options.maxPrice !== undefined) url.searchParams.set("endSellPrice", String(options.maxPrice));
+    
+    // Trending products
+    if (options.trending) url.searchParams.set("productFlag", "0");
+
+    console.log(`[CJ] Searching: "${keyword}" (page ${page}, size ${size})`);
 
     const res = await fetch(url.toString(), {
       method: "GET",
       headers: { "CJ-Access-Token": token },
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(`[CJ] HTTP ${res.status}`);
+      return [];
+    }
 
     const json = await res.json();
     if (json.code !== 200 || !json.data?.list) {
@@ -134,18 +155,26 @@ export async function cjSearch(keyword: string, page = 1, size = 20): Promise<Su
           price: ronCost,
           shipping: 0,
           currency: "RON",
-          rating: 0,
-          orders: 0,
+          rating: item.productRating || 0,
+          orders: item.orders || 0,
           deliveryDays: 14,
           images,
           category: item.categoryName || "",
-          variants: variants.slice(0, 6).map((v: any) => ({
-            sourceVariantId: v.vid || `v-${Math.random().toString(36).slice(2)}`,
-            title: v.variantName || v.variantNameEn || "Standard",
-            options: { variant: v.variantName || "Standard" },
-            price: Math.round(parseFloat(v.variantSellPrice || v.variantPrice || String(usdPrice)) * USD_TO_RON),
-            stockStatus: "in_stock" as const,
-          })),
+          variants: variants.length > 0
+            ? variants.slice(0, 6).map((v: any) => ({
+                sourceVariantId: v.vid || `v-${Math.random().toString(36).slice(2)}`,
+                title: v.variantName || v.variantNameEn || "Standard",
+                options: { variant: v.variantName || "Standard" },
+                price: Math.round(parseFloat(v.variantSellPrice || v.variantPrice || String(usdPrice)) * USD_TO_RON),
+                stockStatus: "in_stock" as const,
+              }))
+            : [{
+                sourceVariantId: `v-${item.pid || item.productId}`,
+                title: "Standard",
+                options: { variant: "Standard" },
+                price: ronCost,
+                stockStatus: "in_stock" as const,
+              }],
         };
       })
       .filter((p: any): p is SupplierProduct => p !== null && p.title.length > 0);
