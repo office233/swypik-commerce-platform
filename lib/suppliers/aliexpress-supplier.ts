@@ -8,7 +8,7 @@ import { SupplierProduct } from "../types";
 
 const API_HOST = process.env.RAPIDAPI_HOST || "aliexpress-datahub.p.rapidapi.com";
 const API_KEY = process.env.RAPIDAPI_KEY || "";
-const EUR_TO_RON = 4.97;
+const USD_TO_RON = 4.55; // Updated rate USD → RON
 
 function headers() {
   return {
@@ -32,7 +32,7 @@ export async function aliexpressSearch(
   }
 
   try {
-    const url = `https://${API_HOST}/item_search_4?q=${encodeURIComponent(keyword)}&page=${page}&sort=orders&region=RO&locale=en_US&currency=EUR`;
+    const url = `https://${API_HOST}/item_search_4?q=${encodeURIComponent(keyword)}&page=${page}&sort=orders&region=RO&locale=ro_RO&currency=USD&shipTo=RO`;
 
     console.log(`[AliExpress] Searching: "${keyword}" (page ${page})`);
 
@@ -76,7 +76,7 @@ export async function aliexpressProductDetail(
   if (!API_KEY) return null;
 
   try {
-    const url = `https://${API_HOST}/item_detail_2?itemId=${itemId}&country=RO&currency=EUR&region=RO&locale=ro_RO`;
+    const url = `https://${API_HOST}/item_detail_2?itemId=${itemId}&country=RO&currency=USD&region=RO&locale=ro_RO`;
 
     const res = await fetch(url, { headers: headers() });
     if (!res.ok) return null;
@@ -119,15 +119,15 @@ export async function aliexpressProductDetail(
       return null;
     }
 
-    const ronPrice = Math.round(priceNum * EUR_TO_RON);
-    const ronShipping = Math.round(shippingCost * EUR_TO_RON);
+    const ronPrice = Math.round(priceNum * USD_TO_RON);
+    const ronShipping = Math.round(shippingCost * USD_TO_RON);
 
     // Extract SKU variants
     const variants = (item.sku?.skuList || []).slice(0, 6).map((sku: any) => ({
       sourceVariantId: sku.skuId || `sku-${Math.random().toString(36).slice(2)}`,
       title: sku.skuVal?.actSkuCalPrice ? `${sku.skuVal.actSkuCalPrice} EUR` : "Standard",
       options: { variant: sku.propPath || "Standard" },
-      price: Math.round((sku.skuVal?.skuAmount?.value || priceNum) * EUR_TO_RON),
+      price: Math.round((sku.skuVal?.skuAmount?.value || priceNum) * USD_TO_RON),
       stockStatus: "in_stock" as const,
     }));
 
@@ -173,7 +173,7 @@ function parseSearchItem(item: any): SupplierProduct | null {
     const priceNum = typeof rawPrice === "string" ? parseFloat(rawPrice.split(" - ")[0]) : (rawPrice || 0);
     if (priceNum <= 0) return null;
 
-    const ronPrice = Math.round(priceNum * EUR_TO_RON);
+    const ronPrice = Math.round(priceNum * USD_TO_RON);
 
     // QUALITY FILTER: skip garbage products
     if (priceNum < 2) return null;   // too cheap = junk
