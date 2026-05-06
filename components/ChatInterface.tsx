@@ -48,6 +48,14 @@ type ShopifyCollection = {
   productsCount: number;
 };
 
+type GroupedCategory = {
+  parent: string;
+  emoji: string;
+  id: number | null;
+  subcategories: ShopifyCollection[];
+  totalProducts: number;
+};
+
 /* ─── Fallback quick actions (used while collections load) ─── */
 const FALLBACK_ACTIONS = [
   { label: "👗 Haine femei", query: "women clothing dress summer" },
@@ -98,8 +106,9 @@ export default function ChatInterface() {
   const [trendingProducts, setTrendingProducts] = useState<ChatProduct[]>([]);
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [toastMessage, setToastMessage] = useState("");
-  const [shopifyCollections, setShopifyCollections] = useState<{ main: ShopifyCollection[]; all: ShopifyCollection[] }>({ main: [], all: [] });
+  const [shopifyCollections, setShopifyCollections] = useState<{ main: ShopifyCollection[]; all: ShopifyCollection[]; grouped: GroupedCategory[] }>({ main: [], all: [], grouped: [] });
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [feedProducts, setFeedProducts] = useState<ChatProduct[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -117,7 +126,7 @@ export default function ChatInterface() {
     fetch("/api/collections")
       .then(r => r.json())
       .then(d => {
-        if (d.main) setShopifyCollections({ main: d.main, all: d.all || [] });
+        if (d.main) setShopifyCollections({ main: d.main, all: d.all || [], grouped: d.grouped || [] });
       })
       .catch(() => {});
   }, []);
@@ -767,7 +776,7 @@ export default function ChatInterface() {
           </nav>
         )}
 
-        {/* All Categories Drawer */}
+        {/* All Categories Drawer — Hierarchical */}
         {showAllCategories && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-fadeIn" onClick={() => setShowAllCategories(false)}>
             <div
@@ -775,24 +784,82 @@ export default function ChatInterface() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-black">🏪 Toate categoriile ({shopifyCollections.all.length})</h2>
+                <h2 className="text-lg font-black">🏪 Categorii ({shopifyCollections.all.length})</h2>
                 <button onClick={() => setShowAllCategories(false)} className="rounded-full bg-white/10 p-1.5"><X size={16} /></button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {shopifyCollections.all.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setShowAllCategories(false);
-                      loadCategory(`${c.emoji} ${c.title}`, String(c.id));
-                    }}
-                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left transition hover:bg-white/10 active:scale-95"
-                  >
-                    <span className="text-lg">{c.emoji}</span>
-                    <span className="text-xs font-semibold text-white/80 truncate">{c.title}</span>
-                  </button>
-                ))}
-              </div>
+
+              {shopifyCollections.grouped.length > 0 ? (
+                <div className="space-y-2">
+                  {shopifyCollections.grouped.map((group) => (
+                    <div key={group.parent} className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                      {/* Parent category header */}
+                      <button
+                        onClick={() => setExpandedCategory(expandedCategory === group.parent ? null : group.parent)}
+                        className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-white/5 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{group.emoji}</span>
+                          <div>
+                            <p className="text-sm font-bold text-white/90">{group.parent}</p>
+                            <p className="text-[10px] text-white/40">{group.subcategories.length} subcategorii · {group.totalProducts} produse</p>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className={`text-white/30 transition-transform ${expandedCategory === group.parent ? "rotate-90" : ""}`} />
+                      </button>
+
+                      {/* Subcategories — expandable */}
+                      {expandedCategory === group.parent && (
+                        <div className="px-3 pb-3 grid grid-cols-2 gap-1.5 border-t border-white/5 pt-2">
+                          {/* Show all in category */}
+                          <button
+                            onClick={() => {
+                              setShowAllCategories(false);
+                              setExpandedCategory(null);
+                              // Load all subcategory IDs
+                              const ids = group.subcategories.map(s => String(s.id)).join(",");
+                              loadCategory(`${group.emoji} ${group.parent}`, ids);
+                            }}
+                            className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 px-3 py-2 text-xs font-bold text-violet-300 hover:bg-violet-500/20 transition"
+                          >
+                            Vezi toate din {group.parent} →
+                          </button>
+                          {group.subcategories.map((sub) => (
+                            <button
+                              key={sub.id}
+                              onClick={() => {
+                                setShowAllCategories(false);
+                                setExpandedCategory(null);
+                                loadCategory(`${sub.emoji} ${sub.title}`, String(sub.id));
+                              }}
+                              className="flex items-center gap-1.5 rounded-xl border border-white/5 bg-white/[0.03] px-2.5 py-2 text-left transition hover:bg-white/10 active:scale-95"
+                            >
+                              <span className="text-sm">{sub.emoji}</span>
+                              <span className="text-[11px] font-medium text-white/70 truncate">{sub.title}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Fallback flat list */
+                <div className="grid grid-cols-2 gap-2">
+                  {shopifyCollections.all.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        setShowAllCategories(false);
+                        loadCategory(`${c.emoji} ${c.title}`, String(c.id));
+                      }}
+                      className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left transition hover:bg-white/10 active:scale-95"
+                    >
+                      <span className="text-lg">{c.emoji}</span>
+                      <span className="text-xs font-semibold text-white/80 truncate">{c.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
