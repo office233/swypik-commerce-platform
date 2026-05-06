@@ -1,13 +1,13 @@
 /**
  * Shopify Products API — Serves products directly from Shopify
- * Supports: all products, by collection, search, random feed
+ * Supports: all products, by collection, robust search, filters, sorting, feed
  */
 
 import { NextResponse } from "next/server";
 import { getShopifyAccessToken } from "@/lib/shopify/auth";
+import { searchProducts } from "@/lib/shopify/product-search";
 
 const API_VERSION = process.env.SHOPIFY_API_VERSION || "2026-04";
-
 const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 3 * 60 * 1000;
 
@@ -35,7 +35,7 @@ function seededRange(seed: number, min: number, max: number): number {
 }
 
 function tagNumber(tags: string, name: string): number | null {
-  const match = tags.match(new RegExp(`${name}:([0-9]+(?:\\.[0-9]+)?)`, "i"));
+  const match = tags.match(new RegExp(`${name}:([0-9]+(?:\.[0-9]+)?)`, "i"));
   return match ? Number(match[1]) : null;
 }
 
@@ -158,12 +158,13 @@ function transformProduct(p: any) {
     socialProofLabel: social.socialProofLabel,
     images: (p.images || []).map((img: any) => img.src).filter(Boolean),
     category: p.product_type || "General",
-    gradient: "from-violet-500 to-cyan-400",
+    gradient: "from-orange-500 to-pink-500",
     qualityScore: social.qualityScore,
     handle: p.handle,
     variantId: String(variant.id || ""),
     sku: variant.sku || "",
     vendor: p.vendor || "AICeVrei",
+    tags: p.tags || "",
     status: p.status,
   };
 }
@@ -172,32 +173,47 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const collectionId = url.searchParams.get("collection");
-    const search = url.searchParams.get("search");
+    const search = url.searchParams.get("search") || url.searchParams.get("q") || "";
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 250);
-    const page = url.searchParams.get("page_info") || "";
     const mode = url.searchParams.get("mode") || "default";
+    const minPrice = url.searchParams.get("minPrice") ? Number(url.searchParams.get("minPrice")) : undefined;
+    const maxPrice = url.searchParams.get("maxPrice") ? Number(url.searchParams.get("maxPrice")) : undefined;
+    const category = url.searchParams.get("category") || undefined;
+    const sort = (url.searchParams.get("sort") || undefined) as any;
+    const requireImage = url.searchParams.get("requireImage") !== "false";
 
-    const cacheKey = `products_${collectionId || "all"}_${search || ""}_${limit}_${page}_${mode}`;
+    const cacheKey = `products_${collectionId || "all"}_${search}_${limit}_${mode}_${minPrice || ""}_${maxPrice || ""}_${category || ""}_${sort || ""}_${requireImage}`;
     const cached = getCached(cacheKey);
     if (cached) return NextResponse.json(cached);
 
     const token = await getShopifyAccessToken();
-    let endpoint = `products.json?limit=${limit}&status=active&fields=id,title,body_html,product_type,vendor,tags,handle,images,variants,status`;
-
+    let endpoint = `products.json?limit=250&status=active&fields=id,title,body_html,product_type,vendor,tags,handle,images,variants,status`;
     if (collectionId) endpoint += `&collection_id=${collectionId}`;
-    if (page) endpoint = `products.json?limit=${limit}&page_info=${page}`;
 
     const data = await shopifyGET(endpoint, token);
     let products = (data.products || [])
       .filter((p: any) => p.status === "active")
       .map(transformProduct);
 
-    if (search) {
-      const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
-      products = products.filter((p: any) => {
-        const haystack = `${p.title} ${p.description} ${p.category} ${p.vendor} ${p.sku}`.toLowerCase();
-        return terms.some((term) => haystack.includes(term));
+    if (search || minPrice != null || maxPrice != null || category || sort) {
+      const result = searchProducts(products, {
+        query: search,
+        minPrice,
+        maxPrice,
+        category,
+        sort: sort || (mode === "trending" ? "popular" : undefined),
+        requireImage,
+        limit,
       });
+
+      const response = {
+        products: result.products,
+        total: result.total,
+        parsed: result.parsed,
+        nextPage: null,
+      };
+      setCache(cacheKey, response);
+      return NextResponse.json(response);
     }
 
     if (mode === "feed") {
@@ -209,7 +225,7 @@ export async function GET(req: Request) {
     }
 
     const result = {
-      products,
+      products: products.slice(0, limit),
       total: products.length,
       nextPage: null,
     };
