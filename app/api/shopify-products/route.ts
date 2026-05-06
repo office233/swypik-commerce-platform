@@ -6,38 +6,17 @@
 import { NextResponse } from "next/server";
 import { getShopifyAccessToken } from "@/lib/shopify/auth";
 import { searchProducts } from "@/lib/shopify/product-search";
+import { getCommerceInsights, type ProductInsight } from "@/lib/shopify/commerce-insights";
 
 const API_VERSION = process.env.SHOPIFY_API_VERSION || "2026-04";
 const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 3 * 60 * 1000;
 
-function getCached(key: string) {
-  const entry = cache.get(key);
-  if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data;
-  return null;
-}
-
-function setCache(key: string, data: any) {
-  cache.set(key, { data, ts: Date.now() });
-}
-
-function hashString(value: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return Math.abs(hash >>> 0);
-}
-
-function seededRange(seed: number, min: number, max: number): number {
-  return min + (seed % (max - min + 1));
-}
-
-function tagNumber(tags: string, name: string): number | null {
-  const match = tags.match(new RegExp(`${name}:([0-9]+(?:\.[0-9]+)?)`, "i"));
-  return match ? Number(match[1]) : null;
-}
+function getCached(key: string) { const entry = cache.get(key); if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data; return null; }
+function setCache(key: string, data: any) { cache.set(key, { data, ts: Date.now() }); }
+function hashString(value: string): number { let hash = 2166136261; for (let i = 0; i < value.length; i++) { hash ^= value.charCodeAt(i); hash = Math.imul(hash, 16777619); } return Math.abs(hash >>> 0); }
+function seededRange(seed: number, min: number, max: number): number { return min + (seed % (max - min + 1)); }
+function tagNumber(tags: string, name: string): number | null { const match = tags.match(new RegExp(`${name}:([0-9]+(?:\.[0-9]+)?)`, "i")); return match ? Number(match[1]) : null; }
 
 function buildSocialProof(p: any, price: number, discount: number) {
   const tags = String(p.tags || "").toLowerCase();
@@ -73,20 +52,8 @@ async function shopifyGET(endpoint: string, token: string) {
   return res.json();
 }
 
-function cleanHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim().substring(0, 300);
-}
-
-function extractBenefits(html: string): string[] {
-  const benefits: string[] = [];
-  const liMatches = html.match(/<li[^>]*>(.*?)<\/li>/gi) || [];
-  for (const li of liMatches.slice(0, 4)) {
-    const text = li.replace(/<[^>]*>/g, "").trim();
-    if (text.length > 5 && text.length < 100) benefits.push(text);
-  }
-  if (benefits.length === 0) benefits.push("Produs selectat din magazin", "Checkout securizat prin Shopify", "Livrare rapidă în România");
-  return benefits;
-}
+function cleanHtml(html: string): string { return html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim().substring(0, 300); }
+function extractBenefits(html: string): string[] { const benefits: string[] = []; const liMatches = html.match(/<li[^>]*>(.*?)<\/li>/gi) || []; for (const li of liMatches.slice(0, 4)) { const text = li.replace(/<[^>]*>/g, "").trim(); if (text.length > 5 && text.length < 100) benefits.push(text); } if (benefits.length === 0) benefits.push("Produs selectat din magazin", "Checkout securizat prin Shopify", "Livrare rapidă în România"); return benefits; }
 
 function transformProduct(p: any) {
   const variant = p.variants?.[0] || {};
@@ -95,25 +62,40 @@ function transformProduct(p: any) {
   const oldPrice = compareAt > price ? compareAt : Math.round(price * 1.35);
   const discount = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
   const social = buildSocialProof(p, price, discount);
-  return {
-    id: String(p.id), shopifyId: String(p.id), title: p.title, description: cleanHtml(p.body_html || p.title), benefits: extractBenefits(p.body_html || ""),
-    dealLabel: discount >= 20 ? "🔥 Super Deal" : discount >= 10 ? "💰 Preț bun" : "✨ Nou", whyBuy: "", warnings: [], price, oldPrice, discountPercent: discount,
-    rating: social.rating, orders: social.orders, deliveryDays: social.deliveryDays, viewers: social.viewers, cartAdds: social.cartAdds, likes: social.likes,
-    commentCount: social.commentCount, socialProofLabel: social.socialProofLabel, images: (p.images || []).map((img: any) => img.src).filter(Boolean), category: p.product_type || "General",
-    gradient: "from-orange-500 to-pink-500", qualityScore: social.qualityScore, handle: p.handle, variantId: String(variant.id || ""), sku: variant.sku || "", vendor: p.vendor || "AICeVrei", tags: p.tags || "", status: p.status,
-  };
+  return { id: String(p.id), shopifyId: String(p.id), title: p.title, description: cleanHtml(p.body_html || p.title), benefits: extractBenefits(p.body_html || ""), dealLabel: discount >= 20 ? "🔥 Super Deal" : discount >= 10 ? "💰 Preț bun" : "✨ Nou", whyBuy: "", warnings: [], price, oldPrice, discountPercent: discount, rating: social.rating, orders: social.orders, deliveryDays: social.deliveryDays, viewers: social.viewers, cartAdds: social.cartAdds, likes: social.likes, commentCount: social.commentCount, socialProofLabel: social.socialProofLabel, images: (p.images || []).map((img: any) => img.src).filter(Boolean), category: p.product_type || "General", gradient: "from-orange-500 to-pink-500", qualityScore: social.qualityScore, handle: p.handle, variantId: String(variant.id || ""), sku: variant.sku || "", vendor: p.vendor || "AICeVrei", tags: p.tags || "", status: p.status };
+}
+
+function insightMap(insights: ProductInsight[] = []) {
+  const map = new Map<string, ProductInsight>();
+  for (const insight of insights) { if (insight.productId) map.set(String(insight.productId), insight); if (insight.variantId) map.set(String(insight.variantId), insight); }
+  return map;
+}
+
+function enrichWithInsights(products: any[], insights: ProductInsight[] = []) {
+  const map = insightMap(insights);
+  return products.map((p) => {
+    const insight = map.get(p.id) || map.get(p.variantId || "");
+    if (!insight) return p;
+    const realOrders = Math.max(p.orders || 0, insight.soldCount || 0);
+    const realCartAdds = Math.max(p.cartAdds || 0, insight.cartCount || 0);
+    const commerceBadge = insight.soldCount >= 5 ? "🔥 Se vinde bine" : insight.cartCount >= 3 ? "🛒 Hot în coș" : insight.abandonedCount >= 3 ? "👀 Foarte comparat" : insight.conversionScore > 0 ? "⚡ Alegere sigură" : p.socialProofLabel;
+    return { ...p, orders: realOrders, cartAdds: realCartAdds, soldCount: insight.soldCount, abandonedCount: insight.abandonedCount, revenue: insight.revenue, commerceScore: insight.conversionScore, commerceBadge, socialProofLabel: commerceBadge, qualityScore: p.qualityScore + Math.min(Math.round((insight.conversionScore || 0) / 12), 5) };
+  });
 }
 
 function feedCommerceScore(p: any) {
   const priceBandBoost = p.price >= 50 && p.price <= 220 ? 12 : p.price < 50 ? 6 : 2;
   const addToCartScore = Math.min((p.cartAdds || 0) / 2, 30);
   const orderScore = Math.min((p.orders || 0) / 20, 30);
+  const realConversionScore = Math.min((p.commerceScore || 0) / 2, 45);
+  const revenueScore = Math.min((p.revenue || 0) / 100, 25);
   const discountScore = Math.min(p.discountPercent || 0, 25);
   const qualityScore = (p.qualityScore || 7) * 2;
   const deliveryScore = Math.max(0, 7 - (p.deliveryDays || 7));
   const imageScore = (p.images?.length || 0) > 0 ? 8 : -30;
   const bundleHint = /bundle|cadou|accesor|set|kit|premium|best-seller|bestseller/i.test(`${p.title} ${p.tags} ${p.category}`) ? 10 : 0;
-  return Math.round(priceBandBoost + addToCartScore + orderScore + discountScore + qualityScore + deliveryScore + imageScore + bundleHint);
+  const abandonPenalty = Math.min((p.abandonedCount || 0) * 0.8, 18);
+  return Math.round(priceBandBoost + addToCartScore + orderScore + realConversionScore + revenueScore + discountScore + qualityScore + deliveryScore + imageScore + bundleHint - abandonPenalty);
 }
 
 export async function GET(req: Request) {
@@ -129,34 +111,29 @@ export async function GET(req: Request) {
     const sort = (url.searchParams.get("sort") || undefined) as any;
     const requireImage = url.searchParams.get("requireImage") !== "false";
     const cacheKey = `products_${collectionId || "all"}_${search}_${limit}_${mode}_${minPrice || ""}_${maxPrice || ""}_${category || ""}_${sort || ""}_${requireImage}`;
-    const cached = getCached(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    const cached = getCached(cacheKey); if (cached) return NextResponse.json(cached);
     const token = await getShopifyAccessToken();
     let endpoint = `products.json?limit=250&status=active&fields=id,title,body_html,product_type,vendor,tags,handle,images,variants,status`;
     if (collectionId) endpoint += `&collection_id=${collectionId}`;
-    const data = await shopifyGET(endpoint, token);
-    let products = (data.products || []).filter((p: any) => p.status === "active").map(transformProduct);
+    const [data, commerceInsights] = await Promise.all([shopifyGET(endpoint, token), getCommerceInsights().catch(() => null)]);
+    let products = enrichWithInsights((data.products || []).filter((p: any) => p.status === "active").map(transformProduct), commerceInsights?.productInsights || []);
 
     if (search || minPrice != null || maxPrice != null || category || sort) {
       const result = searchProducts(products, { query: search, minPrice, maxPrice, category, sort: sort || (mode === "trending" ? "popular" : undefined), requireImage, limit });
-      const response = { products: result.products, total: result.total, parsed: result.parsed, nextPage: null };
-      setCache(cacheKey, response);
-      return NextResponse.json(response);
+      const response = { products: result.products, total: result.total, parsed: result.parsed, insightSummary: commerceInsights?.totals || null, nextPage: null };
+      setCache(cacheKey, response); return NextResponse.json(response);
     }
 
     if (mode === "feed") {
-      products = products
-        .map((p: any) => ({ ...p, feedScore: feedCommerceScore(p), commerceBadge: feedCommerceScore(p) >= 80 ? "🔥 Se vinde bine" : feedCommerceScore(p) >= 65 ? "🛒 Hot în coș" : feedCommerceScore(p) >= 50 ? "⚡ Alegere sigură" : p.socialProofLabel }))
-        .sort((a: any, b: any) => b.feedScore - a.feedScore);
+      products = products.map((p: any) => ({ ...p, feedScore: feedCommerceScore(p), commerceBadge: p.commerceBadge || (feedCommerceScore(p) >= 80 ? "🔥 Se vinde bine" : feedCommerceScore(p) >= 65 ? "🛒 Hot în coș" : feedCommerceScore(p) >= 50 ? "⚡ Alegere sigură" : p.socialProofLabel) })).sort((a: any, b: any) => b.feedScore - a.feedScore);
     } else if (mode === "trending") {
-      products = products.sort((a: any, b: any) => b.qualityScore + b.orders / 100 - (a.qualityScore + a.orders / 100));
+      products = products.sort((a: any, b: any) => (b.commerceScore || 0) - (a.commerceScore || 0) || b.qualityScore + b.orders / 100 - (a.qualityScore + a.orders / 100));
     } else {
       products = products.sort((a: any, b: any) => a.price - b.price);
     }
 
-    const result = { products: products.slice(0, limit), total: products.length, nextPage: null };
-    setCache(cacheKey, result);
-    return NextResponse.json(result);
+    const result = { products: products.slice(0, limit), total: products.length, insightSummary: commerceInsights?.totals || null, nextPage: null };
+    setCache(cacheKey, result); return NextResponse.json(result);
   } catch (error: any) {
     console.error("[Products API]", error.message);
     return NextResponse.json({ error: "Failed to fetch products", products: [], total: 0 }, { status: 500 });
