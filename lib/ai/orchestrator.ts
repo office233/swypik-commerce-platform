@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import type { ShoppingSession } from "@/lib/sales/shopping-session";
+import { buildSessionPrompt } from "@/lib/sales/shopping-session";
 
 function getAIClient(): OpenAI | null {
   if (process.env.OPENROUTER_API_KEY) {
@@ -48,6 +50,7 @@ Reguli ferme:
 - Vorbește în română, cald, direct, cu personalitate de consultant de vânzări.
 - Nu fi sec. Explică de ce alegerea merită și împinge natural spre coș.
 - Construiește bundle-uri: produs principal + 1-2 produse complementare.
+- Adaptează răspunsul după contextul clientului: buget, pentru cine cumpără, stil, ocazie, sensibilitate la preț.
 - Când clientul caută ceva, returnează search_product, searchQuery și 1-3 bundleQueries.
 - Când clientul vrea să cumpere/adauge, returnează add_to_cart și productId/productTitle dacă este clar.
 - Când clientul este indecis, pune maxim 2 întrebări și recomandă un traseu de cumpărare.
@@ -71,10 +74,11 @@ Returnează mereu JSON valid, fără markdown:
 export async function orchestrate(
   userMessage: string,
   chatHistory: { role: "user" | "assistant"; content: string }[] = [],
-  productContext: any[] = []
+  productContext: any[] = [],
+  shoppingSession: ShoppingSession = {}
 ): Promise<OrchestratorResult> {
   const client = getAIClient();
-  if (!client) return fallbackOrchestrate(userMessage, productContext);
+  if (!client) return fallbackOrchestrate(userMessage, productContext, shoppingSession);
 
   try {
     const contextSummary = productContext.slice(0, 10).map((p) => ({
@@ -86,7 +90,12 @@ export async function orchestrate(
       orders: p.orders,
     }));
 
-    const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }, ...chatHistory.slice(-10)];
+    const messages: any[] = [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: buildSessionPrompt(shoppingSession) },
+      ...chatHistory.slice(-10),
+    ];
+
     if (contextSummary.length) messages.push({ role: "system", content: `Produse Shopify în context: ${JSON.stringify(contextSummary)}` });
     messages.push({ role: "user", content: userMessage });
 
@@ -112,11 +121,11 @@ export async function orchestrate(
     };
   } catch (error) {
     console.error("[AI Orchestrator] Error:", error);
-    return fallbackOrchestrate(userMessage, productContext);
+    return fallbackOrchestrate(userMessage, productContext, shoppingSession);
   }
 }
 
-function fallbackOrchestrate(message: string, productContext: any[] = []): OrchestratorResult {
+function fallbackOrchestrate(message: string, productContext: any[] = [], shoppingSession: ShoppingSession = {}): OrchestratorResult {
   const msg = message.toLowerCase().trim();
   const firstProduct = productContext[0];
   const cartKeywords = ["adauga", "adaugă", "pune", "cos", "coș", "cumpar", "cumpăr", "iau", "vreau asta"];
@@ -135,9 +144,10 @@ function fallbackOrchestrate(message: string, productContext: any[] = []): Orche
   if (checkoutKeywords.some((k) => msg.includes(k))) return { intent: "checkout", reply: "Perfect. Hai să finalizăm comanda cât mai simplu 🛒" };
   if (greetKeywords.some((k) => msg.includes(k))) return { intent: "general_chat", reply: "Salut! Spune-mi pentru cine cumperi, ce buget ai și ce stil vrei. Îți fac rapid un bundle bun din produse Shopify și îți spun ce merită pus în coș. ✨", shouldAskFollowUp: true };
 
+  const budgetText = shoppingSession.budgetLabel ? ` în bugetul tău de ${shoppingSession.budgetLabel}` : "";
   return {
     intent: "search_product",
-    reply: "Perfect, caut variante potrivite și îți pregătesc și idei de bundle ca să alegi mai ușor. 🔥",
+    reply: `Perfect, caut variante potrivite${budgetText} și îți pregătesc idei de bundle ca să alegi mai ușor. 🔥`,
     searchQuery: message,
     bundleQueries: [message + " accesorii", message + " cadou", message + " premium"],
     shouldAskFollowUp: true,
