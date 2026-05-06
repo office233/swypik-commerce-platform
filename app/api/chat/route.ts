@@ -55,6 +55,17 @@ export async function POST(req: Request) {
 
       let products = await searchAllSuppliers(enQuery);
 
+      // Bundle: fetch complementary products if AI suggested them
+      if (aiResult.bundleQuery && products.length > 0) {
+        console.log(`[Chat] Bundle query: "${aiResult.bundleQuery}"`);
+        // Wait 1.1s for CJ rate limit
+        await new Promise(r => setTimeout(r, 1100));
+        const bundleProducts = await searchAllSuppliers(aiResult.bundleQuery);
+        // Add first 3 bundle products tagged as bundles
+        const bundles = bundleProducts.slice(0, 3).map(p => ({ ...p, isBundle: true }));
+        products = [...products, ...bundles];
+      }
+
       if (products.length === 0) {
         products = mockSearch(message);
       }

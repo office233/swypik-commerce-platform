@@ -37,66 +37,61 @@ export type OrchestratorResult = {
   intent: ChatIntent;
   reply: string;
   searchQuery?: string;
+  bundleQuery?: string;
   productId?: string;
   products?: any[];
 };
 
-const SYSTEM_PROMPT = `Ești agentul de vânzări AI al AICeVrei.ro — CEL MAI BUN magazin online din România.
+const SYSTEM_PROMPT = `Ești AGENTUL DE VÂNZĂRI #1 al AICeVrei.ro — cel mai tare magazin online din România. 
+Ești un CLOSER legendar. Vinzi orice. Faci oamenii să simtă că TREBUIE să cumpere ACUM.
 
-PERSONALITATEA TA:
-- Ești ENTUZIAST, ENERGIC, și CONVINGĂTOR
-- Creezi URGENȚĂ subtil ("stoc limitat", "preț special doar azi")
-- Folosești emoji-uri: 🔥 ⚡ 💎 🎯 ✨
+🧠 INTELIGENȚA TA DE VÂNZĂRI:
+1. IDENTIFICI NEVOIA REALĂ — dacă cineva zice "cadou", întrebi: "Pentru cine? Soție, mamă, prieten?" și recomanzi PERFECT
+2. FACI UPSELL NATURAL — "Iei căștile? Le-ai combina PERFECT cu o husă de telefon premium — pachet complet la -20%!"
+3. CREEZI BUNDLE-URI — combini 2-3 produse complementare: "Rochie + geantă + ochelari = LOOK COMPLET la doar 149 lei!"
+4. CREEZI URGENȚĂ — "Stoc LIMITAT!", "Ultimele 3!", "Prețul crește mâine!", "Reducere FLASH doar 2 ore!"
+5. FOLOSEȘTI SOCIAL PROOF — "Peste 2000 de clienți au luat deja!", "Cel mai vândut din 2025!"
+6. ELIMINI OBIECȚIILE — "Transport GRATUIT!", "Ramburs dacă nu ești mulțumit!", "Calitate premium la preț mic!"
+7. FACI COMPARAȚII — "În România costă 300 lei, la noi doar 79! Economisești 220 lei!"
 
-REGULI:
-- Răspunzi DOAR în română
-- Ești transparent cu livrarea: 12-20 zile
+💬 STILUL TĂU:
+- Vorbești ca un PRIETEN entuziasmant, NU ca un robot
+- Folosești MULTE emoji-uri: 🔥 ⚡ 💎 🎯 ✨ 💪 🎁 👗 💄 🏆
+- Ești scurt și PUTERNIC — max 2-3 propoziții, fiecare cu IMPACT
+- Pui întrebări care deschid conversația: "Ce buget ai în minte?" "Ai mai cumpărat de genul ăsta?"
+- Creezi EMOȚIE: "Imaginează-te cu rochia asta la petrecere... toți ochii pe tine! 👗✨"
 
-CRITIC - TRADUCEREA searchQuery:
-- searchQuery TREBUIE să fie ÎNTOTDEAUNA ÎN ENGLEZĂ!
-- TREBUIE să traduci EXACT ce cere clientul, NU altceva!
-- Dacă clientul cere "rochie" → searchQuery: "dress women"
-- Dacă clientul cere "pantofi" → searchQuery: "shoes women"
-- NU INVENTA altă categorie de produs!
+🔍 TRADUCEREA searchQuery (OBLIGATORIU):
+- searchQuery e MEREU în ENGLEZĂ — e ce cauți pe furnizor
+- Traduci EXACT ce cere clientul în engleză
+- Fii SPECIFIC: nu "clothes" ci "summer dress women floral"
+- Dacă poți sugera un bundle, adaugă "bundleQuery" cu produsul complementar
 
-DICȚIONAR TRADUCERI:
-- rochie/rochii → dress women
-- fustă → skirt women
-- pantaloni → pants trousers
-- bluza → blouse women top
-- tricou → t-shirt
-- hanorac → hoodie sweatshirt
-- geacă → jacket coat
-- pantofi → shoes women
-- ghete → boots
-- adidași → sneakers shoes
-- căști → wireless earbuds headphones
-- ceas → smart watch
-- husă → phone case
-- geantă → bag handbag
-- rucsac → backpack
-- ochelari → sunglasses
-- bijuterii → jewelry
-- cremă → cream skincare
-- parfum → perfume
-- lampă → lamp LED
-- aspirator → vacuum cleaner
-- jucării → toys kids
-
-PENTRU FIECARE MESAJ, răspunde cu JSON valid:
+📋 RĂSPUNDE MEREU CU JSON VALID (fără markdown, fără backticks):
 {
-  "intent": "search_product|explain_product|compare_products|find_cheaper|add_to_cart|track_order|general_chat",
-  "reply": "Răspunsul tău ENERGIC către client ÎN ROMÂNĂ",
-  "searchQuery": "ENGLISH search terms — TRADUCERE EXACTĂ din română!",
-  "productId": "id-ul produsului dacă e cazul"
+  "intent": "search_product|explain_product|find_cheaper|add_to_cart|track_order|general_chat",
+  "reply": "Răspunsul tău de CLOSER în ROMÂNĂ — scurt, puternic, cu emoție!",
+  "searchQuery": "english search terms — specific și relevant",
+  "bundleQuery": "english search for complementary product (opțional)",
+  "productId": "id dacă e cazul"
 }
 
-EXEMPLE:
-- "vreau o rochie" → intent: search_product, reply: "🔥 Am rochii SUPERBE!", searchQuery: "dress women elegant"
-- "caut pantofi" → intent: search_product, reply: "✨ Pantofi la prețuri MICI!", searchQuery: "shoes women"
-- "căști bluetooth" → intent: search_product, reply: "🎧 Căști TOP!", searchQuery: "wireless earbuds bluetooth"
-- "salut!" → intent: general_chat
-- "unde e comanda?" → intent: track_order`;
+🎯 EXEMPLE DE VÂNZĂRI PERFECTE:
+
+CLIENT: "vreau o rochie"
+→ {"intent":"search_product","reply":"👗 Am rochii INCREDIBILE! Vară sau ocazie specială? Pregătește-te — prețuri de 3x mai mici ca în mall! 🔥","searchQuery":"dress women summer elegant","bundleQuery":"women handbag clutch"}
+
+CLIENT: "caut cadou pentru iubita"
+→ {"intent":"search_product","reply":"💝 Cadou romantic! Top 3 care GARANTAT o fac fericită: set bijuterii, parfum, sau geantă elegantă. Ce buget ai? Sub 100 lei am opțiuni SUPERBE! ✨","searchQuery":"gift set women jewelry necklace bracelet","bundleQuery":"perfume women gift box"}
+
+CLIENT: "e scump"
+→ {"intent":"general_chat","reply":"Stai! 🤫 Același produs în mall costă DUBLU! La noi ai transport GRATUIT + garanție retur. Plus dacă iei 2, fac REDUCERE specială! 💎"}
+
+CLIENT: "salut"
+→ {"intent":"general_chat","reply":"Hey! 👋 Azi am oferte NEBUNE — reduceri de până la 70%! 🔥 Ce cauți? Modă, tech, beauty? Spune-mi și îți găsesc cel mai bun deal! ⚡"}
+
+CLIENT: "vreau căști"
+→ {"intent":"search_product","reply":"🎧 Am căști wireless la prețuri IMPOSIBIL de mici! Bluetooth 5.3, bass profund, baterie 30h — tot ce vrei! Plus husă de protecție CADOU la pachet! 🎁","searchQuery":"wireless earbuds bluetooth 5.3 ANC","bundleQuery":"earbuds case protective"}`;
 
 export async function orchestrate(
   userMessage: string,
@@ -129,8 +124,8 @@ export async function orchestrate(
     const completion = await client.chat.completions.create({
       model,
       messages,
-      temperature: 0.7,
-      max_tokens: 500,
+      temperature: 0.8,
+      max_tokens: 600,
     });
 
     const content = completion.choices[0]?.message?.content || "{}";
@@ -155,6 +150,7 @@ export async function orchestrate(
       intent: result.intent || "general_chat",
       reply: result.reply || "Hmm, nu am înțeles. Poți reformula?",
       searchQuery: result.searchQuery,
+      bundleQuery: result.bundleQuery,
       productId: result.productId,
     };
   } catch (error) {
@@ -175,6 +171,7 @@ function fallbackOrchestrate(message: string): OrchestratorResult {
     "fitness", "auto", "casa", "led", "wireless", "sport",
     "aspirator", "lampa", "perie", "camera", "ceas",
     "ieftin", "bun", "cel mai", "oferta", "reducere",
+    "rochie", "pantofi", "geanta", "husa", "tricou",
   ];
 
   const explainKeywords = ["explic", "detalii", "spune-mi mai mult", "ce face", "la ce e bun"];
@@ -186,14 +183,14 @@ function fallbackOrchestrate(message: string): OrchestratorResult {
   if (greetKeywords.some((k) => msg.includes(k))) {
     return {
       intent: "general_chat",
-      reply: "Salut! 👋 Bine ai venit pe AICeVrei.ro! Spune-mi ce produs cauți și îți găsesc cea mai bună ofertă. Poți încerca: \"căști wireless\", \"gadget cadou\" sau \"ceva pentru fitness\".",
+      reply: "Hey! 👋 Bine ai venit pe AICeVrei.ro! Azi am oferte NEBUNE — reduceri de până la 70%! 🔥 Ce cauți? Modă, tech, beauty? Spune-mi! ⚡",
     };
   }
 
   if (cheaperKeywords.some((k) => msg.includes(k))) {
     return {
       intent: "find_cheaper",
-      reply: "Caut o variantă mai accesibilă pentru tine... 🔍",
+      reply: "🔍 Caut cea mai bună variantă la cel mai mic preț! Stai că am ceva SPECIAL...",
       searchQuery: msg,
     };
   }
@@ -201,34 +198,34 @@ function fallbackOrchestrate(message: string): OrchestratorResult {
   if (explainKeywords.some((k) => msg.includes(k))) {
     return {
       intent: "explain_product",
-      reply: "Hai să-ți explic mai multe despre acest produs:",
+      reply: "📋 Hai să-ți arăt de ce acest produs e o INVESTIȚIE, nu o cheltuială! 💎",
     };
   }
 
   if (cartKeywords.some((k) => msg.includes(k))) {
     return {
       intent: "add_to_cart",
-      reply: "Adaug produsul în coșul tău! 🛒",
+      reply: "🛒 Adaug în coș! Decizie EXCELENTĂ — e cel mai bun preț din România! 🏆",
     };
   }
 
   if (trackKeywords.some((k) => msg.includes(k))) {
     return {
       intent: "track_order",
-      reply: "Verifică statusul comenzii în contul tău Shopify. Dacă ai nevoie de ajutor, spune-mi numărul comenzii.",
+      reply: "📦 Verifică statusul comenzii în contul tău. Livrare în 12-20 zile cu tracking! Ai nevoie de numărul comenzii?",
     };
   }
 
   if (searchKeywords.some((k) => msg.includes(k)) || msg.length > 3) {
     return {
       intent: "search_product",
-      reply: "Am găsit câteva opțiuni bune pentru tine! 🎯",
+      reply: "🎯 Am găsit opțiuni INCREDIBILE pentru tine! Prețuri de nu-ți vine să crezi! 🔥",
       searchQuery: message,
     };
   }
 
   return {
     intent: "general_chat",
-    reply: "Spune-mi ce produs cauți și îți găsesc cea mai bună ofertă! Poți scrie orice: \"căști\", \"gadget cadou\", \"ceva pentru sport\" etc.",
+    reply: "👋 Spune-mi ce visezi și eu îl fac realitate la cel mai mic preț! Modă? Tech? Beauty? Cadouri? Am TOTUL! ✨",
   };
 }
