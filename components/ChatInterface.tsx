@@ -107,12 +107,11 @@ export default function ChatInterface() {
 
   useEffect(() => {
     setSessionId(crypto.randomUUID());
-    // Preload trending products for homepage
-    fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "trending", sessionId: "preload", directCjQuery: "smartphone accessories USB LED gadget" }),
-    }).then(r => r.json()).then(d => setTrendingProducts(d.products || [])).catch(() => {});
+    // Preload trending products from Shopify
+    fetch("/api/shopify-products?mode=trending&limit=20")
+      .then(r => r.json())
+      .then(d => setTrendingProducts(d.products || []))
+      .catch(() => {});
 
     // Load Shopify collections
     fetch("/api/collections")
@@ -270,52 +269,41 @@ export default function ChatInterface() {
   const cartTotal = cartItems.reduce((sum, c) => sum + c.product.price * c.qty, 0);
   const cartCount = cartItems.reduce((sum, c) => sum + c.qty, 0);
 
-  /* ─── Load Deals ─── */
+  /* ─── Load Deals (from Shopify) ─── */
   async function loadDeals() {
     if (dealsProducts.length > 0 || dealsLoading) return;
     setDealsLoading(true);
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "deals", sessionId, directCjQuery: "wireless earbuds bluetooth portable charger USB gadget" }),
-      });
+      const res = await fetch("/api/shopify-products?mode=trending&limit=50");
       const data = await res.json();
       setDealsProducts(data.products || []);
     } catch {} finally { setDealsLoading(false); }
   }
 
-  /* ─── Load Category Browse ─── */
-  async function loadCategory(label: string, query: string) {
+  /* ─── Load Category from Shopify Collection ─── */
+  async function loadCategory(label: string, collectionIdOrQuery: string) {
     setBrowseTitle(label);
     setBrowseProducts([]);
     setActiveTab("deals");
     setDealsLoading(true);
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: label, sessionId, directCjQuery: query }),
-      });
+      // If it looks like a collection ID (numeric), use collection filter
+      const isCollectionId = /^\d+$/.test(collectionIdOrQuery);
+      const url = isCollectionId
+        ? `/api/shopify-products?collection=${collectionIdOrQuery}&limit=50`
+        : `/api/shopify-products?search=${encodeURIComponent(collectionIdOrQuery)}&limit=50`;
+      const res = await fetch(url);
       const data = await res.json();
       setBrowseProducts(data.products || []);
     } catch {} finally { setDealsLoading(false); }
   }
 
-  /* ─── Load Feed Products ─── */
+  /* ─── Load Feed Products (from Shopify) ─── */
   async function loadFeed() {
     if (feedProducts.length > 0 || feedLoading) return;
     setFeedLoading(true);
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: "feed",
-          sessionId,
-          directCjQuery: "trending popular best seller fashion beauty gadget home decor",
-        }),
-      });
+      const res = await fetch("/api/shopify-products?mode=feed&limit=60");
       const data = await res.json();
       setFeedProducts(data.products || []);
     } catch {} finally { setFeedLoading(false); }
@@ -426,13 +414,13 @@ export default function ChatInterface() {
             {(shopifyCollections.main.length > 0
               ? shopifyCollections.main.slice(0, 12).map((c) => ({
                   label: `${c.emoji} ${c.title.replace(/'/g, "'")}`,
-                  query: c.title.replace(/[&']/g, " "),
+                  collectionId: String(c.id),
                 }))
-              : FALLBACK_ACTIONS
+              : FALLBACK_ACTIONS.map(a => ({ label: a.label, collectionId: a.query }))
             ).map((action) => (
               <button
                 key={action.label}
-                onClick={() => loadCategory(action.label, action.query)}
+                onClick={() => loadCategory(action.label, action.collectionId)}
                 className="rounded-xl border border-white/10 bg-white/[0.06] px-2 py-2.5 text-[11px] font-semibold text-white/80 transition-all hover:bg-white/10 hover:scale-105 active:scale-95 truncate"
               >
                 {action.label}
@@ -771,7 +759,7 @@ export default function ChatInterface() {
                     key={c.id}
                     onClick={() => {
                       setShowAllCategories(false);
-                      loadCategory(`${c.emoji} ${c.title}`, c.title.replace(/[&']/g, " "));
+                      loadCategory(`${c.emoji} ${c.title}`, String(c.id));
                     }}
                     className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left transition hover:bg-white/10 active:scale-95"
                   >
