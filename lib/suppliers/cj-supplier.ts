@@ -128,53 +128,60 @@ export async function cjSearch(
     }
 
     const json = await res.json();
-    if (json.code !== 200 || !json.data?.list) {
-      console.error("[CJ] Error:", json.message);
+    if (json.code !== 200 || !json.data?.content) {
+      console.error("[CJ] Error:", json.message, "code:", json.code);
       return [];
     }
 
-    const products = json.data.list
+    console.log(`[CJ] Found ${json.data.totalRecords} total results`);
+
+    // listV2 structure: data.content = [{ productList: [...] }, ...]
+    const allItems: any[] = [];
+    for (const group of json.data.content) {
+      if (group.productList && Array.isArray(group.productList)) {
+        allItems.push(...group.productList);
+      }
+    }
+
+    const products = allItems
       .map((item: any) => {
-        const variants = item.variants || [];
-        const prices = variants
-          .map((v: any) => parseFloat(v.variantSellPrice || v.variantPrice || "0"))
-          .filter((p: number) => p > 0);
-        const usdPrice = prices.length > 0 ? Math.min(...prices) : parseFloat(item.sellPrice || "0");
+        // sellPrice can be "1.15 -- 1.19" or "5.99"
+        const priceStr = item.sellPrice || item.nowPrice || "0";
+        const usdPrice = parseFloat(String(priceStr).split("--")[0].trim());
+        if (usdPrice <= 0) return null;
         const ronCost = Math.round(usdPrice * USD_TO_RON);
 
-        const images = extractImages(item);
+        // bigImage is the main image in listV2
+        const images: string[] = [];
+        if (item.bigImage && typeof item.bigImage === "string" && item.bigImage.startsWith("http")) {
+          images.push(item.bigImage);
+        }
+        images.push(...extractImages(item).filter((i: string) => !images.includes(i)));
+        if (images.length === 0) return null;
 
-        if (images.length === 0 || ronCost <= 0) return null;
+        const pid = item.id || item.pid || item.productId || "";
 
         return {
           source: "cj" as const,
-          sourceProductId: item.pid || item.productId || "",
-          sourceUrl: `https://cjdropshipping.com/product/${item.pid || item.productId}`,
-          title: item.productNameEn || item.productName || "",
-          description: item.description || item.productNameEn || "",
+          sourceProductId: pid,
+          sourceUrl: `https://cjdropshipping.com/product/${pid}`,
+          title: item.nameEn || item.productNameEn || item.productName || "",
+          description: item.nameEn || item.productNameEn || "",
           price: ronCost,
           shipping: 0,
           currency: "RON",
           rating: item.productRating || 0,
-          orders: item.orders || 0,
+          orders: item.listedNum || item.orders || 0,
           deliveryDays: 14,
           images,
           category: item.categoryName || "",
-          variants: variants.length > 0
-            ? variants.slice(0, 6).map((v: any) => ({
-                sourceVariantId: v.vid || `v-${Math.random().toString(36).slice(2)}`,
-                title: v.variantName || v.variantNameEn || "Standard",
-                options: { variant: v.variantName || "Standard" },
-                price: Math.round(parseFloat(v.variantSellPrice || v.variantPrice || String(usdPrice)) * USD_TO_RON),
-                stockStatus: "in_stock" as const,
-              }))
-            : [{
-                sourceVariantId: `v-${item.pid || item.productId}`,
-                title: "Standard",
-                options: { variant: "Standard" },
-                price: ronCost,
-                stockStatus: "in_stock" as const,
-              }],
+          variants: [{
+            sourceVariantId: item.sku || `v-${pid}`,
+            title: "Standard",
+            options: { variant: "Standard" },
+            price: ronCost,
+            stockStatus: "in_stock" as const,
+          }],
         };
       })
       .filter((p: any): p is SupplierProduct => p !== null && p.title.length > 0);
