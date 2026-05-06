@@ -1,4 +1,4 @@
-export type SupplierSource = "mock" | "aliexpress" | "cj" | "syncee";
+export type SupplierSource = "mock" | "aliexpress" | "cj" | "syncee" | "otapi";
 
 export type SupplierProduct = {
   source: SupplierSource;

@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bot, ChevronDown, MessageCircle, Package, Search,
   Send, ShoppingBag, ShoppingCart, Sparkles, Star,
-  Truck, X, Zap, Home, Tag, User,
+  Truck, X, Zap, Home, Tag, User, Flame, Grid, ChevronRight,
 } from "lucide-react";
+import ProductFeed from "./ProductFeed";
 
 /* ─── Types ─── */
 type ChatProduct = {
@@ -38,20 +39,29 @@ type ChatMessage = {
 
 type CartItem = { product: ChatProduct; qty: number };
 
-/* ─── Quick action categories ─── */
-const QUICK_ACTIONS = [
-  { label: "🎧 Căști", displayMsg: "Vreau căști wireless", cjQuery: "wireless earbuds bluetooth 5.3 ANC" },
-  { label: "📱 Huse", displayMsg: "Huse telefon", cjQuery: "phone case iPhone Samsung silicone" },
-  { label: "💄 Beauty", displayMsg: "Produse beauty", cjQuery: "face serum vitamin C hyaluronic acid" },
-  { label: "🏋️ Fitness", displayMsg: "Echipament fitness", cjQuery: "resistance bands gym equipment home" },
-  { label: "🚗 Auto", displayMsg: "Accesorii auto", cjQuery: "car phone holder mount magnetic" },
-  { label: "🏠 Casă", displayMsg: "Gadgeturi casă", cjQuery: "kitchen gadget organizer storage tool" },
-  { label: "💡 LED", displayMsg: "Lumini LED", cjQuery: "LED strip light RGB bedroom decor" },
-  { label: "⌚ Ceasuri", displayMsg: "Ceasuri smart", cjQuery: "smartwatch men women fitness tracker" },
-  { label: "🎮 Gaming", displayMsg: "Accesorii gaming", cjQuery: "gaming mouse pad RGB keyboard" },
-  { label: "🎁 Cadouri", displayMsg: "Cadouri unice", cjQuery: "gift set women men birthday unique" },
-  { label: "👕 Fashion", displayMsg: "Haine trendy", cjQuery: "t-shirt men streetwear summer" },
-  { label: "📷 Tech", displayMsg: "Gadgeturi tech", cjQuery: "USB C hub adapter charger fast" },
+/* ─── Shopify Collection type ─── */
+type ShopifyCollection = {
+  id: number;
+  title: string;
+  handle: string;
+  emoji: string;
+  productsCount: number;
+};
+
+/* ─── Fallback quick actions (used while collections load) ─── */
+const FALLBACK_ACTIONS = [
+  { label: "👗 Haine femei", query: "women clothing dress summer" },
+  { label: "👔 Haine bărbați", query: "men clothing t-shirt streetwear" },
+  { label: "💎 Bijuterii", query: "jewelry necklace bracelet ring" },
+  { label: "💄 Beauty", query: "face serum vitamin C skincare" },
+  { label: "🏠 Casă & Grădină", query: "home decor kitchen gadget" },
+  { label: "👜 Genți", query: "women bags handbag crossbody" },
+  { label: "🧸 Copii", query: "toys kids baby clothing" },
+  { label: "🐾 Animale", query: "pet supplies dog cat toys" },
+  { label: "🍳 Bucătărie", query: "kitchen tools organizer storage" },
+  { label: "💍 Bijuterii fine", query: "fine jewelry gold silver ring" },
+  { label: "🧴 Skincare", query: "skin care face cream moisturizer" },
+  { label: "💋 Makeup", query: "makeup lipstick foundation palette" },
 ];
 
 /* ─── Gradient map for product cards ─── */
@@ -80,7 +90,7 @@ export default function ChatInterface() {
   const [selectedProduct, setSelectedProduct] = useState<ChatProduct | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [sessionId, setSessionId] = useState("");
-  const [activeTab, setActiveTab] = useState<"home" | "chat" | "deals" | "cart">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "chat" | "deals" | "feed" | "cart">("home");
   const [dealsProducts, setDealsProducts] = useState<ChatProduct[]>([]);
   const [dealsLoading, setDealsLoading] = useState(false);
   const [browseProducts, setBrowseProducts] = useState<ChatProduct[]>([]);
@@ -88,6 +98,10 @@ export default function ChatInterface() {
   const [trendingProducts, setTrendingProducts] = useState<ChatProduct[]>([]);
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [toastMessage, setToastMessage] = useState("");
+  const [shopifyCollections, setShopifyCollections] = useState<{ main: ShopifyCollection[]; all: ShopifyCollection[] }>({ main: [], all: [] });
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [feedProducts, setFeedProducts] = useState<ChatProduct[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -99,6 +113,14 @@ export default function ChatInterface() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: "trending", sessionId: "preload", directCjQuery: "smartphone accessories USB LED gadget" }),
     }).then(r => r.json()).then(d => setTrendingProducts(d.products || [])).catch(() => {});
+
+    // Load Shopify collections
+    fetch("/api/collections")
+      .then(r => r.json())
+      .then(d => {
+        if (d.main) setShopifyCollections({ main: d.main, all: d.all || [] });
+      })
+      .catch(() => {});
   }, []);
 
   // Countdown timer — resets at midnight
@@ -280,6 +302,25 @@ export default function ChatInterface() {
     } catch {} finally { setDealsLoading(false); }
   }
 
+  /* ─── Load Feed Products ─── */
+  async function loadFeed() {
+    if (feedProducts.length > 0 || feedLoading) return;
+    setFeedLoading(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: "feed",
+          sessionId,
+          directCjQuery: "trending popular best seller fashion beauty gadget home decor",
+        }),
+      });
+      const data = await res.json();
+      setFeedProducts(data.products || []);
+    } catch {} finally { setFeedLoading(false); }
+  }
+
   async function submitOrder() {
     if (cartItems.length === 0) return;
     if (!checkoutForm.name || !checkoutForm.phone || !checkoutForm.address || !checkoutForm.city) {
@@ -368,15 +409,31 @@ export default function ChatInterface() {
           </button>
         </div>
 
-        {/* Quick actions — Category grid */}
+        {/* Quick actions — Dynamic Shopify Categories */}
         <div className="mt-5 w-full">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/40">Categorii populare</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Categorii populare</p>
+            {shopifyCollections.all.length > 0 && (
+              <button
+                onClick={() => setShowAllCategories(true)}
+                className="text-[10px] text-violet-400 font-bold flex items-center gap-0.5"
+              >
+                Toate ({shopifyCollections.all.length}) <ChevronRight size={12} />
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-3 gap-2">
-            {QUICK_ACTIONS.map((action) => (
+            {(shopifyCollections.main.length > 0
+              ? shopifyCollections.main.slice(0, 12).map((c) => ({
+                  label: `${c.emoji} ${c.title.replace(/'/g, "'")}`,
+                  query: c.title.replace(/[&']/g, " "),
+                }))
+              : FALLBACK_ACTIONS
+            ).map((action) => (
               <button
                 key={action.label}
-                onClick={() => loadCategory(action.label, action.cjQuery)}
-                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm font-semibold text-white/80 transition-all hover:bg-white/10 hover:scale-105 active:scale-95"
+                onClick={() => loadCategory(action.label, action.query)}
+                className="rounded-xl border border-white/10 bg-white/[0.06] px-2 py-2.5 text-[11px] font-semibold text-white/80 transition-all hover:bg-white/10 hover:scale-105 active:scale-95 truncate"
               >
                 {action.label}
               </button>
@@ -539,6 +596,18 @@ export default function ChatInterface() {
     );
   }
 
+  /* ─── Render Feed Tab (TikTok-style) ─── */
+  function renderFeedTab() {
+    return (
+      <ProductFeed
+        products={feedProducts}
+        onAddToCart={(p) => addToCart(p)}
+        onViewDetails={(p) => setSelectedProduct(p)}
+        isLoading={feedLoading}
+      />
+    );
+  }
+
   /* ─── Render Cart — High Conversion ─── */
   function renderCartTab() {
     return (
@@ -651,7 +720,7 @@ export default function ChatInterface() {
 
         {/* Content area */}
         <div className="min-h-[calc(100vh-120px)]">
-          {activeTab === "home" ? renderHome() : activeTab === "cart" ? renderCartTab() : activeTab === "deals" ? renderDealsTab() : renderChat()}
+          {activeTab === "home" ? renderHome() : activeTab === "cart" ? renderCartTab() : activeTab === "deals" ? renderDealsTab() : activeTab === "feed" ? renderFeedTab() : renderChat()}
         </div>
 
         {/* Input bar — always visible */}
@@ -678,11 +747,42 @@ export default function ChatInterface() {
         <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-lg -translate-x-1/2 border-t border-white/10 bg-black/95 px-4 py-3 backdrop-blur-xl">
           <div className="flex items-center justify-around text-[10px] text-white/40">
             <NavBtn icon={<Home size={18} />} label="Acasă" active={activeTab === "home"} onClick={() => setActiveTab("home")} />
+            <NavBtn icon={<Flame size={18} />} label="Feed" active={activeTab === "feed"} onClick={() => { setActiveTab("feed"); loadFeed(); }} />
             <NavBtn icon={<MessageCircle size={18} />} label="Chat" active={activeTab === "chat"} onClick={() => setActiveTab("chat")} />
             <NavBtn icon={<Tag size={18} />} label="Deals" active={activeTab === "deals"} onClick={() => { setActiveTab("deals"); loadDeals(); }} />
             <NavBtn icon={<ShoppingCart size={18} />} label={`Coș ${cartCount > 0 ? `(${cartCount})` : ""}`} active={activeTab === "cart"} onClick={() => setActiveTab("cart")} />
           </div>
         </nav>
+
+        {/* All Categories Drawer */}
+        {showAllCategories && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-fadeIn" onClick={() => setShowAllCategories(false)}>
+            <div
+              className="w-full max-w-lg rounded-t-[2rem] border-t border-white/10 bg-[#0b0b12] p-5 shadow-2xl animate-slideUp max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-black">🏪 Toate categoriile ({shopifyCollections.all.length})</h2>
+                <button onClick={() => setShowAllCategories(false)} className="rounded-full bg-white/10 p-1.5"><X size={16} /></button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {shopifyCollections.all.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setShowAllCategories(false);
+                      loadCategory(`${c.emoji} ${c.title}`, c.title.replace(/[&']/g, " "));
+                    }}
+                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left transition hover:bg-white/10 active:scale-95"
+                  >
+                    <span className="text-lg">{c.emoji}</span>
+                    <span className="text-xs font-semibold text-white/80 truncate">{c.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Toast Notification */}
         {toastMessage && (

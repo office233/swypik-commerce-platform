@@ -190,9 +190,71 @@ async function processProducts(products: SupplierProduct[]) {
 
   const sorted = results.sort((a, b) => b.qualityScore - a.qualityScore);
 
-  // NO auto-sync — products go to Shopify ONLY when user clicks "Add to Store"
+  // Auto-sync top 6 products to Shopify (with AI descriptions + markup prices)
+  // These are customer-ready: Romanian titles, persuasive descriptions, profit margin included
+  (async () => {
+    for (const p of sorted.slice(0, 6)) {
+      try {
+        // Build rich HTML description for Shopify storefront
+        const htmlDesc = buildShopifyDescription(p);
+        
+        await ensureProductInShopify({
+          id: p.id,
+          title: p.title, // AI-rewritten Romanian title
+          description: htmlDesc, // Rich HTML with benefits, whyBuy, warnings
+          price: p.price, // SELL price (with markup/adaos)
+          oldPrice: p.oldPrice, // "Was" price for discount display
+          category: p.category || "general",
+          images: p.images || [],
+        });
+        await new Promise(r => setTimeout(r, 600)); // Shopify: max 2 req/sec
+      } catch (e: any) {
+        console.log(`[Shopify Sync] Skip: ${e.message?.slice(0, 60)}`);
+      }
+    }
+  })();
 
   return sorted;
+}
+
+/**
+ * Build rich HTML product description for Shopify storefront
+ * Includes: AI description, benefits, whyBuy, delivery info, warnings
+ */
+function buildShopifyDescription(product: any): string {
+  const parts: string[] = [];
+  
+  // Main description
+  if (product.description) {
+    parts.push(`<p>${product.description}</p>`);
+  }
+  
+  // Benefits
+  if (product.benefits?.length > 0) {
+    parts.push(`<h3>De ce să alegi acest produs?</h3>`);
+    parts.push(`<ul>${product.benefits.map((b: string) => `<li>${b}</li>`).join("")}</ul>`);
+  }
+  
+  // Why buy
+  if (product.whyBuy) {
+    parts.push(`<p><strong>💎 ${product.whyBuy}</strong></p>`);
+  }
+  
+  // Delivery info
+  parts.push(`<p>🚚 <strong>Livrare:</strong> ${product.deliveryDays || 14} zile lucrătoare în România</p>`);
+  parts.push(`<p>🔄 <strong>Retur:</strong> 14 zile garanție de returnare</p>`);
+  
+  // Discount badge
+  if (product.discountPercent > 0) {
+    parts.push(`<p>🏷️ <strong>Economisești ${product.discountPercent}%</strong> față de prețul de retail!</p>`);
+  }
+  
+  // Warnings
+  if (product.warnings?.length > 0) {
+    parts.push(`<p><em>${product.warnings.join(" | ")}</em></p>`);
+  }
+  
+  return parts.join("\n");
 }
 
 function getGradient(category: string): string {
