@@ -309,6 +309,23 @@ export default function ChatInterface() {
     } catch {} finally { setFeedLoading(false); }
   }
 
+  /* ─── Load MORE Feed Products (infinite scroll) ─── */
+  async function loadMoreFeed() {
+    if (feedLoading) return;
+    setFeedLoading(true);
+    try {
+      // Fetch a new random batch
+      const res = await fetch(`/api/shopify-products?mode=feed&limit=30&_t=${Date.now()}`);
+      const data = await res.json();
+      const newProducts = (data.products || []).filter(
+        (p: any) => !feedProducts.some((fp) => fp.id === p.id)
+      );
+      if (newProducts.length > 0) {
+        setFeedProducts((prev) => [...prev, ...newProducts]);
+      }
+    } catch {} finally { setFeedLoading(false); }
+  }
+
   async function submitOrder() {
     if (cartItems.length === 0) return;
     if (!checkoutForm.name || !checkoutForm.phone || !checkoutForm.address || !checkoutForm.city) {
@@ -590,7 +607,7 @@ export default function ChatInterface() {
       <ProductFeed
         products={feedProducts}
         onAddToCart={(p) => addToCart(p)}
-        onViewDetails={(p) => setSelectedProduct(p)}
+        onLoadMore={loadMoreFeed}
         isLoading={feedLoading}
       />
     );
