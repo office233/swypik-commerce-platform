@@ -5,7 +5,6 @@
  */
 
 import OpenAI from "openai";
-import { translateQuery } from "./translate";
 
 function getAIClient(): OpenAI | null {
   // Priority: OpenRouter → OpenAI
@@ -221,11 +220,10 @@ function fallbackOrchestrate(message: string): OrchestratorResult {
   }
 
   if (searchKeywords.some((k) => msg.includes(k)) || msg.length > 3) {
-    const translatedQuery = translateQuery(message);
     return {
       intent: "search_product",
-      reply: "Am găsit câteva opţiuni bune pentru tine! 🎯",
-      searchQuery: translatedQuery,
+      reply: "Am găsit câteva opțiuni bune pentru tine! 🎯",
+      searchQuery: message,
     };
   }
 
