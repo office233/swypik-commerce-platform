@@ -15,37 +15,40 @@ function getModel(): string { return process.env.OPENROUTER_MODEL || "google/gem
 export type ChatIntent = "search_product" | "explain_product" | "compare_products" | "find_cheaper" | "add_to_cart" | "checkout" | "track_order" | "general_chat";
 export type OrchestratorResult = { intent: ChatIntent; reply: string; searchQuery?: string; bundleQueries?: string[]; productId?: string; productTitle?: string; shouldAskFollowUp?: boolean; maxPrice?: number; sort?: "recommended" | "price_asc" | "price_desc" | "popular" | "delivery" | "discount" };
 
-const SYSTEM_PROMPT = `Ești agentul AI de vânzări pentru AICeVrei.ro, magazin Shopify.
+const SYSTEM_PROMPT = `You are the AI sales agent for AICeVrei.ro, an online store with 108,000+ products.
 
-Obiectiv: transformi conversația în recomandări clare, bundle-uri bune și adăugări în coș.
+Objective: turn conversations into clear recommendations, smart bundles, and cart additions.
 
-Reguli ferme:
-- Produsele vin exclusiv din Shopify.
-- Nu menționa furnizori, import, CJ, AliExpress, dropshipping sau scraping.
-- Nu inventa stoc exact, cumpărători reali, recenzii reale sau reduceri garantate.
-- Poți fi convingător, energic și comercial, dar fără afirmații false.
-- Vorbește în română, cald, direct, ca un consultant de vânzări.
-- Construiește bundle-uri: produs principal + 1-2 produse complementare.
-- Adaptează răspunsul după contextul clientului: buget, pentru cine cumpără, stil, ocazie, sensibilitate la preț.
-- Dacă userul spune că e prea scump, cere ceva mai ieftin sau pare sensibil la preț: returnează intent=find_cheaper, sort=price_asc și un maxPrice realist dacă se poate deduce.
-- Dacă userul cere alternative/comparație: returnează intent=find_cheaper sau compare_products și searchQuery curățat.
-- Când clientul caută ceva, returnează search_product, searchQuery și 1-3 bundleQueries.
-- Când clientul vrea să cumpere/adauge, returnează add_to_cart și productId/productTitle dacă este clar.
-- Când clientul este indecis, pune maxim 2 întrebări și recomandă un traseu de cumpărare.
+AVAILABLE CATEGORIES (use in searchQuery when relevant):
+- Women's Clothing (81,000+) - Men's Clothing (4,600+)
+- Home, Garden & Furniture (5,200+) - Jewelry & Watches (3,600+)
+- Bags & Shoes (2,000+) - Pet Supplies (1,800+) - Health, Beauty & Hair (1,700+)
+- Toys, Kids & Babies (1,600+) - Sports & Outdoors (1,400+)
+- Automobiles & Motorcycles (1,000+) - Consumer Electronics (900+) - Phones & Accessories (800+)
 
-Stil:
-- 4-7 propoziții când vinzi.
-- Emoji-uri moderate: 🔥 ✨ 🎁 💎 🛒
-- Închide cu CTA: „Îți pun prima variantă în coș?”, „Vrei bundle complet?”, „Îți arăt varianta mai ieftină?”.
+CRITICAL RULES:
+- searchQuery MUST be in ENGLISH (product titles are in English).
+- If user says "haine de barbati" -> searchQuery = "men shirt jacket pants hoodie"
+- If user says "rochie" -> searchQuery = "dress women"
+- If user says "bijuterii" -> searchQuery = "necklace ring bracelet earrings"
+- If user says "cadou" -> searchQuery = "gift set"
+- If user says "sub 100 lei" -> add maxPrice: 100
+- reply MUST be in Romanian, warm, direct, like a sales consultant.
+- Do NOT mention suppliers, CJ, AliExpress, dropshipping, or scraping.
+- Do NOT invent exact stock numbers, real reviews, or guaranteed discounts.
+- Build bundles: main product + 1-2 complementary products.
+- If user says something is too expensive: intent=find_cheaper, sort=price_asc, maxPrice.
 
-Returnează mereu JSON valid, fără markdown:
+Style: 3-5 sentences. Moderate emojis. End with CTA.
+
+Return ONLY valid JSON, no markdown:
 {
   "intent": "search_product|explain_product|compare_products|find_cheaper|add_to_cart|checkout|track_order|general_chat",
-  "reply": "răspuns de vânzare în română",
-  "searchQuery": "query română pentru Shopify",
-  "bundleQueries": ["query complementar 1", "query complementar 2"],
-  "productId": "id produs dacă este clar",
-  "productTitle": "titlu/fragment produs dacă este clar",
+  "reply": "sales response IN ROMANIAN",
+  "searchQuery": "ENGLISH search query for products",
+  "bundleQueries": ["complementary English query 1", "complementary English query 2"],
+  "productId": "product id if clear",
+  "productTitle": "product title/fragment if clear",
   "maxPrice": 100,
   "sort": "price_asc|recommended|price_desc|popular|delivery|discount",
   "shouldAskFollowUp": true
@@ -65,8 +68,57 @@ function extractMaxPrice(message: string, productContext: any[] = []) {
   return undefined;
 }
 
+// Map Romanian search terms to English for PostgreSQL search
+const RO_TO_EN: Record<string, string> = {
+  "haine": "clothing",
+  "rochie": "dress",
+  "rochii": "dress",
+  "pantaloni": "pants trousers",
+  "tricou": "t-shirt tee",
+  "camasa": "shirt",
+  "jacheta": "jacket",
+  "geaca": "jacket coat",
+  "pulover": "sweater pullover",
+  "hanorac": "hoodie sweatshirt",
+  "fusta": "skirt",
+  "bluza": "blouse top",
+  "palton": "coat overcoat",
+  "ceas": "watch",
+  "bratara": "bracelet",
+  "colier": "necklace",
+  "cercei": "earrings",
+  "inel": "ring",
+  "incaltaminte": "shoes",
+  "pantofi": "shoes heels",
+  "adidasi": "sneakers sports shoes",
+  "ghiozdan": "backpack bag",
+  "geanta": "handbag bag purse",
+  "portofel": "wallet",
+  "cadou": "gift set",
+  "jucarie": "toy",
+  "jucarii": "toys",
+  "decoratiuni": "decoration home decor",
+  "lampa": "lamp light",
+  "perna": "pillow cushion",
+  "cana": "mug cup",
+  "telefon": "phone case cover",
+  "casti": "headphones earbuds",
+  "cablu": "cable charger",
+  "sport": "sports fitness gym",
+  "yoga": "yoga leggings sports",
+  "barbati": "men",
+  "femei": "women",
+  "copii": "kids children",
+};
+
+function translateQuery(query: string): string {
+  const words = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/);
+  const translated = words.map(w => RO_TO_EN[w] || w);
+  return translated.join(" ");
+}
+
 function cleanCheaperQuery(message: string) {
-  return message
+  let cleaned = message
     .replace(/prea scump/gi, "")
     .replace(/mai ieftin/gi, "")
     .replace(/ieftin/gi, "")
@@ -78,6 +130,7 @@ function cleanCheaperQuery(message: string) {
     .replace(/\d{2,5}\s*(lei|ron)/gi, "")
     .replace(/\s+/g, " ")
     .trim();
+  return translateQuery(cleaned);
 }
 
 export async function orchestrate(userMessage: string, chatHistory: { role: "user" | "assistant"; content: string }[] = [], productContext: any[] = [], shoppingSession: ShoppingSession = {}): Promise<OrchestratorResult> {
@@ -85,12 +138,12 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
   const hardMaxPrice = extractMaxPrice(userMessage, productContext);
 
   if (hardCheaper) {
-    const baseQuery = cleanCheaperQuery(userMessage) || productContext[0]?.category || productContext[0]?.title || userMessage;
+    const baseQuery = cleanCheaperQuery(userMessage) || productContext[0]?.category || translateQuery(userMessage);
     return {
       intent: "find_cheaper",
-      reply: `Da, schimb strategia pe variante mai accesibile. Îți caut produse mai ieftine, dar păstrez ideea de calitate și aleg opțiuni care merită puse în coș. ${hardMaxPrice ? `Mă țin de maxim ${hardMaxPrice} lei.` : "Îți arăt alternative cu preț mai bun."} 🔥`,
+      reply: `Da, schimb strategia pe variante mai accesibile. ${hardMaxPrice ? `Ma tin de maxim ${hardMaxPrice} lei.` : "Iti arat alternative cu pret mai bun."} 🔥`,
       searchQuery: baseQuery,
-      bundleQueries: [`${baseQuery} accesorii ieftine`, `${baseQuery} cadou buget`, `${baseQuery} ofertă`],
+      bundleQueries: [`${baseQuery} accessories`, `${baseQuery} gift`, `${baseQuery} set`],
       maxPrice: hardMaxPrice,
       sort: "price_asc",
       shouldAskFollowUp: false,
@@ -103,13 +156,13 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
   try {
     const contextSummary = productContext.slice(0, 10).map((p) => ({ id: p.id, title: p.title, price: p.price, category: p.category, rating: p.rating, orders: p.orders }));
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }, { role: "system", content: buildSessionPrompt(shoppingSession) }, ...chatHistory.slice(-10)];
-    if (contextSummary.length) messages.push({ role: "system", content: `Produse Shopify în context: ${JSON.stringify(contextSummary)}` });
+    if (contextSummary.length) messages.push({ role: "system", content: `Products in context: ${JSON.stringify(contextSummary)}` });
     messages.push({ role: "user", content: userMessage });
     const completion = await client.chat.completions.create({ model: getModel(), messages, temperature: 0.72, max_tokens: 750 });
     const content = completion.choices[0]?.message?.content || "{}";
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const result = JSON.parse(cleaned);
-    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauți și îți aleg rapid varianta potrivită.", searchQuery: result.searchQuery, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp) };
+    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp) };
   } catch (error) {
     console.error("[AI Orchestrator] Error:", error);
     return fallbackOrchestrate(userMessage, productContext, shoppingSession);
@@ -122,9 +175,12 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
   const cartKeywords = ["adauga", "adaugă", "pune", "cos", "coș", "cumpar", "cumpăr", "iau", "vreau asta"];
   const checkoutKeywords = ["checkout", "finalizeaza", "finalizează", "platesc", "plătesc", "comanda", "comandă"];
   const greetKeywords = ["salut", "buna", "bună", "hello", "hey", "servus"];
-  if (cartKeywords.some((k) => msg.includes(k))) return { intent: "add_to_cart", reply: firstProduct ? `Perfect 🛒 Îți pun ${firstProduct.title} în coș. Îți recomand să îl iei cu încă un produs complementar ca să faci un bundle mai complet.` : "Sigur 🛒 Alege produsul dorit din carousel și îl punem imediat în coș.", productId: firstProduct?.id, productTitle: firstProduct?.title };
-  if (checkoutKeywords.some((k) => msg.includes(k))) return { intent: "checkout", reply: "Perfect. Hai să finalizăm comanda cât mai simplu 🛒" };
-  if (greetKeywords.some((k) => msg.includes(k))) return { intent: "general_chat", reply: "Salut! Spune-mi pentru cine cumperi, ce buget ai și ce stil vrei. Îți fac rapid un bundle bun din produse Shopify și îți spun ce merită pus în coș. ✨", shouldAskFollowUp: true };
-  const budgetText = shoppingSession.budgetLabel ? ` în bugetul tău de ${shoppingSession.budgetLabel}` : "";
-  return { intent: "search_product", reply: `Perfect, caut variante potrivite${budgetText} și îți pregătesc idei de bundle ca să alegi mai ușor. 🔥`, searchQuery: message, bundleQueries: [message + " accesorii", message + " cadou", message + " premium"], shouldAskFollowUp: true };
+  if (cartKeywords.some((k) => msg.includes(k))) return { intent: "add_to_cart", reply: firstProduct ? `Perfect 🛒 Iti pun ${firstProduct.title} in cos. Iti recomand sa il iei cu inca un produs complementar.` : "Sigur 🛒 Alege produsul dorit si il punem imediat in cos.", productId: firstProduct?.id, productTitle: firstProduct?.title };
+  if (checkoutKeywords.some((k) => msg.includes(k))) return { intent: "checkout", reply: "Perfect. Hai sa finalizam comanda cat mai simplu 🛒" };
+  if (greetKeywords.some((k) => msg.includes(k))) return { intent: "general_chat", reply: "Salut! Spune-mi ce cauti, ce buget ai si ce stil vrei. Am 108.000+ produse si iti fac rapid un bundle bun. ✨", shouldAskFollowUp: true };
+  
+  // Translate Romanian query to English for searchQuery
+  const translatedQuery = translateQuery(message);
+  const budgetText = shoppingSession.budgetLabel ? ` in bugetul tau de ${shoppingSession.budgetLabel}` : "";
+  return { intent: "search_product", reply: `Perfect, caut variante potrivite${budgetText} si iti pregatesc idei de bundle. 🔥`, searchQuery: translatedQuery, bundleQueries: [translatedQuery + " accessories", translatedQuery + " gift"], shouldAskFollowUp: true };
 }
