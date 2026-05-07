@@ -122,9 +122,22 @@ export async function searchProducts(filters: ProductFilters = {}) {
   let paramIdx = 1;
 
   if (search) {
-    where.push(`title ILIKE $${paramIdx}`);
-    params.push(`%${search}%`);
-    paramIdx++;
+    // Split multi-word queries into individual terms for better matching
+    const terms = search.trim().split(/\s+/).filter(t => t.length >= 2);
+    if (terms.length === 1) {
+      where.push(`(title ILIKE $${paramIdx} OR category ILIKE $${paramIdx})`);
+      params.push(`%${terms[0]}%`);
+      paramIdx++;
+    } else if (terms.length > 1) {
+      // Each term must match in title OR category (AND between terms)
+      const termClauses = terms.map(term => {
+        const clause = `(title ILIKE $${paramIdx} OR category ILIKE $${paramIdx})`;
+        params.push(`%${term}%`);
+        paramIdx++;
+        return clause;
+      });
+      where.push(`(${termClauses.join(" AND ")})`);
+    }
   }
 
   if (category) {
