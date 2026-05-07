@@ -255,12 +255,25 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
       {activeSheet && products[activeSheet.idx] && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setActiveSheet(null)}>
-          <div className="max-h-[70vh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-white p-5 text-[#0D0D0D] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-black">{activeSheet.type === "comments" ? "Discuții despre produs" : "Detalii produs"}</h3><button onClick={() => setActiveSheet(null)} className="rounded-full bg-[#F7F7F8] border border-[#E5E5E5] p-1.5"><X size={16} /></button></div>
-            {activeSheet.type === "comments" ? (
-              <div className="space-y-4">{generateComments(products[activeSheet.idx]).map((comment, i) => <div key={`${comment.name}-${i}`} className="flex gap-3"><div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#10A37F]/10 text-xs font-black text-[#10A37F]">{comment.avatar}</div><div><div className="flex items-center gap-2"><p className="text-sm font-black text-[#0D0D0D]">{comment.name}</p><p className="text-[10px] font-bold text-[#6E6E80]">{comment.time}</p></div><p className="mt-0.5 text-sm font-semibold text-[#6E6E80]">{comment.text}</p></div></div>)}</div>
-            ) : (
-              <div className="space-y-3"><p className="text-sm font-semibold leading-relaxed text-[#6E6E80]">{products[activeSheet.idx].description}</p>{products[activeSheet.idx].benefits.map((benefit, i) => <div key={i} className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] px-3 py-2.5 text-sm font-bold text-[#0D0D0D]">✓ {benefit}</div>)}<button onClick={() => { onAddToCart(products[activeSheet.idx]); setActiveSheet(null); }} className={`mt-2 w-full rounded-2xl py-3 font-black ${THEME.classes.cartButton}`}>🛒 Adaugă în coș</button></div>
+          <div className="relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[2rem] bg-white text-[#0D0D0D] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#E5E5E5] p-5 pb-4"><h3 className="text-lg font-black">{activeSheet.type === "comments" ? "Discuții despre produs" : "Detalii produs"}</h3><button onClick={() => setActiveSheet(null)} className="rounded-full bg-[#F7F7F8] border border-[#E5E5E5] p-1.5"><X size={16} /></button></div>
+            <div className="overflow-y-auto p-5 pb-28">
+              {activeSheet.type === "comments" ? (
+                <div className="space-y-4">{generateComments(products[activeSheet.idx]).map((comment, i) => <div key={`${comment.name}-${i}`} className="flex gap-3"><div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#10A37F]/10 text-xs font-black text-[#10A37F]">{comment.avatar}</div><div><div className="flex items-center gap-2"><p className="text-sm font-black text-[#0D0D0D]">{comment.name}</p><p className="text-[10px] font-bold text-[#6E6E80]">{comment.time}</p></div><p className="mt-0.5 text-sm font-semibold text-[#6E6E80]">{comment.text}</p></div></div>)}</div>
+              ) : (
+                <div className="space-y-3"><p className="text-sm font-semibold leading-relaxed text-[#6E6E80]">{products[activeSheet.idx].description}</p>{products[activeSheet.idx].benefits.map((benefit, i) => <div key={i} className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] px-3 py-2.5 text-sm font-bold text-[#0D0D0D]">✓ {benefit}</div>)}</div>
+              )}
+            </div>
+            {activeSheet.type === "details" && (
+              <div className="absolute bottom-0 left-0 right-0 border-t border-[#E5E5E5] bg-white/95 p-4 pb-8 backdrop-blur-xl md:pb-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold text-[#6E6E80]">Preț final</p>
+                    <p className="text-2xl font-black text-[#10A37F]">{products[activeSheet.idx].price} lei</p>
+                  </div>
+                  <button onClick={() => { onAddToCart(products[activeSheet.idx]); setActiveSheet(null); }} className={`flex-1 rounded-2xl py-3.5 font-black ${THEME.classes.cartButton}`}>🛒 Adaugă în coș</button>
+                </div>
+              </div>
             )}
           </div>
         </div>
