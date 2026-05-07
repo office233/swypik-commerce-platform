@@ -19,11 +19,14 @@ type Suggestion = { label: string; type: "product" | "category" | "tag"; score: 
 type FunnelStage = "discover" | "compare" | "consider" | "cart" | "checkout" | "upsell";
 
 const QUICK_ACTIONS = [
-  { label: "🎁 Cadou", query: "cadou pentru iubita" },
-  { label: "👗 Outfit", query: "outfit elegant femei" },
-  { label: "💎 Bijuterii", query: "bijuterii elegante" },
-  { label: "💄 Beauty", query: "skincare beauty" },
-  { label: "🏠 Casă", query: "produse utile pentru casa" },
+  { label: "👗 Rochii", query: "dress women elegant" },
+  { label: "👔 Bărbați", query: "men jacket shirt pants" },
+  { label: "💎 Bijuterii", query: "necklace bracelet earrings" },
+  { label: "🏠 Casă", query: "home decor storage kitchen" },
+  { label: "📱 Telefon", query: "phone case cover accessories" },
+  { label: "🐾 Animale", query: "pet dog cat toys" },
+  { label: "💄 Beauty", query: "makeup skincare beauty" },
+  { label: "⚽ Sport", query: "sportswear fitness gym yoga" },
   { label: "🔥 Sub 100", query: "sub 100" },
 ];
 
