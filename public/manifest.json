@@ -4,8 +4,8 @@
   "description": "Cele mai bune oferte din România, găsite cu AI",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#050507",
-  "theme_color": "#8b5cf6",
+  "background_color": "#FFFFFF",
+  "theme_color": "#10A37F",
   "orientation": "portrait",
   "icons": [
     {
