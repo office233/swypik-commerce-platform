@@ -194,3 +194,60 @@ export async function getCategories() {
   `);
   return rows.map((r: any) => ({ name: r.name, count: parseInt(r.count) }));
 }
+
+// ─── Get full category hierarchy ─────────────────────────────────
+export type CategoryNode = {
+  name: string;
+  count: number;
+  children: { name: string; count: number; children: { name: string; count: number }[] }[];
+};
+
+export async function getCategoryHierarchy(): Promise<CategoryNode[]> {
+  const { rows } = await dbQuery(`
+    SELECT category, COUNT(*) as cnt
+    FROM products WHERE main_image IS NOT NULL AND cost_usd > 0.5
+    GROUP BY category ORDER BY cnt DESC
+  `);
+
+  const tree = new Map<string, Map<string, Map<string, number>>>();
+  const topCounts = new Map<string, number>();
+  const midCounts = new Map<string, number>();
+
+  for (const r of rows) {
+    const parts = (r.category || "").split(" > ");
+    const top = parts[0] || "Other";
+    const mid = parts[1] || "General";
+    const sub = parts[2] || "General";
+    const cnt = parseInt(r.cnt);
+
+    if (!tree.has(top)) tree.set(top, new Map());
+    if (!tree.get(top)!.has(mid)) tree.get(top)!.set(mid, new Map());
+    tree.get(top)!.get(mid)!.set(sub, (tree.get(top)!.get(mid)!.get(sub) || 0) + cnt);
+
+    topCounts.set(top, (topCounts.get(top) || 0) + cnt);
+    midCounts.set(`${top}>${mid}`, (midCounts.get(`${top}>${mid}`) || 0) + cnt);
+  }
+
+  const result: CategoryNode[] = [];
+  for (const [topName, midMap] of [...tree.entries()].sort((a, b) =>
+    (topCounts.get(b[0]) || 0) - (topCounts.get(a[0]) || 0)
+  )) {
+    const children = [...midMap.entries()]
+      .sort((a, b) => {
+        const aTotal = [...a[1].values()].reduce((s, v) => s + v, 0);
+        const bTotal = [...b[1].values()].reduce((s, v) => s + v, 0);
+        return bTotal - aTotal;
+      })
+      .map(([midName, subMap]) => ({
+        name: midName,
+        count: midCounts.get(`${topName}>${midName}`) || 0,
+        children: [...subMap.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([subName, cnt]) => ({ name: subName, count: cnt })),
+      }));
+
+    result.push({ name: topName, count: topCounts.get(topName) || 0, children });
+  }
+
+  return result;
+}

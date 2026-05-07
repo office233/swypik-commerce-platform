@@ -64,9 +64,11 @@ async function shopifyFallback(search: string, limit: number, mode: string) {
 
 // ─── PostgreSQL (primary) ──────────────────────────────────────────
 async function postgresQuery(filters: any) {
-  // Dynamic import to avoid build errors when pg is not available
-  const { searchProducts, getCategories } = await import("@/lib/db/product-queries");
+  const { searchProducts, getCategories, getCategoryHierarchy } = await import("@/lib/db/product-queries");
 
+  if (filters.hierarchy) {
+    return { hierarchy: await getCategoryHierarchy() };
+  }
   if (filters.categories) {
     return { categories: await getCategories() };
   }
@@ -82,6 +84,7 @@ export async function GET(req: Request) {
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
     const mode = url.searchParams.get("mode") || "default";
     const isCategories = url.searchParams.get("categories") === "true";
+    const isHierarchy = url.searchParams.get("hierarchy") === "true";
 
     // ─── Romanian → English search translation ──────────────────────
     const RO_TO_EN: Record<string, string> = {
@@ -123,12 +126,14 @@ export async function GET(req: Request) {
       mode, limit,
       offset: parseInt(url.searchParams.get("offset") || "0"),
       categories: isCategories,
+      hierarchy: isHierarchy,
     };
 
     // Try PostgreSQL first
     if (process.env.DATABASE_URL) {
       try {
         const result = await postgresQuery(filters);
+        if (isHierarchy) return NextResponse.json(result);
         if (isCategories) return NextResponse.json(result);
         return NextResponse.json({
           products: result.products,
