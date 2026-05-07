@@ -107,11 +107,8 @@ function commerceScore(product: SearchProduct) {
   return quality * 2 + rating * 2 + Math.min(orders / 80, 8) + Math.min(cartAdds / 10, 5) + Math.min(conversion / 8, 12) + discount / 8 + delivery;
 }
 
-function isAvailable(product: SearchProduct) {
-  if (!product.variantId) return false;
-  if (product.availableForSale === false) return false;
-  if (typeof product.inventoryQuantity === "number" && product.inventoryQuantity <= 0) return false;
-  return true;
+function isSellable(product: SearchProduct) {
+  return Boolean(product.variantId);
 }
 
 export function searchProducts(products: SearchProduct[], filters: ProductSearchFilters) {
@@ -125,7 +122,7 @@ export function searchProducts(products: SearchProduct[], filters: ProductSearch
 
   let result = products
     .filter((p) => Number.isFinite(p.price) && p.price > 0)
-    .filter(isAvailable)
+    .filter(isSellable)
     .filter((p) => !filters.requireImage || (p.images?.length || 0) > 0)
     .filter((p) => minPrice == null || p.price >= minPrice)
     .filter((p) => maxPrice == null || p.price <= maxPrice)
@@ -157,7 +154,7 @@ export function buildSuggestions(products: SearchProduct[], query: string, limit
 
   const suggestions = new Map<string, { label: string; type: "product" | "category" | "tag"; score: number }>();
 
-  for (const p of products.filter(isAvailable)) {
+  for (const p of products.filter(isSellable)) {
     const title = p.title || "";
     const category = p.category || "";
     if (normalize(title).includes(normalized)) suggestions.set(`product:${title}`, { label: title, type: "product", score: 10 + commerceScore(p) });
