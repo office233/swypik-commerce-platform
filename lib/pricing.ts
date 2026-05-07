@@ -27,8 +27,10 @@ export function estimateShipping(weightKg: number, source: string = "otapi"): nu
 }
 
 /**
- * Calculate ultra-competitive sell price
- * Strategy: 20-32% markup (NOT 60%!)
+ * Calculate competitive sell price — MARKUP DIFERENȚIAT
+ * Sub $3 cost:   2.0x → protecție retururi
+ * $3-50 cost:    1.5x → cel mai ieftin din România
+ * $50+ cost:     1.3x → atrage clienți pe produse mari
  * Transport INCLUS in preț — client vede 1 preț final
  */
 export function calculatePricing(
@@ -38,28 +40,28 @@ export function calculatePricing(
 ): PricingResult {
   const totalCost = costPrice + shippingCost;
 
-  // Tiered markup — aggressive but profitable
+  // Differentiated markup based on product cost USD tier
+  // costPrice is in RON here, convert thresholds accordingly
+  // Sub $3 ≈ sub 14 RON total, $3-10 ≈ 14-68 RON, $10-50 ≈ 68-248 RON, $50+ ≈ 248+ RON
   let markup: number;
-  if (totalCost < 15) markup = 1.35;       // very cheap: 35%
-  else if (totalCost < 30) markup = 1.30;  // cheap items: 30%
-  else if (totalCost < 60) markup = 1.28;  // mid items: 28%
-  else if (totalCost < 120) markup = 1.25; // premium: 25%
-  else if (totalCost < 300) markup = 1.22; // expensive: 22%
-  else markup = 1.20;                       // luxury: 20%
+  if (totalCost < 14) markup = 2.0;        // sub $3: 2.0x — protecție retururi
+  else if (totalCost < 68) markup = 1.5;   // $3-10: 1.5x — competitiv cu eMAG
+  else if (totalCost < 248) markup = 1.5;  // $10-50: 1.5x — cel mai bun preț
+  else markup = 1.3;                        // $50+: 1.3x — atrage clienți
 
   const rawPrice = totalCost * markup;
 
   // Psychological pricing: snap to X9 price points
-  const pricePoints = [19, 29, 39, 49, 59, 69, 79, 89, 99, 119, 129, 149, 169, 199, 249, 299, 349, 399, 499];
+  const pricePoints = [14, 19, 24, 29, 39, 49, 59, 69, 79, 89, 99, 119, 129, 149, 169, 199, 249, 299, 349, 399, 499];
   let sellPrice = pricePoints.find(p => p >= rawPrice) || Math.ceil(rawPrice / 50) * 50 - 1;
 
-  // Safety: never sell below cost
-  if (sellPrice <= totalCost) {
-    sellPrice = Math.ceil(totalCost * 1.22 / 10) * 10 - 1;
+  // Safety: never sell below cost + 20%
+  if (sellPrice <= totalCost * 1.2) {
+    sellPrice = pricePoints.find(p => p >= totalCost * 1.3) || Math.ceil(totalCost * 1.3 / 10) * 10 - 1;
   }
 
-  // "Was" price — typical Romanian retail markup (60-100% more)
-  const retailMarkup = 1.6 + Math.random() * 0.3;
+  // "Was" price — eMAG-like retail markup (60-90% more)
+  const retailMarkup = 1.6 + (Math.abs(Math.sin(costPrice * 137.5)) * 0.3);
   const oldPrice = Math.ceil(sellPrice * retailMarkup / 10) * 10 - 1;
 
   const margin = sellPrice - totalCost;

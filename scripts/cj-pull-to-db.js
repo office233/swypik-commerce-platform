@@ -63,25 +63,28 @@ function parseImages(item) {
   return images.slice(0, 10);
 }
 
-// ─── Pricing engine ──────────────────────────────────────────────────
+// ─── Pricing engine — MARKUP DIFERENȚIAT ─────────────────────────────
+// Sub $3: 2.0x | $3-50: 1.5x | $50+: 1.3x
 function calculatePricing(costUsd, shippingUsd) {
-  const clearanceFee = 0; // included in shipping estimate
   const totalCostUsd = costUsd + shippingUsd;
   const totalCostRon = Math.round(totalCostUsd * USD_TO_RON * 100) / 100;
   
-  // Markup tiers
+  // Differentiated markup based on product cost USD
   let markup;
-  if (totalCostRon < 15) markup = 2.8;
-  else if (totalCostRon < 30) markup = 2.3;
-  else if (totalCostRon < 60) markup = 2.0;
-  else if (totalCostRon < 100) markup = 1.8;
-  else if (totalCostRon < 200) markup = 1.6;
-  else markup = 1.45;
-  
+  if (costUsd < 3) markup = 2.0;        // cheap: 2x protecție
+  else if (costUsd < 50) markup = 1.5;  // mid: 1.5x competitiv
+  else markup = 1.3;                     // expensive: 1.3x atrage
+
   let sellPrice = Math.round(totalCostRon * markup);
   // Psychological pricing X9
-  sellPrice = Math.ceil(sellPrice / 10) * 10 - 1;
-  if (sellPrice < 19) sellPrice = 19;
+  const pricePoints = [14, 19, 24, 29, 39, 49, 59, 69, 79, 89, 99, 129, 149, 199, 249, 299, 349, 399, 499];
+  sellPrice = pricePoints.find(p => p >= sellPrice) || Math.ceil(sellPrice / 50) * 50 - 1;
+  if (sellPrice < 14) sellPrice = 14;
+
+  // Safety: never below cost + 20%
+  if (sellPrice <= totalCostRon * 1.2) {
+    sellPrice = pricePoints.find(p => p >= totalCostRon * 1.3) || Math.ceil(totalCostRon * 1.3 / 10) * 10 - 1;
+  }
   
   const oldPrice = Math.ceil(sellPrice * 1.7 / 10) * 10 - 1;
   const profitRon = Math.round((sellPrice - totalCostRon) * 100) / 100;

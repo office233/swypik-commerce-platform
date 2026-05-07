@@ -21,27 +21,30 @@ async function getShippingRates(): Promise<Record<string, number>> {
   return shippingCache;
 }
 
-// ─── Pricing ───────────────────────────────────────────────────────
+// ─── Pricing — MARKUP DIFERENȚIAT ──────────────────────────────────
+// Sub $3 cost:  2.0x → protecție retururi (min 8-10 RON profit)
+// $3-50 cost:   1.5x → competitiv cu eMAG
+// $50+ cost:    1.3x → atrage clienți pe produse mari
 function calculatePrice(costUsd: number, shippingUsd: number) {
   const totalUsd = costUsd + shippingUsd;
   const totalRon = totalUsd * USD_TO_RON * (1 + VAT_RATE);
 
+  // Differentiated markup based on product cost USD
   let markup: number;
-  if (totalRon < 30) markup = 2.8;
-  else if (totalRon < 60) markup = 2.5;
-  else if (totalRon < 120) markup = 2.2;
-  else if (totalRon < 250) markup = 2.0;
-  else markup = 1.8;
+  if (costUsd < 3) markup = 2.0;        // cheap items: 2x
+  else if (costUsd < 50) markup = 1.5;  // mid items: 1.5x
+  else markup = 1.3;                     // expensive: 1.3x
 
   const rawPrice = totalRon * markup;
 
-  const pricePoints = [29, 39, 49, 59, 69, 79, 89, 99, 119, 129, 149, 169, 189, 199,
+  const pricePoints = [14, 19, 24, 29, 39, 49, 59, 69, 79, 89, 99, 119, 129, 149, 169, 189, 199,
     219, 249, 269, 299, 349, 399, 449, 499, 599, 699, 799, 899, 999];
   let sellPrice = pricePoints.find(p => p >= rawPrice) || Math.ceil(rawPrice / 100) * 100 - 1;
 
-  const minPrice = Math.ceil(totalRon * 1.3);
+  // Safety: never sell below cost + 20%
+  const minPrice = Math.ceil(totalRon * 1.2);
   if (sellPrice < minPrice) {
-    sellPrice = pricePoints.find(p => p >= minPrice) || Math.ceil(minPrice / 10) * 10 - 1;
+    sellPrice = pricePoints.find(p => p >= totalRon * 1.3) || Math.ceil(totalRon * 1.3 / 10) * 10 - 1;
   }
 
   const retailMul = 1.6 + (hashCode(String(costUsd)) % 30) / 100;

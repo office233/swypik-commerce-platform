@@ -67,37 +67,30 @@ async function shopifyREST(endpoint, method = "GET", body) {
   return res.json();
 }
 
-// ─── Competitive pricing (USD → RON cu markup) ─────────────────────
+// ─── Competitive pricing — MARKUP DIFERENȚIAT ───────────────────────
+// Sub $3: 2.0x | $3-50: 1.5x | $50+: 1.3x
 function calculatePricing(costUsd) {
   const costRON = costUsd * USD_TO_RON;
   
+  // Differentiated markup based on cost USD
   let markup;
-  if (costRON < 15) markup = 1.35;
-  else if (costRON < 30) markup = 1.30;
-  else if (costRON < 60) markup = 1.28;
-  else if (costRON < 120) markup = 1.25;
-  else markup = 1.22;
+  if (costUsd < 3) markup = 2.0;        // cheap: 2x
+  else if (costUsd < 50) markup = 1.5;  // mid: 1.5x
+  else markup = 1.3;                     // expensive: 1.3x
 
   const rawPrice = costRON * markup;
 
   // Psychological pricing: X9
-  let sellPrice;
-  if (rawPrice < 22) sellPrice = 19;
-  else if (rawPrice < 32) sellPrice = 29;
-  else if (rawPrice < 42) sellPrice = 39;
-  else if (rawPrice < 55) sellPrice = 49;
-  else if (rawPrice < 70) sellPrice = 59;
-  else if (rawPrice < 85) sellPrice = 79;
-  else if (rawPrice < 110) sellPrice = 99;
-  else if (rawPrice < 140) sellPrice = 129;
-  else if (rawPrice < 170) sellPrice = 149;
-  else if (rawPrice < 220) sellPrice = 199;
-  else if (rawPrice < 280) sellPrice = 249;
-  else if (rawPrice < 350) sellPrice = 299;
-  else sellPrice = Math.ceil(rawPrice / 50) * 50 - 1;
+  const pricePoints = [14, 19, 24, 29, 39, 49, 59, 69, 79, 89, 99, 129, 149, 199, 249, 299, 349, 399, 499];
+  let sellPrice = pricePoints.find(p => p >= rawPrice) || Math.ceil(rawPrice / 50) * 50 - 1;
+
+  // Safety: never below cost + 20%
+  if (sellPrice <= costRON * 1.2) {
+    sellPrice = pricePoints.find(p => p >= costRON * 1.3) || Math.ceil(costRON * 1.3 / 10) * 10 - 1;
+  }
 
   if (sellPrice <= costRON) {
-    sellPrice = Math.ceil(costRON * 1.25 / 10) * 10 - 1;
+    sellPrice = Math.ceil(costRON * 1.3 / 10) * 10 - 1;
   }
 
   const retailMultiplier = 1.6 + Math.random() * 0.4;

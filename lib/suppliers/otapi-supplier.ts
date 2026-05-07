@@ -21,7 +21,10 @@ function estimateShippingRON(weightKg: number): number {
   return 45;                         // 2kg+ 
 }
 
-// ─── Competitive Pricing (20-32% markup, transport inclus) ────────────
+// ─── Competitive Pricing — MARKUP DIFERENȚIAT ─────────────────────────
+// Sub $3:  2.0x → protecție retururi
+// $3-50:   1.5x → competitiv cu eMAG  
+// $50+:    1.3x → atrage clienți
 function calculateCompetitivePrice(costRON: number, shippingRON: number): {
   sellPrice: number;
   oldPrice: number;
@@ -29,39 +32,25 @@ function calculateCompetitivePrice(costRON: number, shippingRON: number): {
 } {
   const totalCost = costRON + shippingRON;
 
-  // Ultra-competitive markup — beat AliExpress prices
+  // Differentiated markup
   let markup: number;
-  if (totalCost < 15) markup = 1.35;       // very cheap: 35%
-  else if (totalCost < 30) markup = 1.30;  // cheap: 30%
-  else if (totalCost < 60) markup = 1.28;  // medium: 28%
-  else if (totalCost < 120) markup = 1.25; // expensive: 25%
-  else markup = 1.22;                       // premium: 22%
+  if (totalCost < 14) markup = 2.0;        // sub $3: 2x
+  else if (totalCost < 248) markup = 1.5;  // $3-50: 1.5x
+  else markup = 1.3;                        // $50+: 1.3x
 
   const rawPrice = totalCost * markup;
 
-  // Psychological pricing: X9 (19, 29, 39, 49, 59, 79, 99...)
-  let sellPrice: number;
-  if (rawPrice < 22) sellPrice = 19;
-  else if (rawPrice < 32) sellPrice = 29;
-  else if (rawPrice < 42) sellPrice = 39;
-  else if (rawPrice < 55) sellPrice = 49;
-  else if (rawPrice < 70) sellPrice = 59;
-  else if (rawPrice < 85) sellPrice = 79;
-  else if (rawPrice < 110) sellPrice = 99;
-  else if (rawPrice < 140) sellPrice = 129;
-  else if (rawPrice < 170) sellPrice = 149;
-  else if (rawPrice < 220) sellPrice = 199;
-  else if (rawPrice < 280) sellPrice = 249;
-  else if (rawPrice < 350) sellPrice = 299;
-  else sellPrice = Math.ceil(rawPrice / 50) * 50 - 1;
+  // Psychological pricing: X9 (14, 19, 29, 39, 49, 59, 79, 99...)
+  const pricePoints = [14, 19, 24, 29, 39, 49, 59, 69, 79, 89, 99, 129, 149, 199, 249, 299, 349, 399, 499];
+  let sellPrice = pricePoints.find(p => p >= rawPrice) || Math.ceil(rawPrice / 50) * 50 - 1;
 
-  // Make sure we don't sell below cost
-  if (sellPrice <= totalCost) {
-    sellPrice = Math.ceil(totalCost * 1.25 / 10) * 10 - 1;
+  // Safety: never sell below cost + 20%
+  if (sellPrice <= totalCost * 1.2) {
+    sellPrice = pricePoints.find(p => p >= totalCost * 1.3) || Math.ceil(totalCost * 1.3 / 10) * 10 - 1;
   }
 
-  // "Was" price — typical Romanian retail (60-100% higher)
-  const retailMultiplier = 1.6 + Math.random() * 0.4; // 1.6x - 2.0x
+  // "Was" price — eMAG-like retail (60-90% higher)
+  const retailMultiplier = 1.6 + Math.random() * 0.3;
   const oldPrice = Math.ceil(sellPrice * retailMultiplier / 10) * 10 - 1;
 
   const marginPercent = Math.round(((sellPrice - totalCost) / sellPrice) * 100);
