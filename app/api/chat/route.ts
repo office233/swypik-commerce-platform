@@ -236,7 +236,28 @@ export async function POST(req: Request) {
       });
     }
 
-    // Non-search intents (add_to_cart, checkout, general_chat, etc.)
+    // Non-search intents — but check if we should still search
+    const shoppingWords = ["haine", "rochie", "pantofi", "ceas", "geanta", "bijuterii", "cadou", "vreau", "caut", "arat", "recomand", "ai", "aveti", "ce", "cat", "pret"];
+    const looksLikeShopping = shoppingWords.some(w => userMessage.toLowerCase().includes(w));
+    
+    if (looksLikeShopping && aiResult.intent !== "checkout" && aiResult.intent !== "track_order") {
+      // Fallback: search with the user message directly
+      const query = aiResult.searchQuery || userMessage;
+      const category = detectCategory(query) || detectCategory(userMessage);
+      const products = await searchPG(query, 16, { category });
+      
+      return NextResponse.json({
+        intent: aiResult.intent || "search_product",
+        reply: aiResult.reply || "Iată ce am găsit pentru tine! 🔥",
+        products,
+        bundleProducts: [],
+        productId: aiResult.productId,
+        productTitle: aiResult.productTitle,
+        shoppingSession,
+        sessionId: sessionId || crypto.randomUUID(),
+      });
+    }
+
     return NextResponse.json({
       intent: aiResult.intent,
       reply: aiResult.reply,

@@ -1,46 +1,11 @@
+/**
+ * Search Suggestions — PostgreSQL-powered autocomplete
+ */
 import { NextResponse } from "next/server";
-import { getShopifyAccessToken } from "@/lib/shopify/auth";
-import { buildSuggestions } from "@/lib/shopify/product-search";
+import { searchProducts } from "@/lib/db/product-queries";
 
-const API_VERSION = process.env.SHOPIFY_API_VERSION || "2026-04";
 const cache = new Map<string, { data: any; ts: number }>();
-const CACHE_TTL = 3 * 60 * 1000;
-
-async function shopifyGET(endpoint: string, token: string) {
-  const store = process.env.SHOPIFY_STORE;
-  if (!store) throw new Error("SHOPIFY_STORE is missing");
-
-  const res = await fetch(`https://${store}/admin/api/${API_VERSION}/${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Access-Token": token,
-    },
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Shopify ${res.status}: ${err.slice(0, 200)}`);
-  }
-
-  return res.json();
-}
-
-function transformProduct(p: any) {
-  const variant = p.variants?.[0] || {};
-  return {
-    id: String(p.id),
-    title: p.title,
-    description: String(p.body_html || "").replace(/<[^>]*>/g, " "),
-    price: Number(variant.price || 0),
-    category: p.product_type || "General",
-    vendor: p.vendor || "AICeVrei",
-    sku: variant.sku || "",
-    tags: p.tags || "",
-    handle: p.handle,
-    images: (p.images || []).map((img: any) => img.src).filter(Boolean),
-    variantId: String(variant.id || ""),
-  };
-}
+const CACHE_TTL = 5 * 60 * 1000;
 
 export async function GET(req: Request) {
   try {
@@ -54,14 +19,38 @@ export async function GET(req: Request) {
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.ts < CACHE_TTL) return NextResponse.json(cached.data);
 
-    const token = await getShopifyAccessToken();
-    const data = await shopifyGET("products.json?limit=250&status=active&fields=id,title,body_html,product_type,vendor,tags,handle,images,variants,status", token);
-    const products = (data.products || []).filter((p: any) => p.status === "active").map(transformProduct);
-    const suggestions = buildSuggestions(products, q, limit);
+    // Search products from PostgreSQL
+    const result = await searchProducts({ search: q, limit: 20 });
+    
+    // Build suggestions from results
+    const suggestions: { label: string; type: string }[] = [];
+    const seenLabels = new Set<string>();
 
-    const result = { ok: true, q, suggestions };
-    cache.set(cacheKey, { data: result, ts: Date.now() });
-    return NextResponse.json(result);
+    // Add category suggestions
+    const categories = new Map<string, number>();
+    for (const p of result.products) {
+      const cat = (p.category || "").split(" > ")[0];
+      if (cat) categories.set(cat, (categories.get(cat) || 0) + 1);
+    }
+    for (const [cat, count] of [...categories.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)) {
+      if (suggestions.length < limit && !seenLabels.has(cat)) {
+        suggestions.push({ label: cat, type: "categorie" });
+        seenLabels.add(cat);
+      }
+    }
+
+    // Add product title suggestions  
+    for (const p of result.products) {
+      const label = p.title.length > 50 ? p.title.slice(0, 50) + "..." : p.title;
+      if (suggestions.length < limit && !seenLabels.has(label)) {
+        suggestions.push({ label, type: "produs" });
+        seenLabels.add(label);
+      }
+    }
+
+    const responseData = { ok: true, q, suggestions: suggestions.slice(0, limit) };
+    cache.set(cacheKey, { data: responseData, ts: Date.now() });
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error("[Search Suggest]", error.message);
     return NextResponse.json({ ok: false, error: error.message, suggestions: [] }, { status: 500 });
