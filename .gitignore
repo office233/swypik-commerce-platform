@@ -26,4 +26,7 @@ yarn-error.log*
 # Vercel
 .vercel
 
-.vercel
+# Database exports
+db_export.*
+*.dump
+*.sql
