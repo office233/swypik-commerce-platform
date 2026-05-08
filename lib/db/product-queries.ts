@@ -83,8 +83,9 @@ function transformProduct(row: any, shipping: Record<string, number>) {
     cjPid: row.cj_pid,
     shopifyId: row.shopify_id ? String(row.shopify_id) : null,
     variantId: row.shopify_variant_id ? String(row.shopify_variant_id) : null,
-    title: row.title,
-    description: row.description || row.title,
+    title: row.title_ro || row.title,
+    titleEn: row.title,
+    description: row.description || row.title_ro || row.title,
     benefits: ["Livrare rapidă în România", "Checkout securizat", "Produs verificat CJ"],
     price: pricing.sellPrice,
     oldPrice: pricing.oldPrice,
@@ -156,7 +157,7 @@ export async function searchProducts(filters: ProductFilters = {}) {
   if (sort === "popular" || mode === "trending") orderBy = "listed_count DESC, total_stock DESC";
   if (mode === "deals") orderBy = "cost_usd ASC";
 
-  const sql = `SELECT id, cj_pid, cj_sku, title, description, category, cost_usd, weight_band, 
+  const sql = `SELECT id, cj_pid, cj_sku, title, title_ro, description, category, cost_usd, weight_band, 
     main_image, images, image_count, total_stock, listed_count, shopify_id, shopify_variant_id,
     pushed_to_shopify, created_at
     FROM products WHERE ${where.join(" AND ")} ORDER BY ${orderBy} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
