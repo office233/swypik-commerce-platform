@@ -121,6 +121,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   }, [onLoadMore, products.length]);
 
   const toggleLike = (id: string) => {
+    try { if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(40); } catch(e) {}
     const wasLiked = likes[id];
     setLikes((prev) => ({ ...prev, [id]: !wasLiked }));
     setLikeCounts((prev) => ({ ...prev, [id]: (prev[id] || 0) + (wasLiked ? -1 : 1) }));
@@ -186,7 +187,11 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
             <div key={product.id} data-feed-card={pIdx} className="feed-card bg-[#F7F7F8]" onTouchStart={(e) => onCardTouchStart(e, product.id)} onTouchEnd={(e) => onCardTouchEnd(e, product)}>
               <div className="absolute inset-x-3 top-4 bottom-28 z-0 overflow-hidden rounded-[2rem] bg-white shadow-xl border border-[#E5E5E5]">
                 {product.images?.[imageIndex] ? (
-                  <img src={product.images[imageIndex]} alt={product.title} className="h-full w-full object-cover" loading={pIdx < 3 ? "eager" : "lazy"} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  product.images[imageIndex].endsWith(".mp4") || product.images[imageIndex].endsWith(".webm") ? (
+                    <video src={product.images[imageIndex]} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                  ) : (
+                    <img src={product.images[imageIndex]} alt={product.title} className="h-full w-full object-cover" loading={pIdx < 3 ? "eager" : "lazy"} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  )
                 ) : (
                   <div className="grid h-full w-full place-items-center bg-[#F7F7F8]">
                     <Package className="text-[#E5E5E5]" size={80} />
@@ -271,7 +276,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                     <p className="text-xs font-bold text-[#6E6E80]">Preț final</p>
                     <p className="text-2xl font-black text-[#10A37F]">{products[activeSheet.idx].price} lei</p>
                   </div>
-                  <button onClick={() => { onAddToCart(products[activeSheet.idx]); setActiveSheet(null); }} className={`flex-1 rounded-2xl py-3.5 font-black ${THEME.classes.cartButton}`}>🛒 Adaugă în coș</button>
+                  <button onClick={() => { try { if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50); } catch(e) {} onAddToCart(products[activeSheet.idx]); setActiveSheet(null); }} className={`flex-1 rounded-2xl py-3.5 font-black bg-[#10A37F] text-white shadow-[0_8px_16px_rgba(16,163,127,0.2)] active:scale-95 transition-transform`}>🛒 Adaugă în coș</button>
                 </div>
               </div>
             )}

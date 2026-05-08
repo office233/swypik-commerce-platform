@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@shopify/admin-api-client": "^1.1.2",
     "@shopify/shopify-api": "^13.0.0",
     "@shopify/storefront-api-client": "^1.0.10",
