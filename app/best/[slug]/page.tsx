@@ -75,6 +75,8 @@ const SEO_PAGES: Record<string, {
 
 type Props = { params: Promise<{ slug: string }> };
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const page = SEO_PAGES[slug];
@@ -84,10 +86,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: page.description,
     openGraph: { title: page.h1, description: page.description },
   };
-}
-
-export function generateStaticParams() {
-  return Object.keys(SEO_PAGES).map((slug) => ({ slug }));
 }
 
 export default async function BestPage({ params }: Props) {
