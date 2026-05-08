@@ -13,25 +13,25 @@
     "@shopify/admin-api-client": "^1.1.2",
     "@shopify/shopify-api": "^13.0.0",
     "@shopify/storefront-api-client": "^1.0.10",
-    "lucide-react": "^0.468.0",
-    "next": "^14.2.3",
-    "openai": "^6.36.0",
-    "pg": "^8.20.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
     "@types/node": "^20.11.30",
     "@types/pg": "^8.20.0",
     "@types/react": "^18.2.67",
     "@types/react-dom": "^18.2.22",
-    "ae_sdk": "^0.6.0",
     "autoprefixer": "^10.4.19",
-    "dotenv": "^17.4.2",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.3",
+    "lucide-react": "^0.468.0",
+    "next": "^14.2.3",
+    "openai": "^6.36.0",
+    "pg": "^8.20.0",
     "postcss": "^8.4.38",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.5"
+  },
+  "devDependencies": {
+    "ae_sdk": "^0.6.0",
+    "dotenv": "^17.4.2"
   }
 }
