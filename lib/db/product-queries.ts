@@ -81,7 +81,7 @@ export type ProductFilters = {
   minPrice?: number;
   maxPrice?: number;
   sort?: "price_asc" | "price_desc" | "popular" | "newest" | "discount";
-  mode?: "trending" | "feed" | "deals" | "default" | "video";
+  mode?: "trending" | "feed" | "deals" | "default" | "video" | "bestvalue" | "toprated";
   limit?: number;
   offset?: number;
 };
@@ -143,6 +143,8 @@ export async function searchProducts(filters: ProductFilters = {}) {
   if (sort === "popular" || mode === "trending") orderBy = "p.orders_count DESC NULLS LAST";
   if (mode === "deals") orderBy = "p.price_ron ASC";
   if (mode === "feed") orderBy = "p.has_video DESC, p.orders_count DESC NULLS LAST";
+  if (mode === "bestvalue") orderBy = "p.price_ron ASC, p.rating DESC NULLS LAST";
+  if (mode === "toprated") { where.push("p.rating >= 4.7"); orderBy = "p.rating DESC NULLS LAST, p.orders_count DESC NULLS LAST"; }
 
   const sql = `
     SELECT p.id, p.ae_product_id, p.title, p.title_ro, p.description,
