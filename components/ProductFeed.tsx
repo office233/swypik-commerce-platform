@@ -28,6 +28,8 @@ type FeedProduct = {
   commentCount?: number;
   socialProofLabel?: string;
   commerceBadge?: string;
+  video?: string | null;
+  hasVideo?: boolean;
 };
 
 type Props = {
@@ -191,12 +193,19 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           return (
             <div key={product.id} data-feed-card={pIdx} className="feed-card bg-[#F7F7F8]" onTouchStart={(e) => onCardTouchStart(e, product.id)} onTouchEnd={(e) => onCardTouchEnd(e, product)}>
               <div className="absolute inset-x-3 top-4 bottom-28 z-0 overflow-hidden rounded-[2rem] bg-white shadow-xl border border-[#E5E5E5]">
-                {product.images?.[imageIndex] ? (
-                  product.images[imageIndex].endsWith(".mp4") || product.images[imageIndex].endsWith(".webm") ? (
-                    <video src={product.images[imageIndex]} autoPlay loop muted playsInline className="h-full w-full object-cover" />
-                  ) : (
-                    <img src={product.images[imageIndex]} alt={product.title} className="h-full w-full object-cover" loading={pIdx < 3 ? "eager" : "lazy"} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  )
+                {/* Video-first: if product has video, show it as primary */}
+                {product.video ? (
+                  <video
+                    src={product.video}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="h-full w-full object-cover"
+                    poster={product.images?.[0]}
+                  />
+                ) : product.images?.[imageIndex] ? (
+                  <img src={product.images[imageIndex]} alt={product.title} className="h-full w-full object-cover" loading={pIdx < 3 ? "eager" : "lazy"} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 ) : (
                   <div className="grid h-full w-full place-items-center bg-[#F7F7F8]">
                     <Package className="text-[#E5E5E5]" size={80} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bot, ChevronDown, ChevronRight, Flame, Grid3x3, Home, MessageCircle, Package, Search, Send, ShoppingCart, SlidersHorizontal, Star, Tag, Truck, X, Zap } from "lucide-react";
 import ProductFeed from "./ProductFeed";
 import { THEME, commerceBadgeClass, translateCategory } from "@/lib/ui/theme";
@@ -48,6 +49,7 @@ Spune-mi ce cauți și eu:
 };
 
 export default function ChatInterface() {
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -198,7 +200,7 @@ export default function ChatInterface() {
     const q = getCardQty(product.id);
     const vc = product.variantsCount || 0;
     return (
-      <div className={`${compact ? "w-[10.5rem] shrink-0" : ""} overflow-hidden rounded-2xl bg-white border border-[#E5E5E5] hover:border-[#D1D1D6] hover:shadow-md transition-all cursor-pointer`} onClick={() => setSelectedProduct(product)}>
+      <div className={`${compact ? "w-[10.5rem] shrink-0" : ""} overflow-hidden rounded-2xl bg-white border border-[#E5E5E5] hover:border-[#D1D1D6] hover:shadow-md transition-all cursor-pointer`} onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
         <div className="relative h-44 bg-[#F7F7F8]">
           {product.images?.[0] ? <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center"><Package className="text-[#D1D1D6]" /></div>}
           {product.discountPercent > 0 && <span className="absolute right-2 top-2 rounded-full bg-[#EF4444] px-2.5 py-1 text-[10px] font-black text-white">-{product.discountPercent}%</span>}
