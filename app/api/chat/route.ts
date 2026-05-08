@@ -216,8 +216,16 @@ export async function POST(req: Request) {
       
       // For refine_search: exclude products user already saw
       const excludeIds = aiResult.intent === "refine_search" ? (aiResult.excludeIds || productContext.map((p: any) => String(p.id))) : undefined;
+      let products = await searchPG(query, 16, { maxPrice, category, sort: aiResult.sort, excludeIds });
       
-      const products = await searchPG(query, 16, { maxPrice, category, sort: aiResult.sort, excludeIds });
+      // Fallback: if query is too strict and excludeIds exhausted results, broaden search
+      if (products.length === 0 && excludeIds && excludeIds.length > 0 && category) {
+        products = await searchPG("", 16, { maxPrice, category, sort: aiResult.sort, excludeIds });
+      }
+      // Fallback 2: if still empty, drop maxPrice constraint
+      if (products.length === 0 && maxPrice) {
+        products = await searchPG("", 16, { category, sort: aiResult.sort, excludeIds });
+      }
       
       // Bundle products
       const bundleQueries = [...(aiResult.bundleQueries || []), ...inferBundleQueries(query)];
