@@ -5,10 +5,10 @@ node_modules/
 .next/
 out/
 
-# Environment
+# Environment — ALL env files (CRITICAL: do not track secrets)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # IDE
 .vscode/
@@ -24,9 +24,18 @@ yarn-debug.log*
 yarn-error.log*
 
 # Vercel
-.vercel
+.vercel/
 
 # Database exports
 db_export.*
 *.dump
-*.sql
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# Debug / data files
+emag-debug.html
+ae-data-dump.json
+
+# Chrome extension (local dev tool)
+chrome-extension/
