@@ -14,13 +14,20 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Get product
+    // Get product - handle both ae_product_id (text) and internal id (serial)
+    const numId = Number(id);
+    const isInternalId = !isNaN(numId) && numId < 2147483647;
     const { rows: products } = await dbQuery(
-      `SELECT p.*, c.name as category_name, c.parent_id as parent_category_id
-       FROM ae_products p
-       LEFT JOIN ae_categories c ON c.ae_category_id = p.category_id
-       WHERE p.ae_product_id = $1 OR p.id = $2`,
-      [id, isNaN(Number(id)) ? 0 : Number(id)]
+      isInternalId
+        ? `SELECT p.*, c.name as category_name, c.parent_id as parent_category_id
+           FROM ae_products p
+           LEFT JOIN ae_categories c ON c.ae_category_id = p.category_id
+           WHERE p.ae_product_id = $1 OR p.id = $2`
+        : `SELECT p.*, c.name as category_name, c.parent_id as parent_category_id
+           FROM ae_products p
+           LEFT JOIN ae_categories c ON c.ae_category_id = p.category_id
+           WHERE p.ae_product_id = $1`,
+      isInternalId ? [id, numId] : [id]
     );
 
     if (!products.length) {
