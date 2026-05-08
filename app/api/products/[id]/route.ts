@@ -84,8 +84,9 @@ export async function GET(
       product: {
         id: product.id,
         aeProductId: String(product.ae_product_id),
-        title: product.title,
+        title: product.title_ro || product.title,
         titleRo: product.title_ro,
+        titleEn: product.title,
         description: product.description,
         price: product.price_ron,
         oldPrice: product.old_price_ron,

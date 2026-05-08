@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Star, Truck } from "lucide-react";
 
 /* ─── Types ──────────────────────────────────────────────── */
 type Variant = {
@@ -20,11 +21,13 @@ export default function ProductPage() {
   const [colorMap, setColorMap] = useState<Record<string, ColorData>>({});
   const [similar, setSimilar] = useState<SimilarProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
+  const [liked, setLiked] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
     fetch(`/api/products/${id}`)
@@ -35,7 +38,7 @@ export default function ProductPage() {
         setVariants(data.variants);
         setColorMap(data.colorMap || {});
         setSimilar(data.similar || []);
-        
+
         // Select first color & size
         const colors = Object.keys(data.colorMap || {});
         if (colors.length) {
@@ -47,23 +50,29 @@ export default function ProductPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  /* ─── Loading State ─── */
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0f0f17', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#8b5cf6', fontSize: '18px', fontFamily: 'system-ui' }}>Se încarcă...</div>
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#10A37F]" />
+        <p className="mt-4 text-sm font-bold text-[#6E6E80]">Se încarcă produsul...</p>
+      </div>
     </div>
   );
 
+  /* ─── Not Found ─── */
   if (!product) return (
-    <div style={{ minHeight: '100vh', background: '#0f0f17', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ fontSize: '48px' }}>😕</div>
-      <div style={{ color: '#e2e8f0', fontSize: '18px', fontFamily: 'system-ui' }}>Produsul nu a fost găsit</div>
-      <button onClick={() => router.push('/')} style={{ padding: '10px 24px', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'system-ui' }}>
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 px-6">
+      <Package size={56} className="text-[#E5E5E5]" />
+      <p className="text-lg font-black text-[#0D0D0D]">Produsul nu a fost găsit</p>
+      <button onClick={() => router.push('/')} className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">
         ← Înapoi la magazin
       </button>
     </div>
   );
 
   const images = product.images || [];
+  const title = product.titleRo || product.title;
   const currentPrice = (() => {
     if (selectedColor && selectedSize && colorMap[selectedColor]) {
       const match = colorMap[selectedColor].sizes.find(s => s.size === selectedSize);
@@ -72,11 +81,11 @@ export default function ProductPage() {
     return product.price;
   })();
   const discount = product.oldPrice > currentPrice ? Math.round(((product.oldPrice - currentPrice) / product.oldPrice) * 100) : 0;
-  
+
   // Current variant image
   const variantImage = selectedColor && colorMap[selectedColor]?.image;
   const displayImages = variantImage ? [variantImage, ...images.filter((i: string) => i !== variantImage)] : images;
-  
+
   const currentStock = (() => {
     if (selectedColor && selectedSize && colorMap[selectedColor]) {
       const match = colorMap[selectedColor].sizes.find(s => s.size === selectedSize);
@@ -85,86 +94,120 @@ export default function ProductPage() {
     return product.availableStock || 0;
   })();
 
+  const handleAddToCart = () => {
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2500);
+  };
+
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f17', color: '#e2e8f0', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* ── Header ── */}
-      <header style={{ 
-        position: 'sticky', top: 0, zIndex: 100,
-        background: 'rgba(15,15,23,0.95)', backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(139,92,246,0.15)',
-        padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px'
-      }}>
-        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#8b5cf6', fontSize: '20px', cursor: 'pointer', padding: '4px' }}>
-          ←
+      <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
+        <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+          <ArrowLeft size={16} />
         </button>
-        <span style={{ fontSize: '14px', color: '#94a3b8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span className="flex-1 text-sm font-semibold text-[#6E6E80] truncate">
           {product.category || 'Produs'}
         </span>
-        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '14px', cursor: 'pointer' }}>
-          🏠
+        <button onClick={() => setLiked(!liked)} className={`grid h-9 w-9 place-items-center rounded-xl border transition-all active:scale-90 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`}>
+          <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
+        </button>
+        <button onClick={() => router.push('/')} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+          <Home size={16} />
         </button>
       </header>
 
       {/* ── Image Gallery ── */}
-      <div style={{ position: 'relative', background: '#1a1a2e' }}>
-        <div style={{ width: '100%', aspectRatio: '1', overflow: 'hidden' }}>
-          <img 
-            src={displayImages[selectedImage] || product.images?.[0]} 
-            alt={product.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
+      <div className="relative bg-[#F7F7F8]">
+        <div className="aspect-square w-full overflow-hidden">
+          {displayImages[selectedImage] ? (
+            <img
+              src={displayImages[selectedImage]}
+              alt={title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full grid place-items-center">
+              <Package size={64} className="text-[#E5E5E5]" />
+            </div>
+          )}
         </div>
         {product.hasVideo && product.video && (
-          <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px', fontSize: '12px', color: '#10b981' }}>
+          <span className="absolute top-3 left-3 rounded-full bg-[#0D0D0D] px-3 py-1 text-[10px] font-black text-white shadow-lg">
             🎬 Video
-          </div>
+          </span>
         )}
         {discount > 0 && (
-          <div style={{ position: 'absolute', top: '12px', right: '12px', background: '#ef4444', borderRadius: '6px', padding: '4px 10px', fontSize: '13px', fontWeight: '700', color: 'white' }}>
+          <span className="absolute top-3 right-3 rounded-full bg-[#EF4444] px-3 py-1.5 text-xs font-black text-white shadow-lg">
             -{discount}%
-          </div>
+          </span>
         )}
-        {/* Thumbnail strip */}
+        {/* Image navigation arrows */}
+        {displayImages.length > 1 && selectedImage > 0 && (
+          <button onClick={() => setSelectedImage(selectedImage - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+            <ChevronLeft size={18} />
+          </button>
+        )}
+        {displayImages.length > 1 && selectedImage < displayImages.length - 1 && (
+          <button onClick={() => setSelectedImage(selectedImage + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+            <ChevronRight size={18} />
+          </button>
+        )}
+        {/* Dots */}
         {displayImages.length > 1 && (
-          <div style={{ display: 'flex', gap: '6px', padding: '8px 12px', overflowX: 'auto', background: 'rgba(0,0,0,0.3)' }}>
-            {displayImages.slice(0, 8).map((img: string, i: number) => (
-              <img key={i} src={img} alt="" onClick={() => setSelectedImage(i)}
-                style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer',
-                  border: selectedImage === i ? '2px solid #8b5cf6' : '2px solid transparent', opacity: selectedImage === i ? 1 : 0.6 }}
-              />
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+            {displayImages.slice(0, 8).map((_: string, i: number) => (
+              <button key={i} onClick={() => setSelectedImage(i)} className={`rounded-full transition-all ${i === selectedImage ? 'w-6 h-2 bg-[#10A37F]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} />
             ))}
           </div>
         )}
       </div>
 
+      {/* Thumbnail strip */}
+      {displayImages.length > 1 && (
+        <div className="flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar border-b border-[#E5E5E5]">
+          {displayImages.slice(0, 8).map((img: string, i: number) => (
+            <img key={i} src={img} alt="" onClick={() => setSelectedImage(i)}
+              className={`h-14 w-14 shrink-0 rounded-xl object-cover cursor-pointer transition-all ${selectedImage === i ? 'ring-2 ring-[#10A37F] opacity-100' : 'opacity-50 hover:opacity-80'}`}
+            />
+          ))}
+        </div>
+      )}
+
       {/* ── Product Info ── */}
-      <div style={{ padding: '16px 20px' }}>
+      <div className="px-4 pt-4 pb-28">
         {/* Price */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '28px', fontWeight: '800', color: '#8b5cf6' }}>{currentPrice} RON</span>
+        <div className="flex items-baseline gap-3 mb-2">
+          <span className="text-3xl font-black text-[#10A37F]">{currentPrice} lei</span>
           {product.oldPrice > currentPrice && (
-            <span style={{ fontSize: '16px', color: '#64748b', textDecoration: 'line-through' }}>{product.oldPrice} RON</span>
+            <span className="text-base text-[#A1A1AA] line-through">{product.oldPrice} lei</span>
           )}
         </div>
-        
+
         {/* Title */}
-        <h1 style={{ fontSize: '16px', fontWeight: '600', lineHeight: '1.4', margin: '0 0 12px', color: '#e2e8f0' }}>
-          {product.title}
+        <h1 className="text-lg font-bold leading-snug text-[#0D0D0D] mb-3">
+          {title}
         </h1>
 
         {/* Rating & Orders */}
-        <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>
-          <span>⭐ {product.rating.toFixed(1)} ({product.ratingCount} review-uri)</span>
-          <span>🛒 {product.ordersCount} vândute</span>
+        <div className="flex flex-wrap gap-3 text-sm font-medium text-[#6E6E80] mb-5">
+          <span className="flex items-center gap-1">
+            <Star size={14} className="text-[#F59E0B]" fill="currentColor" />
+            {product.rating?.toFixed(1)} ({product.ratingCount} review-uri)
+          </span>
+          <span className="flex items-center gap-1">
+            <ShoppingCart size={14} />
+            {product.ordersCount} vândute
+          </span>
         </div>
 
         {/* ── Color Selector ── */}
         {Object.keys(colorMap).length > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>
-              Culoare: <span style={{ color: '#e2e8f0', fontWeight: '600' }}>{selectedColor}</span>
+          <div className="mb-5">
+            <div className="text-sm font-bold text-[#0D0D0D] mb-2">
+              Culoare: <span className="text-[#10A37F]">{selectedColor}</span>
             </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               {Object.entries(colorMap).map(([color, data]) => (
                 <button key={color} onClick={() => {
                   setSelectedColor(color);
@@ -174,17 +217,12 @@ export default function ProductPage() {
                     setSelectedSize(sizes[0].size);
                   }
                 }}
-                  style={{
-                    padding: data.image ? '2px' : '8px 14px',
-                    border: selectedColor === color ? '2px solid #8b5cf6' : '2px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px', background: 'rgba(255,255,255,0.05)', cursor: 'pointer',
-                    transition: 'all 0.2s', position: 'relative',
-                  }}
+                  className={`rounded-xl border-2 transition-all active:scale-95 ${selectedColor === color ? 'border-[#10A37F] shadow-[0_0_0_1px_#10A37F]' : 'border-[#E5E5E5] hover:border-[#D1D1D6]'}`}
                 >
                   {data.image ? (
-                    <img src={data.image} alt={color} style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '6px' }} />
+                    <img src={data.image} alt={color} className="h-12 w-12 rounded-[10px] object-cover" />
                   ) : (
-                    <span style={{ fontSize: '13px', color: selectedColor === color ? '#8b5cf6' : '#94a3b8' }}>{color}</span>
+                    <span className={`block px-4 py-2.5 text-sm font-semibold ${selectedColor === color ? 'text-[#10A37F]' : 'text-[#6E6E80]'}`}>{color}</span>
                   )}
                 </button>
               ))}
@@ -194,22 +232,21 @@ export default function ProductPage() {
 
         {/* ── Size Selector ── */}
         {selectedColor && colorMap[selectedColor]?.sizes.length > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>
-              Mărime: <span style={{ color: '#e2e8f0', fontWeight: '600' }}>{selectedSize}</span>
+          <div className="mb-5">
+            <div className="text-sm font-bold text-[#0D0D0D] mb-2">
+              Mărime: <span className="text-[#10A37F]">{selectedSize}</span>
             </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               {colorMap[selectedColor].sizes.map(s => (
                 <button key={s.size} onClick={() => setSelectedSize(s.size)}
-                  style={{
-                    padding: '8px 18px', fontSize: '14px', fontWeight: '600',
-                    border: selectedSize === s.size ? '2px solid #8b5cf6' : '2px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px', background: selectedSize === s.size ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)',
-                    color: selectedSize === s.size ? '#8b5cf6' : '#94a3b8',
-                    cursor: s.stock > 0 ? 'pointer' : 'not-allowed',
-                    opacity: s.stock > 0 ? 1 : 0.4,
-                    transition: 'all 0.2s',
-                  }}
+                  disabled={s.stock === 0}
+                  className={`rounded-xl px-5 py-2.5 text-sm font-bold border-2 transition-all active:scale-95
+                    ${selectedSize === s.size
+                      ? 'border-[#10A37F] bg-[#10A37F]/10 text-[#10A37F]'
+                      : s.stock > 0
+                        ? 'border-[#E5E5E5] text-[#0D0D0D] hover:border-[#D1D1D6]'
+                        : 'border-[#E5E5E5] text-[#D1D1D6] opacity-40 cursor-not-allowed'
+                    }`}
                 >
                   {s.size}
                 </button>
@@ -219,110 +256,139 @@ export default function ProductPage() {
         )}
 
         {/* ── Quantity ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <span style={{ fontSize: '13px', color: '#94a3b8' }}>Cantitate:</span>
-          <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
-            <button onClick={() => setQty(Math.max(1, qty - 1))} style={{ width: '36px', height: '36px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', fontSize: '16px', cursor: 'pointer' }}>−</button>
-            <span style={{ width: '40px', textAlign: 'center', fontSize: '14px', fontWeight: '600' }}>{qty}</span>
-            <button onClick={() => setQty(qty + 1)} style={{ width: '36px', height: '36px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', fontSize: '16px', cursor: 'pointer' }}>+</button>
+        <div className="flex items-center gap-4 mb-5">
+          <span className="text-sm font-bold text-[#0D0D0D]">Cantitate:</span>
+          <div className="flex items-center rounded-xl border border-[#E5E5E5] overflow-hidden">
+            <button onClick={() => setQty(Math.max(1, qty - 1))} className="grid h-10 w-10 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all">
+              <Minus size={16} />
+            </button>
+            <span className="w-10 text-center text-sm font-black text-[#0D0D0D]">{qty}</span>
+            <button onClick={() => setQty(qty + 1)} className="grid h-10 w-10 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all">
+              <Plus size={16} />
+            </button>
           </div>
-          {currentStock > 0 && <span style={{ fontSize: '12px', color: '#10b981' }}>📦 {currentStock} în stoc</span>}
+          {currentStock > 0 && (
+            <span className="text-xs font-semibold text-[#10A37F] bg-[#10A37F]/10 px-3 py-1.5 rounded-full">📦 {currentStock} în stoc</span>
+          )}
         </div>
 
         {/* ── Shipping Info ── */}
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '14px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#94a3b8' }}>🚚 Livrare</span>
-            <span style={{ fontSize: '13px', color: '#10b981', fontWeight: '600' }}>
-              {product.shipFree ? '✅ GRATUITĂ' : `$${product.shipCostUsd} (inclus în preț)`}
+        <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-4 mb-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-sm font-medium text-[#6E6E80]"><Truck size={16} /> Livrare</span>
+            <span className={`text-sm font-bold ${product.shipFree ? 'text-[#10A37F]' : 'text-[#0D0D0D]'}`}>
+              {product.shipFree ? '✅ GRATUITĂ' : 'Inclusă în preț'}
             </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ fontSize: '13px', color: '#94a3b8' }}>📅 Estimare</span>
-            <span style={{ fontSize: '13px', color: '#e2e8f0' }}>
-              {product.deliveryDate || `${product.shipDaysMin}-${product.shipDaysMax} zile`}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-[#6E6E80]">📅 Estimare</span>
+            <span className="text-sm font-semibold text-[#0D0D0D]">
+              {product.deliveryDate || `${product.shipDaysMin || 7}-${product.shipDaysMax || 15} zile`}
             </span>
           </div>
           {product.shipTracking && (
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '13px', color: '#94a3b8' }}>📍 Tracking</span>
-              <span style={{ fontSize: '13px', color: '#10b981' }}>✅ Cu urmărire</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-[#6E6E80]">📍 Tracking</span>
+              <span className="text-sm font-bold text-[#10A37F]">✅ Cu urmărire</span>
             </div>
           )}
         </div>
 
         {/* ── Product Details ── */}
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '14px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '10px', color: '#e2e8f0' }}>📋 Detalii produs</div>
-          {[
+        {(() => {
+          const details = [
             ['Material', product.material],
             ['Fabric', product.fabricType],
             ['Stil', product.style],
-            ['Neckline', product.neckline],
+            ['Guler', product.neckline],
             ['Mânecă', product.sleeveStyle],
             ['Siluetă', product.silhouette],
             ['Talie', product.waistline],
             ['Pattern', product.patternType],
             ['Sezon', product.season],
-            ['Decorații', product.decoration?.join(', ')],
+            ['Decorații', product.decoration?.join?.(', ')],
             ['Brand', product.brand && product.brand !== 'NONE' ? product.brand : null],
-          ].filter(([, v]) => v).map(([label, value]) => (
-            <div key={label as string} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <span style={{ fontSize: '13px', color: '#94a3b8' }}>{label}</span>
-              <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+          ].filter(([, v]) => v);
 
-      {/* ── Similar Products ── */}
-      {similar.length > 0 && (
-        <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px' }}>✨ Produse similare</h2>
-          <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
-            {similar.map(s => (
-              <div key={s.id} onClick={() => router.push(`/product/${s.id}`)}
-                style={{ minWidth: '140px', cursor: 'pointer', borderRadius: '10px', overflow: 'hidden', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <img src={s.image} alt="" style={{ width: '140px', height: '140px', objectFit: 'cover' }} />
-                <div style={{ padding: '8px' }}>
-                  <div style={{ fontSize: '12px', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#8b5cf6' }}>{s.price} RON</div>
-                </div>
+          return details.length > 0 ? (
+            <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-4 mb-5">
+              <h3 className="text-sm font-black text-[#0D0D0D] mb-3">📋 Detalii produs</h3>
+              <div className="space-y-2">
+                {details.map(([label, value]) => (
+                  <div key={label as string} className="flex justify-between text-sm border-b border-[#E5E5E5]/50 pb-2 last:border-0 last:pb-0">
+                    <span className="font-medium text-[#6E6E80]">{label}</span>
+                    <span className="font-semibold text-[#0D0D0D]">{value}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+          ) : null;
+        })()}
+
+        {/* ── Store Info ── */}
+        {product.storeName && (
+          <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-4 mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-[#6E6E80] uppercase">Magazin</p>
+              <p className="text-sm font-black text-[#0D0D0D]">{product.storeName}</p>
+            </div>
+            {product.storeRating > 0 && (
+              <div className="flex items-center gap-1 bg-[#F59E0B]/10 px-3 py-1.5 rounded-full">
+                <Star size={13} className="text-[#F59E0B]" fill="currentColor" />
+                <span className="text-sm font-black text-[#F59E0B]">{product.storeRating.toFixed(1)}</span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ── Similar Products ── */}
+        {similar.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-3">Produse similare</h2>
+            <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar">
+              {similar.map(s => (
+                <div key={s.id} onClick={() => router.push(`/product/${s.id}`)}
+                  className="w-36 shrink-0 cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] hover:shadow-md transition-all active:scale-95">
+                  <img src={s.image} alt="" className="h-36 w-full object-cover" />
+                  <div className="p-2.5">
+                    <p className="text-xs font-semibold text-[#6E6E80] truncate">{s.title}</p>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <span className="text-sm font-black text-[#10A37F]">{s.price} lei</span>
+                      {s.oldPrice > s.price && (
+                        <span className="text-[10px] text-[#A1A1AA] line-through">{s.oldPrice}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Fixed Bottom Bar ── */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(15,15,23,0.95)', backdropFilter: 'blur(12px)',
-        borderTop: '1px solid rgba(139,92,246,0.2)',
-        padding: '12px 20px', display: 'flex', gap: '12px', alignItems: 'center',
-      }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '20px', fontWeight: '800', color: '#8b5cf6' }}>{currentPrice} RON</div>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>
-            {selectedColor && selectedSize ? `${selectedColor} / ${selectedSize}` : 'Selectează varianta'}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+        <div className="mx-auto max-w-lg flex items-center gap-3">
+          <div className="flex-1">
+            <p className="text-2xl font-black text-[#10A37F]">{currentPrice} lei</p>
+            <p className="text-[11px] font-medium text-[#6E6E80]">
+              {selectedColor && selectedSize ? `${selectedColor} / ${selectedSize}` : 'Selectează varianta'}
+            </p>
           </div>
+          <button onClick={handleAddToCart}
+            className="flex items-center gap-2 rounded-2xl bg-[#0D0D0D] px-6 py-3.5 text-sm font-black text-white shadow-xl active:scale-95 transition-transform">
+            <ShoppingCart size={17} />
+            {addedToCart ? '✓ Adăugat!' : 'Adaugă în coș'}
+          </button>
         </div>
-        <button style={{
-          padding: '14px 32px', border: 'none', borderRadius: '12px',
-          background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-          color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(139,92,246,0.4)',
-          transition: 'transform 0.2s',
-        }}
-          onMouseEnter={e => (e.target as HTMLElement).style.transform = 'scale(1.03)'}
-          onMouseLeave={e => (e.target as HTMLElement).style.transform = 'scale(1)'}
-        >
-          🛒 Adaugă în coș
-        </button>
       </div>
 
-      {/* Bottom padding for fixed bar */}
-      <div style={{ height: '80px' }} />
+      {/* ── Toast ── */}
+      {addedToCart && (
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#10A37F] px-5 py-2.5 text-sm font-black text-white shadow-xl animate-slideUp">
+          🛒 Adăugat în coș!
+        </div>
+      )}
     </div>
   );
 }

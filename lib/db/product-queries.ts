@@ -57,8 +57,12 @@ function transformProduct(row: any) {
     shipMethod: row.ship_method || "",
     shipDaysMin: row.ship_days_min,
     shipDaysMax: row.ship_days_max,
-    socialProofLabel: orders > 300 ? `${orders}+ comenzi recente` : `${cartAdds} adăugări în coș`,
-    commerceBadge: orders > 300 ? "🔥 Se vinde bine" : cartAdds > 20 ? "🛒 Hot în coș" : "⚡ Disponibil",
+    socialProofLabel: orders > 500 ? `${orders}+ comenzi` : orders > 100 ? `${orders}+ vândute` : null,
+    commerceBadge: orders > 500 ? "🔥 Se vinde bine"
+      : rating >= 4.8 && orders > 100 ? "⭐ Alegere sigură"
+      : discountPercent >= 30 ? "💰 Super reducere"
+      : cartAdds > 30 ? "🛒 Hot în coș"
+      : null,
     dealLabel: discountPercent >= 20 ? "🔥 Super Deal" : discountPercent >= 10 ? "💰 Preț bun" : "✨ Nou",
   };
 }
