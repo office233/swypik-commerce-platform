@@ -14,9 +14,9 @@ let shippingCache: Record<string, number> | null = null;
 async function getShippingRates(): Promise<Record<string, number>> {
   if (shippingCache) return shippingCache;
   const { rows } = await dbQuery(
-    "SELECT weight_band, COALESCE(cheapest_total_usd, cheapest_shipping_usd, '10') as rate FROM shipping_rates WHERE country_code = 'RO'"
+    "SELECT weight_band, COALESCE(cheapest_shipping_usd, '5') as rate FROM shipping_rates WHERE country_code = 'RO'"
   );
-  shippingCache = { "0-50": 8.0 };
+  shippingCache = { "0-50": 4.0 };
   for (const r of rows) shippingCache[r.weight_band] = parseFloat(r.rate);
   return shippingCache;
 }
