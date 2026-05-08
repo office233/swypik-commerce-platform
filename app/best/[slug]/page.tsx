@@ -11,7 +11,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-// ─── SEO Page Definitions ───────────────────────────────────────
+// ─── SEO Page Definitions (matched to actual catalog inventory) ──
 const SEO_PAGES: Record<string, {
   title: string;
   h1: string;
@@ -21,55 +21,55 @@ const SEO_PAGES: Record<string, {
   sort?: string;
   maxPrice?: number;
 }> = {
-  "casti-wireless": {
-    title: "Cele mai bune căști wireless 2026 — AICeVrei",
-    h1: "🎧 Cele mai bune căști wireless",
-    description: "Top căști wireless selectate de AI. Calitate verificată, prețuri bune, livrare în România.",
-    intro: "Am analizat sute de căști wireless și le-am filtrat pe cele care chiar merită. Fiecare produs are rating 4.5+ și recenzii reale.",
-    search: "headphones earbuds wireless bluetooth",
+  "rochii-vara": {
+    title: "Cele mai frumoase rochii de vară 2026 — AICeVrei",
+    h1: "👗 Cele mai frumoase rochii de vară",
+    description: "Rochii de vară trendy selectate de AI. Calitate verificată, stil actual și livrare în România.",
+    intro: "Am analizat mii de rochii și le-am filtrat pe cele cu cel mai bun raport calitate-preț. Fiecare are rating 4.5+ și recenzii reale de la cumpărători.",
+    search: "dress summer",
   },
-  "setup-gaming": {
-    title: "Setup gaming complet 2026 — Selectat de AI — AICeVrei",
-    h1: "🎮 Setup gaming complet — AI Pick",
-    description: "Construiește-ți setup-ul de gaming perfect. Mouse, tastatură, căști, monitor — toate verificate de AI.",
-    intro: "AI-ul nostru a selectat cele mai bune componente pentru un setup de gaming performant. Toate produsele au review-uri excelente și raport calitate-preț validat.",
-    search: "gaming mouse keyboard headset monitor",
+  "outfit-complet": {
+    title: "Outfit complet coordonat 2026 — Selectat de AI — AICeVrei",
+    h1: "👠 Outfit complet — seturi coordonate",
+    description: "Seturi de haine coordonate selectate de AI. Combini perfect și economisești timp.",
+    intro: "Nu mai pierde timp combinând piese. AI-ul nostru a selectat cele mai bine cotate seturi complete — ready to wear.",
+    search: "set",
   },
   "cadouri-sub-200": {
     title: "Cadouri sub 200 lei — Idei creative 2026 — AICeVrei",
     h1: "🎁 Cadouri sub 200 lei — Idei creative",
     description: "Idei de cadouri sub 200 lei selectate de AI. Originale, calitative și cu livrare rapidă în România.",
     intro: "Nu știi ce cadou să alegi? AI-ul nostru a selectat cele mai apreciate produse sub 200 lei — originale și cu recenzii reale.",
-    search: "gift creative",
+    search: "top",
     maxPrice: 200,
   },
-  "gadgeturi-auto": {
-    title: "Cele mai bune gadgeturi auto 2026 — AICeVrei",
-    h1: "🚗 Gadgeturi auto — Top picks",
-    description: "Gadgeturi auto utile selectate de AI. Suporturi telefon, organizatoare, lumini LED și accesorii verificate.",
-    intro: "Am analizat cele mai populare gadgeturi auto și le-am filtrat pe cele cu rating excelent și utilitate reală.",
-    search: "car accessories phone holder organizer LED",
+  "tinute-office": {
+    title: "Ținute office elegante 2026 — AICeVrei",
+    h1: "💼 Ținute office elegante",
+    description: "Haine de birou elegante selectate de AI. Bluze, pantaloni, sacouri — toate verificate pentru calitate.",
+    intro: "AI-ul a selectat piesele perfecte pentru garderoba de birou. Eleganță, confort și prețuri accesibile.",
+    search: "suit",
   },
-  "skincare-routine": {
-    title: "Rutină skincare completă 2026 — Selectat de AI — AICeVrei",
-    h1: "💄 Rutină skincare completă",
-    description: "Produse skincare de calitate la prețuri accesibile. Serumuri, creme, măști — toate verificate de AI.",
-    intro: "AI-ul nostru a creat o rutină skincare completă cu produse testate și validate de mii de utilizatori.",
-    search: "skincare cream serum face mask moisturizer",
+  "casual-streetwear": {
+    title: "Streetwear casual trendy 2026 — AICeVrei",
+    h1: "🔥 Streetwear casual — trending acum",
+    description: "Haine casual și streetwear la prețuri excelente. Selectate de AI pentru stil și calitate.",
+    intro: "Cele mai populare piese streetwear, verificate de AI. Stil actual, prețuri bune și livrare rapidă.",
+    search: "casual",
   },
-  "birou-acasa": {
-    title: "Setup birou de acasă 2026 — Selectat de AI — AICeVrei",
-    h1: "💻 Setup birou de acasă — AI Pick",
-    description: "Tot ce ai nevoie pentru un birou de acasă productiv. Organizatoare, lumini, accesorii — verificate de AI.",
-    intro: "Lucrezi de acasă? AI-ul nostru a selectat cele mai bune produse pentru un spațiu de lucru productiv și estetic.",
-    search: "desk organizer lamp office accessories",
+  "fitness-yoga": {
+    title: "Echipament fitness și yoga 2026 — Selectat de AI — AICeVrei",
+    h1: "🏋️ Echipament fitness & yoga",
+    description: "Echipament sport și yoga de calitate. Selectat de AI pentru performanță și confort.",
+    intro: "AI-ul nostru a selectat cele mai bine cotate echipamente fitness și yoga — comfort, durabilitate și stil.",
+    search: "yoga",
   },
-  "fitness-acasa": {
-    title: "Kit fitness acasă 2026 — Echipament selectat de AI — AICeVrei",
-    h1: "🏋️ Kit fitness acasă",
-    description: "Echipament fitness pentru acasă selectat de AI. Benzi elastice, greutăți, covorașe — calitate verificată.",
-    intro: "Nu ai nevoie de sală pentru a fi în formă. AI-ul nostru a selectat cele mai bune echipamente fitness pentru antrenament acasă.",
-    search: "fitness yoga resistance band dumbbell exercise mat",
+  "vintage-retro": {
+    title: "Modă vintage & retro 2026 — AICeVrei",
+    h1: "✨ Modă vintage & retro — AI Pick",
+    description: "Haine vintage și retro selectate de AI. Piese unice cu stil atemporal.",
+    intro: "Stilul vintage nu se demodează niciodată. AI-ul nostru a găsit cele mai bune piese retro, verificate pentru calitate.",
+    search: "vintage",
   },
 };
 
