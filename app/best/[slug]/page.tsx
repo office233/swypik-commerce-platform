@@ -93,24 +93,19 @@ export default async function BestPage({ params }: Props) {
   const page = SEO_PAGES[slug];
   if (!page) notFound();
 
-  // Fetch products server-side
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
+  // Import directly from DB (server component — no HTTP self-fetch needed)
   let products: any[] = [];
   try {
-    const url = new URL("/api/products", baseUrl);
-    url.searchParams.set("search", page.search);
-    url.searchParams.set("limit", "20");
-    url.searchParams.set("sort", page.sort || "popular");
-    if (page.maxPrice) url.searchParams.set("maxPrice", String(page.maxPrice));
-
-    const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-    const data = await res.json();
-    products = data.products || [];
-  } catch (e) {
-    console.error("[SEO] Failed to fetch products for", slug);
+    const { searchProducts } = await import("@/lib/db/product-queries");
+    const result = await searchProducts({
+      search: page.search,
+      limit: 20,
+      sort: (page.sort as any) || "popular",
+      maxPrice: page.maxPrice,
+    });
+    products = result.products || [];
+  } catch (e: any) {
+    console.error("[SEO] Failed to fetch products for", slug, e.message);
   }
 
   return (
