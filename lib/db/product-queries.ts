@@ -107,11 +107,12 @@ export async function searchProducts(filters: ProductFilters = {}) {
   }
 
   if (categoryId) {
-    where.push(`p.category_id = $${paramIdx}`);
+    // Include products from this category AND all subcategories
+    where.push(`(p.category_id = $${paramIdx} OR p.category_id IN (SELECT ae_category_id FROM ae_categories WHERE parent_id = $${paramIdx}))`);
     params.push(categoryId);
     paramIdx++;
   } else if (category) {
-    where.push(`c.name ILIKE $${paramIdx}`);
+    where.push(`(c.name ILIKE $${paramIdx} OR c.ae_category_id IN (SELECT ae_category_id FROM ae_categories WHERE parent_id IN (SELECT ae_category_id FROM ae_categories WHERE name ILIKE $${paramIdx})))`);
     params.push(`%${category}%`);
     paramIdx++;
   }
@@ -198,11 +199,19 @@ export async function getProductByAeId(aeProductId: string) {
 export async function getCategories() {
   const { rows } = await dbQuery(`
     SELECT c.ae_category_id, c.name, c.name_ro, c.level,
-      COALESCE(p.cnt, 0) as count
+      COALESCE(direct.cnt, 0) + COALESCE(child.cnt, 0) as count
     FROM ae_categories c
     LEFT JOIN (
       SELECT category_id, COUNT(*) as cnt FROM ae_products GROUP BY category_id
-    ) p ON p.category_id = c.ae_category_id
+    ) direct ON direct.category_id = c.ae_category_id
+    LEFT JOIN (
+      SELECT sub.parent_id, SUM(pc.cnt) as cnt
+      FROM ae_categories sub
+      JOIN (SELECT category_id, COUNT(*) as cnt FROM ae_products GROUP BY category_id) pc
+        ON pc.category_id = sub.ae_category_id
+      WHERE sub.parent_id IS NOT NULL
+      GROUP BY sub.parent_id
+    ) child ON child.parent_id = c.ae_category_id
     WHERE c.level = 1 AND c.is_active = true
     ORDER BY count DESC, c.name ASC
   `);
