@@ -54,13 +54,32 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [likes, setLikes] = useState<Record<string, boolean>>({});
   const [heartBurst, setHeartBurst] = useState<string | null>(null);
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(true); // start muted for autoplay policy
   const [liveViewers, setLiveViewers] = useState<Record<string, number>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const videoMapRef = useRef<Record<string, HTMLVideoElement>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
+  const hasInteractedRef = useRef(false);
+
+  // Auto-unmute on first user tap (browser requires user gesture for sound)
+  useEffect(() => {
+    const unmute = () => {
+      if (hasInteractedRef.current) return;
+      hasInteractedRef.current = true;
+      setIsMuted(false);
+      Object.values(videoMapRef.current).forEach(v => { v.muted = false; });
+      document.removeEventListener("touchstart", unmute);
+      document.removeEventListener("click", unmute);
+    };
+    document.addEventListener("touchstart", unmute, { once: true });
+    document.addEventListener("click", unmute, { once: true });
+    return () => {
+      document.removeEventListener("touchstart", unmute);
+      document.removeEventListener("click", unmute);
+    };
+  }, []);
 
   // Dynamic live viewers that change every 4-8 seconds
   useEffect(() => {

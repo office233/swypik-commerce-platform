@@ -136,6 +136,7 @@ export async function searchProducts(filters: ProductFilters = {}) {
 
   if (mode === "video") {
     where.push("p.has_video = true");
+    where.push("p.has_audio = true");
   }
 
   // Exclude products already shown/rejected (conversation refinement)
