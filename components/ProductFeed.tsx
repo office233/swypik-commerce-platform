@@ -32,7 +32,7 @@ type FeedProduct = {
 
 type Props = {
   products: FeedProduct[];
-  onAddToCart: (p: FeedProduct) => void;
+  onAddToCart: (p: FeedProduct, qty?: number) => void;
   onLoadMore?: () => void;
   onClose?: () => void;
   isLoading: boolean;
@@ -95,6 +95,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [activeSheet, setActiveSheet] = useState<{ type: "comments" | "details"; idx: number } | null>(null);
   const [imgIndices, setImgIndices] = useState<Record<string, number>>({});
   const [heartBurst, setHeartBurst] = useState<string | null>(null);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -133,6 +134,9 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
   const getImgIdx = (id: string) => imgIndices[id] || 0;
   const setImgIdx = (id: string, i: number) => setImgIndices((prev) => ({ ...prev, [id]: i }));
+
+  const getQty = (id: string) => quantities[id] || 1;
+  const setQty = (id: string, q: number) => setQuantities((prev) => ({ ...prev, [id]: Math.max(1, q) }));
 
   const onCardTouchStart = (e: React.TouchEvent, productId: string) => {
     touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, id: productId };
@@ -182,6 +186,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           const comments = generateComments(product);
           const viewers = product.viewers || 12;
           const overlay = aiOverlay(product);
+          const qty = getQty(product.id);
 
           return (
             <div key={product.id} data-feed-card={pIdx} className="feed-card bg-[#F7F7F8]" onTouchStart={(e) => onCardTouchStart(e, product.id)} onTouchEnd={(e) => onCardTouchEnd(e, product)}>
@@ -245,11 +250,19 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 z-30 border-t border-[#E5E5E5] bg-white/95 p-4 shadow-[0_-14px_40px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+                {/* Quantity selector */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-[#6E6E80]">Cantitate:</span>
+                  <div className="flex items-center rounded-xl border border-[#E5E5E5] overflow-hidden">
+                    <button onClick={() => setQty(product.id, qty - 1)} className="grid h-8 w-8 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all text-sm font-bold">−</button>
+                    <span className="w-8 text-center text-sm font-black text-[#0D0D0D]">{qty}</span>
+                    <button onClick={() => setQty(product.id, qty + 1)} className="grid h-8 w-8 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all text-sm font-bold">+</button>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <button onClick={() => setActiveSheet({ type: "details", idx: pIdx })} className="flex-1 rounded-2xl bg-[#F7F7F8] py-3 text-sm font-black text-[#0D0D0D] border border-[#E5E5E5]">Detalii</button>
-                  <button onClick={() => onAddToCart(product)} className={`flex-[1.6] rounded-2xl py-3 text-sm font-black ${THEME.classes.cartButton}`}><ShoppingCart size={17} className="mr-1 inline" /> Adaugă în coș</button>
+                  <button onClick={() => onAddToCart(product, qty)} className={`flex-[1.6] rounded-2xl py-3 text-sm font-black ${THEME.classes.cartButton}`}><ShoppingCart size={17} className="mr-1 inline" /> {qty > 1 ? `${qty}x în coș` : "Adaugă în coș"}</button>
                 </div>
-                <button onClick={() => onAddToCart(product)} className="mt-2 w-full rounded-2xl bg-[#0D0D0D] py-3 text-sm font-black text-white shadow-xl shadow-black/10">🔥 Ia-l acum / fă bundle</button>
               </div>
             </div>
           );
@@ -276,7 +289,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                     <p className="text-xs font-bold text-[#6E6E80]">Preț final</p>
                     <p className="text-2xl font-black text-[#10A37F]">{products[activeSheet.idx].price} lei</p>
                   </div>
-                  <button onClick={() => { try { if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50); } catch(e) {} onAddToCart(products[activeSheet.idx]); setActiveSheet(null); }} className={`flex-1 rounded-2xl py-3.5 font-black bg-[#10A37F] text-white shadow-[0_8px_16px_rgba(16,163,127,0.2)] active:scale-95 transition-transform`}>🛒 Adaugă în coș</button>
+                  <button onClick={() => { try { if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50); } catch(e) {} onAddToCart(products[activeSheet.idx], getQty(products[activeSheet.idx].id)); setActiveSheet(null); }} className={`flex-1 rounded-2xl py-3.5 font-black bg-[#10A37F] text-white shadow-[0_8px_16px_rgba(16,163,127,0.2)] active:scale-95 transition-transform`}>🛒 Adaugă în coș</button>
                 </div>
               </div>
             )}

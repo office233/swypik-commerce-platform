@@ -64,6 +64,7 @@ function transformProduct(row: any) {
       : cartAdds > 30 ? "🛒 Hot în coș"
       : null,
     dealLabel: discountPercent >= 20 ? "🔥 Super Deal" : discountPercent >= 10 ? "💰 Preț bun" : "✨ Nou",
+    variantsCount: Number(row.variants_count) || 0,
   };
 }
 
