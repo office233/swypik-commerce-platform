@@ -256,8 +256,12 @@ export async function getCategoryHierarchy(): Promise<CategoryNode[]> {
   const roots = rows.filter((r: any) => r.level === 1);
   const children = rows.filter((r: any) => r.level === 2);
 
+  // Separate linked children from orphans
+  const linkedChildren = children.filter((c: any) => c.parent_id != null);
+  const orphanChildren = children.filter((c: any) => c.parent_id == null && parseInt(c.product_count) > 0);
+
   const result: CategoryNode[] = roots.map((root: any) => {
-    const subs = children
+    const subs = linkedChildren
       .filter((c: any) => c.parent_id === root.ae_category_id)
       .map((c: any) => ({
         id: c.ae_category_id,
@@ -266,18 +270,46 @@ export async function getCategoryHierarchy(): Promise<CategoryNode[]> {
         count: parseInt(c.product_count),
       }));
 
-    // Total count = sum of children counts
-    const totalCount = subs.reduce((sum: number, s: any) => sum + s.count, 0);
+    // Total count = sum of children counts + direct products on root
+    const directCount = parseInt(root.product_count) || 0;
+    const totalCount = subs.reduce((sum: number, s: any) => sum + s.count, 0) + directCount;
 
     return {
       id: root.ae_category_id,
       name: root.name_ro || root.name,
       nameEn: root.name,
       count: totalCount,
-      children: subs,
+      children: subs.filter(s => s.count > 0),
     };
   });
 
-  // Sort by count descending
-  return result.sort((a, b) => b.count - a.count);
+  // Add orphan subcategories as a separate "Alte Produse" group
+  if (orphanChildren.length > 0) {
+    const orphanSubs = orphanChildren.map((c: any) => ({
+      id: c.ae_category_id,
+      name: c.name_ro || c.name,
+      nameEn: c.name,
+      count: parseInt(c.product_count),
+    })).sort((a, b) => b.count - a.count);
+
+    const orphanTotal = orphanSubs.reduce((sum, s) => sum + s.count, 0);
+
+    // Try to merge orphans into "Women's Clothing" parent since most are fashion
+    const womenIdx = result.findIndex(r => r.nameEn === "Women's Clothing");
+    if (womenIdx >= 0) {
+      result[womenIdx].children.push(...orphanSubs);
+      result[womenIdx].count += orphanTotal;
+    } else {
+      result.push({
+        id: 999999,
+        name: "Alte Produse",
+        nameEn: "Other Products",
+        count: orphanTotal,
+        children: orphanSubs,
+      });
+    }
+  }
+
+  // Filter out empty categories and sort by count descending
+  return result.filter(r => r.count > 0).sort((a, b) => b.count - a.count);
 }
