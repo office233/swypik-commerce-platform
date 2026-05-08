@@ -111,7 +111,8 @@ export default function ChatInterface() {
     setActiveSub(catPath);
     const offset = (page - 1) * 20;
     try {
-      const res = await fetch(`/api/products?category=${encodeURIComponent(catPath)}&limit=20&offset=${offset}&sort=${filterSort}&maxPrice=${filterMaxPrice}`);
+      const catName = catPath.includes(" > ") ? catPath.split(" > ").pop()!.trim() : catPath;
+      const res = await fetch(`/api/products?category=${encodeURIComponent(catName)}&limit=20&offset=${offset}&sort=${filterSort}&maxPrice=${filterMaxPrice}`);
       const data = await res.json();
       if (fromCatTab) {
         if (page === 1) {
