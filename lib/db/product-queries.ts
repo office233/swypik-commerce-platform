@@ -112,7 +112,7 @@ export async function searchProducts(filters: ProductFilters = {}) {
     params.push(categoryId);
     paramIdx++;
   } else if (category) {
-    where.push(`(c.name ILIKE $${paramIdx} OR c.ae_category_id IN (SELECT ae_category_id FROM ae_categories WHERE parent_id IN (SELECT ae_category_id FROM ae_categories WHERE name ILIKE $${paramIdx})))`);
+    where.push(`(c.name ILIKE $${paramIdx} OR c.name_ro ILIKE $${paramIdx} OR c.ae_category_id IN (SELECT ae_category_id FROM ae_categories WHERE parent_id IN (SELECT ae_category_id FROM ae_categories WHERE name ILIKE $${paramIdx} OR name_ro ILIKE $${paramIdx})))`);
     params.push(`%${category}%`);
     paramIdx++;
   }
