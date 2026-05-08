@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ArrowLeft, Heart, Package, Play, ShoppingCart, Star, Truck } from "lucide-react";
+import { ArrowLeft, Heart, Package, Play, ShoppingCart, Star, Truck, Volume2, VolumeX } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type FeedProduct = {
@@ -54,11 +54,42 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [likes, setLikes] = useState<Record<string, boolean>>({});
   const [heartBurst, setHeartBurst] = useState<string | null>(null);
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
-  const [playingVideos, setPlayingVideos] = useState<Record<string, boolean>>({});
+  const [isMuted, setIsMuted] = useState(true);
+  const [liveViewers, setLiveViewers] = useState<Record<string, number>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const videoMapRef = useRef<Record<string, HTMLVideoElement>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [addedToCart, setAddedToCart] = useState<string | null>(null);
+
+  // Dynamic live viewers that change every 4-8 seconds
+  useEffect(() => {
+    // Initialize viewers
+    const initial: Record<string, number> = {};
+    products.forEach(p => {
+      initial[p.id] = 5 + Math.floor(Math.random() * 35);
+    });
+    setLiveViewers(initial);
+
+    const interval = setInterval(() => {
+      setLiveViewers(prev => {
+        const next = { ...prev };
+        // Update 2-4 random products each tick
+        const count = 2 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < count; i++) {
+          const pIdx = Math.floor(Math.random() * products.length);
+          const p = products[pIdx];
+          if (!p) continue;
+          const current = next[p.id] || 15;
+          const delta = Math.floor(Math.random() * 7) - 3; // -3 to +3
+          next[p.id] = Math.max(3, Math.min(52, current + delta));
+        }
+        return next;
+      });
+    }, 4000 + Math.random() * 4000);
+
+    return () => clearInterval(interval);
+  }, [products]);
 
   // Infinite scroll
   useEffect(() => {
@@ -74,7 +105,8 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   // Auto-play/pause videos based on visibility
   useEffect(() => {
     if (!scrollRef.current) return;
-    const cards = scrollRef.current.querySelectorAll("[data-feed-idx]");
+    const container = scrollRef.current;
+    const cards = container.querySelectorAll("[data-feed-idx]");
     if (cards.length === 0) return;
 
     const obs = new IntersectionObserver(
@@ -87,6 +119,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           if (!video) return;
 
           if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+            video.muted = isMuted;
             video.play().catch(() => {});
             setCurrentIdx(idx);
           } else {
@@ -94,11 +127,16 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           }
         });
       },
-      { root: scrollRef.current, threshold: [0, 0.6] }
+      { root: container, threshold: [0, 0.6] }
     );
     cards.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [products]);
+  }, [products, isMuted]);
+
+  // Update muted state on all videos when toggled
+  useEffect(() => {
+    Object.values(videoMapRef.current).forEach(v => { v.muted = isMuted; });
+  }, [isMuted]);
 
   const toggleLike = (id: string) => {
     try { navigator?.vibrate?.(40); } catch(e) {}
@@ -109,15 +147,11 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     }
   };
 
-  const toggleVideoPlay = (productId: string) => {
-    const video = videoMapRef.current[productId];
-    if (!video) return;
-    if (video.paused) {
-      video.play().then(() => setPlayingVideos(p => ({ ...p, [productId]: true }))).catch(() => {});
-    } else {
-      video.pause();
-      setPlayingVideos(p => ({ ...p, [productId]: false }));
-    }
+  const handleAddToCart = (product: FeedProduct) => {
+    try { navigator?.vibrate?.(50); } catch(e) {}
+    onAddToCart(product, 1);
+    setAddedToCart(product.id);
+    setTimeout(() => setAddedToCart(null), 2000);
   };
 
   if (isLoading && products.length === 0) {
@@ -125,7 +159,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       <div className="feed-scroll flex items-center justify-center">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
-          <p className="mt-4 text-sm font-bold text-[#888]">Se încarcă feed-ul...</p>
+          <p className="mt-4 text-sm font-bold text-[#888]">Se încarcă clipurile...</p>
         </div>
       </div>
     );
@@ -136,7 +170,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       <div className="feed-scroll flex items-center justify-center">
         <div className="px-8 text-center">
           <Package className="mx-auto mb-4 text-[#333]" size={48} />
-          <p className="font-black text-[#888]">Încă nu sunt produse</p>
+          <p className="font-black text-[#888]">Niciun clip disponibil</p>
         </div>
       </div>
     );
@@ -144,62 +178,56 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
   return (
     <div ref={scrollRef} className="feed-scroll">
-      {/* Back button */}
-      {onClose && (
-        <button onClick={onClose} className="fixed left-4 top-4 z-50 rounded-full bg-black/60 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform">
-          <ArrowLeft size={20} />
-        </button>
-      )}
-
-      {/* Counter */}
-      <div className="fixed right-4 top-4 z-50 rounded-full bg-black/60 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
-        {currentIdx + 1} / {products.length}
+      {/* Fixed top controls */}
+      <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between px-4" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
+        {onClose && (
+          <button onClick={onClose} className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform">
+            <ArrowLeft size={20} />
+          </button>
+        )}
+        <div className="flex items-center gap-2">
+          {/* Mute/unmute */}
+          <button
+            onClick={() => setIsMuted(!isMuted)}
+            className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform"
+          >
+            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+        </div>
       </div>
 
       {products.map((product, pIdx) => {
         const overlay = aiOverlay(product);
         const hasWorkingVideo = product.video && !videoErrors[product.id];
+        const viewers = liveViewers[product.id] || 15;
 
         return (
           <div key={product.id} data-feed-idx={pIdx} className="feed-card">
 
             {/* ─── Full-screen media ─── */}
-            <div className="feed-media" onClick={() => hasWorkingVideo ? toggleVideoPlay(product.id) : router.push(`/product/${product.pgId || product.id}`)}>
+            <div className="feed-media" onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
               {hasWorkingVideo ? (
-                <>
-                  <video
-                    ref={(el) => { if (el) videoMapRef.current[product.id] = el; }}
-                    src={product.video!}
-                    poster={product.images?.[0]}
-                    loop muted playsInline
-                    preload="metadata"
-                    onError={() => setVideoErrors(p => ({ ...p, [product.id]: true }))}
-                    onPlay={() => setPlayingVideos(p => ({ ...p, [product.id]: true }))}
-                    onPause={() => setPlayingVideos(p => ({ ...p, [product.id]: false }))}
-                  />
-                  {!playingVideos[product.id] && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <div className="grid h-16 w-16 place-items-center rounded-full bg-white/25 backdrop-blur-sm">
-                        <Play size={32} className="ml-1 text-white" fill="white" />
-                      </div>
-                    </div>
-                  )}
-                </>
+                <video
+                  ref={(el) => { if (el) videoMapRef.current[product.id] = el; }}
+                  src={product.video!}
+                  poster={product.images?.[0]}
+                  loop
+                  muted={isMuted}
+                  playsInline
+                  preload="metadata"
+                  onError={() => setVideoErrors(p => ({ ...p, [product.id]: true }))}
+                />
+              ) : product.images?.[0] ? (
+                <img src={product.images[0]} alt={product.title} loading={pIdx < 3 ? "eager" : "lazy"} />
               ) : (
-                <>
-                  {product.images?.[0] ? (
-                    <img src={product.images[0]} alt={product.title} loading={pIdx < 3 ? "eager" : "lazy"} />
-                  ) : (
-                    <div className="h-full w-full grid place-items-center bg-[#111]">
-                      <Package className="text-[#333]" size={64} />
-                    </div>
-                  )}
-                </>
+                <div className="h-full w-full grid place-items-center bg-[#111]">
+                  <Package className="text-[#333]" size={64} />
+                </div>
               )}
             </div>
 
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
             {/* Heart burst */}
             {heartBurst === product.id && (
@@ -208,62 +236,74 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
               </div>
             )}
 
-            {/* Top badges */}
-            <div className="absolute left-0 right-0 top-0 z-20 flex items-center gap-2 p-4" style={{ paddingTop: "max(16px, env(safe-area-inset-top))" }}>
-              <span className="rounded-full bg-[#10A37F] px-3 py-1 text-[10px] font-black text-white shadow-lg">
-                {product.hasVideo ? "🎬 Video" : "⚡ AI Pick"}
-              </span>
-              <span className="rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-[10px] font-black text-white">
-                👁 {product.viewers || 12} online
-              </span>
+            {/* Live viewers badge - dynamic */}
+            <div className="absolute left-4 top-14 z-20" style={{ top: "max(56px, calc(env(safe-area-inset-top) + 48px))" }}>
+              <div className="flex items-center gap-1.5 rounded-full bg-black/40 backdrop-blur-sm px-3 py-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span className="text-[11px] font-bold text-white">{viewers} online</span>
+              </div>
             </div>
 
             {/* Right side actions */}
-            <div className="absolute bottom-48 right-3 z-20 flex flex-col items-center gap-5">
+            <div className="absolute bottom-48 right-3 z-20 flex flex-col items-center gap-4">
               <button onClick={() => toggleLike(product.id)} className="flex flex-col items-center gap-0.5 active:scale-125 transition">
-                <div className={`rounded-full p-2.5 shadow-lg ${likes[product.id] ? "bg-[#EF4444] text-white" : "bg-white/20 backdrop-blur-sm text-white"}`}>
-                  <Heart size={22} fill={likes[product.id] ? "currentColor" : "none"} />
+                <div className={`rounded-full p-3 shadow-lg ${likes[product.id] ? "bg-[#EF4444] text-white" : "bg-black/30 backdrop-blur-sm text-white"}`}>
+                  <Heart size={24} fill={likes[product.id] ? "currentColor" : "none"} />
                 </div>
-                <span className="text-[10px] font-black text-white drop-shadow">{product.likes || Math.round((product.orders || 40) * 0.8)}</span>
+                <span className="text-[10px] font-bold text-white/90">{product.likes || Math.round((product.orders || 40) * 0.8)}</span>
               </button>
               <button onClick={() => router.push(`/product/${product.pgId || product.id}`)} className="flex flex-col items-center gap-0.5 active:scale-110 transition">
-                <div className="rounded-full bg-white/20 backdrop-blur-sm p-2.5 text-white shadow-lg">
-                  <ShoppingCart size={22} />
+                <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
+                  <ShoppingCart size={24} />
                 </div>
-                <span className="text-[10px] font-black text-white drop-shadow">Detalii</span>
+                <span className="text-[10px] font-bold text-white/90">Detalii</span>
               </button>
             </div>
 
             {/* Bottom product info */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 p-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+              {/* Product details — tap to go to page */}
               <div className="mb-3" onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <span className="rounded-full bg-white/20 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-black text-white">{overlay}</span>
+                <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                  <span className="rounded-full bg-white/15 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-black text-white">{overlay}</span>
                   {product.discountPercent > 0 && (
                     <span className="rounded-full bg-[#EF4444] px-2.5 py-0.5 text-[10px] font-black text-white">-{product.discountPercent}%</span>
                   )}
                 </div>
-                <h2 className="text-base font-black leading-snug text-white drop-shadow-lg line-clamp-2">{product.title}</h2>
-                <div className="mt-1 flex items-center gap-3 text-xs font-semibold text-white/80">
-                  <span><Star size={12} className="inline text-[#F59E0B] mr-0.5" fill="currentColor" />{product.rating.toFixed(1)}</span>
+                <h2 className="text-[15px] font-black leading-snug text-white drop-shadow-lg line-clamp-2">{product.title}</h2>
+                <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
+                  <span><Star size={11} className="inline text-[#F59E0B] mr-0.5" fill="currentColor" />{product.rating.toFixed(1)}</span>
                   <span>{product.orders.toLocaleString()}+ vândute</span>
-                  <span><Truck size={12} className="inline mr-0.5" />{product.deliveryDays}z</span>
-                </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-white">{product.price} lei</span>
-                  {product.oldPrice > product.price && (
-                    <span className="text-sm text-white/50 line-through">{product.oldPrice} lei</span>
-                  )}
+                  <span><Truck size={11} className="inline mr-0.5" />{product.deliveryDays}z</span>
                 </div>
               </div>
 
-              <button
-                onClick={() => onAddToCart(product, 1)}
-                className="w-full rounded-2xl bg-[#10A37F] py-3.5 text-sm font-black text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)] active:scale-[0.97] transition-transform"
-              >
-                <ShoppingCart size={16} className="mr-1.5 inline" />
-                Adaugă în coș — {product.price} lei
-              </button>
+              {/* Price + CTA */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-white">{product.price} lei</span>
+                    {product.oldPrice > product.price && (
+                      <span className="text-sm text-white/40 line-through">{product.oldPrice} lei</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleAddToCart(product)}
+                  className={`rounded-2xl px-5 py-3 text-sm font-black shadow-lg active:scale-[0.95] transition-all ${
+                    addedToCart === product.id
+                      ? "bg-white text-[#10A37F]"
+                      : "bg-[#10A37F] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
+                  }`}
+                >
+                  {addedToCart === product.id ? "✓ Adăugat" : (
+                    <><ShoppingCart size={15} className="mr-1 inline" />Coș</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -271,7 +311,9 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
       <div ref={sentinelRef} className="h-10" />
       {isLoading && (
-        <div className="py-6 text-center text-sm font-bold text-[#888]">Se încarcă mai multe...</div>
+        <div className="flex items-center justify-center py-8">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
+        </div>
       )}
     </div>
   );
