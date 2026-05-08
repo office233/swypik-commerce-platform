@@ -12,8 +12,8 @@ function getAIClient(): OpenAI | null {
 
 function getModel(): string { return process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001"; }
 
-export type ChatIntent = "search_product" | "explain_product" | "compare_products" | "find_cheaper" | "add_to_cart" | "checkout" | "track_order" | "general_chat";
-export type OrchestratorResult = { intent: ChatIntent; reply: string; searchQuery?: string; bundleQueries?: string[]; productId?: string; productTitle?: string; shouldAskFollowUp?: boolean; maxPrice?: number; sort?: "recommended" | "price_asc" | "price_desc" | "popular" | "delivery" | "discount" };
+export type ChatIntent = "search_product" | "explain_product" | "compare_products" | "find_cheaper" | "refine_search" | "add_to_cart" | "checkout" | "track_order" | "general_chat";
+export type OrchestratorResult = { intent: ChatIntent; reply: string; searchQuery?: string; bundleQueries?: string[]; productId?: string; productTitle?: string; shouldAskFollowUp?: boolean; maxPrice?: number; sort?: "recommended" | "price_asc" | "price_desc" | "popular" | "delivery" | "discount"; excludeIds?: string[] };
 
 const SYSTEM_PROMPT = `You are the AI sales agent for AICeVrei.ro, an online store with 108,000+ products.
 
@@ -64,9 +64,16 @@ CRITICAL RULES:
 
 Style: 3-5 sentences. Moderate emojis. End with CTA.
 
+IMPORTANT CONVERSATION RULES:
+- If user says "nu-mi place", "altceva", "altele", "alte optiuni", "nu asta", "schimba" → intent=refine_search, reuse the SAME searchQuery but different results
+- If user says "mai mare", "mai mic", "alta culoare", "alt stil" → intent=refine_search, adjust searchQuery
+- If user references previous products ("primul", "al doilea", "ala rosu") → use productContext to identify
+- REMEMBER the conversation context — what user liked/disliked, their budget, style preferences
+- When refining, acknowledge what they didn't like and explain how the new results are different
+
 Return ONLY valid JSON, no markdown:
 {
-  "intent": "search_product|explain_product|compare_products|find_cheaper|add_to_cart|checkout|track_order|general_chat",
+  "intent": "search_product|explain_product|compare_products|find_cheaper|refine_search|add_to_cart|checkout|track_order|general_chat",
   "reply": "sales response IN ROMANIAN",
   "searchQuery": "ENGLISH search query for products",
   "bundleQueries": ["complementary English query 1", "complementary English query 2"],
@@ -80,6 +87,11 @@ Return ONLY valid JSON, no markdown:
 function detectCheaperIntent(message: string) {
   const msg = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return /scump|prea mult|mai ieftin|ieftin|buget|sub\s*\d+|maxim\s*\d+|pana la\s*\d+|alternativa|alternative/.test(msg);
+}
+
+function detectRefineIntent(message: string) {
+  const msg = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return /nu-mi place|nu imi place|altceva|altele|alte optiuni|nu asta|schimba|diferit|mai mare|mai mic|alta culoare|alt stil|alt model|nu vreau|arata altele|mai arata|alte variante|nu e ce cautam/.test(msg);
 }
 
 function extractMaxPrice(message: string, productContext: any[] = []) {
@@ -173,6 +185,21 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
     };
   }
 
+  // ─── REFINE DETECTION ("nu-mi place", "altceva", etc.) ───
+  const hardRefine = detectRefineIntent(userMessage);
+  if (hardRefine && productContext.length > 0) {
+    const lastCategory = productContext[0]?.category;
+    const lastQuery = productContext[0]?.title?.split(" ").slice(0, 3).join(" ") || lastCategory || "";
+    const translatedLastQuery = translateQuery(lastQuery);
+    return {
+      intent: "refine_search",
+      reply: `Am înțeles, îți arăt variante diferite! 🔄 Caut alte opțiuni care s-ar potrivi mai bine gusturilor tale.`,
+      searchQuery: translatedLastQuery || translateQuery(userMessage),
+      excludeIds: productContext.map((p: any) => String(p.id)),
+      shouldAskFollowUp: true,
+    };
+  }
+
   const client = getAIClient();
   if (!client) return fallbackOrchestrate(userMessage, productContext, shoppingSession);
 
@@ -185,7 +212,7 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
     const content = completion.choices[0]?.message?.content || "{}";
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const result = JSON.parse(cleaned);
-    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp) };
+    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p: any) => String(p.id)) : undefined };
   } catch (error) {
     console.error("[AI Orchestrator] Error:", error);
     return fallbackOrchestrate(userMessage, productContext, shoppingSession);

@@ -144,7 +144,7 @@ function detectCategory(query: string): string | undefined {
 }
 
 // ─── Search PostgreSQL ────────────────────────────────────────────
-async function searchPG(query: string, limit = 16, opts: { maxPrice?: number; category?: string; sort?: string } = {}): Promise<ProductModel[]> {
+async function searchPG(query: string, limit = 16, opts: { maxPrice?: number; category?: string; sort?: string; excludeIds?: string[] } = {}): Promise<ProductModel[]> {
   const filters: ProductFilters = {
     search: query || undefined,
     category: opts.category || detectCategory(query),
@@ -152,6 +152,7 @@ async function searchPG(query: string, limit = 16, opts: { maxPrice?: number; ca
     sort: (opts.sort as any) || "popular",
     limit,
     offset: 0,
+    excludeIds: opts.excludeIds,
   };
   
   const result = await searchProducts(filters);
@@ -208,12 +209,15 @@ export async function POST(req: Request) {
     const aiResult = await orchestrate(userMessage, chatHistory, productContext, baseSession);
     const shoppingSession = updateShoppingSession(baseSession, userMessage, aiResult.intent);
 
-    if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper") {
+    if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper" || aiResult.intent === "refine_search") {
       const query = aiResult.searchQuery || userMessage;
       const category = detectCategory(query) || detectCategory(userMessage);
       const maxPrice = aiResult.maxPrice || (shoppingSession.priceSensitivity === "high" ? shoppingSession.budget : undefined);
       
-      const products = await searchPG(query, 16, { maxPrice, category, sort: aiResult.sort });
+      // For refine_search: exclude products user already saw
+      const excludeIds = aiResult.intent === "refine_search" ? (aiResult.excludeIds || productContext.map((p: any) => String(p.id))) : undefined;
+      
+      const products = await searchPG(query, 16, { maxPrice, category, sort: aiResult.sort, excludeIds });
       
       // Bundle products
       const bundleQueries = [...(aiResult.bundleQueries || []), ...inferBundleQueries(query)];

@@ -85,10 +85,11 @@ export type ProductFilters = {
   mode?: "trending" | "feed" | "deals" | "default" | "video" | "bestvalue" | "toprated";
   limit?: number;
   offset?: number;
+  excludeIds?: string[];
 };
 
 export async function searchProducts(filters: ProductFilters = {}) {
-  const { search, category, categoryId, minPrice, maxPrice, sort, mode, limit = 50, offset = 0 } = filters;
+  const { search, category, categoryId, minPrice, maxPrice, sort, mode, limit = 50, offset = 0, excludeIds } = filters;
 
   let where = ["p.main_image IS NOT NULL", "p.min_price_usd > 0.1"];
   const params: any[] = [];
@@ -135,6 +136,14 @@ export async function searchProducts(filters: ProductFilters = {}) {
 
   if (mode === "video") {
     where.push("p.has_video = true");
+  }
+
+  // Exclude products already shown/rejected (conversation refinement)
+  if (excludeIds?.length) {
+    const placeholders = excludeIds.map((_, i) => `$${paramIdx + i}`).join(",");
+    where.push(`p.id NOT IN (${placeholders})`);
+    params.push(...excludeIds.map(Number));
+    paramIdx += excludeIds.length;
   }
 
   let orderBy = "p.orders_count DESC NULLS LAST, p.rating DESC NULLS LAST";
