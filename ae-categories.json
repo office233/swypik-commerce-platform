@@ -1,0 +1,2835 @@
+[
+  {
+    "id": 3,
+    "name": "Apparel & Accessories",
+    "children": [
+      {
+        "id": 200003274,
+        "name": "Sportswears",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 200000297,
+    "name": "Apparel Accessories",
+    "children": [
+      {
+        "id": 201196803,
+        "name": "Apparel Fabrics & Textiles",
+        "children": []
+      },
+      {
+        "id": 200000392,
+        "name": "Arm Warmers",
+        "children": []
+      },
+      {
+        "id": 200301150,
+        "name": "Belt Buckle",
+        "children": []
+      },
+      {
+        "id": 200000298,
+        "name": "Belts",
+        "children": []
+      },
+      {
+        "id": 200346143,
+        "name": "Collar Stays",
+        "children": []
+      },
+      {
+        "id": 200000306,
+        "name": "Cummerbunds",
+        "children": []
+      },
+      {
+        "id": 201159809,
+        "name": "DIY Accessories",
+        "children": []
+      },
+      {
+        "id": 200000393,
+        "name": "Earmuffs",
+        "children": []
+      },
+      {
+        "id": 200000440,
+        "name": "Eyewear & Accessories",
+        "children": []
+      },
+      {
+        "id": 201161809,
+        "name": "Fashionable Canes",
+        "children": []
+      },
+      {
+        "id": 200000394,
+        "name": "Gloves & Mittens",
+        "children": []
+      },
+      {
+        "id": 200000400,
+        "name": "Handkerchiefs",
+        "children": []
+      },
+      {
+        "id": 200000402,
+        "name": "Hats & Caps",
+        "children": []
+      },
+      {
+        "id": 200000395,
+        "name": "Headwear",
+        "children": []
+      },
+      {
+        "id": 200295143,
+        "name": "Knee Sleeve & Leg Warmer",
+        "children": []
+      },
+      {
+        "id": 202235409,
+        "name": "Mask（New）",
+        "children": []
+      },
+      {
+        "id": 201303301,
+        "name": "New Headwear",
+        "children": []
+      },
+      {
+        "id": 201531601,
+        "name": "new Scarf &Wrap",
+        "children": []
+      },
+      {
+        "id": 201532001,
+        "name": "Oversleeve & Arm Warmer",
+        "children": []
+      },
+      {
+        "id": 200392144,
+        "name": "Pocket Squares",
+        "children": []
+      },
+      {
+        "id": 33906,
+        "name": "Scarf, Hat & Glove Sets",
+        "children": []
+      },
+      {
+        "id": 200000399,
+        "name": "Scarves & Wraps",
+        "children": []
+      },
+      {
+        "id": 3280111,
+        "name": "Suspenders/Braces & Posture Correctors",
+        "children": []
+      },
+      {
+        "id": 202229220,
+        "name": "Tie Accessories",
+        "children": []
+      },
+      {
+        "id": 200000305,
+        "name": "Ties&Bows",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 34,
+    "name": "Automobiles, Parts & Accessories",
+    "children": [
+      {
+        "id": 200000212,
+        "name": "Auto Replacement Parts",
+        "children": []
+      },
+      {
+        "id": 202245004,
+        "name": "Auto Sale",
+        "children": []
+      },
+      {
+        "id": 201902001,
+        "name": "Automotive Sensors",
+        "children": []
+      },
+      {
+        "id": 200000285,
+        "name": "Car Electronics",
+        "children": []
+      },
+      {
+        "id": 200002005,
+        "name": "Car Lights",
+        "children": []
+      },
+      {
+        "id": 201901903,
+        "name": "Car Lock System",
+        "children": []
+      },
+      {
+        "id": 202229640,
+        "name": "Car Maintenance Tools",
+        "children": []
+      },
+      {
+        "id": 200259142,
+        "name": "Car Repair Tool",
+        "children": []
+      },
+      {
+        "id": 201268984,
+        "name": "Car Services",
+        "children": []
+      },
+      {
+        "id": 200260142,
+        "name": "Car Wash & Maintenance",
+        "children": []
+      },
+      {
+        "id": 201902101,
+        "name": "Chassis Parts",
+        "children": []
+      },
+      {
+        "id": 201902301,
+        "name": "Electrical Equipment",
+        "children": []
+      },
+      {
+        "id": 201902201,
+        "name": "Engines & Engine Parts",
+        "children": []
+      },
+      {
+        "id": 200003427,
+        "name": "Exterior Accessories",
+        "children": []
+      },
+      {
+        "id": 201902403,
+        "name": "Exterior Parts",
+        "children": []
+      },
+      {
+        "id": 200003411,
+        "name": "Interior Accessories",
+        "children": []
+      },
+      {
+        "id": 201908801,
+        "name": "Interior Parts",
+        "children": []
+      },
+      {
+        "id": 201885506,
+        "name": "New Energy Vehicle Parts & Accessories",
+        "children": []
+      },
+      {
+        "id": 200004043,
+        "name": "Other Vehicle Parts & Accessories",
+        "children": []
+      },
+      {
+        "id": 202237212,
+        "name": "RV Parts & Accessories",
+        "children": []
+      },
+      {
+        "id": 201902401,
+        "name": "Wear Parts",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 66,
+    "name": "Beauty & Health",
+    "children": [
+      {
+        "id": 200001288,
+        "name": "Bath & Shower",
+        "children": []
+      },
+      {
+        "id": 201169002,
+        "name": "Beauty Equipment",
+        "children": []
+      },
+      {
+        "id": 201248902,
+        "name": "Dental Supplies",
+        "children": []
+      },
+      {
+        "id": 200001221,
+        "name": "Fragrances & Deodorants",
+        "children": []
+      },
+      {
+        "id": 200001168,
+        "name": "Hair Care & Styling",
+        "children": []
+      },
+      {
+        "id": 200001355,
+        "name": "Health Care",
+        "children": []
+      },
+      {
+        "id": 660103,
+        "name": "Makeup",
+        "children": []
+      },
+      {
+        "id": 201217706,
+        "name": "Massage & Relaxation",
+        "children": []
+      },
+      {
+        "id": 202219877,
+        "name": "Medical Laboratory Equipment",
+        "children": []
+      },
+      {
+        "id": 200001147,
+        "name": "Nail Art & Tools",
+        "children": []
+      },
+      {
+        "id": 3305,
+        "name": "Oral Hygiene",
+        "children": []
+      },
+      {
+        "id": 202236816,
+        "name": "Perfume",
+        "children": []
+      },
+      {
+        "id": 202188610,
+        "name": "Rehabilitation Supplies",
+        "children": []
+      },
+      {
+        "id": 1513,
+        "name": "Sanitary Paper",
+        "children": []
+      },
+      {
+        "id": 200001508,
+        "name": "Sex Products",
+        "children": []
+      },
+      {
+        "id": 660302,
+        "name": "Shaving & Hair Removal",
+        "children": []
+      },
+      {
+        "id": 3306,
+        "name": "Skin Care",
+        "children": []
+      },
+      {
+        "id": 100000616,
+        "name": "Skin Care Tool",
+        "children": []
+      },
+      {
+        "id": 200001976,
+        "name": "Tattoo & Body Art",
+        "children": []
+      },
+      {
+        "id": 200001187,
+        "name": "Tools & Accessories",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 202228412,
+    "name": "Books & Cultural Merchandise",
+    "children": [
+      {
+        "id": 201236701,
+        "name": "Books",
+        "children": []
+      },
+      {
+        "id": 202229219,
+        "name": "Cultural Derivatives(Office Supplies)",
+        "children": []
+      },
+      {
+        "id": 202228813,
+        "name": "Music, CDs & Vinyl Records",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Computer & Office",
+    "children": [
+      {
+        "id": 200003879,
+        "name": "3D Printing & Additive Manufacturing",
+        "children": []
+      },
+      {
+        "id": 70803003,
+        "name": "Barebone & Mini PC",
+        "children": []
+      },
+      {
+        "id": 202234201,
+        "name": "Computer & Office Bundle",
+        "children": []
+      },
+      {
+        "id": 708022,
+        "name": "Computer Cleaners",
+        "children": []
+      },
+      {
+        "id": 200001076,
+        "name": "Computer Components",
+        "children": []
+      },
+      {
+        "id": 200001081,
+        "name": "Computer Peripherals",
+        "children": []
+      },
+      {
+        "id": 701,
+        "name": "Desktops & AIO",
+        "children": []
+      },
+      {
+        "id": 200048142,
+        "name": "DIY Gaming Computer",
+        "children": []
+      },
+      {
+        "id": 200154144,
+        "name": "Internal Storage",
+        "children": []
+      },
+      {
+        "id": 200001083,
+        "name": "Laptop Parts & Accessories",
+        "children": []
+      },
+      {
+        "id": 702,
+        "name": "Laptops",
+        "children": []
+      },
+      {
+        "id": 200001077,
+        "name": "Networking",
+        "children": []
+      },
+      {
+        "id": 200003782,
+        "name": "Office Electronics",
+        "children": []
+      },
+      {
+        "id": 200318143,
+        "name": "Office Software",
+        "children": []
+      },
+      {
+        "id": 201610101,
+        "name": "Servers & Industrial Computer",
+        "children": []
+      },
+      {
+        "id": 200001074,
+        "name": "Storage Device",
+        "children": []
+      },
+      {
+        "id": 200001085,
+        "name": "Tablet Accessories & Parts",
+        "children": []
+      },
+      {
+        "id": 200001086,
+        "name": "Tablets",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 44,
+    "name": "Consumer Electronics",
+    "children": [
+      {
+        "id": 629,
+        "name": "Accessories & Parts",
+        "children": []
+      },
+      {
+        "id": 100000305,
+        "name": "Camera & Photo",
+        "children": []
+      },
+      {
+        "id": 200003561,
+        "name": "Electronic Cigarettes",
+        "children": []
+      },
+      {
+        "id": 100000310,
+        "name": "Games & Accessories",
+        "children": []
+      },
+      {
+        "id": 100000308,
+        "name": "Home Audio & Video",
+        "children": []
+      },
+      {
+        "id": 100000306,
+        "name": "Portable Audio & Video",
+        "children": []
+      },
+      {
+        "id": 200003803,
+        "name": "Smart Electronics",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 502,
+    "name": "Electronic Components & Supplies",
+    "children": [
+      {
+        "id": 4001,
+        "name": "Active Components",
+        "children": []
+      },
+      {
+        "id": 150412,
+        "name": "EL Products",
+        "children": []
+      },
+      {
+        "id": 4003,
+        "name": "Electronic Accessories & Supplies",
+        "children": []
+      },
+      {
+        "id": 504,
+        "name": "Electronic Data Systems",
+        "children": []
+      },
+      {
+        "id": 150407,
+        "name": "Electronic Signs",
+        "children": []
+      },
+      {
+        "id": 4002,
+        "name": "Electronics Production Machinery",
+        "children": []
+      },
+      {
+        "id": 515,
+        "name": "Electronics Stocks",
+        "children": []
+      },
+      {
+        "id": 4004,
+        "name": "Optoelectronic Displays",
+        "children": []
+      },
+      {
+        "id": 4099,
+        "name": "Other Electronic Components",
+        "children": []
+      },
+      {
+        "id": 4005,
+        "name": "Passive Components",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Food",
+    "children": [
+      {
+        "id": 201345805,
+        "name": "Alcoholic Beverages",
+        "children": []
+      },
+      {
+        "id": 201378002,
+        "name": "Bread and Pastries",
+        "children": []
+      },
+      {
+        "id": 201248407,
+        "name": "Canned Food",
+        "children": []
+      },
+      {
+        "id": 200183144,
+        "name": "Canned Food1",
+        "children": []
+      },
+      {
+        "id": 201379901,
+        "name": "Cheese",
+        "children": []
+      },
+      {
+        "id": 201248804,
+        "name": "Coffee",
+        "children": []
+      },
+      {
+        "id": 200001238,
+        "name": "Coffee1",
+        "children": []
+      },
+      {
+        "id": 201254404,
+        "name": "Dried Fruit",
+        "children": []
+      },
+      {
+        "id": 200001317,
+        "name": "Dried Fruit1",
+        "children": []
+      },
+      {
+        "id": 201248805,
+        "name": "Dried Goods / Local Specialties",
+        "children": []
+      },
+      {
+        "id": 200003573,
+        "name": "Dried Goods / Local Specialties1",
+        "children": []
+      },
+      {
+        "id": 201376903,
+        "name": "Fish and Sea Food",
+        "children": []
+      },
+      {
+        "id": 202030002,
+        "name": "Food&Fresh（Spe）",
+        "children": []
+      },
+      {
+        "id": 201374104,
+        "name": "Frozen Products",
+        "children": []
+      },
+      {
+        "id": 201379801,
+        "name": "Fruits and Berries",
+        "children": []
+      },
+      {
+        "id": 201254306,
+        "name": "Grain Products",
+        "children": []
+      },
+      {
+        "id": 200001287,
+        "name": "Grain Products1",
+        "children": []
+      },
+      {
+        "id": 200180142,
+        "name": "Grocery",
+        "children": []
+      },
+      {
+        "id": 201379402,
+        "name": "Meat",
+        "children": []
+      },
+      {
+        "id": 201376204,
+        "name": "Milk and Eggs",
+        "children": []
+      },
+      {
+        "id": 201253905,
+        "name": "Nut & Kernel",
+        "children": []
+      },
+      {
+        "id": 200001321,
+        "name": "Nut & Kernel1",
+        "children": []
+      },
+      {
+        "id": 201376702,
+        "name": "Ready Meal",
+        "children": []
+      },
+      {
+        "id": 201378103,
+        "name": "Sausages",
+        "children": []
+      },
+      {
+        "id": 100007269,
+        "name": "Tea",
+        "children": []
+      },
+      {
+        "id": 201373004,
+        "name": "Vegetables and Greens",
+        "children": []
+      },
+      {
+        "id": 201249506,
+        "name": "Water/ Juices/ Drinks",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 1503,
+    "name": "Furniture",
+    "children": [
+      {
+        "id": 100001029,
+        "name": "Bar Furniture",
+        "children": []
+      },
+      {
+        "id": 200130145,
+        "name": "Café Furniture",
+        "children": []
+      },
+      {
+        "id": 100003019,
+        "name": "Children Furniture",
+        "children": []
+      },
+      {
+        "id": 150301,
+        "name": "Commercial Furniture",
+        "children": []
+      },
+      {
+        "id": 3712,
+        "name": "Furniture Accessories",
+        "children": []
+      },
+      {
+        "id": 3708,
+        "name": "Furniture Parts",
+        "children": []
+      },
+      {
+        "id": 150303,
+        "name": "Home Furniture",
+        "children": []
+      },
+      {
+        "id": 150304,
+        "name": "Office Furniture",
+        "children": []
+      },
+      {
+        "id": 150399,
+        "name": "Other Furniture",
+        "children": []
+      },
+      {
+        "id": 150302,
+        "name": "Outdoor Furniture",
+        "children": []
+      },
+      {
+        "id": 202192402,
+        "name": "Senior Furniture",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 200165144,
+    "name": "Hair Extensions & Wigs",
+    "children": [
+      {
+        "id": 200317142,
+        "name": "Beauty Supply",
+        "children": []
+      },
+      {
+        "id": 201222636,
+        "name": "Blend Wigs（For White）",
+        "children": []
+      },
+      {
+        "id": 202170002,
+        "name": "Hair For Asian",
+        "children": []
+      },
+      {
+        "id": 200319142,
+        "name": "Hair Salon Supply",
+        "children": []
+      },
+      {
+        "id": 201303603,
+        "name": "Hair Tools & Accessories",
+        "children": []
+      },
+      {
+        "id": 200168146,
+        "name": "Human Hair (For Black)",
+        "children": []
+      },
+      {
+        "id": 200166144,
+        "name": "Human Hair (For White)",
+        "children": []
+      },
+      {
+        "id": 127886013,
+        "name": "Human Wigs( For Black)",
+        "children": []
+      },
+      {
+        "id": 200167144,
+        "name": "Synthetic Hair",
+        "children": []
+      },
+      {
+        "id": 200396142,
+        "name": "Synthetic Hair(For White)",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "name": "Home & Garden",
+    "children": [
+      {
+        "id": 200003937,
+        "name": "Arts,Crafts & Sewing",
+        "children": []
+      },
+      {
+        "id": 200003998,
+        "name": "Collectibles",
+        "children": []
+      },
+      {
+        "id": 100001824,
+        "name": "Festive & Party Supplies",
+        "children": []
+      },
+      {
+        "id": 125,
+        "name": "Garden Supplies",
+        "children": []
+      },
+      {
+        "id": 3710,
+        "name": "Home Decor",
+        "children": []
+      },
+      {
+        "id": 1541,
+        "name": "Home Storage & Organization",
+        "children": []
+      },
+      {
+        "id": 405,
+        "name": "Home Textile",
+        "children": []
+      },
+      {
+        "id": 200033149,
+        "name": "Household Merchandises",
+        "children": []
+      },
+      {
+        "id": 200000920,
+        "name": "Kitchen,Dining & Bar",
+        "children": []
+      },
+      {
+        "id": 100006664,
+        "name": "Pet Products",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Home Appliances",
+    "children": [
+      {
+        "id": 100000038,
+        "name": "Cleaning Appliances",
+        "children": []
+      },
+      {
+        "id": 200235142,
+        "name": "Commercial Appliances",
+        "children": []
+      },
+      {
+        "id": 100000039,
+        "name": "Home Appliance Parts",
+        "children": []
+      },
+      {
+        "id": 200294142,
+        "name": "Household Appliances",
+        "children": []
+      },
+      {
+        "id": 100000041,
+        "name": "Kitchen Appliances",
+        "children": []
+      },
+      {
+        "id": 200293142,
+        "name": "Major Appliances",
+        "children": []
+      },
+      {
+        "id": 628,
+        "name": "Other Home Appliances",
+        "children": []
+      },
+      {
+        "id": 200165142,
+        "name": "Personal Care Appliances",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Home Improvement",
+    "children": [
+      {
+        "id": 200071142,
+        "name": "aaaa",
+        "children": []
+      },
+      {
+        "id": 200066142,
+        "name": "Bathroom Fixture",
+        "children": []
+      },
+      {
+        "id": 200072142,
+        "name": "bbbb",
+        "children": []
+      },
+      {
+        "id": 100005320,
+        "name": "Boards",
+        "children": []
+      },
+      {
+        "id": 202241401,
+        "name": "Building Supplies",
+        "children": []
+      },
+      {
+        "id": 100007064,
+        "name": "Doors, Gates & Windows",
+        "children": []
+      },
+      {
+        "id": 5,
+        "name": "Electrical Equipment & Supplies",
+        "children": []
+      },
+      {
+        "id": 200321150,
+        "name": "Family Intelligence System",
+        "children": []
+      },
+      {
+        "id": 200001751,
+        "name": "Functional Material",
+        "children": []
+      },
+      {
+        "id": 12504,
+        "name": "Garden Landscaping & Decking",
+        "children": []
+      },
+      {
+        "id": 42,
+        "name": "Hardware",
+        "children": []
+      },
+      {
+        "id": 200366148,
+        "name": "Heating, Cooling & Vents",
+        "children": []
+      },
+      {
+        "id": 201303704,
+        "name": "Installation Service",
+        "children": []
+      },
+      {
+        "id": 200066144,
+        "name": "Kitchen Fixture",
+        "children": []
+      },
+      {
+        "id": 200001382,
+        "name": "Metal Building Materials",
+        "children": []
+      },
+      {
+        "id": 1333,
+        "name": "Other Home Improvement",
+        "children": []
+      },
+      {
+        "id": 200264142,
+        "name": "Painting Supplies & Wall Treatments",
+        "children": []
+      },
+      {
+        "id": 200282142,
+        "name": "Plumbing",
+        "children": []
+      },
+      {
+        "id": 1312,
+        "name": "Quarry Stone & Slabs",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 202216001,
+    "name": "Industrial & Business",
+    "children": [
+      {
+        "id": 201919301,
+        "name": "Agricultural Machinery & Supplies",
+        "children": []
+      },
+      {
+        "id": 202216002,
+        "name": "Air Compressors, Pneumatics & Hydraulics",
+        "children": []
+      },
+      {
+        "id": 202216202,
+        "name": "Blowers, Industrial Fans & Exhaust Equipment",
+        "children": []
+      },
+      {
+        "id": 202216003,
+        "name": "Chemicals",
+        "children": []
+      },
+      {
+        "id": 202216401,
+        "name": "Construction Machinery & Accessories",
+        "children": []
+      },
+      {
+        "id": 202216805,
+        "name": "Fabric & Textile Raw Material",
+        "children": []
+      },
+      {
+        "id": 202216402,
+        "name": "Food Machine and Supporting Equipment",
+        "children": []
+      },
+      {
+        "id": 100007498,
+        "name": "Handling, Warehousing & Transportation Equipment",
+        "children": []
+      },
+      {
+        "id": 202216803,
+        "name": "Industrial and Commercial Cleaning Equipment",
+        "children": []
+      },
+      {
+        "id": 202217003,
+        "name": "Industrial Automation Control & Accessories",
+        "children": []
+      },
+      {
+        "id": 202216801,
+        "name": "Industrial Spare Parts",
+        "children": []
+      },
+      {
+        "id": 202217002,
+        "name": "Industry Machinery & Equipment",
+        "children": []
+      },
+      {
+        "id": 100007188,
+        "name": "Metal Processing Equipment & Accessories",
+        "children": []
+      },
+      {
+        "id": 202216804,
+        "name": "Metals & Alloys",
+        "children": []
+      },
+      {
+        "id": 202216602,
+        "name": "Packaging, Printing & Supporting Equipment",
+        "children": []
+      },
+      {
+        "id": 202217201,
+        "name": "Rubbers & Plastics",
+        "children": []
+      },
+      {
+        "id": 1431,
+        "name": "Woodworking Machinery & Accessories",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 36,
+    "name": "Jewelry & Accessories",
+    "children": [
+      {
+        "id": 201239108,
+        "name": "Customized Jewelry",
+        "children": []
+      },
+      {
+        "id": 1509,
+        "name": "Fashion Jewelry",
+        "children": []
+      },
+      {
+        "id": 200001680,
+        "name": "Fine Jewelry",
+        "children": []
+      },
+      {
+        "id": 201238105,
+        "name": "Jewelry Making",
+        "children": []
+      },
+      {
+        "id": 200001479,
+        "name": "Jewelry Packaging & Display",
+        "children": []
+      },
+      {
+        "id": 200001478,
+        "name": "Jewelry Tools & Equipments",
+        "children": []
+      },
+      {
+        "id": 200370154,
+        "name": "Smart Jewelry",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 39,
+    "name": "Lights & Lighting",
+    "children": [
+      {
+        "id": 200001493,
+        "name": "Commercial Lighting",
+        "children": []
+      },
+      {
+        "id": 150403,
+        "name": "Holiday Lighting",
+        "children": []
+      },
+      {
+        "id": 1504,
+        "name": "Indoor Lighting",
+        "children": []
+      },
+      {
+        "id": 390501,
+        "name": "LED Lighting",
+        "children": []
+      },
+      {
+        "id": 530,
+        "name": "Lighting Accessories",
+        "children": []
+      },
+      {
+        "id": 150402,
+        "name": "Lighting Bulbs & Tubes",
+        "children": []
+      },
+      {
+        "id": 39050508,
+        "name": "Night Lights",
+        "children": []
+      },
+      {
+        "id": 202228614,
+        "name": "Novelty Lighting（new）",
+        "children": []
+      },
+      {
+        "id": 3999,
+        "name": "Other Lights & Lighting Products",
+        "children": []
+      },
+      {
+        "id": 150401,
+        "name": "Outdoor Lighting",
+        "children": []
+      },
+      {
+        "id": 390503,
+        "name": "Portable Lighting",
+        "children": []
+      },
+      {
+        "id": 200001704,
+        "name": "Professional Light",
+        "children": []
+      },
+      {
+        "id": 200326144,
+        "name": "Special Engineering Lighting",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 1524,
+    "name": "Luggage & Bags",
+    "children": [
+      {
+        "id": 202236005,
+        "name": "Backpack",
+        "children": []
+      },
+      {
+        "id": 152409,
+        "name": "Bag Parts & Accessories",
+        "children": []
+      },
+      {
+        "id": 152402,
+        "name": "Business Commuter Laptop Bag",
+        "children": []
+      },
+      {
+        "id": 201401303,
+        "name": "Chest Bags",
+        "children": []
+      },
+      {
+        "id": 201376929,
+        "name": "Kids' Bags",
+        "children": []
+      },
+      {
+        "id": 3806,
+        "name": "Leisure Bags",
+        "children": []
+      },
+      {
+        "id": 201298604,
+        "name": "Luggage",
+        "children": []
+      },
+      {
+        "id": 152404,
+        "name": "Luggage & Travel Bags",
+        "children": []
+      },
+      {
+        "id": 201337808,
+        "name": "Men's Bags",
+        "children": []
+      },
+      {
+        "id": 202235009,
+        "name": "Organizer Bag",
+        "children": []
+      },
+      {
+        "id": 152499,
+        "name": "Other Luggage & Bags",
+        "children": []
+      },
+      {
+        "id": 380520,
+        "name": "School Bags",
+        "children": []
+      },
+      {
+        "id": 3805,
+        "name": "Special Purpose Bags",
+        "children": []
+      },
+      {
+        "id": 201296801,
+        "name": "Summer Bags",
+        "children": []
+      },
+      {
+        "id": 201296102,
+        "name": "Travel Accessories",
+        "children": []
+      },
+      {
+        "id": 201294604,
+        "name": "Travel Bags",
+        "children": []
+      },
+      {
+        "id": 201396505,
+        "name": "Waist Packs",
+        "children": []
+      },
+      {
+        "id": 3803,
+        "name": "Wallets & Holders",
+        "children": []
+      },
+      {
+        "id": 201295902,
+        "name": "Winter Bags",
+        "children": []
+      },
+      {
+        "id": 201336907,
+        "name": "Women's Handbags",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 200000343,
+    "name": "Men's Clothing",
+    "children": [
+      {
+        "id": 202220407,
+        "name": "Basic Clothing",
+        "children": []
+      },
+      {
+        "id": 200000795,
+        "name": "Coats & Jackets",
+        "children": []
+      },
+      {
+        "id": 202220211,
+        "name": "Denim（New）",
+        "children": []
+      },
+      {
+        "id": 200128143,
+        "name": "Down Coats",
+        "children": []
+      },
+      {
+        "id": 200000344,
+        "name": "Hoodies & Sweatshirts",
+        "children": []
+      },
+      {
+        "id": 202236004,
+        "name": "Men's Sets（new）",
+        "children": []
+      },
+      {
+        "id": 202235806,
+        "name": "Men's Shirts",
+        "children": []
+      },
+      {
+        "id": 201515601,
+        "name": "Middle East Fashion",
+        "children": []
+      },
+      {
+        "id": 201240601,
+        "name": "Pants",
+        "children": []
+      },
+      {
+        "id": 200001877,
+        "name": "Parkas",
+        "children": []
+      },
+      {
+        "id": 202225807,
+        "name": "Plus Size Men's Clothing",
+        "children": []
+      },
+      {
+        "id": 200005141,
+        "name": "Shorts",
+        "children": []
+      },
+      {
+        "id": 200001819,
+        "name": "Suits & Blazer",
+        "children": []
+      },
+      {
+        "id": 201236604,
+        "name": "Sweaters",
+        "children": []
+      },
+      {
+        "id": 200001860,
+        "name": "Swimwears",
+        "children": []
+      },
+      {
+        "id": 202233207,
+        "name": "Tailor-made Hoodies & Sweatshirts",
+        "children": []
+      },
+      {
+        "id": 202232809,
+        "name": "Tailor-made Shirts",
+        "children": []
+      },
+      {
+        "id": 200000779,
+        "name": "Tops & Tees",
+        "children": []
+      },
+      {
+        "id": 202236401,
+        "name": "Traditional Men's Clothing",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 1501,
+    "name": "Mother & Kids",
+    "children": [
+      {
+        "id": 200002039,
+        "name": "Activity & Gear",
+        "children": []
+      },
+      {
+        "id": 200001330,
+        "name": "Baby Care",
+        "children": []
+      },
+      {
+        "id": 310,
+        "name": "Baby Clothing",
+        "children": []
+      },
+      {
+        "id": 201671802,
+        "name": "Baby Diaper & Wipes",
+        "children": []
+      },
+      {
+        "id": 200364142,
+        "name": "Baby Food",
+        "children": []
+      },
+      {
+        "id": 200332158,
+        "name": "Baby Furniture",
+        "children": []
+      },
+      {
+        "id": 200332157,
+        "name": "Baby Souvenirs",
+        "children": []
+      },
+      {
+        "id": 201678201,
+        "name": "Baby Sterilization & Appliances",
+        "children": []
+      },
+      {
+        "id": 201273175,
+        "name": "Baby Strollers&Accessories",
+        "children": []
+      },
+      {
+        "id": 100003020,
+        "name": "Bedding",
+        "children": []
+      },
+      {
+        "id": 200329142,
+        "name": "Car Seats & Accessories",
+        "children": []
+      },
+      {
+        "id": 311,
+        "name": "Children's Clothing",
+        "children": []
+      },
+      {
+        "id": 200328147,
+        "name": "Diapering & Toilet Training",
+        "children": []
+      },
+      {
+        "id": 200002038,
+        "name": "Feeding",
+        "children": []
+      },
+      {
+        "id": 201293501,
+        "name": "Kids Accessories",
+        "children": []
+      },
+      {
+        "id": 200000947,
+        "name": "Kids Shoes",
+        "children": []
+      },
+      {
+        "id": 200000500,
+        "name": "Maternity Clothings",
+        "children": []
+      },
+      {
+        "id": 200328149,
+        "name": "Pregnancy & Maternity",
+        "children": []
+      },
+      {
+        "id": 200002006,
+        "name": "Safety",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 201355758,
+    "name": "Motorcycle Equipments & Parts",
+    "children": [
+      {
+        "id": 201371802,
+        "name": "Aircraft",
+        "children": []
+      },
+      {
+        "id": 201377402,
+        "name": "Boats",
+        "children": []
+      },
+      {
+        "id": 202057610,
+        "name": "Modification&Protection",
+        "children": []
+      },
+      {
+        "id": 201352247,
+        "name": "Motorcycle & ATV",
+        "children": []
+      },
+      {
+        "id": 201359147,
+        "name": "Motorcycle Accessories",
+        "children": []
+      },
+      {
+        "id": 201352950,
+        "name": "Motorcycle Equipments",
+        "children": []
+      },
+      {
+        "id": 201359843,
+        "name": "Motorcycle Parts",
+        "children": []
+      },
+      {
+        "id": 201357051,
+        "name": "Ornamental & Cleaning",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 200000532,
+    "name": "Novelty & Special Use",
+    "children": [
+      {
+        "id": 200000663,
+        "name": "Cosplay Accessories",
+        "children": []
+      },
+      {
+        "id": 202226810,
+        "name": "Cosplay Costumes",
+        "children": []
+      },
+      {
+        "id": 200000740,
+        "name": "Exotic Apparel",
+        "children": []
+      },
+      {
+        "id": 201302006,
+        "name": "Functional Apparel",
+        "children": []
+      },
+      {
+        "id": 100005769,
+        "name": "Stage & Dance Wear",
+        "children": []
+      },
+      {
+        "id": 200000668,
+        "name": "Work Wear & Uniforms",
+        "children": []
+      },
+      {
+        "id": 200000666,
+        "name": "World Apparel",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "name": "Office & School Supplies",
+    "children": [
+      {
+        "id": 200652001,
+        "name": "Accounting Supplies",
+        "children": []
+      },
+      {
+        "id": 211111,
+        "name": "Art Supplies",
+        "children": []
+      },
+      {
+        "id": 100003131,
+        "name": "Art Tool Kits",
+        "children": []
+      },
+      {
+        "id": 2202,
+        "name": "Books（old）",
+        "children": []
+      },
+      {
+        "id": 211106,
+        "name": "Desk Accessories & Organizer",
+        "children": []
+      },
+      {
+        "id": 2139,
+        "name": "Drafting Supplies",
+        "children": []
+      },
+      {
+        "id": 100003135,
+        "name": "Educational Equipment & Supplies",
+        "children": []
+      },
+      {
+        "id": 201338004,
+        "name": "Filing Products",
+        "children": []
+      },
+      {
+        "id": 2213,
+        "name": "Journal, Periodical & Magazines",
+        "children": []
+      },
+      {
+        "id": 201330702,
+        "name": "Mailing & Shipping",
+        "children": []
+      },
+      {
+        "id": 2209,
+        "name": "Maps & Atlases",
+        "children": []
+      },
+      {
+        "id": 100003155,
+        "name": "Notebooks & Writing Pads",
+        "children": []
+      },
+      {
+        "id": 100003129,
+        "name": "Office Binding Supplies",
+        "children": []
+      },
+      {
+        "id": 2112,
+        "name": "Paper & Printable Media",
+        "children": []
+      },
+      {
+        "id": 200001743,
+        "name": "Pens, Pencils & Writing Supplies",
+        "children": []
+      },
+      {
+        "id": 212002,
+        "name": "Presentation Supplies",
+        "children": []
+      },
+      {
+        "id": 200001562,
+        "name": "Printing Products",
+        "children": []
+      },
+      {
+        "id": 100003125,
+        "name": "School Supplies",
+        "children": []
+      },
+      {
+        "id": 200004276,
+        "name": "Stationery Sticker",
+        "children": []
+      },
+      {
+        "id": 100003134,
+        "name": "Tapes, Adhesives & Fasteners",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 509,
+    "name": "Phones & Telecommunications",
+    "children": [
+      {
+        "id": 100001204,
+        "name": "Communication Equipment",
+        "children": []
+      },
+      {
+        "id": 201084002,
+        "name": "Mobile Phone Parts",
+        "children": []
+      },
+      {
+        "id": 5090301,
+        "name": "Mobile Phones",
+        "children": []
+      },
+      {
+        "id": 202238004,
+        "name": "Used&Refurbished Phones",
+        "children": []
+      },
+      {
+        "id": 50906,
+        "name": "Walkie Talkie",
+        "children": []
+      },
+      {
+        "id": 202196002,
+        "name": "Walkie Talkie Accessories & Parts",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 202192403,
+    "name": "Phones & Telecommunications Accessories",
+    "children": [
+      {
+        "id": 202228620,
+        "name": "Holders & Stands",
+        "children": []
+      },
+      {
+        "id": 100001205,
+        "name": "Mobile Phone Accessories",
+        "children": []
+      },
+      {
+        "id": 202228401,
+        "name": "Mobile Phone Cases & Covers",
+        "children": []
+      },
+      {
+        "id": 202229631,
+        "name": "Mobile Phone Decorations",
+        "children": []
+      },
+      {
+        "id": 202228601,
+        "name": "Mobile Phone Photography Accessories",
+        "children": []
+      },
+      {
+        "id": 202242202,
+        "name": "Mobile Phone Protective Film",
+        "children": []
+      },
+      {
+        "id": 200001598,
+        "name": "Sim Cards & Accessories",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 201520802,
+    "name": "Second-Hand",
+    "children": [
+      {
+        "id": 201523301,
+        "name": "Used Phones",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 30,
+    "name": "Security & Protection",
+    "children": [
+      {
+        "id": 202245601,
+        "name": "Access Building Automation",
+        "children": []
+      },
+      {
+        "id": 202245401,
+        "name": "Emergency Safety Supplies",
+        "children": []
+      },
+      {
+        "id": 200001791,
+        "name": "First Aid Kits",
+        "children": []
+      },
+      {
+        "id": 200327212,
+        "name": "Public Broadcasting",
+        "children": []
+      },
+      {
+        "id": 3015,
+        "name": "Roadway Safety",
+        "children": []
+      },
+      {
+        "id": 200327196,
+        "name": "Safes",
+        "children": []
+      },
+      {
+        "id": 200004311,
+        "name": "Security Alarm",
+        "children": []
+      },
+      {
+        "id": 200328267,
+        "name": "Security Inspection Device",
+        "children": []
+      },
+      {
+        "id": 200004309,
+        "name": "Smart Card System",
+        "children": []
+      },
+      {
+        "id": 202245002,
+        "name": "Smart Public Safety Systems",
+        "children": []
+      },
+      {
+        "id": 200004343,
+        "name": "Transmission & Cables",
+        "children": []
+      },
+      {
+        "id": 200332185,
+        "name": "UAV System & Robot",
+        "children": []
+      },
+      {
+        "id": 3011,
+        "name": "Video Surveillance",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 322,
+    "name": "Shoes",
+    "children": [
+      {
+        "id": 200131145,
+        "name": "Men's Shoes",
+        "children": []
+      },
+      {
+        "id": 200001000,
+        "name": "Mules & Clogs",
+        "children": []
+      },
+      {
+        "id": 32299,
+        "name": "Other Shoes",
+        "children": []
+      },
+      {
+        "id": 32210,
+        "name": "Shoe Accessories",
+        "children": []
+      },
+      {
+        "id": 200133142,
+        "name": "Women's Shoes",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 200001075,
+    "name": "Special Category",
+    "children": [
+      {
+        "id": 200001079,
+        "name": "Additional Pay on Your Order",
+        "children": []
+      },
+      {
+        "id": 200004270,
+        "name": "Beginner for XinXiaoYuan",
+        "children": []
+      },
+      {
+        "id": 200001078,
+        "name": "Checkout Link",
+        "children": []
+      },
+      {
+        "id": 202233003,
+        "name": "children clothing size chart test only",
+        "children": []
+      },
+      {
+        "id": 202233401,
+        "name": "children shoes size chart test only",
+        "children": []
+      },
+      {
+        "id": 201249605,
+        "name": "Coupons",
+        "children": []
+      },
+      {
+        "id": 200165143,
+        "name": "Custom-made Charge",
+        "children": []
+      },
+      {
+        "id": 200376142,
+        "name": "Custom-made-Charge",
+        "children": []
+      },
+      {
+        "id": 200001627,
+        "name": "Down payment/ Purchasing Agent",
+        "children": []
+      },
+      {
+        "id": 201174708,
+        "name": "Event Ticket",
+        "children": []
+      },
+      {
+        "id": 201252004,
+        "name": "Giftcard",
+        "children": []
+      },
+      {
+        "id": 200024143,
+        "name": "Giftcard1",
+        "children": []
+      },
+      {
+        "id": 200001621,
+        "name": "Giveaways",
+        "children": []
+      },
+      {
+        "id": 202244801,
+        "name": "Home Textile Size Chart Test Only",
+        "children": []
+      },
+      {
+        "id": 202225004,
+        "name": "jewelry size chart test only",
+        "children": []
+      },
+      {
+        "id": 201600601,
+        "name": "Lottery Tickets（Without VAT）",
+        "children": []
+      },
+      {
+        "id": 202210458,
+        "name": "Men's Clothing Size Chart Testing Only",
+        "children": []
+      },
+      {
+        "id": 202224426,
+        "name": "men's formal wear size chart test only",
+        "children": []
+      },
+      {
+        "id": 202225003,
+        "name": "men's sports clothing size chart test only",
+        "children": []
+      },
+      {
+        "id": 202224019,
+        "name": "men's underwear size chart test only",
+        "children": []
+      },
+      {
+        "id": 201355115,
+        "name": "Mini App",
+        "children": []
+      },
+      {
+        "id": 200003892,
+        "name": "Mobile Phone Recharge",
+        "children": []
+      },
+      {
+        "id": 202247201,
+        "name": "Mobilephone & Plug Type Test Only",
+        "children": []
+      },
+      {
+        "id": 200001620,
+        "name": "Other",
+        "children": []
+      },
+      {
+        "id": 200003864,
+        "name": "Overseas Warehouse",
+        "children": []
+      },
+      {
+        "id": 200003560,
+        "name": "Platform Coupon",
+        "children": []
+      },
+      {
+        "id": 202247401,
+        "name": "Plug Type Test Only",
+        "children": []
+      },
+      {
+        "id": 201350802,
+        "name": "Prepaid Digital Codes",
+        "children": []
+      },
+      {
+        "id": 202186401,
+        "name": "Shoesize Chart Testing Only",
+        "children": []
+      },
+      {
+        "id": 202176801,
+        "name": "Size chart testing only",
+        "children": []
+      },
+      {
+        "id": 201303705,
+        "name": "Software &Games (without VAT)",
+        "children": []
+      },
+      {
+        "id": 200004358,
+        "name": "Test",
+        "children": []
+      },
+      {
+        "id": 202227428,
+        "name": "Test for Sales Attribute Descriptions",
+        "children": []
+      },
+      {
+        "id": 202223431,
+        "name": "underwear size chart test only",
+        "children": []
+      },
+      {
+        "id": 200001623,
+        "name": "Upcoming Products",
+        "children": []
+      },
+      {
+        "id": 200726001,
+        "name": "Wallpaper Sample",
+        "children": []
+      },
+      {
+        "id": 202225002,
+        "name": "women's sports clothing size chart test only",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "name": "Sports & Entertainment",
+    "children": [
+      {
+        "id": 202220404,
+        "name": "Basketball（New）",
+        "children": []
+      },
+      {
+        "id": 100005529,
+        "name": "Camping & Hiking",
+        "children": []
+      },
+      {
+        "id": 100005880,
+        "name": "Cheerleading",
+        "children": []
+      },
+      {
+        "id": 200003500,
+        "name": "Cycling",
+        "children": []
+      },
+      {
+        "id": 200003538,
+        "name": "Entertainment",
+        "children": []
+      },
+      {
+        "id": 100005537,
+        "name": "Fishing",
+        "children": []
+      },
+      {
+        "id": 100005371,
+        "name": "Fitness & Body Building",
+        "children": []
+      },
+      {
+        "id": 202220403,
+        "name": "Football（New）",
+        "children": []
+      },
+      {
+        "id": 100005360,
+        "name": "Golf",
+        "children": []
+      },
+      {
+        "id": 100005551,
+        "name": "Horse Riding",
+        "children": []
+      },
+      {
+        "id": 100005563,
+        "name": "Hunting",
+        "children": []
+      },
+      {
+        "id": 100005481,
+        "name": "Musical Instruments",
+        "children": []
+      },
+      {
+        "id": 200004194,
+        "name": "Other Sports & Entertainment Product",
+        "children": []
+      },
+      {
+        "id": 200003540,
+        "name": "Racquet Sports",
+        "children": []
+      },
+      {
+        "id": 200003541,
+        "name": "Roller,Skateboard",
+        "children": []
+      },
+      {
+        "id": 100005571,
+        "name": "Shooting",
+        "children": []
+      },
+      {
+        "id": 200003543,
+        "name": "Skiing & Snowboarding",
+        "children": []
+      },
+      {
+        "id": 200004217,
+        "name": "Sports Bags(hidden)",
+        "children": []
+      },
+      {
+        "id": 200297143,
+        "name": "Sports Competitions",
+        "children": []
+      },
+      {
+        "id": 200378143,
+        "name": "Team Sports",
+        "children": []
+      },
+      {
+        "id": 100005657,
+        "name": "Water Sports",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 201768104,
+    "name": "Sports Shoes,Clothing&Accessories",
+    "children": [
+      {
+        "id": 202249402,
+        "name": "Children's Sports",
+        "children": []
+      },
+      {
+        "id": 201445239,
+        "name": "Dance",
+        "children": []
+      },
+      {
+        "id": 200000950,
+        "name": "Sneakers",
+        "children": []
+      },
+      {
+        "id": 200046142,
+        "name": "Sport Bags",
+        "children": []
+      },
+      {
+        "id": 202228436,
+        "name": "Sports Accessories",
+        "children": []
+      },
+      {
+        "id": 301,
+        "name": "Sportswear",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 1420,
+    "name": "Tools",
+    "children": [
+      {
+        "id": 202216802,
+        "name": "Abrasive Tools & Abrasives",
+        "children": []
+      },
+      {
+        "id": 142016,
+        "name": "Construction Tools",
+        "children": []
+      },
+      {
+        "id": 202217001,
+        "name": "Drill Bits, Saw Blades & Cutting Tools",
+        "children": []
+      },
+      {
+        "id": 12503,
+        "name": "Garden Tools",
+        "children": []
+      },
+      {
+        "id": 142003,
+        "name": "Hand Tools",
+        "children": []
+      },
+      {
+        "id": 202216201,
+        "name": "Laser Engraving Machine & Accessories",
+        "children": []
+      },
+      {
+        "id": 1537,
+        "name": "Measurement & Analysis Instruments",
+        "children": []
+      },
+      {
+        "id": 142099,
+        "name": "Other Tools",
+        "children": []
+      },
+      {
+        "id": 201252405,
+        "name": "Power Tool Parts & Accessories",
+        "children": []
+      },
+      {
+        "id": 1417,
+        "name": "Power Tools",
+        "children": []
+      },
+      {
+        "id": 200183146,
+        "name": "Riveter Guns",
+        "children": []
+      },
+      {
+        "id": 142001,
+        "name": "Tool Parts",
+        "children": []
+      },
+      {
+        "id": 200003955,
+        "name": "Tool Sets",
+        "children": []
+      },
+      {
+        "id": 100007485,
+        "name": "Tools Packaging",
+        "children": []
+      },
+      {
+        "id": 1427,
+        "name": "Welding & Soldering Supplies",
+        "children": []
+      },
+      {
+        "id": 1440,
+        "name": "Welding Equipment & Supplies",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 26,
+    "name": "Toys & Hobbies",
+    "children": [
+      {
+        "id": 202227409,
+        "name": "ACG Goods",
+        "children": []
+      },
+      {
+        "id": 201292714,
+        "name": "Action & Toy Figures",
+        "children": []
+      },
+      {
+        "id": 200389156,
+        "name": "Arts & Crafts, DIY toys",
+        "children": []
+      },
+      {
+        "id": 100001698,
+        "name": "Baby & Toddler Toys",
+        "children": []
+      },
+      {
+        "id": 200001383,
+        "name": "Building & Construction Toys",
+        "children": []
+      },
+      {
+        "id": 100001715,
+        "name": "Classic Toys",
+        "children": []
+      },
+      {
+        "id": 200001389,
+        "name": "Dolls & Accessories",
+        "children": []
+      },
+      {
+        "id": 200001725,
+        "name": "Dolls & Stuffed Toys",
+        "children": []
+      },
+      {
+        "id": 200001388,
+        "name": "Electronic Toys",
+        "children": []
+      },
+      {
+        "id": 200001726,
+        "name": "Games and Puzzles",
+        "children": []
+      },
+      {
+        "id": 200386159,
+        "name": "High Tech Toys",
+        "children": []
+      },
+      {
+        "id": 200388154,
+        "name": "Hobby & Collectibles",
+        "children": []
+      },
+      {
+        "id": 200389146,
+        "name": "Kid's Party",
+        "children": []
+      },
+      {
+        "id": 100001714,
+        "name": "Learning & Education",
+        "children": []
+      },
+      {
+        "id": 200001384,
+        "name": "Novelty & Gag Toys",
+        "children": []
+      },
+      {
+        "id": 100001719,
+        "name": "Outdoor Fun & Sports",
+        "children": []
+      },
+      {
+        "id": 201534605,
+        "name": "Play Vehicles & Models",
+        "children": []
+      },
+      {
+        "id": 200389159,
+        "name": "Pools & Water Fun",
+        "children": []
+      },
+      {
+        "id": 100001716,
+        "name": "Pretend Play",
+        "children": []
+      },
+      {
+        "id": 200001385,
+        "name": "Remote Control Toys",
+        "children": []
+      },
+      {
+        "id": 200246142,
+        "name": "Stress Relief Toy",
+        "children": []
+      },
+      {
+        "id": 200001387,
+        "name": "Stuffed Animals & Plush",
+        "children": []
+      },
+      {
+        "id": 202197601,
+        "name": "Trendy Blind Box",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 200574005,
+    "name": "Underwear",
+    "children": [
+      {
+        "id": 200001866,
+        "name": "Bikinis",
+        "children": []
+      },
+      {
+        "id": 202219099,
+        "name": "Men Socks",
+        "children": []
+      },
+      {
+        "id": 200001813,
+        "name": "Men's Sleep & Lounge",
+        "children": []
+      },
+      {
+        "id": 200001865,
+        "name": "Men's Underwears",
+        "children": []
+      },
+      {
+        "id": 200000349,
+        "name": "Women's Intimates",
+        "children": []
+      },
+      {
+        "id": 200001894,
+        "name": "Women's Sleep & Lounge",
+        "children": []
+      },
+      {
+        "id": 200000854,
+        "name": "Women's Socks & Hosiery",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 201169612,
+    "name": "Virtual Products",
+    "children": [
+      {
+        "id": 201355944,
+        "name": "Coupons",
+        "children": []
+      },
+      {
+        "id": 201356254,
+        "name": "Event Ticket",
+        "children": []
+      },
+      {
+        "id": 202223632,
+        "name": "Flight Booking",
+        "children": []
+      },
+      {
+        "id": 201352363,
+        "name": "Giftcard",
+        "children": []
+      },
+      {
+        "id": 201810901,
+        "name": "Giftcard Commission Category",
+        "children": []
+      },
+      {
+        "id": 202224618,
+        "name": "Hotel Booking",
+        "children": []
+      },
+      {
+        "id": 201508601,
+        "name": "Mobile Phone Recharge",
+        "children": []
+      },
+      {
+        "id": 201354843,
+        "name": "Mobile Phone Recharge1111",
+        "children": []
+      },
+      {
+        "id": 201377714,
+        "name": "Offline Activity For New Seller",
+        "children": []
+      },
+      {
+        "id": 201353146,
+        "name": "Prepaid Digital Codes",
+        "children": []
+      },
+      {
+        "id": 201360737,
+        "name": "Software & Games",
+        "children": []
+      },
+      {
+        "id": 201809502,
+        "name": "Topup Commission Category",
+        "children": []
+      },
+      {
+        "id": 202227427,
+        "name": "Travel Vocation",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 1511,
+    "name": "Watches",
+    "children": [
+      {
+        "id": 200362144,
+        "name": "Children's Watches",
+        "children": []
+      },
+      {
+        "id": 200362143,
+        "name": "Couple Watches",
+        "children": []
+      },
+      {
+        "id": 202223401,
+        "name": "Customized Watches",
+        "children": []
+      },
+      {
+        "id": 200362146,
+        "name": "Men's Watches",
+        "children": []
+      },
+      {
+        "id": 200000126,
+        "name": "Pocket & Fob Watches",
+        "children": []
+      },
+      {
+        "id": 200000121,
+        "name": "Watches Accessories",
+        "children": []
+      },
+      {
+        "id": 200362145,
+        "name": "Women's Watches",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 320,
+    "name": "Weddings & Events",
+    "children": [
+      {
+        "id": 201238406,
+        "name": "Haute Couture Dresses",
+        "children": []
+      },
+      {
+        "id": 201236002,
+        "name": "Party & Vacation Wear",
+        "children": []
+      },
+      {
+        "id": 200000749,
+        "name": "Special Occasion Dresses",
+        "children": []
+      },
+      {
+        "id": 100005787,
+        "name": "Wedding Accessories",
+        "children": []
+      },
+      {
+        "id": 32005,
+        "name": "Wedding Dresses",
+        "children": []
+      },
+      {
+        "id": 200000410,
+        "name": "Wedding Party Dress",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": 200000345,
+    "name": "Women's Clothing",
+    "children": [
+      {
+        "id": 202220408,
+        "name": "Basic Clothing",
+        "children": []
+      },
+      {
+        "id": 200001912,
+        "name": "Blazer & Suits",
+        "children": []
+      },
+      {
+        "id": 200000346,
+        "name": "Blouses & Shirts",
+        "children": []
+      },
+      {
+        "id": 200000796,
+        "name": "Coats & Jackets",
+        "children": []
+      },
+      {
+        "id": 202225402,
+        "name": "Customized Blouses & Shirts",
+        "children": []
+      },
+      {
+        "id": 202225401,
+        "name": "Customized Dresses",
+        "children": []
+      },
+      {
+        "id": 202225201,
+        "name": "Customized Skirts",
+        "children": []
+      },
+      {
+        "id": 200128142,
+        "name": "Down Coats",
+        "children": []
+      },
+      {
+        "id": 200000347,
+        "name": "Dresses",
+        "children": []
+      },
+      {
+        "id": 200001909,
+        "name": "Faux Leather",
+        "children": []
+      },
+      {
+        "id": 200001911,
+        "name": "Fur & Faux Fur",
+        "children": []
+      },
+      {
+        "id": 200129142,
+        "name": "Genuine Leather",
+        "children": []
+      },
+      {
+        "id": 200000348,
+        "name": "Hoodies & Sweatshirts",
+        "children": []
+      },
+      {
+        "id": 202219298,
+        "name": "Jeans（New）",
+        "children": []
+      },
+      {
+        "id": 200000362,
+        "name": "Jumpsuits, Playsuits & Bodysuits",
+        "children": []
+      },
+      {
+        "id": 201240602,
+        "name": "Jumpsuits&Rompers",
+        "children": []
+      },
+      {
+        "id": 200000865,
+        "name": "Leggings",
+        "children": []
+      },
+      {
+        "id": 201531101,
+        "name": "Matching Sets",
+        "children": []
+      },
+      {
+        "id": 201515701,
+        "name": "Muslim Fashion",
+        "children": []
+      },
+      {
+        "id": 200000366,
+        "name": "Pants & Capris",
+        "children": []
+      },
+      {
+        "id": 200001908,
+        "name": "Parkas",
+        "children": []
+      },
+      {
+        "id": 201516501,
+        "name": "Plus Size Clothes",
+        "children": []
+      },
+      {
+        "id": 201771210,
+        "name": "Ready-to-wear Dresses",
+        "children": []
+      },
+      {
+        "id": 200003908,
+        "name": "Real Fur",
+        "children": []
+      },
+      {
+        "id": 201303001,
+        "name": "Shirts & Blouses",
+        "children": []
+      },
+      {
+        "id": 200000367,
+        "name": "Shorts",
+        "children": []
+      },
+      {
+        "id": 349,
+        "name": "Skirts",
+        "children": []
+      },
+      {
+        "id": 200000373,
+        "name": "Sweaters",
+        "children": []
+      },
+      {
+        "id": 201241002,
+        "name": "Sweaters&Jumpers",
+        "children": []
+      },
+      {
+        "id": 200001918,
+        "name": "Swimwears",
+        "children": []
+      },
+      {
+        "id": 200000778,
+        "name": "Tops & Tees",
+        "children": []
+      },
+      {
+        "id": 202240602,
+        "name": "Traditional Women's Clothing",
+        "children": []
+      },
+      {
+        "id": 200003494,
+        "name": "Women's Sets",
+        "children": []
+      }
+    ]
+  }
+]
