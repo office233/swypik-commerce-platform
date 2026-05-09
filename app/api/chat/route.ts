@@ -11,6 +11,9 @@ import { searchProducts, getCategories, type ProductFilters } from "@/lib/db/pro
 import { buildSalesSuggestion, inferBundleQueries, pickBundleProducts, rankProducts } from "@/lib/sales/bundle-engine";
 import { updateShoppingSession } from "@/lib/sales/shopping-session";
 
+export const runtime = "edge";
+export const maxDuration = 120; // Edge allows up to 120s max duration on Hobby/Pro sometimes, but Edge has no concurrency limits!
+
 type ProductModel = any;
 
 // ─── Category mapping for Romanian queries ────────────────────────

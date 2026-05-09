@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool } from "@neondatabase/serverless";
 
 let pool: Pool | null = null;
 
@@ -12,10 +12,6 @@ export function getDb() {
 
   pool = new Pool({
     connectionString,
-    ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false },
-    max: Number(process.env.DATABASE_POOL_MAX || 10),
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
   });
 
   return pool;

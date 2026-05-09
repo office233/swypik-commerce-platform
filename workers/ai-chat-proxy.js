@@ -32,17 +32,15 @@ export default {
         });
       }
 
-      // Call OpenRouter API
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      // Call Google Gemini OpenAI-compatible API
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${env.OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://aicevrei.ro",
-          "X-Title": "AICeVrei Shopping Assistant",
+          "Authorization": `Bearer ${env.GEMINI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: model || env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001",
+          model: "gemini-2.5-flash",
           messages,
           stream,
           temperature: 0.7,

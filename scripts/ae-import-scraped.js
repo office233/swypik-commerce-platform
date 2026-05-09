@@ -119,12 +119,12 @@ async function importProduct(db, productId) {
   const { rows: catRows } = await db.query('SELECT ae_category_id FROM ae_categories WHERE ae_category_id = $1', [realCatId]);
   if (!catRows.length) {
     const { rows: parentRows } = await db.query('SELECT ae_category_id FROM ae_categories WHERE ae_category_id = $1', [PARENT_CATEGORY]);
-    await db.query('INSERT INTO ae_categories (ae_category_id, parent_id, name, name_ro, level) VALUES ($1, $2, $3, $3, 2) ON CONFLICT DO NOTHING',
-      [realCatId, parentRows.length ? PARENT_CATEGORY : null, `Sub ${realCatId}`]);
+    await db.query('INSERT INTO ae_categories (ae_category_id, parent_id, name, name_ro, level) VALUES ($1, $2, $3, $4, 2) ON CONFLICT DO NOTHING',
+      [realCatId, parentRows.length ? PARENT_CATEGORY : null, `Category ${realCatId}`, 'Alte Produse']);
   }
 
   // Shipping (corect: shipToCountry)
-  await sleep(2000);
+  await sleep(100);
   let shipData = { method: 'Standard', cost: 0, free: true, minDays: 7, maxDays: 15, tracking: false, from: 'CN', deliveryDate: '', freeThreshold: '', stock: 0 };
   try {
     const freight = await callAPI('aliexpress.ds.freight.query', {
@@ -214,7 +214,7 @@ async function importProduct(db, productId) {
 
 async function main() {
   console.log('='.repeat(80));
-  console.log(`  🚀 IMPORT: ${PRODUCT_IDS.length} produse Auto (din browser scrape)`);
+  console.log(`  🚀 FAST IMPORT: ${PRODUCT_IDS.length} produse (din JSON)`);
   console.log('='.repeat(80));
 
   const db = new Client({ connectionString: NEON_URL });
@@ -222,25 +222,32 @@ async function main() {
 
   let ok = 0, skip = 0, fail = 0, withVideo = 0;
   const start = Date.now();
+  const CONCURRENCY = 15; // 15 produse in acelasi timp
 
-  for (let i = 0; i < PRODUCT_IDS.length; i++) {
-    const id = PRODUCT_IDS[i];
-    process.stdout.write(`  [${i+1}/${PRODUCT_IDS.length}] ${id} `);
+  for (let i = 0; i < PRODUCT_IDS.length; i += CONCURRENCY) {
+    const chunk = PRODUCT_IDS.slice(i, i + CONCURRENCY);
     
-    await sleep(2000);
-    const r = await importProduct(db, id);
+    // Rulam importul in paralel pentru acest chunk
+    const results = await Promise.all(chunk.map(id => importProduct(db, id)));
     
-    if (r.status === 'ok') {
-      ok++;
-      if (r.video) withVideo++;
-      console.log(`✅ ${r.title}... | ${r.price} RON | ${r.variants} var${r.video ? ' 🎬' : ''}`);
-    } else if (r.status === 'skip') {
-      skip++;
-      console.log('⏭️ deja');
-    } else {
-      fail++;
-      console.log(`❌ ${r.reason}`);
-    }
+    results.forEach((r, idx) => {
+      const id = chunk[idx];
+      const progress = `[${i + idx + 1}/${PRODUCT_IDS.length}]`;
+      if (r.status === 'ok') {
+        ok++;
+        if (r.video) withVideo++;
+        console.log(`✅ ${progress} ${id} | ${r.title}... | ${r.price} RON | ${r.variants} var${r.video ? ' 🎬' : ''}`);
+      } else if (r.status === 'skip') {
+        skip++;
+        // Nu printam ca sa nu facem spam in consola cand face skip la mii
+      } else {
+        fail++;
+        console.log(`❌ ${progress} ${id} | ${r.reason}`);
+      }
+    });
+
+    // O pauză mică la fiecare 15 produse să nu luăm ban de la AliExpress
+    await sleep(200); 
   }
 
   const { rows: p } = await db.query('SELECT COUNT(*) as c FROM ae_products');

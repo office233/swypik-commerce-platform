@@ -1,9 +1,11 @@
 name = "aicevrei-ai-chat"
 main = "ai-chat-proxy.js"
 compatibility_date = "2024-01-01"
+workers_dev = false
 
-[vars]
-OPENROUTER_MODEL = "google/gemini-2.0-flash-001"
+routes = [
+  { pattern = "aicevrei.ro/api/ai-worker*", zone_name = "aicevrei.ro" }
+]
 
 # Secret: Set via `wrangler secret put OPENROUTER_API_KEY`
 # OPENROUTER_API_KEY = "sk-or-v1-..."
