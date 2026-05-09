@@ -157,6 +157,17 @@ export async function searchProducts(filters: ProductFilters = {}) {
   if (mode === "bestvalue") orderBy = "p.price_ron ASC, p.rating DESC NULLS LAST";
   if (mode === "toprated") { where.push("p.rating >= 4.7"); orderBy = "p.rating DESC NULLS LAST, p.orders_count DESC NULLS LAST"; }
 
+  // ─── FEED ALGORITHM: weighted random for video mode ───
+  // Score = (orders weight + rating weight + discount weight) × random factor
+  // This ensures popular/high-quality clips appear more often but every refresh is different
+  if (mode === "video") {
+    orderBy = `(
+      COALESCE(LN(GREATEST(p.orders_count, 1) + 1), 0) * 2.0
+      + COALESCE(p.rating, 4.0) * 1.5
+      + CASE WHEN p.old_price_ron > p.price_ron THEN ((p.old_price_ron - p.price_ron) / GREATEST(p.old_price_ron, 1)) * 3.0 ELSE 0 END
+    ) * (0.5 + random()) DESC`;
+  }
+
   const sql = `
     SELECT p.id, p.ae_product_id, p.title, p.title_ro, p.description,
       p.min_price_usd, p.max_price_usd, p.price_ron, p.old_price_ron,
