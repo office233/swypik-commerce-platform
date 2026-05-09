@@ -237,6 +237,7 @@ export async function POST(req: Request) {
       // For refine_search: exclude products user already saw
       const excludeIds = aiResult.intent === "refine_search" ? (aiResult.excludeIds || productContext.map((p: any) => String(p.id))) : undefined;
       let products = await searchPG(query, 16, { maxPrice, category, sort: aiResult.sort, excludeIds });
+      let replyPrefix = "";
       
       // Fallback: if query is too strict and excludeIds exhausted results, broaden search
       if (products.length === 0 && excludeIds && excludeIds.length > 0 && category) {
@@ -245,6 +246,13 @@ export async function POST(req: Request) {
       // Fallback 2: if still empty, drop maxPrice constraint
       if (products.length === 0 && maxPrice) {
         products = await searchPG("", 16, { category, sort: aiResult.sort, excludeIds });
+      }
+      // Fallback 3: if category has 0 products, drop category and search globally
+      if (products.length === 0 && category) {
+        products = await searchPG(query, 16, { maxPrice, sort: aiResult.sort });
+        if (products.length > 0) {
+          replyPrefix = `⚠️ Nu avem încă produse în categoria "${category}", dar îți arăt ce am găsit relevant:\n\n`;
+        }
       }
       
       // Bundle products
@@ -260,7 +268,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         intent: aiResult.intent,
-        reply: `${aiResult.reply}${suggestion}`,
+        reply: `${replyPrefix}${aiResult.reply}${suggestion}`,
         products,
         bundleProducts,
         shoppingSession,
