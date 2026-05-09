@@ -41,7 +41,12 @@ body {
 }
 
 /* ─── Disable selection on interactive ─── */
-button, nav { -webkit-user-select: none; user-select: none; }
+button, nav, a { 
+  -webkit-user-select: none; 
+  user-select: none; 
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* ─── No scrollbar ─── */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

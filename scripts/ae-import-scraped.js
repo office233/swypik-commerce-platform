@@ -4,7 +4,7 @@
  */
 const crypto = require('crypto');
 const fs = require('fs');
-const { Client } = require('pg');
+const { Pool } = require('pg');
 
 const APP_KEY = '533768';
 const APP_SECRET = 'X6aUu7WINyDXsgShb3U1PwPg4RsNGXqG';
@@ -217,7 +217,7 @@ async function main() {
   console.log(`  🚀 FAST IMPORT: ${PRODUCT_IDS.length} produse (din JSON)`);
   console.log('='.repeat(80));
 
-  const db = new Client({ connectionString: NEON_URL });
+  const db = new Pool({ connectionString: NEON_URL, max: 20 });
   await db.connect();
 
   let ok = 0, skip = 0, fail = 0, withVideo = 0;

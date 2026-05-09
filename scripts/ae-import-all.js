@@ -53,7 +53,7 @@ async function main() {
 
     try {
       // Run the import script for this file
-      execSync(`node "${IMPORT_SCRIPT}" "${filePath}"`, {
+      execSync(`"C:\\Program Files\\nodejs\\node.exe" "${IMPORT_SCRIPT}" "${filePath}"`, {
         cwd: path.dirname(IMPORT_SCRIPT),
         stdio: 'inherit',
         timeout: 4 * 60 * 60 * 1000, // 4 hour timeout per file
