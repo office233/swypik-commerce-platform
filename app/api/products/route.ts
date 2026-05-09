@@ -88,7 +88,12 @@ export async function GET(req: Request) {
         ? `?offset=${(result.offset || 0) + (result.limit || limit)}&limit=${result.limit || limit}` : null,
     }, {
       headers: {
-        "Cache-Control": `public, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 2}`,
+        // Browser cache: short (user sees fresh data on reload)
+        "Cache-Control": `public, max-age=${mode === "video" ? 60 : 30}, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 2}`,
+        // Cloudflare edge cache: longer (absorbs traffic spikes)
+        "CDN-Cache-Control": `public, max-age=${cacheSeconds}`,
+        // Vary by query string for proper cache keys
+        "Vary": "Accept-Encoding",
       },
     });
   } catch (error: any) {
