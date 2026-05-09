@@ -15,6 +15,7 @@ import { updateShoppingSession } from "@/lib/sales/shopping-session";
 import { detectCategory, looksLikeShopping } from "@/lib/chat/category-detect";
 import { searchPG, searchWithFallback, fetchBundles, buildBundleSuggestionText, uniqueProducts } from "@/lib/chat/search-pg";
 import { inferBundleQueries, buildSalesSuggestion } from "@/lib/sales/bundle-engine";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const runtime = "edge";
 export const maxDuration = 120;
@@ -24,6 +25,13 @@ export async function POST(req: Request) {
     const { message, sessionId, directCjQuery, chatHistory = [], productContext = [], shoppingSession: incomingSession = {} } = await req.json();
     const userMessage = String(message || "").trim();
     if (!userMessage) return NextResponse.json({ error: "Mesajul nu poate fi gol" }, { status: 400 });
+
+    // Distributed rate limit
+    const ip = getClientIP(req);
+    const { success: allowed } = await rateLimit("chat", ip);
+    if (!allowed) {
+      return NextResponse.json({ error: "Prea multe mesaje. Încearcă din nou în câteva secunde." }, { status: 429 });
+    }
 
     const baseSession = updateShoppingSession(incomingSession, userMessage);
     const directQuery = String(directCjQuery || "").trim();

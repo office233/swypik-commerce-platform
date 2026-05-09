@@ -11,6 +11,8 @@ import { ensureOnShopify } from "@/lib/shopify/just-in-time-push";
 import { createNativeCheckout } from "@/lib/shopify/storefront-checkout";
 import { getCheckoutProductById } from "@/lib/db/product-queries";
 import { dbQuery } from "@/lib/db";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { logCheckoutEvent } from "@/lib/security/audit-log";
 
 // ── Input validation helpers ──
 function parsePositiveInt(val: unknown, fallback: number, max: number): number {
@@ -19,33 +21,20 @@ function parsePositiveInt(val: unknown, fallback: number, max: number): number {
   return Math.min(n, max);
 }
 
-// ── Rate limit (simple in-memory per IP) ──
-const rateLimitMap = new Map<string, { count: number; ts: number }>();
-const RATE_LIMIT_WINDOW = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 10;        // max 10 checkout attempts per minute
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now - entry.ts > RATE_LIMIT_WINDOW) {
-    rateLimitMap.set(ip, { count: 1, ts: now });
-    return false;
-  }
-  entry.count++;
-  if (entry.count > RATE_LIMIT_MAX) return true;
-  return false;
-}
-
 export async function POST(req: Request) {
   try {
-    // Rate limit check
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    if (isRateLimited(ip)) {
+    // Distributed rate limit (Upstash Redis, falls back to in-memory)
+    const ip = getClientIP(req);
+    const { success: allowed } = await rateLimit("cart", ip);
+    if (!allowed) {
+      logCheckoutEvent("checkout_rate_limited", { clientIp: ip });
       return NextResponse.json(
         { success: false, error: "Prea multe încercări. Așteaptă un moment." },
         { status: 429 }
       );
     }
+
+    const userAgent = req.headers.get("user-agent") || undefined;
 
     const body = await req.json();
     const rawItems = body.products || (body.product ? [body.product] : []);
@@ -78,6 +67,7 @@ export async function POST(req: Request) {
       const pgProduct = await getCheckoutProductById(pgId);
       if (!pgProduct) {
         console.warn(`[Cart v3] Product ${pgId} not found or has invalid pricing`);
+        logCheckoutEvent("product_not_found", { pgId, clientIp: ip, userAgent });
         return NextResponse.json(
           { success: false, error: "Produsul nu este disponibil pentru checkout." },
           { status: 400 }
@@ -137,6 +127,7 @@ export async function POST(req: Request) {
       const jitTitle = variantLabel ? `${title} (${variantLabel})` : title;
       const result = await ensureOnShopify(pgId, variantPrice, oldPrice, jitTitle, image, category, item.skuId ? String(item.skuId) : undefined, variantStock);
       lineItems.push({ variantId: result.variantId, quantity: qty });
+      logCheckoutEvent("jit_create", { pgId, skuId: item.skuId ? String(item.skuId) : undefined, priceRon: variantPrice, clientIp: ip });
       console.log(`[Cart v3] ✅ ${jitTitle} → variant ${result.variantId} @ ${variantPrice} RON`);
     }
 
@@ -163,6 +154,12 @@ export async function POST(req: Request) {
       );
     }
 
+    logCheckoutEvent("checkout_success", {
+      clientIp: ip,
+      userAgent,
+      payload: { itemCount: lineItems.length, cartId },
+    });
+
     return NextResponse.json({
       success: true,
       checkoutUrl,
@@ -172,6 +169,7 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("[Cart v3] Error:", error);
+    logCheckoutEvent("checkout_fail", { error: error?.message });
     return NextResponse.json(
       { success: false, error: "A apărut o eroare la checkout. Încearcă din nou." },
       { status: 500 }

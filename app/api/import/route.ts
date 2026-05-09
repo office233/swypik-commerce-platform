@@ -44,28 +44,40 @@ export async function POST(req: NextRequest) {
         if (costUsd <= 0) { failed++; continue; }
 
         const { price, oldPrice, markup } = calculatePriceRON(costUsd, shipUsd);
-        const images = (p.images || []).slice(0, 6);
-        const colors = [...new Set((p.variants || []).filter((v: any) => v.color).map((v: any) => v.color))];
-        const sizes = [...new Set((p.variants || []).filter((v: any) => v.size).map((v: any) => v.size))];
+        const images = (p.images || []).slice(0, 8);
+        const colors = p.colors || [...new Set((p.variants || []).filter((v: any) => v.color).map((v: any) => v.color))];
+        const sizes = p.sizes || [...new Set((p.variants || []).filter((v: any) => v.size).map((v: any) => v.size))];
+        const totalStock = (p.variants || []).reduce((s: number, v: any) => s + (v.stock || 0), 0) || p.availableStock || 0;
 
         await sql`INSERT INTO ae_products (
-          ae_product_id, category_id, title, description, min_price_usd, max_price_usd,
-          price_ron, old_price_ron, markup, main_image, images, video_url, has_video,
+          ae_product_id, category_id, title, description, min_price_usd, max_price_usd, original_price_usd,
+          price_ron, old_price_ron, markup, main_image, images, video_url, video_poster, has_video,
           rating, rating_count, orders_count, product_status, brand, properties,
-          ship_method, ship_cost_usd, ship_free, ship_days_min, ship_days_max,
-          store_id, store_name, store_rating, variants_count, source_url,
-          color, colors, sizes, material, style, gender
+          ship_method, ship_cost_usd, ship_free, ship_days_min, ship_days_max, ship_tracking, ship_from,
+          store_id, store_name, store_rating, variants_count, source_url, delivery_date_desc,
+          neckline, style, fabric_type, color, colors, sizes, material, pattern_type,
+          sleeve_style, waistline, season, silhouette, decoration, gender,
+          free_shipping_threshold, available_stock
         ) VALUES (
           ${p.productId}, ${p.categoryId || 0}, ${p.title || ''}, ${p.description || ''},
-          ${costUsd}, ${p.maxPrice || costUsd}, ${price}, ${oldPrice}, ${markup},
-          ${images[0] || ''}, ${JSON.stringify(images)}, ${p.videoUrl || null}, ${!!p.videoUrl},
+          ${costUsd}, ${p.maxPrice || costUsd}, ${p.originalPrice || null},
+          ${price}, ${oldPrice}, ${markup},
+          ${images[0] || ''}, ${JSON.stringify(images)},
+          ${p.videoUrl || null}, ${p.videoPoster || null}, ${!!p.videoUrl},
           ${p.rating || 0}, ${p.ratingCount || 0}, ${p.orders || 0}, 'onSelling',
           ${p.brand || null}, ${JSON.stringify(p.properties || [])},
-          ${p.shippingMethod || ''}, ${shipUsd}, ${shipUsd === 0}, ${p.shipDaysMin || 7}, ${p.shipDaysMax || 15},
-          ${p.storeId || ''}, ${p.storeName || ''}, ${p.storeRating || '0'}, ${(p.variants || []).length},
+          ${p.shippingMethod || ''}, ${shipUsd}, ${p.shipFree || shipUsd === 0},
+          ${p.shipDaysMin || 7}, ${p.shipDaysMax || 15}, ${true}, ${p.shipFrom || 'CN'},
+          ${p.storeId || ''}, ${p.storeName || ''}, ${p.storeRating || '0'},
+          ${(p.variants || []).length},
           ${'https://www.aliexpress.com/item/' + p.productId + '.html'},
+          ${p.deliveryDateDesc || null},
+          ${p.neckline || null}, ${p.style || null}, ${p.fabricType || null},
           ${colors[0] || null}, ${JSON.stringify(colors)}, ${JSON.stringify(sizes)},
-          ${p.material || null}, ${p.style || null}, ${p.gender || null}
+          ${p.material || null}, ${p.patternType || null},
+          ${p.sleeveStyle || null}, ${p.waistline || null}, ${p.season || null},
+          ${p.silhouette || null}, ${JSON.stringify(p.decoration || [])}, ${p.gender || null},
+          ${p.freeShippingThreshold || null}, ${totalStock}
         )`;
 
         // Insert variants
