@@ -167,8 +167,24 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     setTimeout(() => setAddedToCart(null), 2000);
   };
 
-  // Should we render a <video> for this index? Only current ± 1
-  const shouldLoadVideo = (idx: number) => Math.abs(idx - currentIdx) <= 1;
+  // Should we render a <video> for this index? Current ± 2 for smoother scroll
+  const shouldLoadVideo = (idx: number) => Math.abs(idx - currentIdx) <= 2;
+
+  // Aggressive prefetch: when currentIdx changes, start downloading next 3 videos in background
+  useEffect(() => {
+    const prefetchVideos = () => {
+      for (let i = 1; i <= 3; i++) {
+        const nextProduct = products[currentIdx + i];
+        if (nextProduct?.video && !videoErrors[nextProduct.id]) {
+          // Use fetch to warm CDN cache and browser cache
+          fetch(nextProduct.video, { mode: "no-cors", priority: i === 1 ? "high" : "low" as any }).catch(() => {});
+        }
+      }
+    };
+    // Small delay so current video starts first
+    const timer = setTimeout(prefetchVideos, 500);
+    return () => clearTimeout(timer);
+  }, [currentIdx, products]);
 
   if (isLoading && products.length === 0) {
     return (
