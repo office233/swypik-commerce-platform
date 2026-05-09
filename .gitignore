@@ -25,6 +25,7 @@ yarn-error.log*
 
 # Vercel
 .vercel/
+.vercel
 
 # Database exports
 db_export.*
@@ -40,4 +41,29 @@ ae-data-dump.json
 # Chrome extension (local dev tool)
 chrome-extension/
 
-.vercel
+# ═══════════════════════════════════════════════════════
+# LOCAL SCRIPTS — contain hardcoded secrets, NEVER track
+# ═══════════════════════════════════════════════════════
+
+# Root-level utility scripts (all contain DB passwords / API keys)
+/*.py
+/check-*.js
+/fix-*.js
+/inspect-*.js
+/link-*.js
+/scan-*.js
+/setup-*.js
+/verify-*.js
+/get-token.js
+/test-*.js
+/analyze-*.js
+/push-env.js
+/temp.json
+/ae-token.json
+/cart-patch.js
+
+# Scripts folder (dev-only tools with secrets)
+/scripts/
+
+# Workers config (contains Cloudflare secrets)
+/workers/
