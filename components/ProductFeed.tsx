@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ArrowLeft, Heart, Package, Play, ShoppingCart, Star, Truck, Volume2, VolumeX, MessageCircle } from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, Package, Play, ShoppingCart, Star, Truck, Volume2, VolumeX, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type FeedProduct = {
