@@ -255,14 +255,19 @@ export async function POST(req: Request) {
         }
       }
       
-      // Bundle products
-      const bundleQueries = [...(aiResult.bundleQueries || []), ...inferBundleQueries(query)];
+      // Bundle products (only search bundles if we have main products)
+      const bundleQueries = products.length > 0 ? [...(aiResult.bundleQueries || []), ...inferBundleQueries(query)] : [];
       const bundleResults = await Promise.all(
         bundleQueries.slice(0, 2).map(bq => searchPG(bq, 6, { maxPrice, category }))
       );
       const bundleProducts = uniqueProducts(bundleResults.flat())
         .filter(p => !products.some((main: any) => main.id === p.id))
         .slice(0, 12);
+
+      // If STILL no products, give clear message
+      if (products.length === 0 && category) {
+        replyPrefix = `⚠️ Momentan nu avem produse în categoria „${category}". Adăugăm noi produse zilnic! Între timp, poți căuta în categoriile disponibile (rochii, haine femei, accesorii).\n\n`;
+      }
 
       const suggestion = products[0] ? `\n\n${buildSalesSuggestion(products[0], bundleProducts.slice(0, 2))}` : "";
 
