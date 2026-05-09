@@ -35,7 +35,13 @@ async function shopifyGET(endpoint: string) {
   return text ? JSON.parse(text) : {};
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  // Block in production unless admin secret is provided
+  const adminSecret = req.headers.get("x-admin-secret");
+  if (process.env.NODE_ENV === "production" && adminSecret !== process.env.ADMIN_DEBUG_SECRET) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   try {
     const store = process.env.SHOPIFY_STORE || null;
     const data = await shopifyGET("products.json?limit=10&status=active&fields=id,title,status,product_type,vendor,images,variants");
@@ -66,14 +72,14 @@ export async function GET() {
       sampleProducts,
     });
   } catch (error: any) {
-    console.error("[Shopify Health]", error.message);
+    console.error("[Shopify Health]", error);
 
     return NextResponse.json(
       {
         ok: false,
         apiVersion: API_VERSION,
         productsRead: false,
-        error: error.message,
+        error: "Health check failed.",
       },
       { status: 500 }
     );

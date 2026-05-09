@@ -1,31 +1,43 @@
+/**
+ * Push environment variables to Vercel from .env.local
+ * 
+ * SECURITY: This file reads from .env.local (which is gitignored).
+ * Never commit secrets directly in code.
+ * 
+ * Usage: node push-env.js
+ */
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
-const envs = {
-  SHOPIFY_CLIENT_ID: "869fa8fec04ff9bc94033e028d8fd8ad",
-  SHOPIFY_CLIENT_SECRET: "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",
-  SHOPIFY_STORE: "uns3hp-cc.myshopify.com",
-  SHOPIFY_STORE_HANDLE: "uns3hp-cc",
-  OPENROUTER_API_KEY: "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",
-  OPENROUTER_MODEL: "google/gemini-2.0-flash-001",
-  DATABASE_URL: "postgresql://neondb_owner:npg_SPahbB68xqur@ep-cold-hat-alaqlcr5.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require",
-  DATABASE_SSL: "false",
-  SHOPIFY_STOREFRONT_ACCESS_TOKEN: "e93f8b4ff945503d928d923253ea2232"
-};
+// Read env vars from .env.local (gitignored)
+const envPath = path.join(__dirname, '.env.local');
+if (!fs.existsSync(envPath)) {
+  console.error('❌ .env.local not found. Create it first with your secrets.');
+  process.exit(1);
+}
+
+const envContent = fs.readFileSync(envPath, 'utf8');
+const envs = {};
+for (const line of envContent.split('\n')) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#')) continue;
+  const eqIdx = trimmed.indexOf('=');
+  if (eqIdx < 0) continue;
+  const key = trimmed.substring(0, eqIdx).trim();
+  const value = trimmed.substring(eqIdx + 1).trim();
+  if (key && value) envs[key] = value;
+}
+
+console.log(`Found ${Object.keys(envs).length} env vars in .env.local\n`);
 
 for (const [key, value] of Object.entries(envs)) {
   try {
     console.log(`Pushing ${key}...`);
-    // Need to use powershell or bash. Since it's node on windows, use powershell echo.
-    // However, it's safer to just write to a temp file and read it or just use simple cmd.
-    execSync(`echo | set /p="${value}" | npx vercel env rm ${key} production -y`, { stdio: 'ignore' }).catch(() => {});
-  } catch(e) {}
-  
-  try {
-    // using cmd.exe: echo | set /p="VALUE" does not add a newline!
-    // But since `echo value | npx vercel env add` works in pwsh... let's just use execSync with pwsh
+    try { execSync(`npx vercel env rm ${key} production -y`, { stdio: 'ignore' }); } catch(e) {}
     execSync(`powershell -Command "Write-Output '${value}' | npx vercel env add ${key} production"`, { stdio: 'inherit' });
   } catch (err) {
     console.error(`Failed to push ${key}:`, err.message);
   }
 }
-console.log("Done!");
+console.log("\n✅ Done! All env vars pushed to Vercel.");

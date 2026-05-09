@@ -37,7 +37,8 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const search = url.searchParams.get("search") || url.searchParams.get("q") || "";
-    const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
+    const rawLimit = parseInt(url.searchParams.get("limit") || "50");
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(rawLimit, 200)) : 50;
     const mode = url.searchParams.get("mode") || "default";
     const isCategories = url.searchParams.get("categories") === "true";
     const isHierarchy = url.searchParams.get("hierarchy") === "true";
@@ -99,9 +100,9 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: any) {
-    console.error("[Products API]", error.message);
+    console.error("[Products API]", error);
     return NextResponse.json(
-      { error: error.message, products: [], total: 0, source: "error" },
+      { error: "A apărut o eroare la încărcarea produselor.", products: [], total: 0, source: "error" },
       { status: 500 }
     );
   }

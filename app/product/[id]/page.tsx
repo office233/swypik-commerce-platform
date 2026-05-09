@@ -95,6 +95,43 @@ export default function ProductPage() {
   })();
 
   const handleAddToCart = () => {
+    // Build the cart item matching ChatInterface's format
+    const skuId = (() => {
+      if (selectedColor && selectedSize && colorMap[selectedColor]) {
+        const match = colorMap[selectedColor].sizes.find(s => s.size === selectedSize);
+        if (match) return match.skuId;
+      }
+      return null;
+    })();
+
+    const cartProduct = {
+      id: String(product.id),
+      pgId: product.id,
+      title: product.titleRo || product.title,
+      price: currentPrice,
+      oldPrice: product.oldPrice,
+      images: images,
+      category: product.category || "General",
+      skuId,
+      selectedColor,
+      selectedSize,
+    };
+
+    // Read existing cart from localStorage
+    try {
+      const existing = JSON.parse(localStorage.getItem("aicv_cart") || "[]");
+      const idx = existing.findIndex((item: any) => item.product.pgId === product.id && item.product.skuId === skuId);
+      if (idx >= 0) {
+        existing[idx].qty += qty;
+      } else {
+        existing.push({ product: cartProduct, qty });
+      }
+      localStorage.setItem("aicv_cart", JSON.stringify(existing));
+    } catch (e) {
+      // Fallback: overwrite
+      localStorage.setItem("aicv_cart", JSON.stringify([{ product: cartProduct, qty }]));
+    }
+
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2500);
   };

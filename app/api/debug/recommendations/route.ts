@@ -124,6 +124,12 @@ function analyzeCatalog(products: ReturnType<typeof transformProduct>[]) {
 }
 
 export async function GET(req: Request) {
+  // Block in production unless admin secret is provided
+  const adminSecret = req.headers.get("x-admin-secret");
+  if (process.env.NODE_ENV === "production" && adminSecret !== process.env.ADMIN_DEBUG_SECRET) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   try {
     const url = new URL(req.url);
     const q = String(url.searchParams.get("q") || "").trim();
@@ -170,7 +176,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: any) {
-    console.error("[Recommendation Debug]", error.message);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    console.error("[Recommendation Debug]", error);
+    return NextResponse.json({ ok: false, error: "Eroare internă." }, { status: 500 });
   }
 }

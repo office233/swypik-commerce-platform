@@ -151,7 +151,7 @@ export async function GET(
       })),
     });
   } catch (error: any) {
-    console.error("[Product Detail API]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[Product Detail API]", error);
+    return NextResponse.json({ error: "A apărut o eroare la încărcarea produsului." }, { status: 500 });
   }
 }

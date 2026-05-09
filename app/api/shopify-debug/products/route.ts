@@ -42,7 +42,13 @@ async function shopifyGET(endpoint: string) {
   return text ? JSON.parse(text) : {};
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  // Block in production unless admin secret is provided
+  const adminSecret = req.headers.get("x-admin-secret");
+  if (process.env.NODE_ENV === "production" && adminSecret !== process.env.ADMIN_DEBUG_SECRET) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   try {
     const data = await shopifyGET(
       "products.json?limit=250&status=active&fields=id,title,status,body_html,product_type,vendor,tags,images,variants"
@@ -108,12 +114,12 @@ export async function GET() {
       sampleProducts,
     });
   } catch (error: any) {
-    console.error("[Shopify Debug Products]", error.message);
+    console.error("[Shopify Debug Products]", error);
 
     return NextResponse.json(
       {
         ok: false,
-        error: error.message,
+        error: "Debug endpoint failed.",
       },
       { status: 500 }
     );

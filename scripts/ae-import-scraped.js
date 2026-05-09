@@ -5,10 +5,23 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const { Pool } = require('pg');
+const path = require('path');
 
 const APP_KEY = '533768';
 const APP_SECRET = 'X6aUu7WINyDXsgShb3U1PwPg4RsNGXqG';
-const TOKEN = '50000701515cI1wbirc0OfbGepB17806034tzvfoHwhafyXnd0DoTbyvzyPjROP64VKm';
+
+// Read Token dynamically
+function getAccessToken() {
+  try {
+    const data = JSON.parse(fs.readFileSync(path.join(__dirname, '../ae-token.json'), 'utf8'));
+    return data.access_token;
+  } catch(e) {
+    console.error("❌ Nu am gasit ae-token.json. Ruleaza refreshToken()!");
+    process.exit(1);
+  }
+}
+
+const TOKEN = getAccessToken();
 const NEON_URL = 'postgresql://neondb_owner:npg_SPahbB68xqur@ep-cold-hat-alaqlcr5.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require';
 
 // Load from JSON file or use args

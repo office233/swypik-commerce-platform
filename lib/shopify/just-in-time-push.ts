@@ -23,10 +23,12 @@ export async function ensureOnShopify(pgId: number, price: number, oldPrice: num
   const token = await getShopifyAccessToken();
   const store = process.env.SHOPIFY_STORE!;
 
+  const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   const payload = {
     product: {
       title,
-      body_html: `<p>${title}</p><p>🚚 Transport inclus | ⭐ Produs verificat | 🔒 Checkout securizat</p>`,
+      body_html: `<p>${safeTitle}</p><p>🚚 Transport inclus | ⭐ Produs verificat | 🔒 Checkout securizat</p>`,
       vendor: "AICeVrei",
       product_type: category || "General",
       tags: [category, "aliexpress", "jit-push"].filter(Boolean).join(", "),

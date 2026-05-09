@@ -8,6 +8,7 @@ const path = require('path');
 
 const DOWNLOADS = 'C:/Users/Pos5/Downloads';
 const IMPORT_SCRIPT = path.join(__dirname, 'ae-import-scraped.js');
+const REFRESH_SCRIPT = path.join(__dirname, 'auto-refresh-token.js');
 
 // All files in order (smallest first = fastest categories first)
 const FILES = [
@@ -29,6 +30,15 @@ async function main() {
   console.log(`  ${FILES.length} files | ~22,444 product IDs`);
   console.log('═══════════════════════════════════════════════\n');
 
+  console.log('🔄 Verificăm și reînnoim sesiunea (Access Token)...');
+  try {
+    execSync(`"C:\\Program Files\\nodejs\\node.exe" "${REFRESH_SCRIPT}"`, { stdio: 'inherit' });
+  } catch (e) {
+    console.log('⚠️ Reînnoirea a eșuat, dar încercăm să folosim token-ul curent.');
+  }
+  console.log('');
+
+  let processed = 0;
   let totalImported = 0;
   let totalSkipped = 0;
   const startTime = Date.now();
