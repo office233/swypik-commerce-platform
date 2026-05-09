@@ -184,7 +184,7 @@ export async function cjSearch(
           }],
         };
       })
-      .filter((p: any): p is SupplierProduct => p !== null && p.title.length > 0);
+      .filter((p): p is NonNullable<typeof p> => p !== null && (p as any).title?.length > 0) as SupplierProduct[];
 
     console.log(`[CJ] ✅ ${products.length} products for "${keyword}"`);
     return products;

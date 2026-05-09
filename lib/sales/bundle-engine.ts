@@ -14,21 +14,40 @@ export type BundleProduct = {
   sku?: string;
 };
 
+// Romanian keys → English search terms (product titles in Neon DB are in English)
 const COMPLEMENTARY_TERMS: Record<string, string[]> = {
-  rochie: ["geantă", "bijuterii", "colier", "cercei", "sandale", "parfum"],
-  rochii: ["geantă", "bijuterii", "colier", "cercei", "sandale", "parfum"],
-  geanta: ["portofel", "rochie", "bijuterii", "ochelari"],
-  geantă: ["portofel", "rochie", "bijuterii", "ochelari"],
-  bijuterii: ["rochie", "geantă", "parfum", "cutie cadou"],
-  colier: ["cercei", "brățară", "rochie", "geantă"],
-  beauty: ["ser", "cremă", "makeup", "organizer", "cadou"],
-  skincare: ["ser", "cremă", "cleanser", "makeup", "organizer"],
-  tricou: ["blugi", "hanorac", "șapcă", "ceas"],
-  barbati: ["ceas", "portofel", "tricou", "hanorac"],
-  bărbați: ["ceas", "portofel", "tricou", "hanorac"],
-  casa: ["organizator", "lampă", "decor", "bucătărie"],
-  casă: ["organizator", "lampă", "decor", "bucătărie"],
-  cadou: ["bijuterii", "beauty", "parfum", "accesorii", "cutie cadou"],
+  rochie: ["bag", "jewelry", "necklace", "earrings", "sandals", "perfume", "clutch"],
+  rochii: ["bag", "jewelry", "necklace", "earrings", "sandals", "perfume", "clutch"],
+  dress: ["bag", "jewelry", "necklace", "earrings", "sandals", "perfume", "clutch"],
+  geanta: ["wallet", "dress", "jewelry", "sunglasses", "scarf"],
+  geantă: ["wallet", "dress", "jewelry", "sunglasses", "scarf"],
+  bag: ["wallet", "dress", "jewelry", "sunglasses", "scarf"],
+  bijuterii: ["dress", "bag", "perfume", "gift box", "watch"],
+  jewelry: ["dress", "bag", "perfume", "gift box", "watch"],
+  colier: ["earrings", "bracelet", "dress", "bag", "ring"],
+  necklace: ["earrings", "bracelet", "dress", "bag", "ring"],
+  beauty: ["serum", "cream", "makeup", "organizer", "gift"],
+  skincare: ["serum", "cream", "cleanser", "makeup", "organizer"],
+  tricou: ["jeans", "hoodie", "cap", "watch", "sneakers"],
+  "t-shirt": ["jeans", "hoodie", "cap", "watch", "sneakers"],
+  shirt: ["jeans", "hoodie", "cap", "watch", "sneakers"],
+  barbati: ["watch", "wallet", "t-shirt", "hoodie", "belt"],
+  bărbați: ["watch", "wallet", "t-shirt", "hoodie", "belt"],
+  men: ["watch", "wallet", "t-shirt", "hoodie", "belt"],
+  casa: ["organizer", "lamp", "decor", "kitchen", "storage"],
+  casă: ["organizer", "lamp", "decor", "kitchen", "storage"],
+  home: ["organizer", "lamp", "decor", "kitchen", "storage"],
+  cadou: ["jewelry", "beauty", "perfume", "accessories", "gift box"],
+  gift: ["jewelry", "beauty", "perfume", "accessories", "gift box"],
+  pants: ["belt", "shirt", "shoes", "watch", "jacket"],
+  jeans: ["belt", "t-shirt", "sneakers", "hoodie", "jacket"],
+  shoes: ["bag", "socks", "belt", "dress", "jeans"],
+  sweater: ["scarf", "pants", "boots", "hat", "gloves"],
+  jacket: ["t-shirt", "jeans", "boots", "scarf", "belt"],
+  bikini: ["cover up", "sunglasses", "hat", "sandals", "beach bag"],
+  swimwear: ["cover up", "sunglasses", "hat", "sandals", "beach bag"],
+  pajamas: ["slippers", "robe", "blanket", "pillow", "sleep mask"],
+  lingerie: ["robe", "pajamas", "perfume", "gift box", "stockings"],
 };
 
 function normalize(value: string) {
@@ -51,8 +70,8 @@ export function inferBundleQueries(query: string): string[] {
   if (unique.length > 0) return unique.slice(0, 6);
 
   return [
-    `${query} accesorii`,
-    `${query} cadou`,
+    `${query} accessories`,
+    `${query} gift`,
     `${query} premium`,
   ];
 }

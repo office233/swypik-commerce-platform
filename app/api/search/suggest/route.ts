@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       const cat = (p.category || "").split(" > ")[0];
       if (cat) categories.set(cat, (categories.get(cat) || 0) + 1);
     }
-    for (const [cat, count] of [...categories.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)) {
+    for (const [cat, count] of Array.from(categories.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3)) {
       if (suggestions.length < limit && !seenLabels.has(cat)) {
         suggestions.push({ label: cat, type: "categorie" });
         seenLabels.add(cat);

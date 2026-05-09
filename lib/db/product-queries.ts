@@ -11,10 +11,15 @@ function transformProduct(row: any) {
   const oldPrice = Number(row.old_price_ron) || Math.round(price * 1.5);
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
 
-  // Deterministic social proof from product id
+  // Social proof: use REAL data when available, estimate when not
   const seed = Math.abs(hashCode(`ae_${row.ae_product_id}`));
-  const orders = Number(row.orders_count) || (38 + (seed % 380));
-  const rating = Number(row.rating) || Math.min(5, Math.max(4.3, 4.45 + ((seed % 45) / 100)));
+  const hasRealOrders = row.orders_count != null && Number(row.orders_count) > 0;
+  const hasRealRating = row.rating != null && Number(row.rating) > 0;
+
+  const orders = hasRealOrders ? Number(row.orders_count) : (38 + (seed % 380));
+  const rating = hasRealRating
+    ? Number(Number(row.rating).toFixed(1))
+    : Number(Math.min(5, Math.max(4.3, 4.45 + ((seed % 45) / 100))).toFixed(1));
   const deliveryDays = row.ship_days_min || (2 + (seed % 4));
   const viewers = 7 + (seed % 25);
   const cartAdds = Math.max(3, Math.round(orders * 0.14));
@@ -26,24 +31,41 @@ function transformProduct(row: any) {
     images.push(...row.images.filter((img: string) => img && img !== row.main_image).slice(0, 5));
   }
 
+  // Social proof labels — only show "X vândute" when orders are REAL
+  const socialProofLabel = hasRealOrders && orders > 500
+    ? `${orders}+ comenzi`
+    : hasRealOrders && orders > 100
+      ? `${orders}+ vândute`
+      : hasRealOrders && orders > 10
+        ? `Popular`
+        : undefined;
+
+  const commerceBadge = hasRealOrders && orders > 500 ? "🔥 Se vinde bine"
+    : hasRealRating && rating >= 4.8 && hasRealOrders && orders > 100 ? "⭐ Alegere sigură"
+    : discountPercent >= 30 ? "💰 Super reducere"
+    : undefined;
+
   return {
     id: String(row.id),
     pgId: row.id,
     aeProductId: String(row.ae_product_id),
-    variantId: null,
+    variantId: undefined,
     title: row.title_ro || row.title,
     titleEn: row.title,
     description: row.description ? row.description.replace(/<[^>]*>/g, " ").trim().substring(0, 200) : (row.title_ro || row.title),
     benefits: ["Livrare rapidă în România", "Checkout securizat", "Produs verificat"],
+    whyBuy: "",
+    warnings: [] as string[],
     price,
     oldPrice,
     discountPercent,
     costUsd: Number(row.min_price_usd),
-    rating: Number(rating.toFixed(1)),
+    rating,
     orders,
     deliveryDays,
     viewers,
     cartAdds,
+    isEstimatedSocial: !hasRealOrders,
     images,
     video: row.video_url || null,
     hasVideo: row.has_video || false,
@@ -57,12 +79,8 @@ function transformProduct(row: any) {
     shipMethod: row.ship_method || "",
     shipDaysMin: row.ship_days_min,
     shipDaysMax: row.ship_days_max,
-    socialProofLabel: orders > 500 ? `${orders}+ comenzi` : orders > 100 ? `${orders}+ vândute` : null,
-    commerceBadge: orders > 500 ? "🔥 Se vinde bine"
-      : rating >= 4.8 && orders > 100 ? "⭐ Alegere sigură"
-      : discountPercent >= 30 ? "💰 Super reducere"
-      : cartAdds > 30 ? "🛒 Hot în coș"
-      : null,
+    socialProofLabel,
+    commerceBadge,
     dealLabel: discountPercent >= 20 ? "🔥 Super Deal" : discountPercent >= 10 ? "💰 Preț bun" : "✨ Nou",
     variantsCount: Number(row.variants_count) || 0,
   };

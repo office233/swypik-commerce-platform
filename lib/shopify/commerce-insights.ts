@@ -136,7 +136,7 @@ export function buildProductInsights(orders: ShopifyOrder[], abandonedCheckouts:
     }
   }
 
-  for (const [pairKey] of pairCounts) {
+  for (const [pairKey] of Array.from(pairCounts)) {
     const [a, b] = pairKey.split("::");
     const ia = map.get(a);
     const ib = map.get(b);
@@ -146,7 +146,7 @@ export function buildProductInsights(orders: ShopifyOrder[], abandonedCheckouts:
     }
   }
 
-  for (const insight of map.values()) {
+  for (const insight of Array.from(map.values())) {
     const soldWeight = insight.soldCount * 2;
     const revenueWeight = Math.min(insight.revenue / 100, 50);
     const bundleWeight = insight.coPurchasedWith.length * 3;

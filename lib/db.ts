@@ -18,6 +18,6 @@ export function getDb() {
 }
 
 export async function dbQuery<T = any>(text: string, params: unknown[] = []) {
-  const result = await getDb().query<T>(text, params);
+  const result = await getDb().query(text, params);
   return result;
 }
