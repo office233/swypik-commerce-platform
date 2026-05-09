@@ -269,14 +269,17 @@ export async function POST(req: Request) {
     }
 
     // Non-search intents — but check if we should still search
-    const shoppingWords = ["haine", "rochie", "pantofi", "ceas", "geanta", "bijuterii", "cadou", "vreau", "caut", "arat", "recomand", "ai", "aveti", "ce", "cat", "pret", "setup", "gaming", "monitor", "tastatura", "mouse", "laptop", "kit", "apartament"];
+    const shoppingWords = ["haine", "rochie", "rochii", "pantofi", "ceas", "geanta", "bijuterii", "cadou", "vreau", "caut", "arat", "recomand", "aveti", "pret", "setup", "gaming", "monitor", "tastatura", "mouse", "laptop", "kit", "apartament", "copii", "jucarii", "animale", "caine", "pisica", "sport", "fitness", "auto", "cosmetice", "telefon", "husa", "birou", "scule", "electronice"];
     const looksLikeShopping = shoppingWords.some(w => userMessage.toLowerCase().includes(w));
     
     if (looksLikeShopping && aiResult.intent !== "checkout" && aiResult.intent !== "track_order") {
       // Fallback: search with the user message directly
       const query = aiResult.searchQuery || userMessage;
-      const category = detectCategory(query) || detectCategory(userMessage);
-      const products = await searchPG(query, 16, { category });
+      // Use AI category first, then hardcoded fallback
+      const category = aiResult.category || detectCategory(query) || detectCategory(userMessage);
+      const explicitMax = userMessage.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i)?.[1];
+      const maxPrice = aiResult.maxPrice || (explicitMax ? Number(explicitMax) : undefined);
+      const products = await searchPG(query, 16, { category, maxPrice });
       
       return NextResponse.json({
         intent: aiResult.intent || "search_product",
