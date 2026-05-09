@@ -7,7 +7,9 @@ import { dbQuery } from "@/lib/db";
 
 // ─── Transform DB row → frontend ChatProduct ──────────────────────
 function transformProduct(row: any) {
-  const price = Number(row.price_ron) || 29;
+  const rawPrice = Number(row.price_ron);
+  const hasValidPrice = Number.isFinite(rawPrice) && rawPrice > 0;
+  const price = hasValidPrice ? rawPrice : 29; // fallback for UI display only
   const oldPrice = Number(row.old_price_ron) || Math.round(price * 1.5);
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
 
@@ -66,6 +68,7 @@ function transformProduct(row: any) {
     viewers,
     cartAdds,
     isEstimatedSocial: !hasRealOrders,
+    hasValidPrice,
     images,
     video: row.video_url || null,
     hasVideo: row.has_video || false,
@@ -228,6 +231,48 @@ export async function getProductById(pgId: number) {
   );
   if (rows.length === 0) return null;
   return transformProduct(rows[0]);
+}
+
+// ─── Get product by AliExpress ID ────────────────────────────────
+
+/**
+ * Checkout-safe product lookup — NO price fallback.
+ * Returns null if product doesn't exist or has invalid pricing.
+ * Use this for /api/cart instead of getProductById.
+ */
+export async function getCheckoutProductById(pgId: number) {
+  const { rows } = await dbQuery(
+    `SELECT p.id, p.ae_product_id, p.title, p.title_ro, p.price_ron, p.old_price_ron,
+            p.main_image, p.images, c.name as category_name
+     FROM ae_products p
+     LEFT JOIN ae_categories c ON c.ae_category_id = p.category_id
+     WHERE p.id = $1`, [pgId]
+  );
+  if (rows.length === 0) return null;
+
+  const row = rows[0];
+  const priceRon = Number(row.price_ron);
+
+  if (!Number.isFinite(priceRon) || priceRon <= 0) {
+    console.warn(`[Checkout] Product ${pgId} has invalid price_ron: ${row.price_ron}`);
+    return null;
+  }
+
+  const images: string[] = [];
+  if (row.main_image) images.push(row.main_image);
+  if (row.images && Array.isArray(row.images)) {
+    images.push(...row.images.filter((img: string) => img && img !== row.main_image).slice(0, 3));
+  }
+
+  return {
+    pgId: row.id,
+    aeProductId: String(row.ae_product_id),
+    title: row.title_ro || row.title,
+    price: priceRon,
+    oldPrice: Number(row.old_price_ron) || Math.round(priceRon * 1.3),
+    image: images[0] || undefined,
+    category: row.category_name || "General",
+  };
 }
 
 // ─── Get product by AliExpress ID ────────────────────────────────

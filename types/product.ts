@@ -46,4 +46,5 @@ export type Product = {
   shipDaysMin?: number;
   shipDaysMax?: number;
   variantsCount?: number;
+  hasValidPrice?: boolean;
 };

@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { ensureOnShopify } from "@/lib/shopify/just-in-time-push";
 import { createNativeCheckout } from "@/lib/shopify/storefront-checkout";
-import { getProductById } from "@/lib/db/product-queries";
+import { getCheckoutProductById } from "@/lib/db/product-queries";
 import { dbQuery } from "@/lib/db";
 
 // ── Input validation helpers ──
@@ -75,26 +75,22 @@ export async function POST(req: Request) {
       const qty = parsePositiveInt(item.quantity, 1, 10);
 
       // ── ALWAYS fetch product data from Neon DB (never trust client) ──
-      const pgProduct = await getProductById(pgId);
+      const pgProduct = await getCheckoutProductById(pgId);
       if (!pgProduct) {
-        console.warn(`[Cart v3] Product ${pgId} not found in Neon`);
-        continue;
+        console.warn(`[Cart v3] Product ${pgId} not found or has invalid pricing`);
+        return NextResponse.json(
+          { success: false, error: "Produsul nu este disponibil pentru checkout." },
+          { status: 400 }
+        );
       }
 
       const title = pgProduct.title;
       const price = pgProduct.price;
       const oldPrice = pgProduct.oldPrice;
-      const image = pgProduct.images?.[0];
+      const image = pgProduct.image;
       const category = pgProduct.category;
 
-      // ── Reject checkout if product has fallback/invalid price ──
-      if (!Number.isFinite(price) || price <= 0 || price === 29) {
-        console.warn(`[Cart v3] Product ${pgId} has invalid checkout price: ${price}`);
-        return NextResponse.json(
-          { success: false, error: `Produsul "${title}" nu are un preț valid. Te rugăm să-l elimini din coș.` },
-          { status: 400 }
-        );
-      }
+
 
       // ── Resolve variant if skuId provided ──
       let variantPrice = price;
