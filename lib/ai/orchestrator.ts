@@ -154,16 +154,16 @@ const RO_TO_EN: Record<string, string> = {
   "femei": "women",
   "copii": "kids children",
   // Gaming & Tech
-  "gaming": "gaming keyboard mouse headset monitor",
-  "setup": "setup desk monitor keyboard mouse",
-  "tastatura": "keyboard mechanical",
-  "monitor": "monitor display screen",
-  "mouse": "mouse gaming wireless",
-  "birou": "desk office table",
-  "lumini": "led light strip lamp",
-  "pc": "computer desktop accessories",
-  "calculator": "computer desktop",
-  "consola": "console controller gamepad",
+  "gaming": "gaming",
+  "setup": "keyboard",
+  "tastatura": "keyboard",
+  "monitor": "monitor",
+  "mouse": "mouse",
+  "birou": "desk",
+  "lumini": "led light",
+  "pc": "computer",
+  "calculator": "computer",
+  "consola": "gamepad",
 };
 
 function translateQuery(query: string): string {
@@ -271,7 +271,13 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
   if (greetKeywords.some((k) => msg.includes(k))) return { intent: "general_chat", reply: "Salut! Spune-mi ce cauti, ce buget ai si ce stil vrei. Am 108.000+ produse si iti fac rapid un bundle bun. ✨", shouldAskFollowUp: true };
   
   // Translate Romanian query to English for searchQuery
-  const translatedQuery = translateQuery(message);
-  const budgetText = shoppingSession.budgetLabel ? ` in bugetul tau de ${shoppingSession.budgetLabel}` : "";
-  return { intent: "search_product", reply: `Perfect, caut variante potrivite${budgetText} si iti pregatesc idei de bundle. 🔥`, searchQuery: translatedQuery, bundleQueries: [translatedQuery + " accessories", translatedQuery + " gift"], shouldAskFollowUp: true };
+  const cleanedMsg = message
+    .replace(/sub\s*\d{2,5}/gi, "").replace(/maxim\s*\d{2,5}/gi, "")
+    .replace(/pana la\s*\d{2,5}/gi, "").replace(/\d{2,5}\s*(lei|ron)/gi, "")
+    .replace(/complet/gi, "").replace(/\s+/g, " ").trim();
+  const translatedQuery = translateQuery(cleanedMsg || message);
+  const maxPriceMatch = message.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i);
+  const maxPrice = maxPriceMatch ? Number(maxPriceMatch[1]) : undefined;
+  const budgetText = maxPrice ? ` in bugetul tau de maxim ${maxPrice} lei` : (shoppingSession.budgetLabel ? ` in bugetul tau de ${shoppingSession.budgetLabel}` : "");
+  return { intent: "search_product", reply: `Perfect, caut variante potrivite${budgetText} si iti pregatesc idei de bundle. 🔥`, searchQuery: translatedQuery, bundleQueries: [translatedQuery + " accessories", translatedQuery + " gift"], maxPrice, shouldAskFollowUp: true };
 }
