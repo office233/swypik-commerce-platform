@@ -39,3 +39,5 @@ ae-data-dump.json
 
 # Chrome extension (local dev tool)
 chrome-extension/
+
+.vercel
