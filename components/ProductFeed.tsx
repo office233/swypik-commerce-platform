@@ -213,13 +213,22 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
         const overlay = aiOverlay(product);
         const hasWorkingVideo = product.video && !videoErrors[product.id];
         const loadVideo = shouldLoadVideo(pIdx);
+        const isCurrentCard = pIdx === currentIdx;
 
         return (
           <div key={product.id} data-feed-idx={pIdx} className="feed-card">
 
-            {/* ─── Full-screen media — LAZY: only render <video> for current ± 1 ─── */}
+            {/* ─── Full-screen media — poster always visible, video lazy on top ─── */}
             <div className="feed-media" onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
-              {hasWorkingVideo && loadVideo ? (
+              {/* Poster image — always rendered, loads fast (~50KB) */}
+              <img
+                src={product.images?.[0] || ""}
+                alt={product.title}
+                loading={pIdx < 3 ? "eager" : "lazy"}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              {/* Video — layered on top, only for current ± 1 */}
+              {hasWorkingVideo && loadVideo && (
                 <video
                   ref={(el) => { if (el) videoMapRef.current[product.id] = el; }}
                   src={product.video!}
@@ -227,16 +236,12 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   loop
                   muted={isMuted}
                   playsInline
-                  preload={pIdx === currentIdx ? "auto" : "none"}
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-cover"
                   onError={() => setVideoErrors(p => ({ ...p, [product.id]: true }))}
                 />
-              ) : (
-                <img
-                  src={product.images?.[0] || ""}
-                  alt={product.title}
-                  loading={pIdx < 2 ? "eager" : "lazy"}
-                />
               )}
+              {/* Play icon for cards not yet loaded */}
               {hasWorkingVideo && !loadVideo && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="grid h-14 w-14 place-items-center rounded-full bg-white/20 backdrop-blur-sm">
