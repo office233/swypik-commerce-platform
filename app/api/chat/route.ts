@@ -119,6 +119,9 @@ const CATEGORY_MAP: Record<string, string> = {
   "birou": "Computer & Office", "imprimanta": "Computer & Office",
   "usb": "Computer & Office", "ssd": "Computer & Office",
   "monitor": "Computer & Office",
+  "gaming": "Computer & Office", "setup": "Computer & Office",
+  "pc": "Computer & Office", "calculator": "Computer & Office",
+  "consola": "Consumer Electronics", "controller": "Consumer Electronics",
 };
 
 function detectCategory(query: string): string | undefined {
@@ -209,10 +212,26 @@ export async function POST(req: Request) {
     const aiResult = await orchestrate(userMessage, chatHistory, productContext, baseSession);
     const shoppingSession = updateShoppingSession(baseSession, userMessage, aiResult.intent);
 
+    if (aiResult.intent === "compare_products") {
+      // Return comparison text without searching for new products
+      return NextResponse.json({
+        intent: "compare_products",
+        reply: aiResult.reply,
+        products: [],
+        bundleProducts: [],
+        productId: aiResult.productId,
+        productTitle: aiResult.productTitle,
+        shoppingSession,
+        sessionId: sessionId || crypto.randomUUID(),
+      });
+    }
+
     if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper" || aiResult.intent === "refine_search") {
       const query = aiResult.searchQuery || userMessage;
       const category = detectCategory(query) || detectCategory(userMessage);
-      const maxPrice = aiResult.maxPrice || (shoppingSession.priceSensitivity === "high" ? shoppingSession.budget : undefined);
+      // Extract maxPrice from initial queries like "sub 4000 lei" even when intent is search_product
+      const explicitMax = userMessage.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i)?.[1];
+      const maxPrice = aiResult.maxPrice || (explicitMax ? Number(explicitMax) : undefined) || (shoppingSession.priceSensitivity === "high" ? shoppingSession.budget : undefined);
       
       // For refine_search: exclude products user already saw
       const excludeIds = aiResult.intent === "refine_search" ? (aiResult.excludeIds || productContext.map((p: any) => String(p.id))) : undefined;
@@ -249,7 +268,7 @@ export async function POST(req: Request) {
     }
 
     // Non-search intents — but check if we should still search
-    const shoppingWords = ["haine", "rochie", "pantofi", "ceas", "geanta", "bijuterii", "cadou", "vreau", "caut", "arat", "recomand", "ai", "aveti", "ce", "cat", "pret"];
+    const shoppingWords = ["haine", "rochie", "pantofi", "ceas", "geanta", "bijuterii", "cadou", "vreau", "caut", "arat", "recomand", "ai", "aveti", "ce", "cat", "pret", "setup", "gaming", "monitor", "tastatura", "mouse", "laptop", "kit", "apartament"];
     const looksLikeShopping = shoppingWords.some(w => userMessage.toLowerCase().includes(w));
     
     if (looksLikeShopping && aiResult.intent !== "checkout" && aiResult.intent !== "track_order") {

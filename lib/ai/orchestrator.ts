@@ -84,9 +84,18 @@ Return ONLY valid JSON, no markdown:
   "shouldAskFollowUp": true
 }`;
 
-function detectCheaperIntent(message: string) {
+function detectCheaperIntent(message: string, hasProductContext: boolean) {
   const msg = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return /scump|prea mult|mai ieftin|ieftin|buget|sub\s*\d+|maxim\s*\d+|pana la\s*\d+|alternativa|alternative/.test(msg);
+  // Strong cheaper signals — always trigger
+  if (/scump|prea mult|mai ieftin|ieftin|alternativa|alternative/.test(msg)) return true;
+  // Budget signals (sub X, maxim X) — only trigger if user already has product context (refinement, not initial search)
+  if (hasProductContext && /buget|sub\s*\d+|maxim\s*\d+|pana la\s*\d+/.test(msg)) return true;
+  return false;
+}
+
+function detectCompareIntent(message: string) {
+  const msg = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return /compar|compara|versus|vs|diferenta|diferente|asta sau|care e mai|primele 2|top 2/.test(msg);
 }
 
 function detectRefineIntent(message: string) {
@@ -144,6 +153,17 @@ const RO_TO_EN: Record<string, string> = {
   "barbati": "men",
   "femei": "women",
   "copii": "kids children",
+  // Gaming & Tech
+  "gaming": "gaming keyboard mouse headset monitor",
+  "setup": "setup desk monitor keyboard mouse",
+  "tastatura": "keyboard mechanical",
+  "monitor": "monitor display screen",
+  "mouse": "mouse gaming wireless",
+  "birou": "desk office table",
+  "lumini": "led light strip lamp",
+  "pc": "computer desktop accessories",
+  "calculator": "computer desktop",
+  "consola": "console controller gamepad",
 };
 
 function translateQuery(query: string): string {
@@ -169,8 +189,29 @@ function cleanCheaperQuery(message: string) {
 }
 
 export async function orchestrate(userMessage: string, chatHistory: { role: "user" | "assistant"; content: string }[] = [], productContext: any[] = [], shoppingSession: ShoppingSession = {}): Promise<OrchestratorResult> {
-  const hardCheaper = detectCheaperIntent(userMessage);
+  const hasProductContext = productContext.length > 0;
+  const hardCheaper = detectCheaperIntent(userMessage, hasProductContext);
   const hardMaxPrice = extractMaxPrice(userMessage, productContext);
+
+  // ─── COMPARE DETECTION ───
+  const hardCompare = detectCompareIntent(userMessage);
+  if (hardCompare && hasProductContext && productContext.length >= 2) {
+    const p1 = productContext[0];
+    const p2 = productContext[1];
+    const winner = (p1.rating || 0) > (p2.rating || 0) ? p1 : (p1.price || 999) < (p2.price || 999) ? p1 : p2;
+    return {
+      intent: "compare_products",
+      reply: `⚖️ **Comparație rapidă:**\n\n` +
+        `**1. ${p1.title?.slice(0, 50)}**\n` +
+        `   💰 ${p1.price} lei | ⭐ ${p1.rating || '?'} | 📦 ${p1.orders || 0}+ comenzi\n\n` +
+        `**2. ${p2.title?.slice(0, 50)}**\n` +
+        `   💰 ${p2.price} lei | ⭐ ${p2.rating || '?'} | 📦 ${p2.orders || 0}+ comenzi\n\n` +
+        `🏆 **Recomandare AI:** ${winner.title?.slice(0, 40)} — ${winner === p1 ? 'preț/calitate mai bun' : 'raport calitate-preț superior'}. Vrei să-l adaugi în coș?`,
+      productId: winner.id,
+      productTitle: winner.title,
+      shouldAskFollowUp: true,
+    };
+  }
 
   if (hardCheaper) {
     const baseQuery = cleanCheaperQuery(userMessage) || productContext[0]?.category || translateQuery(userMessage);
