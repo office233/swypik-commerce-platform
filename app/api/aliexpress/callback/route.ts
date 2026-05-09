@@ -1,10 +1,16 @@
 /**
  * AliExpress OAuth Callback
- * Receives authorization code after seller authorizes the app
+ * Disabled in production — only active during local development
+ * for initial token exchange.
  */
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
+  // Block in production — this endpoint is only for local dev token exchange
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
 
@@ -12,16 +18,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No authorization code received" }, { status: 400 });
   }
 
-  // Log the code for now — will exchange for access_token later
-  console.log("[AliExpress OAuth] Authorization code received:", code);
-
-  // TODO: Exchange code for access_token using:
-  // POST https://api-sg.aliexpress.com/rest
-  // with app_key, app_secret, code, grant_type=authorization_code
+  // In development, log a safe indicator (not the full code)
+  console.log("[AliExpress OAuth] Code received:", code.slice(0, 6) + "***");
 
   return NextResponse.json({
     success: true,
-    message: "AliExpress authorization received! Code will be exchanged for access token.",
-    code: code.slice(0, 8) + "...",
+    message: "Authorization code received. Exchange it locally.",
+    codePrefix: code.slice(0, 6) + "...",
   });
 }

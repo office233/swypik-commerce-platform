@@ -17,7 +17,16 @@ type JITResult = {
   price: number;
 };
 
-export async function ensureOnShopify(pgId: number, price: number, oldPrice: number, title: string, image?: string, category?: string): Promise<JITResult> {
+export async function ensureOnShopify(
+  pgId: number,
+  price: number,
+  oldPrice: number,
+  title: string,
+  image?: string,
+  category?: string,
+  skuId?: string,
+  stock?: number,
+): Promise<JITResult> {
   // 1. Create on Shopify (always fresh — no caching old Shopify IDs)
   console.log(`[JIT] Creating product ${pgId} on Shopify...`);
   const token = await getShopifyAccessToken();
@@ -37,9 +46,9 @@ export async function ensureOnShopify(pgId: number, price: number, oldPrice: num
       variants: [{
         price: String(price),
         compare_at_price: oldPrice > price ? String(oldPrice) : null,
-        sku: `AE-${pgId}`,
+        sku: skuId ? `AE-${pgId}-${skuId}` : `AE-${pgId}`,
         inventory_management: "shopify",
-        inventory_quantity: 999,
+        inventory_quantity: Math.max(1, Math.min(stock ?? 1, 999)),
         requires_shipping: true,
       }],
     },

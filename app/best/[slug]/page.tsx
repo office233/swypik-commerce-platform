@@ -25,7 +25,7 @@ const SEO_PAGES: Record<string, {
     title: "Cele mai frumoase rochii de vară 2026 — AICeVrei",
     h1: "👗 Cele mai frumoase rochii de vară",
     description: "Rochii de vară trendy selectate de AI. Calitate verificată, stil actual și livrare în România.",
-    intro: "Am analizat mii de rochii și le-am filtrat pe cele cu cel mai bun raport calitate-preț. Fiecare are rating 4.5+ și recenzii reale de la cumpărători.",
+    intro: "Am analizat mii de rochii și le-am filtrat pe cele cu cel mai bun raport calitate-preț. Fiecare are rating ridicat și scoruri de popularitate verificate din catalog.",
     search: "dress summer",
   },
   "outfit-complet": {
@@ -39,7 +39,7 @@ const SEO_PAGES: Record<string, {
     title: "Cadouri sub 200 lei — Idei creative 2026 — AICeVrei",
     h1: "🎁 Cadouri sub 200 lei — Idei creative",
     description: "Idei de cadouri sub 200 lei selectate de AI. Originale, calitative și cu livrare rapidă în România.",
-    intro: "Nu știi ce cadou să alegi? AI-ul nostru a selectat cele mai apreciate produse sub 200 lei — originale și cu recenzii reale.",
+    intro: "Nu știi ce cadou să alegi? AI-ul nostru a selectat cele mai apreciate produse sub 200 lei — originale și cu scor de popularitate ridicat.",
     search: "top",
     maxPrice: 200,
   },
@@ -145,7 +145,7 @@ export default async function BestPage({ params }: Props) {
                 <h3 className="text-sm font-bold text-[#0D0D0D] line-clamp-2">{p.title}</h3>
                 <div className="mt-1 flex items-center gap-2 text-[11px] text-[#6E6E80]">
                   <span className="text-[#F59E0B]">★ {p.rating}</span>
-                  <span>{p.orders}+ comenzi</span>
+                  {p.socialProofLabel && <span>{p.socialProofLabel}</span>}
                 </div>
                 <div className="mt-1.5 flex items-end gap-2">
                   <span className="text-lg font-black text-[#10A37F]">{p.price} lei</span>
@@ -177,7 +177,7 @@ export default async function BestPage({ params }: Props) {
           <h2 className="text-xl font-black text-[#0D0D0D]">Întrebări frecvente</h2>
           <details className="rounded-xl border border-[#E5E5E5] bg-white p-4">
             <summary className="font-bold text-sm cursor-pointer">Cum selectează AI-ul produsele?</summary>
-            <p className="mt-2 text-sm text-[#6E6E80]">AI-ul analizează rating-ul, numărul de comenzi, prețul și feedback-ul real al cumpărătorilor pentru a identifica produsele cu cel mai bun raport calitate-preț.</p>
+            <p className="mt-2 text-sm text-[#6E6E80]">AI-ul analizează datele de catalog — preț, categorie, disponibilitate și scoruri de popularitate — pentru a identifica produsele cu cel mai bun raport calitate-preț.</p>
           </details>
           <details className="rounded-xl border border-[#E5E5E5] bg-white p-4">
             <summary className="font-bold text-sm cursor-pointer">Se livrează în România?</summary>

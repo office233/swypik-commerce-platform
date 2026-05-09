@@ -87,9 +87,19 @@ export async function POST(req: Request) {
       const image = pgProduct.images?.[0];
       const category = pgProduct.category;
 
+      // ── Reject checkout if product has fallback/invalid price ──
+      if (!Number.isFinite(price) || price <= 0 || price === 29) {
+        console.warn(`[Cart v3] Product ${pgId} has invalid checkout price: ${price}`);
+        return NextResponse.json(
+          { success: false, error: `Produsul "${title}" nu are un preț valid. Te rugăm să-l elimini din coș.` },
+          { status: 400 }
+        );
+      }
+
       // ── Resolve variant if skuId provided ──
       let variantPrice = price;
       let variantLabel = "";
+      let variantStock: number | undefined = undefined;
       if (item.skuId) {
         try {
           const { rows } = await dbQuery(
@@ -108,6 +118,7 @@ export async function POST(req: Request) {
           if (Number(v.price_ron) > 0) variantPrice = Number(v.price_ron);
           if (v.color) variantLabel += v.color;
           if (v.size) variantLabel += (variantLabel ? " / " : "") + v.size;
+          if (v.stock != null) variantStock = Number(v.stock);
           // Check stock
           if (v.stock !== null && v.stock <= 0) {
             console.warn(`[Cart v3] Variant ${item.skuId} is out of stock`);
@@ -124,7 +135,7 @@ export async function POST(req: Request) {
 
       // ── JIT push to Shopify with SERVER-VERIFIED data only ──
       const jitTitle = variantLabel ? `${title} (${variantLabel})` : title;
-      const result = await ensureOnShopify(pgId, variantPrice, oldPrice, jitTitle, image, category);
+      const result = await ensureOnShopify(pgId, variantPrice, oldPrice, jitTitle, image, category, item.skuId ? String(item.skuId) : undefined, variantStock);
       lineItems.push({ variantId: result.variantId, quantity: qty });
       console.log(`[Cart v3] ✅ ${jitTitle} → variant ${result.variantId} @ ${variantPrice} RON`);
     }

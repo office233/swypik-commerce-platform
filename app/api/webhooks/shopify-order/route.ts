@@ -17,8 +17,19 @@ export async function POST(req: Request) {
     const hmacHeader = req.headers.get("x-shopify-hmac-sha256");
     const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
+    // Fail-closed: reject if webhook secret is not configured in production
+    if (process.env.NODE_ENV === "production" && !webhookSecret) {
+      console.error("[Webhook] ❌ SHOPIFY_WEBHOOK_SECRET not configured");
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+    }
+
     // Verify HMAC signature
-    if (webhookSecret && hmacHeader) {
+    if (webhookSecret) {
+      if (!hmacHeader) {
+        console.warn("[Webhook] ❌ Missing HMAC header");
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
       const digest = createHmac("sha256", webhookSecret)
         .update(rawBody, "utf8")
         .digest("base64");
@@ -30,10 +41,6 @@ export async function POST(req: Request) {
         console.warn("[Webhook] ❌ HMAC verification failed");
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-    } else if (process.env.NODE_ENV === "production" && webhookSecret) {
-      // In production with a secret configured, reject unsigned requests
-      console.warn("[Webhook] ❌ Missing HMAC header");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = JSON.parse(rawBody);
