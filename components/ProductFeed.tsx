@@ -122,15 +122,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           const idx = Number(entry.target.getAttribute("data-feed-idx"));
           if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
             setCurrentIdx(idx);
-            // Play current, pause all others
-            const product = products[idx];
-            if (product) {
-              const video = videoMapRef.current[product.id];
-              if (video) {
-                video.muted = isMuted;
-                video.play().catch(() => {});
-              }
-            }
           } else {
             const product = products[idx];
             if (product) {
@@ -144,7 +135,23 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     );
     cards.forEach(el => obs.observe(el));
     return () => obs.disconnect();
-  }, [products, isMuted]);
+  }, [products]);
+
+  // Play the current video whenever currentIdx changes (handles new videos from lazy load)
+  useEffect(() => {
+    const product = products[currentIdx];
+    if (!product) return;
+    // Small delay to let the video element mount from shouldLoadVideo
+    const timer = setTimeout(() => {
+      const video = videoMapRef.current[product.id];
+      if (video) {
+        video.muted = isMuted;
+        video.currentTime = 0;
+        video.play().catch(() => {});
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [currentIdx, products.length]);
 
   // Sync muted state
   useEffect(() => {
@@ -173,16 +180,21 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   // Aggressive prefetch: when currentIdx changes, start downloading next 3 videos in background
   useEffect(() => {
     const prefetchVideos = () => {
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= 5; i++) {
         const nextProduct = products[currentIdx + i];
         if (nextProduct?.video && !videoErrors[nextProduct.id]) {
-          // Use fetch to warm CDN cache and browser cache
-          fetch(nextProduct.video, { mode: "no-cors", priority: i === 1 ? "high" : "low" as any }).catch(() => {});
+          fetch(nextProduct.video, { mode: "no-cors", priority: i <= 2 ? "high" : "low" as any }).catch(() => {});
         }
       }
     };
     // Small delay so current video starts first
-    const timer = setTimeout(prefetchVideos, 500);
+    const timer = setTimeout(prefetchVideos, 300);
+
+    // Trigger loadMore when 5 cards from the end
+    if (onLoadMore && currentIdx >= products.length - 5) {
+      onLoadMore();
+    }
+
     return () => clearTimeout(timer);
   }, [currentIdx, products]);
 
@@ -252,8 +264,9 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   loop
                   muted={isMuted}
                   playsInline
-                  preload="metadata"
+                  preload={isCurrentCard ? "auto" : "metadata"}
                   className="absolute inset-0 h-full w-full object-cover"
+                  onCanPlay={(e) => { if (isCurrentCard) (e.target as HTMLVideoElement).play().catch(() => {}); }}
                   onError={() => setVideoErrors(p => ({ ...p, [product.id]: true }))}
                 />
               )}
