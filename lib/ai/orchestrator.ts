@@ -105,8 +105,10 @@ function detectCheaperIntent(message: string, hasProductContext: boolean) {
   const msg = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   // Strong cheaper signals — always trigger
   if (/scump|prea mult|mai ieftin|ieftin|alternativa|alternative/.test(msg)) return true;
-  // Budget signals (sub X, maxim X) — only trigger if user already has product context (refinement, not initial search)
-  if (hasProductContext && /buget|sub\s*\d+|maxim\s*\d+|pana la\s*\d+/.test(msg)) return true;
+  // Budget signals (sub X, maxim X) — only trigger if user already has product context
+  // BUT NOT if user is clearly switching to a new category/topic
+  const categorySwitch = /gaming|setup|monitor|tastatura|laptop|bijuterii|ceas|geanta|pantofi|copii|jucarii|animale|caine|pisica|sport|fitness|auto|cosmetice|telefon|birou|scule|electronice|apartament|kit/.test(msg);
+  if (hasProductContext && !categorySwitch && /buget|sub\s*\d+|maxim\s*\d+|pana la\s*\d+/.test(msg)) return true;
   return false;
 }
 
