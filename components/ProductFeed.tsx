@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Heart, MessageCircle, Package, Play, ShoppingCart, Star, Truck, Volume2, VolumeX, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -41,26 +41,22 @@ type Props = {
   isLoading: boolean;
 };
 
-function aiOverlay(product: FeedProduct) {
-  if (product.commerceBadge) return product.commerceBadge;
-  if (product.discountPercent >= 20) return "🔥 Deal bun";
-  if (product.rating >= 4.8) return "⚡ Top calitate";
-  if ((product.orders || 0) > 250) return "🛒 Popular";
+function aiOverlay(p: FeedProduct) {
+  if (p.commerceBadge) return p.commerceBadge;
+  if (p.discountPercent >= 20) return "🔥 Deal bun";
+  if (p.rating >= 4.8) return "⚡ Top calitate";
+  if ((p.orders || 0) > 250) return "🛒 Popular";
   return "✨ AI Pick";
 }
 
-function getRealLikes(product: FeedProduct) {
-  if (product.likes) return product.likes;
-  const seed = product.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const base = product.orders ? Math.floor(product.orders * 0.35) : seed;
-  return base + (seed % 150);
+function getRealLikes(p: FeedProduct) {
+  const seed = p.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return p.likes || Math.floor((p.orders || 40) * 0.35) + (seed % 150);
 }
 
-function getRealComments(product: FeedProduct) {
-  if (product.commentCount) return product.commentCount;
-  const seed = product.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const base = product.orders ? Math.floor(product.orders * 0.04) : Math.floor(seed / 10);
-  return base + (seed % 30);
+function getRealComments(p: FeedProduct) {
+  const seed = p.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return p.commentCount || Math.floor((p.orders || 10) * 0.04) + (seed % 30);
 }
 
 export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose, isLoading }: Props) {
@@ -68,8 +64,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [likes, setLikes] = useState<Record<string, boolean>>({});
   const [heartBurst, setHeartBurst] = useState<string | null>(null);
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
-  const [isMuted, setIsMuted] = useState(true); // start muted for autoplay policy
-  const [liveViewers, setLiveViewers] = useState<Record<string, number>>({});
+  const [isMuted, setIsMuted] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const videoMapRef = useRef<Record<string, HTMLVideoElement>>({});
@@ -78,15 +73,13 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [showComments, setShowComments] = useState<string | null>(null);
   const hasInteractedRef = useRef(false);
 
-  // Auto-unmute on first user tap (browser requires user gesture for sound)
+  // Auto-unmute on first user tap
   useEffect(() => {
     const unmute = () => {
       if (hasInteractedRef.current) return;
       hasInteractedRef.current = true;
       setIsMuted(false);
       Object.values(videoMapRef.current).forEach(v => { v.muted = false; });
-      document.removeEventListener("touchstart", unmute);
-      document.removeEventListener("click", unmute);
     };
     document.addEventListener("touchstart", unmute, { once: true });
     document.addEventListener("click", unmute, { once: true });
@@ -96,36 +89,17 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     };
   }, []);
 
-  // Dynamic live viewers that change every 4-8 seconds
+  // Dynamic live viewer count for current card only
+  const [viewers, setViewers] = useState(12);
   useEffect(() => {
-    // Initialize viewers
-    const initial: Record<string, number> = {};
-    products.forEach(p => {
-      initial[p.id] = 5 + Math.floor(Math.random() * 35);
-    });
-    setLiveViewers(initial);
+    setViewers(5 + Math.floor(Math.random() * 35));
+    const iv = setInterval(() => {
+      setViewers(v => Math.max(3, Math.min(52, v + Math.floor(Math.random() * 7) - 3)));
+    }, 5000);
+    return () => clearInterval(iv);
+  }, [currentIdx]);
 
-    const interval = setInterval(() => {
-      setLiveViewers(prev => {
-        const next = { ...prev };
-        // Update 2-4 random products each tick
-        const count = 2 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < count; i++) {
-          const pIdx = Math.floor(Math.random() * products.length);
-          const p = products[pIdx];
-          if (!p) continue;
-          const current = next[p.id] || 15;
-          const delta = Math.floor(Math.random() * 7) - 3; // -3 to +3
-          next[p.id] = Math.max(3, Math.min(52, current + delta));
-        }
-        return next;
-      });
-    }, 4000 + Math.random() * 4000);
-
-    return () => clearInterval(interval);
-  }, [products]);
-
-  // Infinite scroll
+  // Infinite scroll — trigger loadMore when 3 cards from the end
   useEffect(() => {
     if (!sentinelRef.current || !onLoadMore) return;
     const obs = new IntersectionObserver(
@@ -136,45 +110,50 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     return () => obs.disconnect();
   }, [onLoadMore, products.length]);
 
-  // Auto-play/pause videos based on visibility
+  // Auto-play/pause videos based on visibility — only current card plays
   useEffect(() => {
     if (!scrollRef.current) return;
-    const container = scrollRef.current;
-    const cards = container.querySelectorAll("[data-feed-idx]");
+    const cards = scrollRef.current.querySelectorAll("[data-feed-idx]");
     if (cards.length === 0) return;
 
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           const idx = Number(entry.target.getAttribute("data-feed-idx"));
-          const product = products[idx];
-          if (!product) return;
-          const video = videoMapRef.current[product.id];
-          if (!video) return;
-
           if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-            video.muted = isMuted;
-            video.play().catch(() => {});
             setCurrentIdx(idx);
+            // Play current, pause all others
+            const product = products[idx];
+            if (product) {
+              const video = videoMapRef.current[product.id];
+              if (video) {
+                video.muted = isMuted;
+                video.play().catch(() => {});
+              }
+            }
           } else {
-            video.pause();
+            const product = products[idx];
+            if (product) {
+              const video = videoMapRef.current[product.id];
+              if (video) video.pause();
+            }
           }
         });
       },
-      { root: container, threshold: [0, 0.6] }
+      { root: scrollRef.current, threshold: [0, 0.6] }
     );
-    cards.forEach((el) => obs.observe(el));
+    cards.forEach(el => obs.observe(el));
     return () => obs.disconnect();
   }, [products, isMuted]);
 
-  // Update muted state on all videos when toggled
+  // Sync muted state
   useEffect(() => {
     Object.values(videoMapRef.current).forEach(v => { v.muted = isMuted; });
   }, [isMuted]);
 
   const toggleLike = (id: string) => {
     try { navigator?.vibrate?.(40); } catch(e) {}
-    setLikes((prev) => ({ ...prev, [id]: !prev[id] }));
+    setLikes(prev => ({ ...prev, [id]: !prev[id] }));
     if (!likes[id]) {
       setHeartBurst(id);
       setTimeout(() => setHeartBurst(null), 900);
@@ -187,6 +166,9 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     setAddedToCart(product.id);
     setTimeout(() => setAddedToCart(null), 2000);
   };
+
+  // Should we render a <video> for this index? Only current ± 1
+  const shouldLoadVideo = (idx: number) => Math.abs(idx - currentIdx) <= 1;
 
   if (isLoading && products.length === 0) {
     return (
@@ -219,28 +201,25 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
             <ArrowLeft size={20} />
           </button>
         )}
-        <div className="flex items-center gap-2">
-          {/* Mute/unmute */}
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform"
-          >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-        </div>
+        <button
+          onClick={() => setIsMuted(!isMuted)}
+          className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform"
+        >
+          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
       </div>
 
       {products.map((product, pIdx) => {
         const overlay = aiOverlay(product);
         const hasWorkingVideo = product.video && !videoErrors[product.id];
-        const viewers = liveViewers[product.id] || 15;
+        const loadVideo = shouldLoadVideo(pIdx);
 
         return (
           <div key={product.id} data-feed-idx={pIdx} className="feed-card">
 
-            {/* ─── Full-screen media ─── */}
+            {/* ─── Full-screen media — LAZY: only render <video> for current ± 1 ─── */}
             <div className="feed-media" onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
-              {hasWorkingVideo ? (
+              {hasWorkingVideo && loadVideo ? (
                 <video
                   ref={(el) => { if (el) videoMapRef.current[product.id] = el; }}
                   src={product.video!}
@@ -248,19 +227,26 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   loop
                   muted={isMuted}
                   playsInline
-                  preload="metadata"
+                  preload={pIdx === currentIdx ? "auto" : "none"}
                   onError={() => setVideoErrors(p => ({ ...p, [product.id]: true }))}
                 />
-              ) : product.images?.[0] ? (
-                <img src={product.images[0]} alt={product.title} loading={pIdx < 3 ? "eager" : "lazy"} />
               ) : (
-                <div className="h-full w-full grid place-items-center bg-[#111]">
-                  <Package className="text-[#333]" size={64} />
+                <img
+                  src={product.images?.[0] || ""}
+                  alt={product.title}
+                  loading={pIdx < 2 ? "eager" : "lazy"}
+                />
+              )}
+              {hasWorkingVideo && !loadVideo && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="grid h-14 w-14 place-items-center rounded-full bg-white/20 backdrop-blur-sm">
+                    <Play size={28} className="ml-0.5 text-white" fill="white" />
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Gradient overlay */}
+            {/* Gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
             {/* Heart burst */}
@@ -270,16 +256,18 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
               </div>
             )}
 
-            {/* Live viewers badge - dynamic */}
-            <div className="absolute left-4 top-14 z-20" style={{ top: "max(56px, calc(env(safe-area-inset-top) + 48px))" }}>
-              <div className="flex items-center gap-1.5 rounded-full bg-black/40 backdrop-blur-sm px-3 py-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                </span>
-                <span className="text-[11px] font-bold text-white">{viewers} online</span>
+            {/* Live badge — only on current card */}
+            {pIdx === currentIdx && (
+              <div className="absolute left-4 z-20" style={{ top: "max(56px, calc(env(safe-area-inset-top) + 48px))" }}>
+                <div className="flex items-center gap-1.5 rounded-full bg-black/40 backdrop-blur-sm px-3 py-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                  <span className="text-[11px] font-bold text-white">{viewers} online</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Right side actions */}
             <div className="absolute bottom-48 right-3 z-20 flex flex-col items-center gap-4">
@@ -305,7 +293,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
             {/* Bottom product info */}
             <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
-              {/* Product details — tap to go to page */}
               <div className="mb-3" onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
                 <div className="flex flex-wrap items-center gap-1.5 mb-1">
                   <span className="rounded-full bg-white/15 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-black text-white">{overlay}</span>
@@ -321,7 +308,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 </div>
               </div>
 
-              {/* Price + CTA */}
               <div className="flex items-center gap-3">
                 <div className="flex-1">
                   <div className="flex items-baseline gap-2">
@@ -349,34 +335,43 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
         );
       })}
 
-      <div ref={sentinelRef} className="h-10" />
+      {/* Sentinel for infinite scroll — placed 3 items before end */}
+      {products.length > 5 && (
+        <div ref={sentinelRef} style={{ position: "absolute", bottom: "300vh", height: 1, width: 1 }} />
+      )}
+      {products.length <= 5 && <div ref={sentinelRef} className="h-10" />}
+
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
         </div>
       )}
 
-      {/* Comments Slide-up Modal */}
-      {showComments && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setShowComments(null)} />
-          <div className="relative flex h-[70vh] flex-col rounded-t-[2rem] bg-white animate-feed-slide">
-            <div className="flex items-center justify-between border-b border-[#E5E5E5] px-6 py-4">
-              <h3 className="font-black text-[#0D0D0D]">Comentarii ({getRealComments(products.find(p => p.id === showComments)!)})</h3>
-              <button onClick={() => setShowComments(null)} className="rounded-full bg-[#F7F7F8] p-2 text-[#6E6E80] active:scale-95 transition">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-8">
-              <div className="flex flex-col items-center justify-center text-center h-full text-[#6E6E80]">
-                <MessageCircle size={48} className="mb-4 text-[#D1D1D6]" />
-                <p className="font-bold text-base">Comentariile se încarcă...</p>
-                <p className="text-sm mt-2">Vom adăuga recenziile de pe internet în curând.</p>
+      {/* Comments slide-up */}
+      {showComments && (() => {
+        const product = products.find(p => p.id === showComments);
+        if (!product) return null;
+        return (
+          <div className="fixed inset-0 z-[100] flex flex-col justify-end">
+            <div className="absolute inset-0 bg-black/60" onClick={() => setShowComments(null)} />
+            <div className="relative flex h-[60vh] flex-col rounded-t-[2rem] bg-white animate-feed-slide">
+              <div className="flex items-center justify-between border-b border-[#E5E5E5] px-6 py-4">
+                <h3 className="font-black text-[#0D0D0D]">Comentarii ({getRealComments(product)})</h3>
+                <button onClick={() => setShowComments(null)} className="rounded-full bg-[#F7F7F8] p-2 text-[#6E6E80]">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-8">
+                <div className="flex flex-col items-center justify-center text-center h-full text-[#6E6E80]">
+                  <MessageCircle size={48} className="mb-4 text-[#D1D1D6]" />
+                  <p className="font-bold text-base">Comentariile se încarcă...</p>
+                  <p className="text-sm mt-2">Vom adăuga recenziile de pe internet în curând.</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

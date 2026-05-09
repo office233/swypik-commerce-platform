@@ -75,6 +75,9 @@ export async function GET(req: Request) {
 
     const result = await searchProducts(filters);
 
+    // Cache: video feed 5min at CDN, other queries 1min
+    const cacheSeconds = mode === "video" ? 300 : 60;
+
     return NextResponse.json({
       products: result.products,
       total: result.total,
@@ -83,6 +86,10 @@ export async function GET(req: Request) {
       source: "postgresql",
       nextPage: (result.offset || 0) + (result.limit || limit) < result.total
         ? `?offset=${(result.offset || 0) + (result.limit || limit)}&limit=${result.limit || limit}` : null,
+    }, {
+      headers: {
+        "Cache-Control": `public, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 2}`,
+      },
     });
   } catch (error: any) {
     console.error("[Products API]", error.message);
