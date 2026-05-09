@@ -64,16 +64,21 @@ export async function GET(req: Request) {
     }
 
     // Products search
+    const rawOffset = parseInt(url.searchParams.get("offset") || "0");
+    const safeOffset = Number.isFinite(rawOffset) ? Math.max(0, Math.min(rawOffset, 100000)) : 0;
+    const rawMinPrice = url.searchParams.get("minPrice") ? Number(url.searchParams.get("minPrice")) : undefined;
+    const rawMaxPrice = url.searchParams.get("maxPrice") ? Number(url.searchParams.get("maxPrice")) : undefined;
+
     const filters = {
       search: translatedSearch || undefined,
       category: url.searchParams.get("category") || undefined,
       categoryId: url.searchParams.get("categoryId") ? Number(url.searchParams.get("categoryId")) : undefined,
-      minPrice: url.searchParams.get("minPrice") ? Number(url.searchParams.get("minPrice")) : undefined,
-      maxPrice: url.searchParams.get("maxPrice") ? Number(url.searchParams.get("maxPrice")) : undefined,
+      minPrice: rawMinPrice !== undefined && Number.isFinite(rawMinPrice) && rawMinPrice >= 0 ? rawMinPrice : undefined,
+      maxPrice: rawMaxPrice !== undefined && Number.isFinite(rawMaxPrice) && rawMaxPrice >= 0 ? rawMaxPrice : undefined,
       sort: url.searchParams.get("sort") as any || undefined,
       mode: mode as any,
       limit,
-      offset: parseInt(url.searchParams.get("offset") || "0"),
+      offset: safeOffset,
     };
 
     const result = await searchProducts(filters);

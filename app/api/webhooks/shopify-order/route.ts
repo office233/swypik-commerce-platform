@@ -1,36 +1,55 @@
 /**
- * Shopify Order Webhook — Fulfillment placeholder
+ * Shopify Order Webhook — HMAC-verified fulfillment handler
  * 
- * When a customer pays on Shopify, this webhook receives the order data.
- * Currently logs the order for manual fulfillment via AliExpress.
+ * Verifies X-Shopify-Hmac-Sha256 before processing.
+ * Currently logs orders for manual fulfillment via AliExpress.
  * 
  * Future: Auto-fulfill via AliExpress DS API
  */
 
 import { NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    // Read raw body for HMAC verification
+    const rawBody = await req.text();
+    const hmacHeader = req.headers.get("x-shopify-hmac-sha256");
+    const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
-    console.log(`[Webhook] 📦 New Shopify order: #${body.order_number || body.id}`);
-    console.log(`[Webhook] Customer: ${body.customer?.first_name} ${body.customer?.last_name}`);
-    console.log(`[Webhook] Items: ${body.line_items?.length || 0}`);
+    // Verify HMAC signature
+    if (webhookSecret && hmacHeader) {
+      const digest = createHmac("sha256", webhookSecret)
+        .update(rawBody, "utf8")
+        .digest("base64");
 
-    // Extract shipping address for logging
-    const addr = body.shipping_address || body.billing_address || {};
-    console.log(`[Webhook] Ship to: ${addr.first_name} ${addr.last_name}, ${addr.city}, ${addr.country_code || "RO"}`);
+      const sigBuffer = Buffer.from(digest);
+      const headerBuffer = Buffer.from(hmacHeader);
+
+      if (sigBuffer.length !== headerBuffer.length || !timingSafeEqual(sigBuffer, headerBuffer)) {
+        console.warn("[Webhook] ❌ HMAC verification failed");
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else if (process.env.NODE_ENV === "production" && webhookSecret) {
+      // In production with a secret configured, reject unsigned requests
+      console.warn("[Webhook] ❌ Missing HMAC header");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
+
+    // Log order summary (no PII in logs)
+    console.log(`[Webhook] 📦 New order: #${body.order_number || body.id}`);
+    console.log(`[Webhook] Items: ${body.line_items?.length || 0}, Total: ${body.total_price} ${body.currency}`);
 
     // TODO: Auto-fulfill via AliExpress when pipeline is ready
-    // For now, orders are fulfilled manually
 
     return NextResponse.json({
       status: "received",
       orderId: body.id || body.order_number,
-      message: "Order logged for manual fulfillment",
     });
   } catch (error: any) {
-    console.error("[Webhook] Error:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[Webhook] Error:", error);
+    return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
   }
 }

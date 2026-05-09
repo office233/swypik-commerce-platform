@@ -99,6 +99,12 @@ function feedCommerceScore(p: any) {
 }
 
 export async function GET(req: Request) {
+  // Block in production — legacy Shopify Admin endpoint
+  const adminSecret = req.headers.get("x-admin-secret");
+  if (process.env.NODE_ENV === "production" && adminSecret !== process.env.ADMIN_DEBUG_SECRET) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   try {
     const url = new URL(req.url);
     const collectionId = url.searchParams.get("collection");

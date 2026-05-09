@@ -300,7 +300,7 @@ export default function ProductPage() {
               <Minus size={16} />
             </button>
             <span className="w-10 text-center text-sm font-black text-[#0D0D0D]">{qty}</span>
-            <button onClick={() => setQty(qty + 1)} className="grid h-10 w-10 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all">
+            <button onClick={() => setQty(Math.min(10, qty + 1))} className="grid h-10 w-10 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all">
               <Plus size={16} />
             </button>
           </div>

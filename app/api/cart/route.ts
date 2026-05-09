@@ -97,19 +97,28 @@ export async function POST(req: Request) {
              WHERE product_id = $1 AND sku_id = $2 LIMIT 1`,
             [pgProduct.aeProductId || pgId, String(item.skuId)]
           );
-          if (rows.length > 0) {
-            const v = rows[0];
-            if (Number(v.price_ron) > 0) variantPrice = Number(v.price_ron);
-            if (v.color) variantLabel += v.color;
-            if (v.size) variantLabel += (variantLabel ? " / " : "") + v.size;
-            // Check stock
-            if (v.stock !== null && v.stock <= 0) {
-              console.warn(`[Cart v3] Variant ${item.skuId} is out of stock`);
-              continue;
-            }
+          if (rows.length === 0) {
+            console.warn(`[Cart v3] Variant ${item.skuId} not found for product ${pgId}`);
+            return NextResponse.json(
+              { success: false, error: "Varianta selectată nu mai este disponibilă." },
+              { status: 400 }
+            );
+          }
+          const v = rows[0];
+          if (Number(v.price_ron) > 0) variantPrice = Number(v.price_ron);
+          if (v.color) variantLabel += v.color;
+          if (v.size) variantLabel += (variantLabel ? " / " : "") + v.size;
+          // Check stock
+          if (v.stock !== null && v.stock <= 0) {
+            console.warn(`[Cart v3] Variant ${item.skuId} is out of stock`);
+            return NextResponse.json(
+              { success: false, error: "Varianta selectată nu mai este în stoc." },
+              { status: 400 }
+            );
           }
         } catch (e) {
-          // If variant lookup fails, fall back to base price
+          // If variant lookup fails, continue with base price only if skuId wasn't explicitly provided
+          console.error(`[Cart v3] Variant lookup error for ${item.skuId}:`, e);
         }
       }
 

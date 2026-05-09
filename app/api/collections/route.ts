@@ -125,7 +125,13 @@ const EMOJI_MAP: Record<string, string> = {
   "couple&parent-child clothing": "👨‍👩‍👧", "synthetic hair": "💇",
 };
 
-export async function GET() {
+export async function GET(req: Request) {
+  // Block in production — legacy Shopify Admin endpoint
+  const adminSecret = req.headers.get("x-admin-secret");
+  if (process.env.NODE_ENV === "production" && adminSecret !== process.env.ADMIN_DEBUG_SECRET) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   try {
     if (cachedCollections && Date.now() - cacheTimestamp < CACHE_TTL) {
       return NextResponse.json(cachedCollections);

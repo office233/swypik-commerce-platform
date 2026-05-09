@@ -11,7 +11,8 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const q = String(url.searchParams.get("q") || "").trim();
-    const limit = Math.min(Number(url.searchParams.get("limit") || 8), 12);
+    const rawLimit = Number(url.searchParams.get("limit") || 8);
+    const limit = Number.isInteger(rawLimit) ? Math.max(1, Math.min(rawLimit, 12)) : 8;
 
     if (q.length < 2) return NextResponse.json({ ok: true, suggestions: [] });
 
@@ -52,7 +53,7 @@ export async function GET(req: Request) {
     cache.set(cacheKey, { data: responseData, ts: Date.now() });
     return NextResponse.json(responseData);
   } catch (error: any) {
-    console.error("[Search Suggest]", error.message);
-    return NextResponse.json({ ok: false, error: error.message, suggestions: [] }, { status: 500 });
+    console.error("[Search Suggest]", error);
+    return NextResponse.json({ ok: false, error: "A apărut o eroare la căutare.", suggestions: [] }, { status: 500 });
   }
 }
