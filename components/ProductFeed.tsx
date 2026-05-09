@@ -72,6 +72,8 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
   const [showComments, setShowComments] = useState<string | null>(null);
   const hasInteractedRef = useRef(false);
+  // Track highest index ever reached — never unmount videos already loaded
+  const [maxLoadedIdx, setMaxLoadedIdx] = useState(3);
 
   // Auto-unmute on first user tap
   useEffect(() => {
@@ -141,15 +143,28 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   useEffect(() => {
     const product = products[currentIdx];
     if (!product) return;
-    // Small delay to let the video element mount from shouldLoadVideo
+
+    // Hide all videos, show only current
+    Object.entries(videoMapRef.current).forEach(([id, vid]) => {
+      if (id === product.id) {
+        vid.style.opacity = '1';
+        vid.muted = isMuted;
+        vid.play().catch(() => {});
+      } else {
+        vid.style.opacity = '0';
+        vid.pause();
+      }
+    });
+
+    // If video hasn't loaded yet, wait for it
     const timer = setTimeout(() => {
       const video = videoMapRef.current[product.id];
-      if (video) {
+      if (video && video.paused) {
+        video.style.opacity = '1';
         video.muted = isMuted;
-        video.currentTime = 0;
         video.play().catch(() => {});
       }
-    }, 100);
+    }, 200);
     return () => clearTimeout(timer);
   }, [currentIdx, products.length]);
 
@@ -174,28 +189,21 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     setTimeout(() => setAddedToCart(null), 2000);
   };
 
-  // Should we render a <video> for this index? Current ± 2 for smoother scroll
-  const shouldLoadVideo = (idx: number) => Math.abs(idx - currentIdx) <= 2;
+  // Keep videos mounted once loaded — never unmount to preserve browser buffer
+  // Render video if: within ±3 of current OR was previously loaded (idx <= maxLoadedIdx)
+  const shouldLoadVideo = (idx: number) => {
+    return idx <= maxLoadedIdx + 3 && idx >= 0;
+  };
 
-  // Aggressive prefetch: when currentIdx changes, start downloading next 3 videos in background
+  // Expand load window as user scrolls + trigger loadMore + manage playback
   useEffect(() => {
-    const prefetchVideos = () => {
-      for (let i = 1; i <= 5; i++) {
-        const nextProduct = products[currentIdx + i];
-        if (nextProduct?.video && !videoErrors[nextProduct.id]) {
-          fetch(nextProduct.video, { mode: "no-cors", priority: i <= 2 ? "high" : "low" as any }).catch(() => {});
-        }
-      }
-    };
-    // Small delay so current video starts first
-    const timer = setTimeout(prefetchVideos, 300);
+    // Expand the max loaded index (never shrinks)
+    setMaxLoadedIdx(prev => Math.max(prev, currentIdx + 3));
 
     // Trigger loadMore when 5 cards from the end
     if (onLoadMore && currentIdx >= products.length - 5) {
       onLoadMore();
     }
-
-    return () => clearTimeout(timer);
   }, [currentIdx, products]);
 
   if (isLoading && products.length === 0) {
@@ -255,7 +263,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 loading={pIdx < 3 ? "eager" : "lazy"}
                 className="absolute inset-0 h-full w-full object-cover"
               />
-              {/* Video — layered on top, only for current ± 1 */}
+              {/* Video — layered on top, preload=auto for instant playback */}
               {hasWorkingVideo && loadVideo && (
                 <video
                   ref={(el) => { if (el) videoMapRef.current[product.id] = el; }}
@@ -264,9 +272,17 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   loop
                   muted={isMuted}
                   playsInline
-                  preload={isCurrentCard ? "auto" : "metadata"}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  onCanPlay={(e) => { if (isCurrentCard) (e.target as HTMLVideoElement).play().catch(() => {}); }}
+                  preload="auto"
+                  autoPlay={isCurrentCard}
+                  className={`absolute inset-0 h-full w-full object-cover${isCurrentCard ? '' : ' opacity-0'}`}
+                  style={{ transition: 'opacity 0.15s ease' }}
+                  onCanPlay={(e) => {
+                    const vid = e.target as HTMLVideoElement;
+                    if (isCurrentCard) {
+                      vid.style.opacity = '1';
+                      vid.play().catch(() => {});
+                    }
+                  }}
                   onError={() => setVideoErrors(p => ({ ...p, [product.id]: true }))}
                 />
               )}
