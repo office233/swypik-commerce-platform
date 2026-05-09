@@ -228,7 +228,8 @@ export async function POST(req: Request) {
 
     if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper" || aiResult.intent === "refine_search") {
       const query = aiResult.searchQuery || userMessage;
-      const category = detectCategory(query) || detectCategory(userMessage);
+      // Priority: AI-returned category (from DB list) > hardcoded detectCategory > none
+      const category = aiResult.category || detectCategory(query) || detectCategory(userMessage);
       // Extract maxPrice from initial queries like "sub 4000 lei" even when intent is search_product
       const explicitMax = userMessage.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i)?.[1];
       const maxPrice = aiResult.maxPrice || (explicitMax ? Number(explicitMax) : undefined) || (shoppingSession.priceSensitivity === "high" ? shoppingSession.budget : undefined);

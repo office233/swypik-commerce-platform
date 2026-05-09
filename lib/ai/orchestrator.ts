@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { ShoppingSession } from "@/lib/sales/shopping-session";
 import { buildSessionPrompt } from "@/lib/sales/shopping-session";
+import { getCategories } from "@/lib/db/product-queries";
 
 function getAIClient(): OpenAI | null {
   if (process.env.OPENROUTER_API_KEY) {
@@ -12,28 +13,43 @@ function getAIClient(): OpenAI | null {
 
 function getModel(): string { return process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001"; }
 
-export type ChatIntent = "search_product" | "explain_product" | "compare_products" | "find_cheaper" | "refine_search" | "add_to_cart" | "checkout" | "track_order" | "general_chat";
-export type OrchestratorResult = { intent: ChatIntent; reply: string; searchQuery?: string; bundleQueries?: string[]; productId?: string; productTitle?: string; shouldAskFollowUp?: boolean; maxPrice?: number; sort?: "recommended" | "price_asc" | "price_desc" | "popular" | "delivery" | "discount"; excludeIds?: string[] };
+// ─── Dynamic category cache (5 min TTL) ───
+let cachedCategories: { name: string; nameEn: string; count: number }[] = [];
+let categoryCacheTime = 0;
+const CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-const SYSTEM_PROMPT = `You are the AI sales agent for AICeVrei.ro, an online store with 108,000+ products.
+async function loadCategories() {
+  const now = Date.now();
+  if (cachedCategories.length > 0 && now - categoryCacheTime < CATEGORY_CACHE_TTL) return cachedCategories;
+  try {
+    const cats = await getCategories();
+    cachedCategories = cats.filter((c: any) => c.count > 0).map((c: any) => ({ name: c.name, nameEn: c.nameEn, count: c.count }));
+    categoryCacheTime = now;
+    console.log(`[Categories] Loaded ${cachedCategories.length} categories from DB`);
+  } catch (e) {
+    console.error("[Categories] Failed to load:", e);
+  }
+  return cachedCategories;
+}
+
+function buildCategoryPrompt(categories: { name: string; nameEn: string; count: number }[]) {
+  return categories.map((c, i) => `${i + 1}. ${c.nameEn} (${c.count.toLocaleString()} produse)`).join("\n");
+}
+
+export type ChatIntent = "search_product" | "explain_product" | "compare_products" | "find_cheaper" | "refine_search" | "add_to_cart" | "checkout" | "track_order" | "general_chat";
+export type OrchestratorResult = { intent: ChatIntent; reply: string; searchQuery?: string; category?: string; bundleQueries?: string[]; productId?: string; productTitle?: string; shouldAskFollowUp?: boolean; maxPrice?: number; sort?: "recommended" | "price_asc" | "price_desc" | "popular" | "delivery" | "discount"; excludeIds?: string[] };
+
+const SYSTEM_PROMPT_TEMPLATE = `You are the AI sales agent for AICeVrei.ro, an online store.
 
 Objective: turn conversations into clear recommendations, smart bundles, and cart additions.
 
-AVAILABLE CATEGORIES with product counts:
-1. Women's Clothing (81,936) — Tops & Sets, Bottoms, Accessories, Outerwear, Weddings
-2. Home, Garden & Furniture (5,285) — Home Storage, Kitchen, Textiles, Party Supplies
-3. Men's Clothing (4,643) — Outerwear & Jackets, Bottoms, T-Shirts, Underwear
-4. Jewelry & Watches (3,634) — Fashion Jewelry, Fine Jewelry, Watches, Wedding rings
-5. Bags & Shoes (2,033) — Women's Shoes, Women's Bags, Men's Bags, Men's Shoes
-6. Pet Supplies (1,882) — Pet Clothes, Pet Toys, Pet Furniture, Collars, Outdoor
-7. Health, Beauty & Hair (1,724) — Skin Care, Makeup, Nails, Wigs, Beauty Tools
-8. Toys, Kids & Babies (1,667) — Girls Clothing, Toys, Baby Clothing, Boys Clothing
-9. Sports & Outdoors (1,419) — Sportswear, Swimming, Cycling, Fishing, Camping
-10. Automobiles & Motorcycles (1,040) — Auto Parts, Motorcycle Parts, Car Electronics
-11. Home Improvement (951) — Tools, Indoor Lighting, Outdoor Lighting, Appliances
-12. Consumer Electronics (933) — Smart Electronics, Camera, Audio, Video, Accessories
-13. Phones & Accessories (890) — Cases & Covers, Phone Accessories, Phone Parts
-14. Computer & Office (274) — Tablet Accessories, Office Electronics, Networking
+AVAILABLE CATEGORIES FROM DATABASE:
+{{CATEGORIES}}
+
+You MUST pick the best matching category from the list above for EVERY search.
+If the user asks for something specific (e.g. "setup gaming"), pick the closest category (e.g. "Computer & Office").
+If the user asks for something that spans multiple categories, pick the most relevant one.
+If unsure, leave category empty and let the search engine handle it.
 
 CRITICAL RULES:
 - searchQuery MUST be in ENGLISH (product titles are in English).
@@ -76,6 +92,7 @@ Return ONLY valid JSON, no markdown:
   "intent": "search_product|explain_product|compare_products|find_cheaper|refine_search|add_to_cart|checkout|track_order|general_chat",
   "reply": "sales response IN ROMANIAN",
   "searchQuery": "ENGLISH search query for products",
+  "category": "exact category name from the database list above, or empty string if unknown",
   "bundleQueries": ["complementary English query 1", "complementary English query 2"],
   "productId": "product id if clear",
   "productTitle": "product title/fragment if clear",
@@ -242,25 +259,27 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
   }
 
   const client = getAIClient();
-  if (!client) return fallbackOrchestrate(userMessage, productContext, shoppingSession);
+  const categories = await loadCategories();
+  if (!client) return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
 
   try {
     const contextSummary = productContext.slice(0, 10).map((p) => ({ id: p.id, title: p.title, price: p.price, category: p.category, rating: p.rating, orders: p.orders }));
-    const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }, { role: "system", content: buildSessionPrompt(shoppingSession) }, ...chatHistory.slice(-10)];
+    const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{CATEGORIES}}", buildCategoryPrompt(categories));
+    const messages: any[] = [{ role: "system", content: systemPrompt }, { role: "system", content: buildSessionPrompt(shoppingSession) }, ...chatHistory.slice(-10)];
     if (contextSummary.length) messages.push({ role: "system", content: `Products in context: ${JSON.stringify(contextSummary)}` });
     messages.push({ role: "user", content: userMessage });
     const completion = await client.chat.completions.create({ model: getModel(), messages, temperature: 0.72, max_tokens: 750 });
     const content = completion.choices[0]?.message?.content || "{}";
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const result = JSON.parse(cleaned);
-    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p: any) => String(p.id)) : undefined };
+    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, category: result.category || undefined, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p: any) => String(p.id)) : undefined };
   } catch (error) {
     console.error("[AI Orchestrator] Error:", error);
-    return fallbackOrchestrate(userMessage, productContext, shoppingSession);
+    return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
   }
 }
 
-function fallbackOrchestrate(message: string, productContext: any[] = [], shoppingSession: ShoppingSession = {}): OrchestratorResult {
+function fallbackOrchestrate(message: string, productContext: any[] = [], shoppingSession: ShoppingSession = {}, categories: { name: string; nameEn: string; count: number }[] = []): OrchestratorResult {
   const msg = message.toLowerCase().trim();
   const firstProduct = productContext[0];
   const cartKeywords = ["adauga", "adaugă", "pune", "cos", "coș", "cumpar", "cumpăr", "iau", "vreau asta"];
@@ -268,8 +287,35 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
   const greetKeywords = ["salut", "buna", "bună", "hello", "hey", "servus"];
   if (cartKeywords.some((k) => msg.includes(k))) return { intent: "add_to_cart", reply: firstProduct ? `Perfect 🛒 Iti pun ${firstProduct.title} in cos. Iti recomand sa il iei cu inca un produs complementar.` : "Sigur 🛒 Alege produsul dorit si il punem imediat in cos.", productId: firstProduct?.id, productTitle: firstProduct?.title };
   if (checkoutKeywords.some((k) => msg.includes(k))) return { intent: "checkout", reply: "Perfect. Hai sa finalizam comanda cat mai simplu 🛒" };
-  if (greetKeywords.some((k) => msg.includes(k))) return { intent: "general_chat", reply: "Salut! Spune-mi ce cauti, ce buget ai si ce stil vrei. Am 108.000+ produse si iti fac rapid un bundle bun. ✨", shouldAskFollowUp: true };
+  if (greetKeywords.some((k) => msg.includes(k))) return { intent: "general_chat", reply: "Salut! Spune-mi ce cauti, ce buget ai si ce stil vrei. Iti fac rapid un bundle bun. ✨", shouldAskFollowUp: true };
   
+  // ─── Smart category detection from DB categories ───
+  const msgNorm = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const RO_CAT_HINTS: Record<string, string[]> = {
+    "gaming": ["Computer"], "setup": ["Computer"], "pc": ["Computer"], "laptop": ["Computer"],
+    "tastatura": ["Computer"], "mouse": ["Computer"], "monitor": ["Computer"],
+    "rochie": ["Women"], "fusta": ["Women"], "bluza": ["Women"],
+    "barbati": ["Men"], "camasa": ["Men"],
+    "bijuterii": ["Jewelry"], "ceas": ["Jewelry", "Watch"],
+    "geanta": ["Bag"], "pantofi": ["Shoe", "Bag"],
+    "casa": ["Home", "Garden"], "bucatarie": ["Home"],
+    "copii": ["Toy", "Kid", "Bab"], "jucarii": ["Toy"],
+    "animale": ["Pet"], "pisica": ["Pet"], "caine": ["Pet"],
+    "sport": ["Sport"], "fitness": ["Sport"],
+    "masina": ["Automobile"], "auto": ["Automobile"],
+    "telefon": ["Phone"], "husa": ["Phone"],
+    "electronice": ["Electronic", "Consumer"],
+    "cosmetice": ["Beauty", "Health"],
+    "scule": ["Improvement"], "unelte": ["Improvement"],
+  };
+  let matchedCategory: string | undefined;
+  for (const [keyword, hints] of Object.entries(RO_CAT_HINTS)) {
+    if (msgNorm.includes(keyword)) {
+      const dbCat = categories.find(c => hints.some(h => c.nameEn.includes(h)));
+      if (dbCat) { matchedCategory = dbCat.nameEn; break; }
+    }
+  }
+
   // Translate Romanian query to English for searchQuery
   const cleanedMsg = message
     .replace(/sub\s*\d{2,5}/gi, "").replace(/maxim\s*\d{2,5}/gi, "")
@@ -279,5 +325,6 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
   const maxPriceMatch = message.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i);
   const maxPrice = maxPriceMatch ? Number(maxPriceMatch[1]) : undefined;
   const budgetText = maxPrice ? ` in bugetul tau de maxim ${maxPrice} lei` : (shoppingSession.budgetLabel ? ` in bugetul tau de ${shoppingSession.budgetLabel}` : "");
-  return { intent: "search_product", reply: `Perfect, caut variante potrivite${budgetText} si iti pregatesc idei de bundle. 🔥`, searchQuery: translatedQuery, bundleQueries: [translatedQuery + " accessories", translatedQuery + " gift"], maxPrice, shouldAskFollowUp: true };
+  const catText = matchedCategory ? ` din categoria ${matchedCategory}` : "";
+  return { intent: "search_product", reply: `Perfect, caut variante potrivite${budgetText}${catText} si iti pregatesc idei de bundle. 🔥`, searchQuery: translatedQuery, category: matchedCategory, bundleQueries: [translatedQuery + " accessories", translatedQuery + " gift"], maxPrice, shouldAskFollowUp: true };
 }
