@@ -8,16 +8,13 @@ import { THEME, commerceBadgeClass, translateCategory } from "@/lib/ui/theme";
 
 import Image from "next/image";
 
-type ChatProduct = {
-  id: string; pgId?: number; title: string; description: string; benefits: string[]; dealLabel: string; whyBuy: string; warnings: string[];
-  price: number; oldPrice: number; discountPercent: number; rating: number; orders: number; deliveryDays: number;
-  images: string[]; category: string; gradient: string; qualityScore: number;
-  viewers?: number; cartAdds?: number; likes?: number; commentCount?: number; socialProofLabel?: string; variantId?: string; commerceBadge?: string; skuId?: string;
-  variantsCount?: number;
-};
+import type { Product } from "@/types/product";
+import type { CartItem } from "@/types/cart";
+import { mergeIntoCart, buildCheckoutPayload, cartItemKey } from "@/types/cart";
+
+type ChatProduct = Product; // alias for backwards compat within this file
 
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string; products?: ChatProduct[]; bundleProducts?: ChatProduct[]; timestamp: Date };
-type CartItem = { product: ChatProduct; qty: number };
 type Tab = "home" | "chat" | "deals" | "feed" | "cart" | "categories";
 type Suggestion = { label: string; type: "product" | "category" | "tag"; score: number };
 type FunnelStage = "discover" | "compare" | "consider" | "cart" | "checkout" | "upsell";
@@ -123,9 +120,10 @@ export default function ChatInterface({
   const bundleSavings = Math.max(0, Math.round(bundleOldTotal - bundleTotal));
 
   function addToCart(product: ChatProduct, quantity: number = 1) {
-    setCartItems((prev) => { const idx = prev.findIndex((item) => item.product.id === product.id); if (idx >= 0) { const next = [...prev]; next[idx] = { ...next[idx], qty: next[idx].qty + quantity }; return next; } return [...prev, { product, qty: quantity }]; });
+    setCartItems((prev) => mergeIntoCart(prev, product, quantity));
     setSelectedProduct(null); setToastMessage(`🛒 ${quantity > 1 ? quantity + 'x ' : ''}${product.title.slice(0, 24)} adăugat în coș`); setFunnelStage("upsell");
-    const candidate = lastShownProducts.find((p) => p.id !== product.id && !cartItems.some((item) => item.product.id === p.id));
+    const newKey = `${product.pgId || product.id}:${product.skuId || "base"}`;
+    const candidate = lastShownProducts.find((p) => `${p.pgId || p.id}:${p.skuId || "base"}` !== newKey && !cartItems.some((item) => cartItemKey(item) === `${p.pgId || p.id}:${p.skuId || "base"}`));
     if (candidate) setUpsellProduct(candidate);
     setTimeout(() => setToastMessage(""), 2500);
   }
