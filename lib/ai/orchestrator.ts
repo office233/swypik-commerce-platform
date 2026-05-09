@@ -13,23 +13,33 @@ function getAIClient(): OpenAI | null {
 
 function getModel(): string { return process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001"; }
 
-// ─── Dynamic category cache (5 min TTL) ───
+// ─── Dynamic category cache (60s TTL + force refresh) ───
 let cachedCategories: { name: string; nameEn: string; count: number }[] = [];
 let categoryCacheTime = 0;
-const CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CATEGORY_CACHE_TTL = 60 * 1000; // 60 seconds — picks up new products fast
 
-async function loadCategories() {
+async function loadCategories(forceRefresh = false) {
   const now = Date.now();
-  if (cachedCategories.length > 0 && now - categoryCacheTime < CATEGORY_CACHE_TTL) return cachedCategories;
+  if (!forceRefresh && cachedCategories.length > 0 && now - categoryCacheTime < CATEGORY_CACHE_TTL) return cachedCategories;
   try {
     const cats = await getCategories();
     cachedCategories = cats.filter((c: any) => c.count > 0).map((c: any) => ({ name: c.name, nameEn: c.nameEn, count: c.count }));
     categoryCacheTime = now;
-    console.log(`[Categories] Loaded ${cachedCategories.length} categories from DB`);
+    console.log(`[Categories] Loaded ${cachedCategories.length} active categories from DB`);
   } catch (e) {
     console.error("[Categories] Failed to load:", e);
   }
   return cachedCategories;
+}
+
+// Export for external force-refresh (e.g., after product import)
+export async function refreshCategoryCache() {
+  return loadCategories(true);
+}
+
+// Get list of populated categories (count > 0) for smart routing
+function getPopulatedCategoryNames(categories: { nameEn: string; count: number }[]): string[] {
+  return categories.filter(c => c.count > 50).map(c => c.nameEn);
 }
 
 function buildCategoryPrompt(categories: { name: string; nameEn: string; count: number }[]) {
@@ -283,20 +293,26 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
 
 function fallbackOrchestrate(message: string, productContext: any[] = [], shoppingSession: ShoppingSession = {}, categories: { name: string; nameEn: string; count: number }[] = []): OrchestratorResult {
   const msg = message.toLowerCase().trim();
+  const msgNorm = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const firstProduct = productContext[0];
+  
+  // ─── Intent keywords ───
   const cartKeywords = ["adauga", "adaugă", "pune", "cos", "coș", "cumpar", "cumpăr", "iau", "vreau asta"];
   const checkoutKeywords = ["checkout", "finalizeaza", "finalizează", "platesc", "plătesc", "comanda", "comandă"];
   const greetKeywords = ["salut", "buna", "bună", "hello", "hey", "servus"];
+  
   if (cartKeywords.some((k) => msg.includes(k))) return { intent: "add_to_cart", reply: firstProduct ? `Perfect 🛒 Iti pun ${firstProduct.title} in cos. Iti recomand sa il iei cu inca un produs complementar.` : "Sigur 🛒 Alege produsul dorit si il punem imediat in cos.", productId: firstProduct?.id, productTitle: firstProduct?.title };
   if (checkoutKeywords.some((k) => msg.includes(k))) return { intent: "checkout", reply: "Perfect. Hai sa finalizam comanda cat mai simplu 🛒" };
-  if (greetKeywords.some((k) => msg.includes(k))) return { intent: "general_chat", reply: "Salut! Spune-mi ce cauti, ce buget ai si ce stil vrei. Iti fac rapid un bundle bun. ✨", shouldAskFollowUp: true };
+  if (greetKeywords.some((k) => msg.includes(k))) {
+    const topCats = getPopulatedCategoryNames(categories).slice(0, 3).join(", ") || "haine, accesorii";
+    return { intent: "general_chat", reply: `Salut! ✨ Sunt asistentul tău de shopping. Avem produse în: ${topCats}. Spune-mi ce cauți și îți găsesc cele mai bune oferte!`, shouldAskFollowUp: true };
+  }
   
   // ─── Smart category detection from DB categories ───
-  const msgNorm = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const RO_CAT_HINTS: Record<string, string[]> = {
     "gaming": ["Computer"], "setup": ["Computer"], "pc": ["Computer"], "laptop": ["Computer"],
     "tastatura": ["Computer"], "mouse": ["Computer"], "monitor": ["Computer"],
-    "rochie": ["Women"], "fusta": ["Women"], "bluza": ["Women"],
+    "rochie": ["Women"], "fusta": ["Women"], "bluza": ["Women"], "haine": ["Women", "Men"],
     "barbati": ["Men"], "camasa": ["Men"],
     "bijuterii": ["Jewelry"], "ceas": ["Jewelry", "Watch"],
     "geanta": ["Bag"], "pantofi": ["Shoe", "Bag"],
@@ -318,15 +334,59 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
     }
   }
 
-  // Translate Romanian query to English for searchQuery
+  // ─── Handle ambiguous queries ("vreau ceva frumos", "ce imi recomanzi") ───
+  const isVague = /ceva|frumos|bun|recomanzi|recomanda|popular|trending|ce ai|ce aveti|orice|surprinde/.test(msgNorm);
+  const hasSpecificKeyword = Object.keys(RO_CAT_HINTS).some(k => msgNorm.includes(k));
+  
+  if (isVague && !hasSpecificKeyword && !matchedCategory) {
+    const topCat = categories.length > 0 ? categories[0] : null;
+    const topCatNames = getPopulatedCategoryNames(categories).slice(0, 4).join(", ");
+    return {
+      intent: "search_product",
+      reply: `Am înțeles! 🔥 Îți arăt cele mai populare produse ale noastre. Avem categorii ca: ${topCatNames}. Spune-mi dacă vrei ceva anume!`,
+      searchQuery: "",
+      category: topCat?.nameEn,
+      sort: "popular",
+      shouldAskFollowUp: true,
+    };
+  }
+
+  // ─── Translate & build search query ───
   const cleanedMsg = message
     .replace(/sub\s*\d{2,5}/gi, "").replace(/maxim\s*\d{2,5}/gi, "")
     .replace(/pana la\s*\d{2,5}/gi, "").replace(/\d{2,5}\s*(lei|ron)/gi, "")
-    .replace(/complet/gi, "").replace(/\s+/g, " ").trim();
+    .replace(/complet/gi, "").replace(/vreau|caut|arat|arata/gi, "")
+    .replace(/\s+/g, " ").trim();
   const translatedQuery = translateQuery(cleanedMsg || message);
   const maxPriceMatch = message.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i);
   const maxPrice = maxPriceMatch ? Number(maxPriceMatch[1]) : undefined;
   const budgetText = maxPrice ? ` in bugetul tau de maxim ${maxPrice} lei` : (shoppingSession.budgetLabel ? ` in bugetul tau de ${shoppingSession.budgetLabel}` : "");
-  const catText = matchedCategory ? ` din categoria ${matchedCategory}` : "";
-  return { intent: "search_product", reply: `Perfect, caut variante potrivite${budgetText}${catText} si iti pregatesc idei de bundle. 🔥`, searchQuery: translatedQuery, category: matchedCategory, bundleQueries: [translatedQuery + " accessories", translatedQuery + " gift"], maxPrice, shouldAskFollowUp: true };
+  
+  // Smart category-aware reply
+  const populated = getPopulatedCategoryNames(categories);
+  const categoryIsPopulated = matchedCategory ? populated.includes(matchedCategory) : true;
+  let catText = "";
+  if (matchedCategory && categoryIsPopulated) {
+    catText = ` din categoria ${matchedCategory}`;
+  } else if (matchedCategory && !categoryIsPopulated) {
+    catText = `. Categoria ${matchedCategory} este în curs de populare`;
+  }
+
+  // Smart bundle queries — if category is empty, bundle from populated categories
+  let bundleQs: string[];
+  if (matchedCategory && categoryIsPopulated) {
+    bundleQs = [translatedQuery + " accessories", translatedQuery + " set"];
+  } else {
+    bundleQs = ["trending popular best seller", "gift set accessories"];
+  }
+
+  return {
+    intent: "search_product",
+    reply: `Perfect, caut variante potrivite${budgetText}${catText} si iti pregatesc idei de bundle. 🔥`,
+    searchQuery: translatedQuery,
+    category: matchedCategory,
+    bundleQueries: bundleQs,
+    maxPrice,
+    shouldAskFollowUp: true,
+  };
 }

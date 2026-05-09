@@ -24,7 +24,8 @@ const s3 = new S3Client({
 
 // ─── Database ───
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://aicevrei_products_owner:npg_cPvb7VBX1wOk@ep-misty-fog-a2ilxisf-pooler.eu-central-1.aws.neon.tech/aicevrei_products_dser?sslmode=require",
+  connectionString: process.env.DATABASE_URL || "postgresql://neondb_owner:npg_SPahbB68xqur@ep-cold-hat-alaqlcr5-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require",
+  ssl: { rejectUnauthorized: false },
 });
 
 async function checkExists(key) {
