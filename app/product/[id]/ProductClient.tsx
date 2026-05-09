@@ -6,6 +6,8 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Home, Minus, Package, Plus
 import { mergeIntoCart } from "@/types/cart";
 import type { Product } from "@/types/product";
 
+import type { ProductDetail } from "@/lib/products/get-product-detail";
+
 /* ─── Types ──────────────────────────────────────────────── */
 type Variant = {
   id: number; skuId: string; name: string; priceRon: number;
@@ -15,14 +17,16 @@ type Variant = {
 type ColorData = { image: string | null; sizes: { size: string; price: number; stock: number; skuId: string }[] };
 type SimilarProduct = { id: string; title: string; price: number; oldPrice: number; image: string; hasVideo: boolean; rating: number };
 
-export default function ProductClient() {
+type Props = { initialData?: ProductDetail | null };
+
+export default function ProductClient({ initialData }: Props) {
   const { id } = useParams();
   const router = useRouter();
-  const [product, setProduct] = useState<any>(null);
-  const [variants, setVariants] = useState<Variant[]>([]);
-  const [colorMap, setColorMap] = useState<Record<string, ColorData>>({});
-  const [similar, setSimilar] = useState<SimilarProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<any>(initialData?.product || null);
+  const [variants, setVariants] = useState<Variant[]>(initialData?.variants || []);
+  const [colorMap, setColorMap] = useState<Record<string, ColorData>>(initialData?.colorMap || {});
+  const [similar, setSimilar] = useState<SimilarProduct[]>(initialData?.similar || []);
+  const [loading, setLoading] = useState(!initialData);
 
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
@@ -31,7 +35,20 @@ export default function ProductClient() {
   const [liked, setLiked] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
 
+  // Initialize color/size selection from initialData
   useEffect(() => {
+    const cm = initialData?.colorMap || colorMap;
+    const colors = Object.keys(cm);
+    if (colors.length && !selectedColor) {
+      setSelectedColor(colors[0]);
+      const sizes = cm[colors[0]]?.sizes || [];
+      if (sizes.length) setSelectedSize(sizes[0].size);
+    }
+  }, [initialData]);
+
+  // Only fetch client-side if no initialData was provided (direct URL nav, etc.)
+  useEffect(() => {
+    if (initialData) return; // Server already provided data
     fetch(`/api/products/${id}`)
       .then(r => r.json())
       .then(data => {
@@ -50,7 +67,7 @@ export default function ProductClient() {
         }
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, initialData]);
 
   /* ─── Loading State ─── */
   if (loading) return (

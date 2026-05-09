@@ -124,8 +124,12 @@ export async function POST(req: Request) {
             );
           }
         } catch (e) {
-          // If variant lookup fails, continue with base price only if skuId wasn't explicitly provided
+          // skuId was explicitly provided — if we can't validate the variant, we MUST stop
           console.error(`[Cart v3] Variant lookup error for ${item.skuId}:`, e);
+          return NextResponse.json(
+            { success: false, error: "Nu am putut valida varianta selectată. Încearcă din nou." },
+            { status: 500 }
+          );
         }
       }
 

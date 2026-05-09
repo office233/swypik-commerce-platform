@@ -29,6 +29,7 @@ type FeedProduct = {
   commentCount?: number;
   socialProofLabel?: string;
   commerceBadge?: string;
+  isEstimatedSocial?: boolean;
   video?: string | null;
   hasVideo?: boolean;
 };
@@ -366,7 +367,10 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 <h2 className="text-[15px] font-black leading-snug text-white drop-shadow-lg line-clamp-2">{product.title}</h2>
                 <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
                   <span><Star size={11} className="inline text-[#F59E0B] mr-0.5" fill="currentColor" />{product.rating.toFixed(1)}</span>
-                  <span>{product.orders.toLocaleString()}+ vândute</span>
+                  {product.isEstimatedSocial
+                    ? <span>Popular</span>
+                    : <span>{product.orders.toLocaleString()}+ vândute</span>
+                  }
                   <span><Truck size={11} className="inline mr-0.5" />{product.deliveryDays}z</span>
                 </div>
               </div>
