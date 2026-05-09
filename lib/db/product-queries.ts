@@ -161,6 +161,7 @@ export async function searchProducts(filters: ProductFilters = {}) {
   // Score = (orders weight + rating weight + discount weight) × random factor
   // This ensures popular/high-quality clips appear more often but every refresh is different
   if (mode === "video") {
+    where.push("p.video_url LIKE '%cdn.aicevrei%'"); // ONLY load successfully migrated R2 videos
     orderBy = `(
       COALESCE(LN(GREATEST(p.orders_count, 1) + 1), 0) * 2.0
       + COALESCE(p.rating, 4.0) * 1.5

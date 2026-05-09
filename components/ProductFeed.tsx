@@ -259,14 +259,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       </div>
 
       {products.map((product, pIdx) => {
-        // DOM Virtualization: Only fully render cards close to current view
-        const isNear = Math.abs(pIdx - currentIdx) <= 4;
-        
-        if (!isNear) {
-          // Render empty shell to maintain scroll height and native snapping
-          return <div key={product.id} data-feed-idx={pIdx} className="feed-card bg-[#0D0D0D]" />;
-        }
-
         const overlay = aiOverlay(product);
         const hasWorkingVideo = product.video && !videoErrors[product.id];
         const loadVideo = shouldLoadVideo(pIdx);
