@@ -189,10 +189,10 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     setTimeout(() => setAddedToCart(null), 2000);
   };
 
-  // Keep videos mounted once loaded — never unmount to preserve browser buffer
-  // Render video if: within ±3 of current OR was previously loaded (idx <= maxLoadedIdx)
+  // Render video if: within sliding window to avoid hitting 6-connection browser limit
   const shouldLoadVideo = (idx: number) => {
-    return idx <= maxLoadedIdx + 3 && idx >= 0;
+    // Keep 1 previous, current, and 2 upcoming (4 total connections, safe under the 6 limit)
+    return idx >= currentIdx - 1 && idx <= currentIdx + 2;
   };
 
   // Expand load window as user scrolls + trigger loadMore + manage playback
@@ -200,10 +200,23 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     // Expand the max loaded index (never shrinks)
     setMaxLoadedIdx(prev => Math.max(prev, currentIdx + 3));
 
+    // Prefetch upcoming videos not yet mounted (idx + 3 to idx + 5)
+    const prefetchVideos = () => {
+      for (let i = 3; i <= 5; i++) {
+        const nextProduct = products[currentIdx + i];
+        if (nextProduct?.video && !videoErrors[nextProduct.id]) {
+          fetch(nextProduct.video, { mode: "no-cors", priority: "low" as any }).catch(() => {});
+        }
+      }
+    };
+    const timer = setTimeout(prefetchVideos, 500);
+
     // Trigger loadMore when 5 cards from the end
     if (onLoadMore && currentIdx >= products.length - 5) {
       onLoadMore();
     }
+
+    return () => clearTimeout(timer);
   }, [currentIdx, products]);
 
   if (isLoading && products.length === 0) {
