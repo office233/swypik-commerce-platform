@@ -47,6 +47,57 @@ Spune-mi ce cauți și eu:
 🏠 "Apartament nou sub 2000 lei"`,
 };
 
+function normalizeSocialFeedProducts(data: any): ChatProduct[] {
+  const rawItems = Array.isArray(data?.items) ? data.items : Array.isArray(data?.products) ? data.products : [];
+
+  return rawItems
+    .map((item: any) => {
+      const source = item?.product || item;
+      if (!source?.title) return null;
+
+      const numericPgId = Number(source.pgId || source.id || item.productId);
+      const videoUrl =
+        item?.video?.hlsUrl ||
+        item?.video?.mp4Url ||
+        item?.video?.url ||
+        item?.videoUrl ||
+        source.video ||
+        undefined;
+
+      return {
+        ...source,
+        id: String(source.id || item.productId || item.id),
+        pgId: Number.isFinite(numericPgId) ? numericPgId : source.pgId,
+        description: source.description || source.title,
+        benefits: source.benefits || [],
+        dealLabel: source.dealLabel || "AI Pick",
+        whyBuy: source.whyBuy || "",
+        warnings: source.warnings || [],
+        price: Number(source.price) || 0,
+        oldPrice: Number(source.oldPrice) || Number(source.price) || 0,
+        discountPercent: Number(source.discountPercent) || 0,
+        rating: Number(source.rating) || 4.7,
+        orders: Number(source.orders) || item?.stats?.orders || 0,
+        deliveryDays: Number(source.deliveryDays) || 7,
+        images: Array.isArray(source.images) ? source.images : item?.video?.posterUrl ? [item.video.posterUrl] : [],
+        video: videoUrl,
+        hasVideo: Boolean(videoUrl || source.hasVideo),
+        category: source.category || "General",
+        gradient: source.gradient || "from-orange-500 to-pink-500",
+        qualityScore: Number(source.qualityScore) || 8,
+        likes: Number(source.likes) || item?.stats?.likes,
+        commentCount: Number(source.commentCount) || item?.stats?.comments,
+      } satisfies ChatProduct;
+    })
+    .filter(Boolean) as ChatProduct[];
+}
+
+async function fetchSocialFeed(offset: number, seed: number) {
+  const res = await fetch(`/api/v1/feed?limit=15&offset=${offset}&seed=${seed}`);
+  if (!res.ok) throw new Error("Social feed unavailable");
+  return normalizeSocialFeedProducts(await res.json());
+}
+
 export default function ChatInterface({ 
   initialTrending = [], 
   initialBestValue = [], 

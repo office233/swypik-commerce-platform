@@ -1,0 +1,104 @@
+name: aicevrei-social
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aicevrei_social}
+      POSTGRES_USER: ${POSTGRES_USER:-aicevrei}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aicevrei_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - social_postgres_data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - social_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  opensearch:
+    image: opensearchproject/opensearch:2.15.0
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+      bootstrap.memory_lock: "true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      - social_opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aicevrei}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-aicevrei_dev_password}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - social_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aicevrei}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-aicevrei_dev_password}
+      SOCIAL_MEDIA_BUCKET: ${SOCIAL_MEDIA_BUCKET:-social-media}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing "local/$${SOCIAL_MEDIA_BUCKET}"
+        mc anonymous set download "local/$${SOCIAL_MEDIA_BUCKET}/public" || true
+
+# Production media storage should use Cloudflare R2 or another S3-compatible
+# object store. Keep MinIO for local development only, and point S3_ENDPOINT,
+# S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, and SOCIAL_MEDIA_BUCKET at R2 in env.
+
+volumes:
+  social_postgres_data:
+  social_redis_data:
+  social_opensearch_data:
+  social_minio_data:

@@ -162,10 +162,12 @@ export async function POST(req: Request) {
       currency: "RON",
     });
   } catch (error: any) {
-    console.error("[Checkout] Error:", error);
+    console.error("[Checkout] Error:", error?.message, error?.stack);
     logCheckoutEvent("checkout_fail", { error: error?.message });
+    // Surface Stripe-specific errors for debugging
+    const stripeMsg = error?.raw?.message || error?.message || "Unknown error";
     return NextResponse.json(
-      { success: false, error: "A apărut o eroare la checkout. Încearcă din nou." },
+      { success: false, error: `Checkout error: ${stripeMsg}` },
       { status: 500 }
     );
   }
