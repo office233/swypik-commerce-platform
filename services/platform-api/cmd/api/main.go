@@ -10,11 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/office233/swypik/services/platform-api/internal/feed"
 	"github.com/office233/swypik/services/platform-api/internal/platform/config"
 	"github.com/office233/swypik/services/platform-api/internal/platform/db"
 	platformhttp "github.com/office233/swypik/services/platform-api/internal/platform/http"
 	"github.com/office233/swypik/services/platform-api/internal/platform/logger"
 	"github.com/office233/swypik/services/platform-api/internal/platform/redis"
+	"github.com/office233/swypik/services/platform-api/internal/social"
 )
 
 func main() {
@@ -60,12 +62,24 @@ func main() {
 		log.Info("REDIS_URL not set, running without streams/cache")
 	}
 
-	_ = pgPool // Will be used to construct PostgreSQL repositories in Phase 0.2
+	// ── Repositories ──────────────────────────────────────────────
+	var feedRepo feed.Repository
+	var socialStore social.Store
+
+	if pgPool != nil {
+		feedRepo = feed.NewPostgresRepository(pgPool.Pool())
+		socialStore = social.NewPostgresStore(pgPool.Pool())
+		log.Info("repositories: using PostgreSQL")
+	} else {
+		log.Info("repositories: using in-memory (no DB)")
+	}
 
 	// ── HTTP Server ────────────────────────────────────────────────
 	router := platformhttp.NewRouter(platformhttp.Dependencies{
 		Config: cfg,
 		Logger: log,
+		Feed:   feed.NewService(feedRepo, time.Now),
+		Social: social.NewService(socialStore, time.Now),
 		DB:     dbChecker,
 		Redis:  redisClient,
 	})
