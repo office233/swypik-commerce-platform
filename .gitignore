@@ -75,3 +75,6 @@ chrome-extension/
 /workers/**/wrangler.local.toml
 /workers/**/.wrangler/
 *.exe
+
+__pycache__/
+*.pyc
