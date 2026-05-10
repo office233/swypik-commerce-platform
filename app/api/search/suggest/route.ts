@@ -4,6 +4,9 @@
 import { NextResponse } from "next/server";
 import { searchProducts } from "@/lib/db/product-queries";
 
+export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
+
 const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
 

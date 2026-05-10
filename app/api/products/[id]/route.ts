@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 export async function GET(
   req: Request,

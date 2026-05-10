@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Heart, MessageCircle, Package, Play, ShoppingCart, Star, Truck, Volume2, VolumeX, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 type FeedProduct = {
   id: string;
@@ -73,9 +74,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
   const [showComments, setShowComments] = useState<string | null>(null);
   const hasInteractedRef = useRef(false);
-  // Track highest index ever reached — never unmount videos already loaded
-  const [maxLoadedIdx, setMaxLoadedIdx] = useState(3);
-
   // Auto-unmute on first user tap
   useEffect(() => {
     const unmute = () => {
@@ -167,7 +165,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [currentIdx, products.length]);
+  }, [currentIdx, isMuted, products]);
 
   // Sync muted state
   useEffect(() => {
@@ -190,35 +188,17 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     setTimeout(() => setAddedToCart(null), 2000);
   };
 
-  // Render video if: within sliding window to avoid hitting 6-connection browser limit
+  // Render video only near the active card to avoid saturating mobile network/decoders.
   const shouldLoadVideo = (idx: number) => {
-    // Keep 1 previous, current, and 2 upcoming (4 total connections, safe under the 6 limit)
-    return idx >= currentIdx - 1 && idx <= currentIdx + 2;
+    return idx >= currentIdx - 1 && idx <= currentIdx + 1;
   };
 
-  // Expand load window as user scrolls + trigger loadMore + manage playback
+  // Trigger loadMore as user gets close to the end.
   useEffect(() => {
-    // Expand the max loaded index (never shrinks)
-    setMaxLoadedIdx(prev => Math.max(prev, currentIdx + 3));
-
-    // Prefetch upcoming videos not yet mounted (idx + 3 to idx + 5)
-    const prefetchVideos = () => {
-      for (let i = 3; i <= 5; i++) {
-        const nextProduct = products[currentIdx + i];
-        if (nextProduct?.video && !videoErrors[nextProduct.id]) {
-          fetch(nextProduct.video, { mode: "no-cors", priority: "low" as any }).catch(() => {});
-        }
-      }
-    };
-    const timer = setTimeout(prefetchVideos, 500);
-
-    // Trigger loadMore when 5 cards from the end
     if (onLoadMore && currentIdx >= products.length - 5) {
       onLoadMore();
     }
-
-    return () => clearTimeout(timer);
-  }, [currentIdx, products]);
+  }, [currentIdx, onLoadMore, products.length]);
 
   if (isLoading && products.length === 0) {
     return (
@@ -264,6 +244,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
         const hasWorkingVideo = product.video && !videoErrors[product.id];
         const loadVideo = shouldLoadVideo(pIdx);
         const isCurrentCard = pIdx === currentIdx;
+        const posterImage = product.images?.[0];
 
         return (
           <div key={product.id} data-feed-idx={pIdx} className="feed-card">
@@ -271,22 +252,31 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
             {/* ─── Full-screen media — poster always visible, video lazy on top ─── */}
             <div className="feed-media" onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
               {/* Poster image — always rendered, loads fast (~50KB) */}
-              <img
-                src={product.images?.[0] || ""}
-                alt={product.title}
-                loading={pIdx < 3 ? "eager" : "lazy"}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              {/* Video — layered on top, preload=auto for instant playback */}
+              {posterImage ? (
+                <Image
+                  src={posterImage}
+                  alt={product.title}
+                  fill
+                  sizes="100vw"
+                  loading={pIdx < 3 ? "eager" : "lazy"}
+                  priority={pIdx === 0}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 grid place-items-center bg-[#0D0D0D] text-white/50">
+                  <Package size={48} />
+                </div>
+              )}
+              {/* Video — layered on top, eager only for the current card */}
               {hasWorkingVideo && loadVideo && (
                 <video
                   ref={(el) => { if (el) videoMapRef.current[product.id] = el; }}
                   src={product.video!}
-                  poster={product.images?.[0]}
+                  poster={posterImage}
                   loop
                   muted={isMuted}
                   playsInline
-                  preload="auto"
+                  preload={isCurrentCard ? "auto" : "metadata"}
                   autoPlay={isCurrentCard}
                   className={`absolute inset-0 h-full w-full object-cover${isCurrentCard ? '' : ' opacity-0'}`}
                   style={{ transition: 'opacity 0.15s ease' }}

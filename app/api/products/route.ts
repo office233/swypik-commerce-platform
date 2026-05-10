@@ -6,8 +6,8 @@
 import { NextResponse } from "next/server";
 import { searchProducts } from "@/lib/db/product-queries";
 
-export const runtime = "edge";
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 // ─── Romanian → English search translation ──────────────────────
 const RO_TO_EN: Record<string, string> = {
@@ -66,6 +66,8 @@ export async function GET(req: Request) {
     // Products search
     const rawOffset = parseInt(url.searchParams.get("offset") || "0");
     const safeOffset = Number.isFinite(rawOffset) ? Math.max(0, Math.min(rawOffset, 100000)) : 0;
+    const rawSeed = Number(url.searchParams.get("seed") || 0);
+    const safeSeed = Number.isFinite(rawSeed) ? Math.max(0, Math.min(Math.trunc(rawSeed), 1000000)) : 0;
     const rawMinPrice = url.searchParams.get("minPrice") ? Number(url.searchParams.get("minPrice")) : undefined;
     const rawMaxPrice = url.searchParams.get("maxPrice") ? Number(url.searchParams.get("maxPrice")) : undefined;
 
@@ -79,6 +81,7 @@ export async function GET(req: Request) {
       mode: mode as any,
       limit,
       offset: safeOffset,
+      seed: safeSeed,
     };
 
     const result = await searchProducts(filters);

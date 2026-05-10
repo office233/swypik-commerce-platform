@@ -13,6 +13,7 @@ import ProductClient from "./ProductClient";
 type Props = { params: Promise<{ id: string }> };
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "fra1";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;

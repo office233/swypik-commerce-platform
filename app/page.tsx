@@ -1,19 +1,37 @@
 import ChatInterface from "@/components/ChatInterface";
 import { searchProducts } from "@/lib/db/product-queries";
 
-export const runtime = "edge";
-export const revalidate = 60; // Cache the home page for 60 seconds at the CDN edge
+// ISR: rebuild homepage every 120s — NOT force-dynamic (which caused timeout on every request)
+export const revalidate = 120;
+export const preferredRegion = "fra1";
+
+/** Wrap a promise with a timeout so one slow query doesn't block the whole page */
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
 
 export default async function Home() {
-  // Fetch initial data in parallel on the server
-  const [trending, bestValue, topRated] = await Promise.all([
-    searchProducts({ mode: "trending", limit: 20 }),
-    searchProducts({ mode: "bestvalue", limit: 20 }),
-    searchProducts({ mode: "toprated", limit: 20 }),
-  ]);
+  type ProductSearchResult = Awaited<ReturnType<typeof searchProducts>>;
+  const emptyResult: ProductSearchResult = { products: [], total: 0, offset: 0, limit: 0 };
+  let trending = emptyResult;
+  let bestValue = emptyResult;
+  let topRated = emptyResult;
+
+  try {
+    [trending, bestValue, topRated] = await Promise.all([
+      withTimeout(searchProducts({ mode: "trending", limit: 20 }), 8000, emptyResult),
+      withTimeout(searchProducts({ mode: "bestvalue", limit: 20 }), 8000, emptyResult),
+      withTimeout(searchProducts({ mode: "toprated", limit: 20 }), 8000, emptyResult),
+    ]);
+  } catch (error) {
+    console.error("[Home] Failed to load initial products:", error);
+  }
 
   return (
-    <ChatInterface 
+    <ChatInterface
       initialTrending={trending.products}
       initialBestValue={bestValue.products}
       initialTopRated={topRated.products}

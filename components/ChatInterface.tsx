@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, ChevronDown, ChevronRight, Flame, Grid3x3, Home, MessageCircle, Package, Search, Send, ShoppingCart, SlidersHorizontal, Star, Tag, Truck, X, Zap } from "lucide-react";
 import ProductFeed from "./ProductFeed";
@@ -94,15 +94,71 @@ export default function ChatInterface({
   const [catTotal, setCatTotal] = useState(0);
   const [catBrowsing, setCatBrowsing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const feedSeed = useRef(Math.floor(Math.random() * 100000));
+  const dealsLoadingRef = useRef(false);
+  const feedLoadingRef = useRef(false);
+
+  const loadDeals = useCallback(async () => {
+    if (dealsLoadingRef.current) return;
+    dealsLoadingRef.current = true;
+    setDealsLoading(true);
+    try {
+      const data = await fetch("/api/products?mode=deals&limit=50&sort=popular").then((r) => r.json());
+      setDealsProducts(data.products || []);
+    } finally {
+      dealsLoadingRef.current = false;
+      setDealsLoading(false);
+    }
+  }, []);
+
+  const loadFeed = useCallback(async () => {
+    if (feedLoadingRef.current) return;
+    feedLoadingRef.current = true;
+    setFeedLoading(true);
+    try {
+      const data = await fetch(`/api/products?mode=video&limit=15&sort=popular&seed=${feedSeed.current}`).then((r) => r.json());
+      setFeedProducts(data.products || []);
+    } finally {
+      feedLoadingRef.current = false;
+      setFeedLoading(false);
+    }
+  }, []);
+
+  const loadMoreFeed = useCallback(async () => {
+    if (feedLoadingRef.current) return;
+    feedLoadingRef.current = true;
+    setFeedLoading(true);
+    try {
+      const offset = feedProducts.length;
+      const data = await fetch(`/api/products?mode=video&limit=15&offset=${offset}&sort=popular&seed=${feedSeed.current}`).then((r) => r.json());
+      setFeedProducts((prev) => {
+        const existing = new Set(prev.map((p) => p.id));
+        return [...prev, ...(data.products || []).filter((p: ChatProduct) => !existing.has(p.id))];
+      });
+    } finally {
+      feedLoadingRef.current = false;
+      setFeedLoading(false);
+    }
+  }, [feedProducts.length]);
 
   // Persist cart to localStorage
   useEffect(() => { try { localStorage.setItem("aicv_cart", JSON.stringify(cartItems)); } catch {} }, [cartItems]);
   // Persist chat messages (last 20) to localStorage
   useEffect(() => { try { const toSave = messages.slice(-20).map(m => ({ ...m, products: m.products?.slice(0, 4), bundleProducts: m.bundleProducts?.slice(0, 4) })); localStorage.setItem("aicv_chat", JSON.stringify(toSave)); } catch {} }, [messages]);
 
-  useEffect(() => { setSessionId(Math.random().toString(36).slice(2) + Date.now().toString(36)); fetch("/api/products?hierarchy=true").then(r=>r.json()).then(d=>setCategoryTree(d.hierarchy||[])).catch(()=>{}); /* Auto-open feed from URL */ if (typeof window !== "undefined") { const urlMode = new URLSearchParams(window.location.search).get("mode"); if (urlMode === "feed") { setActiveTab("feed"); loadFeed(); } } }, []);
+  useEffect(() => {
+    setSessionId(Math.random().toString(36).slice(2) + Date.now().toString(36));
+    fetch("/api/products?hierarchy=true").then(r=>r.json()).then(d=>setCategoryTree(d.hierarchy||[])).catch(()=>{});
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "feed") {
+      setActiveTab("feed");
+      loadFeed();
+    }
+  }, [loadFeed]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isLoading]);
-  useEffect(() => { if (activeTab === "deals" && dealsProducts.length === 0 && !dealsLoading) loadDeals(); if (activeTab === "feed" && feedProducts.length === 0 && !feedLoading) loadFeed(); }, [activeTab]);
+  useEffect(() => {
+    if (activeTab === "deals" && dealsProducts.length === 0) loadDeals();
+    if (activeTab === "feed" && feedProducts.length === 0) loadFeed();
+  }, [activeTab, dealsProducts.length, feedProducts.length, loadDeals, loadFeed]);
 
   useEffect(() => {
     if (activeTab !== "home" || input.trim().length < 2) { setSuggestions([]); return; }
@@ -178,16 +234,21 @@ export default function ChatInterface({
     } catch (error: any) { setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: error?.message || "A apărut o eroare.", timestamp: new Date() }]); } finally { setIsLoading(false); }
   }
 
-  async function loadDeals() { if (dealsLoading) return; setDealsLoading(true); try { const data = await fetch("/api/products?mode=deals&limit=50&sort=popular").then((r) => r.json()); setDealsProducts(data.products || []); } finally { setDealsLoading(false); } }
-  const feedSeed = useRef(Math.floor(Math.random() * 100000));
-  async function loadFeed() { if (feedLoading) return; setFeedLoading(true); try { const data = await fetch(`/api/products?mode=video&limit=15&sort=popular&seed=${feedSeed.current}`).then((r) => r.json()); setFeedProducts(data.products || []); } finally { setFeedLoading(false); } }
   const [touchStart, setTouchStart] = useState<{ x: number, y: number } | null>(null);
 
-  async function loadMoreFeed() { if (feedLoading) return; setFeedLoading(true); try { const offset = feedProducts.length; const data = await fetch(`/api/products?mode=video&limit=15&offset=${offset}&sort=popular&seed=${feedSeed.current}`).then((r) => r.json()); setFeedProducts((prev) => { const existing = new Set(prev.map((p) => p.id)); return [...prev, ...(data.products || []).filter((p: ChatProduct) => !existing.has(p.id))]; }); } finally { setFeedLoading(false); } }
   function updateQty(index: number, delta: number) { setCartItems((prev) => { const next = [...prev]; next[index] = { ...next[index], qty: Math.max(0, next[index].qty + delta) }; return next.filter((item) => item.qty > 0); }); }
   async function submitOrder() { if (cartItems.length === 0 || checkoutLoading) return; setCheckoutLoading(true); try { const res = await fetch("/api/cart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ products: cartItems.map((item) => ({ pgId: item.product.pgId, skuId: item.product.skuId || undefined, quantity: item.qty })) }) }); const data = await res.json(); if (!res.ok || !data.success) throw new Error(data?.error || "Nu am putut crea checkout-ul."); if (data.checkoutUrl) window.location.href = data.checkoutUrl; } catch (error: any) { setToastMessage(error?.message || "Eroare checkout."); setTimeout(() => setToastMessage(""), 4000); } finally { setCheckoutLoading(false); } }
 
+  const isSwipeCandidate = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return false;
+    return !target.closest("button,a,input,textarea,select,[role='button'],.overflow-x-auto");
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isSwipeCandidate(e.target)) {
+      setTouchStart(null);
+      return;
+    }
     if (e.touches.length === 1) setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
   };
 
@@ -214,7 +275,7 @@ export default function ChatInterface({
     const q = getCardQty(product.id);
     const vc = product.variantsCount || 0;
     return (
-      <div className={`${compact ? "w-[10.5rem] shrink-0" : ""} overflow-hidden rounded-2xl bg-white border border-[#E5E5E5] hover:border-[#D1D1D6] hover:shadow-md transition-all cursor-pointer`} onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
+      <div className={`${compact ? "w-[10.5rem] shrink-0" : ""} overflow-hidden rounded-2xl bg-white border border-[#E5E5E5] md:hover:border-[#D1D1D6] md:hover:shadow-md transition-all cursor-pointer`} onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
         <div className="relative h-44 bg-[#F7F7F8]">
           {product.images?.[0] ? <Image src={product.images[0]} alt={product.title} width={250} height={250} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center"><Package className="text-[#D1D1D6]" /></div>}
           {product.discountPercent > 0 && <span className="absolute right-2 top-2 rounded-full bg-[#EF4444] px-2.5 py-1 text-[10px] font-black text-white">-{product.discountPercent}%</span>}
@@ -325,10 +386,10 @@ export default function ChatInterface({
       )}
     </section>
     {activeTab === "chat" && <div className="fixed bottom-14 left-1/2 z-30 w-full max-w-lg -translate-x-1/2 border-t border-[#E5E5E5] bg-white/95 px-3 py-2 backdrop-blur-xl" onTouchStart={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()}><div className={`flex gap-2 rounded-xl p-2 ${THEME.classes.softInput}`}><input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} className="flex-1 bg-transparent px-2 text-sm font-medium text-[#0D0D0D] outline-none placeholder:text-[#A1A1AA]" placeholder="Scrie ce cauți..." /><button onClick={() => sendMessage()} disabled={!input.trim() || isLoading} className="grid h-10 w-10 place-items-center rounded-xl bg-[#0D0D0D] text-white disabled:opacity-40"><Send size={16} /></button></div></div>}{(activeTab as string) !== "feed" && <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-lg -translate-x-1/2 border-t border-[#E5E5E5] bg-white/95 px-4 py-2 backdrop-blur-xl"><div className="flex justify-around text-[10px] font-bold text-[#6E6E80]"><NavBtn icon={<Home size={18} />} label="Acasă" active={activeTab === "home"} onClick={() => setActiveTab("home")} /><NavBtn icon={<Grid3x3 size={18} />} label="Categorii" active={activeTab === "categories"} onClick={() => { setActiveTab("categories"); setCatBrowsing(false); }} /><NavBtn icon={<Flame size={18} />} label="Feed" active={(activeTab as string) === "feed"} onClick={() => setActiveTab("feed")} /><NavBtn icon={<MessageCircle size={18} />} label="Chat" active={activeTab === "chat"} onClick={() => setActiveTab("chat")} /><NavBtn icon={<ShoppingCart size={18} />} label={`Coș ${cartCount ? `(${cartCount})` : ""}`} active={activeTab === "cart"} onClick={() => setActiveTab("cart")} /></div></nav>}
-    {upsellProduct && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={() => setUpsellProduct(null)}><div className="w-full max-w-lg rounded-t-[2rem] bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#10A37F]">Completează bundle-ul</p><h3 className="text-2xl font-black text-[#0D0D0D]">Mai vrei și asta?</h3><p className="mt-1 text-sm font-medium text-[#6E6E80]">Merge bine cu ce ai pus în coș.</p></div><button onClick={() => setUpsellProduct(null)}><X size={18} /></button></div><div className="mt-4 flex gap-3 rounded-2xl bg-[#F7F7F8] p-3 border border-[#E5E5E5]"><img src={upsellProduct.images?.[0]} alt="" className="h-24 w-24 rounded-xl object-cover" /><div className="flex-1"><p className="line-clamp-2 text-sm font-bold">{upsellProduct.title}</p><p className="mt-1 text-xl font-black text-[#10A37F]">{upsellProduct.price} lei</p><button onClick={() => { addToCart(upsellProduct); setUpsellProduct(null); }} className={`mt-2 w-full rounded-xl py-2 font-bold ${THEME.classes.cartButton}`}>Adaugă la bundle</button></div></div><button onClick={() => setUpsellProduct(null)} className="mt-3 w-full rounded-xl bg-[#F7F7F8] py-3 font-bold text-[#6E6E80]">Nu acum</button></div></div>}
-    {showBundleSheet && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={() => setShowBundleSheet(false)}><div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#10A37F]">AI Bundle</p><h3 className="text-2xl font-black">Bundle complet</h3><p className="text-sm font-medium text-[#6E6E80]">Total: {Math.round(bundleTotal)} lei {bundleSavings > 0 ? `• economisești ${bundleSavings} lei` : ""}</p></div><button onClick={() => setShowBundleSheet(false)}><X size={18} /></button></div><div className="mt-4 space-y-3">{bundleCandidates.map((p) => <div key={p.id} className="flex gap-3 rounded-2xl bg-[#F7F7F8] p-3 border border-[#E5E5E5]"><img src={p.images?.[0]} alt="" className="h-16 w-16 rounded-xl object-cover" /><div className="flex-1"><p className="line-clamp-2 text-sm font-bold">{p.title}</p><p className="text-sm font-bold text-[#10A37F]">{p.price} lei</p></div><button onClick={() => addToCart(p)} className="rounded-xl bg-[#10A37F] px-3 text-xs font-bold text-white">+ Coș</button></div>)}</div></div></div>}
+    {upsellProduct && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={() => setUpsellProduct(null)}><div className="w-full max-w-lg rounded-t-[2rem] bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#10A37F]">Completează bundle-ul</p><h3 className="text-2xl font-black text-[#0D0D0D]">Mai vrei și asta?</h3><p className="mt-1 text-sm font-medium text-[#6E6E80]">Merge bine cu ce ai pus în coș.</p></div><button onClick={() => setUpsellProduct(null)}><X size={18} /></button></div><div className="mt-4 flex gap-3 rounded-2xl bg-[#F7F7F8] p-3 border border-[#E5E5E5]">{upsellProduct.images?.[0] && <Image src={upsellProduct.images[0]} alt="" width={96} height={96} className="h-24 w-24 rounded-xl object-cover" />}<div className="flex-1"><p className="line-clamp-2 text-sm font-bold">{upsellProduct.title}</p><p className="mt-1 text-xl font-black text-[#10A37F]">{upsellProduct.price} lei</p><button onClick={() => { addToCart(upsellProduct); setUpsellProduct(null); }} className={`mt-2 w-full rounded-xl py-2 font-bold ${THEME.classes.cartButton}`}>Adaugă la bundle</button></div></div><button onClick={() => setUpsellProduct(null)} className="mt-3 w-full rounded-xl bg-[#F7F7F8] py-3 font-bold text-[#6E6E80]">Nu acum</button></div></div>}
+    {showBundleSheet && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={() => setShowBundleSheet(false)}><div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#10A37F]">AI Bundle</p><h3 className="text-2xl font-black">Bundle complet</h3><p className="text-sm font-medium text-[#6E6E80]">Total: {Math.round(bundleTotal)} lei {bundleSavings > 0 ? `• economisești ${bundleSavings} lei` : ""}</p></div><button onClick={() => setShowBundleSheet(false)}><X size={18} /></button></div><div className="mt-4 space-y-3">{bundleCandidates.map((p) => <div key={p.id} className="flex gap-3 rounded-2xl bg-[#F7F7F8] p-3 border border-[#E5E5E5]">{p.images?.[0] && <Image src={p.images[0]} alt="" width={64} height={64} className="h-16 w-16 rounded-xl object-cover" />}<div className="flex-1"><p className="line-clamp-2 text-sm font-bold">{p.title}</p><p className="text-sm font-bold text-[#10A37F]">{p.price} lei</p></div><button onClick={() => addToCart(p)} className="rounded-xl bg-[#10A37F] px-3 text-xs font-bold text-white">+ Coș</button></div>)}</div></div></div>}
     {selectedProduct && <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={() => addToCart(selectedProduct)} />}{toastMessage && <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white shadow-xl">{toastMessage}</div>}</div></main>;
 }
 
-function NavBtn({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) { return <button onClick={onClick} onTouchEnd={(e)=>{e.stopPropagation();e.preventDefault();onClick();}} className={`flex flex-col items-center gap-0.5 transition-colors ${active ? "text-[#0D0D0D]" : "text-[#A1A1AA]"}`} style={{touchAction:'manipulation'}}>{icon}{label}</button>; }
-function ProductModal({ product, onClose, onAddToCart }: { product: ChatProduct; onClose: () => void; onAddToCart: () => void }) { const insights: string[] = []; if (product.rating >= 4.7 && !product.isEstimatedSocial) insights.push(`⭐ Rating ${product.rating}/5 — calitate peste medie`); if (!product.isEstimatedSocial && product.orders >= 500) insights.push(`✅ ${product.orders.toLocaleString()}+ comenzi — seller de încredere`); else if (!product.isEstimatedSocial && product.orders >= 100) insights.push(`📦 ${product.orders}+ vândute — produs verificat`); if (product.discountPercent >= 20) insights.push(`💰 Reducere reală de ${product.discountPercent}% față de prețul standard`); if (product.qualityScore >= 9) insights.push('🏆 Best value în categoria sa'); if (product.deliveryDays <= 5) insights.push(`🚀 Livrare rapidă — ${product.deliveryDays} zile`); return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={onClose}><div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-white p-5" onClick={(e) => e.stopPropagation()}><div className="mb-3 flex justify-between"><span className="rounded-full bg-[#F7F7F8] px-3 py-1 text-xs font-bold text-[#6E6E80]">{product.category}</span><button onClick={onClose}><X size={18} /></button></div>{product.images?.[0] && <img src={product.images[0]} alt={product.title} className="h-64 w-full rounded-2xl object-cover" />}<h2 className="mt-4 text-2xl font-black text-[#0D0D0D]">{product.title}</h2><div className="mt-2 flex gap-3 text-sm font-medium text-[#6E6E80]"><span className="text-[#F59E0B]"><Star size={14} className="inline" fill="currentColor" /> {product.rating}</span>{product.socialProofLabel ? <span>{product.socialProofLabel}</span> : <span>Popular</span>}<span><Truck size={14} className="inline" /> {product.deliveryDays} zile</span></div><div className="mt-3"><span className="text-3xl font-black text-[#10A37F]">{product.price} lei</span>{product.oldPrice > product.price && <span className="ml-2 text-[#6E6E80] line-through">{product.oldPrice} lei</span>}</div>{insights.length > 0 && <div className="mt-4 rounded-2xl bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] border border-[#BBF7D0] p-4"><p className="text-xs font-black uppercase tracking-widest text-[#10A37F] mb-2">🧠 De ce merită — AI Analysis</p><div className="space-y-1.5">{insights.map((ins, i) => <p key={i} className="text-sm font-medium text-[#0D0D0D]">{ins}</p>)}</div></div>}<p className="mt-4 text-sm font-medium leading-relaxed text-[#6E6E80]">{product.description}</p><button onClick={onAddToCart} className={`mt-4 w-full rounded-xl py-4 font-bold ${THEME.classes.cartButton}`}>Adaugă în coș — {product.price} lei</button><a href={`/product/${product.pgId || product.id}`} className="mt-2 block w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] py-3 text-center text-sm font-bold text-[#0D0D0D] hover:bg-[#ECECF1] transition-colors">Vezi toate detaliile →</a></div></div>; }
+function NavBtn({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) { return <button type="button" onClick={onClick} className={`flex flex-col items-center gap-0.5 transition-colors ${active ? "text-[#0D0D0D]" : "text-[#A1A1AA]"}`} style={{touchAction:'manipulation'}}>{icon}{label}</button>; }
+function ProductModal({ product, onClose, onAddToCart }: { product: ChatProduct; onClose: () => void; onAddToCart: () => void }) { const insights: string[] = []; if (product.rating >= 4.7 && !product.isEstimatedSocial) insights.push(`⭐ Rating ${product.rating}/5 — calitate peste medie`); if (!product.isEstimatedSocial && product.orders >= 500) insights.push(`✅ ${product.orders.toLocaleString()}+ comenzi — seller de încredere`); else if (!product.isEstimatedSocial && product.orders >= 100) insights.push(`📦 ${product.orders}+ vândute — produs verificat`); if (product.discountPercent >= 20) insights.push(`💰 Reducere reală de ${product.discountPercent}% față de prețul standard`); if (product.qualityScore >= 9) insights.push('🏆 Best value în categoria sa'); if (product.deliveryDays <= 5) insights.push(`🚀 Livrare rapidă — ${product.deliveryDays} zile`); return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={onClose}><div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-white p-5" onClick={(e) => e.stopPropagation()}><div className="mb-3 flex justify-between"><span className="rounded-full bg-[#F7F7F8] px-3 py-1 text-xs font-bold text-[#6E6E80]">{product.category}</span><button onClick={onClose}><X size={18} /></button></div>{product.images?.[0] && <Image src={product.images[0]} alt={product.title} width={640} height={640} className="h-64 w-full rounded-2xl object-cover" />}<h2 className="mt-4 text-2xl font-black text-[#0D0D0D]">{product.title}</h2><div className="mt-2 flex gap-3 text-sm font-medium text-[#6E6E80]"><span className="text-[#F59E0B]"><Star size={14} className="inline" fill="currentColor" /> {product.rating}</span>{product.socialProofLabel ? <span>{product.socialProofLabel}</span> : <span>Popular</span>}<span><Truck size={14} className="inline" /> {product.deliveryDays} zile</span></div><div className="mt-3"><span className="text-3xl font-black text-[#10A37F]">{product.price} lei</span>{product.oldPrice > product.price && <span className="ml-2 text-[#6E6E80] line-through">{product.oldPrice} lei</span>}</div>{insights.length > 0 && <div className="mt-4 rounded-2xl bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] border border-[#BBF7D0] p-4"><p className="text-xs font-black uppercase tracking-widest text-[#10A37F] mb-2">🧠 De ce merită — AI Analysis</p><div className="space-y-1.5">{insights.map((ins, i) => <p key={i} className="text-sm font-medium text-[#0D0D0D]">{ins}</p>)}</div></div>}<p className="mt-4 text-sm font-medium leading-relaxed text-[#6E6E80]">{product.description}</p><button onClick={onAddToCart} className={`mt-4 w-full rounded-xl py-4 font-bold ${THEME.classes.cartButton}`}>Adaugă în coș — {product.price} lei</button><a href={`/product/${product.pgId || product.id}`} className="mt-2 block w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] py-3 text-center text-sm font-bold text-[#0D0D0D] hover:bg-[#ECECF1] transition-colors">Vezi toate detaliile →</a></div></div>; }

@@ -17,8 +17,8 @@ import { searchPG, searchWithFallback, fetchBundles, buildBundleSuggestionText, 
 import { inferBundleQueries, buildSalesSuggestion } from "@/lib/sales/bundle-engine";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
-export const runtime = "edge";
 export const maxDuration = 120;
+export const preferredRegion = "fra1";
 
 export async function POST(req: Request) {
   try {

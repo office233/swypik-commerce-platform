@@ -7,7 +7,7 @@
 
 import { SupplierProduct, ProductVariant } from "../types";
 
-const OTAPI_KEY = process.env.OTAPI_KEY || "9decf2ab-160c-4c0e-bd68-27e5aaed12a1";
+const OTAPI_KEY = process.env.OTAPI_KEY;
 const OTAPI_JSON = "https://otapi.net/service-json";
 const EUR_TO_RON = 4.97;
 
@@ -183,6 +183,11 @@ export async function otapiSearch(
   page = 0,
   pageSize = 50,
 ): Promise<{ products: SupplierProduct[]; totalCount: number; callsUsed: number }> {
+  if (!OTAPI_KEY) {
+    console.error("[OTAPI] OTAPI_KEY not configured");
+    return { products: [], totalCount: 0, callsUsed: 0 };
+  }
+
   try {
     const xml = `<SearchItemsParameters><ItemTitle>${escapeXml(keyword)}</ItemTitle></SearchItemsParameters>`;
     const params = new URLSearchParams({

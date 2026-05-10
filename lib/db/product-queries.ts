@@ -107,10 +107,11 @@ export type ProductFilters = {
   limit?: number;
   offset?: number;
   excludeIds?: string[];
+  seed?: number;
 };
 
 export async function searchProducts(filters: ProductFilters = {}) {
-  const { search, category, categoryId, minPrice, maxPrice, sort, mode, limit = 50, offset = 0, excludeIds } = filters;
+  const { search, category, categoryId, minPrice, maxPrice, sort, mode, limit = 50, offset = 0, excludeIds, seed } = filters;
 
   let where = ["p.main_image IS NOT NULL", "p.min_price_usd > 0.1"];
   const params: any[] = [];
@@ -183,11 +184,11 @@ export async function searchProducts(filters: ProductFilters = {}) {
   // This ensures popular/high-quality clips appear more often but every refresh is different
   if (mode === "video") {
     where.push("p.video_url LIKE '%cdn.aicevrei%'"); // ONLY load successfully migrated R2 videos
-    orderBy = `(
-      COALESCE(LN(GREATEST(p.orders_count, 1) + 1), 0) * 2.0
-      + COALESCE(p.rating, 4.0) * 1.5
-      + CASE WHEN p.old_price_ron > p.price_ron THEN ((p.old_price_ron - p.price_ron) / GREATEST(p.old_price_ron, 1)) * 3.0 ELSE 0 END
-    ) * (0.5 + random()) DESC`;
+    const safeSeed = Number.isFinite(seed) ? Math.trunc(Number(seed)) : 0;
+    orderBy = `
+      COALESCE(p.orders_count, 0) DESC NULLS LAST,
+      COALESCE(p.rating, 0) DESC NULLS LAST,
+      ABS(((p.id::bigint * 1103515245 + ${safeSeed}) % 100000)) ASC`;
   }
 
   const sql = `

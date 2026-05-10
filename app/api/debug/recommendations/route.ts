@@ -126,7 +126,8 @@ function analyzeCatalog(products: ReturnType<typeof transformProduct>[]) {
 export async function GET(req: Request) {
   // Block in production unless admin secret is provided
   const adminSecret = req.headers.get("x-admin-secret");
-  if (process.env.NODE_ENV === "production" && adminSecret !== process.env.ADMIN_DEBUG_SECRET) {
+  const requiredSecret = process.env.ADMIN_DEBUG_SECRET;
+  if (process.env.NODE_ENV === "production" && (!requiredSecret || adminSecret !== requiredSecret)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

@@ -10,6 +10,7 @@
 
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 
 // ─── SEO Page Definitions (matched to actual catalog inventory) ──
 const SEO_PAGES: Record<string, {
@@ -133,7 +134,7 @@ export default async function BestPage({ params }: Props) {
               className="flex gap-4 rounded-2xl bg-white border border-[#E5E5E5] p-4 hover:border-[#10A37F] hover:shadow-md transition-all"
             >
               {p.images?.[0] && (
-                <img src={p.images[0]} alt={p.title} className="h-24 w-24 rounded-xl object-cover shrink-0" />
+                <Image src={p.images[0]} alt={p.title} width={96} height={96} className="h-24 w-24 rounded-xl object-cover shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">

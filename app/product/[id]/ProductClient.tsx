@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Star, Truck } from "lucide-react";
 import { mergeIntoCart } from "@/types/cart";
 import type { Product } from "@/types/product";
@@ -37,14 +38,14 @@ export default function ProductClient({ initialData }: Props) {
 
   // Initialize color/size selection from initialData
   useEffect(() => {
-    const cm = initialData?.colorMap || colorMap;
-    const colors = Object.keys(cm);
-    if (colors.length && !selectedColor) {
-      setSelectedColor(colors[0]);
-      const sizes = cm[colors[0]]?.sizes || [];
-      if (sizes.length) setSelectedSize(sizes[0].size);
-    }
-  }, [initialData]);
+    if (selectedColor) return;
+    const colors = Object.keys(colorMap);
+    if (!colors.length) return;
+
+    setSelectedColor(colors[0]);
+    const sizes = colorMap[colors[0]]?.sizes || [];
+    if (sizes.length) setSelectedSize(sizes[0].size);
+  }, [colorMap, selectedColor]);
 
   // Only fetch client-side if no initialData was provided (direct URL nav, etc.)
   useEffect(() => {
@@ -181,11 +182,14 @@ export default function ProductClient({ initialData }: Props) {
 
       {/* ── Image Gallery ── */}
       <div className="relative bg-[#F7F7F8]">
-        <div className="aspect-square w-full overflow-hidden">
+        <div className="relative aspect-square w-full overflow-hidden">
           {displayImages[selectedImage] ? (
-            <img
+            <Image
               src={displayImages[selectedImage]}
               alt={title}
+              fill
+              priority
+              sizes="100vw"
               className="h-full w-full object-cover"
             />
           ) : (
@@ -229,9 +233,14 @@ export default function ProductClient({ initialData }: Props) {
       {displayImages.length > 1 && (
         <div className="flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar border-b border-[#E5E5E5]">
           {displayImages.slice(0, 8).map((img: string, i: number) => (
-            <img key={i} src={img} alt="" onClick={() => setSelectedImage(i)}
-              className={`h-14 w-14 shrink-0 rounded-xl object-cover cursor-pointer transition-all ${selectedImage === i ? 'ring-2 ring-[#10A37F] opacity-100' : 'opacity-50 hover:opacity-80'}`}
-            />
+            <button
+              key={i}
+              type="button"
+              onClick={() => setSelectedImage(i)}
+              className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-xl transition-all ${selectedImage === i ? 'ring-2 ring-[#10A37F] opacity-100' : 'opacity-50 hover:opacity-80'}`}
+            >
+              <Image src={img} alt="" fill sizes="56px" className="object-cover" />
+            </button>
           ))}
         </div>
       )}
@@ -282,7 +291,7 @@ export default function ProductClient({ initialData }: Props) {
                   className={`rounded-xl border-2 transition-all active:scale-95 ${selectedColor === color ? 'border-[#10A37F] shadow-[0_0_0_1px_#10A37F]' : 'border-[#E5E5E5] hover:border-[#D1D1D6]'}`}
                 >
                   {data.image ? (
-                    <img src={data.image} alt={color} className="h-12 w-12 rounded-[10px] object-cover" />
+                    <Image src={data.image} alt={color} width={48} height={48} className="h-12 w-12 rounded-[10px] object-cover" />
                   ) : (
                     <span className={`block px-4 py-2.5 text-sm font-semibold ${selectedColor === color ? 'text-[#10A37F]' : 'text-[#6E6E80]'}`}>{color}</span>
                   )}
@@ -411,7 +420,9 @@ export default function ProductClient({ initialData }: Props) {
               {similar.map(s => (
                 <div key={s.id} onClick={() => router.push(`/product/${s.id}`)}
                   className="w-36 shrink-0 cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] hover:shadow-md transition-all active:scale-95">
-                  <img src={s.image} alt="" className="h-36 w-full object-cover" />
+                  <div className="relative h-36 w-full">
+                    <Image src={s.image} alt="" fill sizes="144px" className="object-cover" />
+                  </div>
                   <div className="p-2.5">
                     <p className="text-xs font-semibold text-[#6E6E80] truncate">{s.title}</p>
                     <div className="flex items-baseline gap-1.5 mt-1">

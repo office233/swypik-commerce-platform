@@ -14,6 +14,8 @@ import { dbQuery } from "@/lib/db";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { logCheckoutEvent } from "@/lib/security/audit-log";
 
+export const preferredRegion = "fra1";
+
 // ── Input validation helpers ──
 function parsePositiveInt(val: unknown, fallback: number, max: number): number {
   const n = Number(val);

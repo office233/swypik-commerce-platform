@@ -3,11 +3,9 @@
  * No AliExpress API needed! Data comes directly from DOM scraping.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { dbQuery } from "@/lib/db";
 
-const sql = neon(process.env.DATABASE_URL!);
-
-const IMPORT_SECRET = process.env.IMPORT_SECRET || "aicevrei-import-2026";
+export const preferredRegion = "fra1";
 
 function calculatePriceRON(costUsd: number, shipUsd: number) {
   const totalRon = (costUsd + shipUsd) * 4.55 * 1.21;
@@ -22,8 +20,16 @@ function calculatePriceRON(costUsd: number, shipUsd: number) {
 
 export async function POST(req: NextRequest) {
   try {
+    const importSecret = process.env.IMPORT_SECRET;
+    if (!importSecret) {
+      return NextResponse.json({ error: "Import endpoint is not configured" }, { status: 503 });
+    }
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ error: "Database is not configured" }, { status: 503 });
+    }
+
     const secret = req.headers.get("x-import-secret");
-    if (secret !== IMPORT_SECRET) {
+    if (secret !== importSecret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -36,7 +42,10 @@ export async function POST(req: NextRequest) {
         if (!p.productId) { failed++; continue; }
 
         // Check if exists
-        const existing = await sql`SELECT id FROM ae_products WHERE ae_product_id = ${p.productId}`;
+        const { rows: existing } = await dbQuery(
+          "SELECT id FROM ae_products WHERE ae_product_id = $1",
+          [p.productId]
+        );
         if (existing.length > 0) { skipped++; continue; }
 
         const costUsd = parseFloat(p.price) || 0;
@@ -49,7 +58,7 @@ export async function POST(req: NextRequest) {
         const sizes = p.sizes || [...new Set((p.variants || []).filter((v: any) => v.size).map((v: any) => v.size))];
         const totalStock = (p.variants || []).reduce((s: number, v: any) => s + (v.stock || 0), 0) || p.availableStock || 0;
 
-        await sql`INSERT INTO ae_products (
+        await dbQuery(`INSERT INTO ae_products (
           ae_product_id, category_id, title, description, min_price_usd, max_price_usd, original_price_usd,
           price_ron, old_price_ron, markup, main_image, images, video_url, video_poster, has_video,
           rating, rating_count, orders_count, product_status, brand, properties,
@@ -59,36 +68,54 @@ export async function POST(req: NextRequest) {
           sleeve_style, waistline, season, silhouette, decoration, gender,
           free_shipping_threshold, available_stock
         ) VALUES (
-          ${p.productId}, ${p.categoryId || 0}, ${p.title || ''}, ${p.description || ''},
-          ${costUsd}, ${p.maxPrice || costUsd}, ${p.originalPrice || null},
-          ${price}, ${oldPrice}, ${markup},
-          ${images[0] || ''}, ${JSON.stringify(images)},
-          ${p.videoUrl || null}, ${p.videoPoster || null}, ${!!p.videoUrl},
-          ${p.rating || 0}, ${p.ratingCount || 0}, ${p.orders || 0}, 'onSelling',
-          ${p.brand || null}, ${JSON.stringify(p.properties || [])},
-          ${p.shippingMethod || ''}, ${shipUsd}, ${p.shipFree || shipUsd === 0},
-          ${p.shipDaysMin || 7}, ${p.shipDaysMax || 15}, ${true}, ${p.shipFrom || 'CN'},
-          ${p.storeId || ''}, ${p.storeName || ''}, ${p.storeRating || '0'},
-          ${(p.variants || []).length},
-          ${'https://www.aliexpress.com/item/' + p.productId + '.html'},
-          ${p.deliveryDateDesc || null},
-          ${p.neckline || null}, ${p.style || null}, ${p.fabricType || null},
-          ${colors[0] || null}, ${JSON.stringify(colors)}, ${JSON.stringify(sizes)},
-          ${p.material || null}, ${p.patternType || null},
-          ${p.sleeveStyle || null}, ${p.waistline || null}, ${p.season || null},
-          ${p.silhouette || null}, ${JSON.stringify(p.decoration || [])}, ${p.gender || null},
-          ${p.freeShippingThreshold || null}, ${totalStock}
-        )`;
+          $1,$2,$3,$4,$5,$6,$7,
+          $8,$9,$10,$11,$12,$13,$14,$15,
+          $16,$17,$18,'onSelling',$19,$20,
+          $21,$22,$23,$24,$25,$26,$27,
+          $28,$29,$30,$31,$32,$33,
+          $34,$35,$36,
+          $37,$38,$39,$40,$41,
+          $42,$43,$44,$45,$46,$47,
+          $48,$49
+        )`, [
+          p.productId, p.categoryId || 0, p.title || "", p.description || "",
+          costUsd, p.maxPrice || costUsd, p.originalPrice || null,
+          price, oldPrice, markup,
+          images[0] || "", images,
+          p.videoUrl || null, p.videoPoster || null, !!p.videoUrl,
+          p.rating || 0, p.ratingCount || 0, p.orders || 0,
+          p.brand || null, JSON.stringify(p.properties || []),
+          p.shippingMethod || "", shipUsd, p.shipFree || shipUsd === 0,
+          p.shipDaysMin || 7, p.shipDaysMax || 15, true, p.shipFrom || "CN",
+          p.storeId || "", p.storeName || "", p.storeRating || "0",
+          (p.variants || []).length,
+          `https://www.aliexpress.com/item/${p.productId}.html`,
+          p.deliveryDateDesc || null,
+          p.neckline || null, p.style || null, p.fabricType || null,
+          colors[0] || null, colors, sizes,
+          p.material || null, p.patternType || null,
+          p.sleeveStyle || null, p.waistline || null, p.season || null,
+          p.silhouette || null, p.decoration || [], p.gender || null,
+          p.freeShippingThreshold || null, totalStock,
+        ]);
 
         // Insert variants
         for (const v of (p.variants || []).slice(0, 20)) {
-          await sql`INSERT INTO ae_variants (
-            ae_product_id, sku_id, sku_price_usd, sku_stock, sku_properties, color, size
+          const skuPriceUsd = parseFloat(v.price) || costUsd;
+          const skuOriginalUsd = parseFloat(v.originalPrice) || skuPriceUsd;
+          const skuRon = calculatePriceRON(skuPriceUsd, shipUsd).price;
+          const variantName = v.name || v.title || [v.color, v.size].filter(Boolean).join(" / ") || "Standard";
+
+          await dbQuery(`INSERT INTO ae_variants (
+            product_id, sku_id, price_usd, original_price_usd, price_ron,
+            variant_name, variant_image, stock, properties, color, size
           ) VALUES (
-            ${p.productId}, ${v.skuId || ''}, ${parseFloat(v.price) || costUsd},
-            ${v.stock || 0}, ${JSON.stringify(v.properties || [])},
-            ${v.color || null}, ${v.size || null}
-          ) ON CONFLICT DO NOTHING`;
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11
+          ) ON CONFLICT (product_id, sku_id) DO NOTHING`, [
+            p.productId, v.skuId || "", skuPriceUsd, skuOriginalUsd, skuRon,
+            variantName, v.image || v.variantImage || null, v.stock || 0,
+            JSON.stringify(v.properties || []), v.color || null, v.size || null,
+          ]);
         }
 
         imported++;
