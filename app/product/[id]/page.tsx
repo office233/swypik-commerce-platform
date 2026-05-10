@@ -18,13 +18,13 @@ export const preferredRegion = "fra1";
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const data = await getProductDetail(id);
-  if (!data) return { title: "Produs negăsit — AICeVrei.ro" };
+  if (!data) return { title: "Produs negăsit — Swypik" };
 
   const { product } = data;
-  const title = `${product.title} — ${product.price} lei — AICeVrei.ro`;
+  const title = `${product.title} — ${product.price} lei — Swypik`;
   const description = product.description
-    ? `${product.description.replace(/<[^>]*>/g, " ").trim().slice(0, 150)}... Cumpără acum de pe AICeVrei.ro cu livrare în România.`
-    : `${product.title} — livrare rapidă în România. Cumpără de pe AICeVrei.ro.`;
+    ? `${product.description.replace(/<[^>]*>/g, " ").trim().slice(0, 150)}... Cumpără acum de pe Swypik cu livrare în România.`
+    : `${product.title} — livrare rapidă în România. Cumpără de pe Swypik.`;
 
   return {
     title,
@@ -65,7 +65,7 @@ export default async function ProductPage({ params }: Props) {
         availability: "https://schema.org/InStock",
         seller: {
           "@type": "Organization",
-          name: "AICeVrei.ro",
+          name: "Swypik",
         },
       },
       // Only include rating when NOT estimated

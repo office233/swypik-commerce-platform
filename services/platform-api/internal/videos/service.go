@@ -132,7 +132,7 @@ func NewUploadService(store UploadStore, cfg UploadConfig) *UploadService {
 		store = NewMemoryUploadStore()
 	}
 	if cfg.PublicUploadBaseURL == "" {
-		cfg.PublicUploadBaseURL = "https://uploads.aicevrei.local"
+		cfg.PublicUploadBaseURL = "https://uploads.swypik.local"
 	}
 	cfg.PublicUploadBaseURL = strings.TrimRight(cfg.PublicUploadBaseURL, "/")
 	if cfg.UploadTTL <= 0 {

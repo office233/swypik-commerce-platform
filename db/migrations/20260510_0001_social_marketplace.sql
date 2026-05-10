@@ -91,8 +91,7 @@ CREATE TABLE IF NOT EXISTS videos (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   search_document tsvector GENERATED ALWAYS AS (
     setweight(to_tsvector('simple', coalesce(title, '')), 'A') ||
-    setweight(to_tsvector('simple', coalesce(description, '')), 'B') ||
-    setweight(to_tsvector('simple', array_to_string(tags, ' ')), 'C')
+    setweight(to_tsvector('simple', coalesce(description, '')), 'B')
   ) STORED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()

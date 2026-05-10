@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker — AI Chat Proxy for AICeVrei
+ * Cloudflare Worker — AI Chat Proxy for Swypik
  * Handles OpenRouter/Gemini streaming, unlimited concurrency
  * Keeps Vercel free for static pages only
  */
@@ -8,7 +8,7 @@ export default {
   async fetch(request, env) {
     // CORS headers
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "https://aicevrei.ro",
+      "Access-Control-Allow-Origin": "https://swypik.com",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     };

@@ -124,7 +124,7 @@ export default async function AdminDashboard({
   searchParams: { secret?: string };
 }) {
   // Simple auth
-  const adminSecret = process.env.ADMIN_SECRET || "aicevrei-admin-2024";
+  const adminSecret = process.env.ADMIN_SECRET || "Swypik-admin-2024";
   if (searchParams.secret !== adminSecret) {
     return (
       <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center">
@@ -157,7 +157,7 @@ export default async function AdminDashboard({
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#10A37F] text-sm font-black">AI</span>
             <div>
-              <h1 className="text-lg font-black">AICeVrei Admin</h1>
+              <h1 className="text-lg font-black">Swypik Admin</h1>
               <p className="text-xs text-[#6E6E80]">Dashboard • Live Data</p>
             </div>
           </div>
@@ -345,7 +345,7 @@ export default async function AdminDashboard({
       </main>
 
       <footer className="border-t border-[#1E1E1E] px-6 py-4 text-center text-xs text-[#6E6E80]">
-        AICeVrei.ro Admin • Powered by NeonDB + Stripe + Vercel
+        Swypik Admin • Powered by NeonDB + Stripe + Vercel
       </footer>
     </div>
   );

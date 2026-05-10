@@ -1,4 +1,4 @@
-# Aicevrei AI Worker
+# Swypik AI Worker
 
 Minimal Python scaffold for future video AI jobs: captions, tagging, and moderation.
 
@@ -27,7 +27,7 @@ Future Redis Stream entries can use either fields or a JSON `payload` field shap
 ## Local Setup
 
 ```powershell
-cd D:\Aicevrei\workers\ai-worker
+cd D:\Swypik\workers\ai-worker
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt

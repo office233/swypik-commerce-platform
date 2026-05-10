@@ -74,7 +74,7 @@ function transformProduct(row: any) {
     hasVideo: row.has_video || false,
     category: row.category_name || "General",
     categoryId: row.category_id,
-    vendor: row.store_name || "AICeVrei",
+    vendor: row.store_name || "Swypik",
     tags: row.category_name || "",
     gradient: "from-orange-500 to-pink-500",
     qualityScore: Math.min(10, Math.max(7, Math.round(rating * 2))),
@@ -183,7 +183,7 @@ export async function searchProducts(filters: ProductFilters = {}) {
   // Score = (orders weight + rating weight + discount weight) × random factor
   // This ensures popular/high-quality clips appear more often but every refresh is different
   if (mode === "video") {
-    where.push("p.video_url LIKE '%cdn.aicevrei%'"); // ONLY load successfully migrated R2 videos
+    where.push("p.video_url LIKE '%cdn.Swypik%'"); // ONLY load successfully migrated R2 videos
     const safeSeed = Number.isFinite(seed) ? Math.trunc(Number(seed)) : 0;
     orderBy = `
       COALESCE(p.orders_count, 0) DESC NULLS LAST,

@@ -9,14 +9,22 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "AICeVrei.ro — Shopping inteligent cu AI",
-  description: "Spune-mi ce vrei și îți găsesc cea mai bună ofertă. Produse verificate, prețuri corecte, livrare în România.",
-  keywords: "shopping, ai, romania, produse, oferte, reduceri, gadgets, tech, beauty",
+  title: "Swypik — Descoperă, Swipe, Cumpără",
+  description: "Platforma de social video commerce. Descoperă produse prin clipuri scurte, urmărește creatori, cumpără instant.",
+  keywords: "swypik, social commerce, video shopping, romania, produse, oferte, creators, tiktok shopping",
   openGraph: {
-    title: "AICeVrei.ro — Shopping inteligent cu AI",
-    description: "Caut produse, compar prețuri, explic detalii — totul într-o conversație cu AI.",
+    title: "Swypik — Descoperă, Swipe, Cumpără",
+    description: "Platforma de social video commerce. Descoperă produse prin clipuri scurte, cumpără instant.",
     type: "website",
     locale: "ro_RO",
+    siteName: "Swypik",
+    images: [{ url: "/og-preview.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Swypik — Descoperă, Swipe, Cumpără",
+    description: "Social video commerce. Swipe, discover, buy.",
+    images: ["/og-preview.png"],
   },
 };
 
@@ -34,11 +42,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Swypik" />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="icon" href="/icon-192.png" type="image/png" />
       </head>
       <body className={`${inter.className} antialiased`}>{children}</body>
     </html>
   );
 }
+

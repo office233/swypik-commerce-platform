@@ -1,17 +1,14 @@
 /**
- * Database connection — @neondatabase/serverless Pool
+ * Database connection — pg Pool
  * 
- * Uses Neon's serverless-compatible Pool (drop-in replacement for pg.Pool).
- * Unlike pg.Pool, this uses WebSocket/HTTP under the hood — no persistent
- * TCP connections needed, works perfectly in Vercel serverless functions.
+ * Uses standard pg.Pool for PostgreSQL connectivity.
+ * Works with both local PostgreSQL and remote (Neon, Supabase, etc).
  * 
- * Benefits over raw pg.Pool:
- * - No cold-start TCP connection overhead
- * - Automatic WebSocket multiplexing
- * - Works with Vercel Edge Runtime
+ * For production with Neon serverless, swap back to @neondatabase/serverless
+ * if deploying to Vercel Edge Runtime.
  */
 
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 
 let pool: Pool | null = null;
 

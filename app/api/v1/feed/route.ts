@@ -25,9 +25,9 @@ function toFeedItem(product: any, index: number, seed: number) {
     productId: product.pgId || Number(product.id),
     videoId: product.video ? `product_${product.id}` : null,
     creator: {
-      id: "aicevrei",
-      username: "aicevrei",
-      displayName: "AICeVrei",
+      id: "Swypik",
+      username: "Swypik",
+      displayName: "Swypik",
       avatarUrl: null,
     },
     video: {

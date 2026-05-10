@@ -68,7 +68,7 @@ class Settings:
             assets_table=values.get("VIDEO_ASSETS_TABLE", "video_assets"),
             variants=parse_variants(values.get("VIDEO_VARIANTS")),
             poll_timeout_seconds=int(values.get("VIDEO_POLL_TIMEOUT_SECONDS", "5")),
-            work_dir=Path(values.get("VIDEO_WORK_DIR", tempfile.gettempdir())) / "aicevrei-video-worker",
+            work_dir=Path(values.get("VIDEO_WORK_DIR", tempfile.gettempdir())) / "Swypik-video-worker",
             aws_access_key_id=_optional(values, "AWS_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID"),
             aws_secret_access_key=_optional(values, "AWS_SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY"),
             failed_stream=_optional(values, "VIDEO_FAILED_STREAM"),

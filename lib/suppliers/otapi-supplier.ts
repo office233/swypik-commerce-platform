@@ -1,6 +1,6 @@
 /**
  * OTAPI (OTCommerce) Supplier — 1688 Factory Direct
- * AI-Curated Marketplace Proxy for AICeVrei.ro
+ * AI-Curated Marketplace Proxy for Swypik
  * 
  * "Temu + ChatGPT + produse curate"
  */

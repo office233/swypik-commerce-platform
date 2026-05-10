@@ -58,7 +58,7 @@ export async function ensureProductInShopify(product: {
         title: product.title,
         body_html: `<p>${product.description || product.title}</p>`,
         product_type: product.category || "General",
-        vendor: "AICeVrei",
+        vendor: "Swypik",
         tags: `ai-import, ${product.category || "general"}, transport-inclus`,
         status: "active",
         variants: [{

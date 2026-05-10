@@ -1,4 +1,4 @@
-# Aicevrei Video Worker
+# Swypik Video Worker
 
 Python worker scaffold for Redis Streams-driven video processing jobs.
 
@@ -27,8 +27,8 @@ The worker also accepts a single `payload` field containing JSON:
   "asset_id": "asset_456",
   "source_key": "uploads/raw/product.mp4",
   "output_prefix": "videos/asset_456",
-  "source_bucket": "aicevrei-raw-videos",
-  "output_bucket": "aicevrei-processed-videos",
+  "source_bucket": "Swypik-raw-videos",
+  "output_bucket": "Swypik-processed-videos",
   "metadata": {
     "language": "ro"
   }
@@ -40,7 +40,7 @@ The worker also accepts a single `payload` field containing JSON:
 ## Local Setup
 
 ```powershell
-cd D:\Aicevrei\workers\video-worker
+cd D:\Swypik\workers\video-worker
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
@@ -75,6 +75,6 @@ Use `.env.example` as the starting point. Important variables:
 ## Tests
 
 ```powershell
-cd D:\Aicevrei\workers\video-worker
+cd D:\Swypik\workers\video-worker
 python -m pytest
 ```

@@ -15,7 +15,7 @@ from .worker import VideoProcessor
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Aicevrei video processing worker")
+    parser = argparse.ArgumentParser(description="Swypik video processing worker")
     parser.add_argument("--once", action="store_true", help="Process one job and exit")
     parser.add_argument("--job-json", help="Process one inline JSON job payload instead of Redis")
     parser.add_argument("--log-level", default="INFO")

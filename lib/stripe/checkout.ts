@@ -44,7 +44,7 @@ export async function createCheckoutSession(
   }
 ): Promise<{ url: string; sessionId: string }> {
   const stripe = getStripe();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://aicevrei.ro";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
 
   const lineItems = items.map((item) => ({
     price_data: {
@@ -83,7 +83,7 @@ export async function createCheckoutSession(
     },
     payment_intent_data: {
       metadata: {
-        source: "aicevrei.ro",
+        source: "swypik",
         pgIds: items.map((i) => i.pgId).join(","),
       },
     },

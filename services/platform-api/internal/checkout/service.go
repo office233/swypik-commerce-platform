@@ -87,9 +87,9 @@ func NewService(store Store, clock func() time.Time) *Service {
 	return &Service{
 		store:              store,
 		clock:              clock,
-		checkoutBaseURL:    "https://aicevrei.local/checkout",
+		checkoutBaseURL:    "https://swypik.local/checkout",
 		defaultUnitAmount:  1000,
-		defaultPaymentHost: "https://pay.aicevrei.local",
+		defaultPaymentHost: "https://pay.swypik.local",
 	}
 }
 

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 3600; // Regenerate every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://aicevrei.ro";
+  const baseUrl = "https://swypik.com";
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [

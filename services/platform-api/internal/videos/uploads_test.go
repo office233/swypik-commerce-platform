@@ -12,7 +12,7 @@ func TestUploadLifecycleInitializesCompletesAndPublishesVideo(t *testing.T) {
 	clock := fixedClock(time.Date(2026, 5, 10, 12, 0, 0, 0, time.UTC))
 	store := NewMemoryUploadStore()
 	service := NewUploadService(store, UploadConfig{
-		PublicUploadBaseURL: "https://uploads.aicevrei.test",
+		PublicUploadBaseURL: "https://uploads.swypik.test",
 		UploadTTL:           15 * time.Minute,
 		Clock:               clock,
 	})
@@ -50,8 +50,8 @@ func TestUploadLifecycleInitializesCompletesAndPublishesVideo(t *testing.T) {
 	completeResult, err := service.Complete(ctx, CompleteUploadInput{
 		UploadID:   initResult.UploadID,
 		CreatorID:  "creator_1",
-		VideoURL:   "https://cdn.aicevrei.test/clip.mp4",
-		PosterURL:  "https://cdn.aicevrei.test/clip.jpg",
+		VideoURL:   "https://cdn.swypik.test/clip.mp4",
+		PosterURL:  "https://cdn.swypik.test/clip.jpg",
 		DurationMS: 15_000,
 	})
 	if err != nil {
@@ -72,7 +72,7 @@ func TestUploadLifecycleInitializesCompletesAndPublishesVideo(t *testing.T) {
 
 func TestUploadInitRejectsNonVideoContent(t *testing.T) {
 	service := NewUploadService(NewMemoryUploadStore(), UploadConfig{
-		PublicUploadBaseURL: "https://uploads.aicevrei.test",
+		PublicUploadBaseURL: "https://uploads.swypik.test",
 		UploadTTL:           15 * time.Minute,
 		Clock:               time.Now,
 	})

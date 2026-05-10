@@ -49,7 +49,7 @@ function buildCategoryPrompt(categories: { name: string; nameEn: string; count: 
 export type ChatIntent = "search_product" | "explain_product" | "compare_products" | "find_cheaper" | "refine_search" | "add_to_cart" | "checkout" | "track_order" | "general_chat";
 export type OrchestratorResult = { intent: ChatIntent; reply: string; searchQuery?: string; category?: string; bundleQueries?: string[]; productId?: string; productTitle?: string; shouldAskFollowUp?: boolean; maxPrice?: number; sort?: "recommended" | "price_asc" | "price_desc" | "popular" | "delivery" | "discount"; excludeIds?: string[] };
 
-const SYSTEM_PROMPT_TEMPLATE = `You are the AI sales agent for AICeVrei.ro, an online store.
+const SYSTEM_PROMPT_TEMPLATE = `You are the AI sales agent for Swypik, an online store.
 
 Objective: turn conversations into clear recommendations, smart bundles, and cart additions.
 

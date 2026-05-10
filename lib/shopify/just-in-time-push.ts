@@ -38,7 +38,7 @@ export async function ensureOnShopify(
     product: {
       title,
       body_html: `<p>${safeTitle}</p><p>🚚 Transport inclus | ⭐ Produs verificat | 🔒 Checkout securizat</p>`,
-      vendor: "AICeVrei",
+      vendor: "Swypik",
       product_type: category || "General",
       tags: [category, "aliexpress", "jit-push"].filter(Boolean).join(", "),
       status: "active",

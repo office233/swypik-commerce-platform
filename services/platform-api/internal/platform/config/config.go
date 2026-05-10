@@ -59,7 +59,7 @@ func Load() Config {
 		RedisURL: os.Getenv("REDIS_URL"),
 
 		// Upload / S3 / R2
-		PublicUploadBaseURL: strings.TrimRight(envOr("PUBLIC_UPLOAD_BASE_URL", "https://uploads.aicevrei.local"), "/"),
+		PublicUploadBaseURL: strings.TrimRight(envOr("PUBLIC_UPLOAD_BASE_URL", "https://uploads.swypik.local"), "/"),
 		UploadTTL:          time.Duration(envIntOr("UPLOAD_TTL_MINUTES", 15)) * time.Minute,
 		S3Endpoint:         os.Getenv("S3_ENDPOINT"),
 		S3Region:           envOr("S3_REGION", "auto"),

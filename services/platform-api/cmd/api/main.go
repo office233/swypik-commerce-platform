@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/office233/aicevrei/services/platform-api/internal/platform/config"
-	"github.com/office233/aicevrei/services/platform-api/internal/platform/db"
-	platformhttp "github.com/office233/aicevrei/services/platform-api/internal/platform/http"
-	"github.com/office233/aicevrei/services/platform-api/internal/platform/logger"
-	"github.com/office233/aicevrei/services/platform-api/internal/platform/redis"
+	"github.com/office233/swypik/services/platform-api/internal/platform/config"
+	"github.com/office233/swypik/services/platform-api/internal/platform/db"
+	platformhttp "github.com/office233/swypik/services/platform-api/internal/platform/http"
+	"github.com/office233/swypik/services/platform-api/internal/platform/logger"
+	"github.com/office233/swypik/services/platform-api/internal/platform/redis"
 )
 
 func main() {
@@ -80,7 +80,7 @@ func main() {
 	}
 
 	go func() {
-		log.Info("platform-api listening",
+		log.Info("swypik-api listening",
 			"addr", server.Addr,
 			"env", cfg.Environment,
 			"postgres", dbChecker.Enabled(),
@@ -100,5 +100,5 @@ func main() {
 		slog.Error("http shutdown failed", "error", err)
 		os.Exit(1)
 	}
-	log.Info("platform-api stopped gracefully")
+	log.Info("swypik-api stopped gracefully")
 }

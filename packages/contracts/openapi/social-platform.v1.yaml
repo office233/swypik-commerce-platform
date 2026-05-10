@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Aicevrei Social Platform API
+  title: Swypik Social Platform API
   version: 1.0.0
   description: Modular monorepo platform API contract for feed, events, video, social, cart, checkout, payments, and moderation.
 servers:

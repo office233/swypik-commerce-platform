@@ -124,7 +124,7 @@ export async function postJSONToGo(req: Request, path: string, payload: unknown)
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("content-encoding");
   responseHeaders.delete("content-length");
-  responseHeaders.set("x-aicevrei-upstream", "go-social-api");
+  responseHeaders.set("x-Swypik-upstream", "go-social-api");
 
   return new Response(upstream.body, {
     status: upstream.status,

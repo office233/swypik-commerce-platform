@@ -65,7 +65,7 @@ function transformProduct(p: ShopifyProduct) {
     discountPercent,
     images: (p.images || []).map((img) => img.src).filter(Boolean),
     category: p.product_type || "General",
-    vendor: p.vendor || "AICeVrei",
+    vendor: p.vendor || "Swypik",
     tags: p.tags || "",
     handle: p.handle,
     variantId: String(variant.id || ""),

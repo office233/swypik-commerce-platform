@@ -14,15 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/office233/aicevrei/services/platform-api/internal/checkout"
-	"github.com/office233/aicevrei/services/platform-api/internal/events"
-	"github.com/office233/aicevrei/services/platform-api/internal/feed"
-	"github.com/office233/aicevrei/services/platform-api/internal/moderation"
-	"github.com/office233/aicevrei/services/platform-api/internal/platform/config"
-	"github.com/office233/aicevrei/services/platform-api/internal/platform/db"
-	"github.com/office233/aicevrei/services/platform-api/internal/platform/redis"
-	"github.com/office233/aicevrei/services/platform-api/internal/social"
-	"github.com/office233/aicevrei/services/platform-api/internal/videos"
+	"github.com/office233/swypik/services/platform-api/internal/checkout"
+	"github.com/office233/swypik/services/platform-api/internal/events"
+	"github.com/office233/swypik/services/platform-api/internal/feed"
+	"github.com/office233/swypik/services/platform-api/internal/moderation"
+	"github.com/office233/swypik/services/platform-api/internal/platform/config"
+	"github.com/office233/swypik/services/platform-api/internal/platform/db"
+	"github.com/office233/swypik/services/platform-api/internal/platform/redis"
+	"github.com/office233/swypik/services/platform-api/internal/social"
+	"github.com/office233/swypik/services/platform-api/internal/videos"
 )
 
 const maxJSONBodyBytes = 1 << 20
@@ -130,7 +130,7 @@ func newAPI(deps Dependencies) *API {
 func (a *API) healthz(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":  "ok",
-		"service": "platform-api",
+		"service": "swypik-api",
 	})
 }
 

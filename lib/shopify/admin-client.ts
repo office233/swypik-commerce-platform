@@ -81,7 +81,7 @@ export async function createProduct(input: CreateProductInput) {
       title: input.title,
       descriptionHtml: input.descriptionHtml,
       productType: input.productType || "General",
-      vendor: input.vendor || "AICeVrei",
+      vendor: input.vendor || "Swypik",
       tags: input.tags || [],
       images: input.images?.map((img) => ({
         src: img.src,
