@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Heart, MessageCircle, Package, Play, ShoppingCart, Star, Truck, Volume2, VolumeX, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -74,6 +74,82 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
   const [showComments, setShowComments] = useState<string | null>(null);
   const hasInteractedRef = useRef(false);
+  const currentProductIdRef = useRef<string | null>(null);
+  const activeSinceRef = useRef<number>(Date.now());
+  const seenViewRef = useRef(new Set<string>());
+  const completedViewRef = useRef(new Set<string>());
+  const productsRef = useRef(products);
+
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
+
+  const sendFeedEvent = useCallback((type: string, product: FeedProduct, details: Record<string, unknown> = {}) => {
+    const payload = {
+      type,
+      productId: String(product.pgId || product.id),
+      videoId: product.id,
+      source: "next-feed",
+      occurredAt: new Date().toISOString(),
+      ...details,
+    };
+    const body = JSON.stringify(payload);
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+        const blob = new Blob([body], { type: "application/json" });
+        if (navigator.sendBeacon("/api/v1/events", blob)) return;
+      }
+    } catch {}
+
+    fetch("/api/v1/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  }, []);
+
+  const flushWatchEvent = useCallback((productId: string | null) => {
+    if (!productId) return;
+    const product = productsRef.current.find((p) => p.id === productId);
+    if (!product) return;
+    const watchMs = Math.max(0, Date.now() - activeSinceRef.current);
+    if (watchMs < 250) return;
+    sendFeedEvent("watch", product, {
+      watchMs,
+      complete: completedViewRef.current.has(product.id),
+    });
+  }, [sendFeedEvent]);
+
+  useEffect(() => {
+    const product = products[currentIdx];
+    if (!product) return;
+
+    const previousProductId = currentProductIdRef.current;
+    if (previousProductId && previousProductId !== product.id) {
+      flushWatchEvent(previousProductId);
+      sendFeedEvent("swipe", product, { position: currentIdx });
+    }
+
+    currentProductIdRef.current = product.id;
+    activeSinceRef.current = Date.now();
+
+    if (!seenViewRef.current.has(product.id)) {
+      seenViewRef.current.add(product.id);
+      sendFeedEvent("view", product, { position: currentIdx });
+    }
+  }, [currentIdx, flushWatchEvent, products, sendFeedEvent]);
+
+  useEffect(() => {
+    return () => flushWatchEvent(currentProductIdRef.current);
+  }, [flushWatchEvent]);
+
+  const openProduct = useCallback((product: FeedProduct) => {
+    sendFeedEvent("product_click", product, { position: currentIdx });
+    router.push(`/product/${product.pgId || product.id}`);
+  }, [currentIdx, router, sendFeedEvent]);
+
   // Auto-unmute on first user tap
   useEffect(() => {
     const unmute = () => {
@@ -172,20 +248,28 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     Object.values(videoMapRef.current).forEach(v => { v.muted = isMuted; });
   }, [isMuted]);
 
-  const toggleLike = (id: string) => {
+  const toggleLike = (product: FeedProduct) => {
     try { navigator?.vibrate?.(40); } catch(e) {}
-    setLikes(prev => ({ ...prev, [id]: !prev[id] }));
-    if (!likes[id]) {
-      setHeartBurst(id);
+    const isNextLiked = !likes[product.id];
+    setLikes(prev => ({ ...prev, [product.id]: isNextLiked }));
+    sendFeedEvent(isNextLiked ? "like" : "unlike", product, { position: currentIdx });
+    if (isNextLiked) {
+      setHeartBurst(product.id);
       setTimeout(() => setHeartBurst(null), 900);
     }
   };
 
   const handleAddToCart = (product: FeedProduct) => {
     try { navigator?.vibrate?.(50); } catch(e) {}
+    sendFeedEvent("add_to_cart", product, { position: currentIdx, quantity: 1 });
     onAddToCart(product, 1);
     setAddedToCart(product.id);
     setTimeout(() => setAddedToCart(null), 2000);
+  };
+
+  const openComments = (product: FeedProduct) => {
+    sendFeedEvent("comment_open", product, { position: currentIdx });
+    setShowComments(product.id);
   };
 
   // Render video only near the active card to avoid saturating mobile network/decoders.
@@ -250,7 +334,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           <div key={product.id} data-feed-idx={pIdx} className="feed-card">
 
             {/* ─── Full-screen media — poster always visible, video lazy on top ─── */}
-            <div className="feed-media" onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
+            <div className="feed-media" onClick={() => openProduct(product)}>
               {/* Poster image — always rendered, loads fast (~50KB) */}
               {posterImage ? (
                 <Image
@@ -325,19 +409,19 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
             {/* Right side actions */}
             <div className="absolute bottom-48 right-3 z-20 flex flex-col items-center gap-4">
-              <button onClick={() => toggleLike(product.id)} className="flex flex-col items-center gap-0.5 active:scale-125 transition">
+              <button type="button" onClick={() => toggleLike(product)} className="flex flex-col items-center gap-0.5 active:scale-125 transition" style={{ touchAction: "manipulation" }}>
                 <div className={`rounded-full p-3 shadow-lg ${likes[product.id] ? "bg-[#EF4444] text-white" : "bg-black/30 backdrop-blur-sm text-white"}`}>
                   <Heart size={24} fill={likes[product.id] ? "currentColor" : "none"} />
                 </div>
                 <span className="text-[10px] font-bold text-white/90">{getRealLikes(product) + (likes[product.id] ? 1 : 0)}</span>
               </button>
-              <button onClick={() => setShowComments(product.id)} className="flex flex-col items-center gap-0.5 active:scale-110 transition">
+              <button type="button" onClick={() => openComments(product)} className="flex flex-col items-center gap-0.5 active:scale-110 transition" style={{ touchAction: "manipulation" }}>
                 <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
                   <MessageCircle size={24} />
                 </div>
                 <span className="text-[10px] font-bold text-white/90">{getRealComments(product)}</span>
               </button>
-              <button onClick={() => router.push(`/product/${product.pgId || product.id}`)} className="flex flex-col items-center gap-0.5 active:scale-110 transition">
+              <button type="button" onClick={() => openProduct(product)} className="flex flex-col items-center gap-0.5 active:scale-110 transition" style={{ touchAction: "manipulation" }}>
                 <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
                   <ShoppingCart size={24} />
                 </div>
@@ -347,7 +431,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
             {/* Bottom product info */}
             <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
-              <div className="mb-3" onClick={() => router.push(`/product/${product.pgId || product.id}`)}>
+              <div className="mb-3" onClick={() => openProduct(product)}>
                 <div className="flex flex-wrap items-center gap-1.5 mb-1">
                   <span className="rounded-full bg-white/15 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-black text-white">{overlay}</span>
                   {product.discountPercent > 0 && (
@@ -375,7 +459,9 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleAddToCart(product)}
+                  style={{ touchAction: "manipulation" }}
                   className={`rounded-2xl px-5 py-3 text-sm font-black shadow-lg active:scale-[0.95] transition-all ${
                     addedToCart === product.id
                       ? "bg-white text-[#10A37F]"

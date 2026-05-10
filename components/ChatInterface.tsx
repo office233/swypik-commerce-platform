@@ -167,8 +167,7 @@ export default function ChatInterface({
     feedLoadingRef.current = true;
     setFeedLoading(true);
     try {
-      const data = await fetch(`/api/products?mode=video&limit=15&sort=popular&seed=${feedSeed.current}`).then((r) => r.json());
-      setFeedProducts(data.products || []);
+      setFeedProducts(await fetchSocialFeed(0, feedSeed.current));
     } finally {
       feedLoadingRef.current = false;
       setFeedLoading(false);
@@ -181,10 +180,10 @@ export default function ChatInterface({
     setFeedLoading(true);
     try {
       const offset = feedProducts.length;
-      const data = await fetch(`/api/products?mode=video&limit=15&offset=${offset}&sort=popular&seed=${feedSeed.current}`).then((r) => r.json());
+      const nextProducts = await fetchSocialFeed(offset, feedSeed.current);
       setFeedProducts((prev) => {
         const existing = new Set(prev.map((p) => p.id));
-        return [...prev, ...(data.products || []).filter((p: ChatProduct) => !existing.has(p.id))];
+        return [...prev, ...nextProducts.filter((p) => !existing.has(p.id))];
       });
     } finally {
       feedLoadingRef.current = false;
