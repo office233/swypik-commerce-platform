@@ -1,11 +1,7 @@
 /**
  * Database connection — pg Pool
- * 
- * Uses standard pg.Pool for PostgreSQL connectivity.
- * Works with both local PostgreSQL and remote (Neon, Supabase, etc).
- * 
- * For production with Neon serverless, swap back to @neondatabase/serverless
- * if deploying to Vercel Edge Runtime.
+ *
+ * Uses standard pg.Pool for local/self-hosted PostgreSQL connectivity.
  */
 
 import { Pool } from "pg";
