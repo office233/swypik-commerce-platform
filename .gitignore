@@ -74,3 +74,4 @@ chrome-extension/
 /workers/**/.dev.vars.*
 /workers/**/wrangler.local.toml
 /workers/**/.wrangler/
+*.exe
