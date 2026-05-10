@@ -9,6 +9,7 @@ out/
 .env
 .env.*
 !.env.example
+!.env.social.example
 
 # IDE
 .vscode/
@@ -68,5 +69,8 @@ chrome-extension/
 # Scripts folder (dev-only tools with secrets)
 /scripts/
 
-# Workers config (contains Cloudflare secrets)
-/workers/
+# Workers local config can contain Cloudflare secrets, but worker source should be tracked.
+/workers/**/.dev.vars
+/workers/**/.dev.vars.*
+/workers/**/wrangler.local.toml
+/workers/**/.wrangler/

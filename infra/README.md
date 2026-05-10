@@ -4,8 +4,10 @@ This folder contains Kubernetes-ready scaffolding for the social marketplace dat
 
 - PostgreSQL for relational marketplace state and migrations in `db/migrations`.
 - Redis for feed/session queues and lightweight counters.
-- OpenSearch for search and discovery indexes.
+- ClickHouse for feed, video, commerce, and moderation analytics.
+- Prometheus, postgres-exporter, redis-exporter, and Grafana for local observability.
 - S3-compatible object storage for video assets. Local development uses MinIO through `docker-compose.social.yml`; production should use Cloudflare R2 or another managed object store.
+- OpenSearch remains available for search experiments through the Compose `search` profile, but it is not on the critical path.
 
 ## Local Development
 
@@ -16,9 +18,17 @@ docker compose --env-file .env.social -f docker-compose.social.yml up -d
 
 PostgreSQL loads migrations from `db/migrations` on first volume initialization. Recreate the local database volume to replay bootstrap migrations from scratch.
 
+ClickHouse initializes analytics tables from `infra/clickhouse/init`. Grafana starts on the configured `GRAFANA_PORT` and is pre-provisioned with Prometheus and Postgres data sources.
+
+To include OpenSearch locally:
+
+```powershell
+docker compose --env-file .env.social -f docker-compose.social.yml --profile search up -d
+```
+
 ## Kubernetes
 
-The manifests in `infra/kubernetes/social-stack.yaml` are intentionally portable YAML. They are suitable for local clusters and staging environments, but production should normally replace in-cluster PostgreSQL, Redis, OpenSearch, and object storage with managed services.
+The manifests in `infra/kubernetes/social-stack.yaml` are intentionally portable YAML. They are suitable for local clusters and staging environments, but production should normally replace in-cluster PostgreSQL, Redis, ClickHouse, OpenSearch, and object storage with managed services.
 
 ```powershell
 kubectl apply -f infra/kubernetes/social-stack.yaml

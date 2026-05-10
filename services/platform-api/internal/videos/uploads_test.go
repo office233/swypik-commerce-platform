@@ -13,8 +13,8 @@ func TestUploadLifecycleInitializesCompletesAndPublishesVideo(t *testing.T) {
 	store := NewMemoryUploadStore()
 	service := NewUploadService(store, UploadConfig{
 		PublicUploadBaseURL: "https://uploads.aicevrei.test",
-		UploadTTL:          15 * time.Minute,
-		Clock:              clock,
+		UploadTTL:           15 * time.Minute,
+		Clock:               clock,
 	})
 
 	initResult, err := service.Init(ctx, InitUploadInput{
@@ -48,7 +48,7 @@ func TestUploadLifecycleInitializesCompletesAndPublishesVideo(t *testing.T) {
 	}
 
 	completeResult, err := service.Complete(ctx, CompleteUploadInput{
-		UploadID:  initResult.UploadID,
+		UploadID:   initResult.UploadID,
 		CreatorID:  "creator_1",
 		VideoURL:   "https://cdn.aicevrei.test/clip.mp4",
 		PosterURL:  "https://cdn.aicevrei.test/clip.jpg",
@@ -73,8 +73,8 @@ func TestUploadLifecycleInitializesCompletesAndPublishesVideo(t *testing.T) {
 func TestUploadInitRejectsNonVideoContent(t *testing.T) {
 	service := NewUploadService(NewMemoryUploadStore(), UploadConfig{
 		PublicUploadBaseURL: "https://uploads.aicevrei.test",
-		UploadTTL:          15 * time.Minute,
-		Clock:              time.Now,
+		UploadTTL:           15 * time.Minute,
+		Clock:               time.Now,
 	})
 
 	_, err := service.Init(context.Background(), InitUploadInput{

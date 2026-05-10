@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Heart, MessageCircle, Package, Play, ShoppingCart, Star, Truck, Volume2, VolumeX, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import CreatorUpload from "./CreatorUpload";
 
 type FeedProduct = {
   id: string;
@@ -43,6 +44,16 @@ type Props = {
   isLoading: boolean;
 };
 
+type FeedEvent = {
+  type: string;
+  video_id: string;
+  product_id: string;
+  watch_ms?: number;
+  position_ms?: number;
+  metadata?: Record<string, unknown>;
+  timestamp: string;
+};
+
 function aiOverlay(p: FeedProduct) {
   if (p.commerceBadge) return p.commerceBadge;
   if (p.discountPercent >= 20) return "🔥 Deal bun";
@@ -63,6 +74,7 @@ function getRealComments(p: FeedProduct) {
 
 export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose, isLoading }: Props) {
   const router = useRouter();
+  const tapAction = { touchAction: "manipulation" } as const;
   const [likes, setLikes] = useState<Record<string, boolean>>({});
   const [heartBurst, setHeartBurst] = useState<string | null>(null);
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
@@ -79,36 +91,120 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const seenViewRef = useRef(new Set<string>());
   const completedViewRef = useRef(new Set<string>());
   const productsRef = useRef(products);
+  const eventQueueRef = useRef<FeedEvent[]>([]);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionIdRef = useRef("");
 
   useEffect(() => {
     productsRef.current = products;
   }, [products]);
 
-  const sendFeedEvent = useCallback((type: string, product: FeedProduct, details: Record<string, unknown> = {}) => {
-    const payload = {
-      type,
-      productId: String(product.pgId || product.id),
-      videoId: product.id,
-      source: "next-feed",
-      occurredAt: new Date().toISOString(),
-      ...details,
-    };
-    const body = JSON.stringify(payload);
+  const getSessionId = useCallback(() => {
+    if (sessionIdRef.current) return sessionIdRef.current;
 
     try {
-      if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-        const blob = new Blob([body], { type: "application/json" });
-        if (navigator.sendBeacon("/api/v1/events", blob)) return;
+      const stored = window.localStorage.getItem("aicv_feed_session_id");
+      if (stored) {
+        sessionIdRef.current = stored;
+        return stored;
       }
     } catch {}
 
-    fetch("/api/v1/events", {
+    const next =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `feed_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+
+    sessionIdRef.current = next;
+    try {
+      window.localStorage.setItem("aicv_feed_session_id", next);
+    } catch {}
+    return next;
+  }, []);
+
+  const flushFeedEvents = useCallback((useBeacon = false) => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+
+    const events = eventQueueRef.current.splice(0);
+    if (events.length === 0) return;
+
+    const sessionId = getSessionId();
+    const batchBody = JSON.stringify({ session_id: sessionId, events });
+    const sendLegacyFallback = () => {
+      events.forEach((event) => {
+        fetch("/api/v1/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId, ...event }),
+          keepalive: true,
+        }).catch(() => {});
+      });
+    };
+
+    if (useBeacon) {
+      try {
+        if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+          const blob = new Blob([batchBody], { type: "application/json" });
+          if (navigator.sendBeacon("/api/v1/events/batch", blob)) return;
+        }
+      } catch {}
+    }
+
+    fetch("/api/v1/events/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body,
+      body: batchBody,
       keepalive: true,
-    }).catch(() => {});
-  }, []);
+    })
+      .then((res) => {
+        if (!res.ok) sendLegacyFallback();
+      })
+      .catch(sendLegacyFallback);
+  }, [getSessionId]);
+
+  const sendFeedEvent = useCallback((type: string, product: FeedProduct, details: Record<string, unknown> = {}) => {
+    const { watchMs, positionMs, ...metadata } = details;
+    const event: FeedEvent = {
+      type,
+      video_id: product.id,
+      product_id: String(product.pgId || product.id),
+      timestamp: new Date().toISOString(),
+      ...(typeof watchMs === "number" ? { watch_ms: Math.max(0, Math.trunc(watchMs)) } : {}),
+      ...(typeof positionMs === "number" ? { position_ms: Math.max(0, Math.trunc(positionMs)) } : {}),
+      metadata: {
+        source: "next-feed",
+        ...metadata,
+      },
+    };
+
+    eventQueueRef.current.push(event);
+
+    if (eventQueueRef.current.length >= 10) {
+      flushFeedEvents();
+      return;
+    }
+
+    if (!flushTimerRef.current) {
+      flushTimerRef.current = setTimeout(() => flushFeedEvents(), 2500);
+    }
+  }, [flushFeedEvents]);
+
+  useEffect(() => {
+    const flushOnHide = () => {
+      if (document.visibilityState === "hidden") flushFeedEvents(true);
+    };
+    const flushOnPageHide = () => flushFeedEvents(true);
+    window.addEventListener("pagehide", flushOnPageHide);
+    document.addEventListener("visibilitychange", flushOnHide);
+    return () => {
+      window.removeEventListener("pagehide", flushOnPageHide);
+      document.removeEventListener("visibilitychange", flushOnHide);
+      flushFeedEvents(true);
+    };
+  }, [flushFeedEvents]);
 
   const flushWatchEvent = useCallback((productId: string | null) => {
     if (!productId) return;
@@ -116,7 +212,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     if (!product) return;
     const watchMs = Math.max(0, Date.now() - activeSinceRef.current);
     if (watchMs < 250) return;
-    sendFeedEvent("watch", product, {
+    sendFeedEvent("video_progress", product, {
       watchMs,
       complete: completedViewRef.current.has(product.id),
     });
@@ -129,7 +225,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     const previousProductId = currentProductIdRef.current;
     if (previousProductId && previousProductId !== product.id) {
       flushWatchEvent(previousProductId);
-      sendFeedEvent("swipe", product, { position: currentIdx });
+      sendFeedEvent("video_start", product, { position: currentIdx });
     }
 
     currentProductIdRef.current = product.id;
@@ -137,7 +233,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
     if (!seenViewRef.current.has(product.id)) {
       seenViewRef.current.add(product.id);
-      sendFeedEvent("view", product, { position: currentIdx });
+      sendFeedEvent("video_impression", product, { position: currentIdx });
     }
   }, [currentIdx, flushWatchEvent, products, sendFeedEvent]);
 
@@ -252,7 +348,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     try { navigator?.vibrate?.(40); } catch(e) {}
     const isNextLiked = !likes[product.id];
     setLikes(prev => ({ ...prev, [product.id]: isNextLiked }));
-    sendFeedEvent(isNextLiked ? "like" : "unlike", product, { position: currentIdx });
+    sendFeedEvent(isNextLiked ? "video_like" : "video_unlike", product, { position: currentIdx });
     if (isNextLiked) {
       setHeartBurst(product.id);
       setTimeout(() => setHeartBurst(null), 900);
@@ -268,7 +364,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   };
 
   const openComments = (product: FeedProduct) => {
-    sendFeedEvent("comment_open", product, { position: currentIdx });
+    sendFeedEvent("comment_create", product, { position: currentIdx, action: "comment_open" });
     setShowComments(product.id);
   };
 
@@ -311,16 +407,22 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       {/* Fixed top controls */}
       <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between px-4" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         {onClose && (
-          <button onClick={onClose} className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform">
+          <button type="button" onClick={onClose} className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform" style={tapAction} aria-label="Close feed">
             <ArrowLeft size={20} />
           </button>
         )}
-        <button
-          onClick={() => setIsMuted(!isMuted)}
-          className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform"
-        >
-          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <CreatorUpload />
+          <button
+            type="button"
+            onClick={() => setIsMuted(!isMuted)}
+            className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm active:scale-90 transition-transform"
+            style={tapAction}
+            aria-label={isMuted ? "Unmute feed" : "Mute feed"}
+          >
+            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+        </div>
       </div>
 
       {products.map((product, pIdx) => {
@@ -334,7 +436,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           <div key={product.id} data-feed-idx={pIdx} className="feed-card">
 
             {/* ─── Full-screen media — poster always visible, video lazy on top ─── */}
-            <div className="feed-media" onClick={() => openProduct(product)}>
+            <div className="feed-media">
               {/* Poster image — always rendered, loads fast (~50KB) */}
               {posterImage ? (
                 <Image
@@ -369,6 +471,20 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                     if (isCurrentCard) {
                       vid.style.opacity = '1';
                       vid.play().catch(() => {});
+                    }
+                  }}
+                  onTimeUpdate={(e) => {
+                    const vid = e.currentTarget;
+                    if (
+                      vid.duration > 0 &&
+                      vid.currentTime / vid.duration >= 0.85 &&
+                      !completedViewRef.current.has(product.id)
+                    ) {
+                      completedViewRef.current.add(product.id);
+                      sendFeedEvent("video_complete", product, {
+                        position: pIdx,
+                        positionMs: Math.round(vid.currentTime * 1000),
+                      });
                     }
                   }}
                   onError={() => setVideoErrors(p => ({ ...p, [product.id]: true }))}
@@ -409,19 +525,19 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
             {/* Right side actions */}
             <div className="absolute bottom-48 right-3 z-20 flex flex-col items-center gap-4">
-              <button type="button" onClick={() => toggleLike(product)} className="flex flex-col items-center gap-0.5 active:scale-125 transition" style={{ touchAction: "manipulation" }}>
+              <button type="button" onClick={() => toggleLike(product)} className="flex flex-col items-center gap-0.5 active:scale-125 transition" style={tapAction} aria-label={likes[product.id] ? "Unlike" : "Like"}>
                 <div className={`rounded-full p-3 shadow-lg ${likes[product.id] ? "bg-[#EF4444] text-white" : "bg-black/30 backdrop-blur-sm text-white"}`}>
                   <Heart size={24} fill={likes[product.id] ? "currentColor" : "none"} />
                 </div>
                 <span className="text-[10px] font-bold text-white/90">{getRealLikes(product) + (likes[product.id] ? 1 : 0)}</span>
               </button>
-              <button type="button" onClick={() => openComments(product)} className="flex flex-col items-center gap-0.5 active:scale-110 transition" style={{ touchAction: "manipulation" }}>
+              <button type="button" onClick={() => openComments(product)} className="flex flex-col items-center gap-0.5 active:scale-110 transition" style={tapAction} aria-label="Open comments">
                 <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
                   <MessageCircle size={24} />
                 </div>
                 <span className="text-[10px] font-bold text-white/90">{getRealComments(product)}</span>
               </button>
-              <button type="button" onClick={() => openProduct(product)} className="flex flex-col items-center gap-0.5 active:scale-110 transition" style={{ touchAction: "manipulation" }}>
+              <button type="button" onClick={() => openProduct(product)} className="flex flex-col items-center gap-0.5 active:scale-110 transition" style={tapAction} aria-label="Open product details">
                 <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
                   <ShoppingCart size={24} />
                 </div>
@@ -431,7 +547,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
             {/* Bottom product info */}
             <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
-              <div className="mb-3" onClick={() => openProduct(product)}>
+              <div className="mb-3">
                 <div className="flex flex-wrap items-center gap-1.5 mb-1">
                   <span className="rounded-full bg-white/15 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-black text-white">{overlay}</span>
                   {product.discountPercent > 0 && (
@@ -461,7 +577,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 <button
                   type="button"
                   onClick={() => handleAddToCart(product)}
-                  style={{ touchAction: "manipulation" }}
+                  style={tapAction}
                   className={`rounded-2xl px-5 py-3 text-sm font-black shadow-lg active:scale-[0.95] transition-all ${
                     addedToCart === product.id
                       ? "bg-white text-[#10A37F]"
@@ -500,7 +616,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
             <div className="relative flex h-[60vh] flex-col rounded-t-[2rem] bg-white animate-feed-slide">
               <div className="flex items-center justify-between border-b border-[#E5E5E5] px-6 py-4">
                 <h3 className="font-black text-[#0D0D0D]">Comentarii ({getRealComments(product)})</h3>
-                <button onClick={() => setShowComments(null)} className="rounded-full bg-[#F7F7F8] p-2 text-[#6E6E80]">
+                <button type="button" onClick={() => setShowComments(null)} className="rounded-full bg-[#F7F7F8] p-2 text-[#6E6E80]" style={tapAction} aria-label="Close comments">
                   <X size={20} />
                 </button>
               </div>

@@ -145,6 +145,7 @@ export async function postLegacyEvents(req: Request, batch: FeedEventBatch) {
     if (!upstream) return null;
     lastStatus = upstream.status;
     if (upstream.ok) accepted += 1;
+    await upstream.arrayBuffer().catch(() => null);
   }
 
   return { accepted, lastStatus };

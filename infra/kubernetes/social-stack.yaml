@@ -11,6 +11,7 @@ metadata:
 type: Opaque
 stringData:
   POSTGRES_PASSWORD: replace-me
+  CLICKHOUSE_PASSWORD: replace-me
   MINIO_ROOT_PASSWORD: replace-me
   S3_ACCESS_KEY_ID: replace-me
   S3_SECRET_ACCESS_KEY: replace-me
@@ -26,11 +27,34 @@ data:
   DATABASE_HOST: postgres
   DATABASE_PORT: "5432"
   REDIS_URL: redis://redis:6379
+  CLICKHOUSE_DB: social_analytics
+  CLICKHOUSE_USER: aicevrei
+  CLICKHOUSE_HOST: clickhouse
+  CLICKHOUSE_HTTP_PORT: "8123"
+  CLICKHOUSE_NATIVE_PORT: "9000"
+  CLICKHOUSE_URL: http://clickhouse:8123
   OPENSEARCH_URL: http://opensearch:9200
   SOCIAL_MEDIA_BUCKET: social-media
   S3_ENDPOINT: http://minio:9000
   S3_REGION: auto
   S3_FORCE_PATH_STYLE: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-config
+  namespace: aicevrei-social
+data:
+  prometheus.xml: |
+    <clickhouse>
+      <prometheus>
+        <endpoint>/metrics</endpoint>
+        <port>9363</port>
+        <metrics>true</metrics>
+        <events>true</events>
+        <asynchronous_metrics>true</asynchronous_metrics>
+      </prometheus>
+    </clickhouse>
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -165,6 +189,100 @@ spec:
     - name: redis
       port: 6379
       targetPort: redis
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clickhouse-data
+  namespace: aicevrei-social
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clickhouse
+  namespace: aicevrei-social
+spec:
+  serviceName: clickhouse
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clickhouse
+    spec:
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:24.8
+          ports:
+            - name: http
+              containerPort: 8123
+            - name: native
+              containerPort: 9000
+            - name: metrics
+              containerPort: 9363
+          env:
+            - name: CLICKHOUSE_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: social-config
+                  key: CLICKHOUSE_DB
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: social-config
+                  key: CLICKHOUSE_USER
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: social-secrets
+                  key: CLICKHOUSE_PASSWORD
+            - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+              value: "1"
+          volumeMounts:
+            - name: clickhouse-data
+              mountPath: /var/lib/clickhouse
+            - name: clickhouse-config
+              mountPath: /etc/clickhouse-server/config.d/prometheus.xml
+              subPath: prometheus.xml
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: clickhouse-data
+          persistentVolumeClaim:
+            claimName: clickhouse-data
+        - name: clickhouse-config
+          configMap:
+            name: clickhouse-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: aicevrei-social
+spec:
+  selector:
+    app.kubernetes.io/name: clickhouse
+  ports:
+    - name: http
+      port: 8123
+      targetPort: http
+    - name: native
+      port: 9000
+      targetPort: native
+    - name: metrics
+      port: 9363
+      targetPort: metrics
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

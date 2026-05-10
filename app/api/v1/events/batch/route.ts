@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     if (upstreamBatch && !isBatchFallbackStatus(upstreamBatch.status)) {
       return upstreamBatch;
     }
+    await upstreamBatch?.arrayBuffer().catch(() => null);
 
     const legacy = await postLegacyEvents(req, batch);
     if (legacy && legacy.accepted > 0) {

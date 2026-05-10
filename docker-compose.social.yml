@@ -33,8 +33,31 @@ services:
       timeout: 5s
       retries: 10
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-social_analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-aicevrei}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-aicevrei_dev_password}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9002}:9000"
+      - "${CLICKHOUSE_METRICS_PORT:-9363}:9363"
+    volumes:
+      - social_clickhouse_data:/var/lib/clickhouse
+      - ./infra/clickhouse/init:/docker-entrypoint-initdb.d:ro
+      - ./infra/clickhouse/config.d/prometheus.xml:/etc/clickhouse-server/config.d/prometheus.xml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --user \"$${CLICKHOUSE_USER}\" --password \"$${CLICKHOUSE_PASSWORD}\" --query \"SELECT 1\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   opensearch:
     image: opensearchproject/opensearch:2.15.0
+    profiles: ["search"]
     restart: unless-stopped
     environment:
       discovery.type: single-node
@@ -93,6 +116,66 @@ services:
         mc mb --ignore-existing "local/$${SOCIAL_MEDIA_BUCKET}"
         mc anonymous set download "local/$${SOCIAL_MEDIA_BUCKET}/public" || true
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-aicevrei}:${POSTGRES_PASSWORD:-aicevrei_dev_password}@postgres:5432/${POSTGRES_DB:-aicevrei_social}?sslmode=disable
+    ports:
+      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.61.0
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "${REDIS_EXPORTER_PORT:-9121}:9121"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      postgres-exporter:
+        condition: service_started
+      redis-exporter:
+        condition: service_started
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-7d}
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - social_prometheus_data:/prometheus
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana-oss:11.2.0
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-aicevrei_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-aicevrei_social}
+      POSTGRES_USER: ${POSTGRES_USER:-aicevrei}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aicevrei_dev_password}
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - social_grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+
 # Production media storage should use Cloudflare R2 or another S3-compatible
 # object store. Keep MinIO for local development only, and point S3_ENDPOINT,
 # S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, and SOCIAL_MEDIA_BUCKET at R2 in env.
@@ -100,5 +183,8 @@ services:
 volumes:
   social_postgres_data:
   social_redis_data:
+  social_clickhouse_data:
   social_opensearch_data:
   social_minio_data:
+  social_prometheus_data:
+  social_grafana_data:
