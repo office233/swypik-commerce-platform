@@ -1,13 +1,13 @@
-name: Swypik-social
+name: swypik-social
 
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-Swypik_social}
-      POSTGRES_USER: ${POSTGRES_USER:-Swypik}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Swypik_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-swypik_social}
+      POSTGRES_USER: ${POSTGRES_USER:-swypik}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swypik_dev_password}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -38,8 +38,8 @@ services:
     restart: unless-stopped
     environment:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-social_analytics}
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-Swypik}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-Swypik_dev_password}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-swypik}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-swypik_dev_password}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     ports:
       - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
@@ -86,8 +86,8 @@ services:
     restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-Swypik}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-Swypik_dev_password}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-swypik}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-swypik_dev_password}
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
@@ -105,8 +105,8 @@ services:
       minio:
         condition: service_healthy
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-Swypik}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-Swypik_dev_password}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-swypik}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-swypik_dev_password}
       SOCIAL_MEDIA_BUCKET: ${SOCIAL_MEDIA_BUCKET:-social-media}
     entrypoint:
       - /bin/sh
@@ -123,7 +123,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-Swypik}:${POSTGRES_PASSWORD:-Swypik_dev_password}@postgres:5432/${POSTGRES_DB:-Swypik_social}?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-swypik}:${POSTGRES_PASSWORD:-swypik_dev_password}@postgres:5432/${POSTGRES_DB:-swypik_social}?sslmode=disable
     ports:
       - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
 
@@ -166,10 +166,10 @@ services:
         condition: service_started
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-Swypik_dev_password}
-      POSTGRES_DB: ${POSTGRES_DB:-Swypik_social}
-      POSTGRES_USER: ${POSTGRES_USER:-Swypik}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Swypik_dev_password}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-swypik_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-swypik_social}
+      POSTGRES_USER: ${POSTGRES_USER:-swypik}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swypik_dev_password}
     ports:
       - "${GRAFANA_PORT:-3001}:3000"
     volumes:
