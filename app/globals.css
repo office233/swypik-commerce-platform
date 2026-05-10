@@ -40,12 +40,25 @@ body {
   animation: shimmer 1.5s infinite;
 }
 
-/* ─── Disable selection on interactive ─── */
+/* ─── Disable selection on interactive + minimum touch targets ─── */
 button, nav, a { 
   -webkit-user-select: none; 
   user-select: none; 
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Mobile touch: minimum 44px tap targets for accessibility ─── */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Exempt inline text buttons and tiny UI chips */
+  .inline-btn, .qty-btn, .chip-btn {
+    min-height: auto;
+    min-width: auto;
+  }
 }
 
 /* ─── No scrollbar ─── */
@@ -57,7 +70,7 @@ button, nav, a {
 /* ─── Line clamp ─── */
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* ─── Product Feed ─── */
+/* ─── Product Feed — Full-screen TikTok-style ─── */
 .feed-scroll {
   width: 100%; height: 100vh; height: 100dvh;
   overflow-y: scroll; overflow-x: hidden;
@@ -85,8 +98,19 @@ button, nav, a {
   object-fit: cover;
 }
 
+/* ─── Safe area insets for notch phones ─── */
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* ─── Bottom nav — respect safe area on iPhones with notch ─── */
+.bottom-nav {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ─── Chat input bar — sits above bottom nav ─── */
+.chat-input-bar {
+  bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+}
 
 /* ─── Heart burst ─── */
 @keyframes like-burst {
@@ -118,7 +142,7 @@ button, nav, a {
 .subcategory-panel.closed { max-height: 0; opacity: 0; }
 .subcategory-panel.open { max-height: 600px; opacity: 1; }
 
-/* ─── Category chip ─── */
+/* ─── Category chips ─── */
 .cat-chip {
   background: #F7F7F8;
   border: 1px solid #E5E5E5;
@@ -134,3 +158,34 @@ button, nav, a {
 }
 .sub-chip:hover { background: #F7F7F8; border-color: #10A37F; color: #10A37F; }
 .sub-chip.active { background: #10A37F; color: white; border-color: #10A37F; }
+
+/* ─── Responsive Product Cards — smaller on tiny phones ─── */
+@media (max-width: 374px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; }
+  .product-card-image { height: 9rem !important; }
+  .product-card-title { font-size: 11px !important; }
+  .product-card-price { font-size: 14px !important; }
+}
+
+/* ─── Carousel cards — tighter on small phones ─── */
+@media (max-width: 374px) {
+  .carousel-card { width: 9rem !important; }
+}
+
+/* ─── Responsive container — expand on tablet/desktop ─── */
+@media (min-width: 768px) {
+  .app-container { max-width: 768px !important; }
+}
+@media (min-width: 1024px) {
+  .app-container { max-width: 1024px !important; }
+  .product-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+@media (min-width: 1280px) {
+  .app-container { max-width: 1280px !important; }
+  .product-grid { grid-template-columns: repeat(4, 1fr) !important; }
+}
+
+/* ─── Toast position — above bottom nav on all phones ─── */
+.toast-position {
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
