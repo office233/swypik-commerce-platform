@@ -1,0 +1,11 @@
+name = "Swypik-ai-chat"
+main = "ai-chat-proxy.js"
+compatibility_date = "2024-01-01"
+workers_dev = false
+
+routes = [
+  { pattern = "Swypik.com/api/ai-worker*", zone_name = "Swypik.com" }
+]
+
+# Secret: Set via `wrangler secret put OPENROUTER_API_KEY`
+# OPENROUTER_API_KEY = "sk-or-v1-..."

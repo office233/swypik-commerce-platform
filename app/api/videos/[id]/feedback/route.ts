@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from "next/server";
+import { dbQuery } from "@/lib/db";
+import { TOPICS } from "@/lib/topics";
+import { getOptionalSocialUserId } from "@/lib/social/session";
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: videoId } = await params;
+    const body = await request.json();
+    const { action } = body;
+
+    if (action !== "more_like_this" && action !== "not_interested") {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    const userId = await getOptionalSocialUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Fetch video details to determine topic
+    const { rows } = await dbQuery(
+      `SELECT title, description, product_refs FROM videos WHERE id = $1`,
+      [videoId]
+    );
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "Video not found" }, { status: 404 });
+    }
+
+    const video = rows[0];
+    const textToSearch = `${video.title || ""} ${video.description || ""} ${JSON.stringify(video.product_refs || {})}`.toLowerCase();
+
+    let extractedTopic = 'general';
+    for (const t of TOPICS) {
+      if (textToSearch.includes(t.id.toLowerCase()) || textToSearch.includes(t.label.split(' ')[0].toLowerCase())) {
+        extractedTopic = t.id;
+        break;
+      }
+    }
+
+    // Upsert logic
+    let weightDelta = action === "more_like_this" ? 0.5 : -1.0;
+    
+    // Check current weight
+    const currentRes = await dbQuery(
+      `SELECT weight FROM user_interests WHERE user_id = $1 AND topic = $2`,
+      [userId, extractedTopic]
+    );
+    
+    let newWeight = weightDelta;
+    if (currentRes.rows.length > 0) {
+      const currentWeight = parseFloat(currentRes.rows[0].weight);
+      newWeight = currentWeight + weightDelta;
+    }
+    
+    // Clamp weight
+    newWeight = Math.max(-5.0, Math.min(5.0, newWeight));
+
+    await dbQuery(
+      `INSERT INTO user_interests (user_id, topic, weight, source)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id, topic)
+       DO UPDATE SET weight = $3, source = $4`,
+      [userId, extractedTopic, newWeight, action]
+    );
+
+    return NextResponse.json({ action, topic: extractedTopic, new_weight: newWeight });
+
+  } catch (error: any) {
+    console.error("Feedback error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

@@ -1,0 +1,16 @@
+export const TOPICS = [
+  { id: 'funny', label: 'Funny 😂', icon: '😂' },
+  { id: 'gadgets', label: 'Gadgeturi 📱', icon: '📱' },
+  { id: 'ai', label: 'AI Tools 🤖', icon: '🤖' },
+  { id: 'beauty', label: 'Beauty 💄', icon: '💄' },
+  { id: 'fitness', label: 'Fitness 💪', icon: '💪' },
+  { id: 'deals', label: 'Oferte 🏷️', icon: '🏷️' },
+  { id: 'crypto', label: 'Crypto 🪙', icon: '🪙' },
+  { id: 'fashion', label: 'Fashion 👗', icon: '👗' },
+  { id: 'food', label: 'Food 🍕', icon: '🍕' },
+  { id: 'gaming', label: 'Gaming 🎮', icon: '🎮' },
+  { id: 'home', label: 'Home Hacks 🏠', icon: '🏠' },
+  { id: 'education', label: 'Educație 📚', icon: '📚' },
+  { id: 'local', label: 'Local 📍', icon: '📍' },
+  { id: 'business', label: 'Business 💼', icon: '💼' },
+] as const;

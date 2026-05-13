@@ -1,0 +1,115 @@
+import { NextRequest, NextResponse } from "next/server";
+import { dbQuery } from "@/lib/db";
+import { getOptionalSocialUserId } from "@/lib/social/session";
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: collectionId } = await params;
+    const userId = await getOptionalSocialUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { rows: collRows } = await dbQuery(
+      `SELECT * FROM user_collections WHERE id = $1 AND user_id = $2`,
+      [collectionId, userId]
+    );
+
+    if (collRows.length === 0) {
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
+
+    const collection = collRows[0];
+
+    const { rows: items } = await dbQuery(
+      `SELECT uci.*, v.title, v.thumbnail_url, v.playback_url, v.duration_ms, v.view_count,
+              u.display_name AS creator_name
+       FROM user_collection_items uci
+       JOIN videos v ON uci.video_id = v.id
+       LEFT JOIN users u ON v.creator_id = u.id
+       WHERE uci.collection_id = $1
+       ORDER BY uci.created_at DESC`,
+      [collectionId]
+    );
+
+    return NextResponse.json({ collection, items });
+  } catch (error) {
+    console.error("Collection GET Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: collectionId } = await params;
+    const userId = await getOptionalSocialUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { title, icon, color } = body;
+
+    const { rows: collRows } = await dbQuery(
+      `SELECT * FROM user_collections WHERE id = $1 AND user_id = $2`,
+      [collectionId, userId]
+    );
+
+    if (collRows.length === 0) {
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
+
+    const current = collRows[0];
+    const newTitle = title || current.title;
+    const newIcon = icon || current.icon;
+    const newColor = color || current.color;
+    
+    let newSlug = current.slug;
+    if (title && title !== current.title) {
+        newSlug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 40);
+    }
+
+    const { rows } = await dbQuery(
+      `UPDATE user_collections SET title = $1, slug = $2, icon = $3, color = $4 WHERE id = $5 RETURNING *`,
+      [newTitle, newSlug, newIcon, newColor, collectionId]
+    );
+
+    return NextResponse.json({ collection: rows[0] });
+  } catch (error) {
+    console.error("Collection PATCH Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: collectionId } = await params;
+    const userId = await getOptionalSocialUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { rows: collRows } = await dbQuery(
+      `SELECT * FROM user_collections WHERE id = $1 AND user_id = $2`,
+      [collectionId, userId]
+    );
+
+    if (collRows.length === 0) {
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
+
+    if (collRows[0].is_default) {
+      return NextResponse.json({ error: "Cannot delete default collection" }, { status: 400 });
+    }
+
+    await dbQuery(`DELETE FROM user_collections WHERE id = $1`, [collectionId]);
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Collection DELETE Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

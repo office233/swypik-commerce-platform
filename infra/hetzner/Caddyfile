@@ -1,0 +1,102 @@
+# ============================================================
+# Swypik Production — Caddy Reverse Proxy Configuration
+# HTTPS is automatic via Let's Encrypt (ACME).
+# ============================================================
+
+# Global options
+{
+	email admin@swypik.com
+	# Staging CA for testing — remove for production:
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# -------------------------------------------------------
+# Main storefront — swypik.com
+# -------------------------------------------------------
+swypik.com {
+	# Security headers
+	header {
+		X-Frame-Options            "DENY"
+		X-Content-Type-Options     "nosniff"
+		Referrer-Policy            "strict-origin-when-cross-origin"
+		Strict-Transport-Security  "max-age=63072000; includeSubDomains; preload"
+		X-XSS-Protection           "1; mode=block"
+		Permissions-Policy         "camera=(), microphone=(), geolocation=()"
+		# Remove server identity
+		-Server
+	}
+
+	# Gzip / zstd compression
+	encode zstd gzip
+
+	# Logging
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 100MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+	}
+
+	# Next.js static assets — long cache
+	handle /_next/static/* {
+		header Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy web-next:3000
+	}
+
+	# Next.js data / image optimisation routes
+	handle /_next/* {
+		reverse_proxy web-next:3000
+	}
+
+	# API routes served by the Next.js backend (BFF)
+	handle /api/* {
+		reverse_proxy web-next:3000
+	}
+
+	# Everything else → Next.js SSR
+	handle {
+		reverse_proxy web-next:3000
+	}
+}
+
+# -------------------------------------------------------
+# Platform API — api.swypik.com  (Go service)
+# -------------------------------------------------------
+api.swypik.com {
+	# Security headers
+	header {
+		X-Frame-Options            "DENY"
+		X-Content-Type-Options     "nosniff"
+		Referrer-Policy            "strict-origin-when-cross-origin"
+		Strict-Transport-Security  "max-age=63072000; includeSubDomains; preload"
+		X-XSS-Protection           "1; mode=block"
+		Permissions-Policy         "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	encode zstd gzip
+
+	log {
+		output file /var/log/caddy/api-access.log {
+			roll_size 100MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+	}
+
+	# CORS preflight — adjust origins as needed
+	@cors_preflight method OPTIONS
+	handle @cors_preflight {
+		header Access-Control-Allow-Origin  "https://swypik.com"
+		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+		header Access-Control-Allow-Headers "Authorization, Content-Type"
+		header Access-Control-Max-Age       "86400"
+		respond "" 204
+	}
+
+	# All traffic → Go API
+	reverse_proxy platform-api:8080
+}
