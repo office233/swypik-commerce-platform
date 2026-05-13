@@ -247,8 +247,8 @@ export default function CreatorUploadPage() {
 
 function SuccessCard() {
   return (
-    <div className="bg-[#10A37F]/10 border border-[#10A37F]/30 rounded-3xl p-10 text-center flex flex-col items-center">
-      <CheckCircle size={64} className="text-[#10A37F] mb-4" />
+    <div className="bg-[#0D0D0D]/10 border border-[#0D0D0D]/30 rounded-3xl p-10 text-center flex flex-col items-center">
+      <CheckCircle size={64} className="text-[#0D0D0D] mb-4" />
       <h2 className="text-2xl font-black mb-2">Clip Publicat!</h2>
       <p className="text-white/60 mb-6">Videoclipul tău este în feed.</p>
     </div>
@@ -328,7 +328,7 @@ function PickAndMetadata(props: {
             value={productLink}
             onChange={(e) => setProductLink(e.target.value)}
             placeholder="https://swypik.com/product/..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10A37F] transition"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0D0D0D] transition"
           />
         </div>
         <div>
@@ -338,7 +338,7 @@ function PickAndMetadata(props: {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Câteva cuvinte despre clip. AI-ul îl va folosi ca să genereze hook-uri, caption și tags."
             rows={4}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10A37F] transition resize-none"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0D0D0D] transition resize-none"
           />
         </div>
       </div>
@@ -404,10 +404,10 @@ function SuggestionsStep(props: {
               <label
                 key={i}
                 className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer border transition ${
-                  hookChoice === i ? "bg-[#10A37F]/10 border-[#10A37F]/40" : "bg-white/5 border-white/10 hover:bg-white/10"
+                  hookChoice === i ? "bg-[#0D0D0D]/10 border-[#0D0D0D]/40" : "bg-white/5 border-white/10 hover:bg-white/10"
                 }`}
               >
-                <input type="radio" name="hook" className="mt-1 accent-[#10A37F]" checked={hookChoice === i} onChange={() => setHookChoice(i)} />
+                <input type="radio" name="hook" className="mt-1 accent-[#0D0D0D]" checked={hookChoice === i} onChange={() => setHookChoice(i)} />
                 <span className="text-sm leading-relaxed">{h}</span>
               </label>
             ))}
@@ -430,7 +430,7 @@ function SuggestionsStep(props: {
             onChange={(e) => setCaptionDraft(e.target.value)}
             rows={3}
             maxLength={280}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10A37F] transition resize-none"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0D0D0D] transition resize-none"
           />
         )}
         <div className="text-right text-xs text-white/40 mt-1">{captionDraft.length}/280</div>
@@ -452,7 +452,7 @@ function SuggestionsStep(props: {
         ) : (
           <div className="flex flex-wrap gap-2">
             {tagsDraft.map((t) => (
-              <span key={t} className="flex items-center gap-1.5 bg-[#10A37F]/15 text-[#10A37F] text-xs font-bold px-3 py-1.5 rounded-full">
+              <span key={t} className="flex items-center gap-1.5 bg-[#0D0D0D]/15 text-[#0D0D0D] text-xs font-bold px-3 py-1.5 rounded-full">
                 {t}
                 <button onClick={() => removeTag(t)} className="hover:text-white">
                   <X size={12} />
@@ -504,7 +504,7 @@ function Section(props: {
         <button
           onClick={props.onRegenerate}
           disabled={props.loading}
-          className="flex items-center gap-1.5 text-xs font-bold text-[#10A37F] bg-[#10A37F]/10 px-3 py-1.5 rounded-lg hover:bg-[#10A37F]/20 transition disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs font-bold text-[#0D0D0D] bg-[#0D0D0D]/10 px-3 py-1.5 rounded-lg hover:bg-[#0D0D0D]/20 transition disabled:opacity-50"
         >
           {props.loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
           Regenerează

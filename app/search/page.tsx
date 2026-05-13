@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = { q?: string; tab?: string };
 
-const ACCENT = "#10A37F";
+const ACCENT = "#0D0D0D";
 const BG = "#0D0D0D";
 
 function formatPrice(cents: number | null | undefined) {
@@ -58,7 +58,7 @@ export default async function SearchPage({
               name="q"
               defaultValue={q}
               placeholder="Search videos, creators, products…"
-              className="flex-1 rounded-lg bg-neutral-900 border border-neutral-800 px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-[#10A37F]"
+              className="flex-1 rounded-lg bg-neutral-900 border border-neutral-800 px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-[#0D0D0D]"
               minLength={2}
               autoFocus
             />
@@ -113,7 +113,7 @@ export default async function SearchPage({
                       <Link
                         key={v.id}
                         href={`/video/${v.id}`}
-                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#10A37F] transition-colors"
+                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#0D0D0D] transition-colors"
                       >
                         <div className="aspect-[9/16] bg-neutral-800 relative">
                           {v.thumbnail_url ? (
@@ -196,7 +196,7 @@ export default async function SearchPage({
                       <Link
                         key={p.id}
                         href={`/product/${p.id}`}
-                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#10A37F] transition-colors"
+                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#0D0D0D] transition-colors"
                       >
                         <div className="aspect-square bg-neutral-800 relative">
                           {p.image_url ? (

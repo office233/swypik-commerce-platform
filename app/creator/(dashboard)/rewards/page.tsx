@@ -60,7 +60,7 @@ export default function RewardsPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10A37F]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0D0D0D]"></div>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export default function RewardsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl p-6 border border-[#E5E5E5] shadow-sm flex flex-col justify-center">
           <p className="text-sm font-bold text-[#6E6E80] mb-2">Balanță SWYP</p>
-          <div className="text-4xl font-black text-[#10A37F] flex items-center gap-2">
+          <div className="text-4xl font-black text-[#0D0D0D] flex items-center gap-2">
             <span>🏆</span>
             <span>{wallet?.balance_points || 0}</span>
           </div>
@@ -127,7 +127,7 @@ export default function RewardsPage() {
                       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                     });
                     
-                    let badgeClass = "bg-green-100 text-green-800";
+                    let badgeClass = "bg-neutral-100 text-neutral-900";
                     let prefix = "+";
                     let icon = "";
                     
@@ -176,7 +176,7 @@ export default function RewardsPage() {
                   <p className="text-sm font-bold text-[#0D0D0D]">{rule.description}</p>
                   <p className="text-xs text-[#6E6E80] font-mono mt-1">{rule.action}</p>
                 </div>
-                <div className="font-black text-[#10A37F] bg-[#10A37F]/10 px-2 py-1 rounded text-sm">
+                <div className="font-black text-[#0D0D0D] bg-[#0D0D0D]/10 px-2 py-1 rounded text-sm">
                   +{rule.points}
                 </div>
               </div>

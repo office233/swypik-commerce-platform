@@ -149,7 +149,7 @@ export default function ShopPage() {
       <header className="sticky top-0 z-40" style={{ background: "rgba(10,10,10,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="mx-auto max-w-7xl px-4 py-3">
           <div className="flex items-center gap-3">
-            <Link href="/" className="shrink-0 text-xl font-black" style={{ color: "#10A37F" }}>Swypik</Link>
+            <Link href="/" className="shrink-0 text-xl font-black" style={{ color: "#0D0D0D" }}>Swypik</Link>
             {/* Search */}
             <div className="relative flex-1 max-w-xl min-w-0">
               <div className="flex items-center rounded-2xl px-2 py-2.5 sm:px-4" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -173,23 +173,23 @@ export default function ShopPage() {
                 <div className="absolute left-0 right-0 top-full mt-1 rounded-xl py-1 z-50 overflow-hidden" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
                   {suggestions.map((s, i) => (
                     <button key={i} onMouseDown={() => selectSuggestion(s.label)} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-white/5 transition-colors">
-                      <Search size={14} style={{ color: "#10A37F" }} />
+                      <Search size={14} style={{ color: "#0D0D0D" }} />
                       <span className="flex-1 truncate">{s.label}</span>
-                      <span className="text-[10px] rounded-full px-2 py-0.5" style={{ background: "rgba(16,163,127,0.15)", color: "#10A37F" }}>{s.type}</span>
+                      <span className="text-[10px] rounded-full px-2 py-0.5" style={{ background: "rgba(16,163,127,0.15)", color: "#0D0D0D" }}>{s.type}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
             {/* Filter toggle mobile */}
-            <button onClick={() => setShowFilters(!showFilters)} className="lg:hidden flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors" style={{ background: showFilters ? "#10A37F" : "rgba(255,255,255,0.07)", color: showFilters ? "#fff" : "#ccc" }}>
+            <button onClick={() => setShowFilters(!showFilters)} className="lg:hidden flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors" style={{ background: showFilters ? "#0D0D0D" : "rgba(255,255,255,0.07)", color: showFilters ? "#fff" : "#ccc" }}>
               <SlidersHorizontal size={16} /> Filtre
             </button>
           </div>
           {/* Sort bar */}
           <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             {SORT_OPTIONS.map(s => (
-              <button key={s.value} onClick={() => setSort(s.value)} className="shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all" style={{ background: sort === s.value ? "#10A37F" : "rgba(255,255,255,0.06)", color: sort === s.value ? "#fff" : "#999" }}>
+              <button key={s.value} onClick={() => setSort(s.value)} className="shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all" style={{ background: sort === s.value ? "#0D0D0D" : "rgba(255,255,255,0.06)", color: sort === s.value ? "#fff" : "#999" }}>
                 {s.label}
               </button>
             ))}
@@ -211,7 +211,7 @@ export default function ShopPage() {
               <div className="space-y-1 max-h-80 overflow-y-auto no-scrollbar">
                 {hierarchy.map(root => (
                   <div key={root.id}>
-                    <button onClick={() => setExpandedRoot(expandedRoot === root.id ? null : root.id)} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition-colors hover:bg-white/5" style={{ color: expandedRoot === root.id ? "#10A37F" : "#aaa" }}>
+                    <button onClick={() => setExpandedRoot(expandedRoot === root.id ? null : root.id)} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition-colors hover:bg-white/5" style={{ color: expandedRoot === root.id ? "#0D0D0D" : "#aaa" }}>
                       <span className="truncate">{root.name}</span>
                       <span className="flex items-center gap-1">
                         <span className="text-[10px]" style={{ color: "#666" }}>{root.count}</span>
@@ -221,7 +221,7 @@ export default function ShopPage() {
                     {expandedRoot === root.id && (
                       <div className="ml-2 mt-1 space-y-0.5 animate-slideDown">
                         {root.children.slice(0, 15).map(child => (
-                          <button key={child.id} onClick={() => { toggleCategory(child.id); if (showFilters) setShowFilters(false); }} className="flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[11px] transition-colors" style={{ background: selectedCategory === child.id ? "rgba(16,163,127,0.15)" : "transparent", color: selectedCategory === child.id ? "#10A37F" : "#888" }}>
+                          <button key={child.id} onClick={() => { toggleCategory(child.id); if (showFilters) setShowFilters(false); }} className="flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[11px] transition-colors" style={{ background: selectedCategory === child.id ? "rgba(16,163,127,0.15)" : "transparent", color: selectedCategory === child.id ? "#0D0D0D" : "#888" }}>
                             <span className="truncate">{child.name}</span>
                             <span className="text-[10px]" style={{ color: "#555" }}>{child.count}</span>
                           </button>
@@ -241,7 +241,7 @@ export default function ShopPage() {
                 <span style={{ color: "#555" }}>-</span>
                 <input type="number" min={minPrice} max={5000} value={maxPrice} onChange={e => setMaxPrice(Number(e.target.value))} className="w-full rounded-lg px-3 py-2 text-xs outline-none" style={{ background: "rgba(255,255,255,0.06)", color: "#e5e5e5", border: "1px solid rgba(255,255,255,0.08)" }} placeholder="Max" />
               </div>
-              <input type="range" min={0} max={2000} step={10} value={maxPrice} onChange={e => setMaxPrice(Number(e.target.value))} className="mt-3 w-full accent-[#10A37F]" />
+              <input type="range" min={0} max={2000} step={10} value={maxPrice} onChange={e => setMaxPrice(Number(e.target.value))} className="mt-3 w-full accent-[#0D0D0D]" />
               <div className="mt-1 flex justify-between text-[10px]" style={{ color: "#666" }}><span>0 lei</span><span>{maxPrice} lei</span></div>
             </div>
 
@@ -250,8 +250,8 @@ export default function ShopPage() {
               <h3 className="mb-3 text-sm font-bold" style={{ color: "#ccc" }}>Rating minim</h3>
               <div className="space-y-1">
                 {RATING_OPTIONS.map(r => (
-                  <button key={r} onClick={() => setMinRating(minRating === r ? 0 : r)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors" style={{ background: minRating === r ? "rgba(16,163,127,0.15)" : "transparent", color: minRating === r ? "#10A37F" : "#999" }}>
-                    <Star size={13} fill={minRating === r ? "#10A37F" : "none"} /> {r}+ stele
+                  <button key={r} onClick={() => setMinRating(minRating === r ? 0 : r)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors" style={{ background: minRating === r ? "rgba(16,163,127,0.15)" : "transparent", color: minRating === r ? "#0D0D0D" : "#999" }}>
+                    <Star size={13} fill={minRating === r ? "#0D0D0D" : "none"} /> {r}+ stele
                   </button>
                 ))}
               </div>
@@ -262,10 +262,10 @@ export default function ShopPage() {
               <label className="flex items-center gap-3 cursor-pointer">
                 <div className="relative">
                   <input type="checkbox" checked={freeShipOnly} onChange={() => setFreeShipOnly(!freeShipOnly)} className="sr-only peer" />
-                  <div className="h-6 w-11 rounded-full transition-colors peer-checked:bg-[#10A37F]" style={{ background: freeShipOnly ? "#10A37F" : "rgba(255,255,255,0.1)" }} />
+                  <div className="h-6 w-11 rounded-full transition-colors peer-checked:bg-[#0D0D0D]" style={{ background: freeShipOnly ? "#0D0D0D" : "rgba(255,255,255,0.1)" }} />
                   <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform shadow-md" style={{ transform: freeShipOnly ? "translateX(20px)" : "translateX(0)" }} />
                 </div>
-                <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: freeShipOnly ? "#10A37F" : "#999" }}>
+                <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: freeShipOnly ? "#0D0D0D" : "#999" }}>
                   <Truck size={14} /> Livrare gratuita
                 </div>
               </label>
@@ -284,7 +284,7 @@ export default function ShopPage() {
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <Loader2 size={32} className="mx-auto animate-spin" style={{ color: "#10A37F" }} />
+                <Loader2 size={32} className="mx-auto animate-spin" style={{ color: "#0D0D0D" }} />
                 <p className="mt-3 text-sm" style={{ color: "#666" }}>Se incarca produsele...</p>
               </div>
             </div>
@@ -292,7 +292,7 @@ export default function ShopPage() {
             <div className="flex flex-col items-center justify-center py-20">
               <Package size={48} style={{ color: "#333" }} />
               <p className="mt-4 font-bold" style={{ color: "#666" }}>Niciun produs gasit</p>
-              <button onClick={clearFilters} className="mt-3 rounded-xl px-6 py-2 text-sm font-bold" style={{ background: "#10A37F", color: "#fff" }}>Reseteaza filtrele</button>
+              <button onClick={clearFilters} className="mt-3 rounded-xl px-6 py-2 text-sm font-bold" style={{ background: "#0D0D0D", color: "#fff" }}>Reseteaza filtrele</button>
             </div>
           ) : (
             <>
@@ -328,7 +328,7 @@ export default function ShopPage() {
                         {product.orders > 0 && <span className="text-[10px]" style={{ color: "#666" }}>({product.orders}+)</span>}
                       </div>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-base font-black" style={{ color: "#10A37F" }}>{product.price} lei</span>
+                        <span className="text-base font-black" style={{ color: "#0D0D0D" }}>{product.price} lei</span>
                         {product.oldPrice > product.price && (
                           <span className="text-[11px] line-through" style={{ color: "#555" }}>{product.oldPrice} lei</span>
                         )}
@@ -341,7 +341,7 @@ export default function ShopPage() {
               <div ref={sentinelRef} className="h-10" />
               {loadingMore && (
                 <div className="flex justify-center py-6">
-                  <Loader2 size={24} className="animate-spin" style={{ color: "#10A37F" }} />
+                  <Loader2 size={24} className="animate-spin" style={{ color: "#0D0D0D" }} />
                 </div>
               )}
               {offset >= total && products.length > 0 && (

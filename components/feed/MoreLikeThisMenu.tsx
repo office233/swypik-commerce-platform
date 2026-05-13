@@ -92,7 +92,7 @@ export default function MoreLikeThisMenu({
           onMouseLeave={() => setOpen(false)}
         >
           <MenuItem
-            icon={busy === "more_like_this" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-emerald-400" />}
+            icon={busy === "more_like_this" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-neutral-700" />}
             label="Mai arată-mi ca asta"
             onClick={() => send("more_like_this", "Vom afișa mai multe ca acesta")}
             disabled={busy !== null}

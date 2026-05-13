@@ -45,7 +45,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         setItems(data.items || []);
         setEditTitle(data.collection.title);
         setEditIcon(data.collection.icon || "📁");
-        setEditColor(data.collection.color || "#10A37F");
+        setEditColor(data.collection.color || "#0D0D0D");
       } else {
         router.push('/collections');
       }
@@ -92,7 +92,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   };
 
   const EMOJIS = ["📁", "🔖", "🛒", "💡", "❤️", "⭐", "🎵", "✈️", "🍔", "🎮"];
-  const COLORS = ["#10A37F", "#4F46E5", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444", "#3B82F6"];
+  const COLORS = ["#0D0D0D", "#4F46E5", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444", "#3B82F6"];
 
   if (loading) {
     return <div className="min-h-screen bg-[#0D0D0D] text-white flex items-center justify-center">Loading...</div>;
@@ -142,7 +142,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         <div className="text-center py-20 text-gray-500 bg-[#141414] rounded-3xl border border-gray-800/50">
           <div className="text-5xl mb-4 opacity-50">📭</div>
           <p className="text-xl">Această colecție este goală.</p>
-          <Link href="/explore" className="text-[#10A37F] hover:underline mt-2 inline-block">
+          <Link href="/explore" className="text-[#0D0D0D] hover:underline mt-2 inline-block">
             Explorează clipuri
           </Link>
         </div>
@@ -192,7 +192,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
                   type="text"
                   value={editTitle}
                   onChange={e => setEditTitle(e.target.value)}
-                  className="w-full bg-[#0D0D0D] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#10A37F]"
+                  className="w-full bg-[#0D0D0D] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#0D0D0D]"
                 />
               </div>
 
@@ -203,7 +203,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
                     <button
                       key={emoji}
                       onClick={() => setEditIcon(emoji)}
-                      className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-colors ${editIcon === emoji ? 'bg-[#333] border border-[#10A37F]' : 'hover:bg-[#222] border border-transparent'}`}
+                      className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-colors ${editIcon === emoji ? 'bg-[#333] border border-[#0D0D0D]' : 'hover:bg-[#222] border border-transparent'}`}
                     >
                       {emoji}
                     </button>
@@ -228,7 +228,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
               <button 
                 onClick={handleUpdate}
                 disabled={!editTitle.trim()}
-                className="w-full bg-[#10A37F] hover:bg-[#0e8a6b] text-white py-3 rounded-xl font-medium mt-4 disabled:opacity-50 transition-colors"
+                className="w-full bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white py-3 rounded-xl font-medium mt-4 disabled:opacity-50 transition-colors"
               >
                 Salvează modificările
               </button>

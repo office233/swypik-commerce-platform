@@ -100,7 +100,7 @@ export default function NotificationsPage() {
             type="button"
             onClick={markAll}
             disabled={marking || unread === 0}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#10A37F] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#0E906F] disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#0D0D0D] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#0E906F] disabled:opacity-40"
           >
             <CheckCheck className="h-3.5 w-3.5" />
             Marchează toate citite
@@ -113,7 +113,7 @@ export default function NotificationsPage() {
           </div>
         ) : items.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#E5E5E5] bg-[#F9FAFB] px-6 py-16 text-center">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#10A37F]/10 text-[#10A37F]">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#0D0D0D]/10 text-[#0D0D0D]">
               <Bell className="h-6 w-6" />
             </div>
             <h2 className="mt-4 text-base font-black">Nicio notificare încă</h2>
@@ -134,12 +134,12 @@ export default function NotificationsPage() {
                       if (unreadRow) markOne(n.id);
                     }}
                     className={`flex gap-3 px-4 py-3 transition hover:bg-[#F9FAFB] ${
-                      unreadRow ? "bg-[#10A37F]/5" : ""
+                      unreadRow ? "bg-[#0D0D0D]/5" : ""
                     }`}
                   >
                     <span
                       className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                        unreadRow ? "bg-[#10A37F]" : "bg-transparent"
+                        unreadRow ? "bg-[#0D0D0D]" : "bg-transparent"
                       }`}
                     />
                     <div className="min-w-0 flex-1">

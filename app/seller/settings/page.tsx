@@ -98,12 +98,12 @@ export default async function SellerSettingsPage() {
             </p>
 
             {isStripeConnected ? (
-              <div className="flex items-center justify-between p-4 bg-green-50/50 border border-green-100 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-neutral-100/50 border border-neutral-100 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  <CheckCircle2 className="w-6 h-6 text-neutral-900" />
                   <div>
-                    <p className="font-medium text-green-900 text-sm">Cont conectat cu succes</p>
-                    <p className="text-xs text-green-700 mt-0.5 font-mono">{seller.stripe_account_id}</p>
+                    <p className="font-medium text-neutral-900 text-sm">Cont conectat cu succes</p>
+                    <p className="text-xs text-neutral-900 mt-0.5 font-mono">{seller.stripe_account_id}</p>
                   </div>
                 </div>
                 <button className="text-sm font-medium text-neutral-600 hover:text-[#0D0D0D] flex items-center gap-1.5 transition-colors">

@@ -440,11 +440,11 @@ export default function ExplorePage() {
           object-fit: cover; flex-shrink: 0;
         }
         .product-chip .chip-price {
-          font-weight: 700; font-size: 14px; color: #10A37F;
+          font-weight: 700; font-size: 14px; color: #0D0D0D;
         }
         .product-chip .chip-buy {
           width: 28px; height: 28px; border-radius: 50%;
-          background: #10A37F; display: flex; align-items: center; justify-content: center;
+          background: #0D0D0D; display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
         /* Music marquee */
@@ -716,8 +716,8 @@ export default function ExplorePage() {
                 ) : (
                   <Link href="/shop" style={{ textDecoration: 'none' }}>
                     <div className="product-chip">
-                      <ShoppingCart size={18} color="#10A37F" style={{ marginLeft: 4 }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#10A37F' }}>Cumpără pe Swypik</span>
+                      <ShoppingCart size={18} color="#0D0D0D" style={{ marginLeft: 4 }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0D0D0D' }}>Cumpără pe Swypik</span>
                     </div>
                   </Link>
                 )}

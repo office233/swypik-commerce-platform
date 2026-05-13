@@ -9,10 +9,10 @@ export const THEME = {
     muted: "#6E6E80",
     border: "#E5E5E5",
     borderLight: "#ECECF1",
-    primary: "#10A37F",
+    primary: "#0D0D0D",
     primaryDark: "#0E8F6F",
-    accent: "#10A37F",
-    cart: "#10A37F",
+    accent: "#0D0D0D",
+    cart: "#0D0D0D",
     cartDark: "#0E8F6F",
     discount: "#EF4444",
     premium: "#8E44AD",
@@ -26,12 +26,12 @@ export const THEME = {
     card: "bg-[#F7F7F8] border border-[#E5E5E5] rounded-2xl",
     cardHover: "hover:bg-[#ECECF1] hover:border-[#D1D1D6] transition-all duration-200",
     heroCard: "bg-[#F7F7F8] border border-[#E5E5E5] rounded-2xl",
-    primaryButton: "bg-[#10A37F] text-white hover:bg-[#0E8F6F] active:scale-[0.98] transition-all",
+    primaryButton: "bg-[#0D0D0D] text-white hover:bg-[#0E8F6F] active:scale-[0.98] transition-all",
     cartButton: "bg-[#0D0D0D] text-white hover:bg-[#2D2D2D] active:scale-[0.98] transition-all",
     discountBadge: "bg-[#EF4444] text-white",
     premiumBadge: "bg-[#8E44AD] text-white",
     trustBadge: "bg-[#2563EB] text-white",
-    softInput: "bg-[#F7F7F8] border border-[#E5E5E5] focus-within:border-[#10A37F] focus-within:shadow-[0_0_0_1px_#10A37F] transition-all",
+    softInput: "bg-[#F7F7F8] border border-[#E5E5E5] focus-within:border-[#0D0D0D] focus-within:shadow-[0_0_0_1px_#0D0D0D] transition-all",
     glass: "bg-white/95 backdrop-blur-xl border-t border-[#E5E5E5]",
     glassNav: "bg-white/95 backdrop-blur-xl border-t border-[#E5E5E5]",
   },
@@ -125,7 +125,7 @@ export function commerceBadgeClass(label?: string) {
   if (!label) return "bg-[#F7F7F8] text-[#0D0D0D]";
   if (label.includes("Bundle") || label.includes("Premium")) return "bg-[#8E44AD] text-white";
   if (label.includes("sigur") || label.includes("Alegere")) return "bg-[#2563EB] text-white";
-  if (label.includes("coș") || label.includes("adăugat")) return "bg-[#10A37F] text-white";
+  if (label.includes("coș") || label.includes("adăugat")) return "bg-[#0D0D0D] text-white";
   if (label.includes("vinde") || label.includes("popular")) return "bg-[#EF4444] text-white";
   return "bg-[#F7F7F8] text-[#0D0D0D]";
 }

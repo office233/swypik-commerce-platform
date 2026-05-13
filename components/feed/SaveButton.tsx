@@ -135,7 +135,7 @@ export default function SaveButton({ videoId, onSaved, className = "" }: Props) 
         {busy ? (
           <Loader2 className="h-6 w-6 animate-spin" />
         ) : saved ? (
-          <Check className="h-6 w-6 text-emerald-400" />
+          <Check className="h-6 w-6 text-neutral-700" />
         ) : (
           <Bookmark className="h-6 w-6" />
         )}
@@ -153,7 +153,7 @@ export default function SaveButton({ videoId, onSaved, className = "" }: Props) 
       {saved && savedLabel && (
         <div
           role="status"
-          className="pointer-events-none absolute -top-12 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-500/95 px-3 py-1.5 text-xs font-medium text-white shadow-lg"
+          className="pointer-events-none absolute -top-12 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-neutral-700/95 px-3 py-1.5 text-xs font-medium text-white shadow-lg"
         >
           {savedLabel}
         </div>
@@ -204,13 +204,13 @@ export default function SaveButton({ videoId, onSaved, className = "" }: Props) 
                     if (e.key === "Escape") setCreating(false);
                   }}
                   placeholder="Nume colecție"
-                  className="flex-1 rounded-md bg-white/10 px-2 py-1 text-sm placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  className="flex-1 rounded-md bg-white/10 px-2 py-1 text-sm placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-neutral-700"
                 />
                 <button
                   type="button"
                   onClick={createAndSave}
                   disabled={busy || !newName.trim()}
-                  className="rounded-md bg-emerald-500 px-2 py-1 text-xs font-medium text-black disabled:opacity-50"
+                  className="rounded-md bg-neutral-700 px-2 py-1 text-xs font-medium text-black disabled:opacity-50"
                 >
                   OK
                 </button>
@@ -219,7 +219,7 @@ export default function SaveButton({ videoId, onSaved, className = "" }: Props) 
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-emerald-300 hover:bg-white/10"
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-neutral-700 hover:bg-white/10"
               >
                 <Plus className="h-4 w-4" /> Colecție nouă
               </button>

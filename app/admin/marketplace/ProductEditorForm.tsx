@@ -89,7 +89,7 @@ export default function ProductEditorForm({ mode, action, product, notice }: Pro
           <div
             className={`rounded-2xl border px-4 py-3 text-sm ${
               notice.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                ? "border-neutral-100 bg-neutral-100 text-neutral-900"
                 : "border-red-200 bg-red-50 text-red-900"
             }`}
           >

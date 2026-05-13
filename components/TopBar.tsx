@@ -65,7 +65,7 @@ export default function TopBar() {
       <div className="mx-auto max-w-lg flex items-center justify-between px-4 h-12">
         <Link
           href="/"
-          className="text-lg font-black tracking-tight text-[#10A37F]"
+          className="text-lg font-black tracking-tight text-[#0D0D0D]"
           aria-label="Swypik"
         >
           Swypik
@@ -77,11 +77,11 @@ export default function TopBar() {
           <Link
             href="/messages"
             aria-label="Mesaje"
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0D0D0D] text-white hover:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#10A37F]"
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0D0D0D] text-white hover:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D]"
           >
             <MessageCircle className="h-5 w-5" />
             {dmUnread > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#10A37F] px-1 text-[11px] font-semibold text-white">
+              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#0D0D0D] px-1 text-[11px] font-semibold text-white">
                 {dmUnread > 99 ? "99+" : dmUnread}
               </span>
             )}

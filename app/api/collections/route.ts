@@ -22,7 +22,7 @@ export async function GET() {
     if (rows.length === 0) {
       // Creează automat colecțiile default
       const defaults = [
-        { title: "Salvate", slug: "saved", icon: "🔖", is_default: true, color: "#10A37F" },
+        { title: "Salvate", slug: "saved", icon: "🔖", is_default: true, color: "#0D0D0D" },
         { title: "De cumpărat", slug: "to-buy", icon: "🛒", is_default: false, color: "#4F46E5" },
         { title: "Idei utile", slug: "ideas", icon: "💡", is_default: false, color: "#F59E0B" }
       ];

@@ -48,7 +48,7 @@ export default async function ConversationPage({
         >
           &larr;
         </Link>
-        <div className="h-9 w-9 rounded-full bg-[#10A37F]/20 flex items-center justify-center overflow-hidden">
+        <div className="h-9 w-9 rounded-full bg-[#0D0D0D]/20 flex items-center justify-center overflow-hidden">
           {peer?.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -57,7 +57,7 @@ export default async function ConversationPage({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="text-sm text-[#10A37F]">
+            <span className="text-sm text-[#0D0D0D]">
               {peerName.slice(0, 1).toUpperCase()}
             </span>
           )}

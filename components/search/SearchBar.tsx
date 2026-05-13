@@ -15,7 +15,7 @@ type Props = {
   placeholder?: string;
 };
 
-const ACCENT = "#10A37F";
+const ACCENT = "#0D0D0D";
 
 export default function SearchBar({
   initialQuery = "",

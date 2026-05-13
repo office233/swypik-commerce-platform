@@ -109,7 +109,7 @@ export default async function CreatorDashboard() {
         </div>
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow">
           <p className="text-sm font-bold text-[#6E6E80]">Comisioane Câștigate</p>
-          <p className="text-3xl sm:text-4xl font-black text-[#10A37F] mt-2">{summary.earningsRon.toLocaleString("ro-RO", { maximumFractionDigits: 0 })} lei</p>
+          <p className="text-3xl sm:text-4xl font-black text-[#0D0D0D] mt-2">{summary.earningsRon.toLocaleString("ro-RO", { maximumFractionDigits: 0 })} lei</p>
         </div>
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow">
           <p className="text-sm font-bold text-[#6E6E80]">Vânzări</p>

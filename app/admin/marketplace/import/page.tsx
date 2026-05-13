@@ -203,7 +203,7 @@ export default function BulkImportPage() {
   const colBadge = (col: string) => {
     const isExpected = EXPECTED_COLUMNS.includes(col);
     return isExpected
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      ? "bg-neutral-100 text-neutral-900 border-neutral-100"
       : "bg-amber-50 text-amber-700 border-amber-200";
   };
 
@@ -404,12 +404,12 @@ export default function BulkImportPage() {
         <div className="space-y-6">
           {/* Summary cards */}
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+            <div className="rounded-2xl border border-neutral-100 bg-neutral-100 p-6">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                <CheckCircle2 className="w-6 h-6 text-neutral-900" />
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-600">Importate cu succes</p>
-                  <p className="text-3xl font-black text-emerald-800 mt-1">{result.imported}</p>
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-neutral-900">Importate cu succes</p>
+                  <p className="text-3xl font-black text-neutral-900 mt-1">{result.imported}</p>
                 </div>
               </div>
             </div>
@@ -439,7 +439,7 @@ export default function BulkImportPage() {
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   result.errors.length === 0
-                    ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                    ? "bg-gradient-to-r from-neutral-700 to-neutral-700"
                     : "bg-gradient-to-r from-orange-400 to-orange-500"
                 }`}
                 style={{ width: "100%" }}

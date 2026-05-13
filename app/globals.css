@@ -26,7 +26,7 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: #A1A1AA; }
 
 /* ─── Selection ─── */
-::selection { background: rgba(16, 163, 127, 0.2); color: #0D0D0D; }
+::selection { background: rgba(13, 13, 13, 0.12); color: #0D0D0D; }
 
 /* ─── Animations ─── */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -168,8 +168,8 @@ button, nav, a {
   border: 1px solid #E5E5E5;
   transition: all 0.15s ease;
 }
-.sub-chip:hover { background: #F7F7F8; border-color: #10A37F; color: #10A37F; }
-.sub-chip.active { background: #10A37F; color: white; border-color: #10A37F; }
+.sub-chip:hover { background: #F7F7F8; border-color: #0D0D0D; color: #0D0D0D; }
+.sub-chip.active { background: #0D0D0D; color: white; border-color: #0D0D0D; }
 
 /* ─── Responsive Product Cards — smaller on tiny phones ─── */
 @media (max-width: 374px) {

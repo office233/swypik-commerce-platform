@@ -6,10 +6,10 @@ import Link from "next/link";
 
 const STATUS_BADGE: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "În așteptare", color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
-  paid: { label: "Plătită", color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle },
+  paid: { label: "Plătită", color: "bg-neutral-100 text-neutral-900 border-neutral-100", icon: CheckCircle },
   fulfilled: { label: "Expediată", color: "bg-blue-100 text-blue-800 border-blue-200", icon: Truck },
   shipped: { label: "În tranzit", color: "bg-purple-100 text-purple-800 border-purple-200", icon: Truck },
-  delivered: { label: "Livrată", color: "bg-emerald-100 text-emerald-800 border-emerald-200", icon: CheckCircle },
+  delivered: { label: "Livrată", color: "bg-neutral-100 text-neutral-900 border-neutral-100", icon: CheckCircle },
   return_requested: { label: "Retur solicitat", color: "bg-orange-100 text-orange-800 border-orange-200", icon: AlertCircle },
   cancelled: { label: "Anulată", color: "bg-red-100 text-red-800 border-red-200", icon: AlertCircle },
 };
@@ -125,9 +125,9 @@ export default function AdminFulfillmentPage() {
             <p className="text-3xl font-black text-yellow-700">{stats.pending}</p>
             <p className="text-sm font-bold text-yellow-600">⏳ Neplătite</p>
           </div>
-          <div className="rounded-2xl bg-green-50 border border-green-200 p-4">
-            <p className="text-3xl font-black text-green-700">{stats.paid}</p>
-            <p className="text-sm font-bold text-green-600">💳 Plătite (de expediat)</p>
+          <div className="rounded-2xl bg-neutral-100 border border-neutral-100 p-4">
+            <p className="text-3xl font-black text-neutral-900">{stats.paid}</p>
+            <p className="text-sm font-bold text-neutral-900">💳 Plătite (de expediat)</p>
           </div>
           <div className="rounded-2xl bg-blue-50 border border-blue-200 p-4">
             <p className="text-3xl font-black text-blue-700">{stats.fulfilled}</p>
@@ -173,7 +173,7 @@ export default function AdminFulfillmentPage() {
         <div className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="w-8 h-8 border-2 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin mx-auto" />
+              <div className="w-8 h-8 border-2 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin mx-auto" />
             </div>
           ) : orders.length === 0 ? (
             <div className="p-12 text-center text-[#6E6E80]">
@@ -214,7 +214,7 @@ export default function AdminFulfillmentPage() {
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-base font-black text-[#10A37F]">{order.totalRon.toFixed(2)} lei</p>
+                        <p className="text-base font-black text-[#0D0D0D]">{order.totalRon.toFixed(2)} lei</p>
                         {order.trackingNumber && (
                           <p className="text-[10px] text-[#6E6E80]">🚚 {order.trackingNumber}</p>
                         )}
@@ -290,7 +290,7 @@ export default function AdminFulfillmentPage() {
                           <button
                             onClick={handleUpdate}
                             disabled={updating}
-                            className="flex-1 rounded-xl bg-[#10A37F] py-3 text-sm font-bold text-white disabled:opacity-50 transition-all active:scale-[0.98]"
+                            className="flex-1 rounded-xl bg-[#0D0D0D] py-3 text-sm font-bold text-white disabled:opacity-50 transition-all active:scale-[0.98]"
                           >
                             {updating ? "Se salvează..." : "💾 Salvează modificările"}
                           </button>

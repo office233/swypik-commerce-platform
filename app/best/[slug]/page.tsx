@@ -120,8 +120,8 @@ export default async function BestPage({ params }: Props) {
         <h1 className="text-4xl font-black text-[#0D0D0D] leading-tight">{page.h1}</h1>
         <p className="mt-3 text-lg font-medium text-[#6E6E80] leading-relaxed">{page.intro}</p>
 
-        <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#10A37F]">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#10A37F] animate-pulse"></span>
+        <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#0D0D0D]">
+          <span className="inline-block h-2 w-2 rounded-full bg-[#0D0D0D] animate-pulse"></span>
           Actualizat automat de AI — {new Date().toLocaleDateString("ro-RO", { month: "long", year: "numeric" })}
         </div>
 
@@ -131,14 +131,14 @@ export default async function BestPage({ params }: Props) {
             <a
               key={p.id}
               href={`/product/${p.pgId || p.id}`}
-              className="flex gap-4 rounded-2xl bg-white border border-[#E5E5E5] p-4 hover:border-[#10A37F] hover:shadow-md transition-all"
+              className="flex gap-4 rounded-2xl bg-white border border-[#E5E5E5] p-4 hover:border-[#0D0D0D] hover:shadow-md transition-all"
             >
               {p.images?.[0] && (
                 <Image src={p.images[0]} alt={p.title} width={96} height={96} className="h-24 w-24 rounded-xl object-cover shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-black text-[#10A37F]">#{i + 1}</span>
+                  <span className="text-xs font-black text-[#0D0D0D]">#{i + 1}</span>
                   {p.commerceBadge && (
                     <span className="text-[10px] font-bold text-[#F59E0B]">{p.commerceBadge}</span>
                   )}
@@ -149,7 +149,7 @@ export default async function BestPage({ params }: Props) {
                   {p.socialProofLabel && <span>{p.socialProofLabel}</span>}
                 </div>
                 <div className="mt-1.5 flex items-end gap-2">
-                  <span className="text-lg font-black text-[#10A37F]">{p.price} lei</span>
+                  <span className="text-lg font-black text-[#0D0D0D]">{p.price} lei</span>
                   {p.oldPrice > p.price && (
                     <span className="text-xs text-[#6E6E80] line-through">{p.oldPrice} lei</span>
                   )}
@@ -165,10 +165,10 @@ export default async function BestPage({ params }: Props) {
 
         {/* CTA */}
         <div className="mt-10 rounded-2xl bg-[#0D0D0D] p-6 text-center">
-          <p className="text-sm font-bold text-[#10A37F] uppercase tracking-widest">AI Shopping Assistant</p>
+          <p className="text-sm font-bold text-[#0D0D0D] uppercase tracking-widest">AI Shopping Assistant</p>
           <h2 className="mt-2 text-2xl font-black text-white">Vrei un bundle personalizat?</h2>
           <p className="mt-1 text-sm text-[#A1A1AA]">Spune-i AI-ului exact ce cauți și primești recomandări inteligente.</p>
-          <a href="/" className="mt-4 inline-block rounded-xl bg-[#10A37F] px-8 py-3 font-bold text-white hover:bg-[#0E9371] transition-colors">
+          <a href="/" className="mt-4 inline-block rounded-xl bg-[#0D0D0D] px-8 py-3 font-bold text-white hover:bg-[#0E9371] transition-colors">
             Încearcă AI Shopping →
           </a>
         </div>

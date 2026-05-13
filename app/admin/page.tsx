@@ -156,7 +156,7 @@ export default async function AdminDashboard() {
       <header className="border-b border-[#1E1E1E] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#10A37F] text-sm font-black">AI</span>
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0D0D0D] text-sm font-black">AI</span>
             <div>
               <h1 className="text-lg font-black">Swypik Admin</h1>
               <p className="text-xs text-[#6E6E80]">Dashboard • Live Data</p>
@@ -198,7 +198,7 @@ export default async function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <PeriodCard label="Today" orders={stats.today.count} revenue={stats.today.revenue} color="#10A37F" />
+          <PeriodCard label="Today" orders={stats.today.count} revenue={stats.today.revenue} color="#0D0D0D" />
           <PeriodCard label="Last 7 days" orders={stats.week.count} revenue={stats.week.revenue} color="#F59E0B" />
           <PeriodCard label="Last 30 days" orders={stats.month.count} revenue={stats.month.revenue} color="#635BFF" />
         </div>
@@ -219,7 +219,7 @@ export default async function AdminDashboard() {
                     {Number(day.revenue) > 0 ? `${Number(day.revenue).toFixed(0)}` : ""}
                   </span>
                   <div
-                    className="w-full rounded-t-md bg-[#10A37F] hover:bg-[#12B88A] transition-colors cursor-default"
+                    className="w-full rounded-t-md bg-[#0D0D0D] hover:bg-[#12B88A] transition-colors cursor-default"
                     style={{ height: `${Math.max(height, 2)}%`, minHeight: "2px" }}
                   />
                   <span className="text-[8px] text-[#6E6E80]">{label}</span>
@@ -294,21 +294,21 @@ export default async function AdminDashboard() {
         {/* ─── Quick nav: Video Manager ─── */}
         <Link
           href="/admin/videos"
-          className="block rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6 hover:border-[#10A37F]/40 hover:bg-[#1E1E1E] transition-all group"
+          className="block rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6 hover:border-[#0D0D0D]/40 hover:bg-[#1E1E1E] transition-all group"
         >
           <div className="flex items-center gap-4">
-            <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#10A37F]/15 text-xl group-hover:bg-[#10A37F]/25 transition-colors">
+            <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#0D0D0D]/15 text-xl group-hover:bg-[#0D0D0D]/25 transition-colors">
               🎬
             </span>
             <div>
-              <h3 className="text-base font-black group-hover:text-[#10A37F] transition-colors">
+              <h3 className="text-base font-black group-hover:text-[#0D0D0D] transition-colors">
                 Video Manager
               </h3>
               <p className="text-xs text-[#6E6E80] mt-0.5">
                 Review, approve, and manage creator video assets
               </p>
             </div>
-            <span className="ml-auto text-[#6E6E80] group-hover:text-[#10A37F] transition-colors text-lg">
+            <span className="ml-auto text-[#6E6E80] group-hover:text-[#0D0D0D] transition-colors text-lg">
               →
             </span>
           </div>
@@ -342,7 +342,7 @@ export default async function AdminDashboard() {
 
                   return (
                     <tr key={order.id} className="border-b border-[#2A2A2A]/50 hover:bg-[#222] transition-colors">
-                      <td className="py-3 pr-3 font-bold text-[#10A37F]">#{order.id}</td>
+                      <td className="py-3 pr-3 font-bold text-[#0D0D0D]">#{order.id}</td>
                       <td className="py-3 pr-3">
                         <p className="font-medium truncate max-w-[180px]">{order.customer_email || "-"}</p>
                         {order.customer_phone ? <p className="text-[10px] text-[#6E6E80]">{order.customer_phone}</p> : null}
@@ -350,7 +350,7 @@ export default async function AdminDashboard() {
                       <td className="py-3 pr-3">
                         <span className="text-[#6E6E80]">{itemCount} items</span>
                       </td>
-                      <td className="py-3 pr-3 text-right font-black text-[#10A37F]">
+                      <td className="py-3 pr-3 text-right font-black text-[#0D0D0D]">
                         {Number(order.total_ron).toFixed(0)} lei
                       </td>
                       <td className="py-3 pr-3 text-center">
@@ -360,7 +360,7 @@ export default async function AdminDashboard() {
                         <span
                           className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                             order.fulfillment_status === "shipped"
-                              ? "bg-[#10A37F]/20 text-[#10A37F]"
+                              ? "bg-[#0D0D0D]/20 text-[#0D0D0D]"
                               : order.fulfillment_status === "processing"
                                 ? "bg-[#F59E0B]/20 text-[#F59E0B]"
                                 : "bg-[#333] text-[#888]"
@@ -405,7 +405,7 @@ export default async function AdminDashboard() {
 
 function KPICard({ label, value, icon }: { label: string; value: any; icon: string }) {
   return (
-    <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-5 hover:border-[#10A37F]/30 transition-colors">
+    <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-5 hover:border-[#0D0D0D]/30 transition-colors">
       <p className="text-xs font-bold uppercase tracking-widest text-[#6E6E80] mb-1">
         {icon} {label}
       </p>
@@ -448,10 +448,10 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    paid: "bg-[#10A37F]/20 text-[#10A37F]",
-    fulfilled: "bg-[#10A37F]/20 text-[#10A37F]",
+    paid: "bg-[#0D0D0D]/20 text-[#0D0D0D]",
+    fulfilled: "bg-[#0D0D0D]/20 text-[#0D0D0D]",
     shipped: "bg-[#3B82F6]/20 text-[#3B82F6]",
-    delivered: "bg-[#10A37F]/20 text-[#10A37F]",
+    delivered: "bg-[#0D0D0D]/20 text-[#0D0D0D]",
     refunded: "bg-[#EF4444]/20 text-[#EF4444]",
     cancelled: "bg-[#6E6E80]/20 text-[#6E6E80]",
     pending: "bg-[#F59E0B]/20 text-[#F59E0B]",

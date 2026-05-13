@@ -87,7 +87,7 @@ export default function ProductDrawer({ product, onClose, onBuyNow }: ProductDra
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Preț</p>
-              <h2 className="text-3xl font-bold text-[#10A37F]">{productPrice}</h2>
+              <h2 className="text-3xl font-bold text-[#0D0D0D]">{productPrice}</h2>
             </div>
           </div>
 
@@ -101,7 +101,7 @@ export default function ProductDrawer({ product, onClose, onBuyNow }: ProductDra
             className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors mb-6 group border border-white/10"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#10A37F]/20 flex items-center justify-center text-[#10A37F]">
+              <div className="w-10 h-10 rounded-full bg-[#0D0D0D]/20 flex items-center justify-center text-[#0D0D0D]">
                 <ExternalLink className="w-5 h-5" />
               </div>
               <span className="text-white font-medium">Vezi pagina produsului</span>
@@ -120,7 +120,7 @@ export default function ProductDrawer({ product, onClose, onBuyNow }: ProductDra
           </a>
           <button 
             onClick={onBuyNow}
-            className="flex-[1.5] py-4 bg-[#10A37F] hover:bg-[#0e8f6e] text-white rounded-xl font-bold shadow-[0_0_20px_rgba(16,163,127,0.3)] transition-all active:scale-95"
+            className="flex-[1.5] py-4 bg-[#0D0D0D] hover:bg-[#0e8f6e] text-white rounded-xl font-bold shadow-[0_0_20px_rgba(16,163,127,0.3)] transition-all active:scale-95"
           >
             Cumpără acum
           </button>

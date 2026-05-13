@@ -107,11 +107,11 @@ export default function NotificationBell() {
         type="button"
         onClick={toggle}
         aria-label="Notificari"
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0D0D0D] text-white hover:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#10A37F]"
+        className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0D0D0D] text-white hover:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D]"
       >
         <Bell className="h-5 w-5" />
         {unread > 0 && (
-          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#10A37F] px-1 text-[11px] font-semibold text-white">
+          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#0D0D0D] px-1 text-[11px] font-semibold text-white">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
@@ -125,7 +125,7 @@ export default function NotificationBell() {
               type="button"
               onClick={markAll}
               disabled={unread === 0}
-              className="text-xs text-[#10A37F] hover:underline disabled:opacity-40"
+              className="text-xs text-[#0D0D0D] hover:underline disabled:opacity-40"
             >
               Marcheaza toate citite
             </button>
@@ -158,7 +158,7 @@ export default function NotificationBell() {
                       >
                         <span
                           className={`mt-1 h-2 w-2 flex-shrink-0 rounded-full ${
-                            unreadRow ? "bg-[#10A37F]" : "bg-transparent"
+                            unreadRow ? "bg-[#0D0D0D]" : "bg-transparent"
                           }`}
                         />
                         <div className="min-w-0 flex-1">

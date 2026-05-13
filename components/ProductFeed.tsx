@@ -391,7 +391,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     return (
       <div className="feed-scroll flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#333] border-t-[#0D0D0D]" />
           <p className="mt-4 text-sm font-bold text-[#888]">Se încarcă clipurile...</p>
         </div>
       </div>
@@ -530,7 +530,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   onClick={() => handleAddToCart(product)}
                   style={tapAction}
                   className={`rounded-2xl px-5 py-3 text-sm font-black shadow-lg transition-all active:scale-[0.95] ${
-                    addedToCart === product.id ? "bg-white text-[#10A37F]" : "bg-[#10A37F] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
+                    addedToCart === product.id ? "bg-white text-[#0D0D0D]" : "bg-[#0D0D0D] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
                   }`}
                 >
                   {addedToCart === product.id ? "Adăugat" : <><ShoppingCart size={15} className="mr-1 inline" />Coș</>}
@@ -545,7 +545,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#333] border-t-[#0D0D0D]" />
         </div>
       )}
 

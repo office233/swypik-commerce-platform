@@ -103,7 +103,7 @@ export default function ProfileStatsAndActions({
             className={`min-w-36 rounded-2xl px-5 py-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 ${
               following
                 ? "border border-white/15 bg-white/10 text-white hover:bg-white/15"
-                : "bg-[#10A37F] text-white shadow-[0_10px_30px_rgba(16,163,127,0.28)] hover:bg-[#0E906F]"
+                : "bg-[#0D0D0D] text-white shadow-[0_10px_30px_rgba(16,163,127,0.28)] hover:bg-[#0E906F]"
             }`}
           >
             {pending ? "Se salveaza..." : following ? "Urmaresti" : "Urmareste"}

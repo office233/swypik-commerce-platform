@@ -59,7 +59,7 @@ export default function BottomNav() {
               href={item.href}
               className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
                 isActive
-                  ? "text-[#10A37F]"
+                  ? "text-[#0D0D0D]"
                   : "text-[#A1A1AA] hover:text-[#6E6E80]"
               }`}
             >
@@ -79,7 +79,7 @@ export default function BottomNav() {
                 {item.label}
               </span>
               {isActive && (
-                <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-[#10A37F]" />
+                <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-[#0D0D0D]" />
               )}
             </Link>
           );

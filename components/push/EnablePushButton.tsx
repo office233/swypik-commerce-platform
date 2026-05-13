@@ -135,7 +135,7 @@ export default function EnablePushButton({ className }: { className?: string }) 
       disabled={disabled}
       className={
         className ||
-        "inline-flex items-center gap-2 rounded-lg bg-[#10A37F] px-4 py-2 text-sm font-medium text-white hover:bg-[#0e8e6e] disabled:opacity-60"
+        "inline-flex items-center gap-2 rounded-lg bg-[#0D0D0D] px-4 py-2 text-sm font-medium text-white hover:bg-[#0e8e6e] disabled:opacity-60"
       }
     >
       <Icon className="h-4 w-4" />

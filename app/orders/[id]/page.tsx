@@ -5,10 +5,10 @@ import Link from "next/link";
 
 const STATUS_MAP: Record<string, { label: string; color: string; icon: string; step: number }> = {
   pending: { label: "În așteptare", color: "bg-yellow-100 text-yellow-800", icon: "⏳", step: 1 },
-  paid: { label: "Plătită", color: "bg-green-100 text-green-800", icon: "💳", step: 2 },
+  paid: { label: "Plătită", color: "bg-neutral-100 text-neutral-900", icon: "💳", step: 2 },
   fulfilled: { label: "Expediată", color: "bg-blue-100 text-blue-800", icon: "📦", step: 3 },
   shipped: { label: "În tranzit", color: "bg-purple-100 text-purple-800", icon: "🚚", step: 3 },
-  delivered: { label: "Livrată", color: "bg-emerald-100 text-emerald-800", icon: "✅", step: 4 },
+  delivered: { label: "Livrată", color: "bg-neutral-100 text-neutral-900", icon: "✅", step: 4 },
   return_requested: { label: "Retur solicitat", color: "bg-orange-100 text-orange-800", icon: "🔄", step: 4 },
   cancelled: { label: "Anulată", color: "bg-red-100 text-red-800", icon: "❌", step: 0 },
 };
@@ -49,7 +49,7 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin mx-auto"></div>
+          <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin mx-auto"></div>
           <p className="mt-4 text-sm font-medium text-[#6E6E80]">Se încarcă comanda...</p>
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
               {/* Progress line */}
               <div className="absolute top-5 left-[10%] right-[10%] h-1 bg-[#E5E5E5] rounded-full">
                 <div
-                  className="h-full bg-[#10A37F] rounded-full transition-all duration-700"
+                  className="h-full bg-[#0D0D0D] rounded-full transition-all duration-700"
                   style={{ width: `${Math.min(100, ((currentStep - 1) / (STEPS.length - 1)) * 100)}%` }}
                 />
               </div>
@@ -149,13 +149,13 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
                 <div key={step.label} className="relative z-10 flex flex-col items-center" style={{ width: "25%" }}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-all ${
                     i + 1 <= currentStep
-                      ? "bg-[#10A37F] border-[#10A37F] text-white shadow-md"
+                      ? "bg-[#0D0D0D] border-[#0D0D0D] text-white shadow-md"
                       : "bg-white border-[#E5E5E5] text-[#A1A1AA]"
                   }`}>
                     {i + 1 <= currentStep ? "✓" : step.icon}
                   </div>
                   <p className={`mt-2 text-[11px] font-bold text-center ${
-                    i + 1 <= currentStep ? "text-[#10A37F]" : "text-[#A1A1AA]"
+                    i + 1 <= currentStep ? "text-[#0D0D0D]" : "text-[#A1A1AA]"
                   }`}>
                     {step.label}
                   </p>
@@ -179,7 +179,7 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
                   href={order.trackingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 rounded-lg bg-[#10A37F] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0E906F] transition"
+                  className="shrink-0 rounded-lg bg-[#0D0D0D] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0E906F] transition"
                 >
                   Urmărește →
                 </a>
@@ -206,7 +206,7 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
           </div>
           <div className="mt-4 pt-4 border-t border-[#E5E5E5] flex justify-between items-center">
             <span className="text-base font-black text-[#0D0D0D]">Total</span>
-            <span className="text-xl font-black text-[#10A37F]">{Number(order.totalRon).toFixed(2)} lei</span>
+            <span className="text-xl font-black text-[#0D0D0D]">{Number(order.totalRon).toFixed(2)} lei</span>
           </div>
         </div>
 
@@ -240,12 +240,12 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
         )}
 
         {returnSuccess && !isReturnRequested && (
-          <div className="bg-green-50 rounded-2xl border border-green-200 p-6 mb-6 shadow-sm">
+          <div className="bg-neutral-100 rounded-2xl border border-neutral-100 p-6 mb-6 shadow-sm">
             <div className="flex items-center gap-3">
               <span className="text-3xl">✅</span>
               <div>
-                <h2 className="text-base font-black text-green-800">Cerere trimisă cu succes!</h2>
-                <p className="text-sm text-green-700 mt-0.5">
+                <h2 className="text-base font-black text-neutral-900">Cerere trimisă cu succes!</h2>
+                <p className="text-sm text-neutral-900 mt-0.5">
                   Vom analiza cererea ta și te vom contacta în cel mai scurt timp.
                 </p>
               </div>
@@ -284,7 +284,7 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
                     value={returnReason}
                     onChange={(e) => setReturnReason(e.target.value)}
                     placeholder="Descrie motivul pentru care dorești să returnezi comanda..."
-                    className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm text-[#0D0D0D] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#10A37F] focus:border-transparent resize-none transition"
+                    className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm text-[#0D0D0D] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D] focus:border-transparent resize-none transition"
                   />
                 </div>
                 {returnError && (

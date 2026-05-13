@@ -88,7 +88,7 @@ export default function ProductClient({ initialData }: Props) {
   if (loading) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="text-center">
-        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#10A37F]" />
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#0D0D0D]" />
         <p className="mt-4 text-sm font-bold text-[#6E6E80]">Se încarcă produsul...</p>
       </div>
     </div>
@@ -242,7 +242,7 @@ export default function ProductClient({ initialData }: Props) {
             {displayImages.length > 1 && (
               <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
                 {displayImages.slice(0, 8).map((_: string, i: number) => (
-                  <button key={i} onClick={() => setSelectedImage(i)} className={`rounded-full transition-all ${i === selectedImage ? 'w-6 h-2 bg-[#10A37F]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} />
+                  <button key={i} onClick={() => setSelectedImage(i)} className={`rounded-full transition-all ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} />
                 ))}
               </div>
             )}
@@ -254,7 +254,7 @@ export default function ProductClient({ initialData }: Props) {
       <div className="px-4 pt-4 mobile-page-bottom">
         {/* Price */}
         <div className="flex items-baseline gap-3 mb-2">
-          <span className="text-3xl font-black text-[#10A37F]">{currentPrice} lei</span>
+          <span className="text-3xl font-black text-[#0D0D0D]">{currentPrice} lei</span>
           {product.oldPrice > currentPrice && (
             <span className="text-base text-[#A1A1AA] line-through">{product.oldPrice} lei</span>
           )}
@@ -265,7 +265,7 @@ export default function ProductClient({ initialData }: Props) {
           {title}
         </h1>
 
-        <button onClick={() => setLiked(!liked)} className="w-full flex items-center justify-center gap-2 rounded-xl bg-green-50 border border-green-200 py-3.5 mb-5 text-sm font-black text-[#10A37F] hover:bg-green-100 active:scale-95 transition-transform">
+        <button onClick={() => setLiked(!liked)} className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-100 border border-neutral-100 py-3.5 mb-5 text-sm font-black text-[#0D0D0D] hover:bg-neutral-100 active:scale-95 transition-transform">
           <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
           🔖 Salvează (Te anunțăm la reducere)
         </button>
@@ -299,7 +299,7 @@ export default function ProductClient({ initialData }: Props) {
         {Object.keys(colorMap).length > 0 && (
           <div className="mb-5">
             <div className="text-sm font-bold text-[#0D0D0D] mb-2">
-              Culoare: <span className="text-[#10A37F]">{selectedColor}</span>
+              Culoare: <span className="text-[#0D0D0D]">{selectedColor}</span>
             </div>
             <div className="flex gap-2 flex-wrap">
               {Object.entries(colorMap).map(([color, data]) => (
@@ -311,12 +311,12 @@ export default function ProductClient({ initialData }: Props) {
                     setSelectedSize(sizes[0].size);
                   }
                 }}
-                  className={`rounded-xl border-2 transition-all active:scale-95 ${selectedColor === color ? 'border-[#10A37F] shadow-[0_0_0_1px_#10A37F]' : 'border-[#E5E5E5] hover:border-[#D1D1D6]'}`}
+                  className={`rounded-xl border-2 transition-all active:scale-95 ${selectedColor === color ? 'border-[#0D0D0D] shadow-[0_0_0_1px_#0D0D0D]' : 'border-[#E5E5E5] hover:border-[#D1D1D6]'}`}
                 >
                   {data.image ? (
                     <Image src={data.image} alt={color} width={48} height={48} className="h-12 w-12 rounded-[10px] object-cover" />
                   ) : (
-                    <span className={`block px-4 py-2.5 text-sm font-semibold ${selectedColor === color ? 'text-[#10A37F]' : 'text-[#6E6E80]'}`}>{color}</span>
+                    <span className={`block px-4 py-2.5 text-sm font-semibold ${selectedColor === color ? 'text-[#0D0D0D]' : 'text-[#6E6E80]'}`}>{color}</span>
                   )}
                 </button>
               ))}
@@ -328,7 +328,7 @@ export default function ProductClient({ initialData }: Props) {
         {selectedColor && colorMap[selectedColor]?.sizes.length > 0 && (
           <div className="mb-5">
             <div className="text-sm font-bold text-[#0D0D0D] mb-2">
-              Mărime: <span className="text-[#10A37F]">{selectedSize}</span>
+              Mărime: <span className="text-[#0D0D0D]">{selectedSize}</span>
             </div>
             <div className="flex gap-2 flex-wrap">
               {colorMap[selectedColor].sizes.map(s => (
@@ -336,7 +336,7 @@ export default function ProductClient({ initialData }: Props) {
                   disabled={s.stock === 0}
                   className={`rounded-xl px-5 py-2.5 text-sm font-bold border-2 transition-all active:scale-95
                     ${selectedSize === s.size
-                      ? 'border-[#10A37F] bg-[#10A37F]/10 text-[#10A37F]'
+                      ? 'border-[#0D0D0D] bg-[#0D0D0D]/10 text-[#0D0D0D]'
                       : s.stock > 0
                         ? 'border-[#E5E5E5] text-[#0D0D0D] hover:border-[#D1D1D6]'
                         : 'border-[#E5E5E5] text-[#D1D1D6] opacity-40 cursor-not-allowed'
@@ -362,7 +362,7 @@ export default function ProductClient({ initialData }: Props) {
             </button>
           </div>
           {currentStock > 0 && (
-            <span className="text-xs font-semibold text-[#10A37F] bg-[#10A37F]/10 px-3 py-1.5 rounded-full">{currentStock} în stoc</span>
+            <span className="text-xs font-semibold text-[#0D0D0D] bg-[#0D0D0D]/10 px-3 py-1.5 rounded-full">{currentStock} în stoc</span>
           )}
         </div>
 
@@ -404,7 +404,7 @@ export default function ProductClient({ initialData }: Props) {
             <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-sm font-medium text-[#6E6E80]"><Truck size={16} /> Livrare</span>
-                <span className={`text-sm font-bold ${product.shipFree ? 'text-[#10A37F]' : 'text-[#0D0D0D]'}`}>
+                <span className={`text-sm font-bold ${product.shipFree ? 'text-[#0D0D0D]' : 'text-[#0D0D0D]'}`}>
                   {product.shipFree ? "GRATUITĂ" : "Inclusă în preț"}
                 </span>
               </div>
@@ -417,7 +417,7 @@ export default function ProductClient({ initialData }: Props) {
               {product.shipTracking && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-[#6E6E80]">Tracking</span>
-                  <span className="text-sm font-bold text-[#10A37F]">Cu urmărire</span>
+                  <span className="text-sm font-bold text-[#0D0D0D]">Cu urmărire</span>
                 </div>
               )}
             </div>
@@ -512,7 +512,7 @@ export default function ProductClient({ initialData }: Props) {
                   <div className="p-2.5">
                     <p className="text-xs font-semibold text-[#6E6E80] truncate">{s.title}</p>
                     <div className="flex items-baseline gap-1.5 mt-1">
-                      <span className="text-sm font-black text-[#10A37F]">{s.price} lei</span>
+                      <span className="text-sm font-black text-[#0D0D0D]">{s.price} lei</span>
                       {s.oldPrice > s.price && (
                         <span className="text-[10px] text-[#A1A1AA] line-through">{s.oldPrice}</span>
                       )}
@@ -537,7 +537,7 @@ export default function ProductClient({ initialData }: Props) {
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="mx-auto max-w-lg flex items-center gap-3">
           <div className="flex-1">
-            <p className="text-2xl font-black text-[#10A37F]">{currentPrice} lei</p>
+            <p className="text-2xl font-black text-[#0D0D0D]">{currentPrice} lei</p>
             <p className="text-[11px] font-medium text-[#6E6E80]">
               {selectedColor && selectedSize ? `${selectedColor} / ${selectedSize}` : "Selectează varianta"}
             </p>
@@ -552,7 +552,7 @@ export default function ProductClient({ initialData }: Props) {
 
       {/* Toast */}
       {addedToCart && (
-        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#10A37F] px-5 py-2.5 text-sm font-black text-white shadow-xl animate-slideUp">
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#0D0D0D] px-5 py-2.5 text-sm font-black text-white shadow-xl animate-slideUp">
           Adăugat în coș!
         </div>
       )}

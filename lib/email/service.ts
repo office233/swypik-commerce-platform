@@ -123,7 +123,7 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
       <!-- Content -->
       <div style="padding:32px">
         <div style="text-align:center;margin-bottom:24px">
-          <div style="width:64px;height:64px;background:#10A37F20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px">✅</div>
+          <div style="width:64px;height:64px;background:#0D0D0D20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px">✅</div>
           <h2 style="margin:16px 0 4px;font-size:22px;font-weight:900;color:#0D0D0D">Comandă confirmată!</h2>
           <p style="margin:0;font-size:14px;color:#888">Comanda #${data.orderId.split("-")[0]} a fost plasată cu succes.</p>
         </div>
@@ -146,7 +146,7 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
           <tfoot>
             <tr>
               <td colspan="2" style="padding:16px 8px 0;font-size:16px;font-weight:900;color:#0D0D0D">Total</td>
-              <td style="padding:16px 8px 0;text-align:right;font-size:18px;font-weight:900;color:#10A37F">${data.totalRon.toFixed(2)} lei</td>
+              <td style="padding:16px 8px 0;text-align:right;font-size:18px;font-weight:900;color:#0D0D0D">${data.totalRon.toFixed(2)} lei</td>
             </tr>
           </tfoot>
         </table>
@@ -194,7 +194,7 @@ export async function sendShippingNotification(data: OrderEmailData): Promise<bo
       
       <div style="padding:32px">
         <div style="text-align:center;margin-bottom:24px">
-          <div style="width:64px;height:64px;background:#10A37F20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px">🚚</div>
+          <div style="width:64px;height:64px;background:#0D0D0D20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px">🚚</div>
           <h2 style="margin:16px 0 4px;font-size:22px;font-weight:900;color:#0D0D0D">Coletul tău e pe drum!</h2>
           <p style="margin:0;font-size:14px;color:#888">Comanda #${data.orderId.split("-")[0]} a fost expediată.</p>
         </div>
@@ -206,9 +206,9 @@ export async function sendShippingNotification(data: OrderEmailData): Promise<bo
         
         ${data.trackingNumber ? `
         <div style="margin:24px 0;padding:20px;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;text-align:center">
-          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#10A37F;text-transform:uppercase;letter-spacing:1px">Cod de urmărire</p>
+          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#0D0D0D;text-transform:uppercase;letter-spacing:1px">Cod de urmărire</p>
           <p style="margin:0;font-size:22px;font-weight:900;font-family:monospace;color:#0D0D0D">${data.trackingNumber}</p>
-          ${data.trackingUrl ? `<a href="${data.trackingUrl}" style="display:inline-block;margin-top:12px;color:#10A37F;font-size:13px;font-weight:700">Urmărește coletul →</a>` : ""}
+          ${data.trackingUrl ? `<a href="${data.trackingUrl}" style="display:inline-block;margin-top:12px;color:#0D0D0D;font-size:13px;font-weight:700">Urmărește coletul →</a>` : ""}
         </div>` : ""}
         
         <div style="text-align:center;margin-top:32px">
@@ -361,7 +361,7 @@ export async function sendSellerApprovalEmail(email: string, name: string): Prom
         <h1 style="margin:0;color:white;font-size:24px;font-weight:900">Swypik Sellers</h1>
       </div>
       <div style="padding:32px;text-align:center;">
-        <div style="width:64px;height:64px;background:#10A37F20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px;">🎉</div>
+        <div style="width:64px;height:64px;background:#0D0D0D20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px;">🎉</div>
         <h2 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#0D0D0D;">Felicitări!</h2>
         <p style="font-size:15px;color:#333;line-height:1.6;margin-bottom:24px;">
           Salut ${name}, contul tău de Seller Swypik a fost aprobat!
@@ -398,7 +398,7 @@ export async function sendCustomerShippingAlert(email: string, trackingNumber: s
         <h1 style="margin:0;color:white;font-size:24px;font-weight:900">Swypik</h1>
       </div>
       <div style="padding:32px;text-align:center;">
-        <div style="width:64px;height:64px;background:#10A37F20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px;">📦</div>
+        <div style="width:64px;height:64px;background:#0D0D0D20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px;">📦</div>
         <h2 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#0D0D0D;">Comanda ta a fost expediată!</h2>
         <p style="font-size:15px;color:#333;line-height:1.6;margin-bottom:24px;">
           Pachetul tău a fost predat curierului. Îl poți urmări folosind numărul de AWB de mai jos:
@@ -507,7 +507,7 @@ export async function sendAbandonedCartEmail(
           <tfoot>
             <tr>
               <td colspan="2" style="padding:16px 8px 0;font-size:16px;font-weight:900;color:#0D0D0D">Total</td>
-              <td style="padding:16px 8px 0;text-align:right;font-size:18px;font-weight:900;color:#10A37F">${totalRon.toFixed(2)} lei</td>
+              <td style="padding:16px 8px 0;text-align:right;font-size:18px;font-weight:900;color:#0D0D0D">${totalRon.toFixed(2)} lei</td>
             </tr>
           </tfoot>
         </table>
@@ -515,7 +515,7 @@ export async function sendAbandonedCartEmail(
         <!-- CTA Button -->
         <div style="text-align:center;margin-top:32px">
           <a href="${safeCheckoutUrl}"
-             style="display:inline-block;background:linear-gradient(135deg,#10A37F,#0D8F6F);color:white;padding:18px 48px;border-radius:14px;font-size:16px;font-weight:800;text-decoration:none;box-shadow:0 4px 16px rgba(16,163,127,0.35);letter-spacing:0.3px">
+             style="display:inline-block;background:linear-gradient(135deg,#0D0D0D,#0D8F6F);color:white;padding:18px 48px;border-radius:14px;font-size:16px;font-weight:800;text-decoration:none;box-shadow:0 4px 16px rgba(16,163,127,0.35);letter-spacing:0.3px">
             🛒 Finalizează Comanda
           </a>
         </div>

@@ -18,7 +18,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
       <aside className="w-64 bg-white border-r border-[#E5E5E5] flex flex-col hidden md:flex">
         <div className="p-6 border-b border-[#E5E5E5]">
           <Link href="/" className="text-xl font-black text-[#0D0D0D]">
-            Swypik <span className="text-[#10A37F]">Creators</span>
+            Swypik <span className="text-[#0D0D0D]">Creators</span>
           </Link>
         </div>
         
@@ -45,7 +45,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
 
         <div className="p-4 border-t border-[#E5E5E5]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#10A37F]/10 flex items-center justify-center text-lg">
+            <div className="w-10 h-10 rounded-full bg-[#0D0D0D]/10 flex items-center justify-center text-lg">
               🤳
             </div>
             <div>
@@ -61,9 +61,9 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
         {/* Mobile Header */}
         <header className="md:hidden bg-white border-b border-[#E5E5E5] p-4 flex items-center justify-between">
           <Link href="/" className="text-lg font-black text-[#0D0D0D]">
-            Swypik <span className="text-[#10A37F]">Creators</span>
+            Swypik <span className="text-[#0D0D0D]">Creators</span>
           </Link>
-          <MobileDashboardNav title="Swypik" section="Creators" accentClassName="text-[#10A37F]" items={creatorNavItems} />
+          <MobileDashboardNav title="Swypik" section="Creators" accentClassName="text-[#0D0D0D]" items={creatorNavItems} />
         </header>
 
         {/* Content Area */}

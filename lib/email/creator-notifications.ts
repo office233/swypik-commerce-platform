@@ -71,7 +71,7 @@ function ctaButton(label: string, href: string): string {
   return `
     <div style="text-align:center;margin-top:32px">
       <a href="${escapeHtml(href)}"
-         style="display:inline-block;background:#10A37F;color:#ffffff;padding:14px 36px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(16,163,127,0.3)">
+         style="display:inline-block;background:#0D0D0D;color:#ffffff;padding:14px 36px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(16,163,127,0.3)">
         ${label}
       </a>
     </div>`;
@@ -91,13 +91,13 @@ export async function notifyVideoApproved(
 
   const inner = `
     <div style="text-align:center;margin-bottom:24px">
-      <div style="width:64px;height:64px;background:#10A37F20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px">✅</div>
+      <div style="width:64px;height:64px;background:#0D0D0D20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px">✅</div>
       <h2 style="margin:16px 0 4px;font-size:22px;font-weight:900;color:#0D0D0D">Clipul tău este LIVE!</h2>
     </div>
     <p style="font-size:15px;color:#333;line-height:1.7">
       Salut <strong>${safeName}</strong>,<br><br>
       Clipul tău «<strong>${safeTitle}</strong>» a fost aprobat și este acum
-      <span style="color:#10A37F;font-weight:700">LIVE</span> în feed-ul Swypik! 🎉<br><br>
+      <span style="color:#0D0D0D;font-weight:700">LIVE</span> în feed-ul Swypik! 🎉<br><br>
       Vei primi <strong>5% comision</strong> din fiecare vânzare generată prin clipul tău.
     </p>
     ${ctaButton("Vezi clipurile tale →", `${APP_URL()}/creator/videos`)}`;
@@ -162,16 +162,16 @@ export async function notifyPayoutSent(
 
   const inner = `
     <div style="text-align:center;margin-bottom:24px">
-      <div style="width:64px;height:64px;background:#10A37F20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px">💰</div>
+      <div style="width:64px;height:64px;background:#0D0D0D20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px">💰</div>
       <h2 style="margin:16px 0 4px;font-size:22px;font-weight:900;color:#0D0D0D">Ai primit plata!</h2>
     </div>
     <p style="font-size:15px;color:#333;line-height:1.7">
       Salut <strong>${safeName}</strong>,<br><br>
-      Comisionul tău de <span style="font-size:20px;font-weight:900;color:#10A37F">${safeAmount} lei</span>
+      Comisionul tău de <span style="font-size:20px;font-weight:900;color:#0D0D0D">${safeAmount} lei</span>
       a fost transferat cu succes în contul tău. 🎉
     </p>
     <div style="margin:24px 0;padding:20px;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;text-align:center">
-      <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#10A37F;text-transform:uppercase;letter-spacing:1px">Sumă transferată</p>
+      <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#0D0D0D;text-transform:uppercase;letter-spacing:1px">Sumă transferată</p>
       <p style="margin:0;font-size:28px;font-weight:900;color:#0D0D0D">${safeAmount} lei</p>
     </div>
     <p style="font-size:14px;color:#666;line-height:1.6;text-align:center">

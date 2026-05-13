@@ -106,7 +106,7 @@ export default async function UserProfilePage({ params }: Props) {
                 {profile.displayName}
               </h1>
               {profile.isVerified && (
-                <BadgeCheck className="mt-1 text-[#10A37F]" size={26} aria-label="Profil verificat" />
+                <BadgeCheck className="mt-1 text-[#0D0D0D]" size={26} aria-label="Profil verificat" />
               )}
             </div>
 
@@ -177,7 +177,7 @@ function Avatar({ profile }: { profile: PublicUserProfile["profile"] }) {
   }
 
   return (
-    <div className="grid h-28 w-28 place-items-center rounded-full border border-white/15 bg-[#10A37F] shadow-2xl shadow-black/40 sm:h-32 sm:w-32">
+    <div className="grid h-28 w-28 place-items-center rounded-full border border-white/15 bg-[#0D0D0D] shadow-2xl shadow-black/40 sm:h-32 sm:w-32">
       <span className="text-4xl font-black text-white sm:text-5xl">{initials(profile.displayName)}</span>
     </div>
   );
@@ -255,7 +255,7 @@ function VideoCard({ video }: { video: PublicUserVideo }) {
 function EmptyVideosState({ profileName }: { profileName: string }) {
   return (
     <div className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-white/15 bg-white/[0.03] px-6 py-14 text-center">
-      <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#10A37F]/10 text-[#10A37F]">
+      <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#0D0D0D]/10 text-[#0D0D0D]">
         <Film size={32} strokeWidth={1.5} />
       </div>
       <h2 className="mt-5 text-lg font-black text-white">Nu exista clipuri publice</h2>

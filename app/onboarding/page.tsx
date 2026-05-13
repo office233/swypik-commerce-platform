@@ -50,8 +50,8 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Ambient glowing blobs */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#10A37F] opacity-20 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-[#10A37F] opacity-10 rounded-full blur-[100px]"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#0D0D0D] opacity-20 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-[#0D0D0D] opacity-10 rounded-full blur-[100px]"></div>
       </div>
 
       <div className="z-10 w-full max-w-md flex flex-col h-full mt-12 mb-12">
@@ -71,7 +71,7 @@ export default function OnboardingPage() {
                   className={`
                     flex items-center gap-2 p-4 rounded-2xl transition-all duration-300 ease-out transform
                     ${isSelected 
-                      ? 'bg-[#10A37F]/20 border-2 border-[#10A37F] scale-105 shadow-[0_0_15px_rgba(16,163,127,0.3)]' 
+                      ? 'bg-[#0D0D0D]/20 border-2 border-[#0D0D0D] scale-105 shadow-[0_0_15px_rgba(16,163,127,0.3)]' 
                       : 'bg-white/5 border-2 border-transparent hover:bg-white/10 hover:scale-102'
                     }
                   `}
@@ -86,7 +86,7 @@ export default function OnboardingPage() {
 
         <div className="flex flex-col items-center gap-4 mt-auto">
           <p className="text-sm font-medium text-gray-400">
-            <span className={selected.size >= 3 ? "text-[#10A37F]" : "text-white"}>{selected.size}</span>/5 selectate
+            <span className={selected.size >= 3 ? "text-[#0D0D0D]" : "text-white"}>{selected.size}</span>/5 selectate
           </p>
           
           <button
@@ -95,7 +95,7 @@ export default function OnboardingPage() {
             className={`
               w-full py-4 rounded-full font-bold text-lg transition-all duration-300
               ${selected.size >= 3 
-                ? 'bg-[#10A37F] hover:bg-[#0e8c6c] text-white shadow-[0_0_20px_rgba(16,163,127,0.4)]' 
+                ? 'bg-[#0D0D0D] hover:bg-[#0e8c6c] text-white shadow-[0_0_20px_rgba(16,163,127,0.4)]' 
                 : 'bg-white/10 text-gray-500 cursor-not-allowed'
               }
             `}

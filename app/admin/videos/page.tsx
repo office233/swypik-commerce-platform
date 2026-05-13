@@ -31,9 +31,9 @@ interface VideoAsset {
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   pending:    { bg: "rgba(245,158,11,0.15)", text: "#F59E0B", border: "rgba(245,158,11,0.3)" },
   processing: { bg: "rgba(59,130,246,0.15)", text: "#3B82F6", border: "rgba(59,130,246,0.3)" },
-  ready:      { bg: "rgba(16,163,127,0.15)", text: "#10A37F", border: "rgba(16,163,127,0.3)" },
+  ready:      { bg: "rgba(16,163,127,0.15)", text: "#0D0D0D", border: "rgba(16,163,127,0.3)" },
   failed:     { bg: "rgba(239,68,68,0.15)",  text: "#EF4444", border: "rgba(239,68,68,0.3)" },
-  queued:     { bg: "rgba(168,85,247,0.15)", text: "#A855F7", border: "rgba(168,85,247,0.3)" },
+  queued:     { bg: "rgba(13,13,13,0.15)", text: "#0D0D0D", border: "rgba(13,13,13,0.15)" },
 };
 
 const STATUS_FILTER_OPTIONS = [
@@ -152,7 +152,7 @@ export default function AdminVideosPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatBadge label="Total" value={counts.total} color="#6E6E80" loading={loading} />
           <StatBadge label="Processing" value={counts.processing} color="#3B82F6" loading={loading} />
-          <StatBadge label="Ready" value={counts.ready} color="#10A37F" loading={loading} />
+          <StatBadge label="Ready" value={counts.ready} color="#0D0D0D" loading={loading} />
           <StatBadge label="Failed" value={counts.failed} color="#EF4444" loading={loading} />
         </div>
 
@@ -168,7 +168,7 @@ export default function AdminVideosPage() {
             id="video-status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl bg-[#1A1A1A] border border-[#2A2A2A] px-4 py-2.5 text-sm font-bold text-white focus:border-[#10A37F] focus:outline-none focus:ring-2 focus:ring-[#10A37F]/20 transition-all cursor-pointer appearance-none"
+            className="rounded-xl bg-[#1A1A1A] border border-[#2A2A2A] px-4 py-2.5 text-sm font-bold text-white focus:border-[#0D0D0D] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D]/20 transition-all cursor-pointer appearance-none"
             style={{
               backgroundImage:
                 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%236E6E80\' d=\'M6 8.825a.5.5 0 01-.354-.146l-3-3a.5.5 0 11.708-.708L6 7.621l2.646-2.647a.5.5 0 11.708.708l-3 3A.5.5 0 016 8.825z\'/%3E%3C/svg%3E")',
@@ -278,7 +278,7 @@ export default function AdminVideosPage() {
                           {video.product_title ? (
                             <Link
                               href={`/admin/marketplace/${video.product_id}`}
-                              className="font-semibold text-[#10A37F] hover:underline truncate block max-w-[200px]"
+                              className="font-semibold text-[#0D0D0D] hover:underline truncate block max-w-[200px]"
                             >
                               {video.product_title}
                             </Link>
@@ -353,7 +353,7 @@ export default function AdminVideosPage() {
                                 {video.status !== "ready" && (
                                   <button
                                     onClick={() => performAction("approve", video.id)}
-                                    className="rounded-lg bg-[#10A37F]/15 px-3 py-1.5 text-[11px] font-bold text-[#10A37F] border border-[#10A37F]/30 hover:bg-[#10A37F]/25 hover:border-[#10A37F]/50 transition-all"
+                                    className="rounded-lg bg-[#0D0D0D]/15 px-3 py-1.5 text-[11px] font-bold text-[#0D0D0D] border border-[#0D0D0D]/30 hover:bg-[#0D0D0D]/25 hover:border-[#0D0D0D]/50 transition-all"
                                   >
                                     ✓ Aprobă
                                   </button>

@@ -125,7 +125,7 @@ export default function CreatorUpload({ className = "" }: Props) {
                   value={productId}
                   onChange={(event) => setProductId(event.target.value)}
                   inputMode="numeric"
-                  className="mt-1 w-full rounded-xl border border-[#E5E5E5] px-3 py-3 text-sm font-bold text-[#0D0D0D] outline-none focus:border-[#10A37F]"
+                  className="mt-1 w-full rounded-xl border border-[#E5E5E5] px-3 py-3 text-sm font-bold text-[#0D0D0D] outline-none focus:border-[#0D0D0D]"
                 />
               </label>
 
@@ -141,7 +141,7 @@ export default function CreatorUpload({ className = "" }: Props) {
               </label>
 
               {message && (
-                <p className={`text-sm font-bold ${status === "error" ? "text-[#EF4444]" : "text-[#10A37F]"}`}>
+                <p className={`text-sm font-bold ${status === "error" ? "text-[#EF4444]" : "text-[#0D0D0D]"}`}>
                   {message}
                 </p>
               )}
@@ -150,7 +150,7 @@ export default function CreatorUpload({ className = "" }: Props) {
                 type="button"
                 onClick={submitUpload}
                 disabled={status === "uploading"}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10A37F] py-3 text-sm font-black text-white disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0D0D0D] py-3 text-sm font-black text-white disabled:opacity-60"
                 style={{ touchAction: "manipulation" }}
               >
                 {status === "uploading" ? <Loader2 size={16} className="animate-spin" /> : status === "ready" ? <CheckCircle2 size={16} /> : <Upload size={16} />}

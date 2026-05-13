@@ -20,7 +20,7 @@ export default function CollectionsPage() {
   const [showNewModal, setShowNewModal] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newIcon, setNewIcon] = useState("📁");
-  const [newColor, setNewColor] = useState("#10A37F");
+  const [newColor, setNewColor] = useState("#0D0D0D");
 
   const router = useRouter();
 
@@ -63,7 +63,7 @@ export default function CollectionsPage() {
   };
 
   const EMOJIS = ["📁", "🔖", "🛒", "💡", "❤️", "⭐", "🎵", "✈️", "🍔", "🎮"];
-  const COLORS = ["#10A37F", "#4F46E5", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444", "#3B82F6"];
+  const COLORS = ["#0D0D0D", "#4F46E5", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444", "#3B82F6"];
 
   if (loading) {
     return <div className="min-h-screen bg-[#0D0D0D] text-white flex items-center justify-center">Loading...</div>;
@@ -75,7 +75,7 @@ export default function CollectionsPage() {
         <h1 className="text-3xl font-bold">Colecțiile mele</h1>
         <button 
           onClick={() => setShowNewModal(true)}
-          className="bg-[#10A37F] hover:bg-[#0e8a6b] text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-colors"
+          className="bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-colors"
         >
           <Plus size={20} /> Nouă
         </button>
@@ -86,7 +86,7 @@ export default function CollectionsPage() {
           <p className="text-xl mb-4">Nu ai nicio colecție încă.</p>
           <button 
             onClick={() => setShowNewModal(true)}
-            className="text-[#10A37F] hover:underline"
+            className="text-[#0D0D0D] hover:underline"
           >
             Creează prima ta colecție
           </button>
@@ -103,7 +103,7 @@ export default function CollectionsPage() {
                   {col.icon || '📁'}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg group-hover:text-[#10A37F] transition-colors">{col.title}</h3>
+                  <h3 className="font-semibold text-lg group-hover:text-[#0D0D0D] transition-colors">{col.title}</h3>
                   <p className="text-gray-400 text-sm">{col.actual_count || 0} items</p>
                 </div>
               </div>
@@ -129,7 +129,7 @@ export default function CollectionsPage() {
                   type="text"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
-                  className="w-full bg-[#0D0D0D] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#10A37F]"
+                  className="w-full bg-[#0D0D0D] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#0D0D0D]"
                   placeholder="Ex: Rețete"
                   autoFocus
                 />
@@ -142,7 +142,7 @@ export default function CollectionsPage() {
                     <button
                       key={emoji}
                       onClick={() => setNewIcon(emoji)}
-                      className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-colors ${newIcon === emoji ? 'bg-[#333] border border-[#10A37F]' : 'hover:bg-[#222] border border-transparent'}`}
+                      className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-colors ${newIcon === emoji ? 'bg-[#333] border border-[#0D0D0D]' : 'hover:bg-[#222] border border-transparent'}`}
                     >
                       {emoji}
                     </button>
@@ -167,7 +167,7 @@ export default function CollectionsPage() {
               <button 
                 onClick={handleCreate}
                 disabled={!newTitle.trim()}
-                className="w-full bg-[#10A37F] hover:bg-[#0e8a6b] text-white py-3 rounded-xl font-medium mt-4 disabled:opacity-50 transition-colors"
+                className="w-full bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white py-3 rounded-xl font-medium mt-4 disabled:opacity-50 transition-colors"
               >
                 Creează colecția
               </button>

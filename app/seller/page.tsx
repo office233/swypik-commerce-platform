@@ -160,7 +160,7 @@ export default function SellerDashboardPage() {
       <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-black text-[#0D0D0D]">Ultimele Comenzi</h2>
-          <Link href="/seller/orders" className="text-sm font-bold text-[#10A37F] hover:underline">
+          <Link href="/seller/orders" className="text-sm font-bold text-[#0D0D0D] hover:underline">
             Vezi toate
           </Link>
         </div>

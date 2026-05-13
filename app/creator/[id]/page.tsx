@@ -208,7 +208,7 @@ export default async function CreatorPublicPage({
             href="/explore"
             className="text-sm font-bold px-4 py-2 rounded-xl transition-all duration-200"
             style={{
-              background: "#10A37F",
+              background: "#0D0D0D",
               color: "#fff",
             }}
           >
@@ -232,7 +232,7 @@ export default async function CreatorPublicPage({
           {/* Avatar */}
           <div className="relative mb-5">
             {creator.avatar_url ? (
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden ring-4 ring-[#10A37F]/30 shadow-2xl">
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden ring-4 ring-[#0D0D0D]/30 shadow-2xl">
                 <Image
                   src={creator.avatar_url}
                   alt={creator.display_name}
@@ -244,10 +244,10 @@ export default async function CreatorPublicPage({
               </div>
             ) : (
               <div
-                className="w-28 h-28 sm:w-32 sm:h-32 rounded-full flex items-center justify-center ring-4 ring-[#10A37F]/30 shadow-2xl select-none"
+                className="w-28 h-28 sm:w-32 sm:h-32 rounded-full flex items-center justify-center ring-4 ring-[#0D0D0D]/30 shadow-2xl select-none"
                 style={{
                   background:
-                    "linear-gradient(135deg, #10A37F 0%, #0D8F6F 50%, #087A5E 100%)",
+                    "linear-gradient(135deg, #0D0D0D 0%, #0D8F6F 50%, #087A5E 100%)",
                 }}
               >
                 <span className="text-4xl sm:text-5xl font-black text-white/90">
@@ -260,7 +260,7 @@ export default async function CreatorPublicPage({
             {creator.is_verified && (
               <div
                 className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center shadow-lg"
-                style={{ background: "#10A37F" }}
+                style={{ background: "#0D0D0D" }}
                 title="Creator verificat"
               >
                 <svg
@@ -332,7 +332,7 @@ export default async function CreatorPublicPage({
             >
               <svg
                 className="w-10 h-10"
-                style={{ color: "#10A37F" }}
+                style={{ color: "#0D0D0D" }}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={1.5}

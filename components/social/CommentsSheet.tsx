@@ -234,14 +234,14 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
                 rows={1}
                 maxLength={520}
                 placeholder={replyTo ? "Scrie un raspuns..." : "Adauga un comentariu..."}
-                className="max-h-28 min-h-[44px] w-full resize-none rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm font-semibold outline-none focus:border-[#10A37F]"
+                className="max-h-28 min-h-[44px] w-full resize-none rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm font-semibold outline-none focus:border-[#0D0D0D]"
               />
               <p className={`mt-1 text-right text-[11px] font-semibold ${remaining < 0 ? "text-[#EF4444]" : "text-[#8E8E93]"}`}>{remaining}</p>
             </div>
             <button
               type="submit"
               disabled={submitting || text.trim().length === 0 || remaining < 0}
-              className="grid h-11 w-11 place-items-center rounded-full bg-[#10A37F] text-white disabled:bg-[#C7C7CC]"
+              className="grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] text-white disabled:bg-[#C7C7CC]"
               aria-label="Trimite comentariul"
             >
               {submitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}

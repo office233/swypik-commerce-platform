@@ -134,9 +134,9 @@ export default function VideoUploader({ productId }: { productId: string }) {
       )}
 
       {success && (
-        <div className="w-full py-3 rounded-xl border border-green-200 bg-green-50 flex items-center justify-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-green-600" />
-          <span className="text-sm font-bold text-green-800">Upload complete! Processing...</span>
+        <div className="w-full py-3 rounded-xl border border-neutral-100 bg-neutral-100 flex items-center justify-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-neutral-900" />
+          <span className="text-sm font-bold text-neutral-900">Upload complete! Processing...</span>
         </div>
       )}
     </div>

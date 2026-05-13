@@ -66,7 +66,7 @@ export default function CartPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-2 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin" />
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function CartPage() {
               const variant = [item.product.selectedColor, item.product.selectedSize].filter(Boolean).join(" / ");
 
               return (
-                <div key={idx} className="flex gap-4 p-4 rounded-2xl border border-[#E5E5E5] bg-white hover:border-[#10A37F]/30 transition-colors">
+                <div key={idx} className="flex gap-4 p-4 rounded-2xl border border-[#E5E5E5] bg-white hover:border-[#0D0D0D]/30 transition-colors">
                   {/* Image */}
                   <div className="h-20 w-20 rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] overflow-hidden shrink-0 sm:h-24 sm:w-24">
                     {img ? (
@@ -131,7 +131,7 @@ export default function CartPage() {
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <Link href={`/product/${item.product.id || item.product.pgId}`} className="text-sm font-bold text-[#0D0D0D] line-clamp-2 leading-tight hover:text-[#10A37F] transition-colors">
+                    <Link href={`/product/${item.product.id || item.product.pgId}`} className="text-sm font-bold text-[#0D0D0D] line-clamp-2 leading-tight hover:text-[#0D0D0D] transition-colors">
                       {item.product.title}
                     </Link>
                     {variant && (
@@ -154,7 +154,7 @@ export default function CartPage() {
 
                       {/* Price */}
                       <div className="text-right">
-                        <p className="text-base font-black text-[#10A37F]">{(item.product.price * item.qty).toFixed(2)} lei</p>
+                        <p className="text-base font-black text-[#0D0D0D]">{(item.product.price * item.qty).toFixed(2)} lei</p>
                         {item.qty > 1 && (
                           <p className="text-xs text-[#A1A1AA]">{item.product.price.toFixed(2)} / buc</p>
                         )}

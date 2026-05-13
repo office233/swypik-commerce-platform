@@ -20,7 +20,7 @@ export function MetricCard({ title, value, icon, trend, trendUp }: MetricCardPro
       <div className="flex items-baseline gap-2">
         <span className="text-3xl font-semibold text-[#0D0D0D]">{value}</span>
         {trend && (
-          <span className={`text-sm font-medium ${trendUp ? "text-green-600" : "text-red-600"}`}>
+          <span className={`text-sm font-medium ${trendUp ? "text-neutral-900" : "text-red-600"}`}>
             {trend}
           </span>
         )}

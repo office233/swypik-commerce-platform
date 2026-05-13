@@ -185,8 +185,8 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           </div>
 
           {devOtp && (
-            <div className="mb-8 rounded-2xl border border-[#10A37F]/30 bg-[#10A37F]/10 p-6 text-center">
-              <p className="text-xs font-bold text-[#10A37F] uppercase tracking-widest mb-2">🔧 Cod de Test</p>
+            <div className="mb-8 rounded-2xl border border-[#0D0D0D]/30 bg-[#0D0D0D]/10 p-6 text-center">
+              <p className="text-xs font-bold text-[#0D0D0D] uppercase tracking-widest mb-2">🔧 Cod de Test</p>
               <p className="text-4xl font-black text-white tracking-[0.3em] font-mono">{devOtp}</p>
             </div>
           )}
@@ -343,7 +343,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                       <p className="font-bold text-sm">Comanda #{order.id.split("-")[0]}</p>
                       <p className="text-xs text-white/50">{order.status}</p>
                     </div>
-                    <p className="font-black text-[#10A37F]">{order.totalRon} lei</p>
+                    <p className="font-black text-[#0D0D0D]">{order.totalRon} lei</p>
                   </div>
                 ))
               )}

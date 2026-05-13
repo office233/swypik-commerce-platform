@@ -62,7 +62,7 @@ export default function AdminOrderDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F7F7F8] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export default function AdminOrderDetailPage() {
   }
 
   const statusColor =
-    order.status === "paid" ? "bg-green-100 text-green-800" :
+    order.status === "paid" ? "bg-neutral-100 text-neutral-900" :
     order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
     order.status === "fulfilled" ? "bg-blue-100 text-blue-800" :
     order.status === "return_requested" ? "bg-orange-100 text-orange-800" :
@@ -124,7 +124,7 @@ export default function AdminOrderDetailPage() {
                 <button
                   onClick={() => doAction("fulfill")}
                   disabled={!!actionLoading}
-                  className="rounded-lg bg-[#10A37F] px-4 py-2 text-sm font-bold text-white hover:bg-[#0E906F] disabled:opacity-50 transition"
+                  className="rounded-lg bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white hover:bg-[#0E906F] disabled:opacity-50 transition"
                 >
                   {actionLoading === "fulfill" ? "Se procesează..." : "🚀 Trimite la Furnizor"}
                 </button>
@@ -205,13 +205,13 @@ export default function AdminOrderDetailPage() {
 
             {/* Tracking Info */}
             {order.trackingNumber && (
-              <div className="bg-white rounded-2xl border border-[#10A37F]/30 p-6 shadow-sm">
-                <h2 className="text-lg font-black mb-3 text-[#10A37F]">🚚 Cod de urmărire</h2>
+              <div className="bg-white rounded-2xl border border-[#0D0D0D]/30 p-6 shadow-sm">
+                <h2 className="text-lg font-black mb-3 text-[#0D0D0D]">🚚 Cod de urmărire</h2>
                 <div className="bg-[#F0FDF4] rounded-xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-xl font-black font-mono text-[#0D0D0D]">{order.trackingNumber}</p>
                     {order.trackingUrl && (
-                      <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#10A37F] font-bold hover:underline">
+                      <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#0D0D0D] font-bold hover:underline">
                         Urmărește coletul →
                       </a>
                     )}
@@ -267,14 +267,14 @@ export default function AdminOrderDetailPage() {
               value={trackingInput}
               onChange={e => setTrackingInput(e.target.value)}
               placeholder="Ex: RO123456789CN"
-              className="w-full rounded-lg border border-[#E5E5E5] px-4 py-3 text-sm focus:border-[#10A37F] focus:outline-none focus:ring-1 focus:ring-[#10A37F]"
+              className="w-full rounded-lg border border-[#E5E5E5] px-4 py-3 text-sm focus:border-[#0D0D0D] focus:outline-none focus:ring-1 focus:ring-[#0D0D0D]"
               autoFocus
             />
             <div className="mt-4 flex gap-2">
               <button
                 onClick={() => doAction("add_tracking", { trackingNumber: trackingInput })}
                 disabled={!trackingInput.trim() || !!actionLoading}
-                className="flex-1 rounded-lg bg-[#10A37F] py-3 text-sm font-bold text-white disabled:opacity-50"
+                className="flex-1 rounded-lg bg-[#0D0D0D] py-3 text-sm font-bold text-white disabled:opacity-50"
               >
                 {actionLoading === "add_tracking" ? "Se salvează..." : "Salvează AWB"}
               </button>

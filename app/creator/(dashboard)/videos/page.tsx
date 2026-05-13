@@ -44,7 +44,7 @@ function StatusBadge({ status, className }: { status: string; className?: string
       );
     case "ready":
       return (
-        <span className={`${base} bg-[#10A37F]/15 text-[#10A37F] ${className ?? ""}`}>
+        <span className={`${base} bg-[#0D0D0D]/15 text-[#0D0D0D] ${className ?? ""}`}>
           <CheckCircle2 className="w-3.5 h-3.5" />
           Gata
         </span>
@@ -121,7 +121,7 @@ function VideoCard({ video }: { video: CreatorVideo }) {
         {/* Product title */}
         {video.product_title && (
           <div className="flex items-start gap-2">
-            <Package className="w-4 h-4 text-[#10A37F] mt-0.5 shrink-0" />
+            <Package className="w-4 h-4 text-[#0D0D0D] mt-0.5 shrink-0" />
             <p className="text-sm font-black text-white leading-tight line-clamp-2">
               {video.product_title}
             </p>
@@ -142,7 +142,7 @@ function VideoCard({ video }: { video: CreatorVideo }) {
             <span className="text-[11px] font-semibold">{formatDate(video.created_at)}</span>
           </div>
           {video.status === "ready" && (
-            <span className="text-[11px] font-bold text-[#10A37F]">● Live</span>
+            <span className="text-[11px] font-bold text-[#0D0D0D]">● Live</span>
           )}
         </div>
       </div>
@@ -185,7 +185,7 @@ export default function CreatorVideosPage() {
         </div>
         <Link
           href="/creator/upload"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-[#10A37F] hover:bg-[#0D8F6F] text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.97] text-sm whitespace-nowrap"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#0D0D0D] hover:bg-[#0D8F6F] text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.97] text-sm whitespace-nowrap"
         >
           <Upload className="w-4 h-4" />
           Încarcă clip nou
@@ -196,8 +196,8 @@ export default function CreatorVideosPage() {
       {loading && (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-[#10A37F]/20" />
-            <Loader2 className="w-16 h-16 text-[#10A37F] animate-spin absolute inset-0" />
+            <div className="w-16 h-16 rounded-full border-4 border-[#0D0D0D]/20" />
+            <Loader2 className="w-16 h-16 text-[#0D0D0D] animate-spin absolute inset-0" />
           </div>
           <p className="text-sm font-bold text-[#6E6E80]">Se încarcă videoclipurile...</p>
         </div>
@@ -220,8 +220,8 @@ export default function CreatorVideosPage() {
       {/* Empty State */}
       {!loading && !error && videos.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 gap-6">
-          <div className="w-24 h-24 rounded-3xl bg-[#10A37F]/10 flex items-center justify-center">
-            <Film className="w-12 h-12 text-[#10A37F]" />
+          <div className="w-24 h-24 rounded-3xl bg-[#0D0D0D]/10 flex items-center justify-center">
+            <Film className="w-12 h-12 text-[#0D0D0D]" />
           </div>
           <div className="text-center max-w-sm">
             <h2 className="text-xl font-black text-[#0D0D0D] mb-2">
@@ -250,7 +250,7 @@ export default function CreatorVideosPage() {
               {videos.length} {videos.length === 1 ? "clip" : "clipuri"}
             </span>
             <span className="text-[#6E6E80]">•</span>
-            <span className="text-[#10A37F] font-bold">
+            <span className="text-[#0D0D0D] font-bold">
               {videos.filter((v) => v.status === "ready").length} live
             </span>
             {videos.filter((v) => v.status === "processing").length > 0 && (

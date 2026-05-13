@@ -104,7 +104,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
         id="btn-pay"
         type="submit"
         disabled={!stripe || !elements || isProcessing}
-        className="w-full rounded-xl bg-[#10A37F] py-4 text-center text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0E906F] shadow-[0_0_20px_rgba(16,163,127,0.3)]"
+        className="w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0E906F] shadow-[0_0_20px_rgba(16,163,127,0.3)]"
       >
         {isProcessing ? (
           <span className="flex items-center justify-center gap-2">
@@ -236,7 +236,7 @@ export default function CheckoutForm() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin mx-auto" />
+          <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin mx-auto" />
           <p className="mt-4 text-sm font-medium text-[#6E6E80]">Se încarcă checkout-ul securizat...</p>
         </div>
       </div>
@@ -264,7 +264,7 @@ export default function CheckoutForm() {
         appearance: {
           theme: "stripe",
           variables: {
-            colorPrimary: "#10A37F",
+            colorPrimary: "#0D0D0D",
             colorBackground: "#ffffff",
             colorText: "#0D0D0D",
             colorDanger: "#EF4444",
@@ -279,8 +279,8 @@ export default function CheckoutForm() {
               padding: "12px 16px",
             },
             ".Input:focus": {
-              border: "1px solid #10A37F",
-              boxShadow: "0 0 0 1px #10A37F",
+              border: "1px solid #0D0D0D",
+              boxShadow: "0 0 0 1px #0D0D0D",
             },
             ".Label": {
               fontWeight: "600",
@@ -318,7 +318,7 @@ export default function CheckoutForm() {
             </h2>
             <div className="space-y-3">
               {cartItems.map((item, idx) => (
-                <div key={idx} className="flex gap-4 p-4 rounded-xl border border-[#E5E5E5] bg-white hover:border-[#10A37F]/30 transition-colors">
+                <div key={idx} className="flex gap-4 p-4 rounded-xl border border-[#E5E5E5] bg-white hover:border-[#0D0D0D]/30 transition-colors">
                   <div className="h-16 w-16 bg-[#F7F7F8] rounded-lg border border-[#E5E5E5] overflow-hidden shrink-0">
                     {(item.product.images?.[0] || item.product.image) ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -354,7 +354,7 @@ export default function CheckoutForm() {
           ) : isCreatingIntent ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="w-10 h-10 border-3 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin mx-auto" />
+                <div className="w-10 h-10 border-3 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin mx-auto" />
                 <p className="mt-4 text-sm font-medium text-[#6E6E80]">Se pregătește formularul de plată...</p>
               </div>
             </div>
@@ -400,11 +400,11 @@ export default function CheckoutForm() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-[#6E6E80]">Livrare Standard</span>
-                <span className="font-bold text-[#10A37F]">Gratuit</span>
+                <span className="font-bold text-[#0D0D0D]">Gratuit</span>
               </div>
               <div className="flex justify-between text-xl font-black pt-3 mt-1 border-t border-[#E5E5E5]">
                 <span>Total</span>
-                <span className="text-[#10A37F]">{subtotal.toFixed(2)} lei</span>
+                <span className="text-[#0D0D0D]">{subtotal.toFixed(2)} lei</span>
               </div>
             </div>
           </div>

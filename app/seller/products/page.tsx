@@ -106,12 +106,12 @@ export default function SellerProductsPage() {
                     <td className="px-6 py-4 font-bold text-[#0D0D0D]">{p.title}</td>
                     <td className="px-6 py-4 text-[#6E6E80]">{p.category || "General"}</td>
                     <td className="px-6 py-4">
-                      <span className="inline-block px-2.5 py-1 bg-green-100 text-green-800 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                      <span className="inline-block px-2.5 py-1 bg-neutral-100 text-neutral-900 text-[10px] font-bold rounded-full uppercase tracking-wider">
                         {p.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-medium text-[#0D0D0D]">{p.metadata?.available_stock || 0}</td>
-                    <td className="px-6 py-4 text-right font-black text-[#10A37F]">{Number(p.price_cents / 100).toFixed(2)} lei</td>
+                    <td className="px-6 py-4 text-right font-black text-[#0D0D0D]">{Number(p.price_cents / 100).toFixed(2)} lei</td>
                   </tr>
                 ))
               )}
@@ -131,24 +131,24 @@ export default function SellerProductsPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Titlu Produs</label>
-                  <input required value={title} onChange={e => setTitle(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#10A37F] focus:ring-1 focus:ring-[#10A37F] outline-none" placeholder="ex: Tricou Bumbac Organic" />
+                  <input required value={title} onChange={e => setTitle(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] outline-none" placeholder="ex: Tricou Bumbac Organic" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Categorie</label>
-                  <input required value={category} onChange={e => setCategory(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#10A37F] focus:ring-1 focus:ring-[#10A37F] outline-none" placeholder="ex: Haine" />
+                  <input required value={category} onChange={e => setCategory(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] outline-none" placeholder="ex: Haine" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Preț (Lei)</label>
-                    <input required min="1" step="0.01" value={price} onChange={e => setPrice(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#10A37F] outline-none" placeholder="ex: 99.90" />
+                    <input required min="1" step="0.01" value={price} onChange={e => setPrice(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: 99.90" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Stoc Initial</label>
-                    <input required min="1" value={stock} onChange={e => setStock(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#10A37F] outline-none" placeholder="ex: 50" />
+                    <input required min="1" value={stock} onChange={e => setStock(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: 50" />
                   </div>
                 </div>
               </div>
-              <button disabled={saving} type="submit" className="w-full bg-[#10A37F] text-white font-bold py-3.5 rounded-xl mt-6 hover:bg-[#0E906F] transition active:scale-95 disabled:opacity-50">
+              <button disabled={saving} type="submit" className="w-full bg-[#0D0D0D] text-white font-bold py-3.5 rounded-xl mt-6 hover:bg-[#0E906F] transition active:scale-95 disabled:opacity-50">
                 {saving ? "Se salvează..." : "Salvează Produsul"}
               </button>
             </form>

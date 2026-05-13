@@ -246,7 +246,7 @@ export default function CreatorEarningsPage() {
           </Link>
           <Link
             href="/creator/upload"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#10A37F] text-white rounded-xl text-sm font-bold hover:bg-[#0E9272] transition-all shadow-sm hover:shadow-md"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D0D0D] text-white rounded-xl text-sm font-bold hover:bg-[#0E9272] transition-all shadow-sm hover:shadow-md"
           >
             Upload →
           </Link>
@@ -256,14 +256,14 @@ export default function CreatorEarningsPage() {
       {/* ── Empty State ── */}
       {isEmpty && (
         <div className="bg-white border border-[#E5E5E5] rounded-2xl p-10 text-center shadow-sm">
-          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-[#10A37F]/10 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-[#0D0D0D]/10 flex items-center justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="32"
               height="32"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#10A37F"
+              stroke="#0D0D0D"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -281,7 +281,7 @@ export default function CreatorEarningsPage() {
           </p>
           <Link
             href="/creator/upload"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#10A37F] text-white rounded-xl text-sm font-black hover:bg-[#0E9272] transition-all shadow-sm hover:shadow-md"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#0D0D0D] text-white rounded-xl text-sm font-black hover:bg-[#0E9272] transition-all shadow-sm hover:shadow-md"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -323,7 +323,7 @@ export default function CreatorEarningsPage() {
         </div>
 
         {/* Card 2 — Vânzări Generate */}
-        <div className="group relative overflow-hidden bg-[#10A37F] text-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300">
+        <div className="group relative overflow-hidden bg-[#0D0D0D] text-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4">
@@ -342,12 +342,12 @@ export default function CreatorEarningsPage() {
         {/* Card 3 — Comision Câștigat */}
         <div className="group bg-white rounded-2xl border border-[#E5E5E5] p-6 shadow-sm hover:shadow-lg transition-all duration-300">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-[#10A37F]/10 flex items-center justify-center text-[#10A37F] group-hover:bg-[#10A37F]/15 transition">
+            <div className="w-10 h-10 rounded-xl bg-[#0D0D0D]/10 flex items-center justify-center text-[#0D0D0D] group-hover:bg-[#0D0D0D]/15 transition">
               <TrendingUpIcon />
             </div>
             <p className="text-sm font-bold text-[#6E6E80]">Comision Câștigat</p>
           </div>
-          <p className="text-3xl font-black text-[#10A37F]">
+          <p className="text-3xl font-black text-[#0D0D0D]">
             {formatLei(earningsCents)}
           </p>
           <p className="text-xs text-[#6E6E80] mt-1">5% din vânzări</p>
@@ -389,10 +389,10 @@ export default function CreatorEarningsPage() {
           <div className="bg-white border border-[#E5E5E5] rounded-2xl p-6 shadow-sm">
             <h2 className="text-lg font-black text-[#0D0D0D] mb-4">Status payout</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl bg-green-50 p-4">
-                <p className="text-xs font-bold text-green-700 uppercase tracking-wide">Platit</p>
-                <p className="mt-1 text-xl font-black text-green-800">{formatLei(payout.paidCents)}</p>
-                <p className="text-xs text-green-700/70">{payout.paidItems} itemuri</p>
+              <div className="rounded-xl bg-neutral-100 p-4">
+                <p className="text-xs font-bold text-neutral-900 uppercase tracking-wide">Platit</p>
+                <p className="mt-1 text-xl font-black text-neutral-900">{formatLei(payout.paidCents)}</p>
+                <p className="text-xs text-neutral-900/70">{payout.paidItems} itemuri</p>
               </div>
               <div className="rounded-xl bg-amber-50 p-4">
                 <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">In asteptare</p>
@@ -425,7 +425,7 @@ export default function CreatorEarningsPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold text-[#6E6E80]">Comision luna curenta</span>
-                <span className="text-base font-black text-[#10A37F]">{formatLei(stats.thisMonthEarningsCents)}</span>
+                <span className="text-base font-black text-[#0D0D0D]">{formatLei(stats.thisMonthEarningsCents)}</span>
               </div>
             </div>
           </div>
@@ -439,8 +439,8 @@ export default function CreatorEarningsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Step 1 */}
           <div className="flex gap-4">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#10A37F]/10 flex items-center justify-center">
-              <span className="text-[#10A37F] font-black text-sm">1</span>
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#0D0D0D]/10 flex items-center justify-center">
+              <span className="text-[#0D0D0D] font-black text-sm">1</span>
             </div>
             <div>
               <h3 className="font-bold text-[#0D0D0D] text-sm">
@@ -455,8 +455,8 @@ export default function CreatorEarningsPage() {
 
           {/* Step 2 */}
           <div className="flex gap-4">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#10A37F]/10 flex items-center justify-center">
-              <span className="text-[#10A37F] font-black text-sm">2</span>
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#0D0D0D]/10 flex items-center justify-center">
+              <span className="text-[#0D0D0D] font-black text-sm">2</span>
             </div>
             <div>
               <h3 className="font-bold text-[#0D0D0D] text-sm">
@@ -471,8 +471,8 @@ export default function CreatorEarningsPage() {
 
           {/* Step 3 */}
           <div className="flex gap-4">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#10A37F]/10 flex items-center justify-center">
-              <span className="text-[#10A37F] font-black text-sm">3</span>
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#0D0D0D]/10 flex items-center justify-center">
+              <span className="text-[#0D0D0D] font-black text-sm">3</span>
             </div>
             <div>
               <h3 className="font-bold text-[#0D0D0D] text-sm">

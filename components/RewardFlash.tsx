@@ -66,7 +66,7 @@ export default function RewardFlash() {
             key={flash.id} 
             className="reward-anim absolute bottom-0 left-1/2 flex flex-col items-center justify-center whitespace-nowrap"
           >
-            <div className="bg-gradient-to-r from-[#10A37F] to-emerald-500 text-white px-5 py-2 rounded-full shadow-[0_0_20px_rgba(16,163,127,0.5)] flex items-center gap-2 border border-emerald-400 font-black mb-1">
+            <div className="bg-gradient-to-r from-[#0D0D0D] to-neutral-700 text-white px-5 py-2 rounded-full shadow-[0_0_20px_rgba(16,163,127,0.5)] flex items-center gap-2 border border-neutral-700 font-black mb-1">
               <Zap className="w-5 h-5 fill-current text-yellow-300 drop-shadow-md" />
               <span className="text-xl tracking-wider">+{flash.points}</span>
             </div>

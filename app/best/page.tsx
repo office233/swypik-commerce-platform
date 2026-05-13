@@ -45,8 +45,8 @@ export default function BestIndexPage() {
           rating ridicat și raport calitate-preț verificat.
         </p>
 
-        <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#10A37F]">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#10A37F] animate-pulse"></span>
+        <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#0D0D0D]">
+          <span className="inline-block h-2 w-2 rounded-full bg-[#0D0D0D] animate-pulse"></span>
           Actualizate automat —{" "}
           {new Date().toLocaleDateString("ro-RO", { month: "long", year: "numeric" })}
         </div>
@@ -57,15 +57,15 @@ export default function BestIndexPage() {
             <Link
               key={slug}
               href={`/best/${slug}`}
-              className="group rounded-2xl bg-white border border-[#E5E5E5] p-5 hover:border-[#10A37F] hover:shadow-md transition-all"
+              className="group rounded-2xl bg-white border border-[#E5E5E5] p-5 hover:border-[#0D0D0D] hover:shadow-md transition-all"
             >
-              <h2 className="text-lg font-black text-[#0D0D0D] leading-snug group-hover:text-[#10A37F]">
+              <h2 className="text-lg font-black text-[#0D0D0D] leading-snug group-hover:text-[#0D0D0D]">
                 {page.h1}
               </h2>
               <p className="mt-2 text-sm font-medium text-[#6E6E80] line-clamp-3">
                 {page.description}
               </p>
-              <div className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#10A37F]">
+              <div className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#0D0D0D]">
                 Vezi top produse →
               </div>
             </Link>
@@ -74,7 +74,7 @@ export default function BestIndexPage() {
 
         {/* CTA spre Shop */}
         <div className="mt-10 rounded-2xl bg-[#0D0D0D] p-6 text-center">
-          <p className="text-sm font-bold text-[#10A37F] uppercase tracking-widest">
+          <p className="text-sm font-bold text-[#0D0D0D] uppercase tracking-widest">
             Catalog complet
           </p>
           <h2 className="mt-2 text-2xl font-black text-white">
@@ -85,7 +85,7 @@ export default function BestIndexPage() {
           </p>
           <Link
             href="/shop"
-            className="mt-4 inline-block rounded-xl bg-[#10A37F] px-8 py-3 font-bold text-white hover:bg-[#0E9371] transition-colors"
+            className="mt-4 inline-block rounded-xl bg-[#0D0D0D] px-8 py-3 font-bold text-white hover:bg-[#0E9371] transition-colors"
           >
             Deschide Shop →
           </Link>

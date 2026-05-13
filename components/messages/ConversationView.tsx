@@ -189,7 +189,7 @@ export default function ConversationView({
                   className={[
                     "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words",
                     mine
-                      ? "bg-[#10A37F] text-white rounded-br-sm"
+                      ? "bg-[#0D0D0D] text-white rounded-br-sm"
                       : "bg-white/10 text-white rounded-bl-sm",
                     m._optimistic ? "opacity-70" : "",
                   ].join(" ")}
@@ -220,12 +220,12 @@ export default function ConversationView({
           onKeyDown={onKeyDown}
           placeholder="Message"
           rows={1}
-          className="flex-1 resize-none rounded-2xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#10A37F] max-h-32"
+          className="flex-1 resize-none rounded-2xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0D0D0D] max-h-32"
         />
         <button
           type="submit"
           disabled={sending || !draft.trim()}
-          className="rounded-full bg-[#10A37F] hover:bg-[#0E8F6F] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2.5 transition"
+          className="rounded-full bg-[#0D0D0D] hover:bg-[#0E8F6F] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2.5 transition"
         >
           Send
         </button>

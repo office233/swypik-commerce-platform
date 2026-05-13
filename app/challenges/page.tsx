@@ -67,7 +67,7 @@ export default function ChallengesPage() {
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white pb-20">
       <div className="max-w-4xl mx-auto px-4 pt-12">
-        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#10A37F] to-emerald-300 mb-8">
+        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#0D0D0D] to-neutral-700 mb-8">
           🏆 Challenges Zilnice
         </h1>
         
@@ -81,7 +81,7 @@ export default function ChallengesPage() {
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <span className="bg-[#10A37F]/20 text-[#10A37F] px-3 py-1 rounded-full text-sm font-medium mr-2">Featured</span>
+                  <span className="bg-[#0D0D0D]/20 text-[#0D0D0D] px-3 py-1 rounded-full text-sm font-medium mr-2">Featured</span>
                   <span className="bg-gray-800 text-gray-300 px-3 py-1 rounded-full text-sm font-medium">{featured.topic}</span>
                 </div>
                 <div className="text-yellow-500 font-bold flex items-center">
@@ -102,11 +102,11 @@ export default function ChallengesPage() {
               </div>
 
               {featured.user_entered ? (
-                <button disabled className="w-full bg-gray-800 text-green-400 py-3 rounded-xl font-medium flex items-center justify-center gap-2">
+                <button disabled className="w-full bg-gray-800 text-neutral-700 py-3 rounded-xl font-medium flex items-center justify-center gap-2">
                   Ai participat ✓
                 </button>
               ) : (
-                <button onClick={() => handleParticipate(featured.id)} className="w-full bg-[#10A37F] hover:bg-emerald-500 text-white py-3 rounded-xl font-medium transition-colors">
+                <button onClick={() => handleParticipate(featured.id)} className="w-full bg-[#0D0D0D] hover:bg-neutral-700 text-white py-3 rounded-xl font-medium transition-colors">
                   Participă Acum
                 </button>
               )}
@@ -128,7 +128,7 @@ export default function ChallengesPage() {
               
               <div className="w-full bg-gray-800 rounded-full h-2 mb-2">
                 <div 
-                  className="bg-[#10A37F] h-2 rounded-full" 
+                  className="bg-[#0D0D0D] h-2 rounded-full" 
                   style={{ width: challenge.max_entries ? `${Math.min(100, (parseInt(challenge.entry_count || "0") / challenge.max_entries) * 100)}%` : '0%' }}
                 />
               </div>
@@ -139,7 +139,7 @@ export default function ChallengesPage() {
               </div>
 
               {challenge.user_entered ? (
-                <button disabled className="w-full bg-gray-800 text-green-400 py-2 rounded-xl font-medium text-sm">
+                <button disabled className="w-full bg-gray-800 text-neutral-700 py-2 rounded-xl font-medium text-sm">
                   Ai participat ✓
                 </button>
               ) : (
@@ -161,7 +161,7 @@ export default function ChallengesPage() {
             </p>
             
             <div className="space-y-3">
-              <button onClick={submitParticipation} className="w-full bg-[#10A37F] text-white py-3 rounded-xl font-medium">
+              <button onClick={submitParticipation} className="w-full bg-[#0D0D0D] text-white py-3 rounded-xl font-medium">
                 Participă fără clip
               </button>
               <Link href="/creator/upload" className="w-full bg-gray-800 text-white py-3 rounded-xl font-medium flex items-center justify-center block text-center border border-gray-700">

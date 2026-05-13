@@ -162,7 +162,7 @@ export default async function CheckoutSuccess({
         : "Linkul de confirmare nu mai conține suficiente informații. Poți continua din contul tău sau reveni în magazin.";
 
   const statusBadge = isPaid
-    ? { label: "✅ Plătită", classes: "bg-[#10A37F]/10 text-[#10A37F]" }
+    ? { label: "✅ Plătită", classes: "bg-[#0D0D0D]/10 text-[#0D0D0D]" }
     : isPending
       ? { label: "⏳ În procesare", classes: "bg-yellow-100 text-yellow-800" }
       : { label: "ℹ️ Verificare necesară", classes: "bg-[#F3F4F6] text-[#4B5563]" };
@@ -179,11 +179,11 @@ export default async function CheckoutSuccess({
         <div className="w-full text-center">
           <div
             className={`mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full ${
-              isPaid ? "bg-[#10A37F]/10" : "bg-yellow-100"
+              isPaid ? "bg-[#0D0D0D]/10" : "bg-yellow-100"
             }`}
           >
             {isPaid ? (
-              <svg className="h-10 w-10 text-[#10A37F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <svg className="h-10 w-10 text-[#0D0D0D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             ) : (
@@ -236,7 +236,7 @@ export default async function CheckoutSuccess({
                   <div className="border-t border-[#E5E5E5] pt-4">
                     <div className="flex items-center justify-between font-black">
                       <span className="text-[#0D0D0D]">{isPaid ? "Total plătit" : "Total comandă"}</span>
-                      <span className="text-xl text-[#10A37F]">{Number(order.total_ron).toFixed(2)} lei</span>
+                      <span className="text-xl text-[#0D0D0D]">{Number(order.total_ron).toFixed(2)} lei</span>
                     </div>
                   </div>
 
@@ -269,7 +269,7 @@ export default async function CheckoutSuccess({
             {order && (
               <Link
                 href={`/orders/${encodeURIComponent(searchParams.order_token || order.order_lookup_token || order.id)}`}
-                className="inline-block w-full rounded-xl bg-[#10A37F] py-4 text-center text-sm font-bold text-white transition-transform active:scale-[0.98]"
+                className="inline-block w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-transform active:scale-[0.98]"
               >
                 📦 Urmărește comanda
               </Link>

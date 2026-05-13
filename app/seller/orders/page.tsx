@@ -16,7 +16,7 @@ const fetcher = async (url: string) => {
 function statusBadge(status: string) {
   switch (status) {
     case "fulfilled":
-      return { label: "Expediat", cls: "bg-green-100 text-green-800", icon: "📦" };
+      return { label: "Expediat", cls: "bg-neutral-100 text-neutral-900", icon: "📦" };
     case "return_requested":
       return { label: "Retur solicitat", cls: "bg-orange-100 text-orange-800 ring-2 ring-orange-300", icon: "🔄" };
     case "refunded":
@@ -181,7 +181,7 @@ export default function SellerOrdersPage() {
                                 href={order.order_metadata.tracking_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="ml-2 font-bold text-[#10A37F] hover:underline"
+                                className="ml-2 font-bold text-[#0D0D0D] hover:underline"
                               >
                                 Urmareste
                               </a>

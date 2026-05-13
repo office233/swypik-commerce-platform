@@ -47,7 +47,7 @@ export default async function MessagesPage() {
                     href={`/messages/${c.id}`}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition"
                   >
-                    <div className="h-10 w-10 rounded-full bg-[#10A37F]/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-[#0D0D0D]/20 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {c.peer?.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -56,7 +56,7 @@ export default async function MessagesPage() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-sm text-[#10A37F]">
+                        <span className="text-sm text-[#0D0D0D]">
                           {name.slice(0, 1).toUpperCase()}
                         </span>
                       )}
@@ -75,7 +75,7 @@ export default async function MessagesPage() {
                       </p>
                     </div>
                     {unread && (
-                      <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#10A37F] text-xs font-semibold">
+                      <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#0D0D0D] text-xs font-semibold">
                         {c.unread_count}
                       </span>
                     )}
