@@ -14,14 +14,10 @@ export default async function SellerSettingsPage() {
     seller = rows[0] || null;
   }
 
-  // Fallback mock data if no auth
+  // No authenticated seller — redirect to login
   if (!seller) {
-    seller = {
-      name: "Magazin Demo",
-      email: "demo@exemplu.ro",
-      stripe_account_id: null,
-      business_details: { description: "Acesta este un magazin de test." }
-    };
+    const { redirect } = await import('next/navigation');
+    redirect('/seller/login');
   }
 
   const isStripeConnected = !!seller.stripe_account_id;

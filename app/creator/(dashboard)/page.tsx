@@ -117,101 +117,12 @@ export default async function CreatorDashboard() {
         </div>
       </div>
 
-      {/* Recommended Products */}
+      {/* Recommended Products — wired to DB recommendations later */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-black text-[#0D0D0D] mb-4 sm:mb-6">Produse Recomandate pentru Tine</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
-          
-          {/* Product 1 */}
-          <div className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
-            <div className="h-40 sm:h-56 bg-[#F7F7F8] relative overflow-hidden">
-               <img 
-                 src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80" 
-                 alt="Căști Wireless" 
-                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-               />
-               <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs font-black text-[#10A37F] shadow-sm border border-white">
-                 Comision 15%
-               </div>
-            </div>
-            <div className="p-5 flex-1 flex flex-col">
-              <h3 className="font-bold text-[#0D0D0D] text-lg leading-tight line-clamp-2">Căști Audio Wireless Premium</h3>
-              <p className="text-[#10A37F] font-black mt-2 text-xl">149 lei</p>
-              
-              <div className="mt-auto pt-6">
-                <p className="text-xs font-bold text-[#6E6E80] mb-2 uppercase tracking-wide">Link-ul tău de afiliat</p>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value="https://swypik.ro/p/casti-premium?ref=creator123" 
-                    className="w-full text-sm font-medium p-3 bg-[#F7F7F8] border border-[#E5E5E5] rounded-xl text-[#0D0D0D] focus:outline-none focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 cursor-text transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Product 2 */}
-          <div className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
-            <div className="h-40 sm:h-56 bg-[#F7F7F8] relative overflow-hidden">
-               <img 
-                 src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80" 
-                 alt="Smartwatch" 
-                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-               />
-               <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs font-black text-[#10A37F] shadow-sm border border-white">
-                 Comision 20%
-               </div>
-            </div>
-            <div className="p-5 flex-1 flex flex-col">
-              <h3 className="font-bold text-[#0D0D0D] text-lg leading-tight line-clamp-2">Smartwatch Fitness Tracker</h3>
-              <p className="text-[#10A37F] font-black mt-2 text-xl">199 lei</p>
-              
-              <div className="mt-auto pt-6">
-                <p className="text-xs font-bold text-[#6E6E80] mb-2 uppercase tracking-wide">Link-ul tău de afiliat</p>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value="https://swypik.ro/p/smartwatch-fitness?ref=creator123" 
-                    className="w-full text-sm font-medium p-3 bg-[#F7F7F8] border border-[#E5E5E5] rounded-xl text-[#0D0D0D] focus:outline-none focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 cursor-text transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Product 3 */}
-          <div className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
-            <div className="h-40 sm:h-56 bg-[#F7F7F8] relative overflow-hidden">
-               <img 
-                 src="https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&q=80" 
-                 alt="Boxă Portabilă" 
-                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-               />
-               <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs font-black text-[#10A37F] shadow-sm border border-white">
-                 Comision 10%
-               </div>
-            </div>
-            <div className="p-5 flex-1 flex flex-col">
-              <h3 className="font-bold text-[#0D0D0D] text-lg leading-tight line-clamp-2">Boxă Portabilă Bluetooth</h3>
-              <p className="text-[#10A37F] font-black mt-2 text-xl">99 lei</p>
-              
-              <div className="mt-auto pt-6">
-                <p className="text-xs font-bold text-[#6E6E80] mb-2 uppercase tracking-wide">Link-ul tău de afiliat</p>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value="https://swypik.ro/p/boxa-portabila?ref=creator123" 
-                    className="w-full text-sm font-medium p-3 bg-[#F7F7F8] border border-[#E5E5E5] rounded-xl text-[#0D0D0D] focus:outline-none focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 cursor-text transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <h2 className="text-xl sm:text-2xl font-black text-[#0D0D0D] mb-4 sm:mb-6">Produse Recomandate</h2>
+        <div className="bg-white rounded-2xl border border-[#E5E5E5] p-8 text-center">
+          <p className="text-[#6E6E80] text-sm">Recomandările apar aici după ce postezi primul video.</p>
+          <a href="/creator/upload" className="inline-block mt-4 px-5 py-2.5 bg-[#0D0D0D] text-white rounded-xl text-sm font-bold hover:bg-[#1a1a1a] transition-colors">Încarcă primul video</a>
         </div>
       </div>
     </div>
