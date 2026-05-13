@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import {
   getOptionalSocialUserId,
   getOrCreateSocialUser,
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/dm/conversations — list current user's conversations. */
 export async function GET(request: Request) {
+  if (!isEnabled("dm")) return frozenResponse("dm");
   try {
     const userId = await getOptionalSocialUserId();
     if (!userId) {
@@ -32,6 +34,7 @@ export async function GET(request: Request) {
 
 /** POST /api/dm/conversations { peer_user_id } — get-or-create DM. */
 export async function POST(request: Request) {
+  if (!isEnabled("dm")) return frozenResponse("dm");
   try {
     const session = await getOrCreateSocialUser();
     const userId = session.userId;

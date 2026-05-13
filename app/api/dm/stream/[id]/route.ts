@@ -1,3 +1,4 @@
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { assertParticipant } from "@/lib/dm/repository";
 import { createSubscriber } from "@/lib/redis";
@@ -15,6 +16,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!isEnabled("dm")) return frozenResponse("dm");
   const userId = await getOptionalSocialUserId();
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });

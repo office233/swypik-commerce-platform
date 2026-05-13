@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import {
   getOrCreateSocialUser,
   setAnonSessionCookie,
@@ -12,6 +13,7 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!isEnabled("dm")) return frozenResponse("dm");
   try {
     const session = await getOrCreateSocialUser();
     const userId = session.userId;

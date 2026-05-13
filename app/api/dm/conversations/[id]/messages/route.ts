@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import {
   getOptionalSocialUserId,
   getOrCreateSocialUser,
@@ -18,6 +19,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!isEnabled("dm")) return frozenResponse("dm");
   try {
     const userId = await getOptionalSocialUserId();
     if (!userId) {
@@ -47,6 +49,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!isEnabled("dm")) return frozenResponse("dm");
   try {
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
