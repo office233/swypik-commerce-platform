@@ -9,6 +9,7 @@
  */
 
 import { sendEmail } from "@/lib/email/service";
+import { isEnabled } from "@/lib/feature-flags";
 
 const APP_URL = () =>
   (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
@@ -86,6 +87,10 @@ export async function notifyVideoApproved(
   creatorName: string,
   videoTitle: string,
 ): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "notifyVideoApproved", creatorEmail);
+    return true;
+  }
   const safeName = escapeHtml(creatorName);
   const safeTitle = escapeHtml(videoTitle);
 
@@ -119,6 +124,10 @@ export async function notifyVideoRejected(
   videoTitle: string,
   reason: string,
 ): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "notifyVideoRejected", creatorEmail);
+    return true;
+  }
   const safeName = escapeHtml(creatorName);
   const safeTitle = escapeHtml(videoTitle);
   const safeReason = escapeHtml(reason);
@@ -157,6 +166,10 @@ export async function notifyPayoutSent(
   creatorName: string,
   amountLei: string,
 ): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "notifyPayoutSent", creatorEmail);
+    return true;
+  }
   const safeName = escapeHtml(creatorName);
   const safeAmount = escapeHtml(amountLei);
 

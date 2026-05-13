@@ -9,6 +9,7 @@
  */
 
 import { Resend } from "resend";
+import { isEnabled } from "@/lib/feature-flags";
 
 const FROM_EMAIL = process.env.EMAIL_FROM || "Swypik <onboarding@resend.dev>";
 const resendKey = process.env.RESEND_API_KEY;
@@ -92,6 +93,10 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
  * Send order confirmation email after successful payment
  */
 export async function sendOrderConfirmation(data: OrderEmailData): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "sendOrderConfirmation", data.customerEmail);
+    return true;
+  }
   const trackingUrl = orderTrackingUrl(data);
   const itemsHtml = data.items.map(i =>
     `<tr>
@@ -181,6 +186,10 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
  * Send shipping notification email with tracking info
  */
 export async function sendShippingNotification(data: OrderEmailData): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "sendShippingNotification", data.customerEmail);
+    return true;
+  }
   const trackingUrl = orderTrackingUrl(data);
   const html = `
   <!DOCTYPE html>
@@ -298,6 +307,10 @@ export async function sendEmail(params: { to: string; subject: string; html: str
  * Send an alert to a seller about a new order
  */
 export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: any[], customerName: string = 'X'): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "sendSellerNewOrderAlert", sellerEmail);
+    return true;
+  }
   const itemsHtml = orderItems.map(i =>
     `<tr>
       <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">${i.title || i.name || 'Produs'}</td>
@@ -352,6 +365,10 @@ export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: a
  * Send an email to notify a seller that their account has been approved
  */
 export async function sendSellerApprovalEmail(email: string, name: string): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "sendSellerApprovalEmail", email);
+    return true;
+  }
   const html = `
   <!DOCTYPE html>
   <html>
@@ -389,6 +406,10 @@ export async function sendSellerApprovalEmail(email: string, name: string): Prom
  * Send tracking update to customer
  */
 export async function sendCustomerShippingAlert(email: string, trackingNumber: string): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "sendCustomerShippingAlert", email);
+    return true;
+  }
   const html = `
   <!DOCTYPE html>
   <html>
@@ -433,6 +454,10 @@ export async function sendAbandonedCartEmail(
   cartItems: AbandonedCartItem[],
   checkoutUrl: string,
 ): Promise<boolean> {
+  if (!isEnabled("emailMarketing")) {
+    console.log("[email] marketing disabled, skipped:", "sendAbandonedCartEmail", email);
+    return true;
+  }
   const itemsHtml = cartItems
     .map(
       (item) => {
