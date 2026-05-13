@@ -10,6 +10,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { orchestrate } from "@/lib/ai/orchestrator";
 import { updateShoppingSession } from "@/lib/sales/shopping-session";
 import { detectCategory, looksLikeShopping } from "@/lib/chat/category-detect";
@@ -20,6 +21,7 @@ import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
+  if (!isEnabled("aiChatFull")) return frozenResponse("aiChatFull");
   try {
     const { message, sessionId, directCjQuery, chatHistory = [], productContext = [], shoppingSession: incomingSession = {} } = await req.json();
     const userMessage = String(message || "").trim();
