@@ -73,8 +73,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
-    "/explore/:path*",
     "/collections/:path*",
     "/orders/:path*",
     "/creator/:path*",
