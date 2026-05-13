@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { getStripe } from "@/lib/stripe/checkout";
@@ -6,6 +7,7 @@ import { getStripe } from "@/lib/stripe/checkout";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  if (!isEnabled("stripeConnect")) return frozenResponse("stripeConnect");
   try {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {

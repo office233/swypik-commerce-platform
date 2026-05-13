@@ -15,6 +15,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
 import { getStripe } from "@/lib/stripe/checkout";
 import { timingSafeEqual } from "crypto";
@@ -24,6 +25,7 @@ export const dynamic = "force-dynamic";
 const RETURN_WINDOW_DAYS = 14;
 
 export async function GET(req: Request) {
+  if (!isEnabled("stripeConnect")) return frozenResponse("stripeConnect");
   // 1. Authorization
   const authHeader = req.headers.get("authorization");
   const token =
