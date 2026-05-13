@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { isAdminRequest } from "@/lib/security/admin-auth";
+
+import { requireAuth } from "@/lib/auth/getAuthUser";
 import {
   enqueueAeVideoPipeline,
   findExternalSourceUrlForVideo,
@@ -29,9 +30,8 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
-  if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const __auth = await requireAuth(req, ["admin"]);
+  if (__auth instanceof NextResponse) return __auth;
 
   const { id: videoId } = await Promise.resolve(params);
   if (!videoId) {

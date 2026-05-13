@@ -6,14 +6,14 @@
 
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { isAdminRequest } from "@/lib/security/admin-auth";
+
+import { requireAuth } from "@/lib/auth/getAuthUser";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const __auth = await requireAuth(req, ["admin"]);
+  if (__auth instanceof NextResponse) return __auth;
 
   const url = new URL(req.url);
   const status = url.searchParams.get("status") || "";
@@ -74,9 +74,8 @@ export async function GET(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const __auth = await requireAuth(req, ["admin"]);
+  if (__auth instanceof NextResponse) return __auth;
 
   try {
     const body = await req.json();

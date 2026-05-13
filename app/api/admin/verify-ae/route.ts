@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { callAE } from "@/lib/aliexpress/client";
-import { isAdminRequest } from "@/lib/security/admin-auth";
+
+import { requireAuth } from "@/lib/auth/getAuthUser";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const __auth = await requireAuth(req, ["admin"]);
+  if (__auth instanceof NextResponse) return __auth;
 
   try {
     // We will test the dropship order get or any basic AE API that doesn't place an order but tests auth.

@@ -6,7 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { fulfillOrder, updateOrderTracking, cancelOrder } from "@/lib/suppliers/fulfillment";
-import { isAdminConfigured, isAdminRequest } from "@/lib/security/admin-auth";
+import { isAdminConfigured } from "@/lib/security/admin-auth";
+import { requireAuth } from "@/lib/auth/getAuthUser";
 
 export async function POST(req: Request) {
   try {
@@ -14,9 +15,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "ADMIN_SECRET is not configured." }, { status: 503 });
     }
 
-    if (!(await isAdminRequest(req))) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+    const __auth = await requireAuth(req, ["admin"]);
+    if (__auth instanceof NextResponse) return __auth;
 
     const body = await req.json();
     const { action, orderId, trackingNumber, trackingUrl, reason } = body;

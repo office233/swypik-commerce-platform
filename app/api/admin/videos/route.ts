@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { isAdminRequest } from "@/lib/security/admin-auth";
+
+import { requireAuth } from "@/lib/auth/getAuthUser";
 import { notifyVideoApproved, notifyVideoRejected } from "@/lib/email/creator-notifications";
 import { enqueueAeVideoPipeline } from "@/lib/video/ae-pipeline";
 
@@ -15,9 +16,8 @@ export const dynamic = "force-dynamic";
  *   video_processing_jobs: video_id, asset_id, status, attempt_count, error_message
  */
 export async function GET(req: Request) {
-  if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const __auth = await requireAuth(req, ["admin"]);
+  if (__auth instanceof NextResponse) return __auth;
 
   try {
     const publicUrl = process.env.S3_PUBLIC_URL?.replace(/\/$/, "") || "";
@@ -115,9 +115,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const __auth = await requireAuth(req, ["admin"]);
+  if (__auth instanceof NextResponse) return __auth;
 
   try {
     const body = await req.json();

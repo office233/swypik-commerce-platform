@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
-import { hashAdminSessionToken, getAdminCookieName } from "@/lib/security/admin-auth";
+import { hashAdminSessionToken, getAdminCookieName, isAdminToken } from "@/lib/security/admin-auth";
 
 export type AuthRole = "shopper" | "creator" | "seller" | "admin" | "guest";
 
@@ -94,6 +95,33 @@ export async function requireRole(roles: AuthRole[]): Promise<AuthUser> {
   const user = await getAuthUser();
   if (!roles.includes(user.role)) {
     throw new Error(`Forbidden: requires one of [${roles.join(", ")}], got ${user.role}`);
+  }
+  return user;
+}
+
+/**
+ * Route-handler guard. Returns either AuthUser or a NextResponse 401/403.
+ * Usage:
+ *   const auth = await requireAuth(req, ['admin']);
+ *   if (auth instanceof NextResponse) return auth;
+ *   // auth is AuthUser
+ *
+ * For 'admin', also accepts `Authorization: Bearer <ADMIN_SECRET>` (preserves API/curl usage).
+ */
+export async function requireAuth(req: Request, roles: AuthRole[]): Promise<AuthUser | NextResponse> {
+  if (roles.includes("admin")) {
+    const authHeader = req.headers.get("authorization");
+    const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+    if (bearer && isAdminToken(bearer)) {
+      return { role: "admin", userId: null, sellerId: null, isAdmin: true, email: null };
+    }
+  }
+  const user = await getAuthUser();
+  if (user.role === "guest") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!roles.includes(user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return user;
 }
