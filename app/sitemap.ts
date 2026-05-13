@@ -4,6 +4,7 @@
  */
 
 import { dbQuery } from "@/lib/db";
+import { isEnabled } from "@/lib/feature-flags";
 import type { MetadataRoute } from "next";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +20,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/unsubscribe`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.1 },
   ];
 
-  // ── SEO landing pages ─────────────────────────────────────────
-  const seoSlugs = [
+  // ── SEO landing pages (gated by seoPages flag) ────────────────
+  const seoSlugs = isEnabled('seoPages') ? [
     "rochii-vara", "outfit-complet", "cadouri-sub-200",
     "tinute-office", "casual-streetwear", "fitness-yoga", "vintage-retro",
-  ];
+  ] : [];
   const seoPages: MetadataRoute.Sitemap = seoSlugs.map((slug) => ({
     url: `${baseUrl}/best/${slug}`,
     lastModified: new Date(),

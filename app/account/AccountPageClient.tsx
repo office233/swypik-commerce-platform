@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Settings, Plus, Video, Heart, Package, Grid, Bookmark } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import EnablePushButton from "@/components/push/EnablePushButton";
+import { isEnabledClient } from "@/lib/feature-flags-client";
 
 type AccountPageClientProps = {
   redirectTo: string;
@@ -352,15 +353,17 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         </div>
 
         {/* Settings: Notificări push */}
-        <section className="mt-8 mb-10 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-          <h3 className="text-base font-black text-white">Notificări push</h3>
-          <p className="mt-1 text-sm text-white/60">
-            Primește notificare când cineva îți dă follow, like sau comentariu.
-          </p>
-          <div className="mt-4">
-            <EnablePushButton />
-          </div>
-        </section>
+        {isEnabledClient('pushNotifications') && (
+          <section className="mt-8 mb-10 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+            <h3 className="text-base font-black text-white">Notificări push</h3>
+            <p className="mt-1 text-sm text-white/60">
+              Primește notificare când cineva îți dă follow, like sau comentariu.
+            </p>
+            <div className="mt-4">
+              <EnablePushButton />
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

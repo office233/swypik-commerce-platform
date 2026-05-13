@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import { isEnabledClient } from "@/lib/feature-flags-client";
 
 /**
  * TopBar — thin sticky chrome for user-facing pages.
@@ -20,6 +21,7 @@ export default function TopBar() {
   const [dmUnread, setDmUnread] = useState(0);
 
   useEffect(() => {
+    if (!isEnabledClient('dm')) return;
     let cancelled = false;
 
     async function load() {
@@ -74,18 +76,20 @@ export default function TopBar() {
         <div className="flex items-center gap-2">
           <NotificationBell />
 
-          <Link
-            href="/messages"
-            aria-label="Mesaje"
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0D0D0D] text-white hover:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D]"
-          >
-            <MessageCircle className="h-5 w-5" />
-            {dmUnread > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#0D0D0D] px-1 text-[11px] font-semibold text-white">
-                {dmUnread > 99 ? "99+" : dmUnread}
-              </span>
-            )}
-          </Link>
+          {isEnabledClient('dm') && (
+            <Link
+              href="/messages"
+              aria-label="Mesaje"
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0D0D0D] text-white hover:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D]"
+            >
+              <MessageCircle className="h-5 w-5" />
+              {dmUnread > 0 && (
+                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#0D0D0D] px-1 text-[11px] font-semibold text-white">
+                  {dmUnread > 99 ? "99+" : dmUnread}
+                </span>
+              )}
+            </Link>
+          )}
         </div>
       </div>
     </header>

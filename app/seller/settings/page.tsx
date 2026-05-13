@@ -1,4 +1,5 @@
 import { dbQuery } from "@/lib/db";
+import { isEnabled } from "@/lib/feature-flags";
 import { headers } from "next/headers";
 import { Settings, Save, Bell, Shield, Wallet, CheckCircle2, ExternalLink } from "lucide-react";
 
@@ -89,6 +90,7 @@ export default async function SellerSettingsPage() {
           </div>
 
           {/* Stripe Connect Section */}
+          {isEnabled('stripeConnect') && (
           <div className="bg-white border border-[#E5E5E5] rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-medium text-[#0D0D0D] mb-2 flex items-center gap-2">
               <Wallet className="w-5 h-5 text-[#635BFF]" /> Stripe Connect
@@ -142,6 +144,7 @@ export default async function SellerSettingsPage() {
               </form>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>
