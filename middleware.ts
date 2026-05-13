@@ -75,6 +75,8 @@ export const config = {
   matcher: [
     "/collections/:path*",
     "/orders/:path*",
+    "/checkout/:path*",
+    "/profile/:path*",
     "/creator/:path*",
     "/onboarding",
     "/admin/:path*",
