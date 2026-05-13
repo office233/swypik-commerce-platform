@@ -1,36 +1,71 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Căi care necesită doar autentificare (NU și onboarding).
 const ONBOARDING_PATH = "/onboarding";
 
+const SHOPPER_COOKIE = "swypik_session";
+const LEGACY_CREATOR_COOKIE = "creator_session";
+const SELLER_COOKIE = "seller_session";
+const ADMIN_COOKIE = "admin_token";
+const ONBOARDED_COOKIE = "swypik_onboarded";
+
+function redirectTo(req: NextRequest, target: string, withRedirect = true) {
+  const url = new URL(target, req.url);
+  if (withRedirect) {
+    url.searchParams.set("redirect", `${req.nextUrl.pathname}${req.nextUrl.search}`);
+  }
+  return NextResponse.redirect(url);
+}
+
 export function middleware(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
+  const cookies = request.cookies;
 
-  // În "Addictive MVP", un utilizator este și creator. Sesiunea e unificată.
-  const hasCustomerSession = Boolean(request.cookies.get("swypik_session")?.value);
-  const hasCreatorSession = Boolean(request.cookies.get("creator_session")?.value);
-  const isAuthed = hasCustomerSession || hasCreatorSession;
+  const hasShopper = Boolean(cookies.get(SHOPPER_COOKIE)?.value);
+  const hasLegacyCreator = Boolean(cookies.get(LEGACY_CREATOR_COOKIE)?.value);
+  const hasSeller = Boolean(cookies.get(SELLER_COOKIE)?.value);
+  const hasAdmin = Boolean(cookies.get(ADMIN_COOKIE)?.value);
+  const isAuthed = hasShopper || hasLegacyCreator;
 
-  // Permite accesul la /onboarding chiar dacă nu e încă autentificat
-  // (utilizatorul ajunge aici imediat după verify_otp).
+  // /admin login page itself is public
+  if (pathname === "/admin" || pathname === "/admin/") {
+    return NextResponse.next();
+  }
+
+  // /admin/* — only admin cookie
+  if (pathname.startsWith("/admin/")) {
+    if (!hasAdmin) {
+      return redirectTo(request, "/admin", false);
+    }
+    return NextResponse.next();
+  }
+
+  // /seller and /seller/login are public (marketing + login pages)
+  if (pathname === "/seller" || pathname === "/seller/" || pathname === "/seller/login" || pathname.startsWith("/seller/login/")) {
+    return NextResponse.next();
+  }
+
+  // /seller/* — only seller cookie
+  if (pathname.startsWith("/seller/")) {
+    if (!hasSeller) {
+      return redirectTo(request, "/seller/login", false);
+    }
+    return NextResponse.next();
+  }
+
+  // Onboarding accessible without onboarded cookie
   if (pathname === ONBOARDING_PATH || pathname.startsWith(`${ONBOARDING_PATH}/`)) {
     return NextResponse.next();
   }
 
-  // Dacă nu are niciun fel de sesiune, trimite la Login Wall
+  // Default: shopper/creator gating for matched paths
   if (!isAuthed) {
-    const loginUrl = new URL("/account", request.url);
-    loginUrl.searchParams.set("redirect", `${pathname}${search}`);
-    return NextResponse.redirect(loginUrl);
+    return redirectTo(request, "/account");
   }
 
-  // Gate de onboarding: dacă nu are cookie-ul `swypik_onboarded`, trimite la /onboarding.
-  const isOnboarded = Boolean(request.cookies.get("swypik_onboarded")?.value);
+  const isOnboarded = Boolean(cookies.get(ONBOARDED_COOKIE)?.value);
   if (!isOnboarded) {
-    const onboardingUrl = new URL(ONBOARDING_PATH, request.url);
-    onboardingUrl.searchParams.set("redirect", `${pathname}${search}`);
-    return NextResponse.redirect(onboardingUrl);
+    return redirectTo(request, ONBOARDING_PATH);
   }
 
   return NextResponse.next();
@@ -42,7 +77,9 @@ export const config = {
     "/explore/:path*",
     "/collections/:path*",
     "/orders/:path*",
-    "/creator/:path*", // Creator e accesibil cu swypik_session acum!
+    "/creator/:path*",
     "/onboarding",
+    "/admin/:path*",
+    "/seller/:path*",
   ],
 };
