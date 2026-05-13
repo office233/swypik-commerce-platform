@@ -12,6 +12,7 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { getStripe } from "@/lib/stripe/checkout";
 import { evaluateSellerRefundRequest } from "@/lib/seller/refund-policy";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  if (!isEnabled("returns")) return frozenResponse("returns");
   try {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {

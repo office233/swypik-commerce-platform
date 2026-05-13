@@ -10,11 +10,13 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { canRequestReturn } from "@/lib/commerce/order-status";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
 export async function POST(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  if (!isEnabled("returns")) return frozenResponse("returns");
   try {
     const body = await req.json();
     const { reason, token } = body;
