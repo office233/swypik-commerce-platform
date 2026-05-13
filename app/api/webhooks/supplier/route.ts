@@ -10,8 +10,10 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { sendCustomerShippingAlert } from "@/lib/email/service";
 import crypto from "crypto";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
 export async function POST(req: Request) {
+  if (!isEnabled("fulfillment")) return frozenResponse("fulfillment");
   // ── 1. Authentication ──
   const secret = process.env.SUPPLIER_WEBHOOK_SECRET;
   if (!secret) {

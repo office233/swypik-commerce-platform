@@ -8,8 +8,10 @@ import { NextResponse } from "next/server";
 import { fulfillOrder, updateOrderTracking, cancelOrder } from "@/lib/suppliers/fulfillment";
 import { isAdminConfigured } from "@/lib/security/admin-auth";
 import { requireAuth } from "@/lib/auth/getAuthUser";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
 export async function POST(req: Request) {
+  if (!isEnabled("fulfillment")) return frozenResponse("fulfillment");
   try {
     if (!isAdminConfigured()) {
       return NextResponse.json({ success: false, error: "ADMIN_SECRET is not configured." }, { status: 503 });

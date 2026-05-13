@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "crypto";
 import { placeDropshipOrder } from "@/lib/aliexpress/client";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  if (!isEnabled("fulfillment")) return frozenResponse("fulfillment");
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "") || req.headers.get("x-cron-secret");
   const cronSecretHeader = req.headers.get("cron-secret") || req.headers.get("CRON_SECRET");
