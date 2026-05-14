@@ -3,6 +3,7 @@ import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery } from "@/lib/db";
 import { sendOrderConfirmation } from "@/lib/email/service";
 import { routeOrder } from "@/lib/fulfillment/order-router";
+import { awardOrderSwyp } from "@/lib/swyp/order-rewards";
 import { logCheckoutEvent } from "@/lib/security/audit-log";
 import type Stripe from "stripe";
 import crypto from "crypto";
@@ -107,6 +108,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   if (order.status !== "pending") {
     console.log(`[Stripe Webhook] Order ${orderId} already ${order.status}; skipping paid transition.`);
     await maybeSendOrderConfirmation(orderId);
+  await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
     return;
   }
   if (Number(order.total_cents) !== Number(intent.amount) || String(order.currency).toUpperCase() !== String(intent.currency).toUpperCase()) {
@@ -165,6 +167,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   );
 
   await maybeSendOrderConfirmation(orderId);
+  await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -277,6 +280,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   );
 
   await maybeSendOrderConfirmation(orderId);
+  await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
 
   console.log(`[Stripe Webhook] Order saved: ${session.id} - ${totalRon} RON - ${items.length} items`);
 

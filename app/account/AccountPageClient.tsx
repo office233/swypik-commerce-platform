@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, MailQuestion } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, MailQuestion, Wallet, EyeOff, ShoppingBag } from "lucide-react";
 import EnablePushButton from "@/components/push/EnablePushButton";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -267,9 +267,9 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             >
               <Plus size={18} /> Publică
             </Link>
-            <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-lg font-bold transition">
+            <Link href="/account/edit" className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-lg font-bold text-center transition">
               Editează
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -359,6 +359,31 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           <Link href="/account/edit" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
             <Settings size={18} className="text-white/60" />
             <span className="flex-1 text-sm font-semibold">Editează profil</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/wallet" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <Wallet size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Portofel SWYP</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/account/orders" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <ShoppingBag size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Comenzile mele</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/account/saved" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <Bookmark size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Produse salvate</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/account/liked" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <Heart size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Videoclipuri likeuite</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/account/hidden" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <EyeOff size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Videoclipuri ascunse</span>
             <span className="text-white/40">›</span>
           </Link>
           <Link href="/account/security" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">

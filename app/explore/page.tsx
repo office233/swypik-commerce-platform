@@ -1,12 +1,32 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Music } from "lucide-react";
+import { useEffect, useState, useRef, useCallback, Fragment } from "react";
+import Link from "next/link";
+import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Music, ShoppingBag } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import ProductDrawer from "@/components/ProductDrawer";
 import CommentsSheet from "@/components/social/CommentsSheet";
 import MoreLikeThisMenu from "@/components/feed/MoreLikeThisMenu";
+import { haptic } from "@/lib/haptic";
+
+const MUTE_STORAGE_KEY = "swypik.feed.muted";
+
+function renderDescription(text: string | null | undefined) {
+  if (!text) return null;
+  const parts = text.split(/(#[\p{L}0-9_]+)/gu);
+  return parts.map((part, i) => {
+    if (part.startsWith("#") && part.length > 1) {
+      const tag = part.slice(1).toLowerCase();
+      return (
+        <Link key={i} href={`/hashtag/${tag}`} className="text-white font-semibold hover:underline">
+          {part}
+        </Link>
+      );
+    }
+    return <Fragment key={i}>{part}</Fragment>;
+  });
+}
 
 export default function ExplorePage() {
   const [videos, setVideos] = useState<any[]>([]);
@@ -16,6 +36,16 @@ export default function ExplorePage() {
   const [activeProduct, setActiveProduct] = useState<any | null>(null);
   const [activeCommentsVideo, setActiveCommentsVideo] = useState<any | null>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [shareToast, setShareToast] = useState<string | null>(null);
+
+  // Restore muted preference
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(MUTE_STORAGE_KEY);
+      if (stored === "0") setIsMuted(false);
+    } catch {}
+  }, []);
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
   const [savedVideos, setSavedVideos] = useState<Set<string>>(new Set());
   const [followingCreators, setFollowingCreators] = useState<Set<string>>(new Set());
@@ -116,9 +146,11 @@ export default function ExplorePage() {
 
   // Toggle mute on ALL videos
   const toggleMute = useCallback(() => {
+    haptic("tap");
     setIsMuted(prev => {
       const next = !prev;
       videoRefs.current.forEach((v) => { v.muted = next; });
+      try { window.localStorage.setItem(MUTE_STORAGE_KEY, next ? "1" : "0"); } catch {}
       return next;
     });
   }, []);
@@ -140,6 +172,7 @@ export default function ExplorePage() {
 
   // Like
   const handleLike = useCallback(async (videoId: string) => {
+    haptic("tap");
     const wasLiked = likedVideos.has(videoId);
     const nextLiked = !wasLiked;
     const video = videos.find((item) => item.id === videoId);
@@ -188,6 +221,7 @@ export default function ExplorePage() {
 
   // Save
   const handleSave = useCallback(async (videoId: string) => {
+    haptic("tap");
     const wasSaved = savedVideos.has(videoId);
     const nextSaved = !wasSaved;
     const video = videos.find((item) => item.id === videoId);
@@ -236,6 +270,7 @@ export default function ExplorePage() {
 
   // Share
   const handleShare = useCallback(async (videoId: string) => {
+    haptic("tap");
     const video = videos.find((item) => item.id === videoId);
     const previousCount = countValue(video?.shares);
     const shareUrl = `${window.location.origin}/explore?v=${videoId}`;
@@ -250,6 +285,8 @@ export default function ExplorePage() {
         }).catch(() => {});
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl).catch(() => {});
+        setShareToast("Link copiat în clipboard");
+        setTimeout(() => setShareToast(null), 1800);
       }
       const res = await fetch(`/api/videos/${videoId}/share`, {
         method: "POST",
@@ -267,6 +304,7 @@ export default function ExplorePage() {
 
   const handleFollow = useCallback(async (creatorId: string) => {
     if (!creatorId) return;
+    haptic("tap");
     const wasFollowing = followingCreators.has(creatorId);
     const nextFollowing = !wasFollowing;
 
@@ -382,17 +420,25 @@ export default function ExplorePage() {
         .action-btn {
           display: flex; flex-direction: column; align-items: center; gap: 4px;
           cursor: pointer; -webkit-tap-highlight-color: transparent;
+          background: transparent; border: 0; padding: 0;
+          min-width: 44px;
         }
         .action-btn .icon-wrap {
-          width: 48px; height: 48px;
+          width: 44px; height: 44px;
           display: flex; align-items: center; justify-content: center;
           border-radius: 50%;
+          background: rgba(255,255,255,0.10);
+          backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.35);
           transition: transform 0.15s, background 0.2s;
         }
-        .action-btn:active .icon-wrap { transform: scale(0.85); }
+        .action-btn:active .icon-wrap { transform: scale(0.88); background: rgba(255,255,255,0.18); }
         .action-btn .count {
-          font-size: 11px; font-weight: 600;
+          font-size: 12px; font-weight: 600;
+          color: #fff;
+          font-variant-numeric: tabular-nums;
           text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+          margin-top: 2px;
         }
         /* Creator avatar */
         .creator-avatar {
@@ -404,17 +450,20 @@ export default function ExplorePage() {
         .creator-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .avatar-plus {
           position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
-          width: 20px; height: 20px; border-radius: 50%;
-          background: #ff2d55; display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: 700; border: 2px solid #000;
-          color: #fff;
+          width: 22px; height: 22px; border-radius: 50%;
+          background: #FE2C55; display: flex; align-items: center; justify-content: center;
+          font-size: 16px; font-weight: 700; border: 2px solid #000;
+          color: #fff; padding: 0; cursor: pointer;
+          transition: transform 0.15s;
         }
+        .avatar-plus:active { transform: translateX(-50%) scale(0.85); }
         /* Bottom content */
         .bottom-content {
           position: absolute;
           bottom: max(80px, calc(80px + env(safe-area-inset-bottom, 0px)));
           left: max(14px, calc(14px + env(safe-area-inset-left, 0px)));
           right: max(80px, calc(80px + env(safe-area-inset-right, 0px)));
+          max-width: calc(100% - 72px);
           z-index: 20;
         }
         .creator-name {
@@ -560,9 +609,19 @@ export default function ExplorePage() {
       </div>
 
       {/* Mute toggle */}
-      <button className="mute-btn" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"}>
+      <button className="mute-btn" onClick={toggleMute} aria-label={isMuted ? "Activează sunetul" : "Oprește sunetul"} aria-pressed={!isMuted}>
         {isMuted ? <VolumeX size={18} color="#fff" /> : <Volume2 size={18} color="#fff" />}
       </button>
+
+      {/* Share toast */}
+      {shareToast && (
+        <div role="status" aria-live="polite" style={{
+          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          background: 'rgba(0,0,0,0.85)', color: '#fff', padding: '12px 20px',
+          borderRadius: 12, fontSize: 14, fontWeight: 500, zIndex: 100,
+          backdropFilter: 'blur(8px)',
+        }}>{shareToast}</div>
+      )}
 
 
       {/* Feed Scroll Container */}
@@ -616,59 +675,104 @@ export default function ExplorePage() {
 
               {/* Right Action Bar */}
               <div className="action-bar">
-                {/* Creator Avatar */}
-                <button
-                  type="button"
-                  className="creator-avatar"
-                  onClick={() => handleFollow(video.creator?.id)}
-                  aria-label={followingCreators.has(video.creator?.id) ? "Unfollow creator" : "Follow creator"}
-                >
-                  <img src={video.product?.image || video.thumbnail || '/favicon.ico'} alt="" />
-                  <div className="avatar-plus">{followingCreators.has(video.creator?.id) ? "ok" : "+"}</div>
-                </button>
+                {/* Creator Avatar -> profile, with mini +Follow when not following */}
+                <div style={{ position: 'relative', marginBottom: 8 }}>
+                  <Link
+                    href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
+                    className="creator-avatar"
+                    aria-label={`Profil ${(video.creator as any)?.username || 'creator'}`}
+                  >
+                    <img src={video.creator?.avatar || video.product?.image || video.thumbnail || '/favicon.ico'} alt="" />
+                  </Link>
+                  {video.creator?.id && !followingCreators.has(video.creator.id) && (
+                    <button
+                      type="button"
+                      className="avatar-plus"
+                      onClick={(e) => { e.preventDefault(); handleFollow(video.creator?.id); }}
+                      aria-label="Urmărește creatorul"
+                    >+</button>
+                  )}
+                </div>
 
                 {/* Like */}
-                <div className={`action-btn ${likedVideos.has(video.id) ? 'liked' : ''}`} onClick={() => handleLike(video.id)}>
+                <button
+                  type="button"
+                  className={`action-btn ${likedVideos.has(video.id) ? 'liked' : ''}`}
+                  onClick={() => handleLike(video.id)}
+                  aria-label={likedVideos.has(video.id) ? "Anulează aprecierea" : "Apreciază"}
+                  aria-pressed={likedVideos.has(video.id)}
+                >
                   <div className="icon-wrap">
-                    <Heart 
-                      size={28} 
-                      color={likedVideos.has(video.id) ? "#ff2d55" : "#fff"}
-                      fill={likedVideos.has(video.id) ? "#ff2d55" : "none"}
+                    <Heart
+                      size={24}
+                      color={likedVideos.has(video.id) ? "#FE2C55" : "#fff"}
+                      fill={likedVideos.has(video.id) ? "#FE2C55" : "none"}
                     />
                   </div>
                   <span className="count">{formatCount(video.likes)}</span>
-                </div>
+                </button>
 
                 {/* Comments */}
-                <div className="action-btn" onClick={() => setActiveCommentsVideo(video)}>
+                <button
+                  type="button"
+                  className="action-btn"
+                  onClick={() => { haptic("tap"); setActiveCommentsVideo(video); }}
+                  aria-label="Vezi comentariile"
+                >
                   <div className="icon-wrap">
-                    <MessageCircle size={28} color="#fff" />
+                    <MessageCircle size={24} color="#fff" />
                   </div>
                   <span className="count">{formatCount(video.comments)}</span>
-                </div>
+                </button>
 
                 {/* Save */}
-                <div className="action-btn" onClick={() => handleSave(video.id)}>
+                <button
+                  type="button"
+                  className="action-btn"
+                  onClick={() => handleSave(video.id)}
+                  aria-label={savedVideos.has(video.id) ? "Elimină din salvate" : "Salvează videoul"}
+                  aria-pressed={savedVideos.has(video.id)}
+                >
                   <div className="icon-wrap">
-                    <Bookmark 
-                      size={28} 
+                    <Bookmark
+                      size={24}
                       color={savedVideos.has(video.id) ? "#fbbf24" : "#fff"}
                       fill={savedVideos.has(video.id) ? "#fbbf24" : "none"}
                     />
                   </div>
-                  <span className="count">Salvează</span>
-                </div>
+                  <span className="count">{formatCount(video.saves)}</span>
+                </button>
 
                 {/* Share */}
-                <div className="action-btn" onClick={() => handleShare(video.id)}>
+                <button
+                  type="button"
+                  className="action-btn"
+                  onClick={() => handleShare(video.id)}
+                  aria-label="Distribuie videoul"
+                >
                   <div className="icon-wrap">
-                    <Share2 size={28} color="#fff" />
+                    <Share2 size={24} color="#fff" />
                   </div>
                   <span className="count">{formatCount(video.shares)}</span>
-                </div>
+                </button>
 
-                {/* More menu (hide / not interested / report) */}
-                <div className="action-btn">
+                {/* Cart — only if product attached */}
+                {video.product?.id && (
+                  <button
+                    type="button"
+                    className="action-btn"
+                    onClick={() => { haptic("tap"); openProduct(video); }}
+                    aria-label="Cumpără produsul"
+                  >
+                    <div className="icon-wrap">
+                      <ShoppingBag size={24} color="#fff" />
+                    </div>
+                    <span className="count">Produs</span>
+                  </button>
+                )}
+
+                {/* More menu */}
+                <div className="action-btn" aria-label="Mai multe opțiuni">
                   <MoreLikeThisMenu
                     videoId={video.id}
                     creatorId={video.creator?.id}
@@ -682,7 +786,7 @@ export default function ExplorePage() {
                 </div>
 
                 {/* Spinning disc */}
-                <div className="disc-spin">
+                <div className="disc-spin" aria-hidden="true">
                   <img src={video.thumbnail || '/favicon.ico'} alt="" />
                 </div>
               </div>
@@ -690,28 +794,35 @@ export default function ExplorePage() {
               {/* Bottom Content */}
               <div className="bottom-content">
                 {/* Creator */}
-                <div className="creator-name">@{(video.creator as any)?.username || video.creator?.name || 'Swypik'}{(video.creator as any)?.verified && <VerifiedBadge size={14} className="ml-1 align-middle" />}</div>
+                <Link
+                  href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
+                  className="creator-name"
+                  style={{ display: 'inline-block', color: '#fff', textDecoration: 'none' }}
+                >
+                  @{(video.creator as any)?.username || video.creator?.name || 'Swypik'}
+                  {(video.creator as any)?.verified && <VerifiedBadge size={14} className="ml-1 align-middle" />}
+                </Link>
 
-                {/* Description */}
-                <p className="video-desc">{video.description}</p>
+                {/* Description with hashtag links */}
+                <p className="video-desc">{renderDescription(video.description)}</p>
 
                 {/* Product Chip */}
                 {video.product?.id ? (
-                  <div className="product-chip" onClick={() => openProduct(video)}>
+                  <button type="button" className="product-chip" onClick={() => { haptic("tap"); openProduct(video); }} aria-label="Cumpără produsul prezentat">
                     {video.product.image && <img src={video.product.image} alt="" />}
-                    <span style={{ fontSize: 13, fontWeight: 500, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#fff' }}>
                       {video.product.name || 'Vezi produs'}
                     </span>
                     <span className="chip-price">{video.product.price || 'Vezi'}</span>
                     <div className="chip-buy">
                       <ShoppingCart size={14} color="#fff" />
                     </div>
-                  </div>
+                  </button>
                 ) : (
-                  <Link href="/" style={{ textDecoration: 'none' }}>
+                  <Link href="/shop" style={{ textDecoration: 'none' }}>
                     <div className="product-chip">
-                      <ShoppingCart size={18} color="#0D0D0D" style={{ marginLeft: 4 }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0D0D0D' }}>Cumpără pe Swypik</span>
+                      <ShoppingCart size={18} color="#fff" style={{ marginLeft: 4 }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Cumpără pe Swypik</span>
                     </div>
                   </Link>
                 )}
