@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { searchProducts } from "@/lib/db/product-queries";
 import { proxyToSocialApi } from "@/lib/social/proxy";
+import { getOptionalSocialUserId } from "@/lib/social/session";
+import { dbQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -88,11 +90,40 @@ export async function GET(req: Request) {
       toFeedItem(product, offset + index, seed)
     );
 
+    const userId = await getOptionalSocialUserId().catch(() => null);
+    let visibleItems = items;
+    if (userId) {
+      try {
+        const { rows } = await dbQuery<{ seen_video_ids: string[] }>(
+          "SELECT seen_video_ids FROM user_feed_state WHERE user_id = $1::uuid AND feed_type = 'for_you' LIMIT 1",
+          [userId],
+        );
+        const seen = new Set<string>(Array.isArray(rows?.[0]?.seen_video_ids) ? rows[0].seen_video_ids as string[] : []);
+        if (seen.size > 0) {
+          visibleItems = items.filter((it: any) => !seen.has(String(it.video_id)));
+          if (visibleItems.length === 0) visibleItems = items;
+        }
+        const newIds = visibleItems.map((it: any) => String(it.video_id)).filter(Boolean);
+        if (newIds.length > 0) {
+          const merged = Array.from(new Set([...newIds.reverse(), ...Array.from(seen)])).slice(0, 500);
+          await dbQuery(
+            `INSERT INTO user_feed_state (user_id, feed_type, seen_video_ids, last_refreshed_at, updated_at)
+             VALUES ($1::uuid, 'for_you', $2::jsonb, NOW(), NOW())
+             ON CONFLICT (user_id, feed_type)
+             DO UPDATE SET seen_video_ids = EXCLUDED.seen_video_ids, last_refreshed_at = NOW(), updated_at = NOW()`,
+            [userId, JSON.stringify(merged)],
+          );
+        }
+      } catch (e) {
+        console.warn("[v1/feed] seen-tracking failed", e);
+      }
+    }
+
     const nextOffset = offset + result.products.length;
 
     return NextResponse.json(
       {
-        items,
+        items: visibleItems,
         products: result.products,
         paging: {
           offset,

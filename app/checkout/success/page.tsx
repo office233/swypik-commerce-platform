@@ -1,6 +1,6 @@
 import { dbQuery } from "@/lib/db";
 import Link from "next/link";
-import Script from "next/script";
+import PurchaseTracker from "@/components/PurchaseTracker";
 import { getStripe } from "@/lib/stripe/checkout";
 
 export const dynamic = "force-dynamic";
@@ -169,11 +169,7 @@ export default async function CheckoutSuccess({
 
   return (
     <div className="min-h-screen bg-white px-4 py-10">
-      {isPaid && (
-        <Script id="clear-local-cart" strategy="afterInteractive">
-          {`try { window.localStorage.removeItem("aicv_cart"); } catch (e) {}`}
-        </Script>
-      )}
+      {isPaid && order?.id ? <PurchaseTracker orderId={String(order.id)} /> : null}
 
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center">
         <div className="w-full text-center">

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Flag,
   Heart,
   MessageCircle,
   Package,
@@ -49,6 +50,7 @@ const TRACK_EVENT_MAP: Record<string, FeedEventType> = {
   not_interested: "not_interested",
   more_like_this: "more_like_this",
   report: "report",
+  purchase: "purchase",
 };
 
 type FeedProduct = {
@@ -387,6 +389,13 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     setTimeout(() => setAddedToCart(null), 2000);
   };
 
+  const handleReport = (product: FeedProduct) => {
+    sendFeedEvent("report", product, { position: currentIdx });
+    if (typeof window !== "undefined") {
+      window.alert("Mulțumim pentru raport. Echipa noastră va analiza acest clip.");
+    }
+  };
+
   if (isLoading && products.length === 0) {
     return (
       <div className="feed-scroll flex items-center justify-center">
@@ -503,6 +512,12 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   <ShoppingCart size={24} />
                 </div>
                 <span className="text-[10px] font-bold text-white/90">Detalii</span>
+              </button>
+              <button type="button" onClick={() => handleReport(product)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label="Raporteaza">
+                <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
+                  <Flag size={20} />
+                </div>
+                <span className="text-[10px] font-bold text-white/90">Raport</span>
               </button>
             </div>
 
