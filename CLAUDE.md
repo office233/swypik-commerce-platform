@@ -101,7 +101,7 @@ GitHub = mirror/backup + history. VPS = sursa de adevar pentru cod live.
 
 ## Baza de Date (Postgres)
 - 79 tabele in `public` schema
-- **Auth fragmentat (Faza 4 pending):** `users` (10) + `customers` (5) + `sellers` (0) + `auth_accounts` (0) — TO BE UNIFIED in `accounts`
+- **Auth unified:** `users` (12, are coloana `role` shopper/creator/seller/admin) + `sellers` (entitate business separata) + `user_sessions`/`seller_sessions`. `lib/auth/getAuthUser.ts` = facade unic cu `requireRole()`. `customer_sessions` + `auth_accounts` = deprecated/dormant.
 - **Catalog:** `marketplace_products` (14012), `ae_products` (14012), `ae_categories`, `ae_variants`
 - **Video:** `videos` (4752), `creator_videos` (0), `video_assets`, `video_processing_jobs`, `video_upload_sessions`
 - **Feed/Discovery:** `feed_events` (30+ event types), `user_feed_state` (seen_video_ids jsonb LRU max 500), `feed_items`, `user_interests`, `user_hidden_videos`
@@ -171,7 +171,7 @@ Toate gated prin `lib/feature-flags.ts` (server) + `feature-flags-client.ts` (cl
 - ✓ Faza 2 Go decision (PASTREAZA)
 - ✓ Faza 5 CLAUDE.md sync (acest commit)
 - ⏳ Faza 3 Folder reorg (route groups marketing/shop/account/seller/admin)
-- ⏳ Faza 4 Auth unify (`accounts` table) — PR separat, risk mare
+- ✓ Faza 4 Auth unified (deja era, doar backfill 2 customers + docs sync)
 - ⏳ Faza 6 Code quality (logger propagation, type strict)
 
 ## URL-uri Production
