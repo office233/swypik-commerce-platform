@@ -64,39 +64,28 @@ export default function TopBar() {
     };
   }, []);
 
-  // Cart count — read from localStorage; refresh on focus, storage events, and 30s tick.
+  // Cart count — server-side cart (DB). Poll every 30s + refresh on focus.
   useEffect(() => {
-    const readCart = () => {
+    let cancelled = false;
+    const readCart = async () => {
       try {
-        const saved = localStorage.getItem("aicv_cart");
-        if (!saved) {
-          setCartCount(0);
-          return;
-        }
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const total = parsed.reduce(
-            (sum: number, item: any) => sum + (Number(item?.qty) || 0),
-            0,
-          );
-          setCartCount(total);
-        } else {
-          setCartCount(0);
-        }
+        const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
+        if (!r.ok) return;
+        const data = await r.json();
+        if (cancelled) return;
+        const items: Array<{ quantity?: number }> = Array.isArray(data?.items) ? data.items : [];
+        const total = items.reduce((sum, it) => sum + (Number(it?.quantity) || 0), 0);
+        setCartCount(total);
       } catch {
-        setCartCount(0);
+        if (!cancelled) setCartCount(0);
       }
     };
     readCart();
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "aicv_cart") readCart();
-    };
-    const onFocus = () => readCart();
-    window.addEventListener("storage", onStorage);
+    const onFocus = () => { void readCart(); };
     window.addEventListener("focus", onFocus);
     const t = setInterval(readCart, 30_000);
     return () => {
-      window.removeEventListener("storage", onStorage);
+      cancelled = true;
       window.removeEventListener("focus", onFocus);
       clearInterval(t);
     };

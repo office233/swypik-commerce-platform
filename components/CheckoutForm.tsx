@@ -151,24 +151,41 @@ export default function CheckoutForm() {
   const [orderLookupToken, setOrderLookupToken] = useState("");
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
 
-  // Load cart from localStorage
+  // Load cart from server (DB) — adapts API shape {items:[{productId,priceCents,quantity,...}]}
+  // to legacy CartItem shape {product:{...,price}, qty}.
   useEffect(() => {
-    const savedCart = localStorage.getItem("aicv_cart");
-    if (savedCart) {
+    let cancelled = false;
+    (async () => {
       try {
-        const parsed = JSON.parse(savedCart);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCartItems(parsed);
+        const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
+        if (!r.ok) throw new Error("cart_fetch_failed");
+        const data = await r.json();
+        const items: Array<any> = Array.isArray(data?.items) ? data.items : [];
+        if (cancelled) return;
+        if (items.length === 0) {
+          setError("Coșul tău este gol. Adaugă produse înainte de a plăti.");
         } else {
-          setError("Coșul tău este gol.");
+          const mapped: CartItem[] = items.map((it) => ({
+            product: {
+              id: String(it.productId),
+              productId: String(it.productId),
+              skuId: it.variantId || undefined,
+              title: it.title,
+              price: Number(it.priceCents || 0) / 100,
+              image: it.image || undefined,
+              images: it.image ? [it.image] : undefined,
+            } as any,
+            qty: Math.max(1, Math.min(10, Number(it.quantity) || 1)),
+          }));
+          setCartItems(mapped);
         }
       } catch {
-        setError("Coșul de cumpărături este invalid.");
+        if (!cancelled) setError("Nu am putut încărca coșul. Reîncearcă.");
+      } finally {
+        if (!cancelled) setIsInitializing(false);
       }
-    } else {
-      setError("Coșul tău este gol. Adaugă produse înainte de a plăti.");
-    }
-    setIsInitializing(false);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const subtotal = cartItems.reduce(
@@ -216,24 +233,44 @@ export default function CheckoutForm() {
     }
   }, [cartItems, clientSecret, createPaymentIntent]);
 
-  const removeItem = (index: number) => {
+  const removeItem = async (index: number) => {
     const updated = cartItems.filter((_, i) => i !== index);
     setCartItems(updated);
-    localStorage.setItem("aicv_cart", JSON.stringify(updated));
     if (updated.length === 0) setError("Coșul tău este gol.");
-    // Reset intent when cart changes
     setClientSecret(null);
+    // Server: PATCH the matching cart item id by re-reading /api/cart, then DELETE.
+    try {
+      const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
+      const data = await r.json();
+      const items: any[] = Array.isArray(data?.items) ? data.items : [];
+      const target = items[index];
+      if (target?.id) {
+        await fetch(`/api/cart/items/${target.id}`, { method: "DELETE", credentials: "include" });
+      }
+    } catch {}
   };
 
-  const updateQuantity = (index: number, newQty: number) => {
+  const updateQuantity = async (index: number, newQty: number) => {
     if (newQty < 1 || newQty > 10) return;
     const updated = cartItems.map((item, i) =>
       i === index ? { ...item, qty: newQty } : item
     );
     setCartItems(updated);
-    localStorage.setItem("aicv_cart", JSON.stringify(updated));
-    // Reset intent when cart changes
     setClientSecret(null);
+    try {
+      const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
+      const data = await r.json();
+      const items: any[] = Array.isArray(data?.items) ? data.items : [];
+      const target = items[index];
+      if (target?.id) {
+        await fetch(`/api/cart/items/${target.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ quantity: newQty }),
+        });
+      }
+    } catch {}
   };
 
   if (isInitializing) {

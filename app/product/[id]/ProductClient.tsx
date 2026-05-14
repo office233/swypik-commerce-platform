@@ -128,7 +128,7 @@ export default function ProductClient({ initialData }: Props) {
     return product.availableStock || 0;
   })();
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     // Build the cart item matching shared Product type
     const skuId = (() => {
       if (selectedColor && selectedSize && colorMap[selectedColor]) {
@@ -164,14 +164,24 @@ export default function ProductClient({ initialData }: Props) {
       qualityScore: 8,
     };
 
-    // Use shared mergeIntoCart (handles variant keys + qty cap at 10)
+    // Server-side cart (DB) — POST upserts the item under the active cart.
     try {
-      const existing = JSON.parse(localStorage.getItem("aicv_cart") || "[]");
-      const updated = mergeIntoCart(existing, cartProduct as Product, qty);
-      localStorage.setItem("aicv_cart", JSON.stringify(updated));
+      await fetch("/api/cart/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          productId: String(cartProduct.id),
+          quantity: Math.min(10, qty),
+          variantId: skuId || null,
+          title: cartProduct.title,
+          image: images[0] || null,
+          priceCents: Math.round(Number(cartProduct.price) * 100),
+          currency: "RON",
+        }),
+      });
     } catch (e) {
-      // Fallback: overwrite
-      localStorage.setItem("aicv_cart", JSON.stringify([{ product: cartProduct, qty: Math.min(10, qty) }]));
+      // Silent fail — UI still shows added confirmation; user can retry from /cart.
     }
 
     setAddedToCart(true);

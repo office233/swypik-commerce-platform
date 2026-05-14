@@ -48,6 +48,7 @@ export const viewport: Viewport = {
 import RewardFlash from "@/components/RewardFlash";
 import BottomNav from "@/components/BottomNav";
 import EmailVerifyBanner from "@/components/auth/EmailVerifyBanner";
+import OnboardingGate from "@/components/onboarding/OnboardingGate";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale;
@@ -72,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CurrencyProvider initial={currency}>
             <EmailVerifyBanner />
+            <OnboardingGate />
             <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 56px)', minHeight: '100dvh' }}>
               {children}
             </div>

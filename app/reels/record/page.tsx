@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Recorder from "@/components/reels/Recorder";
-import { getCreatorUserId } from "@/lib/creator/session";
+import { getAuthUser } from "@/lib/auth/getAuthUser";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +10,13 @@ export const metadata: Metadata = {
 };
 
 export default async function ReelsRecordPage() {
-  const userId = await getCreatorUserId();
-  if (!userId) {
+  const auth = await getAuthUser();
+  if (auth.role === "guest" || !auth.userId) {
     redirect("/auth/login?next=/reels/record");
   }
-  // Toți userii logați pot posta clipuri. Monetizarea (comisioane) se activează
-  // separat când userul devine creator afiliat (Stripe Connect + role=creator).
+  if (auth.role !== "creator" && auth.role !== "admin") {
+    // Shopperii (și sellerii fără rol creator) trec mai întâi prin promovare.
+    redirect("/become-a-creator");
+  }
   return <Recorder />;
 }

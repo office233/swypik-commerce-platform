@@ -33,6 +33,7 @@ import {
   createAdminSessionAndGetCookie,
   getAdminCookieName,
 } from "@/lib/security/admin-auth";
+import { CART_COOKIE, mergeAnonCartToUser } from "@/lib/cart/session";
 
 const COOKIE_NAME = "swypik_session";
 const SELLER_COOKIE_NAME = "seller_session";
@@ -99,6 +100,14 @@ async function issueSessionResponse(
      VALUES ($1, $2, now() + interval '30 days', $3::jsonb)`,
     [userId, sessionHash, JSON.stringify({ type: "session" })],
   );
+  // Merge anonymous cart (if any) into this user's cart.
+  try {
+    const cookieStore = await cookies();
+    const anonToken = cookieStore.get(CART_COOKIE)?.value || null;
+    if (anonToken) await mergeAnonCartToUser(anonToken, userId);
+  } catch (err) {
+    console.warn("[auth] cart merge failed:", (err as Error).message);
+  }
   await dbQuery(`UPDATE users SET last_seen_at = now() WHERE id = $1`, [userId]);
 
   const { rows: userRows } = await dbQuery<{

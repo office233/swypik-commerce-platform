@@ -12,6 +12,8 @@ export default function PurchaseTracker({ orderId }: { orderId: string }) {
       sessionStorage.setItem(key, "1");
     } catch {}
     void trackEventImmediate("purchase", { metadata: { order_id: orderId, source: "checkout-success" } });
+    // Clear server-side cart (new) + legacy localStorage cart.
+    fetch("/api/cart", { method: "DELETE", credentials: "include" }).catch(() => null);
     try {
       window.localStorage.removeItem("aicv_cart");
     } catch {}

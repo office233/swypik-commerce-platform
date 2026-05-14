@@ -175,7 +175,7 @@ export default function ChatInterface({
 
   useEffect(() => {
     setIsMounted(true);
-    try { const saved = localStorage.getItem("aicv_cart"); if (saved) setCartItems(JSON.parse(saved)); } catch {}
+    /* legacy aicv_cart removed — chat AI cart now ephemeral until server integration */
   }, []);
   const [toastMessage, setToastMessage] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -248,7 +248,7 @@ export default function ChatInterface({
   }, [feedProducts.length]);
 
   // Persist cart to localStorage
-  useEffect(() => { try { localStorage.setItem("aicv_cart", JSON.stringify(cartItems)); } catch {} }, [cartItems]);
+  /* legacy aicv_cart persistence removed — server-side /api/cart is source of truth */
   // Persist chat messages (last 20) to localStorage
   useEffect(() => { try { const toSave = messages.slice(-20).map(m => ({ ...m, products: m.products?.slice(0, 4), bundleProducts: m.bundleProducts?.slice(0, 4) })); localStorage.setItem("aicv_chat", JSON.stringify(toSave)); } catch {} }, [messages]);
 

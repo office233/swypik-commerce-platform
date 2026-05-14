@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, MailQuestion, Wallet, EyeOff, ShoppingBag } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, MailQuestion, Wallet, EyeOff, ShoppingBag, Sparkles } from "lucide-react";
 import EnablePushButton from "@/components/push/EnablePushButton";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -356,6 +356,13 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
 
         {/* Settings menu */}
         <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
+          {customer?.role === "shopper" && (
+            <Link href="/become-a-creator" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+              <Sparkles size={18} className="text-[#FE2C55]" />
+              <span className="flex-1 text-sm font-semibold">Devino creator</span>
+              <span className="text-white/40">›</span>
+            </Link>
+          )}
           <Link href="/account/edit" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
             <Settings size={18} className="text-white/60" />
             <span className="flex-1 text-sm font-semibold">Editează profil</span>

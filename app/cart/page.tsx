@@ -1,67 +1,120 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ArrowLeft, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 
-type CartItem = {
-  product: {
-    id?: string;
-    pgId?: string;
-    productId?: string;
-    title: string;
-    price: number;
-    oldPrice?: number;
-    image?: string;
-    images?: string[];
-    color?: string;
-    selectedColor?: string;
-    selectedSize?: string;
-    skuId?: string;
-  };
-  qty: number;
+type ApiItem = {
+  id: string;
+  productId: string;
+  variantId: string | null;
+  title: string;
+  image: string | null;
+  quantity: number;
+  priceCents: number;
+  currency: string;
+  metadata?: Record<string, unknown>;
 };
+
+async function migrateLocalCart(): Promise<boolean> {
+  try {
+    const saved = localStorage.getItem("aicv_cart");
+    if (!saved) return false;
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      localStorage.removeItem("aicv_cart");
+      return false;
+    }
+    for (const it of parsed) {
+      const productId = it?.product?.id || it?.product?.pgId || it?.product?.productId;
+      if (!productId) continue;
+      const priceRon = Number(it?.product?.price);
+      const priceCents = Number.isFinite(priceRon) ? Math.round(priceRon * 100) : 0;
+      await fetch("/api/cart/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          productId: String(productId),
+          quantity: Math.max(1, Math.min(10, Number(it?.qty) || 1)),
+          variantId: it?.product?.skuId || null,
+          title: it?.product?.title,
+          image: it?.product?.images?.[0] || it?.product?.image || null,
+          priceCents,
+          currency: "RON",
+        }),
+      }).catch(() => null);
+    }
+    localStorage.removeItem("aicv_cart");
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export default function CartPage() {
   const router = useRouter();
-  const [items, setItems] = useState<CartItem[]>([]);
+  const formatPrice = useFormatPrice();
+  const [items, setItems] = useState<ApiItem[]>([]);
+  const [currency, setCurrency] = useState("RON");
+  const [subtotalCents, setSubtotalCents] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("aicv_cart");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setItems(parsed);
-      }
-    } catch {}
-    setIsLoading(false);
+  const apply = useCallback((data: { items?: ApiItem[]; subtotalCents?: number; currency?: string }) => {
+    setItems(Array.isArray(data?.items) ? data.items : []);
+    setSubtotalCents(Number(data?.subtotalCents) || 0);
+    if (data?.currency) setCurrency(data.currency);
   }, []);
 
-  const persist = (updated: CartItem[]) => {
-    setItems(updated);
-    localStorage.setItem("aicv_cart", JSON.stringify(updated));
-  };
+  const load = useCallback(async () => {
+    const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
+    const data = await r.json().catch(() => ({}));
+    apply(data);
+  }, [apply]);
 
-  const updateQty = (idx: number, delta: number) => {
-    const updated = items.map((item, i) => {
-      if (i !== idx) return item;
-      const next = Math.max(1, Math.min(10, item.qty + delta));
-      return { ...item, qty: next };
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
+      const data = await r.json().catch(() => ({}));
+      if (!cancelled) apply(data);
+      const empty = !Array.isArray(data?.items) || data.items.length === 0;
+      if (empty) {
+        const migrated = await migrateLocalCart();
+        if (migrated && !cancelled) await load();
+      }
+      if (!cancelled) setIsLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [apply, load]);
+
+  const updateQty = async (item: ApiItem, delta: number) => {
+    const next = Math.max(0, Math.min(99, item.quantity + delta));
+    const r = await fetch(`/api/cart/items/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ quantity: next }),
     });
-    persist(updated);
+    const data = await r.json().catch(() => ({}));
+    apply(data);
   };
 
-  const removeItem = (idx: number) => {
-    persist(items.filter((_, i) => i !== idx));
+  const removeItem = async (item: ApiItem) => {
+    const r = await fetch(`/api/cart/items/${item.id}`, { method: "DELETE", credentials: "include" });
+    const data = await r.json().catch(() => ({}));
+    apply(data);
   };
 
-  const clearCart = () => persist([]);
+  const clearCart = async () => {
+    const r = await fetch("/api/cart", { method: "DELETE", credentials: "include" });
+    if (r.ok) await load();
+  };
 
-  const subtotal = items.reduce((s, i) => s + i.product.price * i.qty, 0);
-  const totalItems = items.reduce((s, i) => s + i.qty, 0);
+  const totalItems = items.reduce((s, i) => s + i.quantity, 0);
 
   if (isLoading) {
     return (
@@ -73,7 +126,6 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
           <ArrowLeft size={16} />
@@ -92,112 +144,78 @@ export default function CartPage() {
       </header>
 
       {items.length === 0 ? (
-        /* Empty State */
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
           <div className="w-20 h-20 rounded-full bg-[#F7F7F8] flex items-center justify-center mb-6">
             <ShoppingCart size={36} className="text-[#D1D1D6]" />
           </div>
           <h2 className="text-xl font-black text-[#0D0D0D] mb-2">Coșul tău este gol</h2>
-          <p className="text-sm text-[#6E6E80] mb-6 max-w-xs">
-            Explorează feed-ul sau magazinul pentru a descoperi produse noi.
-          </p>
+          <p className="text-sm text-[#6E6E80] mb-6 max-w-xs">Explorează feed-ul sau magazinul pentru a descoperi produse noi.</p>
           <div className="flex gap-3">
-            <Link href="/explore" className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">
-              Explorează Feed
-            </Link>
-            <Link href="/" className="rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] px-6 py-3 text-sm font-bold text-[#0D0D0D] active:scale-95 transition-transform">
-              Magazin
-            </Link>
+            <Link href="/explore" className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">Explorează Feed</Link>
+            <Link href="/" className="rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] px-6 py-3 text-sm font-bold text-[#0D0D0D] active:scale-95 transition-transform">Magazin</Link>
           </div>
         </div>
       ) : (
-        /* Cart Items */
         <div className="max-w-2xl mx-auto px-4 pt-4" style={{ paddingBottom: "max(12rem, calc(9rem + env(safe-area-inset-bottom, 0px)))" }}>
           <div className="space-y-3">
-            {items.map((item, idx) => {
-              const img = item.product.images?.[0] || item.product.image;
-              const variant = [item.product.selectedColor, item.product.selectedSize].filter(Boolean).join(" / ");
-
+            {items.map((item) => {
+              const lineCents = item.priceCents * item.quantity;
               return (
-                <div key={idx} className="flex gap-4 p-4 rounded-2xl border border-[#E5E5E5] bg-white hover:border-[#0D0D0D]/30 transition-colors">
-                  {/* Image */}
+                <div key={item.id} className="flex gap-4 p-4 rounded-2xl border border-[#E5E5E5] bg-white hover:border-[#0D0D0D]/30 transition-colors">
                   <div className="h-20 w-20 rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] overflow-hidden shrink-0 sm:h-24 sm:w-24">
-                    {img ? (
-                      <img src={img} alt={item.product.title} className="w-full h-full object-cover" />
+                    {item.image ? (
+                      <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
                     )}
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <Link href={`/product/${item.product.id || item.product.pgId}`} className="text-sm font-bold text-[#0D0D0D] line-clamp-2 leading-tight hover:text-[#0D0D0D] transition-colors">
-                      {item.product.title}
+                    <Link href={`/product/${item.productId}`} className="text-sm font-bold text-[#0D0D0D] line-clamp-2 leading-tight hover:text-[#0D0D0D] transition-colors">
+                      {item.title}
                     </Link>
-                    {variant && (
-                      <p className="text-xs text-[#6E6E80] mt-1">{variant}</p>
-                    )}
-
                     <div className="flex items-center justify-between mt-3">
-                      {/* Quantity */}
                       <div className="flex items-center rounded-xl border border-[#E5E5E5] overflow-hidden">
-                        <button onClick={() => updateQty(idx, -1)} disabled={item.qty <= 1} className="w-8 h-8 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition">
+                        <button onClick={() => updateQty(item, -1)} disabled={item.quantity <= 1} className="w-8 h-8 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition">
                           <Minus size={14} />
                         </button>
-                        <span className="w-8 h-8 flex items-center justify-center text-sm font-black text-[#0D0D0D] border-x border-[#E5E5E5]">
-                          {item.qty}
-                        </span>
-                        <button onClick={() => updateQty(idx, 1)} disabled={item.qty >= 10} className="w-8 h-8 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition">
+                        <span className="w-8 h-8 flex items-center justify-center text-sm font-black text-[#0D0D0D] border-x border-[#E5E5E5]">{item.quantity}</span>
+                        <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= 99} className="w-8 h-8 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition">
                           <Plus size={14} />
                         </button>
                       </div>
-
-                      {/* Price */}
                       <div className="text-right">
-                        <p className="text-base font-black text-[#0D0D0D]">{(item.product.price * item.qty).toFixed(2)} lei</p>
-                        {item.qty > 1 && (
-                          <p className="text-xs text-[#A1A1AA]">{item.product.price.toFixed(2)} / buc</p>
+                        <p className="text-base font-black text-[#0D0D0D]">{formatPrice(lineCents, { sourceCurrency: item.currency as any })}</p>
+                        {item.quantity > 1 && (
+                          <p className="text-xs text-[#A1A1AA]">{formatPrice(item.priceCents, { sourceCurrency: item.currency as any })} / buc</p>
                         )}
                       </div>
                     </div>
                   </div>
-
-                  {/* Remove */}
-                  <button onClick={() => removeItem(idx)} className="self-start p-2 rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all">
+                  <button onClick={() => removeItem(item)} className="self-start p-2 rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all">
                     <Trash2 size={16} />
                   </button>
                 </div>
               );
             })}
           </div>
-
-          {/* Upsell */}
           <div className="mt-6 p-4 rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5]">
             <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-wider mb-2">💡 Livrare gratuită</p>
-            <p className="text-sm text-[#0D0D0D] font-semibold">
-              Toate comenzile au livrare gratuită pe Swypik.
-            </p>
+            <p className="text-sm text-[#0D0D0D] font-semibold">Toate comenzile au livrare gratuită pe Swypik.</p>
           </div>
         </div>
       )}
 
-      {/* Fixed Bottom — Checkout */}
       {items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-[#E5E5E5] px-4 pt-4 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] safe-pb">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-[#6E6E80]">Total ({totalItems} produse)</span>
-              <span className="text-xl font-black text-[#0D0D0D]">{subtotal.toFixed(2)} lei</span>
+              <span className="text-xl font-black text-[#0D0D0D]">{formatPrice(subtotalCents, { sourceCurrency: currency as any })}</span>
             </div>
-            <Link
-              href="/checkout"
-              className="block w-full rounded-2xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white active:scale-[0.98] transition-transform shadow-xl"
-            >
-              🔒 Finalizează comanda — {subtotal.toFixed(2)} lei
+            <Link href="/checkout" className="block w-full rounded-2xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white active:scale-[0.98] transition-transform shadow-xl">
+              🔒 Finalizează comanda — {formatPrice(subtotalCents, { sourceCurrency: currency as any })}
             </Link>
-            <p className="text-center text-xs text-[#A1A1AA] mt-2">
-              Plata securizată prin Stripe • Livrare gratuită
-            </p>
+            <p className="text-center text-xs text-[#A1A1AA] mt-2">Plata securizată prin Stripe • Livrare gratuită</p>
           </div>
         </div>
       )}

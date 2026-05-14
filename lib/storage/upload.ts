@@ -101,10 +101,15 @@ export interface UploadResult {
  * Upload a file buffer to S3/R2.
  * Returns the public URL on success.
  */
+export interface UploadOptions {
+  keyPrefix?: string;
+}
+
 export async function uploadFile(
   file: Buffer,
   originalName: string,
-  mimeType: string
+  mimeType: string,
+  options: UploadOptions = {}
 ): Promise<UploadResult> {
   // Validate
   if (!ALLOWED_MIME_TYPES.has(mimeType)) {
@@ -133,9 +138,10 @@ export async function uploadFile(
     throw new Error("S3_BUCKET is not configured.");
   }
 
-  // Generate unique filename: products/2026/05/uuid.ext
+  // Generate unique filename. Default prefix: products/YYYY/MM. Override via options.keyPrefix.
   const now = new Date();
-  const prefix = `products/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const defaultPrefix = `products/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const prefix = (options.keyPrefix || defaultPrefix).replace(/^\/+|\/+$/g, "");
   const uniqueId = crypto.randomUUID();
   const ext = getExtension(mimeType);
   const key = `${prefix}/${uniqueId}${ext}`;
