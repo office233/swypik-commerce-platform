@@ -38,6 +38,7 @@ export const viewport: Viewport = {
 
 import RewardFlash from "@/components/RewardFlash";
 import BottomNav from "@/components/BottomNav";
+import ThemeProvider from "@/components/ThemeProvider";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -52,11 +53,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
-        <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 56px)', minHeight: '100dvh' }}>
-          {children}
-        </div>
-        <BottomNav />
-        <RewardFlash />
+        <ThemeProvider>
+          <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 56px)', minHeight: '100dvh' }}>
+            {children}
+          </div>
+          <BottomNav />
+          <RewardFlash />
+        </ThemeProvider>
       </body>
     </html>
   );

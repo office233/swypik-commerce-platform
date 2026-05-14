@@ -8,6 +8,7 @@ import { Settings, Plus, Video, Heart, Package, Grid, Bookmark } from "lucide-re
 import TopBar from "@/components/TopBar";
 import EnablePushButton from "@/components/push/EnablePushButton";
 import { isEnabledClient } from "@/lib/feature-flags-client";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type AccountPageClientProps = {
   redirectTo: string;
@@ -353,6 +354,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         </div>
 
         {/* Settings: Notificări push */}
+        <div className="flex justify-end px-4 mt-2"><ThemeToggle /></div>
         {isEnabledClient('pushNotifications') && (
           <section className="mt-8 mb-10 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
             <h3 className="text-base font-black text-white">Notificări push</h3>

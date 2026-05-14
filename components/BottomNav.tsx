@@ -2,84 +2,80 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, Search, ShoppingCart, User, Compass } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Home, Search, Plus, Inbox, User } from "lucide-react";
+import { isEnabledClient } from "@/lib/feature-flags-client";
+import { haptic } from "@/lib/haptic";
 
 const NAV_ITEMS = [
   { href: "/", icon: Home, label: "Acasă" },
-  { href: "/explore", icon: Compass, label: "Feed" },
-  { href: "/shop", icon: Search, label: "Magazin" },
-  { href: "/cart", icon: ShoppingCart, label: "Coș", showBadge: true },
-  { href: "/account", icon: User, label: "Cont" },
+  { href: "/explore", icon: Search, label: "Explorează" },
+  { href: "/record", icon: Plus, label: "", center: true },
+  { href: "/inbox", icon: Inbox, label: "Inbox", flag: "dm" as const },
+  { href: "/account", icon: User, label: "Profil" },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const [cartCount, setCartCount] = useState(0);
-
-  // Pages where we hide the nav
-  const hiddenPaths = ["/explore", "/checkout"];
-  const isHidden = hiddenPaths.some((p) => pathname.startsWith(p));
-
-  useEffect(() => {
-    const update = () => {
-      try {
-        const cart = JSON.parse(localStorage.getItem("aicv_cart") || "[]");
-        setCartCount(Array.isArray(cart) ? cart.reduce((s: number, i: any) => s + (i.qty || 1), 0) : 0);
-      } catch {
-        setCartCount(0);
-      }
-    };
-    update();
-    window.addEventListener("storage", update);
-    const interval = setInterval(update, 2000);
-    return () => {
-      window.removeEventListener("storage", update);
-      clearInterval(interval);
-    };
-  }, []);
-
-  if (isHidden) return null;
+  const hiddenPaths = ["/checkout"];
+  if (hiddenPaths.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-[#E5E5E5] shadow-[0_-2px_20px_rgba(0,0,0,0.05)]"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-[#E5E5E5] dark:border-[#1F1F1F] shadow-[0_-2px_20px_rgba(0,0,0,0.05)]"
       style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
     >
       <div className="mx-auto max-w-lg flex items-center justify-around px-2 py-1.5">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href);
+          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
+          const disabled = item.flag ? !isEnabledClient(item.flag) : false;
+
+          if (item.center) {
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => haptic("tap")}
+                aria-label="Înregistrează"
+                className="flex items-center justify-center w-12 h-9 rounded-lg bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] shadow-md active:scale-95 transition-transform"
+              >
+                <Icon size={24} strokeWidth={2.5} className="text-white" />
+              </Link>
+            );
+          }
+
+          if (disabled) {
+            return (
+              <span
+                key={item.href}
+                aria-disabled="true"
+                className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[#D4D4D8] dark:text-[#3F3F46] cursor-not-allowed"
+              >
+                <Icon size={22} strokeWidth={1.8} />
+                <span className="text-[10px] leading-tight font-medium">{item.label}</span>
+              </span>
+            );
+          }
 
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => haptic("tap")}
               className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
                 isActive
-                  ? "text-[#0D0D0D]"
-                  : "text-[#A1A1AA] hover:text-[#6E6E80]"
+                  ? "text-[#0D0D0D] dark:text-white"
+                  : "text-[#A1A1AA] hover:text-[#6E6E80] dark:hover:text-[#A1A1AA]"
               }`}
             >
-              <div className="relative">
-                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-                {item.showBadge && cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-[#EF4444] text-[9px] font-black text-white px-1">
-                    {cartCount > 9 ? "9+" : cartCount}
-                  </span>
-                )}
-              </div>
-              <span
-                className={`text-[10px] leading-tight ${
-                  isActive ? "font-bold" : "font-medium"
-                }`}
-              >
-                {item.label}
-              </span>
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+              {item.label && (
+                <span className={`text-[10px] leading-tight ${isActive ? "font-bold" : "font-medium"}`}>
+                  {item.label}
+                </span>
+              )}
               {isActive && (
-                <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-[#0D0D0D]" />
+                <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-[#0D0D0D] dark:bg-white" />
               )}
             </Link>
           );
