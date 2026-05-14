@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import QRCode from "qrcode";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
-import { generateSecret, getOtpAuthUrl } from "@/lib/auth/totp";
+import { generateSecret, getOtpAuthUrl, encryptSecret } from "@/lib/auth/totp";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +23,20 @@ export async function POST() {
   const otpAuthUrl = getOtpAuthUrl(secret, rows[0].email);
   const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl, { width: 240, margin: 1 });
 
+  // Persist encrypted at rest (AES-256-GCM); requires APP_ENCRYPTION_KEY env
+  let stored: string;
+  try {
+    stored = encryptSecret(secret);
+  } catch (e) {
+    return NextResponse.json(
+      { error: "Server lipsește cheie de criptare. Contactează administratorul." },
+      { status: 500 },
+    );
+  }
+
   await dbQuery(
     `UPDATE users SET totp_secret = $1, totp_enabled_at = NULL WHERE id = $2`,
-    [secret, session.userId],
+    [stored, session.userId],
   );
 
   return NextResponse.json({ secret, otpAuthUrl, qrCodeDataUrl });

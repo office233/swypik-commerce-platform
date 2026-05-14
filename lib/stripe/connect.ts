@@ -1,3 +1,9 @@
+/**
+ * CANONICAL Stripe Connect data: stored on USERS.stripe_connect_* columns.
+ * The legacy table creator_connect_accounts is currently empty (0 rows in prod 2026-05-15)
+ * and is NOT written/read by application code. Treat it as deprecated; if reactivated,
+ * migrate user-level columns into it as the canonical source and remove from users.
+ */
 import { getStripe } from "./checkout";
 import { dbQuery } from "@/lib/db";
 import type Stripe from "stripe";
