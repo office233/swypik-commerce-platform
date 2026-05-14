@@ -43,6 +43,8 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const titleId = "audio-picker-title";
 
   const fetchTracks = useCallback(async (search: string, genreFilter: string) => {
     // Abort any in-flight request before starting a new one
@@ -91,6 +93,27 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
     }
   }, [open]);
 
+  // A11y: Escape closes, focus search on open, body scroll lock
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // focus the search input
+    const t = window.setTimeout(() => searchInputRef.current?.focus(), 30);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      window.clearTimeout(t);
+    };
+  }, [open, onClose]);
+
   const togglePlay = useCallback((track: AudioTrackDTO) => {
     let el = audioRef.current;
     if (!el) {
@@ -130,7 +153,7 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full sm:max-w-md bg-neutral-950 text-white rounded-t-3xl sm:rounded-3xl border border-white/10 max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-4 h-14 border-b border-white/10">
@@ -141,7 +164,7 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
           >
             <X size={18} />
           </button>
-          <h2 className="text-sm font-bold">Alege piesa</h2>
+          <h2 id={titleId} className="text-sm font-bold">Alege piesa</h2>
           <button
             onClick={handleClear}
             className="text-xs font-bold text-white/60 hover:text-white"
@@ -155,10 +178,12 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
             <input
+              ref={searchInputRef}
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Caută titlu, artist, tag..."
+              aria-label="Caută piesă"
               className="w-full bg-white/5 border border-white/10 rounded-full pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-white/30"
             />
           </div>

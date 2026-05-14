@@ -82,6 +82,7 @@ export async function GET(req: Request) {
       limit,
       offset: safeOffset,
       seed: safeSeed,
+      includeCount: url.searchParams.get("includeCount") === "1",
       locale,
     });
 

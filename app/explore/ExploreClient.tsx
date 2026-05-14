@@ -9,6 +9,7 @@ import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX,
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
+import { trackEvent as trackFeedEvent, trackWatchTime, flushWatchTime, resetWatchTime, getSessionId } from "@/lib/feed/track";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
@@ -47,16 +48,16 @@ interface FeedVideoProps {
   src: string | null | undefined;
   hlsUrl: string | null | undefined;
   poster: string | null | undefined;
-  active: boolean;
+  isCurrent: boolean;
   muted: boolean;
   registerRef: (id: string, el: HTMLVideoElement | null) => void;
   onTap: () => void;
-  onTimeUpdate: (videoId: string, ratio: number) => void;
+  onTimeUpdate: (videoId: string, ratio: number, currentTime: number) => void;
 }
 
-function FeedVideo({ videoId, src, hlsUrl, poster, active, muted, registerRef, onTap, onTimeUpdate }: FeedVideoProps) {
-  // useHlsVideo wires src only when active. Returns ref to attach.
-  const effectiveSrc = active ? (hlsUrl || src || undefined) : undefined;
+function FeedVideo({ videoId, src, hlsUrl, poster, isCurrent, muted, registerRef, onTap, onTimeUpdate }: FeedVideoProps) {
+  // useHlsVideo wires src only when current. Neighbors mount <video> with preload=metadata, no src.
+  const effectiveSrc = isCurrent ? (hlsUrl || src || undefined) : undefined;
   const hlsRef = useHlsVideo(effectiveSrc);
 
   // bridge the hls hook ref into the parent map
@@ -72,11 +73,11 @@ function FeedVideo({ videoId, src, hlsUrl, poster, active, muted, registerRef, o
       loop
       muted={muted}
       playsInline
-      preload={active ? "auto" : "none"}
+      preload={isCurrent ? "auto" : "metadata"}
       onClick={onTap}
       onTimeUpdate={(e) => {
         const v = e.currentTarget;
-        if (v.duration) onTimeUpdate(videoId, v.currentTime / v.duration);
+        if (v.duration) onTimeUpdate(videoId, v.currentTime / v.duration, v.currentTime);
       }}
     />
   );
@@ -120,31 +121,44 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
     else videoRefs.current.delete(id);
   }, []);
 
-  const handleTimeUpdate = useCallback((videoId: string, ratio: number) => {
+  const handleTimeUpdate = useCallback((videoId: string, ratio: number, currentTime: number) => {
     // ref-based progress update — no setState, no re-render
     const bar = progressBarRefs.current.get(videoId);
     if (bar) bar.style.transform = `scaleX(${Math.min(1, Math.max(0, ratio))})`;
+    // batched watch_time tick
+    trackWatchTime(videoId, Math.round(currentTime * 1000));
   }, []);
 
   const trackEvent = useCallback((videoId: string, eventType: string, data?: any) => {
-    if (!sessionIdRef.current) return;
-    fetch(`/api/videos/${videoId}/event`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event_type: eventType, session_id: sessionIdRef.current, ...data }),
-    }).catch(() => {});
+    // Route via batched client. Map legacy event names to canonical FeedEventType.
+    const map: Record<string, string> = {
+      impression: "video_impression",
+      like: "like",
+      unlike: "unlike",
+      save: "save",
+      unsave: "unsave",
+      share: "share",
+      buy_now: "purchase_click",
+    };
+    const mapped = (map[eventType] || eventType) as any;
+    try {
+      trackFeedEvent(mapped, { video_id: videoId, metadata: data });
+    } catch {}
   }, []);
 
   const sendView = useCallback((videoId: string) => {
     if (viewedVideosRef.current.has(videoId)) return;
     viewedVideosRef.current.add(videoId);
+    // legacy server counter
     fetch(`/api/videos/${videoId}/view`, { method: "POST" }).catch(() => {});
+    // batched feed event
+    try { trackFeedEvent("video_view" as any, { video_id: videoId }); } catch {}
   }, []);
 
   useEffect(() => {
     if (!sessionIdRef.current && typeof window !== "undefined") {
-      sessionIdRef.current = window.crypto?.randomUUID?.()
-        || `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      // use shared feed session (also used by lib/feed/track)
+      sessionIdRef.current = getSessionId();
     }
 
     async function fetchVideos() {
@@ -211,6 +225,11 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
             if (t) {
               clearTimeout(t);
               (el as any).__viewTimer = null;
+            }
+            // flush residual watch_time when slide leaves viewport
+            if (videoId) {
+              flushWatchTime(videoId);
+              resetWatchTime(videoId);
             }
           }
         });
@@ -530,7 +549,8 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
           </div>
         ) : (
           videos.map((video, idx) => {
-            const active = Math.abs(idx - currentIndex) <= MOUNT_RADIUS;
+            const isCurrent = idx === currentIndex;
+            const nearActive = Math.abs(idx - currentIndex) <= MOUNT_RADIUS;
             return (
               <div
                 key={video.id}
@@ -538,13 +558,13 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
                 data-video-idx={idx}
                 className="video-slide"
               >
-                {active ? (
+                {nearActive ? (
                   <FeedVideo
                     videoId={video.id}
                     src={video.url}
                     hlsUrl={video.hlsUrl}
                     poster={video.thumbnail}
-                    active={active}
+                    isCurrent={isCurrent}
                     muted={isMuted}
                     registerRef={registerVideoRef}
                     onTap={toggleMute}
@@ -567,16 +587,19 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
                 <div className="video-gradient-top" />
                 <div className="video-gradient" />
 
-                <div className="video-progress">
-                  <div
-                    className="video-progress-fill"
-                    ref={(el) => {
-                      if (el) progressBarRefs.current.set(video.id, el);
-                      else progressBarRefs.current.delete(video.id);
-                    }}
-                  />
-                </div>
+                {nearActive && (
+                  <div className="video-progress">
+                    <div
+                      className="video-progress-fill"
+                      ref={(el) => {
+                        if (el) progressBarRefs.current.set(video.id, el);
+                        else progressBarRefs.current.delete(video.id);
+                      }}
+                    />
+                  </div>
+                )}
 
+                {nearActive && (<>
                 <div className="action-bar">
                   <div style={{ position: 'relative', marginBottom: 8 }}>
                     <Link
@@ -665,13 +688,13 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
                     />
                   </div>
 
-                  {video.audioTrack?.image && (
+                  {video.audioTrack?.image_url && (
                     <Link
                       href={video.audioTrack.id ? `/audio/${video.audioTrack.id}` : '#'}
                       className="disc-spin"
                       aria-label={video.audioTrack.title || 'Audio'}
                     >
-                      <Image src={video.audioTrack.image} alt="" width={40} height={40} unoptimized />
+                      <Image src={video.audioTrack.image_url} alt="" width={40} height={40} unoptimized />
                     </Link>
                   )}
                 </div>
@@ -728,6 +751,7 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
                     )}
                   </div>
                 </div>
+                </>)}
               </div>
             );
           })
