@@ -37,7 +37,7 @@ export default function BottomNav() {
                 href={item.href}
                 onClick={() => haptic("tap")}
                 aria-label="Înregistrează"
-                className="flex items-center justify-center mx-auto w-12 h-9 rounded-xl bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] shadow-md active:scale-95 transition-transform"
+                className="flex items-center justify-center mx-auto w-12 h-9 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#EC4899] shadow-md active:scale-95 transition-transform"
               >
                 <Icon size={24} strokeWidth={2.5} className="text-white" />
               </Link>

@@ -724,7 +724,7 @@ function RecordButton(props: {
             cy={size / 2}
             r={r}
             fill="none"
-            stroke={isPaused ? "#FACC15" : "#FE2C55"}
+            stroke={isPaused ? "#FACC15" : "#7C3AED"}
             strokeWidth={4}
             strokeDasharray={`${dash} ${c}`}
             strokeLinecap="round"
@@ -761,9 +761,9 @@ function RecordButton(props: {
       ) : isRec ? (
         <span className="w-7 h-7 bg-white rounded-md" />
       ) : isPaused ? (
-        <span className="w-6 h-6 bg-[#FE2C55] rounded-full" />
+        <span className="w-6 h-6 bg-[#7C3AED] rounded-full" />
       ) : (
-        <span className="w-6 h-6 bg-[#FE2C55] rounded-full" />
+        <span className="w-6 h-6 bg-[#7C3AED] rounded-full" />
       )}
     </button>
   );

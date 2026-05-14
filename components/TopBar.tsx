@@ -108,7 +108,7 @@ export default function TopBar() {
         >
           <ShoppingBag className="h-5 w-5" />
           {cartCount > 0 && (
-            <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FE2C55] px-1 text-[11px] font-semibold text-white">
+            <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#7C3AED] px-1 text-[11px] font-semibold text-white">
               {cartCount > 99 ? "99+" : cartCount}
             </span>
           )}
@@ -120,7 +120,7 @@ export default function TopBar() {
         >
           <Inbox className="h-5 w-5" />
           {unread > 0 && (
-            <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FE2C55] px-1 text-[11px] font-semibold text-white">
+            <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#7C3AED] px-1 text-[11px] font-semibold text-white">
               {unread > 99 ? "99+" : unread}
             </span>
           )}

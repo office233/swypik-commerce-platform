@@ -30,7 +30,7 @@ export default async function AuthSignupPage({ searchParams }: Props) {
     <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-5 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))]">
       <header className="mb-10 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-white">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#FE2C55] text-base font-black">S</span>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#7C3AED] text-base font-black">S</span>
           <span className="text-lg font-black tracking-tight">swypik</span>
         </Link>
         <Link
