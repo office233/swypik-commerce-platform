@@ -27,6 +27,35 @@ export default function SecurityPageClient({
   const [disablePw, setDisablePw] = useState("");
   const [twoFaLoading, setTwoFaLoading] = useState(false);
   const [twoFaError, setTwoFaError] = useState<string | null>(null);
+  const [regenPw, setRegenPw] = useState("");
+  const [showRegen, setShowRegen] = useState(false);
+
+  async function regenerateBackupCodes() {
+    setTwoFaError(null);
+    if (!regenPw) {
+      setTwoFaError("Introdu parola.");
+      return;
+    }
+    setTwoFaLoading(true);
+    try {
+      const r = await fetch("/api/users/me/2fa/regenerate-backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: regenPw }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        setTwoFaError(j.error || "Eroare la regenerare.");
+        return;
+      }
+      setBackupCodes(j.backup_codes || []);
+      setTwoFaStep("codes");
+      setShowRegen(false);
+      setRegenPw("");
+    } finally {
+      setTwoFaLoading(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -153,8 +182,8 @@ export default function SecurityPageClient({
       </p>
 
       {error && (
-        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#FE2C55]/30 bg-[#FE2C55]/10 p-4">
-          <AlertCircle className="mt-0.5 h-5 w-5 text-[#FE2C55]" />
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 text-[#7C3AED]" />
           <p className="text-sm font-semibold">{error}</p>
         </div>
       )}
@@ -183,7 +212,7 @@ export default function SecurityPageClient({
         <button
           type="submit"
           disabled={loading || !password || !confirm}
-          className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#FE2C55] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
+          className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Salvează parola"}
         </button>
@@ -207,7 +236,7 @@ export default function SecurityPageClient({
         </p>
 
         {twoFaError && (
-          <div className="mb-3 rounded-xl border border-[#FE2C55]/30 bg-[#FE2C55]/10 p-3 text-xs font-semibold">
+          <div className="mb-3 rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 p-3 text-xs font-semibold">
             {twoFaError}
           </div>
         )}
@@ -223,12 +252,50 @@ export default function SecurityPageClient({
         )}
 
         {twoFaStep === "idle" && twoFaEnabled && (
-          <button
-            onClick={() => setTwoFaStep("disable")}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FE2C55]/10 py-3 text-sm font-black text-[#FE2C55] hover:bg-[#FE2C55]/20"
-          >
-            <ShieldOff size={14} /> Dezactivează 2FA
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={() => setTwoFaStep("disable")}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#7C3AED]/10 py-3 text-sm font-black text-[#7C3AED] hover:bg-[#7C3AED]/20"
+            >
+              <ShieldOff size={14} /> Dezactivează 2FA
+            </button>
+            {!showRegen ? (
+              <button
+                onClick={() => setShowRegen(true)}
+                className="w-full rounded-xl bg-white/5 py-2.5 text-xs font-bold text-white/70 hover:bg-white/10"
+              >
+                Regenerează codurile de rezervă
+              </button>
+            ) : (
+              <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                <p className="text-xs text-white/70">
+                  Vechile coduri vor fi invalidate. Confirmă parola:
+                </p>
+                <input
+                  type="password"
+                  value={regenPw}
+                  onChange={(e) => setRegenPw(e.target.value)}
+                  placeholder="Parola contului"
+                  className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowRegen(false); setRegenPw(""); }}
+                    className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-bold hover:bg-white/15"
+                  >
+                    Anulează
+                  </button>
+                  <button
+                    onClick={regenerateBackupCodes}
+                    disabled={twoFaLoading}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#7C3AED] py-2 text-xs font-bold disabled:opacity-50"
+                  >
+                    {twoFaLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Generează"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {twoFaStep === "setup" && qrUrl && (
@@ -250,12 +317,12 @@ export default function SecurityPageClient({
               value={setupToken}
               onChange={(e) => setSetupToken(e.target.value.replace(/\D/g, ""))}
               placeholder="Cod 6 cifre"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-xl tracking-[0.4em] font-bold focus:outline-none focus:border-[#FE2C55]"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-xl tracking-[0.4em] font-bold focus:outline-none focus:border-[#7C3AED]"
             />
             <button
               onClick={enable2fa}
               disabled={twoFaLoading || setupToken.length !== 6}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FE2C55] py-3 text-sm font-black hover:bg-[#E0264A] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#7C3AED] py-3 text-sm font-black hover:bg-[#E0264A] disabled:opacity-50"
             >
               {twoFaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmă și activează"}
             </button>
@@ -312,7 +379,7 @@ export default function SecurityPageClient({
               value={disablePw}
               onChange={(e) => setDisablePw(e.target.value)}
               placeholder="Parola contului"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm focus:outline-none focus:border-[#FE2C55]"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm focus:outline-none focus:border-[#7C3AED]"
             />
             <div className="flex gap-2">
               <button
@@ -324,7 +391,7 @@ export default function SecurityPageClient({
               <button
                 onClick={disable2fa}
                 disabled={twoFaLoading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#FE2C55] py-3 text-sm font-black hover:bg-[#E0264A] disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#7C3AED] py-3 text-sm font-black hover:bg-[#E0264A] disabled:opacity-50"
               >
                 {twoFaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Dezactivează"}
               </button>
@@ -363,7 +430,7 @@ function PasswordField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="••••••••"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-16 text-base text-white outline-none focus:border-[#FE2C55] focus:ring-2 focus:ring-[#FE2C55]/30"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-16 text-base text-white outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/30"
         />
         <button
           type="button"
