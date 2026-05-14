@@ -454,12 +454,12 @@ function ExplorePageInner() {
         .video-slide .poster-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .video-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 55%; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, transparent 100%); }
         .video-gradient-top { position: absolute; top: 0; left: 0; right: 0; height: 120px; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%); }
-        .action-bar { position: absolute; right: max(12px, calc(12px + env(safe-area-inset-right, 0px))); bottom: max(180px, calc(180px + env(safe-area-inset-bottom, 0px))); display: flex; flex-direction: column; align-items: center; gap: 20px; z-index: 20; }
-        .action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; -webkit-tap-highlight-color: transparent; background: transparent; border: 0; padding: 0; min-width: 44px; }
-        .action-btn .icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.10); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 8px rgba(0,0,0,0.35); transition: transform 0.15s, background 0.2s; }
-        .action-btn:active .icon-wrap { transform: scale(0.88); background: rgba(255,255,255,0.18); }
-        .action-btn .count { font-size: 12px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,0.8); margin-top: 2px; }
-        .creator-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; overflow: hidden; position: relative; margin-bottom: 16px; padding: 0; background: transparent; cursor: pointer; }
+        .action-bar { position: absolute; right: max(8px, calc(8px + env(safe-area-inset-right, 0px))); bottom: max(170px, calc(170px + env(safe-area-inset-bottom, 0px))); display: flex; flex-direction: column; align-items: center; gap: 14px; z-index: 20; }
+        .action-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; -webkit-tap-highlight-color: transparent; background: transparent; border: 0; padding: 0; min-width: 48px; }
+        .action-btn .icon-wrap { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); transition: transform 0.15s; }
+        .action-btn:active .icon-wrap { transform: scale(0.85); }
+        .action-btn .count { font-size: 13px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,0.8); margin-top: 0; line-height: 1.2; }
+        .creator-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; overflow: hidden; position: relative; margin-bottom: 18px; padding: 0; background: transparent; cursor: pointer; }
         .creator-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .avatar-plus { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 22px; height: 22px; border-radius: 50%; background: #FE2C55; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; border: 2px solid #000; color: #fff; padding: 0; cursor: pointer; transition: transform 0.15s; }
         .avatar-plus:active { transform: translateX(-50%) scale(0.85); }
@@ -600,7 +600,7 @@ function ExplorePageInner() {
                     aria-pressed={likedVideos.has(video.id)}
                   >
                     <div className="icon-wrap">
-                      <Heart size={24} color={likedVideos.has(video.id) ? "#FE2C55" : "#fff"} fill={likedVideos.has(video.id) ? "#FE2C55" : "none"} />
+                      <Heart size={32} strokeWidth={1.5} color={likedVideos.has(video.id) ? "#FE2C55" : "#fff"} fill={likedVideos.has(video.id) ? "#FE2C55" : "none"} />
                     </div>
                     <span className="count">{formatCount(video.likes)}</span>
                   </button>
@@ -612,7 +612,7 @@ function ExplorePageInner() {
                     aria-label="Vezi comentariile"
                   >
                     <div className="icon-wrap">
-                      <MessageCircle size={24} color="#fff" />
+                      <MessageCircle size={32} strokeWidth={1.5} color="#fff" />
                     </div>
                     <span className="count">{formatCount(video.comments)}</span>
                   </button>
@@ -625,7 +625,7 @@ function ExplorePageInner() {
                     aria-pressed={savedVideos.has(video.id)}
                   >
                     <div className="icon-wrap">
-                      <Bookmark size={24} color={savedVideos.has(video.id) ? "#fbbf24" : "#fff"} fill={savedVideos.has(video.id) ? "#fbbf24" : "none"} />
+                      <Bookmark size={32} strokeWidth={1.5} color={savedVideos.has(video.id) ? "#fbbf24" : "#fff"} fill={savedVideos.has(video.id) ? "#fbbf24" : "none"} />
                     </div>
                     <span className="count">{formatCount(video.saves)}</span>
                   </button>
@@ -637,24 +637,10 @@ function ExplorePageInner() {
                     aria-label="Distribuie videoul"
                   >
                     <div className="icon-wrap">
-                      <Share2 size={24} color="#fff" />
+                      <Share2 size={32} strokeWidth={1.5} color="#fff" />
                     </div>
                     <span className="count">{formatCount(video.shares)}</span>
                   </button>
-
-                  {video.product?.id && (
-                    <button
-                      type="button"
-                      className="action-btn"
-                      onClick={() => { haptic("tap"); openProduct(video); }}
-                      aria-label="Cumpără produsul"
-                    >
-                      <div className="icon-wrap">
-                        <ShoppingBag size={24} color="#fff" />
-                      </div>
-                      <span className="count">Produs</span>
-                    </button>
-                  )}
 
                   <div className="action-btn" aria-label="Mai multe opțiuni">
                     <MoreLikeThisMenu
