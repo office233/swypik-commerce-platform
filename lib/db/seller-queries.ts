@@ -6,7 +6,7 @@ export type Seller = {
   email: string;
   status: string;
   stripe_account_id?: string;
-  business_details?: any;
+  business_details?: Record<string, unknown> | null;
   created_at: Date;
   updated_at: Date;
 };
