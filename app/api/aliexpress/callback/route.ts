@@ -21,7 +21,6 @@ function db(): Pool {
 }
 
 export async function GET(req: NextRequest) {
-  // Admin auth required
   const auth = await requireAuth(req, ["admin"]);
   if (auth instanceof NextResponse) return auth;
 
@@ -40,14 +39,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing or invalid state" }, { status: 403 });
   }
 
-  // Verify + consume state
   try {
     const key = `ae:oauth:state:${state}`;
     const stored = await getRedis().get(key);
     if (!stored) {
       return NextResponse.json({ error: "State expired or invalid" }, { status: 403 });
     }
-    // optionally verify userId match
     try {
       const parsed = JSON.parse(stored) as { userId: string | null };
       if (parsed.userId && auth.userId && parsed.userId !== auth.userId) {

@@ -23,7 +23,6 @@ export async function POST() {
   const otpAuthUrl = getOtpAuthUrl(secret, rows[0].email);
   const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl, { width: 240, margin: 1 });
 
-  // Persist encrypted at rest (AES-256-GCM); requires APP_ENCRYPTION_KEY env
   let stored: string;
   try {
     stored = encryptSecret(secret);

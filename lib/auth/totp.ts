@@ -9,8 +9,7 @@ const ISSUER = "Swypik";
  * AES-256-GCM with random IV per record. Format:
  *   v1:<ivHex>:<tagHex>:<ciphertextHex>
  * Backward compat: any value that does NOT start with "v1:" is treated
- * as plaintext base32 (legacy). decryptSecret returns it as-is, so
- * verifyToken still works for users who haven't rotated.
+ * as plaintext base32 (legacy). decryptSecret returns it as-is.
  * ──────────────────────────────────────────────────────────────────── */
 function getKey(): Buffer {
   const hex = process.env.APP_ENCRYPTION_KEY || "";
@@ -31,7 +30,7 @@ export function encryptSecret(plain: string): string {
 
 export function decryptSecret(stored: string): string {
   if (!stored) return stored;
-  if (!stored.startsWith("v1:")) return stored; // legacy plaintext
+  if (!stored.startsWith("v1:")) return stored;
   const parts = stored.split(":");
   if (parts.length !== 4) return stored;
   try {
@@ -94,7 +93,7 @@ export function generateBackupCodes(count = 10): string[] {
 }
 
 export async function hashBackupCodes(codes: string[]): Promise<string[]> {
-  // bcrypt cost 12 (per spec)
+  // bcrypt cost 12
   return Promise.all(codes.map((c) => bcrypt.hash(c, 12)));
 }
 
@@ -105,8 +104,7 @@ export async function consumeBackupCode(
   const clean = submitted.replace(/\s/g, "").toUpperCase();
   for (let i = 0; i < hashedList.length; i++) {
     const h = hashedList[i];
-    // Only bcrypt hashes ($2a/$2b/$2y). Skip anything else.
-    if (typeof h !== "string" || !/^\[aby]\$/.test(h)) continue;
+    if (typeof h !== "string" || !/^\$2[aby]\$/.test(h)) continue;
     try {
       if (await bcrypt.compare(clean, h)) {
         const remaining = hashedList.filter((_, idx) => idx !== i);

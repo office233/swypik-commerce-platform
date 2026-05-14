@@ -34,17 +34,14 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action, email, token } = body;
 
-    // Accept both legacy 'login' and new 'request_otp'
     if (action === "login" || action === "request_otp") {
       if (!email || !String(email).includes("@")) {
-        // generic — nu dezvăluim format check vs existence
         return NextResponse.json(GENERIC_REQUEST_OK);
       }
 
       const normalizedEmail = String(email).trim().toLowerCase();
       const ip = getClientIP(req);
 
-      // Rate limit: 3/min per IP
       const ipLimit = await rateLimit("seller-otp-ip", ip, { limit: 3, window: 60 });
       if (!ipLimit.success) {
         return NextResponse.json(
@@ -52,7 +49,6 @@ export async function POST(req: Request) {
           { status: 429, headers: { "Retry-After": "60" } },
         );
       }
-      // Rate limit: 5/hour per email
       const emailLimit = await rateLimit("seller-otp-email", normalizedEmail, { limit: 5, window: 3600 });
       if (!emailLimit.success) {
         return NextResponse.json(
@@ -62,8 +58,6 @@ export async function POST(req: Request) {
       }
 
       const { rows } = await dbQuery(`SELECT id, status FROM sellers WHERE email = $1`, [normalizedEmail]);
-
-      // Constant minimum elapsed time to mask DB lookup
       const start = Date.now();
 
       let issued = false;
@@ -73,10 +67,7 @@ export async function POST(req: Request) {
         const otpToken = `otp:${otp}`;
         const otpHash = hashToken(otpToken);
 
-        // Reset attempts counter for this OTP
-        try {
-          await getRedis().del(`seller-otp-attempts:${otpHash}`);
-        } catch {}
+        try { await getRedis().del(`seller-otp-attempts:${otpHash}`); } catch {}
 
         await dbQuery(
           `INSERT INTO seller_sessions (seller_id, token, expires_at, created_at)
@@ -84,23 +75,15 @@ export async function POST(req: Request) {
           [sellerId, otpHash],
         );
 
-        if (!isProd) {
-          console.log(`[SELLER OTP] Code for ${normalizedEmail}: ${otp}`);
-        }
-        // fire-and-forget delivery (don't reveal failures)
+        if (!isProd) console.log(`[SELLER OTP] Code for ${normalizedEmail}: ${otp}`);
         sendMagicLink(normalizedEmail, otp).catch((e) =>
           logger.warn({ err: e?.message }, "[Seller Auth] email send failed"),
         );
         issued = true;
       }
 
-      // Pad to ~150ms minimum to flatten timing
       const elapsed = Date.now() - start;
-      if (elapsed < 150) {
-        await new Promise((r) => setTimeout(r, 150 - elapsed));
-      }
-
-      // Răspuns generic indiferent de rezultat
+      if (elapsed < 150) await new Promise((r) => setTimeout(r, 150 - elapsed));
       void issued;
       return NextResponse.json(GENERIC_REQUEST_OK);
     }
@@ -118,7 +101,6 @@ export async function POST(req: Request) {
       const otpToken = `otp:${codeRaw}`;
       const otpHash = hashToken(otpToken);
 
-      // Per-IP & per-email attempts limiter (broad)
       const ip = getClientIP(req);
       const broad = await rateLimit("seller-otp-verify-ip", ip, { limit: 20, window: 300 });
       if (!broad.success) {
@@ -128,7 +110,6 @@ export async function POST(req: Request) {
         );
       }
 
-      // Per-OTP attempts (max 5)
       const attemptsKey = `seller-otp-attempts:${otpHash}`;
       let attempts = 0;
       try {
@@ -136,7 +117,6 @@ export async function POST(req: Request) {
         if (attempts === 1) await getRedis().expire(attemptsKey, 900);
       } catch {}
       if (attempts > 5) {
-        // invalidate code defensively
         await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [otpHash]).catch(() => {});
         return NextResponse.json(
           { success: false, error: "Prea multe încercări. Solicită un cod nou." },
@@ -144,7 +124,6 @@ export async function POST(req: Request) {
         );
       }
 
-      // Fetch all candidate sessions for this email and compare with timingSafe
       const { rows: candidates } = await dbQuery<{ seller_id: string; token: string }>(
         `SELECT ss.seller_id, ss.token
          FROM seller_sessions ss
