@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { X, ShoppingCart, Star, ChevronRight, ExternalLink } from "lucide-react";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
@@ -36,6 +36,39 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
   const [data, setData] = useState<ProductData | null>(seed);
   const [isVisible, setIsVisible] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Body scroll lock
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Escape to close + focus first interactive
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); handleClose(); }
+      if (e.key === 'Tab' && containerRef.current) {
+        const focusable = containerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"]), input, select, textarea'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    // focus first
+    setTimeout(() => {
+      const el = containerRef.current?.querySelector<HTMLElement>('button, a[href]');
+      el?.focus();
+    }, 50);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 10);
@@ -85,12 +118,17 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
       />
 
       <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="product-drawer-title"
+        tabIndex={-1}
         className={`fixed bottom-0 left-0 right-0 h-[70vh] z-[70] bg-black/80 backdrop-blur-xl rounded-t-3xl border-t border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
       >
         <div className="flex flex-col items-center p-4 border-b border-white/5 relative">
           <div className="w-12 h-1.5 bg-white/20 rounded-full mb-3" />
           <div className="flex items-center justify-between w-full">
-            <h3 className="text-white font-semibold text-lg line-clamp-1 pr-4">
+            <h3 id="product-drawer-title" className="text-white font-semibold text-lg line-clamp-1 pr-4">
               {productName}
             </h3>
             <button

@@ -6,6 +6,8 @@ import { getStripe } from "@/lib/stripe/checkout";
 import crypto from "crypto";
 
 import { logger } from "@/lib/logger";
+import { rateLimit, idempotencyGet, idempotencySet, clientIp } from "@/lib/rate-limit";
+import { getOptionalSocialUserId } from "@/lib/social/session";
 function parseQuantity(value: unknown) {
   const quantity = Number(value);
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) return null;
@@ -16,9 +18,35 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const rawItems = body.products || [];
+    const idempotencyKey = typeof body.idempotencyKey === "string" && body.idempotencyKey.length <= 128
+      ? body.idempotencyKey
+      : null;
+
+    // Rate limit per user (if authed) or per IP: max 10 req/min
+    const uid = await getOptionalSocialUserId().catch(() => null);
+    const rlKey = uid ? `checkout:u:${uid}` : `checkout:ip:${clientIp(req)}`;
+    const rl = await rateLimit(rlKey, 10, 60);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { success: false, error: "Prea multe cereri. Reîncearcă în câteva secunde." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+      );
+    }
+
+    // Idempotency: return cached response if present
+    if (idempotencyKey) {
+      const cached = await idempotencyGet<any>(`checkout:${idempotencyKey}`);
+      if (cached) {
+        return NextResponse.json(cached);
+      }
+    }
+
 
     if (!Array.isArray(rawItems) || rawItems.length === 0) {
       return NextResponse.json({ success: false, error: "Coșul este gol." }, { status: 400 });
+    }
+    if (rawItems.length > 50) {
+      return NextResponse.json({ success: false, error: "Maxim 50 produse per comandă." }, { status: 400 });
     }
 
     const checkoutItems = [];
@@ -140,13 +168,17 @@ export async function POST(req: Request) {
       [JSON.stringify({ stripe_payment_intent: paymentIntent.id }), orderId]
     );
 
-    return NextResponse.json({ 
-      success: true, 
-      clientSecret: paymentIntent.client_secret, 
+    const responsePayload = {
+      success: true,
+      clientSecret: paymentIntent.client_secret,
       totalRon,
       orderId,
       orderLookupToken,
-    });
+    };
+    if (idempotencyKey) {
+      await idempotencySet(`checkout:${idempotencyKey}`, responsePayload, 300);
+    }
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
     logger.error({ err: error }, "[Create Intent Error]");
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
