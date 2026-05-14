@@ -26,21 +26,23 @@ export default async function SearchPage({
       : (searchParams as SearchParams);
 
   const q = (params.q ?? "").trim();
-  const tab = (params.tab ?? "videos") as "videos" | "creators" | "products";
+  const tab = (params.tab ?? "videos") as "videos" | "creators" | "products" | "hashtags";
 
   const tooShort = q.length < 2;
   const results = tooShort
-    ? { videos: [], creators: [], products: [] }
+    ? { videos: [], creators: [], products: [], hashtags: [] }
     : await searchAll(q).catch(() => ({
         videos: [],
         creators: [],
         products: [],
+        hashtags: [],
       }));
 
   const tabs: Array<{ key: typeof tab; label: string; count: number }> = [
     { key: "videos", label: "Videos", count: results.videos.length },
     { key: "creators", label: "Creators", count: results.creators.length },
     { key: "products", label: "Products", count: results.products.length },
+    { key: "hashtags", label: "#Hashtags", count: results.hashtags.length },
   ];
 
   return (
@@ -225,6 +227,35 @@ export default async function SearchPage({
                 )}
               </section>
             )}
+            {tab === "hashtags" && (
+              <section>
+                {results.hashtags.length === 0 ? (
+                  <EmptyState label={`No hashtags found for "${q}"`} />
+                ) : (
+                  <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 bg-neutral-900/40">
+                    {results.hashtags.map((h) => (
+                      <li key={h.tag}>
+                        <Link
+                          href={`/hashtag/${encodeURIComponent(h.tag)}`}
+                          className="flex items-center gap-3 p-4 hover:bg-neutral-900"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-xl font-bold flex-shrink-0">
+                            #
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">#{h.tag}</div>
+                            <div className="text-xs text-neutral-400">
+                              {Intl.NumberFormat().format(h.video_count)} videos
+                            </div>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
           </>
         )}
       </div>

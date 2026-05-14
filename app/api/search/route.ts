@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   searchAll,
   searchCreators,
+  searchHashtags,
   searchProducts,
   searchVideos,
 } from "@/lib/search/query";
@@ -10,12 +11,12 @@ import { getClientIP, rateLimit } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
-type SearchType = "all" | "videos" | "creators" | "products";
+type SearchType = "all" | "videos" | "creators" | "products" | "hashtags";
 
 const PAGE_LIMIT = 20;
 
 function parseType(v: string | null): SearchType {
-  if (v === "videos" || v === "creators" || v === "products") return v;
+  if (v === "videos" || v === "creators" || v === "products" || v === "hashtags") return v;
   return "all";
 }
 
@@ -49,7 +50,8 @@ export async function GET(req: NextRequest) {
       const hasMore =
         results.videos.length === 10 ||
         results.creators.length === 10 ||
-        results.products.length === 10;
+        results.products.length === 10 ||
+        results.hashtags.length === 10;
       return NextResponse.json({ q, type, results, hasMore });
     }
 
@@ -69,6 +71,16 @@ export async function GET(req: NextRequest) {
         q,
         type,
         results: { creators: items },
+        hasMore: items.length === limit,
+      });
+    }
+
+    if (type === "hashtags") {
+      const items = await searchHashtags(q, { limit, offset });
+      return NextResponse.json({
+        q,
+        type,
+        results: { hashtags: items },
         hasMore: items.length === limit,
       });
     }

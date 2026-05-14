@@ -29,6 +29,12 @@ export type ProductResult = {
   rank: number;
 };
 
+
+export type HashtagResult = {
+  tag: string;
+  video_count: number;
+};
+
 export type SearchOpts = {
   limit?: number;
   offset?: number;
@@ -206,6 +212,45 @@ export async function searchProducts(
   }
 }
 
+
+
+/**
+ * Hashtag search: aggregates over videos.tags array. Strips leading '#' and matches case-insensitive prefix.
+ */
+export async function searchHashtags(
+  q: string,
+  opts: SearchOpts = {}
+): Promise<HashtagResult[]> {
+  const limit = clampLimit(opts.limit);
+  const offset = clampOffset(opts.offset);
+  const cleaned = q.replace(/^#+/, "").trim();
+  if (!cleaned) return [];
+  const pattern = cleaned + "%";
+  const pattern2 = "%" + cleaned + "%";
+
+  const sql = `
+    SELECT
+      lower(tag)            AS tag,
+      COUNT(*)::int         AS video_count
+    FROM videos v, unnest(v.tags) AS tag
+    WHERE v.status = 'ready'
+      AND v.visibility = 'public'
+      AND (lower(tag) ILIKE $1 OR lower(tag) ILIKE $2)
+    GROUP BY lower(tag)
+    ORDER BY
+      CASE WHEN lower(tag) ILIKE $1 THEN 0 ELSE 1 END,
+      video_count DESC,
+      lower(tag) ASC
+    LIMIT $3 OFFSET $4
+  `;
+  try {
+    const { rows } = await dbQuery(sql, [pattern, pattern2, limit, offset]);
+    return rows as HashtagResult[];
+  } catch {
+    return [];
+  }
+}
+
 export async function searchAll(
   q: string,
   opts: SearchOpts = {}
@@ -213,12 +258,14 @@ export async function searchAll(
   videos: VideoResult[];
   creators: CreatorResult[];
   products: ProductResult[];
+  hashtags: HashtagResult[];
 }> {
   const fanOpts: SearchOpts = { limit: 10, offset: 0, userId: opts.userId };
-  const [videos, creators, products] = await Promise.all([
+  const [videos, creators, products, hashtags] = await Promise.all([
     searchVideos(q, fanOpts).catch(() => [] as VideoResult[]),
     searchCreators(q, fanOpts).catch(() => [] as CreatorResult[]),
     searchProducts(q, fanOpts).catch(() => [] as ProductResult[]),
+    searchHashtags(q, fanOpts).catch(() => [] as HashtagResult[]),
   ]);
-  return { videos, creators, products };
+  return { videos, creators, products, hashtags };
 }

@@ -426,7 +426,7 @@ export async function POST(req: Request) {
            $1, $2, $3, $4, $5,
            $6, $7, $8, now(),
            'ro', 'shopper', 'active',
-           now() + ($9 || ' days')::interval,
+           NULL,
            ARRAY['email_password']::text[],
            '{}'::jsonb
          )
