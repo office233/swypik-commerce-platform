@@ -69,7 +69,7 @@ export default async function UserProfilePage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white mobile-page-bottom">
-      <header className="sticky top-12 z-30 bg-[#0D0D0D]/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-[#0D0D0D]/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
         <Link href="/explore" className="text-white/70 hover:text-white" aria-label="Inapoi"><ArrowLeft size={22} /></Link>
         <h1 className="text-lg font-black truncate max-w-[60%]">{profile.handle.replace(/^@/, '')}</h1>
         <div className="w-6" />
