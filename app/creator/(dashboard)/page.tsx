@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { summarizeCreatorEarnings } from "@/lib/creator/earnings";
 import { getCreatorUserId } from "@/lib/creator/session";
+import StripeConnectCard from "@/components/stripe/StripeConnectCard";
 
 async function getCreatorDashboardSummary(creatorId: string) {
   try {
@@ -100,6 +101,9 @@ export default async function CreatorDashboard() {
         <h1 className="text-3xl font-black text-[#0D0D0D]">Dashboard Creator</h1>
         <p className="text-[#6E6E80] mt-2">Bine ai venit! Aici poți urmări performanța linkurilor tale.</p>
       </div>
+
+      {/* Stripe Connect onboarding */}
+      <StripeConnectCard variant="creator" />
 
       {/* Metrics */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
