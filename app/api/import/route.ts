@@ -8,6 +8,7 @@ import crypto from "crypto";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 
+import { logger } from "@/lib/logger";
 function calculatePriceRON(costUsd: number, shipUsd: number) {
   const totalRon = (costUsd + shipUsd) * 4.55 * 1.21;
   const mk = costUsd < 3 ? 2.0 : costUsd < 50 ? 1.5 : 1.3;
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
 
         imported++;
       } catch (e: any) {
-        console.error(`[Import] Failed ${p.productId}:`, e.message);
+        logger.error({ err: e.message }, `[Import] Failed ${p.productId}:`);
         failed++;
       }
     }

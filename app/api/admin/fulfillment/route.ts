@@ -10,6 +10,7 @@ import { isAdminConfigured } from "@/lib/security/admin-auth";
 import { requireAuth } from "@/lib/auth/getAuthUser";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
+import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
   if (!isEnabled("fulfillment")) return frozenResponse("fulfillment");
   try {
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: `Unknown action: ${action}` }, { status: 400 });
     }
   } catch (error: any) {
-    console.error("[Admin Fulfillment] Error:", error.message);
+    logger.error({ err: error.message }, "[Admin Fulfillment] Error:");
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

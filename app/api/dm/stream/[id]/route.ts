@@ -3,6 +3,7 @@ import { getOptionalSocialUserId } from "@/lib/social/session";
 import { assertParticipant } from "@/lib/dm/repository";
 import { createSubscriber } from "@/lib/redis";
 
+import { logger } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -52,13 +53,13 @@ export async function GET(
 
       subscriber.on("message", onMessage);
       subscriber.on("error", (err) => {
-        console.error("[dm/stream] subscriber error:", err?.message || err);
+        logger.error({ err: err?.message || err }, "[dm/stream] subscriber error:");
       });
 
       try {
         await subscriber.subscribe(channel);
       } catch (err: any) {
-        console.error("[dm/stream] subscribe failed:", err?.message || err);
+        logger.error({ err: err?.message || err }, "[dm/stream] subscribe failed:");
         safeEnqueue(`event: error\ndata: ${JSON.stringify({ message: "subscribe failed" })}\n\n`);
         controller.close();
         return;
