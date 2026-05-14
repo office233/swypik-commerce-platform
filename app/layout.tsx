@@ -38,6 +38,7 @@ export const viewport: Viewport = {
 
 import RewardFlash from "@/components/RewardFlash";
 import BottomNav from "@/components/BottomNav";
+import CookieBanner from "@/components/CookieBanner";
 import ThemeProvider from "@/components/ThemeProvider";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <BottomNav />
           <RewardFlash />
+          <CookieBanner />
         </ThemeProvider>
       </body>
     </html>
