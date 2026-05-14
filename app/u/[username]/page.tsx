@@ -20,7 +20,6 @@ import {
 } from "@/lib/social/user-profile";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import ProfileStatsAndActions from "./ProfileStatsAndActions";
-import TopBar from "@/components/TopBar";
 
 type Props = {
   params: Promise<{ username: string }>;
@@ -70,7 +69,6 @@ export default async function UserProfilePage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white">
-      <TopBar />
       <header className="sticky top-12 z-30 border-b border-white/10 bg-[#0D0D0D]/85 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="text-lg font-black text-white">

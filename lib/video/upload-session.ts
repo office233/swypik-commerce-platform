@@ -21,6 +21,7 @@ export type CreatorUploadInput = {
   hashtags: string[];
   productRefs: Array<{ product_id: string; source: "creator_upload" }>;
   metadata: Record<string, unknown>;
+  audioTrackId: number | null;
 };
 
 export type ProcessVideoJobPayload = {
@@ -60,6 +61,7 @@ type RawCreatorUploadInput = {
   sizeBytes?: unknown;
   source?: unknown;
   hashtags?: unknown;
+  audioTrackId?: unknown;
 };
 
 type ProcessVideoJobInput = {
@@ -114,6 +116,11 @@ export function normalizeCreatorUploadInput(raw: RawCreatorUploadInput): Creator
   ]);
   const productRefs = productId ? [{ product_id: productId, source: "creator_upload" as const }] : [];
 
+  const audioTrackIdRaw = Number(raw.audioTrackId);
+  const audioTrackId = Number.isFinite(audioTrackIdRaw) && audioTrackIdRaw > 0
+    ? Math.floor(audioTrackIdRaw)
+    : null;
+
   return {
     creatorId,
     productId,
@@ -135,7 +142,9 @@ export function normalizeCreatorUploadInput(raw: RawCreatorUploadInput): Creator
       challenge_id: challengeId || null,
       product_id: productId || null,
       source,
+      audio_track_id: audioTrackId,
     },
+    audioTrackId,
   };
 }
 

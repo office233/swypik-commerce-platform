@@ -1,5 +1,16 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
+import { cookies } from "next/headers";
+import {
+  CURRENCY_BY_LOCALE,
+  CURRENCY_COOKIE,
+  isCurrency,
+  type Currency,
+  type Locale,
+} from "@/lib/i18n/config";
+import { CurrencyProvider } from "@/components/i18n/CurrencyProvider";
 
 const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 const appUrl =
@@ -38,12 +49,18 @@ export const viewport: Viewport = {
 
 import RewardFlash from "@/components/RewardFlash";
 import BottomNav from "@/components/BottomNav";
-import CookieBanner from "@/components/CookieBanner";
-import ThemeProvider from "@/components/ThemeProvider";
+import EmailVerifyBanner from "@/components/auth/EmailVerifyBanner";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = (await getLocale()) as Locale;
+  const messages = await getMessages();
+  const cookieStore = await cookies();
+  const cookieCurrency = cookieStore.get(CURRENCY_COOKIE)?.value;
+  const currency: Currency = isCurrency(cookieCurrency)
+    ? cookieCurrency
+    : CURRENCY_BY_LOCALE[locale] ?? "RON";
   return (
-    <html lang="ro" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -54,14 +71,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
-        <ThemeProvider>
-          <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 56px)', minHeight: '100dvh' }}>
-            {children}
-          </div>
-          <BottomNav />
-          <RewardFlash />
-          <CookieBanner />
-        </ThemeProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <CurrencyProvider initial={currency}>
+            <EmailVerifyBanner />
+            <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 56px)', minHeight: '100dvh' }}>
+              {children}
+            </div>
+            <BottomNav />
+            <RewardFlash />
+          </CurrencyProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

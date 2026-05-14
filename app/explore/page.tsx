@@ -2,14 +2,15 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Plus, Music } from "lucide-react";
+import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Music } from "lucide-react";
 import ProductDrawer from "@/components/ProductDrawer";
 import CommentsSheet from "@/components/social/CommentsSheet";
-import Link from "next/link";
+import MoreLikeThisMenu from "@/components/feed/MoreLikeThisMenu";
 
 export default function ExplorePage() {
   const [videos, setVideos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [feedSource, setFeedSource] = useState<"foryou" | "following">("foryou");
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [activeProduct, setActiveProduct] = useState<any | null>(null);
   const [activeCommentsVideo, setActiveCommentsVideo] = useState<any | null>(null);
@@ -49,7 +50,10 @@ export default function ExplorePage() {
 
     async function fetchVideos() {
       try {
-        const res = await fetch("/api/explore/feed?limit=30");
+        const url = feedSource === "following"
+          ? "/api/explore/feed?limit=30&source=following"
+          : "/api/explore/feed?limit=30";
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           const nextVideos = data.videos || [];
@@ -65,7 +69,7 @@ export default function ExplorePage() {
       }
     }
     fetchVideos();
-  }, []);
+  }, [feedSource]);
 
   // Intersection Observer — TikTok-style snap play/pause
   useEffect(() => {
@@ -567,8 +571,20 @@ export default function ExplorePage() {
 
       {/* Feed Header */}
       <div className="feed-header">
-        <span className="feed-tab">Urmărești</span>
-        <span className="feed-tab active">Pentru Tine</span>
+        <button
+          type="button"
+          onClick={() => setFeedSource("following")}
+          className={`feed-tab ${feedSource === "following" ? "active" : ""}`}
+        >
+          Urmărești
+        </button>
+        <button
+          type="button"
+          onClick={() => setFeedSource("foryou")}
+          className={`feed-tab ${feedSource === "foryou" ? "active" : ""}`}
+        >
+          Pentru Tine
+        </button>
       </div>
 
       {/* Mute toggle */}
@@ -576,14 +592,6 @@ export default function ExplorePage() {
         {isMuted ? <VolumeX size={18} color="#fff" /> : <Volume2 size={18} color="#fff" />}
       </button>
 
-      {/* Upload FAB (TikTok "+" button) */}
-      <Link href="/creator/dashboard">
-        <div className="upload-fab">
-          <div className="plus-icon">
-            <Plus size={16} color="#000" strokeWidth={3} />
-          </div>
-        </div>
-      </Link>
 
       {/* Feed Scroll Container */}
       <div ref={containerRef} className="feed-scroll">
@@ -687,6 +695,20 @@ export default function ExplorePage() {
                   <span className="count">{formatCount(video.shares)}</span>
                 </div>
 
+                {/* More menu (hide / not interested / report) */}
+                <div className="action-btn">
+                  <MoreLikeThisMenu
+                    videoId={video.id}
+                    creatorId={video.creator?.id}
+                    isFollowing={followingCreators.has(video.creator?.id)}
+                    onActionDone={(action) => {
+                      if (action === "not_interested") {
+                        setVideos((prev) => prev.filter((v) => v.id !== video.id));
+                      }
+                    }}
+                  />
+                </div>
+
                 {/* Spinning disc */}
                 <div className="disc-spin">
                   <img src={video.thumbnail || '/favicon.ico'} alt="" />
@@ -714,7 +736,7 @@ export default function ExplorePage() {
                     </div>
                   </div>
                 ) : (
-                  <Link href="/shop" style={{ textDecoration: 'none' }}>
+                  <Link href="/" style={{ textDecoration: 'none' }}>
                     <div className="product-chip">
                       <ShoppingCart size={18} color="#0D0D0D" style={{ marginLeft: 4 }} />
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0D0D0D' }}>Cumpără pe Swypik</span>

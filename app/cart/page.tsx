@@ -105,7 +105,7 @@ export default function CartPage() {
             <Link href="/explore" className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">
               Explorează Feed
             </Link>
-            <Link href="/shop" className="rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] px-6 py-3 text-sm font-bold text-[#0D0D0D] active:scale-95 transition-transform">
+            <Link href="/" className="rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] px-6 py-3 text-sm font-bold text-[#0D0D0D] active:scale-95 transition-transform">
               Magazin
             </Link>
           </div>

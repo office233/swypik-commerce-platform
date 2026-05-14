@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark } from "lucide-react";
-import TopBar from "@/components/TopBar";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, MailQuestion } from "lucide-react";
 import EnablePushButton from "@/components/push/EnablePushButton";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -222,7 +221,6 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
   /* ════════════════════ TIKTOK STYLE PROFILE ════════════════════ */
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white mobile-page-bottom">
-      <TopBar />
       {/* Top Navbar */}
       <header className="sticky top-12 z-30 bg-[#0D0D0D]/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center justify-between">
         <div className="w-8" /> {/* Spacer */}
@@ -355,6 +353,36 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
 
         {/* Settings: Notificări push */}
         <div className="flex justify-end px-4 mt-2"><ThemeToggle /></div>
+
+        {/* Settings menu */}
+        <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
+          <Link href="/account/edit" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <Settings size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Editează profil</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/account/security" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <Lock size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Securitate & parolă</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/account/preferences" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <Globe size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Limbă & monedă</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/account/age-verification" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <ShieldCheck size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Verificare vârstă</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/inbox" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <MailQuestion size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Inbox / Notificări</span>
+            <span className="text-white/40">›</span>
+          </Link>
+        </section>
+
         {isEnabledClient('pushNotifications') && (
           <section className="mt-8 mb-10 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
             <h3 className="text-base font-black text-white">Notificări push</h3>

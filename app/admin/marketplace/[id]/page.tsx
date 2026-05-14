@@ -6,8 +6,8 @@ import { updateMarketplaceProduct } from "../actions";
 export const dynamic = "force-dynamic";
 
 type EditMarketplaceProductPageProps = {
-  params: { id: string };
-  searchParams?: { saved?: string; created?: string; error?: string };
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ saved?: string; created?: string; error?: string }>;
 };
 
 function getNotice(searchParams?: EditMarketplaceProductPageProps["searchParams"]) {

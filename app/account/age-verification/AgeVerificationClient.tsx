@@ -1,0 +1,171 @@
+"use client";
+
+import { useState } from "react";
+
+type Status = "none" | "pending" | "approved" | "rejected" | "expired";
+
+type Props = {
+  initialState: {
+    status: Status;
+    verifiedAt: string | null;
+    birthDate: string | null;
+    optIn: boolean;
+    rejectionReason: string | null;
+    expiresAt: string | null;
+  };
+};
+
+const STATUS_LABEL: Record<Status, string> = {
+  none: "Neverificat",
+  pending: "În curs de verificare",
+  approved: "Verificat",
+  rejected: "Respins",
+  expired: "Expirat",
+};
+
+const STATUS_COLOR: Record<Status, string> = {
+  none: "bg-white/10 text-white",
+  pending: "bg-yellow-500/20 text-yellow-300",
+  approved: "bg-green-500/20 text-green-300",
+  rejected: "bg-red-500/20 text-red-300",
+  expired: "bg-orange-500/20 text-orange-300",
+};
+
+export default function AgeVerificationClient({ initialState }: Props) {
+  const [state, setState] = useState(initialState);
+  const [loading, setLoading] = useState(false);
+  const [optInLoading, setOptInLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function startVerification() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/age-verification/start", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Nu am putut porni verificarea.");
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setState((s) => ({ ...s, status: "pending" }));
+    } catch (err: any) {
+      setError(err?.message || "Eroare necunoscută.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function toggleOptIn(next: boolean) {
+    setOptInLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/age-verification/opt-in", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optIn: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Nu am putut salva preferinta.");
+      setState((s) => ({ ...s, optIn: data.optIn }));
+    } catch (err: any) {
+      setError(err?.message || "Eroare necunoscută.");
+    } finally {
+      setOptInLoading(false);
+    }
+  }
+
+  const isApproved = state.status === "approved";
+  const ctaLabel =
+    state.status === "approved"
+      ? "Reverifică (înlocuiește documentul)"
+      : state.status === "pending"
+        ? "Reia verificarea"
+        : "Verifică-mi vârsta";
+
+  return (
+    <div className="min-h-screen bg-[#0D0D0D] text-white pb-24">
+      <header className="sticky top-0 z-30 bg-[#0D0D0D]/90 backdrop-blur-md border-b border-white/10 px-4 py-4">
+        <h1 className="text-lg font-bold">Verificare vârstă</h1>
+        <p className="text-sm text-white/60 mt-0.5">
+          Necesar pentru a accesa conținutul 18+ pe Swypik.
+        </p>
+      </header>
+
+      <main className="px-4 pt-6 max-w-xl mx-auto space-y-6">
+        <section className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm text-white/60">Status curent</span>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[state.status]}`}>
+              {STATUS_LABEL[state.status]}
+            </span>
+          </div>
+
+          {state.verifiedAt && (
+            <p className="text-sm text-white/70 mb-2">
+              Verificat la: <span className="text-white">{new Date(state.verifiedAt).toLocaleDateString("ro-RO")}</span>
+            </p>
+          )}
+          {state.birthDate && (
+            <p className="text-sm text-white/70 mb-2">
+              Data nașterii: <span className="text-white">{new Date(state.birthDate).toLocaleDateString("ro-RO")}</span>
+            </p>
+          )}
+          {state.expiresAt && (
+            <p className="text-sm text-white/70 mb-2">
+              Expiră la: <span className="text-white">{new Date(state.expiresAt).toLocaleDateString("ro-RO")}</span>
+            </p>
+          )}
+          {state.rejectionReason && state.status === "rejected" && (
+            <p className="text-sm text-red-300 mb-2">
+              Motiv respingere: {state.rejectionReason}
+            </p>
+          )}
+
+          <button
+            onClick={startVerification}
+            disabled={loading}
+            className="w-full mt-2 bg-[#FE2C55] hover:bg-[#E0264A] disabled:opacity-50 text-white py-3 rounded-lg font-bold transition"
+          >
+            {loading ? "Se pregătește..." : ctaLabel}
+          </button>
+
+          <p className="text-xs text-white/50 mt-3 leading-relaxed">
+            Folosim Stripe Identity pentru a verifica documentul tău. Datele sunt procesate de Stripe
+            conform GDPR. Stocăm doar data nașterii și țara documentului.
+          </p>
+        </section>
+
+        {isApproved && (
+          <section className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-bold mb-1">Afișează conținut 18+</h2>
+                <p className="text-sm text-white/60">
+                  Activează pentru a vedea videoclipuri și produse pentru adulți în feed.
+                </p>
+              </div>
+              <button
+                role="switch"
+                aria-checked={state.optIn}
+                onClick={() => toggleOptIn(!state.optIn)}
+                disabled={optInLoading}
+                className={`relative w-12 h-7 rounded-full transition ${state.optIn ? "bg-[#FE2C55]" : "bg-white/20"} disabled:opacity-50`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform ${state.optIn ? "translate-x-5" : ""}`}
+                />
+              </button>
+            </div>
+          </section>
+        )}
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-300 text-sm rounded-lg p-3">
+            {error}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

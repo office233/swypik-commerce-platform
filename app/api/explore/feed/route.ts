@@ -64,6 +64,8 @@ export async function GET(request: NextRequest) {
     // --- Parse & validate query params ---
     const sortParam = (searchParams.get("sort") || "recent") as SortMode;
     const sort: SortMode = VALID_SORTS.has(sortParam) ? sortParam : "recent";
+    const sourceParam = searchParams.get("source");
+    const onlyFollowing = sourceParam === "following";
 
     const pageRaw = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
     const limitRaw = parseInt(searchParams.get("limit") || "20", 10) || 20;
@@ -153,6 +155,8 @@ export async function GET(request: NextRequest) {
         ON mp.id::text = (v.product_refs->0->>'product_id')
       WHERE v.status = 'ready'
         AND v.visibility = 'public'
+        ${onlyFollowing && userId ? `AND EXISTS (SELECT 1 FROM follows f2 WHERE f2.follower_user_id = $3 AND f2.following_user_id = v.creator_id)` : ''}
+        AND NOT EXISTS (SELECT 1 FROM user_hidden_videos uhv WHERE uhv.user_id = ${userId ? '$3' : "'00000000-0000-0000-0000-000000000000'::uuid"} AND uhv.video_id = v.id)
       ORDER BY ${orderClause}
       LIMIT $1 OFFSET $2`,
       queryParams

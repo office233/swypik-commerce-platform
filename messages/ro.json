@@ -1,0 +1,60 @@
+{
+  "common": {
+    "loading": "Se încarcă…",
+    "error": "A apărut o eroare",
+    "retry": "Încearcă din nou",
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "close": "Închide",
+    "search": "Caută",
+    "back": "Înapoi",
+    "next": "Următor",
+    "previous": "Anterior",
+    "yes": "Da",
+    "no": "Nu",
+    "free": "Gratis",
+    "currency": "Monedă",
+    "language": "Limbă"
+  },
+  "nav": {
+    "home": "Acasă",
+    "shop": "Magazin",
+    "explore": "Explorează",
+    "reels": "Reels",
+    "cart": "Coș",
+    "account": "Cont",
+    "collections": "Colecții",
+    "orders": "Comenzi",
+    "messages": "Mesaje",
+    "notifications": "Notificări"
+  },
+  "auth": {
+    "login": "Autentificare",
+    "logout": "Ieșire",
+    "register": "Înregistrare"
+  },
+  "product": {
+    "addToCart": "Adaugă în coș",
+    "buyNow": "Cumpără acum",
+    "outOfStock": "Stoc epuizat",
+    "shipping": "Livrare",
+    "freeShipping": "Livrare gratuită",
+    "reviews": "Recenzii",
+    "details": "Detalii",
+    "variants": "Variante",
+    "from": "De la"
+  },
+  "cart": {
+    "title": "Coșul tău",
+    "empty": "Coșul este gol",
+    "subtotal": "Subtotal",
+    "shipping": "Livrare",
+    "total": "Total",
+    "checkout": "Finalizează comanda"
+  },
+  "settings": {
+    "preferences": "Preferințe",
+    "selectLanguage": "Alege limba",
+    "selectCurrency": "Alege moneda"
+  }
+}

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements, AddressElement } from "@stripe/react-stripe-js";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -28,6 +30,7 @@ type CartItem = {
    Inner form rendered inside <Elements> provider
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: number; orderId: string; orderLookupToken: string }) {
+  const formatPrice = useFormatPrice();
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -104,7 +107,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
         id="btn-pay"
         type="submit"
         disabled={!stripe || !elements || isProcessing}
-        className="w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0E906F] shadow-[0_0_20px_rgba(16,163,127,0.3)]"
+        className="w-full rounded-xl bg-[#10A37F] py-4 text-center text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0E906F] shadow-[0_0_20px_rgba(16,163,127,0.3)]"
       >
         {isProcessing ? (
           <span className="flex items-center justify-center gap-2">
@@ -112,7 +115,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
             Se procesează plata...
           </span>
         ) : (
-          <>🔒 Plătește {totalRon.toFixed(2)} lei</>
+          <>🔒 Plătește {formatPrice(Math.round(totalRon * 100), { sourceCurrency: "RON" })}</>
         )}
       </button>
 
@@ -137,6 +140,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
    Main Checkout Form component
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export default function CheckoutForm() {
+  const formatPrice = useFormatPrice();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -236,7 +240,7 @@ export default function CheckoutForm() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin mx-auto" />
+          <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin mx-auto" />
           <p className="mt-4 text-sm font-medium text-[#6E6E80]">Se încarcă checkout-ul securizat...</p>
         </div>
       </div>
@@ -250,9 +254,9 @@ export default function CheckoutForm() {
           <div className="text-6xl mb-4">🛒</div>
           <h2 className="text-xl font-black text-[#0D0D0D] mb-2">Coș gol</h2>
           <p className="text-sm text-[#6E6E80] mb-6">{error}</p>
-          <a href="/" className="inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]">
+          <Link href="/" className="inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]">
             Înapoi la magazin
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -264,7 +268,7 @@ export default function CheckoutForm() {
         appearance: {
           theme: "stripe",
           variables: {
-            colorPrimary: "#0D0D0D",
+            colorPrimary: "#10A37F",
             colorBackground: "#ffffff",
             colorText: "#0D0D0D",
             colorDanger: "#EF4444",
@@ -279,8 +283,8 @@ export default function CheckoutForm() {
               padding: "12px 16px",
             },
             ".Input:focus": {
-              border: "1px solid #0D0D0D",
-              boxShadow: "0 0 0 1px #0D0D0D",
+              border: "1px solid #10A37F",
+              boxShadow: "0 0 0 1px #10A37F",
             },
             ".Label": {
               fontWeight: "600",
@@ -318,7 +322,7 @@ export default function CheckoutForm() {
             </h2>
             <div className="space-y-3">
               {cartItems.map((item, idx) => (
-                <div key={idx} className="flex gap-4 p-4 rounded-xl border border-[#E5E5E5] bg-white hover:border-[#0D0D0D]/30 transition-colors">
+                <div key={idx} className="flex gap-4 p-4 rounded-xl border border-[#E5E5E5] bg-white hover:border-[#10A37F]/30 transition-colors">
                   <div className="h-16 w-16 bg-[#F7F7F8] rounded-lg border border-[#E5E5E5] overflow-hidden shrink-0">
                     {(item.product.images?.[0] || item.product.image) ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -339,7 +343,7 @@ export default function CheckoutForm() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-base font-black text-[#0D0D0D]">{(item.product.price * item.qty).toFixed(2)} lei</p>
+                    <p className="text-base font-black text-[#0D0D0D]">{formatPrice(Math.round(item.product.price * item.qty * 100), { sourceCurrency: "RON" })}</p>
                   </div>
                 </div>
               ))}
@@ -354,7 +358,7 @@ export default function CheckoutForm() {
           ) : isCreatingIntent ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="w-10 h-10 border-3 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin mx-auto" />
+                <div className="w-10 h-10 border-3 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin mx-auto" />
                 <p className="mt-4 text-sm font-medium text-[#6E6E80]">Se pregătește formularul de plată...</p>
               </div>
             </div>
@@ -387,7 +391,7 @@ export default function CheckoutForm() {
                     <p className="font-medium text-[#0D0D0D] line-clamp-2 leading-tight">{item.product.title}</p>
                   </div>
                   <div className="font-bold text-sm text-[#0D0D0D] py-0.5 shrink-0">
-                    {(item.product.price * item.qty).toFixed(2)} lei
+                    {formatPrice(Math.round(item.product.price * item.qty * 100), { sourceCurrency: "RON" })}
                   </div>
                 </div>
               ))}
@@ -396,15 +400,15 @@ export default function CheckoutForm() {
             <div className="border-t border-[#E5E5E5] pt-4 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-[#6E6E80]">Subtotal</span>
-                <span className="font-medium">{subtotal.toFixed(2)} lei</span>
+                <span className="font-medium">{formatPrice(Math.round(subtotal * 100), { sourceCurrency: "RON" })}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-[#6E6E80]">Livrare Standard</span>
-                <span className="font-bold text-[#0D0D0D]">Gratuit</span>
+                <span className="font-bold text-[#10A37F]">Gratuit</span>
               </div>
               <div className="flex justify-between text-xl font-black pt-3 mt-1 border-t border-[#E5E5E5]">
                 <span>Total</span>
-                <span className="text-[#0D0D0D]">{subtotal.toFixed(2)} lei</span>
+                <span className="text-[#10A37F]">{formatPrice(Math.round(subtotal * 100), { sourceCurrency: "RON" })}</span>
               </div>
             </div>
           </div>

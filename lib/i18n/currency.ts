@@ -1,0 +1,49 @@
+// Formatting unic pentru prețuri în cents.
+// Reguli: stocăm price_cents + currency în DB; la afișare convertim în currency-ul
+// preferat al user-ului folosind FX_RATES, apoi formatăm cu Intl.NumberFormat.
+
+import { type Currency, type Locale, DEFAULT_CURRENCY, DEFAULT_LOCALE } from "./config";
+import { convertCents } from "./fx";
+
+const INTL_LOCALE: Record<Locale, string> = {
+  ro: "ro-RO",
+  en: "en-GB",
+};
+
+export interface FormatCurrencyOptions {
+  locale?: Locale;
+  /** Currency-ul user-ului (display). Default = currency-ul sursă (no-op). */
+  displayCurrency?: Currency;
+  /** Currency-ul în care sunt stocate cents-urile sursă. */
+  sourceCurrency?: Currency;
+  /** Afișează zecimalele (default true). */
+  showDecimals?: boolean;
+}
+
+export function formatCurrency(
+  amountCents: number,
+  options: FormatCurrencyOptions = {},
+): string {
+  const locale = options.locale ?? DEFAULT_LOCALE;
+  const sourceCurrency = options.sourceCurrency ?? DEFAULT_CURRENCY;
+  const displayCurrency = options.displayCurrency ?? sourceCurrency;
+  const showDecimals = options.showDecimals ?? true;
+
+  const convertedCents = convertCents(amountCents, sourceCurrency, displayCurrency);
+  const amount = convertedCents / 100;
+
+  return new Intl.NumberFormat(INTL_LOCALE[locale], {
+    style: "currency",
+    currency: displayCurrency,
+    minimumFractionDigits: showDecimals ? 2 : 0,
+    maximumFractionDigits: showDecimals ? 2 : 0,
+  }).format(amount);
+}
+
+/** Helper pentru cazuri legacy (RON whole units). */
+export function formatPriceLegacy(
+  amount: number,
+  options: FormatCurrencyOptions = {},
+): string {
+  return formatCurrency(Math.round(amount * 100), options);
+}

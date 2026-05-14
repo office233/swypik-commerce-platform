@@ -1,109 +1,571 @@
 /**
- * Customer Auth API — backed by `users` + `user_sessions` tables
+ * Customer / unified Auth API — backed by `users` + `user_sessions` tables.
  *
- * POST /api/auth   { action: "login",        email }          → send OTP
- * POST /api/auth   { action: "verify_otp",   email, token }   → verify OTP, create 30-day session
- * POST /api/auth   { action: "update_profile", name, phone, address } → update profile
- * POST /api/auth   { action: "logout" }                       → clear session
- * GET  /api/auth                                              → verify current session
- * DELETE /api/auth                                            → logout (alias)
+ * POST /api/auth   { action: "login",         email }                       → send OTP
+ * POST /api/auth   { action: "resend_otp",    email }                       → re-send OTP
+ * POST /api/auth   { action: "verify_otp",    email, token, next? }         → verify OTP, create 30-day session
+ * POST /api/auth   { action: "signup_password",
+ *                    email, password, first_name, last_name,
+ *                    username, phone?, avatar_url?, next? }                 → create account with password
+ * POST /api/auth   { action: "login_password", email, password, next? }     → login with email + password
+ * POST /api/auth   { action: "set_password",   password }                   → set/change password (authed)
+ * POST /api/auth   { action: "check_username", username }                   → { available: true|false }
+ * POST /api/auth   { action: "update_profile", name, phone, address }       → update extended profile
+ * POST /api/auth   { action: "logout" }
+ * GET  /api/auth                                                            → verify current session
+ * DELETE /api/auth                                                          → logout (alias)
  */
 
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { dbQuery } from "@/lib/db";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
+
+import { dbQuery } from "@/lib/db";
 import { sendMagicLink } from "@/lib/email/service";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import {
+  hashSessionToken,
+  resolvePostLoginRedirect,
+  type AuthRole,
+} from "@/lib/auth/session";
+import {
+  createAdminSessionAndGetCookie,
+  getAdminCookieName,
+} from "@/lib/security/admin-auth";
 
 const COOKIE_NAME = "swypik_session";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days in seconds
+const SELLER_COOKIE_NAME = "seller_session";
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 const isProd = process.env.NODE_ENV === "production";
 const SECURE_FLAG = isProd ? "; Secure" : "";
+const VERIFICATION_GRACE_DAYS = 7;
 
 /* ────────────────────────────────────────── helpers ──── */
 
-/** Generate a cryptographically-secure session token (hex). */
 function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-/** SHA-256 hash used for storing tokens in `user_sessions.session_token_hash`. */
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-/** Generate a unique username from email prefix + random suffix. */
 function generateUsername(email: string): string {
   const prefix = email.split("@")[0].replace(/[^a-z0-9]/gi, "").slice(0, 12).toLowerCase();
   const suffix = crypto.randomBytes(3).toString("hex");
   return `${prefix || "user"}_${suffix}`;
 }
 
+function isValidUsername(value: string): boolean {
+  return /^[a-z0-9_.]{3,20}$/.test(value);
+}
+
+function isValidPassword(value: string): boolean {
+  return typeof value === "string" && value.length >= 8 && value.length <= 200;
+}
+
+function isValidEmail(value: string): boolean {
+  return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidPhone(value: string): boolean {
+  // E.164-ish; allow + and 7-15 digits
+  return /^\+?[0-9]{7,15}$/.test(value.replace(/\s|-/g, ""));
+}
+
+function clearCookieHeader(name: string): string {
+  return `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${SECURE_FLAG}`;
+}
+
+function appendSetCookie(response: NextResponse, cookie: string): void {
+  response.headers.append("Set-Cookie", cookie);
+}
+
+/**
+ * Issue a 30-day session for `userId`, set cookies, attach admin/seller cookies
+ * if applicable, and return the JSON response.
+ */
+async function issueSessionResponse(
+  userId: string,
+  normalizedEmail: string,
+  nextPath: string | null,
+) {
+  const sessionToken = generateToken();
+  const sessionHash = hashSessionToken(sessionToken);
+
+  await dbQuery(
+    `INSERT INTO user_sessions (user_id, session_token_hash, expires_at, metadata)
+     VALUES ($1, $2, now() + interval '30 days', $3::jsonb)`,
+    [userId, sessionHash, JSON.stringify({ type: "session" })],
+  );
+  await dbQuery(`UPDATE users SET last_seen_at = now() WHERE id = $1`, [userId]);
+
+  const { rows: userRows } = await dbQuery<{
+    id: string;
+    email: string;
+    display_name: string;
+    username: string;
+    role: string;
+    email_verified_at: string | null;
+  }>(
+    `SELECT id, email, display_name, username, role, email_verified_at
+     FROM users WHERE id = $1`,
+    [userId],
+  );
+  const user = userRows[0];
+
+  let role: AuthRole =
+    user?.role === "admin"
+      ? "admin"
+      : user?.role === "creator"
+        ? "creator"
+        : "shopper";
+  let sellerId: string | null = null;
+
+  if (role !== "admin") {
+    try {
+      const { rows: sellerRows } = await dbQuery<{ id: string }>(
+        `SELECT id FROM sellers
+         WHERE lower(email) = $1
+           AND status IN ('active', 'approved')
+         LIMIT 1`,
+        [normalizedEmail],
+      );
+      if (sellerRows[0]?.id) {
+        role = "seller";
+        sellerId = sellerRows[0].id;
+      }
+    } catch {
+      /* sellers table missing in some envs — ignore */
+    }
+  }
+
+  const { rows: onboardedRows } = await dbQuery<{ onboarded: boolean }>(
+    `SELECT (
+       EXISTS (SELECT 1 FROM user_interests WHERE user_id = $1)
+       OR EXISTS (SELECT 1 FROM users WHERE id = $1 AND created_at < now() - interval '1 hour')
+     ) AS onboarded`,
+    [userId],
+  ).catch(() => ({ rows: [{ onboarded: false }] }));
+  const alreadyOnboarded = Boolean(onboardedRows[0]?.onboarded);
+
+  const redirectTo = resolvePostLoginRedirect(role, nextPath);
+
+  const response = NextResponse.json({
+    success: true,
+    user: user || { id: userId },
+    role,
+    sellerId,
+    redirectTo,
+    onboarded: alreadyOnboarded,
+    emailVerified: Boolean(user?.email_verified_at),
+  });
+
+  appendSetCookie(
+    response,
+    `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}`,
+  );
+
+  if (role === "admin") {
+    try {
+      const adminCookie = await createAdminSessionAndGetCookie();
+      appendSetCookie(response, adminCookie);
+    } catch (err) {
+      console.warn("[auth] could not create admin cookie:", (err as Error).message);
+    }
+  }
+
+  if (role === "seller" && sellerId) {
+    try {
+      const sellerToken = generateToken();
+      const sellerHash = hashToken(sellerToken);
+      await dbQuery(
+        `INSERT INTO seller_sessions (seller_id, token, expires_at, created_at)
+         VALUES ($1, $2, now() + interval '30 days', now())`,
+        [sellerId, sellerHash],
+      );
+      appendSetCookie(
+        response,
+        `${SELLER_COOKIE_NAME}=${sellerToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}`,
+      );
+    } catch (err) {
+      console.warn("[auth] could not create seller cookie:", (err as Error).message);
+    }
+  }
+
+  if (alreadyOnboarded) {
+    response.cookies.set("swypik_onboarded", "1", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 730,
+      sameSite: "lax",
+      secure: isProd,
+      httpOnly: true,
+    });
+  }
+
+  return response;
+}
+
+/** Send-OTP flow (used by both `login` and `resend_otp`). */
+async function handleSendOtp(req: Request, rawEmail: unknown) {
+  if (typeof rawEmail !== "string" || !rawEmail.includes("@")) {
+    return NextResponse.json(
+      { success: false, error: "Email invalid." },
+      { status: 400 },
+    );
+  }
+
+  const normalizedEmail = rawEmail.trim().toLowerCase();
+
+  const ip = getClientIP(req);
+  const ipLimit = await rateLimit("auth-otp-ip", ip, { limit: 10, window: 300 });
+  if (!ipLimit.success) {
+    return NextResponse.json(
+      { success: false, error: "Prea multe cereri. Reîncearcă în câteva minute." },
+      { status: 429 },
+    );
+  }
+  const emailLimit = await rateLimit("auth-otp-email", normalizedEmail, {
+    limit: 5,
+    window: 300,
+  });
+  if (!emailLimit.success) {
+    return NextResponse.json(
+      { success: false, error: "Ai cerut prea multe coduri. Reîncearcă în câteva minute." },
+      { status: 429 },
+    );
+  }
+
+  let { rows } = await dbQuery<{ id: string }>(
+    `SELECT id FROM users WHERE lower(email) = $1 AND status IN ('active', 'pending_verification')`,
+    [normalizedEmail],
+  );
+
+  if (rows.length === 0) {
+    const username = generateUsername(normalizedEmail);
+    const { rows: newRows } = await dbQuery<{ id: string }>(
+      `INSERT INTO users (username, email, display_name, locale, role, status, metadata, auth_providers)
+       VALUES ($1, $2, $3, 'ro', 'shopper', 'active', '{}', ARRAY['email_otp']::text[])
+       RETURNING id`,
+      [username, normalizedEmail, normalizedEmail.split("@")[0]],
+    );
+    rows = newRows;
+  }
+
+  const userId = rows[0].id;
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const otpHash = hashToken(`otp:${otp}`);
+
+  await dbQuery(
+    `INSERT INTO user_sessions (user_id, session_token_hash, expires_at, metadata)
+     VALUES ($1, $2, now() + interval '15 minutes', $3::jsonb)`,
+    [userId, otpHash, JSON.stringify({ type: "otp" })],
+  );
+
+  const sent = await sendMagicLink(normalizedEmail, otp);
+  const canExposeDevOtp = !isProd && !process.env.RESEND_API_KEY;
+
+  if (!sent && !canExposeDevOtp) {
+    return NextResponse.json(
+      { success: false, error: "Nu am putut trimite codul de autentificare." },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    requiresVerification: true,
+    ...(canExposeDevOtp ? { devOtp: otp } : {}),
+  });
+}
+
 /* ──────────────────────────────────── POST handler ──── */
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { action, email, token, name, phone, address } = body;
+  const body = await req.json().catch(() => ({}));
+  const {
+    action,
+    email,
+    token,
+    name,
+    phone,
+    address,
+    next,
+    password,
+    first_name,
+    last_name,
+    username,
+    avatar_url,
+  } = body || {};
   const cookieStore = await cookies();
 
   switch (action) {
-    /* ═══════════════════ LOGIN ═══════════════════ */
-    case "login": {
-      if (!email || !email.includes("@")) {
-        return NextResponse.json({ success: false, error: "Email invalid." }, { status: 400 });
+    /* ═══════════════════ CHECK USERNAME ═══════════════════ */
+    case "check_username": {
+      if (typeof username !== "string" || !isValidUsername(username.trim().toLowerCase())) {
+        return NextResponse.json({
+          available: false,
+          valid: false,
+          error: "Username invalid (3-20 caractere, litere mici/cifre/_/.)",
+        });
+      }
+      const handle = username.trim().toLowerCase();
+      const { rows } = await dbQuery<{ id: string }>(
+        `SELECT id FROM users WHERE lower(username) = $1 LIMIT 1`,
+        [handle],
+      );
+      return NextResponse.json({ available: rows.length === 0, valid: true });
+    }
+
+    /* ═══════════════════ SIGNUP WITH PASSWORD ═══════════════════ */
+    case "signup_password": {
+      // Validări sincrone
+      if (!isValidEmail(email)) {
+        return NextResponse.json(
+          { success: false, error: "Email invalid." },
+          { status: 400 },
+        );
+      }
+      if (!isValidPassword(password)) {
+        return NextResponse.json(
+          { success: false, error: "Parola trebuie să aibă cel puțin 8 caractere." },
+          { status: 400 },
+        );
+      }
+      if (typeof first_name !== "string" || first_name.trim().length < 1) {
+        return NextResponse.json(
+          { success: false, error: "Prenumele este obligatoriu." },
+          { status: 400 },
+        );
+      }
+      if (typeof last_name !== "string" || last_name.trim().length < 1) {
+        return NextResponse.json(
+          { success: false, error: "Numele este obligatoriu." },
+          { status: 400 },
+        );
+      }
+      const cleanUsername =
+        typeof username === "string" ? username.trim().toLowerCase() : "";
+      if (!isValidUsername(cleanUsername)) {
+        return NextResponse.json(
+          { success: false, error: "Username invalid (3-20 caractere, a-z 0-9 _ .)" },
+          { status: 400 },
+        );
+      }
+      const phoneTrimmed = typeof phone === "string" ? phone.trim() : "";
+      if (phoneTrimmed && !isValidPhone(phoneTrimmed)) {
+        return NextResponse.json(
+          { success: false, error: "Număr de telefon invalid." },
+          { status: 400 },
+        );
       }
 
-      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedEmail = String(email).trim().toLowerCase();
 
-      // Find or create user in the `users` table
-      let { rows } = await dbQuery<{ id: string }>(
-        `SELECT id FROM users WHERE lower(email) = $1 AND status = 'active'`,
+      // Rate limit per IP
+      const ip = getClientIP(req);
+      const signupLimit = await rateLimit("auth-signup-ip", ip, { limit: 5, window: 600 });
+      if (!signupLimit.success) {
+        return NextResponse.json(
+          { success: false, error: "Prea multe cereri. Așteaptă câteva minute." },
+          { status: 429 },
+        );
+      }
+
+      // Verifică unicitate email + username + phone
+      const { rows: existingEmailRows } = await dbQuery<{ id: string }>(
+        `SELECT id FROM users WHERE lower(email) = $1 LIMIT 1`,
+        [normalizedEmail],
+      );
+      if (existingEmailRows.length > 0) {
+        return NextResponse.json(
+          { success: false, error: "Există deja un cont cu acest email." },
+          { status: 409 },
+        );
+      }
+
+      const { rows: existingUserRows } = await dbQuery<{ id: string }>(
+        `SELECT id FROM users WHERE lower(username) = $1 LIMIT 1`,
+        [cleanUsername],
+      );
+      if (existingUserRows.length > 0) {
+        return NextResponse.json(
+          { success: false, error: "Username-ul este deja folosit." },
+          { status: 409 },
+        );
+      }
+
+      if (phoneTrimmed) {
+        const { rows: existingPhoneRows } = await dbQuery<{ id: string }>(
+          `SELECT id FROM users WHERE phone = $1 LIMIT 1`,
+          [phoneTrimmed],
+        );
+        if (existingPhoneRows.length > 0) {
+          return NextResponse.json(
+            { success: false, error: "Există deja un cont cu acest telefon." },
+            { status: 409 },
+          );
+        }
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      const displayName = `${first_name.trim()} ${last_name.trim()}`.trim();
+
+      const { rows: insertRows } = await dbQuery<{ id: string }>(
+        `INSERT INTO users (
+           username, email, display_name, first_name, last_name,
+           phone, avatar_url, password_hash, password_set_at,
+           locale, role, status, suspend_grace_until, auth_providers, metadata
+         ) VALUES (
+           $1, $2, $3, $4, $5,
+           $6, $7, $8, now(),
+           'ro', 'shopper', 'active',
+           now() + ($9 || ' days')::interval,
+           ARRAY['email_password']::text[],
+           '{}'::jsonb
+         )
+         RETURNING id`,
+        [
+          cleanUsername,
+          normalizedEmail,
+          displayName,
+          first_name.trim(),
+          last_name.trim(),
+          phoneTrimmed || null,
+          typeof avatar_url === "string" ? avatar_url : null,
+          passwordHash,
+          String(VERIFICATION_GRACE_DAYS),
+        ],
+      );
+
+      const userId = insertRows[0].id;
+
+      // Trimite OTP de verificare email asincron (fire-and-forget pentru UX rapid)
+      try {
+        const otp = crypto.randomInt(100000, 1000000).toString();
+        const otpHash = hashToken(`otp:${otp}`);
+        await dbQuery(
+          `INSERT INTO user_sessions (user_id, session_token_hash, expires_at, metadata)
+           VALUES ($1, $2, now() + interval '15 minutes', $3::jsonb)`,
+          [userId, otpHash, JSON.stringify({ type: "otp" })],
+        );
+        sendMagicLink(normalizedEmail, otp).catch((err) =>
+          console.warn("[auth/signup_password] verification email failed:", err?.message),
+        );
+      } catch (err) {
+        console.warn("[auth/signup_password] could not stage verification OTP:", (err as Error).message);
+      }
+
+      return issueSessionResponse(
+        userId,
+        normalizedEmail,
+        typeof next === "string" ? next : null,
+      );
+    }
+
+    /* ═══════════════════ LOGIN WITH PASSWORD ═══════════════════ */
+    case "login_password": {
+      if (!isValidEmail(email) || typeof password !== "string") {
+        return NextResponse.json(
+          { success: false, error: "Email sau parolă invalidă." },
+          { status: 400 },
+        );
+      }
+      const ip = getClientIP(req);
+      const limit = await rateLimit("auth-login-pw-ip", ip, { limit: 10, window: 300 });
+      if (!limit.success) {
+        return NextResponse.json(
+          { success: false, error: "Prea multe încercări. Așteaptă câteva minute." },
+          { status: 429 },
+        );
+      }
+
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const { rows } = await dbQuery<{ id: string; password_hash: string | null; status: string }>(
+        `SELECT id, password_hash, status
+         FROM users WHERE lower(email) = $1 LIMIT 1`,
         [normalizedEmail],
       );
 
-      if (rows.length === 0) {
-        // Auto-create user
-        const username = generateUsername(normalizedEmail);
-        const { rows: newRows } = await dbQuery<{ id: string }>(
-          `INSERT INTO users (username, email, display_name, locale, role, status, metadata)
-           VALUES ($1, $2, $3, 'ro', 'shopper', 'active', '{}')
-           RETURNING id`,
-          [username, normalizedEmail, normalizedEmail.split("@")[0]],
-        );
-        rows = newRows;
-      }
-
-      const userId = rows[0].id;
-
-      // Generate 6-digit OTP
-      const otp = crypto.randomInt(100000, 1000000).toString();
-      const otpHash = hashToken(`otp:${otp}`);
-
-      // Store OTP in user_sessions (expires in 15 min)
-      await dbQuery(
-        `INSERT INTO user_sessions (user_id, session_token_hash, expires_at, metadata)
-         VALUES ($1, $2, now() + interval '15 minutes', $3::jsonb)`,
-        [userId, otpHash, JSON.stringify({ type: "otp" })],
-      );
-
-      // Try sending via email — falls back to console logging in dev
-      const sent = await sendMagicLink(normalizedEmail, otp);
-
-      // Local development convenience only: never expose OTPs from production deployments.
-      const canExposeDevOtp = !isProd && !process.env.RESEND_API_KEY;
-
-      if (!sent && !canExposeDevOtp) {
+      if (rows.length === 0 || !rows[0].password_hash) {
         return NextResponse.json(
-          { success: false, error: "Nu am putut trimite codul de autentificare." },
-          { status: 500 },
+          { success: false, error: "Email sau parolă incorectă." },
+          { status: 401 },
         );
       }
 
-      return NextResponse.json({
-        success: true,
-        requiresVerification: true,
-        ...(canExposeDevOtp ? { devOtp: otp } : {}),
-      });
+      const user = rows[0];
+      if (!user.password_hash) {
+        return NextResponse.json(
+          { success: false, error: "Email sau parolă incorectă." },
+          { status: 401 },
+        );
+      }
+      if (user.status === "suspended" || user.status === "deleted") {
+        return NextResponse.json(
+          { success: false, error: "Contul este suspendat. Verifică emailul." },
+          { status: 403 },
+        );
+      }
+
+      const ok = await bcrypt.compare(password, user.password_hash);
+      if (!ok) {
+        return NextResponse.json(
+          { success: false, error: "Email sau parolă incorectă." },
+          { status: 401 },
+        );
+      }
+
+      return issueSessionResponse(
+        user.id,
+        normalizedEmail,
+        typeof next === "string" ? next : null,
+      );
+    }
+
+    /* ═══════════════════ SET / CHANGE PASSWORD (authed) ═══════════════════ */
+    case "set_password": {
+      const sessionToken = cookieStore.get(COOKIE_NAME)?.value;
+      if (!sessionToken) {
+        return NextResponse.json({ success: false, error: "Not logged in" }, { status: 401 });
+      }
+      if (!isValidPassword(password)) {
+        return NextResponse.json(
+          { success: false, error: "Parola trebuie să aibă cel puțin 8 caractere." },
+          { status: 400 },
+        );
+      }
+      const sessionHash = hashSessionToken(sessionToken);
+      const { rows } = await dbQuery<{ user_id: string }>(
+        `SELECT user_id FROM user_sessions
+         WHERE session_token_hash = $1 AND expires_at > now() AND revoked_at IS NULL`,
+        [sessionHash],
+      );
+      if (rows.length === 0) {
+        return NextResponse.json({ success: false }, { status: 401 });
+      }
+      const userId = rows[0].user_id;
+      const passwordHash = await bcrypt.hash(password, 12);
+      await dbQuery(
+        `UPDATE users SET
+           password_hash = $1,
+           password_set_at = now(),
+           auth_providers = (
+             SELECT array(SELECT DISTINCT unnest(coalesce(auth_providers, ARRAY[]::text[]) || ARRAY['email_password']::text[]))
+             FROM users WHERE id = $2
+           )
+         WHERE id = $2`,
+        [passwordHash, userId],
+      );
+      return NextResponse.json({ success: true });
+    }
+
+    /* ═══════════════════ LOGIN / RESEND OTP ═══════════════════ */
+    case "login":
+    case "resend_otp": {
+      return handleSendOtp(req, email);
     }
 
     /* ═══════════════════ VERIFY OTP ═══════════════════ */
@@ -115,10 +577,21 @@ export async function POST(req: Request) {
         );
       }
 
-      const normalizedEmail = email.trim().toLowerCase();
-      const otpHash = hashToken(`otp:${token.trim()}`);
+      const ip = getClientIP(req);
+      const verifyLimit = await rateLimit("auth-otp-verify", ip, {
+        limit: 15,
+        window: 300,
+      });
+      if (!verifyLimit.success) {
+        return NextResponse.json(
+          { success: false, error: "Prea multe încercări. Așteaptă câteva minute." },
+          { status: 429 },
+        );
+      }
 
-      // Validate OTP
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const otpHash = hashToken(`otp:${String(token).trim()}`);
+
       const { rows } = await dbQuery<{ id: string; user_id: string }>(
         `SELECT us.id, us.user_id
          FROM user_sessions us
@@ -142,64 +615,23 @@ export async function POST(req: Request) {
       const otpSessionId = rows[0].id;
       const userId = rows[0].user_id;
 
-      // Revoke OTP so it can't be reused
       await dbQuery(`UPDATE user_sessions SET revoked_at = now() WHERE id = $1`, [otpSessionId]);
 
-      // Create long-lived session token
-      const sessionToken = generateToken();
-      const sessionHash = hashToken(sessionToken);
-
+      // Marchează emailul ca verificat + curăță suspend_grace
       await dbQuery(
-        `INSERT INTO user_sessions (user_id, session_token_hash, expires_at, metadata)
-         VALUES ($1, $2, now() + interval '30 days', $3::jsonb)`,
-        [userId, sessionHash, JSON.stringify({ type: "session" })],
-      );
-
-      // Update last_seen_at
-      await dbQuery(`UPDATE users SET last_seen_at = now() WHERE id = $1`, [userId]);
-
-      // Fetch user info for the response
-      const { rows: userRows } = await dbQuery<{
-        id: string;
-        email: string;
-        display_name: string;
-      }>(`SELECT id, email, display_name FROM users WHERE id = $1`, [userId]);
-
-      // Backfill onboarded marker pentru utilizatorii existenți:
-      // dacă au deja interese salvate SAU contul a fost creat înainte de
-      // deploy-ul gate-ului, nu îi mai forțăm prin /onboarding.
-      const { rows: onboardedRows } = await dbQuery<{ onboarded: boolean }>(
-        `SELECT (
-           EXISTS (SELECT 1 FROM user_interests WHERE user_id = $1)
-           OR EXISTS (SELECT 1 FROM users WHERE id = $1 AND created_at < now() - interval '1 hour')
-         ) AS onboarded`,
+        `UPDATE users SET
+           email_verified_at = COALESCE(email_verified_at, now()),
+           suspend_grace_until = NULL,
+           status = CASE WHEN status = 'pending_verification' THEN 'active' ELSE status END
+         WHERE id = $1`,
         [userId],
-      ).catch(() => ({ rows: [{ onboarded: false }] }));
-
-      const alreadyOnboarded = Boolean(onboardedRows[0]?.onboarded);
-
-      const response = NextResponse.json({
-        success: true,
-        user: userRows[0] || { id: userId },
-        onboarded: alreadyOnboarded,
-      });
-
-      response.headers.set(
-        "Set-Cookie",
-        `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}`,
       );
 
-      if (alreadyOnboarded) {
-        response.cookies.set("swypik_onboarded", "1", {
-          path: "/",
-          maxAge: 60 * 60 * 24 * 730, // 2 years
-          sameSite: "lax",
-          secure: isProd,
-          httpOnly: false,
-        });
-      }
-
-      return response;
+      return issueSessionResponse(
+        userId,
+        normalizedEmail,
+        typeof next === "string" ? next : null,
+      );
     }
 
     /* ═══════════════════ UPDATE PROFILE ═══════════════════ */
@@ -209,7 +641,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Not logged in" }, { status: 401 });
       }
 
-      const sessionHash = hashToken(sessionToken);
+      const sessionHash = hashSessionToken(sessionToken);
       const { rows: sessionRows } = await dbQuery<{ user_id: string }>(
         `SELECT user_id FROM user_sessions
          WHERE session_token_hash = $1 AND expires_at > now() AND revoked_at IS NULL`,
@@ -221,7 +653,6 @@ export async function POST(req: Request) {
       }
 
       const userId = sessionRows[0].user_id;
-
       await dbQuery(
         `UPDATE users SET
            display_name = COALESCE($1, display_name),
@@ -246,23 +677,38 @@ export async function POST(req: Request) {
     case "logout": {
       const sessionToken = cookieStore.get(COOKIE_NAME)?.value;
       if (sessionToken) {
-        const sessionHash = hashToken(sessionToken);
         await dbQuery(
           `UPDATE user_sessions SET revoked_at = now() WHERE session_token_hash = $1`,
-          [sessionHash],
+          [hashSessionToken(sessionToken)],
         );
       }
 
+      const sellerToken = cookieStore.get(SELLER_COOKIE_NAME)?.value;
+      if (sellerToken) {
+        await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [
+          hashToken(sellerToken),
+        ]).catch(() => {});
+      }
+
+      const adminToken = cookieStore.get(getAdminCookieName())?.value;
+      if (adminToken) {
+        await dbQuery(`DELETE FROM admin_sessions WHERE token = $1`, [
+          hashToken(adminToken),
+        ]).catch(() => {});
+      }
+
       const response = NextResponse.json({ success: true });
-      response.headers.set(
-        "Set-Cookie",
-        `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${SECURE_FLAG}`,
-      );
+      appendSetCookie(response, clearCookieHeader(COOKIE_NAME));
+      appendSetCookie(response, clearCookieHeader(SELLER_COOKIE_NAME));
+      appendSetCookie(response, clearCookieHeader(getAdminCookieName()));
       return response;
     }
 
     default:
-      return NextResponse.json({ success: false, error: "Unknown action" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Unknown action" },
+        { status: 400 },
+      );
   }
 }
 
@@ -276,7 +722,7 @@ export async function GET() {
     return NextResponse.json({ authenticated: false });
   }
 
-  const sessionHash = hashToken(sessionToken);
+  const sessionHash = hashSessionToken(sessionToken);
 
   const { rows } = await dbQuery<{
     user_id: string;
@@ -286,6 +732,11 @@ export async function GET() {
     avatar_url: string | null;
     role: string;
     metadata: Record<string, unknown>;
+    email_verified_at: string | null;
+    phone: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    suspend_grace_until: string | null;
   }>(
     `SELECT
        us.user_id,
@@ -294,7 +745,12 @@ export async function GET() {
        u.username,
        u.avatar_url,
        u.role,
-       u.metadata
+       u.metadata,
+       u.email_verified_at,
+       u.phone,
+       u.first_name,
+       u.last_name,
+       u.suspend_grace_until
      FROM user_sessions us
      JOIN users u ON u.id = us.user_id
      WHERE us.session_token_hash = $1
@@ -310,13 +766,13 @@ export async function GET() {
 
   const user = rows[0];
 
-  // Update last_seen_at (fire-and-forget)
   dbQuery(`UPDATE user_sessions SET last_seen_at = now() WHERE session_token_hash = $1`, [
     sessionHash,
   ]).catch(() => {});
-  dbQuery(`UPDATE users SET last_seen_at = now() WHERE id = $1`, [user.user_id]).catch(() => {});
+  dbQuery(`UPDATE users SET last_seen_at = now() WHERE id = $1`, [user.user_id]).catch(
+    () => {},
+  );
 
-  // Order count
   const { rows: orderStats } = await dbQuery<{ count: string }>(
     `SELECT COUNT(*) as count FROM commerce_orders
      WHERE buyer_user_id = $1 AND status != 'cancelled'`,
@@ -330,10 +786,14 @@ export async function GET() {
       email: user.email,
       name: user.display_name,
       display_name: user.display_name,
+      first_name: user.first_name,
+      last_name: user.last_name,
       username: user.username,
       avatar_url: user.avatar_url,
       role: user.role,
-      phone: (user.metadata as any)?.phone || null,
+      phone: user.phone || (user.metadata as { phone?: unknown })?.phone || null,
+      emailVerified: Boolean(user.email_verified_at),
+      suspendGraceUntil: user.suspend_grace_until,
     },
     orderCount: parseInt(orderStats[0]?.count || "0"),
   });
@@ -346,17 +806,28 @@ export async function DELETE() {
   const sessionToken = cookieStore.get(COOKIE_NAME)?.value;
 
   if (sessionToken) {
-    const sessionHash = hashToken(sessionToken);
     await dbQuery(
       `UPDATE user_sessions SET revoked_at = now() WHERE session_token_hash = $1`,
-      [sessionHash],
+      [hashSessionToken(sessionToken)],
     );
   }
 
+  const sellerToken = cookieStore.get(SELLER_COOKIE_NAME)?.value;
+  if (sellerToken) {
+    await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [
+      hashToken(sellerToken),
+    ]).catch(() => {});
+  }
+  const adminToken = cookieStore.get(getAdminCookieName())?.value;
+  if (adminToken) {
+    await dbQuery(`DELETE FROM admin_sessions WHERE token = $1`, [
+      hashToken(adminToken),
+    ]).catch(() => {});
+  }
+
   const response = NextResponse.json({ success: true });
-  response.headers.set(
-    "Set-Cookie",
-    `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${SECURE_FLAG}`,
-  );
+  appendSetCookie(response, clearCookieHeader(COOKIE_NAME));
+  appendSetCookie(response, clearCookieHeader(SELLER_COOKIE_NAME));
+  appendSetCookie(response, clearCookieHeader(getAdminCookieName()));
   return response;
 }

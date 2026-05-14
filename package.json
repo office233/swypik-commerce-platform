@@ -25,6 +25,8 @@
     "@neondatabase/serverless": "^1.1.0",
     "@stripe/react-stripe-js": "^6.3.0",
     "@stripe/stripe-js": "^9.4.0",
+    "@swc/helpers": "^0.5.21",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.11.30",
     "@types/pg": "^8.20.0",
     "@types/react": "^18.2.67",
@@ -32,12 +34,13 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "autoprefixer": "^10.4.19",
+    "bcryptjs": "^3.0.3",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.3",
-    "framer-motion": "^12.38.0",
+    "hls.js": "^1.6.16",
     "ioredis": "^5.4.1",
     "lucide-react": "^0.468.0",
-    "next": "^14.2.3",
+    "next": "^15.5.18",
+    "next-intl": "^4.12.0",
     "next-themes": "^0.4.6",
     "openai": "^6.36.0",
     "pg": "^8.20.0",
@@ -55,6 +58,7 @@
   },
   "devDependencies": {
     "ae_sdk": "^0.6.0",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "eslint-config-next": "^15.5.18"
   }
 }

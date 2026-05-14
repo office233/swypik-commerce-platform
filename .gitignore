@@ -13,3 +13,25 @@ coverage/
 *.key
 .ssh*
 remote_files/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Backups
+*.bak
+*.bak.*
+*.backup
+
+# Local scratch / audit
+scratch/
+audit-*.json
+audit_*.txt
+samples.txt
+all-ae-ids.txt
+ae-local-import.mjs
+extract-ids.js
+fix-old-categories.mjs
+
+# Rogue files
+/layout.tsx

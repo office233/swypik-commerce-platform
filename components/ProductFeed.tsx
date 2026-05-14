@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Flag,
   Heart,
   MessageCircle,
   Package,
@@ -16,8 +15,13 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import CreatorUpload from "./CreatorUpload";
-import CommentsSheet from "./social/CommentsSheet";
+import dynamic from "next/dynamic";
+import { useHlsVideo } from "@/lib/video/useHlsVideo";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+
+// Heavy client-only components — lazy-load to keep initial bundle small.
+const CreatorUpload = dynamic(() => import("./CreatorUpload"), { ssr: false });
+const CommentsSheet = dynamic(() => import("./social/CommentsSheet"), { ssr: false });
 import {
   trackEvent as trackFeedEvent,
   flushWatchTime,
@@ -50,7 +54,6 @@ const TRACK_EVENT_MAP: Record<string, FeedEventType> = {
   not_interested: "not_interested",
   more_like_this: "more_like_this",
   report: "report",
-  purchase: "purchase",
 };
 
 type FeedProduct = {
@@ -155,8 +158,28 @@ function getRealComments(product: FeedProduct) {
   return product.commentCount || Math.floor((product.orders || 10) * 0.04) + (seed % 30);
 }
 
+/**
+ * FeedVideo — wraps <video> with HLS support via useHlsVideo. The src is set
+ * by the hook (not as an attribute) so hls.js can intercept .m3u8 URLs.
+ */
+type FeedVideoProps = Omit<React.VideoHTMLAttributes<HTMLVideoElement>, "src" | "ref"> & {
+  src: string;
+  registerRef: (el: HTMLVideoElement | null) => void;
+};
+
+function FeedVideo({ src, registerRef, ...rest }: FeedVideoProps) {
+  const ref = useHlsVideo(src);
+  useEffect(() => {
+    registerRef(ref.current);
+    return () => registerRef(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref.current]);
+  return <video ref={ref} {...rest} />;
+}
+
 export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose, isLoading }: Props) {
   const router = useRouter();
+  const formatPrice = useFormatPrice();
   const tapAction = { touchAction: "manipulation" } as const;
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -389,18 +412,11 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     setTimeout(() => setAddedToCart(null), 2000);
   };
 
-  const handleReport = (product: FeedProduct) => {
-    sendFeedEvent("report", product, { position: currentIdx });
-    if (typeof window !== "undefined") {
-      window.alert("Mulțumim pentru raport. Echipa noastră va analiza acest clip.");
-    }
-  };
-
   if (isLoading && products.length === 0) {
     return (
       <div className="feed-scroll flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#333] border-t-[#0D0D0D]" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
           <p className="mt-4 text-sm font-bold text-[#888]">Se încarcă clipurile...</p>
         </div>
       </div>
@@ -462,11 +478,12 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 </div>
               )}
               {hasWorkingVideo && Math.abs(idx - currentIdx) <= 1 && (
-                <video
-                  ref={(el) => {
-                    if (el) videoMapRef.current[product.id] = el;
-                  }}
+                <FeedVideo
                   src={product.video!}
+                  registerRef={(el) => {
+                    if (el) videoMapRef.current[product.id] = el;
+                    else delete videoMapRef.current[product.id];
+                  }}
                   poster={posterImage}
                   loop
                   muted={isMuted}
@@ -513,12 +530,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 </div>
                 <span className="text-[10px] font-bold text-white/90">Detalii</span>
               </button>
-              <button type="button" onClick={() => handleReport(product)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label="Raporteaza">
-                <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
-                  <Flag size={20} />
-                </div>
-                <span className="text-[10px] font-bold text-white/90">Raport</span>
-              </button>
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
@@ -537,15 +548,15 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
               <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <span className="text-2xl font-black text-white">{product.price} lei</span>
-                  {product.oldPrice > product.price && <span className="ml-2 text-sm text-white/40 line-through">{product.oldPrice} lei</span>}
+                  <span className="text-2xl font-black text-white">{formatPrice(Math.round(product.price * 100), { sourceCurrency: "RON" })}</span>
+                  {product.oldPrice > product.price && <span className="ml-2 text-sm text-white/40 line-through">{formatPrice(Math.round(product.oldPrice * 100), { sourceCurrency: "RON" })}</span>}
                 </div>
                 <button
                   type="button"
                   onClick={() => handleAddToCart(product)}
                   style={tapAction}
                   className={`rounded-2xl px-5 py-3 text-sm font-black shadow-lg transition-all active:scale-[0.95] ${
-                    addedToCart === product.id ? "bg-white text-[#0D0D0D]" : "bg-[#0D0D0D] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
+                    addedToCart === product.id ? "bg-white text-[#10A37F]" : "bg-[#10A37F] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
                   }`}
                 >
                   {addedToCart === product.id ? "Adăugat" : <><ShoppingCart size={15} className="mr-1 inline" />Coș</>}
@@ -560,7 +571,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#333] border-t-[#0D0D0D]" />
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
         </div>
       )}
 

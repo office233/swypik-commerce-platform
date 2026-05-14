@@ -1,0 +1,60 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "search": "Search",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "yes": "Yes",
+    "no": "No",
+    "free": "Free",
+    "currency": "Currency",
+    "language": "Language"
+  },
+  "nav": {
+    "home": "Home",
+    "shop": "Shop",
+    "explore": "Explore",
+    "reels": "Reels",
+    "cart": "Cart",
+    "account": "Account",
+    "collections": "Collections",
+    "orders": "Orders",
+    "messages": "Messages",
+    "notifications": "Notifications"
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "register": "Sign up"
+  },
+  "product": {
+    "addToCart": "Add to cart",
+    "buyNow": "Buy now",
+    "outOfStock": "Out of stock",
+    "shipping": "Shipping",
+    "freeShipping": "Free shipping",
+    "reviews": "Reviews",
+    "details": "Details",
+    "variants": "Variants",
+    "from": "From"
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "total": "Total",
+    "checkout": "Checkout"
+  },
+  "settings": {
+    "preferences": "Preferences",
+    "selectLanguage": "Select language",
+    "selectCurrency": "Select currency"
+  }
+}
