@@ -115,7 +115,7 @@ export async function getPublicUserProfile(
        COALESCE(NULLIF(u.display_name, ''), NULLIF(cp.display_name, ''), u.username) AS display_name,
        COALESCE(NULLIF(u.avatar_url, ''), NULLIF(cp.avatar_url, '')) AS avatar_url,
        COALESCE(NULLIF(u.bio, ''), NULLIF(cp.bio, '')) AS bio,
-       COALESCE(cp.verification_status = 'verified', false) AS is_verified,
+       COALESCE(u.is_verified, cp.verification_status = 'verified', false) AS is_verified,
        (SELECT COUNT(*)
           FROM videos v
          WHERE v.creator_id = u.id

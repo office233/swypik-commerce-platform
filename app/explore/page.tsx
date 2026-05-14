@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Music } from "lucide-react";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import ProductDrawer from "@/components/ProductDrawer";
 import CommentsSheet from "@/components/social/CommentsSheet";
 import MoreLikeThisMenu from "@/components/feed/MoreLikeThisMenu";
@@ -689,7 +690,7 @@ export default function ExplorePage() {
               {/* Bottom Content */}
               <div className="bottom-content">
                 {/* Creator */}
-                <div className="creator-name">@{video.creator?.name || 'Swypik'}</div>
+                <div className="creator-name">@{(video.creator as any)?.username || video.creator?.name || 'Swypik'}{(video.creator as any)?.verified && <VerifiedBadge size={14} className="ml-1 align-middle" />}</div>
 
                 {/* Description */}
                 <p className="video-desc">{video.description}</p>

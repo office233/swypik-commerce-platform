@@ -125,6 +125,9 @@ export async function GET(request: NextRequest) {
         v.share_count,
         v.comment_count,
         u.display_name AS creator_name,
+        u.username     AS creator_username,
+        u.is_verified  AS creator_verified,
+        u.avatar_url   AS creator_avatar,
         va.object_key  AS source_key,
         va.status      AS asset_status,
         mp.id          AS mp_id,
@@ -189,7 +192,7 @@ export async function GET(request: NextRequest) {
           thumbnail: row.thumbnail_url
             || (row.source_key && publicUrl ? `${publicUrl}/videos/thumbnails/${row.video_id}.jpg` : null),
           duration: row.duration_ms ? Math.round(row.duration_ms / 1000) : null,
-          creator: { id: row.creator_id, name: row.creator_name || "Creator" },
+          creator: { id: row.creator_id, name: row.creator_name || row.creator_username || "Creator", username: row.creator_username || null, verified: Boolean(row.creator_verified), avatar: row.creator_avatar || null },
           description: row.description || "",
           likes: String(row.like_count || 0),
           saves: String(row.save_count || 0),
