@@ -459,7 +459,8 @@ function ExplorePageInner() {
         .action-btn .icon-wrap { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); transition: transform 0.15s; }
         .action-btn:active .icon-wrap { transform: scale(0.85); }
         .action-btn .count { font-size: 13px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,0.8); margin-top: 0; line-height: 1.2; }
-        .creator-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; overflow: hidden; position: relative; margin-bottom: 18px; padding: 0; background: transparent; cursor: pointer; }
+        .creator-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; overflow: hidden; position: relative; margin-bottom: 18px; padding: 0; background: #1a1a1a; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .creator-avatar-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 20px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #FE2C55 0%, #7C3AED 100%); }
         .creator-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .avatar-plus { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 22px; height: 22px; border-radius: 50%; background: #FE2C55; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; border: 2px solid #000; color: #fff; padding: 0; cursor: pointer; transition: transform 0.15s; }
         .avatar-plus:active { transform: translateX(-50%) scale(0.85); }
@@ -574,13 +575,13 @@ function ExplorePageInner() {
                       className="creator-avatar"
                       aria-label={`Profil ${(video.creator as any)?.username || 'creator'}`}
                     >
-                      <Image
-                        src={video.creator?.avatar || video.product?.image || video.thumbnail || '/favicon.ico'}
-                        alt=""
-                        width={48}
-                        height={48}
-                        unoptimized
-                      />
+                      {video.creator?.avatar ? (
+                        <Image src={video.creator.avatar} alt="" width={48} height={48} unoptimized />
+                      ) : (
+                        <span className="creator-avatar-fallback">
+                          {((video.creator as any)?.username || video.creator?.name || 'S').charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </Link>
                     {video.creator?.id && !followingCreators.has(video.creator.id) && (
                       <button
