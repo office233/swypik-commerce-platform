@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminSessionAndGetCookie, isAdminConfigured, isAdminToken } from "@/lib/security/admin-auth";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
+import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
   try {
     if (!isAdminConfigured()) {
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     response.headers.set("Set-Cookie", cookieHeader);
     return response;
   } catch (error: any) {
-    console.error("[Admin Login] Error:", error?.message);
+    logger.error({ err: error?.message }, "[Admin Login] Error:");
     return NextResponse.json({ success: false, error: "Login failed." }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
+import { logger } from "@/lib/logger";
 /**
  * GET /api/products/[id]/videos
  * Public endpoint — returns videos that reference a given product.
@@ -55,7 +56,7 @@ export async function GET(
 
     return NextResponse.json({ videos });
   } catch (err: any) {
-    console.error("[products/videos] query error:", err.message);
+    logger.error({ err: err.message }, "[products/videos] query error:");
     return NextResponse.json({ videos: [] });
   }
 }

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
+import { logger } from "@/lib/logger";
 const APP_KEY = "533768";
 const APP_SECRET = "X6aUu7WINyDXsgShb3U1PwPg4RsNGXqG";
 
@@ -16,7 +17,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No authorization code received" }, { status: 400 });
   }
 
-  console.log("[AliExpress OAuth] Code received:", code.slice(0, 10) + "...");
 
   try {
     const params: Record<string, string> = {
@@ -45,7 +45,6 @@ export async function GET(req: NextRequest) {
     const resp = await fetch("https://api-sg.aliexpress.com/sync?" + qs);
     const data = await resp.json();
 
-    console.log("[AliExpress OAuth] Token response:", JSON.stringify(data).slice(0, 500));
 
     if (data.error_response) {
       return NextResponse.json({
@@ -60,11 +59,6 @@ export async function GET(req: NextRequest) {
     const expiresIn = tokenData.expire_time;
 
     if (accessToken) {
-      console.log("=".repeat(60));
-      console.log("  ALIEXPRESS_ACCESS_TOKEN=" + accessToken);
-      console.log("  ALIEXPRESS_REFRESH_TOKEN=" + (refreshToken || "N/A"));
-      console.log("  EXPIRES: " + (expiresIn ? new Date(parseInt(expiresIn)).toISOString() : "unknown"));
-      console.log("=".repeat(60));
     }
 
     return NextResponse.json({
@@ -75,7 +69,7 @@ export async function GET(req: NextRequest) {
       expires: expiresIn ? new Date(parseInt(expiresIn)).toISOString() : "unknown",
     });
   } catch (err: any) {
-    console.error("[AliExpress OAuth] Error:", err.message);
+    logger.error({ err: err.message }, "[AliExpress OAuth] Error:");
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
