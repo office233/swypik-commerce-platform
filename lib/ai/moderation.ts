@@ -2,20 +2,22 @@ import OpenAI from "openai";
 
 /**
  * Lightweight output moderation for AI chat / generation.
- * Calls a cheap model and asks it to flag unsafe content. Defaults to "safe"
- * on any error (we never want moderation to break the user-facing flow).
+ * Uses GitHub Models API (https://models.github.ai/inference) with a personal
+ * access token. Defaults to "safe" on any error — moderation must never break
+ * the user-facing flow.
  */
 
 function moderationClient(): OpenAI | null {
-  if (process.env.OPENROUTER_API_KEY) {
-    return new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" });
+  const token = process.env.GITHUB_TOKEN || process.env.GH_PAT;
+  if (token) {
+    return new OpenAI({ apiKey: token, baseURL: "https://models.github.ai/inference" });
   }
   if (process.env.OPENAI_API_KEY) return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   return null;
 }
 
 function moderationModel(): string {
-  return process.env.MODERATION_MODEL || process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
+  return process.env.MODERATION_MODEL || "openai/gpt-4o-mini";
 }
 
 const SYSTEM = `You are a strict content-safety classifier for a Romanian-language e-commerce assistant.
