@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 
+import { logger } from "@/lib/logger";
 /**
  * Lightweight output moderation for AI chat / generation.
  * Uses GitHub Models API (https://models.github.ai/inference) with a personal
@@ -56,8 +57,8 @@ export async function moderateOutput(text: string): Promise<ModerationResult> {
       safe: parsed?.safe !== false,
       reason: typeof parsed?.reason === "string" ? parsed.reason : "ok",
     };
-  } catch (e: any) {
-    console.warn("[moderation] failed open:", e?.message || e);
+  } catch (e) {
+    logger.warn({ err: e instanceof Error ? e.message : String(e) }, "[moderation] failed open");
     return { safe: true, reason: "moderation-error" };
   }
 }

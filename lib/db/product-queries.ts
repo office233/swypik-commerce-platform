@@ -306,7 +306,7 @@ function buildSyntheticRootCondition(rootType: string) {
   return null;
 }
 
-function addCategoryTextFilters(where: string[], params: any[], paramIndex: number, value: string) {
+function addCategoryTextFilters(where: string[], params: unknown[], paramIndex: number, value: string) {
   const scoped = parseScopedTagFilter(value);
   const terms = scoped.tags.length > 0
     ? scoped.tags
@@ -355,7 +355,7 @@ function buildSearchFilters(filters: ProductFilters) {
   } = filters;
 
   const where = ["p.status = 'active'"];
-  const params: any[] = [];
+  const params: unknown[] = [];
   let paramIndex = 1;
 
   if (search) {
