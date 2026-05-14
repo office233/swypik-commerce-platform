@@ -4,6 +4,7 @@ import { proxyToSocialApi } from "@/lib/social/proxy";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { dbQuery } from "@/lib/db";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 function toInt(value: string | null, fallback: number, min: number, max: number) {
@@ -115,7 +116,7 @@ export async function GET(req: Request) {
           );
         }
       } catch (e) {
-        console.warn("[v1/feed] seen-tracking failed", e);
+        logger.warn({ err: e }, "[v1/feed] seen-tracking failed");
       }
     }
 
@@ -141,7 +142,7 @@ export async function GET(req: Request) {
       }
     );
   } catch (error) {
-    console.error("[Social Feed Fallback]", error);
+    logger.error({ err: error }, "[Social Feed Fallback]");
     return NextResponse.json({ items: [], products: [], error: "Feed unavailable" }, { status: 500 });
   }
 }

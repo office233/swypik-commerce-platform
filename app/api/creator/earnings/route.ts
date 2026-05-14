@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { summarizeCreatorEarnings } from "@/lib/creator/earnings";
 import { getCreatorUserId } from "@/lib/creator/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -93,7 +94,7 @@ export async function GET() {
       thisMonthOrders: parseInt(sales?.this_month_orders || "0", 10),
     }));
   } catch (error: any) {
-    console.error("[Creator Earnings API] GET Error:", error);
+    logger.error({ err: error }, "[Creator Earnings API] GET Error:");
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 }

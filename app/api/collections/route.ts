@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export async function GET() {
   try {
     const userId = await getOptionalSocialUserId();
@@ -43,7 +44,7 @@ export async function GET() {
 
     return NextResponse.json({ collections: rows });
   } catch (error) {
-    console.error("Collections GET Error:", error);
+    logger.error({ err: error }, "Collections GET Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ collection: newCollection });
   } catch (error) {
-    console.error("Collections POST Error:", error);
+    logger.error({ err: error }, "Collections POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

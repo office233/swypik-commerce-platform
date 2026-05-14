@@ -12,6 +12,7 @@ import {
 } from "@/lib/dm/repository";
 import { notifyUser } from "@/lib/notifications/dispatch";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /** GET /api/dm/conversations/[id]/messages?before=&limit= */
@@ -39,7 +40,7 @@ export async function GET(
     if (err?.status === 403) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    console.error("[DM] list messages:", err);
+    logger.error({ err: err }, "[DM] list messages:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -98,7 +99,7 @@ export async function POST(
     if (err?.status === 403) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    console.error("[DM] send message:", err);
+    logger.error({ err: err }, "[DM] send message:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

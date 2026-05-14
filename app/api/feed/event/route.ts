@@ -7,6 +7,7 @@ import {
   normalizeFeedEvent,
 } from "@/lib/feed/events";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
   try {
     await insertFeedEvents([normalized], { userId, ipHash, country });
   } catch (error) {
-    console.error("[feed/event] insert failed:", error);
+    logger.error({ err: error }, "[feed/event] insert failed:");
     // Still accept — client should not retry on server errors for tracking.
     return new NextResponse(null, { status: 204 });
   }

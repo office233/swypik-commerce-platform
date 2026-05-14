@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSeller } from "@/lib/db/seller-queries";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(seller, { status: 201 });
   } catch (error) {
-    console.error("Seller onboarding error:", error);
+    logger.error({ err: error }, "Seller onboarding error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

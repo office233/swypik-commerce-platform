@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -58,7 +59,7 @@ export async function DELETE(
       client.release();
     }
   } catch (err) {
-    console.error("[Collection Items DELETE] error:", err);
+    logger.error({ err: err }, "[Collection Items DELETE] error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

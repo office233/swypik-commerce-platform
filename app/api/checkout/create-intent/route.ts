@@ -5,6 +5,7 @@ import { resolveCheckoutAttribution } from "@/lib/checkout/attribution";
 import { getStripe } from "@/lib/stripe/checkout";
 import crypto from "crypto";
 
+import { logger } from "@/lib/logger";
 function parseQuantity(value: unknown) {
   const quantity = Number(value);
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) return null;
@@ -147,7 +148,7 @@ export async function POST(req: Request) {
       orderLookupToken,
     });
   } catch (error: any) {
-    console.error("[Create Intent Error]", error);
+    logger.error({ err: error }, "[Create Intent Error]");
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

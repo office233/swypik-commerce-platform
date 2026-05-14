@@ -6,6 +6,7 @@ import { buildProcessVideoJobPayload } from "@/lib/video/upload-session";
 import { getVideoStorageBucket } from "@/lib/storage/video-storage";
 import crypto from "crypto";
 
+import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
   try {
     const creatorId = await getCreatorUserId();
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("[Upload Complete Error]:", error);
+    logger.error({ err: error }, "[Upload Complete Error]:");
     return NextResponse.json(
       { error: error.message || "Failed to complete upload" },
       { status: 500 }

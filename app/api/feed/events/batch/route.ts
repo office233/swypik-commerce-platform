@@ -8,6 +8,7 @@ import {
   type NormalizedFeedEvent,
 } from "@/lib/feed/events";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 const MAX_BATCH = 50;
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("[feed/events/batch] insert failed:", error);
+    logger.error({ err: error }, "[feed/events/batch] insert failed:");
     return NextResponse.json({ error: "insert_failed" }, { status: 500 });
   }
 }

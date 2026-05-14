@@ -4,6 +4,7 @@ import { attachReplies, chooseCommentStatus, mapCommentRow, validateCommentText 
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_LIMIT = 20;
@@ -129,7 +130,7 @@ export async function GET(
       hasMore: offset + topLevelRows.length < totalCount,
     });
   } catch (error) {
-    console.error("[Comments API] GET Error:", error);
+    logger.error({ err: error }, "[Comments API] GET Error:");
     return NextResponse.json({ error: "Failed to load comments" }, { status: 500 });
   }
 }
@@ -315,7 +316,7 @@ export async function POST(
     return response;
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
-    console.error("[Comments API] POST Error:", error);
+    logger.error({ err: error }, "[Comments API] POST Error:");
     return NextResponse.json({ error: "Failed to post comment" }, { status: 500 });
   } finally {
     client.release();

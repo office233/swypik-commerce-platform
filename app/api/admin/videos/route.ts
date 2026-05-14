@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth/getAuthUser";
 import { notifyVideoApproved, notifyVideoRejected } from "@/lib/email/creator-notifications";
 import { enqueueAeVideoPipeline } from "@/lib/video/ae-pipeline";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -106,7 +107,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ videos });
   } catch (error: any) {
-    console.error("[Admin Videos] GET error:", error);
+    logger.error({ err: error }, "[Admin Videos] GET error:");
     return NextResponse.json(
       { error: "Failed to fetch video assets" },
       { status: 500 }
@@ -260,7 +261,7 @@ export async function POST(req: Request) {
         );
     }
   } catch (error: any) {
-    console.error("[Admin Videos] POST error:", error);
+    logger.error({ err: error }, "[Admin Videos] POST error:");
     return NextResponse.json(
       { error: "Action failed" },
       { status: 500 }

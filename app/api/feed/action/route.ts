@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { applyFeedAction, recordFeedEvent, recordWatchEvent } from "@/lib/db/feed-prefs";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 type FeedAction =
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (err) {
-    console.error("[Feed Action] error:", err);
+    logger.error({ err: err }, "[Feed Action] error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

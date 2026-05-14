@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserId } from "@/lib/creator/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     const initData = await initRes.json().catch(() => ({}));
 
     if (!initRes.ok) {
-      console.error("GO API init error:", initData);
+      logger.error({ err: initData }, "GO API init error:");
       return NextResponse.json(
         { error: initData?.error?.message || initData?.error || "Failed to initialize video upload" },
         { status: initRes.status }
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
 
     if (!uploadRes.ok) {
       const text = await uploadRes.text().catch(() => "");
-      console.error("R2 upload error:", text);
+      logger.error({ err: text }, "R2 upload error:");
       return NextResponse.json(
         { error: "Failed to upload video to media storage" },
         { status: 502 }
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
     const completeData = await completeRes.json().catch(() => ({}));
 
     if (!completeRes.ok) {
-      console.error("GO API complete error:", completeData);
+      logger.error({ err: completeData }, "GO API complete error:");
       return NextResponse.json(
         { error: completeData?.error?.message || completeData?.error || "Failed to complete video upload" },
         { status: completeRes.status }
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, id: localId, video: completeData });
   } catch (error: any) {
-    console.error("Creator Video Upload Error:", error);
+    logger.error({ err: error }, "Creator Video Upload Error:");
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 }

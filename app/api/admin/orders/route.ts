@@ -9,6 +9,7 @@ import { dbQuery } from "@/lib/db";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -130,7 +131,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, order: rows[0] });
   } catch (error: any) {
-    console.error("[Admin Orders PATCH]", error);
+    logger.error({ err: error }, "[Admin Orders PATCH]");
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

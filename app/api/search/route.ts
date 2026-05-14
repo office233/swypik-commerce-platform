@@ -7,6 +7,7 @@ import {
 } from "@/lib/search/query";
 import { getClientIP, rateLimit } from "@/lib/security/rate-limit";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 type SearchType = "all" | "videos" | "creators" | "products";
@@ -81,7 +82,7 @@ export async function GET(req: NextRequest) {
       hasMore: items.length === limit,
     });
   } catch (err) {
-    console.error("[/api/search] error:", err);
+    logger.error({ err: err }, "[/api/search] error:");
     return NextResponse.json(
       { error: "Search failed", q, type },
       { status: 500 }

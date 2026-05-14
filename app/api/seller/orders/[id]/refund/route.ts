@@ -14,6 +14,7 @@ import { getStripe } from "@/lib/stripe/checkout";
 import { evaluateSellerRefundRequest } from "@/lib/seller/refund-policy";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 function statusForPolicyCode(code: string): number {
@@ -115,7 +116,7 @@ export async function POST(
       refundAmountCents = refund.amount || 0;
       refundCurrency = String(refund.currency || "ron").toUpperCase();
     } catch (stripeError: any) {
-      console.error("[Seller Refund] Stripe refund error:", stripeError);
+      logger.error({ err: stripeError }, "[Seller Refund] Stripe refund error:");
       return NextResponse.json(
         {
           success: false,
@@ -175,7 +176,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, refundId, refundStatus });
   } catch (error: any) {
-    console.error("[Seller Refund] Unexpected error:", error);
+    logger.error({ err: error }, "[Seller Refund] Unexpected error:");
     return NextResponse.json(
       { success: false, error: "Eroare interna. Incearca din nou." },
       { status: 500 }

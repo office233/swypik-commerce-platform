@@ -13,6 +13,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { dropCachedSuggestions, setCachedSuggestions } from "@/lib/creator/upload-suggestions-cache";
 import { getCreatorUserId } from "@/lib/creator/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 type Focus = "hooks" | "caption" | "tags" | "all";
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ...next, cached: false, focus });
   } catch (err: any) {
-    console.error("[upload-suggestions/regenerate] error:", err);
+    logger.error({ err: err }, "[upload-suggestions/regenerate] error:");
     return NextResponse.json({ error: err?.message || "Internal Server Error" }, { status: 500 });
   }
 }

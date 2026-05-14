@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { deriveOrderStatus } from "@/lib/commerce/order-status";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -106,7 +107,7 @@ export async function GET(req: Request) {
       recentOrders,
     });
   } catch (error: any) {
-    console.error("[Seller Dashboard API] GET Error:", error);
+    logger.error({ err: error }, "[Seller Dashboard API] GET Error:");
     return NextResponse.json({ success: false, error: "Eroare la preluarea dashboard-ului." }, { status: 500 });
   }
 }

@@ -8,6 +8,7 @@ import {
   validationError,
 } from "../compat";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
 
     return fallbackAccepted(batch.events.length);
   } catch (error) {
-    console.error("[Social Events Batch Fallback]", error);
+    logger.error({ err: error }, "[Social Events Batch Fallback]");
     return fallbackAccepted(0);
   }
 }

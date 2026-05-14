@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 async function getUserId(): Promise<string | null> {
@@ -26,7 +27,7 @@ export async function GET() {
 
     return NextResponse.json({ challenges: rows });
   } catch (error: any) {
-    console.error("GET /api/challenges Error:", error);
+    logger.error({ err: error }, "GET /api/challenges Error:");
     return NextResponse.json({ error: "Failed to fetch challenges" }, { status: 500 });
   }
 }

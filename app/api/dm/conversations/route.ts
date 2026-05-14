@@ -10,6 +10,7 @@ import {
   listConversations,
 } from "@/lib/dm/repository";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /** GET /api/dm/conversations — list current user's conversations. */
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
     const conversations = await listConversations(userId, { limit, cursor });
     return NextResponse.json({ conversations });
   } catch (err: any) {
-    console.error("[DM] list conversations:", err);
+    logger.error({ err: err }, "[DM] list conversations:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (err: any) {
-    console.error("[DM] create conversation:", err);
+    logger.error({ err: err }, "[DM] create conversation:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

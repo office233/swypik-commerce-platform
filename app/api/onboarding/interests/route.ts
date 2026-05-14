@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { TOPICS } from "@/lib/topics";
 import { getOptionalSocialUserId, getOrCreateSocialUser } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error("Interests POST error:", error);
+    logger.error({ err: error }, "Interests POST error:");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ interests: rows });
   } catch (error: any) {
-    console.error("Interests GET error:", error);
+    logger.error({ err: error }, "Interests GET error:");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { getDb, dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(
@@ -78,7 +79,7 @@ export async function POST(
       client.release();
     }
   } catch (error: any) {
-    console.error("[Follow API] POST Error:", error);
+    logger.error({ err: error }, "[Follow API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -109,7 +110,7 @@ export async function GET(
 
     return NextResponse.json({ following, follower_count: followerCount });
   } catch (error: any) {
-    console.error("[Follow API] GET Error:", error);
+    logger.error({ err: error }, "[Follow API] GET Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

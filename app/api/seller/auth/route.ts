@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import crypto from "crypto";
 import { sendMagicLink } from "@/lib/email/service";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 const COOKIE_NAME = "seller_session";
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: false, error: "Unknown action" }, { status: 400 });
   } catch (error: any) {
-    console.error("[Seller Auth API] Error:", error);
+    logger.error({ err: error }, "[Seller Auth API] Error:");
     return NextResponse.json({ success: false, error: "Eroare interna la autentificare." }, { status: 500 });
   }
 }

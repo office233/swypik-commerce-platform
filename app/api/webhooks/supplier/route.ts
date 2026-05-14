@@ -12,12 +12,13 @@ import { sendCustomerShippingAlert } from "@/lib/email/service";
 import crypto from "crypto";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
+import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
   if (!isEnabled("fulfillment")) return frozenResponse("fulfillment");
   // ── 1. Authentication ──
   const secret = process.env.SUPPLIER_WEBHOOK_SECRET;
   if (!secret) {
-    console.error("[Supplier Webhook] SUPPLIER_WEBHOOK_SECRET is not configured");
+    logger.error("[Supplier Webhook] SUPPLIER_WEBHOOK_SECRET is not configured");
     return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
   }
 
@@ -82,7 +83,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("[Supplier Webhook] POST Error:", error);
+    logger.error({ err: error }, "[Supplier Webhook] POST Error:");
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
       { status: 500 }

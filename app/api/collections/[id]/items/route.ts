@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -77,7 +78,7 @@ export async function POST(
       client.release();
     }
   } catch (err) {
-    console.error("[Collection Items POST] error:", err);
+    logger.error({ err: err }, "[Collection Items POST] error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -122,7 +123,7 @@ export async function GET(
 
     return NextResponse.json({ items, limit, offset });
   } catch (err) {
-    console.error("[Collection Items GET] error:", err);
+    logger.error({ err: err }, "[Collection Items GET] error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

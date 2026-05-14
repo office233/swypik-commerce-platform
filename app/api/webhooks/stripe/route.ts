@@ -7,6 +7,7 @@ import { logCheckoutEvent } from "@/lib/security/audit-log";
 import type Stripe from "stripe";
 import crypto from "crypto";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 async function getRawBody(req: Request): Promise<Buffer> {
@@ -26,7 +27,7 @@ async function getRawBody(req: Request): Promise<Buffer> {
 export async function POST(req: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error("[Stripe Webhook] STRIPE_WEBHOOK_SECRET is not configured");
+    logger.error("[Stripe Webhook] STRIPE_WEBHOOK_SECRET is not configured");
     await logCheckoutEvent("webhook_fail", {
       error: "STRIPE_WEBHOOK_SECRET is not configured",
       payload: { stage: "configuration" },
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
         break;
       case "payment_intent.payment_failed": {
         const intent = event.data.object as Stripe.PaymentIntent;
-        console.warn(`[Stripe Webhook] Payment failed: ${intent.id} - ${intent.last_payment_error?.message}`);
+        logger.warn(`[Stripe Webhook] Payment failed: ${intent.id} - ${intent.last_payment_error?.message}`);
         await logCheckoutEvent("checkout_fail", {
           error: intent.last_payment_error?.message || "payment_intent.payment_failed",
           payload: { stage: "payment_failed", paymentIntentId: intent.id },
@@ -284,7 +285,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const fulfillmentPlan = await routeOrder(orderId, items as any);
     console.log(`[Stripe Webhook] Fulfillment Plan for Order ${orderId}:\n`, JSON.stringify(fulfillmentPlan, null, 2));
   } catch (err) {
-    console.error(`[Stripe Webhook] Fulfillment routing failed for Order ${orderId}:`, err);
+    logger.error({ err: err }, `[Stripe Webhook] Fulfillment routing failed for Order ${orderId}:`);
   }
 }
 
@@ -398,7 +399,7 @@ async function persistOrderItems(orderId: string, items: Array<{
           [item.quantity, String(skuId)]
         );
       } catch(e) {
-        console.error(`[Stripe Webhook] Error deducting variant stock for SKU ${skuId}`, e);
+        logger.error({ err: e }, `[Stripe Webhook] Error deducting variant stock for SKU ${skuId}`);
       }
     } else if (pgId) {
       try {
@@ -407,7 +408,7 @@ async function persistOrderItems(orderId: string, items: Array<{
           [item.quantity, String(pgId)]
         );
       } catch(e) {
-        console.error(`[Stripe Webhook] Error deducting product stock for ID ${pgId}`, e);
+        logger.error({ err: e }, `[Stripe Webhook] Error deducting product stock for ID ${pgId}`);
       }
     }
   }

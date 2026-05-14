@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: collectionId } = await params;
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ collection, items });
   } catch (error) {
-    console.error("Collection GET Error:", error);
+    logger.error({ err: error }, "Collection GET Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -78,7 +79,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ collection: rows[0] });
   } catch (error) {
-    console.error("Collection PATCH Error:", error);
+    logger.error({ err: error }, "Collection PATCH Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -109,7 +110,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Collection DELETE Error:", error);
+    logger.error({ err: error }, "Collection DELETE Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

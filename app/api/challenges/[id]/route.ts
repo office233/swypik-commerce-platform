@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(
@@ -37,7 +38,7 @@ export async function GET(
 
     return NextResponse.json({ challenge, leaderboard: leaderboardRes.rows });
   } catch (error: any) {
-    console.error("GET /api/challenges/[id] Error:", error);
+    logger.error({ err: error }, "GET /api/challenges/[id] Error:");
     return NextResponse.json({ error: "Failed to fetch challenge" }, { status: 500 });
   }
 }

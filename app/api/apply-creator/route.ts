@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
       message: "Aplicatia ta a fost primita.",
     });
   } catch (error: any) {
-    console.error("[Apply Creator API] Error:", error);
+    logger.error({ err: error }, "[Apply Creator API] Error:");
     return NextResponse.json(
       { success: false, error: "A aparut o eroare la salvarea aplicatiei." },
       { status: 500 },

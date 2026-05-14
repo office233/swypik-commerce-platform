@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { searchProducts } from "@/lib/db/product-queries";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 const cache = new Map<string, { data: any; ts: number }>();
@@ -55,7 +56,7 @@ export async function GET(req: Request) {
     cache.set(cacheKey, { data: responseData, ts: Date.now() });
     return NextResponse.json(responseData);
   } catch (error: any) {
-    console.error("[Search Suggest]", error);
+    logger.error({ err: error }, "[Search Suggest]");
     return NextResponse.json({ ok: false, error: "A apărut o eroare la căutare.", suggestions: [] }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -252,7 +253,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ videos });
   } catch (error: any) {
-    console.error("Explore feed API error:", error);
+    logger.error({ err: error }, "Explore feed API error:");
     return NextResponse.json(
       { error: "Failed to fetch video feed" },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -101,7 +102,7 @@ export async function GET(
       })),
     });
   } catch (err: any) {
-    console.error("GET /api/creators/[id] error:", err);
+    logger.error({ err: err }, "GET /api/creators/[id] error:");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

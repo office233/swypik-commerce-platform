@@ -20,6 +20,7 @@ import {
 } from "@/lib/email/service";
 import { timingSafeEqual } from "crypto";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -154,7 +155,7 @@ export async function GET(req: Request) {
       total: abandonedSessions.length,
     });
   } catch (error: any) {
-    console.error("[Abandoned Cart Cron Error]:", error);
+    logger.error({ err: error }, "[Abandoned Cart Cron Error]:");
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },

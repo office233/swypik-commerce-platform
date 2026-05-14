@@ -5,6 +5,7 @@ import { normalizeCreatorUploadInput } from "@/lib/video/upload-session";
 import { dbQuery } from "@/lib/db";
 import crypto from "crypto";
 
+import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
   try {
     const creatorId = await getCreatorUserId();
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
       expiresAt: expiresAt.toISOString(),
     });
   } catch (error: any) {
-    console.error("[Upload Session Error]:", error);
+    logger.error({ err: error }, "[Upload Session Error]:");
     return NextResponse.json(
       { error: error.message || "Failed to create upload session" },
       { status: error.status || 500 }

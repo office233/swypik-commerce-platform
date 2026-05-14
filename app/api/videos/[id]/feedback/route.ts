@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { TOPICS } from "@/lib/topics";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -72,7 +73,7 @@ export async function POST(
     return NextResponse.json({ action, topic: extractedTopic, new_weight: newWeight });
 
   } catch (error: any) {
-    console.error("Feedback error:", error);
+    logger.error({ err: error }, "Feedback error:");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

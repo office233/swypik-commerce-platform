@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
     `);
     return NextResponse.json({ challenges: rows });
   } catch (error: any) {
-    console.error("GET /api/admin/challenges Error:", error);
+    logger.error({ err: error }, "GET /api/admin/challenges Error:");
     return NextResponse.json({ error: "Failed to fetch challenges" }, { status: 500 });
   }
 }
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ challenge: rows[0] });
   } catch (error: any) {
-    console.error("POST /api/admin/challenges Error:", error);
+    logger.error({ err: error }, "POST /api/admin/challenges Error:");
     return NextResponse.json({ error: "Failed to create challenge" }, { status: 500 });
   }
 }
@@ -81,7 +82,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ challenge: rows[0] });
   } catch (error: any) {
-    console.error("PATCH /api/admin/challenges Error:", error);
+    logger.error({ err: error }, "PATCH /api/admin/challenges Error:");
     return NextResponse.json({ error: "Failed to update challenge" }, { status: 500 });
   }
 }
