@@ -374,37 +374,41 @@ export async function POST(req: Request) {
         );
       }
 
-      // Verifică unicitate email + username + phone
-      const { rows: existingEmailRows } = await dbQuery<{ id: string }>(
-        `SELECT id FROM users WHERE lower(email) = $1 LIMIT 1`,
+      // Verifică unicitate email + username + phone (ignoră anonimi cu email NULL)
+      console.log(`[auth/signup_password] attempt email=${normalizedEmail} username=${cleanUsername} hasPhone=${!!phoneTrimmed}`);
+      const { rows: existingEmailRows } = await dbQuery<{ id: string; status: string }>(
+        `SELECT id, status FROM users WHERE email IS NOT NULL AND lower(email) = $1 LIMIT 1`,
         [normalizedEmail],
       );
       if (existingEmailRows.length > 0) {
+        console.log(`[auth/signup_password] EMAIL_TAKEN id=${existingEmailRows[0].id} status=${existingEmailRows[0].status}`);
         return NextResponse.json(
-          { success: false, error: "Există deja un cont cu acest email." },
+          { success: false, field: "email", code: "email_taken", error: "Există deja un cont cu acest email. Încearcă să te autentifici." },
           { status: 409 },
         );
       }
 
       const { rows: existingUserRows } = await dbQuery<{ id: string }>(
-        `SELECT id FROM users WHERE lower(username) = $1 LIMIT 1`,
+        `SELECT id FROM users WHERE username IS NOT NULL AND lower(username) = $1 LIMIT 1`,
         [cleanUsername],
       );
       if (existingUserRows.length > 0) {
+        console.log(`[auth/signup_password] USERNAME_TAKEN handle=${cleanUsername}`);
         return NextResponse.json(
-          { success: false, error: "Username-ul este deja folosit." },
+          { success: false, field: "username", code: "username_taken", error: `Username-ul "${cleanUsername}" este deja folosit. Alege altul.` },
           { status: 409 },
         );
       }
 
       if (phoneTrimmed) {
         const { rows: existingPhoneRows } = await dbQuery<{ id: string }>(
-          `SELECT id FROM users WHERE phone = $1 LIMIT 1`,
+          `SELECT id FROM users WHERE phone IS NOT NULL AND phone = $1 LIMIT 1`,
           [phoneTrimmed],
         );
         if (existingPhoneRows.length > 0) {
+          console.log(`[auth/signup_password] PHONE_TAKEN phone=${phoneTrimmed}`);
           return NextResponse.json(
-            { success: false, error: "Există deja un cont cu acest telefon." },
+            { success: false, field: "phone", code: "phone_taken", error: "Există deja un cont cu acest telefon." },
             { status: 409 },
           );
         }

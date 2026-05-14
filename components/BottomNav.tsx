@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: "/", icon: Home, label: "Acasă" },
   { href: "/explore", icon: Search, label: "Explorează" },
   { href: "/reels/record", icon: Plus, label: "", center: true },
-  { href: "/inbox", icon: Inbox, label: "Inbox", flag: "dm" as const },
+  { href: "/inbox", icon: Inbox, label: "Inbox" },
   { href: "/account", icon: User, label: "Profil" },
 ];
 

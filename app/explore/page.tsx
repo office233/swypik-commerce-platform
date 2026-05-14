@@ -518,35 +518,6 @@ export default function ExplorePage() {
         }
         .liked .icon-wrap { animation: heartPop 0.4s ease; }
         /* Upload FAB */
-        .upload-fab {
-          position: fixed; bottom: max(env(safe-area-inset-bottom, 0px), 20px);
-          left: 50%; transform: translateX(-50%);
-          z-index: 50;
-          width: 48px; height: 32px; border-radius: 8px;
-          background: linear-gradient(135deg, #25F4EE 0%, #FE2C55 100%);
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer; box-shadow: 0 2px 16px rgba(254,44,85,0.5);
-          transition: transform 0.15s;
-          overflow: hidden;
-        }
-        .upload-fab::before {
-          content: ''; position: absolute;
-          left: 4px; top: 4px; bottom: 4px;
-          width: 18px; border-radius: 4px;
-          background: #25F4EE;
-        }
-        .upload-fab::after {
-          content: ''; position: absolute;
-          right: 4px; top: 4px; bottom: 4px;
-          width: 18px; border-radius: 4px;
-          background: #FE2C55;
-        }
-        .upload-fab .plus-icon {
-          position: relative; z-index: 2;
-          width: 24px; height: 24px; border-radius: 6px;
-          background: #fff; display: flex; align-items: center; justify-content: center;
-        }
-        .upload-fab:active { transform: translateX(-50%) scale(0.92); }
         /* Spinning disc */
         .disc-spin {
           width: 48px; height: 48px; border-radius: 50%;

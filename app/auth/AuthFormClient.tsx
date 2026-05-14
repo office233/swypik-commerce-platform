@@ -355,6 +355,10 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
       const j = await res.json();
       if (!res.ok || !j.success) {
         setError(j.error || "Nu am putut crea contul.");
+        // Sari înapoi la pasul relevant pentru field-ul cu eroare
+        if (j.field === "email") setStep(1);
+        else if (j.field === "username") { setStep(3); setUsernameStatus("taken"); }
+        else if (j.field === "phone") setStep(4);
         return;
       }
       const target =
