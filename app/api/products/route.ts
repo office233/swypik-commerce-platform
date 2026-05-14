@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 const RO_TO_EN: Record<string, string> = {
@@ -107,7 +108,7 @@ export async function GET(req: Request) {
       },
     );
   } catch (error: any) {
-    console.error("[Products API]", error);
+    logger.error({ err: error }, "[Products API]");
     return NextResponse.json(
       { error: "A aparut o eroare la incarcarea produselor.", products: [], total: 0, source: "error" },
       { status: 500 },

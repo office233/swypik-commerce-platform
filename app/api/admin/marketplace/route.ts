@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -34,7 +35,7 @@ export async function GET(req: Request) {
     `);
     return NextResponse.json({ products: rows });
   } catch (error: any) {
-    console.error("Admin marketplace fetch error:", error);
+    logger.error({ err: error }, "Admin marketplace fetch error:");
     return NextResponse.json(
       { error: "Failed to fetch products" },
       { status: 500 }

@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import crypto from "crypto";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(
@@ -66,7 +67,7 @@ export async function POST(
       client.release();
     }
   } catch (error: any) {
-    console.error("[Share API] POST Error:", error);
+    logger.error({ err: error }, "[Share API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

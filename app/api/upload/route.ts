@@ -14,6 +14,7 @@ import { uploadFile, isStorageConfigured, MAX_FILE_SIZE } from "@/lib/storage/up
 import { isAdminRequest } from "@/lib/security/admin-auth";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 const MAX_MULTIPART_OVERHEAD = 1024 * 1024;
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
       size: result.size,
     });
   } catch (error: any) {
-    console.error("[Upload API] Error:", error);
+    logger.error({ err: error }, "[Upload API] Error:");
 
     const status = error.message?.includes("nepermis") || error.message?.includes("depășește")
       ? 422

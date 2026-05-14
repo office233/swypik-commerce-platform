@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getRewardHistory } from "@/lib/rewards/engine";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -16,7 +17,7 @@ export async function GET() {
 
     return NextResponse.json({ events });
   } catch (error: any) {
-    console.error("Reward History API Error:", error);
+    logger.error({ err: error }, "Reward History API Error:");
     return NextResponse.json(
       { error: "Failed to fetch reward history" },
       { status: 500 }

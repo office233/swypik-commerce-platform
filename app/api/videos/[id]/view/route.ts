@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -82,7 +83,7 @@ export async function POST(
 
     return NextResponse.json({ views: Number(rows[0].view_count) });
   } catch (error: any) {
-    console.error("[Video View API]", error);
+    logger.error({ err: error }, "[Video View API]");
     return NextResponse.json(
       { error: "Failed to record view" },
       { status: 500 }

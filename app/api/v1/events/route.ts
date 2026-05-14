@@ -8,6 +8,7 @@ import {
   validationError,
 } from "./compat";
 
+import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
 
     return fallbackAccepted(1);
   } catch (error) {
-    console.error("[Social Events Fallback]", error);
+    logger.error({ err: error }, "[Social Events Fallback]");
     return fallbackAccepted(0);
   }
 }

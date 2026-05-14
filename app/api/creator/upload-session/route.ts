@@ -17,6 +17,7 @@ import {
   type CreatorUploadInput,
 } from "@/lib/video/upload-session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
       { status: 503 }
     );
   } catch (error: any) {
-    console.error("Upload Session POST Error:", error);
+    logger.error({ err: error }, "Upload Session POST Error:");
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: error instanceof UploadInputError ? error.status : 500 }
@@ -75,7 +76,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ error: "Upload session not found" }, { status: 404 });
   } catch (error: any) {
-    console.error("Upload Session GET Error:", error);
+    logger.error({ err: error }, "Upload Session GET Error:");
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 }
@@ -112,7 +113,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ error: "Upload session not found" }, { status: 404 });
   } catch (error: any) {
-    console.error("Upload Session PATCH Error:", error);
+    logger.error({ err: error }, "Upload Session PATCH Error:");
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 }

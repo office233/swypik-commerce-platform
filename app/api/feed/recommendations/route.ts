@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -124,7 +125,7 @@ export async function GET(req: Request) {
       personalised: Boolean(userParam || sessionParam),
     });
   } catch (error) {
-    console.error("[feed/recommendations]", error);
+    logger.error({ err: error }, "[feed/recommendations]");
     return NextResponse.json({ error: "ranking_failed" }, { status: 500 });
   }
 }

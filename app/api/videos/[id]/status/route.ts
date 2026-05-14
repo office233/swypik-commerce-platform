@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
+import { logger } from "@/lib/logger";
 function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -27,7 +28,7 @@ async function firstRow(sql: string, params: unknown[]): Promise<Record<string, 
     const { rows } = await dbQuery(sql, params);
     return asObject(rows[0]);
   } catch (error) {
-    console.warn("[Video Status] Optional status lookup failed", error);
+    logger.warn({ err: error }, "[Video Status] Optional status lookup failed");
     return {};
   }
 }

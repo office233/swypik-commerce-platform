@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProductDetail } from "@/lib/products/get-product-detail";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(
@@ -17,7 +18,7 @@ export async function GET(
 
     return NextResponse.json(detail);
   } catch (error: any) {
-    console.error("[Product Detail API]", error);
+    logger.error({ err: error }, "[Product Detail API]");
     return NextResponse.json({ error: "A aparut o eroare la incarcarea produsului." }, { status: 500 });
   }
 }

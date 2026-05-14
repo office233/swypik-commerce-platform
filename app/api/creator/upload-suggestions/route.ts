@@ -5,6 +5,7 @@ import { getCachedSuggestions, setCachedSuggestions } from "@/lib/creator/upload
 import { getCreatorUserId } from "@/lib/creator/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 type SuggestionBody = {
@@ -116,7 +117,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ...bundle, cached: false });
   } catch (err: any) {
-    console.error("[upload-suggestions] POST error:", err);
+    logger.error({ err: err }, "[upload-suggestions] POST error:");
     return NextResponse.json(
       { error: err?.message || "Internal Server Error" },
       { status: 500 }

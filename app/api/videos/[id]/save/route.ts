@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 function normalizeCollectionName(value: unknown): string {
@@ -98,7 +99,7 @@ export async function POST(
       client.release();
     }
   } catch (error: any) {
-    console.error("[Save API] POST Error:", error);
+    logger.error({ err: error }, "[Save API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -127,7 +128,7 @@ export async function GET(
 
     return NextResponse.json({ saved, collections, save_count: saveCount });
   } catch (error: any) {
-    console.error("[Save API] GET Error:", error);
+    logger.error({ err: error }, "[Save API] GET Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

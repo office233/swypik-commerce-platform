@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   try {
@@ -8,7 +9,7 @@ export async function GET(req: Request) {
     const hierarchy = await getCategoryHierarchy(locale);
     return NextResponse.json({ hierarchy });
   } catch (e: any) {
-    console.error("[Categories API]", e);
+    logger.error({ err: e }, "[Categories API]");
     return NextResponse.json({ error: "err", hierarchy: [] }, { status: 500 });
   }
 }

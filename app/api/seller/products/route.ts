@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, products: rows });
   } catch (error: any) {
-    console.error("[Seller Products API] GET Error:", error);
+    logger.error({ err: error }, "[Seller Products API] GET Error:");
     return NextResponse.json({ success: false, error: "Eroare la preluarea produselor." }, { status: 500 });
   }
 }
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, product: rows[0] });
   } catch (error: any) {
-    console.error("[Seller Products API] POST Error:", error);
+    logger.error({ err: error }, "[Seller Products API] POST Error:");
     return NextResponse.json({ success: false, error: "Eroare la adaugarea produsului." }, { status: 500 });
   }
 }

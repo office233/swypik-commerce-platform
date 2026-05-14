@@ -7,6 +7,7 @@ import {
   findExternalSourceUrlForVideo,
 } from "@/lib/video/ae-pipeline";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -92,7 +93,7 @@ export async function POST(
       { status: 202 }
     );
   } catch (error: any) {
-    console.error(`[Admin Videos] reencode ${videoId} error:`, error);
+    logger.error({ err: error }, `[Admin Videos] reencode ${videoId} error:`);
     return NextResponse.json(
       { error: error?.message || "Re-encode failed" },
       { status: 500 }

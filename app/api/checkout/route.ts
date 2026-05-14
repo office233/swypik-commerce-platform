@@ -18,6 +18,7 @@ import { logCheckoutEvent } from "@/lib/security/audit-log";
 import crypto from "crypto";
 
 
+import { logger } from "@/lib/logger";
 function parsePositiveInt(val: unknown, fallback: number, max: number): number {
   const n = Number(val);
   if (!Number.isInteger(n) || n < 1) return fallback;
@@ -180,7 +181,7 @@ export async function POST(req: Request) {
     for (const item of rawItems) {
       const productId = String(item.productId);
       if (!productId || productId === 'undefined' || productId === 'null') {
-        console.warn(`[Checkout] Invalid productId: ${item.productId}`);
+        logger.warn(`[Checkout] Invalid productId: ${item.productId}`);
         continue;
       }
 
@@ -189,7 +190,7 @@ export async function POST(req: Request) {
       // ALWAYS fetch from NeonDB — never trust client
       const pgProduct = await getCheckoutProductById(productId);
       if (!pgProduct) {
-        console.warn(`[Checkout] Product ${productId} not found`);
+        logger.warn(`[Checkout] Product ${productId} not found`);
         logCheckoutEvent("product_not_found", { productId, clientIp: ip, userAgent });
         return NextResponse.json(
           { success: false, error: "Produsul nu este disponibil." },
@@ -236,7 +237,7 @@ export async function POST(req: Request) {
             );
           }
         } catch (e) {
-          console.error(`[Checkout] Variant lookup error:`, e);
+          logger.error({ err: e }, `[Checkout] Variant lookup error:`);
           return NextResponse.json(
             { success: false, error: "Nu am putut valida varianta selectată." },
             { status: 500 }

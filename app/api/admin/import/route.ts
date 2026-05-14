@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /* ------------------------------------------------------------------ */
@@ -198,7 +199,7 @@ export async function POST(req: Request) {
       errors,
     });
   } catch (err: any) {
-    console.error("CSV import error:", err);
+    logger.error({ err: err }, "CSV import error:");
     return NextResponse.json(
       { success: false, imported: 0, errors: [{ row: 0, reason: err.message || "Server error." }] },
       { status: 500 }

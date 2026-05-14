@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 const rateLimits = new Map<string, number>();
 
 // Allowed event types matching the DB ENUM
@@ -85,7 +86,7 @@ export async function POST(
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {
-    console.error("Error in watch event tracking:", error);
+    logger.error({ err: error }, "Error in watch event tracking:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

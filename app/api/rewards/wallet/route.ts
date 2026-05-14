@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getWalletBalance } from "@/lib/rewards/engine";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -16,7 +17,7 @@ export async function GET() {
 
     return NextResponse.json(wallet);
   } catch (error: any) {
-    console.error("Wallet API Error:", error);
+    logger.error({ err: error }, "Wallet API Error:");
     return NextResponse.json(
       { error: "Failed to fetch wallet balance" },
       { status: 500 }

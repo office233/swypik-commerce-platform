@@ -7,6 +7,7 @@ import {
 } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -116,7 +117,7 @@ export async function POST(
       client.release();
     }
   } catch (error: any) {
-    console.error("[Comment Like API] POST Error:", error);
+    logger.error({ err: error }, "[Comment Like API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -144,7 +145,7 @@ export async function GET(
 
     return NextResponse.json({ liked, like_count: likeCount });
   } catch (error: any) {
-    console.error("[Comment Like API] GET Error:", error);
+    logger.error({ err: error }, "[Comment Like API] GET Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

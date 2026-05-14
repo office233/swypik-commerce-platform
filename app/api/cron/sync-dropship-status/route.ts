@@ -4,6 +4,7 @@ import { timingSafeEqual } from "crypto";
 import { getDropshipOrderStatus } from "@/lib/aliexpress/client";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -96,7 +97,7 @@ export async function GET(req: Request) {
 
         syncedCount++;
       } catch (aeError: any) {
-        console.error(`[Cron] AE sync failed for ae_order_id ${aeOrderId}:`, aeError);
+        logger.error({ err: aeError }, `[Cron] AE sync failed for ae_order_id ${aeOrderId}:`);
       }
     }
 
@@ -105,7 +106,7 @@ export async function GET(req: Request) {
       syncedCount
     });
   } catch (error: any) {
-    console.error("[Sync Dropship Status Cron Error]:", error);
+    logger.error({ err: error }, "[Sync Dropship Status Cron Error]:");
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

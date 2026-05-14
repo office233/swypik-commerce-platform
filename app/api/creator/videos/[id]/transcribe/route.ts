@@ -14,6 +14,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserId } from "@/lib/creator/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 async function transcribeFromUrl(videoUrl: string): Promise<string | null> {
@@ -103,7 +104,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     return NextResponse.json({ video_id: videoId, transcript });
   } catch (err: any) {
-    console.error("[transcribe] error:", err);
+    logger.error({ err: err }, "[transcribe] error:");
     return NextResponse.json({ error: err?.message || "Internal Server Error" }, { status: 500 });
   }
 }

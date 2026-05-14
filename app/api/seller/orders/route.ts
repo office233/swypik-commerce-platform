@@ -4,6 +4,7 @@ import { deriveOrderStatus } from "@/lib/commerce/order-status";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { sendCustomerShippingAlert } from "@/lib/email/service";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -74,7 +75,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, orders });
   } catch (error: any) {
-    console.error("[Seller Orders API] GET Error:", error);
+    logger.error({ err: error }, "[Seller Orders API] GET Error:");
     return NextResponse.json({ success: false, error: "Eroare la preluarea comenzilor." }, { status: 500 });
   }
 }
@@ -218,12 +219,12 @@ export async function POST(req: Request) {
         await sendCustomerShippingAlert(orderRes.rows[0].customer_email, trackingNumber);
       }
     } catch (emailErr) {
-      console.error("[Seller Orders API] Failed to send tracking email:", emailErr);
+      logger.error({ err: emailErr }, "[Seller Orders API] Failed to send tracking email:");
     }
 
     return NextResponse.json({ success: true, order: rows[0], trackingNumber, trackingUrl });
   } catch (error: any) {
-    console.error("[Seller Orders API] POST Error:", error);
+    logger.error({ err: error }, "[Seller Orders API] POST Error:");
     return NextResponse.json({ success: false, error: "Eroare la actualizarea comenzii." }, { status: 500 });
   }
 }

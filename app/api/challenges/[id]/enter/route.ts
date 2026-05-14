@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { awardPoints } from "@/lib/rewards/engine";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 async function getUserId(): Promise<string | null> {
@@ -67,12 +68,12 @@ export async function POST(
       const result = await awardPoints(userId, 'challenge_entry');
       pointsAwarded = result?.points || 0;
     } catch (e) {
-      console.error("Failed to award points:", e);
+      logger.error({ err: e }, "Failed to award points:");
     }
 
     return NextResponse.json({ entry, points_awarded: pointsAwarded });
   } catch (error: any) {
-    console.error("POST /api/challenges/[id]/enter Error:", error);
+    logger.error({ err: error }, "POST /api/challenges/[id]/enter Error:");
     return NextResponse.json({ error: "Failed to enter challenge" }, { status: 500 });
   }
 }

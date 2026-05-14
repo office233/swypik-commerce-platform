@@ -4,6 +4,7 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { getStripe } from "@/lib/stripe/checkout";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, url: accountLink.url });
   } catch (error: any) {
-    console.error("[Stripe Connect API] POST Error:", error);
+    logger.error({ err: error }, "[Stripe Connect API] POST Error:");
     return NextResponse.json({ success: false, error: "Eroare la conectarea Stripe." }, { status: 500 });
   }
 }

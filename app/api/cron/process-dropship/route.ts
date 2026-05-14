@@ -4,6 +4,7 @@ import { timingSafeEqual } from "crypto";
 import { placeDropshipOrder } from "@/lib/aliexpress/client";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -55,7 +56,7 @@ export async function GET(req: Request) {
       const shippingAddress = orderMetadata.shipping_address;
 
       if (!shippingAddress) {
-        console.error(`[Cron] Order ${orderId} has no shipping address.`);
+        logger.error(`[Cron] Order ${orderId} has no shipping address.`);
         continue;
       }
 
@@ -80,7 +81,7 @@ export async function GET(req: Request) {
         );
         processedCount += items.length;
       } catch (aeError: any) {
-        console.error(`[Cron] AE auto-ordering failed for order ${orderId}:`, aeError);
+        logger.error({ err: aeError }, `[Cron] AE auto-ordering failed for order ${orderId}:`);
       }
     }
 
@@ -89,7 +90,7 @@ export async function GET(req: Request) {
       processedCount
     });
   } catch (error: any) {
-    console.error("[Process Dropship Cron Error]:", error);
+    logger.error({ err: error }, "[Process Dropship Cron Error]:");
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

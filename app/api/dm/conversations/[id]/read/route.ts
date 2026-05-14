@@ -6,6 +6,7 @@ import {
 } from "@/lib/social/session";
 import { markRead } from "@/lib/dm/repository";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /** POST /api/dm/conversations/[id]/read — mark conversation read. */
@@ -32,7 +33,7 @@ export async function POST(
     if (err?.status === 403) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    console.error("[DM] mark read:", err);
+    logger.error({ err: err }, "[DM] mark read:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

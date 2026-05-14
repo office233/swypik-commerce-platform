@@ -10,6 +10,7 @@ import { dbQuery } from "@/lib/db";
 import { deriveOrderStatus } from "@/lib/commerce/order-status";
 import { isAdminRequest } from "@/lib/security/admin-auth";
 
+import { logger } from "@/lib/logger";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function GET(
@@ -90,7 +91,7 @@ export async function GET(
       fulfilledAt: order.fulfilled_at,
     });
   } catch (error: any) {
-    console.error("[Order Lookup]", error);
+    logger.error({ err: error }, "[Order Lookup]");
     return NextResponse.json({ error: "Nu am putut încărca această comandă." }, { status: 500 });
   }
 }

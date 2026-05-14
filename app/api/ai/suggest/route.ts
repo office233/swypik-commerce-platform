@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { logger } from "@/lib/logger";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ hooks, captions });
   } catch (error) {
-    console.error("AI Suggestion API Error:", error);
+    logger.error({ err: error }, "AI Suggestion API Error:");
     return NextResponse.json(
       { error: "A apărut o eroare la generarea sugestiilor." },
       { status: 500 }

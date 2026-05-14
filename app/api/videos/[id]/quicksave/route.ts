@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -147,7 +148,7 @@ export async function POST(
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (err) {
-    console.error("[Quicksave] error:", err);
+    logger.error({ err: err }, "[Quicksave] error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

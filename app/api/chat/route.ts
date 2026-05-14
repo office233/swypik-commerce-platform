@@ -19,6 +19,7 @@ import { inferBundleQueries, buildSalesSuggestion } from "@/lib/sales/bundle-eng
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { moderateOutput } from "@/lib/ai/moderation";
 
+import { logger } from "@/lib/logger";
 export const maxDuration = 120;
 
 const SAFE_FALLBACK = "Imi pare rau, nu pot raspunde la asta.";
@@ -34,7 +35,7 @@ async function safeReplyJson(payload: any) {
       }
     }
   } catch (e) {
-    console.warn("[chat] moderation wrapper failed:", e);
+    logger.warn({ err: e }, "[chat] moderation wrapper failed:");
   }
   return NextResponse.json(payload);
 }
@@ -173,7 +174,7 @@ export async function POST(req: Request) {
       sessionId: sessionId || crypto.randomUUID(),
     });
   } catch (error: any) {
-    console.error("[Chat API v3] Error:", error);
+    logger.error({ err: error }, "[Chat API v3] Error:");
     return NextResponse.json(
       { error: "A apărut o eroare. Încearcă din nou." },
       { status: 500 }

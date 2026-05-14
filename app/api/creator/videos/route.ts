@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserId } from "@/lib/creator/session";
 
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
@@ -88,7 +89,7 @@ export async function GET() {
 
     return NextResponse.json({ videos });
   } catch (error: any) {
-    console.error("Creator Videos API Error:", error);
+    logger.error({ err: error }, "Creator Videos API Error:");
     return NextResponse.json(
       { error: "Failed to fetch creator videos" },
       { status: 500 }

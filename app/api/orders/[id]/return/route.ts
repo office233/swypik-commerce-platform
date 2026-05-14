@@ -12,6 +12,7 @@ import { dbQuery } from "@/lib/db";
 import { canRequestReturn } from "@/lib/commerce/order-status";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
+import { logger } from "@/lib/logger";
 export async function POST(
   req: Request,
   { params }: { params: { id: string } }
@@ -93,7 +94,7 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("[Return Request Error]", error);
+    logger.error({ err: error }, "[Return Request Error]");
     return NextResponse.json(
       { error: "Eroare internă. Încearcă din nou." },
       { status: 500 }
