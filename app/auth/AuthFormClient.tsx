@@ -46,6 +46,8 @@ function LoginForm({ nextPath }: { nextPath: string }) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [twoFa, setTwoFa] = useState<{ tempToken: string } | null>(null);
+  const [twoFaCode, setTwoFaCode] = useState("");
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -73,6 +75,10 @@ function LoginForm({ nextPath }: { nextPath: string }) {
         setError(data.error || "Email sau parolă incorectă.");
         return;
       }
+      if (data.requires2FA && data.tempToken) {
+        setTwoFa({ tempToken: data.tempToken });
+        return;
+      }
       const target =
         typeof data.redirectTo === "string" && data.redirectTo.startsWith("/")
           ? data.redirectTo
@@ -81,6 +87,35 @@ function LoginForm({ nextPath }: { nextPath: string }) {
       router.refresh();
     } catch {
       setError("Eroare de conexiune. Reîncearcă.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verify2FA(e: React.FormEvent) {
+    e.preventDefault();
+    if (!twoFa) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify_2fa", tempToken: twoFa.tempToken, code: twoFaCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error || "Cod invalid.");
+        return;
+      }
+      const target =
+        typeof data.redirectTo === "string" && data.redirectTo.startsWith("/")
+          ? data.redirectTo
+          : nextPath || "/account";
+      window.location.assign(target);
+      router.refresh();
+    } catch {
+      setError("Eroare de conexiune.");
     } finally {
       setLoading(false);
     }
@@ -147,6 +182,44 @@ function LoginForm({ nextPath }: { nextPath: string }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (twoFa) {
+    return (
+      <div className="min-h-screen bg-[#0D0D0D] text-white flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-sm rounded-3xl bg-white/[0.04] border border-white/10 p-6">
+          <h1 className="text-2xl font-black mb-2">Verificare în doi pași</h1>
+          <p className="text-sm text-white/60 mb-6">Introdu codul din aplicația de autentificare sau un cod de rezervă.</p>
+          <form onSubmit={verify2FA} className="space-y-4">
+            <input
+              type="text"
+              inputMode="text"
+              maxLength={8}
+              autoFocus
+              value={twoFaCode}
+              onChange={(e) => setTwoFaCode(e.target.value)}
+              placeholder="123456 sau cod rezervă"
+              className="w-full text-center tracking-[0.3em] text-xl rounded-2xl bg-white/5 border border-white/10 px-4 py-4 font-black text-white outline-none focus:border-[#FE2C55]"
+            />
+            {error && <p className="text-sm font-bold text-[#FE2C55] text-center">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading || twoFaCode.length < 6}
+              className="w-full rounded-2xl bg-[#FE2C55] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50"
+            >
+              {loading ? "Verificăm..." : "Confirmă"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTwoFa(null); setTwoFaCode(""); setError(null); }}
+              className="w-full text-xs text-white/50 hover:text-white"
+            >
+              Înapoi la login
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (

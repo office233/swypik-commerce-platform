@@ -1,11 +1,11 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState, useRef, useCallback, Fragment, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Music, ShoppingBag } from "lucide-react";
+import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Music2, ShoppingBag } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
@@ -18,14 +18,22 @@ const MUTE_STORAGE_KEY = "swypik.feed.muted";
 // Mount range: only render real <video src> for slides within ±MOUNT_RADIUS of currentIndex
 const MOUNT_RADIUS = 1;
 
-function renderDescription(text: string | null | undefined) {
+export function renderDescription(text: string | null | undefined) {
   if (!text) return null;
-  const parts = text.split(/(#[\p{L}0-9_]+)/gu);
+  const parts = text.split(/(#[\p{L}0-9_]+|@[a-zA-Z0-9_.]+)/gu);
   return parts.map((part, i) => {
     if (part.startsWith("#") && part.length > 1) {
       const tag = part.slice(1).toLowerCase();
       return (
         <Link key={i} href={`/hashtag/${tag}`} className="text-white font-semibold hover:underline">
+          {part}
+        </Link>
+      );
+    }
+    if (part.startsWith("@") && part.length > 1) {
+      const username = part.slice(1);
+      return (
+        <Link key={i} href={`/u/${username}`} className="text-white font-semibold hover:underline">
           {part}
         </Link>
       );
@@ -417,18 +425,14 @@ function ExplorePageInner() {
     }
   }, [followingCreators]);
 
-  const openProduct = useCallback(async (video: any) => {
-    if (video.product?.id) {
-      try {
-        const res = await fetch(`/api/products/${video.product.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setActiveProduct({ ...data.product, videoId: video.id });
-          return;
-        }
-      } catch {}
+  const openProduct = useCallback((video: any) => {
+    if (!video.product?.id) {
+      setActiveProduct(null);
+      return;
     }
-    setActiveProduct(null);
+    // Open instantly with the data we already have from the feed.
+    // ProductDrawer enriches in background if description is missing.
+    setActiveProduct({ ...video.product, videoId: video.id });
   }, []);
 
   const formatCount = (n: string | number) => {
@@ -470,6 +474,7 @@ function ExplorePageInner() {
         .music-ticker { display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8); }
         .music-ticker .marquee { display: inline-block; white-space: nowrap; max-width: 200px; overflow: hidden; }
         .music-ticker .marquee span { display: inline-block; animation: ticker 8s linear infinite; }
+        .music-ticker .music-original { font-weight: 500; opacity: 0.9; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         .video-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; z-index: 30; background: rgba(255,255,255,0.2); overflow: hidden; }
         .video-progress-fill { height: 100%; background: #fff; width: 100%; transform: scaleX(0); transform-origin: left center; transition: transform 0.1s linear; will-change: transform; }
@@ -537,7 +542,15 @@ function ExplorePageInner() {
                   />
                 ) : (
                   video.thumbnail && (
-                    <img className="poster-fallback" src={video.thumbnail} alt="" loading="lazy" />
+                    <Image
+                      className="poster-fallback"
+                      src={video.thumbnail}
+                      alt=""
+                      fill
+                      sizes="100vw"
+                      loading="lazy"
+                      unoptimized
+                    />
                   )
                 )}
 
@@ -561,7 +574,13 @@ function ExplorePageInner() {
                       className="creator-avatar"
                       aria-label={`Profil ${(video.creator as any)?.username || 'creator'}`}
                     >
-                      <img src={video.creator?.avatar || video.product?.image || video.thumbnail || '/favicon.ico'} alt="" />
+                      <Image
+                        src={video.creator?.avatar || video.product?.image || video.thumbnail || '/favicon.ico'}
+                        alt=""
+                        width={48}
+                        height={48}
+                        unoptimized
+                      />
                     </Link>
                     {video.creator?.id && !followingCreators.has(video.creator.id) && (
                       <button
@@ -651,7 +670,13 @@ function ExplorePageInner() {
                   </div>
 
                   <div className="disc-spin" aria-hidden="true">
-                    <img src={video.audioTrack?.image || video.thumbnail || '/favicon.ico'} alt="" />
+                    {video.audioTrack?.image ? (
+                      <Image src={video.audioTrack.image} alt="" width={48} height={48} unoptimized />
+                    ) : video.creator?.avatar ? (
+                      <Image src={video.creator.avatar} alt="" width={48} height={48} unoptimized />
+                    ) : video.thumbnail ? (
+                      <Image src={video.thumbnail} alt="" width={48} height={48} unoptimized />
+                    ) : null}
                   </div>
                 </div>
 
@@ -669,7 +694,9 @@ function ExplorePageInner() {
 
                   {video.product?.id && (
                     <button type="button" className="product-chip" onClick={() => { haptic("tap"); openProduct(video); }} aria-label="Cumpără produsul prezentat">
-                      {video.product.image && <img src={video.product.image} alt="" />}
+                      {video.product.image && (
+                        <Image src={video.product.image} alt="" width={36} height={36} unoptimized style={{ borderRadius: 16, objectFit: 'cover', flexShrink: 0 }} />
+                      )}
                       <span style={{ fontSize: 13, fontWeight: 500, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#fff' }}>
                         {video.product.name || 'Vezi produs'}
                       </span>
@@ -681,10 +708,10 @@ function ExplorePageInner() {
                   )}
 
                   <div className="music-ticker">
-                    <Music size={14} />
-                    <div className="marquee">
-                      {video.audioTrack?.title ? (
-                        video.audioTrack.id ? (
+                    <Music2 size={14} />
+                    {video.audioTrack?.title ? (
+                      <div className="marquee">
+                        {video.audioTrack.id ? (
                           <Link href={`/audio/${video.audioTrack.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
                             <span>
                               {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;
@@ -696,11 +723,13 @@ function ExplorePageInner() {
                             {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;
                             {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;
                           </span>
-                        )
-                      ) : (
-                        <span>Original Sound &nbsp;&nbsp;&nbsp; Original Sound &nbsp;&nbsp;&nbsp;</span>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="music-original">
+                        Original – @{(video.creator as any)?.username || video.creator?.name || 'swypik'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -711,7 +740,7 @@ function ExplorePageInner() {
 
       {activeProduct && (
         <ProductDrawer
-          product={activeProduct}
+          initialProduct={activeProduct}
           onClose={() => setActiveProduct(null)}
           onBuyNow={() => {
             trackEvent(activeProduct.videoId, "buy_now");

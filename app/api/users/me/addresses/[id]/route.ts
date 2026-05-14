@@ -1,0 +1,73 @@
+import { NextResponse } from "next/server";
+import { getAuthSession } from "@/lib/auth/session";
+import { dbQuery } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
+
+const ALLOWED_FIELDS = [
+  "label",
+  "recipient_name",
+  "phone",
+  "line1",
+  "line2",
+  "city",
+  "region",
+  "postal_code",
+  "country_code",
+] as const;
+
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getAuthSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  const body = await req.json().catch(() => ({}));
+
+  // Ownership check
+  const { rows: owner } = await dbQuery<{ id: string }>(
+    `SELECT id FROM user_addresses WHERE id = $1 AND user_id = $2`,
+    [id, session.userId],
+  );
+  if (owner.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (body.set_default === true) {
+    await dbQuery(`UPDATE user_addresses SET is_default = false WHERE user_id = $1`, [session.userId]);
+    await dbQuery(`UPDATE user_addresses SET is_default = true, updated_at = now() WHERE id = $1`, [id]);
+    return NextResponse.json({ success: true });
+  }
+
+  const setClauses: string[] = [];
+  const values: unknown[] = [];
+  for (const field of ALLOWED_FIELDS) {
+    if (field in body) {
+      values.push(body[field] === "" ? null : body[field]);
+      setClauses.push(`${field} = $${values.length}`);
+    }
+  }
+  if (setClauses.length === 0) return NextResponse.json({ success: true });
+  values.push(id);
+  await dbQuery(
+    `UPDATE user_addresses SET ${setClauses.join(", ")}, updated_at = now() WHERE id = $${values.length}`,
+    values,
+  );
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getAuthSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  const { rows } = await dbQuery<{ is_default: boolean }>(
+    `DELETE FROM user_addresses WHERE id = $1 AND user_id = $2 RETURNING is_default`,
+    [id, session.userId],
+  );
+  if (rows.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Promote a remaining one to default if we just deleted the default
+  if (rows[0].is_default) {
+    await dbQuery(
+      `UPDATE user_addresses SET is_default = true
+       WHERE id = (SELECT id FROM user_addresses WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1)`,
+      [session.userId],
+    );
+  }
+  return NextResponse.json({ success: true });
+}

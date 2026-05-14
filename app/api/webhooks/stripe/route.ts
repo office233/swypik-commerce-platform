@@ -6,6 +6,7 @@ import { routeOrder } from "@/lib/fulfillment/order-router";
 import { awardOrderSwyp } from "@/lib/swyp/order-rewards";
 import { logCheckoutEvent } from "@/lib/security/audit-log";
 import type Stripe from "stripe";
+import { persistConnectAccount } from "@/lib/stripe/connect";
 import crypto from "crypto";
 
 import { logger } from "@/lib/logger";
@@ -73,6 +74,11 @@ export async function POST(req: Request) {
           error: intent.last_payment_error?.message || "payment_intent.payment_failed",
           payload: { stage: "payment_failed", paymentIntentId: intent.id },
         });
+        break;
+      }
+      case "account.updated": {
+        const acc = event.data.object as Stripe.Account;
+        await persistConnectAccount(acc);
         break;
       }
       default:

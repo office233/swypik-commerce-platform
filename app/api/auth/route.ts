@@ -496,8 +496,8 @@ export async function POST(req: Request) {
       }
 
       const normalizedEmail = String(email).trim().toLowerCase();
-      const { rows } = await dbQuery<{ id: string; password_hash: string | null; status: string }>(
-        `SELECT id, password_hash, status
+      const { rows } = await dbQuery<{ id: string; password_hash: string | null; status: string; totp_enabled_at: string | null }>(
+        `SELECT id, password_hash, status, totp_enabled_at
          FROM users WHERE lower(email) = $1 LIMIT 1`,
         [normalizedEmail],
       );
@@ -531,11 +531,78 @@ export async function POST(req: Request) {
         );
       }
 
+      // 2FA gate
+      if (user.totp_enabled_at) {
+        try {
+          const { getRedis } = await import("@/lib/redis");
+          const tempToken = generateToken();
+          await getRedis().set(
+            `2fa:pending:${tempToken}`,
+            JSON.stringify({ userId: user.id, email: normalizedEmail, next: typeof next === "string" ? next : null }),
+            "EX",
+            300,
+          );
+          return NextResponse.json({ success: true, requires2FA: true, tempToken });
+        } catch (e) {
+          console.warn("[auth] 2FA redis failed:", (e as Error).message);
+          return NextResponse.json(
+            { success: false, error: "Eroare temporară. Încearcă din nou." },
+            { status: 500 },
+          );
+        }
+      }
+
       return issueSessionResponse(
         user.id,
         normalizedEmail,
         typeof next === "string" ? next : null,
       );
+    }
+
+    /* ═══════════════════ VERIFY 2FA ═══════════════════ */
+    case "verify_2fa": {
+      const tempToken = String(body.tempToken || "");
+      const code = String(body.code || "").trim();
+      if (!tempToken || !code) {
+        return NextResponse.json({ success: false, error: "Date invalide." }, { status: 400 });
+      }
+      try {
+        const { getRedis } = await import("@/lib/redis");
+        const { verifyToken } = await import("@/lib/auth/totp");
+        const raw = await getRedis().get(`2fa:pending:${tempToken}`);
+        if (!raw) {
+          return NextResponse.json({ success: false, error: "Sesiune 2FA expirată. Loghează-te din nou." }, { status: 401 });
+        }
+        const payload = JSON.parse(raw) as { userId: string; email: string; next: string | null };
+        const { rows: urows } = await dbQuery<{ totp_secret: string | null; totp_backup_codes: string[] | null }>(
+          `SELECT totp_secret, totp_backup_codes FROM users WHERE id = $1`,
+          [payload.userId],
+        );
+        if (urows.length === 0 || !urows[0].totp_secret) {
+          return NextResponse.json({ success: false, error: "2FA inactiv." }, { status: 400 });
+        }
+        let valid = /^\d{6}$/.test(code) && verifyToken(urows[0].totp_secret, code);
+
+        // Try backup codes (8 hex chars) if TOTP fails
+        if (!valid && /^[0-9a-fA-F]{8}$/.test(code) && urows[0].totp_backup_codes) {
+          const { consumeBackupCode } = await import("@/lib/auth/totp");
+          const result = await consumeBackupCode(urows[0].totp_backup_codes, code);
+          if (result.matched) {
+            await dbQuery(`UPDATE users SET totp_backup_codes = $1 WHERE id = $2`, [result.remaining, payload.userId]);
+            valid = true;
+          }
+        }
+
+        if (!valid) {
+          return NextResponse.json({ success: false, error: "Cod invalid." }, { status: 401 });
+        }
+
+        await getRedis().del(`2fa:pending:${tempToken}`);
+        return issueSessionResponse(payload.userId, payload.email, payload.next);
+      } catch (e) {
+        console.warn("[auth] verify_2fa failed:", (e as Error).message);
+        return NextResponse.json({ success: false, error: "Eroare la verificare." }, { status: 500 });
+      }
     }
 
     /* ═══════════════════ SET / CHANGE PASSWORD (authed) ═══════════════════ */

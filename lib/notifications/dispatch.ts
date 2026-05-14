@@ -86,7 +86,29 @@ export async function notifyUser(
     type: input.type,
   };
 
-  void sendPushToUser(recipientUserId, pushPayload).catch((err) => {
-    console.warn("[notifyUser] push failed:", err?.message || err);
-  });
+  // Respect user push preferences (per category). If row absent, default ON.
+  const prefMap: Record<string, string> = {
+    like: "push_likes",
+    comment: "push_comments",
+    reply: "push_comments",
+    follow: "push_follows",
+    commission: "push_sales",
+  };
+  const prefCol = prefMap[input.type];
+  let pushAllowed = true;
+  if (prefCol) {
+    try {
+      const { rows: pRows } = await dbQuery<Record<string, boolean>>(
+        `SELECT ${prefCol} AS allowed FROM notification_preferences WHERE user_id = $1`,
+        [recipientUserId],
+      );
+      if (pRows[0] && pRows[0].allowed === false) pushAllowed = false;
+    } catch { /* table missing or query error → fall through */ }
+  }
+
+  if (pushAllowed) {
+    void sendPushToUser(recipientUserId, pushPayload).catch((err) => {
+      console.warn("[notifyUser] push failed:", err?.message || err);
+    });
+  }
 }

@@ -1,0 +1,32 @@
+import { NextResponse } from "next/server";
+import QRCode from "qrcode";
+import { getAuthSession } from "@/lib/auth/session";
+import { dbQuery } from "@/lib/db";
+import { generateSecret, getOtpAuthUrl } from "@/lib/auth/totp";
+
+export const dynamic = "force-dynamic";
+
+export async function POST() {
+  const session = await getAuthSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { rows } = await dbQuery<{ email: string; totp_enabled_at: string | null }>(
+    `SELECT email, totp_enabled_at FROM users WHERE id = $1`,
+    [session.userId],
+  );
+  if (rows.length === 0) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (rows[0].totp_enabled_at) {
+    return NextResponse.json({ error: "2FA este deja activ. Dezactivează-l mai întâi." }, { status: 400 });
+  }
+
+  const secret = generateSecret();
+  const otpAuthUrl = getOtpAuthUrl(secret, rows[0].email);
+  const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl, { width: 240, margin: 1 });
+
+  await dbQuery(
+    `UPDATE users SET totp_secret = $1, totp_enabled_at = NULL WHERE id = $2`,
+    [secret, session.userId],
+  );
+
+  return NextResponse.json({ secret, otpAuthUrl, qrCodeDataUrl });
+}

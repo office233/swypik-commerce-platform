@@ -11,9 +11,12 @@ import {
   Loader2,
   RefreshCw,
   X,
+  Music,
+  Hash,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import AudioPicker, { type AudioTrackDTO } from "@/components/reels/AudioPicker";
 
 type Step = "pick" | "metadata" | "uploading" | "suggestions" | "publishing" | "success";
 
@@ -40,6 +43,12 @@ export default function CreatorUploadPage() {
   const [productLink, setProductLink] = useState("");
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // audio & hashtags polish
+  const [audioTrack, setAudioTrack] = useState<AudioTrackDTO | null>(null);
+  const [audioPickerOpen, setAudioPickerOpen] = useState(false);
+  const [hashtagLoading, setHashtagLoading] = useState(false);
+  const [suggestedHashtags, setSuggestedHashtags] = useState<string[]>([]);
 
   // post-upload
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -83,6 +92,7 @@ export default function CreatorUploadPage() {
           sizeBytes: file.size,
           description,
           productId: productLink.split("/product/")[1]?.split("?")[0] || "",
+          audio_track_id: audioTrack?.id || null,
         }),
       });
       const sessionData = await resSession.json();
@@ -178,6 +188,25 @@ export default function CreatorUploadPage() {
 
   const removeTag = (tag: string) => setTagsDraft((arr) => arr.filter((t) => t !== tag));
 
+  const suggestHashtags = async () => {
+    setHashtagLoading(true);
+    try {
+      const res = await fetch("/api/ai/suggest-hashtags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "", description }),
+      });
+      const j = await res.json();
+      if (res.ok && Array.isArray(j.hashtags)) {
+        setSuggestedHashtags(j.hashtags);
+      }
+    } catch {
+      // silent
+    } finally {
+      setHashtagLoading(false);
+    }
+  };
+
   // ──────────────────────────────── RENDER ────────────────────────────────
 
   return (
@@ -223,6 +252,12 @@ export default function CreatorUploadPage() {
             setDescription={setDescription}
             productLink={productLink}
             setProductLink={setProductLink}
+            audioTrack={audioTrack}
+            openAudioPicker={() => setAudioPickerOpen(true)}
+            clearAudio={() => setAudioTrack(null)}
+            hashtagLoading={hashtagLoading}
+            suggestedHashtags={suggestedHashtags}
+            suggestHashtags={suggestHashtags}
             onPickFile={() => fileInputRef.current?.click()}
             onPickCamera={() => cameraInputRef.current?.click()}
             onReset={() => {
@@ -239,6 +274,12 @@ export default function CreatorUploadPage() {
           />
         )}
       </div>
+      <AudioPicker
+        open={audioPickerOpen}
+        onClose={() => setAudioPickerOpen(false)}
+        selectedId={audioTrack?.id || null}
+        onSelect={(t) => { setAudioTrack(t); setAudioPickerOpen(false); }}
+      />
     </div>
   );
 }
@@ -262,6 +303,12 @@ function PickAndMetadata(props: {
   setDescription: (v: string) => void;
   productLink: string;
   setProductLink: (v: string) => void;
+  audioTrack: AudioTrackDTO | null;
+  openAudioPicker: () => void;
+  clearAudio: () => void;
+  hashtagLoading: boolean;
+  suggestedHashtags: string[];
+  suggestHashtags: () => void;
   onPickFile: () => void;
   onPickCamera: () => void;
   onReset: () => void;
@@ -274,6 +321,8 @@ function PickAndMetadata(props: {
 }) {
   const {
     previewUrl, file, description, setDescription, productLink, setProductLink,
+    audioTrack, openAudioPicker, clearAudio,
+    hashtagLoading, suggestedHashtags, suggestHashtags,
     onPickFile, onPickCamera, onReset, onUpload, uploading, progress,
     fileInputRef, cameraInputRef, onFileChange,
   } = props;
@@ -340,6 +389,79 @@ function PickAndMetadata(props: {
             rows={4}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0D0D0D] transition resize-none"
           />
+        </div>
+
+        {/* Audio Track */}
+        <div>
+          <label className="text-sm font-bold text-white/60 mb-2 flex items-center gap-2">
+            <Music size={14} /> Muzică (opțional)
+          </label>
+          {audioTrack ? (
+            <div className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+              <Music size={16} className="text-[#FE2C55] shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{audioTrack.title}</p>
+                <p className="truncate text-xs text-white/50">{audioTrack.artist}</p>
+              </div>
+              <button
+                type="button"
+                onClick={openAudioPicker}
+                className="text-xs font-bold text-white/70 hover:text-white"
+              >
+                Schimbă
+              </button>
+              <button
+                type="button"
+                onClick={clearAudio}
+                className="rounded-lg p-1 text-white/50 hover:text-white"
+                aria-label="Elimină"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={openAudioPicker}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.02] py-3 text-sm font-bold text-white/70 hover:bg-white/[0.05] hover:text-white transition"
+            >
+              <Music size={14} /> Alege un track audio
+            </button>
+          )}
+        </div>
+
+        {/* AI Hashtags */}
+        <div>
+          <label className="text-sm font-bold text-white/60 mb-2 flex items-center gap-2">
+            <Hash size={14} /> Hashtag-uri AI (sugerate)
+          </label>
+          <button
+            type="button"
+            onClick={suggestHashtags}
+            disabled={hashtagLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 py-2.5 text-xs font-bold text-white transition"
+          >
+            {hashtagLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            Sugerează hashtag-uri din descriere
+          </button>
+          {suggestedHashtags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {suggestedHashtags.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => {
+                    if (!description.includes(h)) {
+                      setDescription((description ? description.trim() + " " : "") + h);
+                    }
+                  }}
+                  className="rounded-full bg-[#FE2C55]/15 px-3 py-1 text-xs font-bold text-[#FE2C55] hover:bg-[#FE2C55]/25 transition"
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -6,6 +6,7 @@ const creatorNavItems = [
   { href: "/creator", icon: "📊", label: "Dashboard" },
   { href: "/creator/upload", icon: "⬆️", label: "Încarcă" },
   { href: "/creator/videos", icon: "🎬", label: "Clipurile Mele" },
+  { href: "/creator/analytics", icon: "📈", label: "Analytics" },
   { href: "/creator/earnings", icon: "💰", label: "Câștiguri" },
   { href: "/creator/rewards", icon: "🏆", label: "SWYP Points" },
 ];
@@ -20,7 +21,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
             Swypik <span className="text-[#0D0D0D]">Creators</span>
           </Link>
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-2">
           <Link href="/creator" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#0D0D0D] transition">
             <span className="text-lg">📊</span> Dashboard
@@ -30,6 +31,9 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
           </Link>
           <Link href="/creator/upload" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">⬆️</span> Încarcă Video
+          </Link>
+          <Link href="/creator/analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
+            <span className="text-lg">📈</span> Analytics
           </Link>
           <Link href="/creator/earnings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">💰</span> Câștiguri

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, MailQuestion, Wallet, EyeOff, ShoppingBag, Sparkles } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, Bell, MailQuestion, Wallet, EyeOff, ShoppingBag, Sparkles, MapPin } from "lucide-react";
 import EnablePushButton from "@/components/push/EnablePushButton";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -393,6 +393,11 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             <span className="flex-1 text-sm font-semibold">Videoclipuri ascunse</span>
             <span className="text-white/40">›</span>
           </Link>
+          <Link href="/account/addresses" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <MapPin size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Adrese de livrare</span>
+            <span className="text-white/40">›</span>
+          </Link>
           <Link href="/account/security" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
             <Lock size={18} className="text-white/60" />
             <span className="flex-1 text-sm font-semibold">Securitate & parolă</span>
@@ -408,9 +413,21 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             <span className="flex-1 text-sm font-semibold">Verificare vârstă</span>
             <span className="text-white/40">›</span>
           </Link>
+          {(customer?.role === "creator" || customer?.role === "seller" || customer?.role === "admin") && (
+            <Link href="/creator/payouts" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+              <Wallet size={18} className="text-white/60" />
+              <span className="flex-1 text-sm font-semibold">Plăți (Stripe)</span>
+              <span className="text-white/40">›</span>
+            </Link>
+          )}
           <Link href="/inbox" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
             <MailQuestion size={18} className="text-white/60" />
             <span className="flex-1 text-sm font-semibold">Inbox / Notificări</span>
+            <span className="text-white/40">›</span>
+          </Link>
+          <Link href="/account/notifications" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
+            <Bell size={18} className="text-white/60" />
+            <span className="flex-1 text-sm font-semibold">Notificări (email & push)</span>
             <span className="text-white/40">›</span>
           </Link>
         </section>

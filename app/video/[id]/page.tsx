@@ -7,12 +7,39 @@
  */
 
 import { Metadata } from "next";
+import Link from "next/link";
+import { Fragment } from "react";
 import { dbQuery } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 type Props = { params: Promise<{ id: string }> };
 
 export const dynamic = "force-dynamic";
+
+// Parsează #hashtag și @mention în linkuri.
+function renderDescription(text: string | null | undefined) {
+  if (!text) return null;
+  const parts = text.split(/(#[\p{L}0-9_]+|@[a-zA-Z0-9_.]+)/gu);
+  return parts.map((part, i) => {
+    if (part.startsWith("#") && part.length > 1) {
+      const tag = part.slice(1).toLowerCase();
+      return (
+        <Link key={i} href={`/hashtag/${tag}`} style={{ color: "#f43f5e", fontWeight: 600, textDecoration: "none" }}>
+          {part}
+        </Link>
+      );
+    }
+    if (part.startsWith("@") && part.length > 1) {
+      const username = part.slice(1);
+      return (
+        <Link key={i} href={`/u/${username}`} style={{ color: "#f43f5e", fontWeight: 600, textDecoration: "none" }}>
+          {part}
+        </Link>
+      );
+    }
+    return <Fragment key={i}>{part}</Fragment>;
+  });
+}
 
 // ── Shared fetch helper ─────────────────────────────────────────
 async function getVideo(id: string) {
@@ -250,11 +277,26 @@ export default async function VideoPage({ params }: Props) {
             style={{
               fontSize: 13,
               color: "rgba(255,255,255,0.4)",
-              margin: "0 0 28px",
+              margin: "0 0 16px",
             }}
           >
             {formattedViews} vizualizări
           </p>
+
+          {/* Description with hashtag + mention links */}
+          {video.description && (
+            <p
+              style={{
+                fontSize: 14,
+                color: "rgba(255,255,255,0.75)",
+                lineHeight: 1.5,
+                margin: "0 0 24px",
+                textAlign: "left",
+              }}
+            >
+              {renderDescription(video.description)}
+            </p>
+          )}
 
           {/* CTA button */}
           <a
