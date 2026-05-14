@@ -20,6 +20,7 @@ import {
 } from "@/lib/social/user-profile";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import ProfileStatsAndActions from "./ProfileStatsAndActions";
+import VideoGridClient from "./VideoGridClient";
 
 type Props = {
   params: Promise<{ username: string }>;
@@ -57,7 +58,7 @@ export default async function UserProfilePage({ params }: Props) {
   let data: PublicUserProfile | null = null;
   try {
     const viewerUserId = await getCurrentViewerUserId();
-    data = await getPublicUserProfile(username, { viewerUserId });
+    data = await getPublicUserProfile(username, { viewerUserId, limit: 24 });
   } catch (error) {
     console.error("[User Profile Page] Load Error:", error);
     return <ProfileLoadError />;
@@ -126,7 +127,24 @@ export default async function UserProfilePage({ params }: Props) {
           </div>
         </div>
 
-        {videos.length > 0 ? <VideoGrid videos={videos} /> : <EmptyVideosState profileName={profile.displayName} />}
+        {videos.length > 0 ? (
+          <VideoGridClient
+            username={(profile.username || username) as string}
+            initialVideos={videos.map((v) => ({
+              id: v.id,
+              title: v.title,
+              description: v.description,
+              thumbnailUrl: v.thumbnailUrl,
+              durationMs: v.durationMs,
+              viewCount: v.viewCount,
+              likeCount: v.likeCount,
+              commentCount: v.commentCount,
+              saveCount: v.saveCount,
+              shareCount: v.shareCount,
+            }))}
+            initialHasMore={videos.length >= 24}
+          />
+        ) : <EmptyVideosState profileName={profile.displayName} />}
       </section>
     </main>
   );
