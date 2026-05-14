@@ -106,7 +106,7 @@ export default async function UserProfilePage({ params }: Props) {
         </div>
       </div>
 
-      <section className="mx-auto max-w-md px-4 pb-10">
+      <section className="mx-auto max-w-md pb-10">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-black text-white">Clipuri</h2>
@@ -159,7 +159,7 @@ function Avatar({ profile }: { profile: PublicUserProfile["profile"] }) {
 
 function VideoGrid({ videos }: { videos: PublicUserVideo[] }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-3 gap-0.5">
       {videos.map((video) => (
         <VideoCard key={video.id} video={video} />
       ))}
@@ -169,57 +169,25 @@ function VideoGrid({ videos }: { videos: PublicUserVideo[] }) {
 
 function VideoCard({ video }: { video: PublicUserVideo }) {
   const title = video.title || video.description || "Clip Swypik";
-  const duration = formatDuration(video.durationMs);
-
   return (
     <Link href={`/explore?v=${encodeURIComponent(video.id)}`} className="group block">
-      <div className="relative aspect-[9/16] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+      <div className="relative aspect-[9/16] overflow-hidden bg-[#1A1A1A]">
         {video.thumbnailUrl ? (
           <img
             src={video.thumbnailUrl}
             alt={title}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover"
             loading="lazy"
           />
         ) : (
-          <div className="grid h-full w-full place-items-center bg-white/[0.03] text-white/30">
-            <Film size={44} strokeWidth={1.5} />
+          <div className="grid h-full w-full place-items-center text-white/25">
+            <Film size={28} strokeWidth={1.5} />
           </div>
         )}
-
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/80 to-transparent" />
-        <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[11px] font-black text-white backdrop-blur">
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+        <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-[10px] font-bold text-white/95">
           <Play size={11} fill="currentColor" />
-          Clip
-        </div>
-        {duration && (
-          <div className="absolute bottom-2 right-2 rounded-md bg-black/70 px-2 py-1 text-[11px] font-black text-white">
-            {duration}
-          </div>
-        )}
-        <div className="absolute bottom-2 left-2 flex items-center gap-2 text-[11px] font-bold text-white/85">
-          <span className="inline-flex items-center gap-1">
-            <Eye size={12} />
-            {formatCount(video.viewCount)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Heart size={12} />
-            {formatCount(video.likeCount)}
-          </span>
-        </div>
-      </div>
-
-      <div className="px-1 pt-2">
-        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-white/90">{title}</h3>
-        <div className="mt-1 flex items-center gap-3 text-[11px] font-bold text-white/40">
-          <span className="inline-flex items-center gap-1">
-            <MessageCircle size={12} />
-            {formatCount(video.commentCount)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Share2 size={12} />
-            {formatCount(video.shareCount)}
-          </span>
+          {formatCount(video.viewCount)}
         </div>
       </div>
     </Link>

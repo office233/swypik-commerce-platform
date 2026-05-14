@@ -24,7 +24,7 @@ export default function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-[#E5E5E5] dark:border-[#1F1F1F] shadow-[0_-2px_20px_rgba(0,0,0,0.05)]"
       style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
     >
-      <div className="mx-auto max-w-lg flex items-center justify-around px-2 py-1.5">
+      <div className="mx-auto max-w-lg grid grid-cols-5 items-center px-2 pt-1.5 pb-1">
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -37,7 +37,7 @@ export default function BottomNav() {
                 href={item.href}
                 onClick={() => haptic("tap")}
                 aria-label="Înregistrează"
-                className="flex items-center justify-center w-12 h-9 rounded-lg bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] shadow-md active:scale-95 transition-transform"
+                className="flex items-center justify-center mx-auto w-12 h-9 rounded-xl bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] shadow-md active:scale-95 transition-transform"
               >
                 <Icon size={24} strokeWidth={2.5} className="text-white" />
               </Link>
@@ -49,7 +49,7 @@ export default function BottomNav() {
               <span
                 key={item.href}
                 aria-disabled="true"
-                className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[#D4D4D8] dark:text-[#3F3F46] cursor-not-allowed"
+                className="relative mx-auto flex flex-col items-center justify-center gap-0.5 w-full h-12 rounded-xl text-[#D4D4D8] dark:text-[#3F3F46] cursor-not-allowed"
               >
                 <Icon size={22} strokeWidth={1.8} />
                 <span className="text-[10px] leading-tight font-medium">{item.label}</span>
@@ -62,7 +62,7 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               onClick={() => haptic("tap")}
-              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+              className={`relative mx-auto flex flex-col items-center justify-center gap-0.5 w-full h-12 rounded-xl transition-all ${
                 isActive
                   ? "text-[#0D0D0D] dark:text-white"
                   : "text-[#A1A1AA] hover:text-[#6E6E80] dark:hover:text-[#A1A1AA]"
