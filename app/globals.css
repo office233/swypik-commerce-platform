@@ -1,6 +1,9 @@
 /* Fonts loaded via next/font in layout.tsx — no render-blocking @import */
 
 :root {
+  --brand-primary: #7C3AED;
+  --brand-accent: #EC4899;
+  --brand-gradient: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%);
   --font-inter: "Inter";
 }
 

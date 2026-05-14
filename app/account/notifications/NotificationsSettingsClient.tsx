@@ -101,7 +101,7 @@ function Row({ label, on, disabled, onToggle }: { label: string; on: boolean; di
       className="flex w-full items-center justify-between px-5 py-3.5 text-left hover:bg-white/[0.06] disabled:opacity-60"
     >
       <span className="text-sm">{label}</span>
-      <span className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-[#FE2C55]" : "bg-white/20"}`}>
+      <span className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-[#7C3AED]" : "bg-white/20"}`}>
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
       </span>
     </button>

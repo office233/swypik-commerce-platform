@@ -209,7 +209,7 @@ export default function EditProfilePage() {
             type="button"
             onClick={onPickAvatar}
             disabled={uploadingAvatar}
-            className="text-sm font-semibold text-[#FE2C55] hover:underline disabled:opacity-50"
+            className="text-sm font-semibold text-[#7C3AED] hover:underline disabled:opacity-50"
           >
             Schimbă fotografia
           </button>
@@ -235,7 +235,7 @@ export default function EditProfilePage() {
             required
             minLength={1}
             placeholder="Numele tău"
-            className="w-full min-h-[48px] rounded-xl bg-white/5 border border-white/10 px-4 text-base text-white placeholder:text-white/40 focus:outline-none focus:border-[#FE2C55]"
+            className="w-full min-h-[48px] rounded-xl bg-white/5 border border-white/10 px-4 text-base text-white placeholder:text-white/40 focus:outline-none focus:border-[#7C3AED]"
           />
         </Field>
 
@@ -244,7 +244,7 @@ export default function EditProfilePage() {
           label="Username"
           hint="litere mici, cifre, _"
         >
-          <div className="flex items-center w-full min-h-[48px] rounded-xl bg-white/5 border border-white/10 px-4 focus-within:border-[#FE2C55]">
+          <div className="flex items-center w-full min-h-[48px] rounded-xl bg-white/5 border border-white/10 px-4 focus-within:border-[#7C3AED]">
             <span className="text-white/40 mr-1">@</span>
             <input
               type="text"
@@ -273,7 +273,7 @@ export default function EditProfilePage() {
             maxLength={300}
             rows={4}
             placeholder="Spune ceva despre tine..."
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/40 resize-none focus:outline-none focus:border-[#FE2C55]"
+            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/40 resize-none focus:outline-none focus:border-[#7C3AED]"
           />
         </Field>
 
@@ -306,7 +306,7 @@ export default function EditProfilePage() {
             type="submit"
             form="edit-profile-form"
             disabled={saving || uploadingAvatar}
-            className="flex-[2] min-h-[48px] rounded-xl bg-[#FE2C55] hover:bg-[#E0264A] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-60"
+            className="flex-[2] min-h-[48px] rounded-xl bg-[#7C3AED] hover:bg-[#E0264A] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {saving && <Loader2 className="animate-spin" size={18} />}
             Salvează

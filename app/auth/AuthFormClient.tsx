@@ -199,13 +199,13 @@ function LoginForm({ nextPath }: { nextPath: string }) {
               value={twoFaCode}
               onChange={(e) => setTwoFaCode(e.target.value)}
               placeholder="123456 sau cod rezervă"
-              className="w-full text-center tracking-[0.3em] text-xl rounded-2xl bg-white/5 border border-white/10 px-4 py-4 font-black text-white outline-none focus:border-[#FE2C55]"
+              className="w-full text-center tracking-[0.3em] text-xl rounded-2xl bg-white/5 border border-white/10 px-4 py-4 font-black text-white outline-none focus:border-[#7C3AED]"
             />
-            {error && <p className="text-sm font-bold text-[#FE2C55] text-center">{error}</p>}
+            {error && <p className="text-sm font-bold text-[#7C3AED] text-center">{error}</p>}
             <button
               type="submit"
               disabled={loading || twoFaCode.length < 6}
-              className="w-full rounded-2xl bg-[#FE2C55] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50"
+              className="w-full rounded-2xl bg-[#7C3AED] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50"
             >
               {loading ? "Verificăm..." : "Confirmă"}
             </button>
@@ -460,7 +460,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
   return (
     <section className="flex flex-1 flex-col">
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#FE2C55]">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#7C3AED]">
           Pas {step} din 4
         </p>
         <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">
@@ -560,7 +560,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
             type="button"
             onClick={next}
             disabled={!canAdvance}
-            className="flex h-14 flex-[2] items-center justify-center rounded-2xl bg-[#FE2C55] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
+            className="flex h-14 flex-[2] items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
           >
             Continuă
           </button>
@@ -569,7 +569,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
             type="button"
             onClick={submitFinal}
             disabled={loading}
-            className="flex h-14 flex-[2] items-center justify-center rounded-2xl bg-[#FE2C55] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
+            className="flex h-14 flex-[2] items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Creează contul"}
           </button>
@@ -594,9 +594,9 @@ function ErrorBanner({ text }: { text: string }) {
   return (
     <div
       role="alert"
-      className="mb-5 flex items-start gap-3 rounded-2xl border border-[#FE2C55]/30 bg-[#FE2C55]/10 p-4"
+      className="mb-5 flex items-start gap-3 rounded-2xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 p-4"
     >
-      <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#FE2C55]" />
+      <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#7C3AED]" />
       <p className="text-sm font-semibold text-white">{text}</p>
     </div>
   );
@@ -650,7 +650,7 @@ function FieldEmail({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="nume@email.ro"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-base text-white placeholder-white/30 outline-none transition focus:border-[#FE2C55] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#FE2C55]/30"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
         />
       </span>
     </label>
@@ -684,7 +684,7 @@ function FieldPassword({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="••••••••"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-16 text-base text-white placeholder-white/30 outline-none transition focus:border-[#FE2C55] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#FE2C55]/30"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-16 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
         />
         <button
           type="button"
@@ -731,7 +731,7 @@ function FieldText({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-base text-white placeholder-white/30 outline-none transition focus:border-[#FE2C55] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#FE2C55]/30"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
         />
       </span>
     </label>
@@ -768,7 +768,7 @@ function FieldOtp({
           value={value}
           onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="000000"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-center font-mono text-2xl font-black tracking-[0.5em] text-white placeholder-white/20 outline-none transition focus:border-[#FE2C55] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#FE2C55]/30"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-center font-mono text-2xl font-black tracking-[0.5em] text-white placeholder-white/20 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
         />
       </span>
     </label>
@@ -788,7 +788,7 @@ function PrimaryButton({
     <button
       type="submit"
       disabled={loading || disabled}
-      className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#FE2C55] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+      className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
     >
       {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : children}
     </button>
@@ -802,7 +802,7 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
         <div
           key={i}
           className={`h-1.5 flex-1 rounded-full transition ${
-            i < step ? "bg-[#FE2C55]" : "bg-white/10"
+            i < step ? "bg-[#7C3AED]" : "bg-white/10"
           }`}
         />
       ))}
@@ -823,7 +823,7 @@ function UsernameStatus({
   }
   if (status === "invalid") {
     return (
-      <p className="text-xs text-[#FE2C55]">
+      <p className="text-xs text-[#7C3AED]">
         3-20 caractere, doar litere mici, cifre, _ sau .
       </p>
     );
@@ -837,7 +837,7 @@ function UsernameStatus({
   }
   if (status === "taken") {
     return (
-      <p className="flex items-center gap-1 text-xs text-[#FE2C55]">
+      <p className="flex items-center gap-1 text-xs text-[#7C3AED]">
         <AlertCircle className="h-3.5 w-3.5" /> @{value} este deja folosit
       </p>
     );

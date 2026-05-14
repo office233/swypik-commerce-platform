@@ -51,7 +51,7 @@ export default function BecomeCreatorButton() {
         type="button"
         onClick={handleApply}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#FE2C55] to-[#FF6B47] text-white font-bold text-base shadow-lg active:scale-[0.98] transition disabled:opacity-60 disabled:active:scale-100"
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#FF6B47] text-white font-bold text-base shadow-lg active:scale-[0.98] transition disabled:opacity-60 disabled:active:scale-100"
       >
         {loading ? (
           <>

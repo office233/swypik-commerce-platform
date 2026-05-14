@@ -115,7 +115,7 @@ export default function PayoutsClient({ recentPayouts }: { recentPayouts: Payout
       </header>
 
       {toast && (
-        <div className="mb-4 rounded-xl border border-[#FE2C55]/20 bg-[#FE2C55]/10 px-4 py-3 text-sm font-semibold text-[#0D0D0D]">{toast}</div>
+        <div className="mb-4 rounded-xl border border-[#7C3AED]/20 bg-[#7C3AED]/10 px-4 py-3 text-sm font-semibold text-[#0D0D0D]">{toast}</div>
       )}
 
       {loading ? (

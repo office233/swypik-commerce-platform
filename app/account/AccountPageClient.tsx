@@ -136,7 +136,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
   if (view === "loading") {
     return (
       <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-white/10 border-t-[#FE2C55] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-white/10 border-t-[#7C3AED] rounded-full animate-spin" />
       </div>
     );
   }
@@ -159,13 +159,13 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               placeholder="Emailul tău"
               autoFocus
               required
-              className="w-full rounded-2xl bg-white/5 border border-white/10 px-5 py-4 text-white placeholder-white/40 outline-none focus:border-[#FE2C55] transition"
+              className="w-full rounded-2xl bg-white/5 border border-white/10 px-5 py-4 text-white placeholder-white/40 outline-none focus:border-[#7C3AED] transition"
             />
-            {loginError && <p className="text-sm font-bold text-[#FE2C55]">{loginError}</p>}
+            {loginError && <p className="text-sm font-bold text-[#7C3AED]">{loginError}</p>}
             <button
               type="submit"
               disabled={loginLoading || !email.trim()}
-              className="w-full rounded-2xl bg-[#FE2C55] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50 transition active:scale-95"
+              className="w-full rounded-2xl bg-[#7C3AED] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50 transition active:scale-95"
             >
               {loginLoading ? "Se încarcă..." : "Continuă"}
             </button>
@@ -202,13 +202,13 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               required
               inputMode="numeric"
               maxLength={6}
-              className="w-full text-center tracking-[0.5em] text-3xl rounded-2xl bg-white/5 border border-white/10 px-4 py-4 font-black text-white outline-none focus:border-[#FE2C55] transition"
+              className="w-full text-center tracking-[0.5em] text-3xl rounded-2xl bg-white/5 border border-white/10 px-4 py-4 font-black text-white outline-none focus:border-[#7C3AED] transition"
             />
-            {loginError && <p className="text-sm font-bold text-[#FE2C55] text-center">{loginError}</p>}
+            {loginError && <p className="text-sm font-bold text-[#7C3AED] text-center">{loginError}</p>}
             <button
               type="submit"
               disabled={loginLoading || otp.length < 6}
-              className="w-full rounded-2xl bg-[#FE2C55] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50 transition active:scale-95"
+              className="w-full rounded-2xl bg-[#7C3AED] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50 transition active:scale-95"
             >
               {loginLoading ? "Verificăm..." : "Confirmă accesul"}
             </button>
@@ -233,7 +233,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       <div className="max-w-md mx-auto px-4 pt-6">
         {/* Profile Info */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] p-1 mb-4">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#7C3AED] to-[#EC4899] p-1 mb-4">
             <div className="w-full h-full rounded-full bg-[#1A1A1A] flex items-center justify-center overflow-hidden border-2 border-[#0D0D0D]">
               {customer?.avatar_url ? (
                 <Image src={customer.avatar_url} alt="Avatar" width={96} height={96} className="w-full h-full object-cover" unoptimized />
@@ -263,7 +263,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           <div className="flex gap-3 w-full">
             <Link 
               href="/creator/upload" 
-              className="flex-1 bg-[#FE2C55] hover:bg-[#E0264A] text-white py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition"
+              className="flex-1 bg-[#7C3AED] hover:bg-[#E0264A] text-white py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition"
             >
               <Plus size={18} /> Publică
             </Link>
@@ -358,7 +358,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
           {customer?.role === "shopper" && (
             <Link href="/become-a-creator" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
-              <Sparkles size={18} className="text-[#FE2C55]" />
+              <Sparkles size={18} className="text-[#7C3AED]" />
               <span className="flex-1 text-sm font-semibold">Devino creator</span>
               <span className="text-white/40">›</span>
             </Link>
