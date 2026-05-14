@@ -3,22 +3,29 @@ import OpenAI from "openai";
 import { logger } from "@/lib/logger";
 /**
  * Lightweight output moderation for AI chat / generation.
- * Uses GitHub Models API (https://models.github.ai/inference) with a personal
- * access token. Defaults to "safe" on any error — moderation must never break
- * the user-facing flow.
+ * Uses GitHub Copilot API (https://api.githubcopilot.com) with a GitHub token
+ * that has Copilot access. Defaults to "safe" on any error — moderation must
+ * never break the user-facing flow.
  */
 
 function moderationClient(): OpenAI | null {
   const token = process.env.GITHUB_TOKEN || process.env.GH_PAT;
   if (token) {
-    return new OpenAI({ apiKey: token, baseURL: "https://models.github.ai/inference" });
+    return new OpenAI({
+      apiKey: token,
+      baseURL: "https://api.githubcopilot.com",
+      defaultHeaders: {
+        "Editor-Version": "vscode/1.95.0",
+        "Copilot-Integration-Id": "vscode-chat",
+      },
+    });
   }
   if (process.env.OPENAI_API_KEY) return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   return null;
 }
 
 function moderationModel(): string {
-  return process.env.MODERATION_MODEL || "openai/gpt-4o-mini";
+  return process.env.MODERATION_MODEL || "claude-opus-4.7";
 }
 
 const SYSTEM = `You are a strict content-safety classifier for a Romanian-language e-commerce assistant.

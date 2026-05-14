@@ -4,6 +4,10 @@ import argparse
 import logging
 import signal
 import sys
+import time
+
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from .config import Settings
 from .db import PostgresRepository
@@ -34,9 +38,14 @@ def main(argv: list[str] | None = None) -> int:
     signal.signal(signal.SIGINT, stop.handle)
     signal.signal(signal.SIGTERM, stop.handle)
 
-    try:
-        while not stop.requested:
+    # Reconnect backoff state — survives transient Redis blips without crashing.
+    reconnect_attempts = 0
+    max_backoff_seconds = 30
+
+    while not stop.requested:
+        try:
             queued = queue.pop_message()
+            reconnect_attempts = 0  # success → reset backoff
             if queued is None:
                 if args.once:
                     return 0
@@ -48,9 +57,40 @@ def main(argv: list[str] | None = None) -> int:
                 queue.fail(queued, result.message)
             if args.once:
                 return 0 if result.ok else 1
-    except QueueUnavailableError as exc:
-        logging.error("%s", exc)
-        return 2
+        except (RedisConnectionError, RedisTimeoutError) as exc:
+            reconnect_attempts += 1
+            backoff = min(2 ** min(reconnect_attempts, 5), max_backoff_seconds)
+            logging.warning(
+                "Redis connection lost (attempt %d): %s. Reconnecting in %ds…",
+                reconnect_attempts,
+                exc,
+                backoff,
+            )
+            if args.once:
+                return 2
+            # Sleep with stop-flag awareness so SIGTERM still cuts through.
+            slept = 0.0
+            while slept < backoff and not stop.requested:
+                time.sleep(0.5)
+                slept += 0.5
+            # Force the queue client to reconnect on next iteration.
+            try:
+                queue._client = None  # type: ignore[attr-defined]
+                queue._stream_group_ready = False  # type: ignore[attr-defined]
+            except Exception:
+                pass
+            continue
+        except QueueUnavailableError as exc:
+            logging.error("%s", exc)
+            return 2
+        except Exception as exc:  # noqa: BLE001
+            # Unexpected error in the main loop: log and continue rather than
+            # crash-loop. Individual job errors are already handled inside
+            # processor.process() / queue.fail().
+            logging.exception("Unexpected error in worker main loop: %s", exc)
+            if args.once:
+                return 1
+            time.sleep(1)
 
     return 0
 
