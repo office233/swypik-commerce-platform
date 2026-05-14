@@ -374,7 +374,7 @@ export default function ExplorePage() {
         .action-bar {
           position: absolute;
           right: max(12px, calc(12px + env(safe-area-inset-right, 0px)));
-          bottom: max(120px, calc(120px + env(safe-area-inset-bottom, 0px)));
+          bottom: max(180px, calc(180px + env(safe-area-inset-bottom, 0px)));
           display: flex; flex-direction: column; align-items: center; gap: 20px;
           z-index: 20;
         }
@@ -411,7 +411,7 @@ export default function ExplorePage() {
         /* Bottom content */
         .bottom-content {
           position: absolute;
-          bottom: max(16px, calc(16px + env(safe-area-inset-bottom, 0px)));
+          bottom: max(80px, calc(80px + env(safe-area-inset-bottom, 0px)));
           left: max(14px, calc(14px + env(safe-area-inset-left, 0px)));
           right: max(80px, calc(80px + env(safe-area-inset-right, 0px)));
           z-index: 20;
