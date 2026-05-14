@@ -8,18 +8,8 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/explore/feed
  *
- * Query params:
- *   sort  – "recent" (default) | "popular" | "trending"
- *   page  – page number (default 1)
- *   limit – items per page (default 20, max 50)
- *
- * Primary: read from video_assets + videos (migration 0001 schema).
- * Fallback: read from creator_videos (legacy table).
- *
- * Schema (0001):
- *   videos:       creator_id, title, description, product_refs, playback_url, thumbnail_url,
- *                 view_count, like_count, share_count, comment_count, published_at, created_at
- *   video_assets: video_id, asset_type, object_key, status, duration_ms
+ * Pagination via LIMIT+1 (no COUNT(*)). Removed expensive ILIKE '%topic%'
+ * interest ranking. TODO: re-add tsvector / pgvector personalization.
  */
 
 type SortMode = "recent" | "popular" | "trending";
@@ -41,18 +31,14 @@ const TRENDING_EXPR = `(
   / GREATEST(1, EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / 3600)
 )`;
 
-function buildOrderClause(sort: SortMode, interestBonusExpr: string = '0'): string {
-  const bonus = interestBonusExpr !== '0' ? ` + (${interestBonusExpr} * 2)` : '';
+function buildOrderClause(sort: SortMode): string {
   switch (sort) {
     case "popular":
-      return `(${ENGAGEMENT_EXPR}${bonus}) DESC`;
+      return `${ENGAGEMENT_EXPR} DESC, v.published_at DESC NULLS LAST`;
     case "trending":
-      return `(${TRENDING_EXPR}${bonus}) DESC`;
+      return `${TRENDING_EXPR} DESC, v.published_at DESC NULLS LAST`;
     case "recent":
     default:
-      if (interestBonusExpr !== '0') {
-         return `(${interestBonusExpr} * 2) DESC, v.published_at DESC NULLS LAST, v.created_at DESC`;
-      }
       return `v.published_at DESC NULLS LAST, v.created_at DESC`;
   }
 }
@@ -61,7 +47,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
 
-    // --- Parse & validate query params ---
     const sortParam = (searchParams.get("sort") || "recent") as SortMode;
     const sort: SortMode = VALID_SORTS.has(sortParam) ? sortParam : "recent";
     const sourceParam = searchParams.get("source");
@@ -75,42 +60,23 @@ export async function GET(request: NextRequest) {
 
     const publicUrl = process.env.S3_PUBLIC_URL?.replace(/\/$/, "") || "";
 
-    // --- Get social user ID from session, resolving customer sessions when present ---
     const userId = await getOptionalSocialUserId();
 
-    // --- Total count for pagination ---
-    const countResult = await dbQuery(
-      `SELECT COUNT(*) FROM videos WHERE status = 'ready' AND visibility = 'public'`
-    );
-    const totalCount = parseInt(countResult.rows[0]?.count ?? "0", 10);
+    // Fetch limit+1 to compute hasMore without COUNT(*)
+    const queryLimit = limit + 1;
+    const queryParams: any[] = [queryLimit, offset];
+    if (userId) queryParams.push(userId);
 
-    // --- Primary query: videos + video_assets (0001 schema) ---
-    let interestScoreExpr = '0';
-    const queryParams: any[] = [limit, offset];
-    
-    if (userId) {
-      queryParams.push(userId);
-      interestScoreExpr = `COALESCE((
-        SELECT SUM(ui.weight)
-        FROM user_interests ui
-        WHERE ui.user_id = $3
-          AND (v.description ILIKE '%' || ui.topic || '%' 
-               OR v.title ILIKE '%' || ui.topic || '%')
-      ), 0)`;
-    }
-
-    const orderClause = buildOrderClause(sort, interestScoreExpr);
+    const orderClause = buildOrderClause(sort);
     const scoreSelect =
       sort === "popular"
         ? `, ${ENGAGEMENT_EXPR} AS engagement_score`
         : sort === "trending"
           ? `, ${TRENDING_EXPR} AS trending_score`
           : "";
-          
-    const interestSelect = userId ? `, ${interestScoreExpr} AS interest_score` : `, 0 AS interest_score`;
 
     const { rows } = await dbQuery(
-      `SELECT 
+      `SELECT
         v.id          AS video_id,
         v.creator_id,
         v.title,
@@ -133,9 +99,11 @@ export async function GET(request: NextRequest) {
         mp.id          AS mp_id,
         mp.title       AS mp_name,
         mp.price_cents AS mp_price_cents,
-        mp.image_url   AS mp_image_url
+        mp.image_url   AS mp_image_url,
+        at.id          AS at_id,
+        at.title       AS at_title,
+        at.artist      AS at_artist
         ${scoreSelect}
-        ${interestSelect}
         ${userId ? `,
         EXISTS(SELECT 1 FROM likes l WHERE l.user_id = $3 AND l.video_id = v.id) AS viewer_liked,
         EXISTS(SELECT 1 FROM saves s WHERE s.user_id = $3 AND s.video_id = v.id) AS viewer_saved,
@@ -156,6 +124,7 @@ export async function GET(request: NextRequest) {
       ) va ON true
       LEFT JOIN marketplace_products mp
         ON mp.id::text = (v.product_refs->0->>'product_id')
+      LEFT JOIN audio_tracks at ON at.id = v.audio_track_id
       WHERE v.status = 'ready'
         AND v.visibility = 'public'
         ${onlyFollowing && userId ? `AND EXISTS (SELECT 1 FROM follows f2 WHERE f2.follower_user_id = $3 AND f2.following_user_id = v.creator_id)` : ''}
@@ -165,9 +134,11 @@ export async function GET(request: NextRequest) {
       queryParams
     );
 
-    if (rows.length > 0 || totalCount > 0) {
-      const videos = rows.map((row: any) => {
-        // Extract first product_id from product_refs JSONB array
+    const hasMore = rows.length > limit;
+    const sliced = hasMore ? rows.slice(0, limit) : rows;
+
+    if (sliced.length > 0) {
+      const videos = sliced.map((row: any) => {
         let productId: string | null = null;
         try {
           const refs = typeof row.product_refs === "string"
@@ -181,14 +152,15 @@ export async function GET(request: NextRequest) {
           }
         } catch { /* ignore */ }
 
-        // Build video URL: prefer playback_url, fallback to R2 object_key
         const url = row.playback_url
           || (row.source_key && publicUrl ? `${publicUrl}/${row.source_key}` : null);
+
+        const isHls = typeof url === 'string' && /\.m3u8(\?|$)/i.test(url);
 
         return {
           id: row.video_id,
           url,
-          hlsUrl: null, // HLS not yet implemented
+          hlsUrl: isHls ? url : null,
           thumbnail: row.thumbnail_url
             || (row.source_key && publicUrl ? `${publicUrl}/videos/thumbnails/${row.video_id}.jpg` : null),
           duration: row.duration_ms ? Math.round(row.duration_ms / 1000) : null,
@@ -209,19 +181,22 @@ export async function GET(request: NextRequest) {
             price: row.mp_price_cents ? `${(row.mp_price_cents / 100).toFixed(2)} RON` : null,
             image: row.mp_image_url || null,
           } : null,
+          audioTrack: row.at_id ? {
+            id: String(row.at_id),
+            title: row.at_title || null,
+            artist: row.at_artist || null,
+          } : null,
           ...(row.engagement_score !== undefined && { engagementScore: Number(row.engagement_score) }),
           ...(row.trending_score !== undefined && { trendingScore: Number(row.trending_score) }),
         };
       });
 
-      const hasMore = offset + rows.length < totalCount;
-
-      return NextResponse.json({ videos, page, totalCount, hasMore });
+      return NextResponse.json({ videos, page, hasMore });
     }
 
-    // TODO: remove creator_videos fallback after full migration
+    // Fallback: creator_videos legacy
     const fallback = await dbQuery(`
-      SELECT 
+      SELECT
         cv.id as video_id,
         cv.creator_id,
         cv.video_url,
@@ -250,6 +225,7 @@ export async function GET(request: NextRequest) {
       shares: "0",
       comments: "0",
       viewer: { liked: false, saved: false, following: false },
+      audioTrack: null,
       product: row.product_id ? {
         id: row.product_id,
         name: row.product_title,
@@ -258,7 +234,7 @@ export async function GET(request: NextRequest) {
       } : null,
     }));
 
-    return NextResponse.json({ videos });
+    return NextResponse.json({ videos, page, hasMore: false });
   } catch (error: any) {
     logger.error({ err: error }, "Explore feed API error:");
     return NextResponse.json(

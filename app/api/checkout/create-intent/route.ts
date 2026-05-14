@@ -149,6 +149,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     logger.error({ err: error }, "[Create Intent Error]");
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
   }
 }

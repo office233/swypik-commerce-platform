@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const hiddenPaths = ["/checkout"];
+  const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth"];
   if (hiddenPaths.some((p) => pathname.startsWith(p))) return null;
 
   return (

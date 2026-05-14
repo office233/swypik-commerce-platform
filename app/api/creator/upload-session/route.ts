@@ -424,17 +424,21 @@ async function getLocalUploadStatus(sessionId: string, creatorId: string) {
 }
 
 async function ensureCreatorUser(creatorId: string) {
-  const username = `creator-${creatorId.replace(/-/g, "")}`;
-  await dbQuery(
-    `
-    INSERT INTO users (id, username, display_name, role, status, metadata)
-    VALUES ($1, $2, 'Creator', 'creator', 'active', '{"source":"creator_upload"}'::jsonb)
-    ON CONFLICT (id) DO UPDATE SET
-      role = CASE WHEN users.role = 'shopper' THEN 'creator' ELSE users.role END,
-      updated_at = NOW()
-    `,
-    [creatorId, username]
+  // SECURITY: do NOT auto-promote shoppers. Require explicit role first.
+  const { rows } = await dbQuery<{ role: string }>(
+    `SELECT role FROM users WHERE id = $1 LIMIT 1`,
+    [creatorId]
   );
+  if (!rows[0]) {
+    const e = new UploadInputError("User not found");
+    e.status = 404;
+    throw e;
+  }
+  if (rows[0].role !== "creator" && rows[0].role !== "admin") {
+    const e = new UploadInputError("Creator role required. Apply at /become-a-creator.");
+    e.status = 403;
+    throw e;
+  }
 }
 
 async function createPlatformUploadSession(input: CreatorUploadInput) {

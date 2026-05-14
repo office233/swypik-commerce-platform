@@ -27,7 +27,7 @@ export async function GET(req: Request) {
   } catch (error: any) {
     return NextResponse.json({
       success: false,
-      error: error.message || "Unknown error",
+      error: "Internal error",
     }, { status: 500 });
   }
 }

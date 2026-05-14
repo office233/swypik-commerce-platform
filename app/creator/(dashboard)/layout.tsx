@@ -4,10 +4,9 @@ import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
 
 const creatorNavItems = [
   { href: "/creator", icon: "📊", label: "Dashboard" },
+  { href: "/creator/upload", icon: "⬆️", label: "Încarcă" },
   { href: "/creator/videos", icon: "🎬", label: "Clipurile Mele" },
-  { href: "/creator/links", icon: "🔗", label: "Linkuri Afiliere" },
   { href: "/creator/earnings", icon: "💰", label: "Câștiguri" },
-  { href: "/creator/money", icon: "💸", label: "Bani" },
   { href: "/creator/rewards", icon: "🏆", label: "SWYP Points" },
 ];
 
@@ -29,14 +28,11 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
           <Link href="/creator/videos" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">🎬</span> Clipurile Mele
           </Link>
-          <Link href="/creator/links" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">🔗</span> Linkuri Afiliere
+          <Link href="/creator/upload" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
+            <span className="text-lg">⬆️</span> Încarcă Video
           </Link>
           <Link href="/creator/earnings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">💰</span> Câștiguri
-          </Link>
-          <Link href="/creator/money" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">💸</span> Bani
           </Link>
           <Link href="/creator/rewards" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">🏆</span> SWYP Points

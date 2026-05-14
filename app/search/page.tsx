@@ -1,25 +1,29 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { searchAll } from "@/lib/search/query";
 import SearchBar from "@/components/search/SearchBar";
+import { formatCurrency } from "@/lib/i18n/currency";
+import {
+  CURRENCY_COOKIE,
+  LOCALE_COOKIE,
+  isCurrency,
+  isLocale,
+  DEFAULT_CURRENCY,
+  DEFAULT_LOCALE,
+} from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = { q?: string; tab?: string };
 
-const ACCENT = "#0D0D0D";
+const ACCENT = "#FE2C55";
 const BG = "#0D0D0D";
-
-function formatPrice(cents: number | null | undefined) {
-  if (cents == null) return "";
-  return `$${(cents / 100).toFixed(2)}`;
-}
 
 export default async function SearchPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams> | SearchParams;
 }) {
-  // Support both promised (Next 15) and plain (Next 14) variants.
   const params: SearchParams =
     typeof (searchParams as any)?.then === "function"
       ? await (searchParams as Promise<SearchParams>)
@@ -27,6 +31,16 @@ export default async function SearchPage({
 
   const q = (params.q ?? "").trim();
   const tab = (params.tab ?? "videos") as "videos" | "creators" | "products" | "hashtags";
+
+  const cookieStore = await cookies();
+  const cCurr = cookieStore.get(CURRENCY_COOKIE)?.value;
+  const cLoc = cookieStore.get(LOCALE_COOKIE)?.value;
+  const displayCurrency = isCurrency(cCurr) ? cCurr : DEFAULT_CURRENCY;
+  const locale = isLocale(cLoc) ? cLoc : DEFAULT_LOCALE;
+  const fmt = (cents: number | null | undefined) =>
+    cents == null
+      ? ""
+      : formatCurrency(cents, { locale, displayCurrency, sourceCurrency: "RON" });
 
   const tooShort = q.length < 2;
   const results = tooShort
@@ -46,36 +60,11 @@ export default async function SearchPage({
   ];
 
   return (
-    <main
-      className="min-h-screen text-white"
-      style={{ backgroundColor: BG }}
-    >
+    <main className="min-h-screen text-white" style={{ backgroundColor: BG }}>
       <div className="mx-auto max-w-5xl px-4 py-6">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold mb-4">Search</h1>
-
-          <form action="/search" method="get" className="flex gap-2">
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              placeholder="Search videos, creators, products…"
-              className="flex-1 rounded-lg bg-neutral-900 border border-neutral-800 px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-[#0D0D0D]"
-              minLength={2}
-              autoFocus
-            />
-            <button
-              type="submit"
-              className="rounded-lg px-4 py-2 font-medium text-black"
-              style={{ backgroundColor: ACCENT }}
-            >
-              Search
-            </button>
-          </form>
-
-          <div className="mt-4">
-            <SearchBar initialQuery={q} />
-          </div>
+          <SearchBar initialQuery={q} />
         </header>
 
         {tooShort ? (
@@ -98,8 +87,7 @@ export default async function SearchPage({
                       color: active ? ACCENT : "#d4d4d4",
                     }}
                   >
-                    {t.label}{" "}
-                    <span className="text-neutral-500">({t.count})</span>
+                    {t.label} <span className="text-neutral-500">({t.count})</span>
                   </Link>
                 );
               })}
@@ -108,32 +96,25 @@ export default async function SearchPage({
             {tab === "videos" && (
               <section>
                 {results.videos.length === 0 ? (
-                  <EmptyState label={`No videos found for “${q}”`} />
+                  <EmptyState label={`No videos found for "${q}"`} />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {results.videos.map((v) => (
                       <Link
                         key={v.id}
                         href={`/video/${v.id}`}
-                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#0D0D0D] transition-colors"
+                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#FE2C55] transition-colors"
                       >
                         <div className="aspect-[9/16] bg-neutral-800 relative">
                           {v.thumbnail_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={v.thumbnail_url}
-                              alt={v.title ?? ""}
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={v.thumbnail_url} alt={v.title ?? ""} className="w-full h-full object-cover" />
                           ) : null}
                         </div>
                         <div className="p-2">
-                          <div className="text-sm font-medium truncate">
-                            {v.title ?? "Untitled"}
-                          </div>
+                          <div className="text-sm font-medium truncate">{v.title ?? "Untitled"}</div>
                           <div className="text-xs text-neutral-400 truncate">
-                            {v.creator_name ?? "—"} ·{" "}
-                            {Intl.NumberFormat().format(v.like_count)} likes
+                            {v.creator_name ?? "—"} · {Intl.NumberFormat().format(v.like_count)} likes
                           </div>
                         </div>
                       </Link>
@@ -146,39 +127,24 @@ export default async function SearchPage({
             {tab === "creators" && (
               <section>
                 {results.creators.length === 0 ? (
-                  <EmptyState label={`No creators found for “${q}”`} />
+                  <EmptyState label={`No creators found for "${q}"`} />
                 ) : (
                   <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 bg-neutral-900/40">
                     {results.creators.map((c) => (
                       <li key={c.id}>
-                        <Link
-                          href={`/u/${c.username ?? c.id}`}
-                          className="flex items-center gap-3 p-3 hover:bg-neutral-900"
-                        >
+                        <Link href={`/u/${c.username ?? c.id}`} className="flex items-center gap-3 p-3 hover:bg-neutral-900">
                           <div className="w-12 h-12 rounded-full bg-neutral-800 overflow-hidden flex-shrink-0">
                             {c.avatar_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={c.avatar_url}
-                                alt={c.username ?? ""}
-                                className="w-full h-full object-cover"
-                              />
+                              <img src={c.avatar_url} alt={c.username ?? ""} className="w-full h-full object-cover" />
                             ) : null}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium truncate">
-                              {c.display_name || c.username || "Creator"}
-                            </div>
+                            <div className="font-medium truncate">{c.display_name || c.username || "Creator"}</div>
                             <div className="text-xs text-neutral-400 truncate">
-                              @{c.username ?? "unknown"} ·{" "}
-                              {Intl.NumberFormat().format(c.follower_count)}{" "}
-                              followers
+                              @{c.username ?? "unknown"} · {Intl.NumberFormat().format(c.follower_count)} followers
                             </div>
-                            {c.bio ? (
-                              <div className="text-xs text-neutral-500 truncate mt-1">
-                                {c.bio}
-                              </div>
-                            ) : null}
+                            {c.bio ? <div className="text-xs text-neutral-500 truncate mt-1">{c.bio}</div> : null}
                           </div>
                         </Link>
                       </li>
@@ -191,34 +157,25 @@ export default async function SearchPage({
             {tab === "products" && (
               <section>
                 {results.products.length === 0 ? (
-                  <EmptyState label={`No products found for “${q}”`} />
+                  <EmptyState label={`No products found for "${q}"`} />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {results.products.map((p) => (
                       <Link
                         key={p.id}
                         href={`/product/${p.id}`}
-                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#0D0D0D] transition-colors"
+                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#FE2C55] transition-colors"
                       >
                         <div className="aspect-square bg-neutral-800 relative">
                           {p.image_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={p.image_url}
-                              alt={p.title ?? ""}
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={p.image_url} alt={p.title ?? ""} className="w-full h-full object-cover" />
                           ) : null}
                         </div>
                         <div className="p-2">
-                          <div className="text-sm font-medium truncate">
-                            {p.title ?? "Product"}
-                          </div>
-                          <div
-                            className="text-sm font-semibold mt-1"
-                            style={{ color: ACCENT }}
-                          >
-                            {formatPrice(p.price_cents)}
+                          <div className="text-sm font-medium truncate">{p.title ?? "Product"}</div>
+                          <div className="text-sm font-semibold mt-1" style={{ color: ACCENT }}>
+                            {fmt(p.price_cents)}
                           </div>
                         </div>
                       </Link>
@@ -227,6 +184,7 @@ export default async function SearchPage({
                 )}
               </section>
             )}
+
             {tab === "hashtags" && (
               <section>
                 {results.hashtags.length === 0 ? (
@@ -235,18 +193,11 @@ export default async function SearchPage({
                   <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 bg-neutral-900/40">
                     {results.hashtags.map((h) => (
                       <li key={h.tag}>
-                        <Link
-                          href={`/hashtag/${encodeURIComponent(h.tag)}`}
-                          className="flex items-center gap-3 p-4 hover:bg-neutral-900"
-                        >
-                          <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-xl font-bold flex-shrink-0">
-                            #
-                          </div>
+                        <Link href={`/hashtag/${encodeURIComponent(h.tag)}`} className="flex items-center gap-3 p-4 hover:bg-neutral-900">
+                          <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-xl font-bold flex-shrink-0">#</div>
                           <div className="min-w-0 flex-1">
                             <div className="font-medium truncate">#{h.tag}</div>
-                            <div className="text-xs text-neutral-400">
-                              {Intl.NumberFormat().format(h.video_count)} videos
-                            </div>
+                            <div className="text-xs text-neutral-400">{Intl.NumberFormat().format(h.video_count)} videos</div>
                           </div>
                         </Link>
                       </li>
@@ -255,7 +206,6 @@ export default async function SearchPage({
                 )}
               </section>
             )}
-
           </>
         )}
       </div>

@@ -132,6 +132,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true, order: rows[0] });
   } catch (error: any) {
     logger.error({ err: error }, "[Admin Orders PATCH]");
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

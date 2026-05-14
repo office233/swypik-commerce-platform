@@ -40,7 +40,7 @@ export default function EditProfilePage() {
       .then((data) => {
         if (cancelled) return;
         if (!data?.success || !data?.customer) {
-          router.replace("/login?next=/account/edit");
+          router.replace("/auth/login?next=/account/edit");
           return;
         }
         const c = data.customer as Me;
@@ -51,7 +51,7 @@ export default function EditProfilePage() {
         setAvatarUrl(c.avatar_url ?? null);
       })
       .catch(() => {
-        if (!cancelled) router.replace("/login?next=/account/edit");
+        if (!cancelled) router.replace("/auth/login?next=/account/edit");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

@@ -42,8 +42,13 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
   const [playingId, setPlayingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchTracks = useCallback(async (search: string, genreFilter: string) => {
+    // Abort any in-flight request before starting a new one
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     setError(null);
     try {
@@ -51,15 +56,18 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
       if (search.trim()) params.set("q", search.trim());
       if (genreFilter) params.set("genre", genreFilter);
       params.set("limit", "50");
-      const res = await fetch(`/api/audio/tracks?${params.toString()}`);
+      const res = await fetch(`/api/audio/tracks?${params.toString()}`, { signal: controller.signal });
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
-      setTracks(Array.isArray(data.tracks) ? data.tracks : []);
-    } catch (err) {
+      if (!controller.signal.aborted) {
+        setTracks(Array.isArray(data.tracks) ? data.tracks : []);
+      }
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       setError("Nu am putut încărca piesele.");
       setTracks([]);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, []);
 
@@ -70,6 +78,7 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
     debounceRef.current = setTimeout(() => fetchTracks(q, genre), 250);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (abortRef.current) abortRef.current.abort();
     };
   }, [open, q, genre, fetchTracks]);
 

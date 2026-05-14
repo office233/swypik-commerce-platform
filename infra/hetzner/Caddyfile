@@ -21,7 +21,7 @@ swypik.com {
 		Referrer-Policy            "strict-origin-when-cross-origin"
 		Strict-Transport-Security  "max-age=63072000; includeSubDomains; preload"
 		X-XSS-Protection           "1; mode=block"
-		Permissions-Policy         "camera=(), microphone=(), geolocation=()"
+		Permissions-Policy         "camera=(self), microphone=(self), geolocation=()"
 		# Remove server identity
 		-Server
 	}
@@ -72,7 +72,7 @@ api.swypik.com {
 		Referrer-Policy            "strict-origin-when-cross-origin"
 		Strict-Transport-Security  "max-age=63072000; includeSubDomains; preload"
 		X-XSS-Protection           "1; mode=block"
-		Permissions-Policy         "camera=(), microphone=(), geolocation=()"
+		Permissions-Policy         "camera=(self), microphone=(self), geolocation=()"
 		-Server
 	}
 

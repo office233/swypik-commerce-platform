@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Inbox } from "lucide-react";
+import { Inbox, ShoppingBag } from "lucide-react";
 
 /**
  * TopBar — thin sticky chrome for user-facing pages.
@@ -17,6 +17,7 @@ import { Inbox } from "lucide-react";
  */
 export default function TopBar() {
   const [unread, setUnread] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +64,44 @@ export default function TopBar() {
     };
   }, []);
 
+  // Cart count — read from localStorage; refresh on focus, storage events, and 30s tick.
+  useEffect(() => {
+    const readCart = () => {
+      try {
+        const saved = localStorage.getItem("aicv_cart");
+        if (!saved) {
+          setCartCount(0);
+          return;
+        }
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const total = parsed.reduce(
+            (sum: number, item: any) => sum + (Number(item?.qty) || 0),
+            0,
+          );
+          setCartCount(total);
+        } else {
+          setCartCount(0);
+        }
+      } catch {
+        setCartCount(0);
+      }
+    };
+    readCart();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "aicv_cart") readCart();
+    };
+    const onFocus = () => readCart();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onFocus);
+    const t = setInterval(readCart, 30_000);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+      clearInterval(t);
+    };
+  }, []);
+
   return (
     <header
       className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/10 text-white"
@@ -77,6 +116,19 @@ export default function TopBar() {
           Swypik
         </Link>
 
+        <div className="flex items-center gap-2">
+        <Link
+          href="/cart"
+          aria-label="Coș"
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+        >
+          <ShoppingBag className="h-5 w-5" />
+          {cartCount > 0 && (
+            <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FE2C55] px-1 text-[11px] font-semibold text-white">
+              {cartCount > 99 ? "99+" : cartCount}
+            </span>
+          )}
+        </Link>
         <Link
           href="/inbox"
           aria-label="Inbox"
@@ -89,6 +141,7 @@ export default function TopBar() {
             </span>
           )}
         </Link>
+        </div>
       </div>
     </header>
   );
