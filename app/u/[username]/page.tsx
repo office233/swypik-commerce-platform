@@ -68,69 +68,45 @@ export default async function UserProfilePage({ params }: Props) {
   const { profile, stats, videos } = data;
 
   return (
-    <main className="min-h-screen bg-[#0D0D0D] text-white">
-      <header className="sticky top-12 z-30 border-b border-white/10 bg-[#0D0D0D]/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="text-lg font-black text-white">
-            Swypik
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/explore"
-              className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/15"
-            >
-              Exploreaza
-            </Link>
-          </div>
-        </div>
+    <main className="min-h-screen bg-[#0D0D0D] text-white mobile-page-bottom">
+      <header className="sticky top-12 z-30 bg-[#0D0D0D]/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center justify-between">
+        <Link href="/explore" className="text-white/70 hover:text-white" aria-label="Inapoi"><ArrowLeft size={22} /></Link>
+        <h1 className="text-lg font-black truncate max-w-[60%]">{profile.handle.replace(/^@/, '')}</h1>
+        <div className="w-6" />
       </header>
 
-      <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,163,127,0.22),transparent_45%)]" />
-        <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-          <Link
-            href="/explore"
-            className="mb-8 inline-flex items-center gap-2 text-sm font-bold text-white/55 transition hover:text-white"
-          >
-            <ArrowLeft size={16} />
-            Inapoi la feed
-          </Link>
-
-          <div className="flex flex-col items-center text-center">
-            <Avatar profile={profile} />
-
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-              <h1 className="text-3xl font-black leading-tight text-white sm:text-5xl">
-                {profile.displayName}
-              </h1>
-              {profile.isVerified && (
-                <BadgeCheck className="mt-1 text-[#0D0D0D]" size={26} aria-label="Profil verificat" />
+      <div className="max-w-md mx-auto px-4 pt-6">
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] p-1 mb-4">
+            <div className="w-full h-full rounded-full bg-[#1A1A1A] flex items-center justify-center overflow-hidden border-2 border-[#0D0D0D]">
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile.displayName} className="w-full h-full object-cover" loading="eager" />
+              ) : (
+                <span className="text-3xl font-black text-white">{initials(profile.displayName)}</span>
               )}
             </div>
-
-            <p className="mt-2 text-sm font-bold text-white/50">{profile.handle}</p>
-
-            {profile.bio ? (
-              <p className="mt-5 max-w-xl text-sm leading-6 text-white/70 sm:text-base">
-                {profile.bio}
-              </p>
-            ) : (
-              <p className="mt-5 max-w-xl text-sm leading-6 text-white/45">
-                Profil public Swypik. Clipurile publicate apar mai jos.
-              </p>
-            )}
-
-            <ProfileStatsAndActions
-              userId={profile.id}
-              isOwnProfile={profile.isOwnProfile}
-              initialFollowing={profile.isFollowing}
-              stats={stats}
-            />
           </div>
-        </div>
-      </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+          <div className="flex items-center justify-center gap-1.5">
+            <h2 className="text-xl font-black">{profile.displayName}</h2>
+            {profile.isVerified && <BadgeCheck className="text-[#25F4EE]" size={18} aria-label="Profil verificat" />}
+          </div>
+          <p className="text-sm text-white/60 mb-4">{profile.handle}</p>
+
+          {profile.bio && (
+            <p className="max-w-sm text-sm leading-5 text-white/70 mb-4">{profile.bio}</p>
+          )}
+
+          <ProfileStatsAndActions
+            userId={profile.id}
+            isOwnProfile={profile.isOwnProfile}
+            initialFollowing={profile.isFollowing}
+            stats={stats}
+          />
+        </div>
+      </div>
+
+      <section className="mx-auto max-w-md px-4 pb-10">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-black text-white">Clipuri</h2>

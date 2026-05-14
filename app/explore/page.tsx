@@ -486,10 +486,10 @@ function ExplorePageInner() {
         .feed-tab.active::after { content: ''; position: absolute; bottom: -2px; left: 30%; right: 30%; height: 2px; background: #fff; border-radius: 1px; }
         @keyframes heartPop { 0% { transform: scale(1); } 30% { transform: scale(1.3); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
         .liked .icon-wrap { animation: heartPop 0.4s ease; }
-        .disc-spin { width: 48px; height: 48px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.2); overflow: hidden; position: relative; animation: discSpin 4s linear infinite; }
+        .disc-spin { display: block; width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); overflow: hidden; position: relative; animation: discSpin 6s linear infinite; background: #1a1a1a; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); margin-top: 6px; }
         @keyframes discSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .disc-spin img { width: 100%; height: 100%; object-fit: cover; }
-        .disc-spin::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 14px; height: 14px; border-radius: 50%; background: #000; border: 3px solid rgba(255,255,255,0.3); }
+        .disc-spin::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; border-radius: 50%; background: #000; border: 2px solid rgba(255,255,255,0.4); }
       `}} />
 
       <div className="feed-header">
@@ -655,15 +655,15 @@ function ExplorePageInner() {
                     />
                   </div>
 
-                  <div className="disc-spin" aria-hidden="true">
-                    {video.audioTrack?.image ? (
-                      <Image src={video.audioTrack.image} alt="" width={48} height={48} unoptimized />
-                    ) : video.creator?.avatar ? (
-                      <Image src={video.creator.avatar} alt="" width={48} height={48} unoptimized />
-                    ) : video.thumbnail ? (
-                      <Image src={video.thumbnail} alt="" width={48} height={48} unoptimized />
-                    ) : null}
-                  </div>
+                  {video.audioTrack?.image && (
+                    <Link
+                      href={video.audioTrack.id ? `/audio/${video.audioTrack.id}` : '#'}
+                      className="disc-spin"
+                      aria-label={video.audioTrack.title || 'Audio'}
+                    >
+                      <Image src={video.audioTrack.image} alt="" width={40} height={40} unoptimized />
+                    </Link>
+                  )}
                 </div>
 
                 <div className="bottom-content">

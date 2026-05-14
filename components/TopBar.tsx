@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Inbox, ShoppingBag } from "lucide-react";
+import Logo from "@/components/Logo";
 
 /**
  * TopBar — thin sticky chrome for user-facing pages.
@@ -97,13 +98,7 @@ export default function TopBar() {
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="mx-auto max-w-lg flex items-center justify-between px-4 h-12">
-        <Link
-          href="/"
-          className="text-lg font-black tracking-tight text-white"
-          aria-label="Swypik"
-        >
-          Swypik
-        </Link>
+        <Logo href="/" />
 
         <div className="flex items-center gap-2">
         <Link
