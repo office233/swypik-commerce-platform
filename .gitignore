@@ -36,3 +36,4 @@ fix-old-categories.mjs
 # Rogue files
 /layout.tsx
 static_analysis_semgrep_1/
+*.env*.bak*

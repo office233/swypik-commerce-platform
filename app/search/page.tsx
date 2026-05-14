@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = { q?: string; tab?: string };
 
-const ACCENT = "#FE2C55";
+const ACCENT = "#7C3AED";
 const BG = "#0D0D0D";
 
 export default async function SearchPage({
@@ -103,7 +103,7 @@ export default async function SearchPage({
                       <Link
                         key={v.id}
                         href={`/video/${v.id}`}
-                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#FE2C55] transition-colors"
+                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#7C3AED] transition-colors"
                       >
                         <div className="aspect-[9/16] bg-neutral-800 relative">
                           {v.thumbnail_url ? (
@@ -164,7 +164,7 @@ export default async function SearchPage({
                       <Link
                         key={p.id}
                         href={`/product/${p.id}`}
-                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#FE2C55] transition-colors"
+                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#7C3AED] transition-colors"
                       >
                         <div className="aspect-square bg-neutral-800 relative">
                           {p.image_url ? (

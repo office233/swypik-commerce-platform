@@ -179,7 +179,7 @@ export default function CreatorUploadPage() {
         }),
       });
       setStep("success");
-      setTimeout(() => router.push("/creator/dashboard"), 1500);
+      setTimeout(() => router.push("/creator"), 1500);
     } catch (err: any) {
       setErrorMsg(err.message || "Eroare la publicare.");
       setStep("suggestions");
@@ -214,7 +214,7 @@ export default function CreatorUploadPage() {
       <div className="max-w-xl mx-auto">
         <header className="mb-8 flex items-center justify-between">
           <h1 className="text-2xl font-black">Încarcă Clip Nou</h1>
-          <Link href="/creator/dashboard" className="text-sm font-bold text-white/50 hover:text-white transition">
+          <Link href="/creator" className="text-sm font-bold text-white/50 hover:text-white transition">
             Anulează
           </Link>
         </header>
@@ -335,7 +335,7 @@ function PickAndMetadata(props: {
             onClick={onPickCamera}
             className="bg-white/[0.04] hover:bg-white/[0.08] transition border border-white/10 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center text-center group"
           >
-            <div className="w-16 h-16 rounded-full bg-[#FE2C55]/20 text-[#FE2C55] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <div className="w-16 h-16 rounded-full bg-[#7C3AED]/20 text-[#7C3AED] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <Camera size={32} />
             </div>
             <h3 className="font-bold mb-1">Filmează acum</h3>
@@ -398,7 +398,7 @@ function PickAndMetadata(props: {
           </label>
           {audioTrack ? (
             <div className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
-              <Music size={16} className="text-[#FE2C55] shrink-0" />
+              <Music size={16} className="text-[#7C3AED] shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">{audioTrack.title}</p>
                 <p className="truncate text-xs text-white/50">{audioTrack.artist}</p>
@@ -455,7 +455,7 @@ function PickAndMetadata(props: {
                       setDescription((description ? description.trim() + " " : "") + h);
                     }
                   }}
-                  className="rounded-full bg-[#FE2C55]/15 px-3 py-1 text-xs font-bold text-[#FE2C55] hover:bg-[#FE2C55]/25 transition"
+                  className="rounded-full bg-[#7C3AED]/15 px-3 py-1 text-xs font-bold text-[#7C3AED] hover:bg-[#7C3AED]/25 transition"
                 >
                   {h}
                 </button>
@@ -468,7 +468,7 @@ function PickAndMetadata(props: {
       <button
         onClick={onUpload}
         disabled={!file || uploading}
-        className="w-full bg-[#FE2C55] hover:bg-[#E0264A] disabled:bg-white/10 disabled:text-white/40 text-white font-black text-lg py-4 rounded-2xl transition shadow-[0_0_20px_rgba(254,44,85,0.3)] active:scale-95 flex items-center justify-center gap-2"
+        className="w-full bg-[#7C3AED] hover:bg-[#E0264A] disabled:bg-white/10 disabled:text-white/40 text-white font-black text-lg py-4 rounded-2xl transition shadow-[0_0_20px_rgba(254,44,85,0.3)] active:scale-95 flex items-center justify-center gap-2"
       >
         {uploading ? (
           <>
@@ -480,7 +480,7 @@ function PickAndMetadata(props: {
       </button>
       {uploading && (
         <div className="w-full bg-white/10 rounded-full h-1.5 mt-2 overflow-hidden">
-          <div className="bg-[#FE2C55] h-full transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div className="bg-[#7C3AED] h-full transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
       )}
     </div>
@@ -587,8 +587,8 @@ function SuggestionsStep(props: {
 
       {/* Collection */}
       {suggestions.suggested_collection && (
-        <div className="bg-gradient-to-r from-[#FE2C55]/10 to-transparent border border-[#FE2C55]/20 p-4 rounded-2xl">
-          <p className="text-xs font-bold text-[#FE2C55] uppercase tracking-wider mb-1">Smart Collection</p>
+        <div className="bg-gradient-to-r from-[#7C3AED]/10 to-transparent border border-[#7C3AED]/20 p-4 rounded-2xl">
+          <p className="text-xs font-bold text-[#7C3AED] uppercase tracking-wider mb-1">Smart Collection</p>
           <p className="text-sm">{suggestions.suggested_collection}</p>
         </div>
       )}
@@ -596,7 +596,7 @@ function SuggestionsStep(props: {
       <button
         onClick={onPublish}
         disabled={publishing || !suggestions.hooks.length}
-        className="w-full bg-[#FE2C55] hover:bg-[#E0264A] disabled:bg-white/10 disabled:text-white/40 text-white font-black text-lg py-4 rounded-2xl transition shadow-[0_0_20px_rgba(254,44,85,0.3)] active:scale-95 flex items-center justify-center gap-2"
+        className="w-full bg-[#7C3AED] hover:bg-[#E0264A] disabled:bg-white/10 disabled:text-white/40 text-white font-black text-lg py-4 rounded-2xl transition shadow-[0_0_20px_rgba(254,44,85,0.3)] active:scale-95 flex items-center justify-center gap-2"
       >
         {publishing ? (
           <>

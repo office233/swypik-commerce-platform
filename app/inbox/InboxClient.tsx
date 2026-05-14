@@ -144,7 +144,7 @@ export default function InboxClient() {
           <MessageCircle className="h-4 w-4" />
           Mesaje
           {unreadM > 0 && (
-            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FE2C55] px-1 text-[10px] font-semibold text-white">
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#7C3AED] px-1 text-[10px] font-semibold text-white">
               {unreadM > 99 ? "99+" : unreadM}
             </span>
           )}
@@ -161,7 +161,7 @@ export default function InboxClient() {
           <Bell className="h-4 w-4" />
           Notificări
           {unreadN > 0 && (
-            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FE2C55] px-1 text-[10px] font-semibold text-white">
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#7C3AED] px-1 text-[10px] font-semibold text-white">
               {unreadN > 99 ? "99+" : unreadN}
             </span>
           )}
@@ -259,7 +259,7 @@ function MessagesTab({
                 </div>
               </div>
               {isUnread && (
-                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FE2C55] px-1 text-[10px] font-semibold text-white">
+                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#7C3AED] px-1 text-[10px] font-semibold text-white">
                   {c.unread_count}
                 </span>
               )}
@@ -331,7 +331,7 @@ function NotificationsTab({
                 >
                   <span
                     className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                      unreadRow ? "bg-[#FE2C55]" : "bg-transparent"
+                      unreadRow ? "bg-[#7C3AED]" : "bg-transparent"
                     }`}
                   />
                   <div className="min-w-0 flex-1">

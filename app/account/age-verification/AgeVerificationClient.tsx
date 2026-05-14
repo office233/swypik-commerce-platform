@@ -125,7 +125,7 @@ export default function AgeVerificationClient({ initialState }: Props) {
           <button
             onClick={startVerification}
             disabled={loading}
-            className="w-full mt-2 bg-[#FE2C55] hover:bg-[#E0264A] disabled:opacity-50 text-white py-3 rounded-lg font-bold transition"
+            className="w-full mt-2 bg-[#7C3AED] hover:bg-[#E0264A] disabled:opacity-50 text-white py-3 rounded-lg font-bold transition"
           >
             {loading ? "Se pregătește..." : ctaLabel}
           </button>
@@ -150,7 +150,7 @@ export default function AgeVerificationClient({ initialState }: Props) {
                 aria-checked={state.optIn}
                 onClick={() => toggleOptIn(!state.optIn)}
                 disabled={optInLoading}
-                className={`relative w-12 h-7 rounded-full transition ${state.optIn ? "bg-[#FE2C55]" : "bg-white/20"} disabled:opacity-50`}
+                className={`relative w-12 h-7 rounded-full transition ${state.optIn ? "bg-[#7C3AED]" : "bg-white/20"} disabled:opacity-50`}
               >
                 <span
                   className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform ${state.optIn ? "translate-x-5" : ""}`}

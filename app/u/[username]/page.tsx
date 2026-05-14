@@ -78,7 +78,7 @@ export default async function UserProfilePage({ params }: Props) {
 
       <div className="max-w-md mx-auto px-4 pt-6">
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] p-1 mb-4">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#7C3AED] to-[#EC4899] p-1 mb-4">
             <div className="w-full h-full rounded-full bg-[#1A1A1A] flex items-center justify-center overflow-hidden border-2 border-[#0D0D0D]">
               {profile.avatarUrl ? (
                 <img src={profile.avatarUrl} alt={profile.displayName} className="w-full h-full object-cover" loading="eager" />
@@ -90,7 +90,7 @@ export default async function UserProfilePage({ params }: Props) {
 
           <div className="flex items-center justify-center gap-1.5">
             <h2 className="text-xl font-black">{profile.displayName}</h2>
-            {profile.isVerified && <BadgeCheck className="text-[#25F4EE]" size={18} aria-label="Profil verificat" />}
+            {profile.isVerified && <BadgeCheck className="text-[#EC4899]" size={18} aria-label="Profil verificat" />}
           </div>
           <p className="text-sm text-white/60 mb-4">{profile.handle}</p>
 

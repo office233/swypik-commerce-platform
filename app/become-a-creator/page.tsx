@@ -70,7 +70,7 @@ export default async function BecomeACreatorPage() {
               key={title}
               className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4"
             >
-              <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#FE2C55] to-[#FF6B47] flex items-center justify-center">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#FF6B47] flex items-center justify-center">
                 <Icon size={20} className="text-white" />
               </div>
               <div>
@@ -88,7 +88,7 @@ export default async function BecomeACreatorPage() {
         ) : (
           <Link
             href="/auth/login?next=/become-a-creator"
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#FE2C55] to-[#FF6B47] text-white font-bold text-base shadow-lg active:scale-[0.98] transition"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#FF6B47] text-white font-bold text-base shadow-lg active:scale-[0.98] transition"
           >
             Loghează-te ca să continui <ArrowRight size={18} />
           </Link>

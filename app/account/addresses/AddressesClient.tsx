@@ -151,7 +151,7 @@ export default function AddressesClient() {
 
       <button
         onClick={startCreate}
-        className="mb-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FE2C55] py-3 text-sm font-black text-white hover:bg-[#E0264A]"
+        className="mb-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] py-3 text-sm font-black text-white hover:bg-[#E0264A]"
       >
         <Plus size={16} /> Adaugă adresă nouă
       </button>
@@ -198,7 +198,7 @@ export default function AddressesClient() {
                   <button
                     onClick={() => remove(a.id)}
                     title="Șterge"
-                    className="rounded-lg p-1.5 text-white/60 hover:bg-[#FE2C55]/20 hover:text-[#FE2C55]"
+                    className="rounded-lg p-1.5 text-white/60 hover:bg-[#7C3AED]/20 hover:text-[#7C3AED]"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -252,7 +252,7 @@ export default function AddressesClient() {
                   <select
                     value={editing.country_code}
                     onChange={(e) => setEditing({ ...editing, country_code: e.target.value })}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm focus:outline-none focus:border-[#FE2C55]"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm focus:outline-none focus:border-[#7C3AED]"
                   >
                     {COUNTRIES.map((c) => (
                       <option key={c.code} value={c.code} className="bg-[#161616]">{c.name}</option>
@@ -265,7 +265,7 @@ export default function AddressesClient() {
                   type="checkbox"
                   checked={editing.is_default}
                   onChange={(e) => setEditing({ ...editing, is_default: e.target.checked })}
-                  className="accent-[#FE2C55]"
+                  className="accent-[#7C3AED]"
                 />
                 <span className="text-white/80">Setează ca adresă implicită</span>
               </label>
@@ -273,7 +273,7 @@ export default function AddressesClient() {
             <button
               type="submit"
               disabled={saving}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FE2C55] py-3 text-sm font-black text-white hover:bg-[#E0264A] disabled:opacity-50"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] py-3 text-sm font-black text-white hover:bg-[#E0264A] disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvează"}
             </button>
@@ -299,7 +299,7 @@ function Input(props: { label: string; value: string; onChange: (v: string) => v
         onChange={(e) => props.onChange(e.target.value)}
         placeholder={props.placeholder}
         required={props.required}
-        className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm focus:outline-none focus:border-[#FE2C55]"
+        className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm focus:outline-none focus:border-[#7C3AED]"
       />
     </div>
   );
