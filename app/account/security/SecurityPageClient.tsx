@@ -273,6 +273,7 @@ export default function SecurityPageClient({
                 </p>
                 <input
                   type="password"
+                  autoComplete="current-password"
                   value={regenPw}
                   onChange={(e) => setRegenPw(e.target.value)}
                   placeholder="Parola contului"
@@ -312,6 +313,8 @@ export default function SecurityPageClient({
             )}
             <input
               type="text"
+              name="otp"
+              autoComplete="one-time-code"
               inputMode="numeric"
               maxLength={6}
               value={setupToken}
@@ -376,6 +379,7 @@ export default function SecurityPageClient({
             <p className="text-xs text-white/70">Confirmă parola pentru a dezactiva 2FA:</p>
             <input
               type="password"
+              autoComplete="current-password"
               value={disablePw}
               onChange={(e) => setDisablePw(e.target.value)}
               placeholder="Parola contului"

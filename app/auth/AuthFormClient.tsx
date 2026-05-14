@@ -193,7 +193,9 @@ function LoginForm({ nextPath }: { nextPath: string }) {
           <form onSubmit={verify2FA} className="space-y-4">
             <input
               type="text"
-              inputMode="text"
+              name="otp"
+              autoComplete="one-time-code"
+              inputMode="numeric"
               maxLength={8}
               autoFocus
               value={twoFaCode}

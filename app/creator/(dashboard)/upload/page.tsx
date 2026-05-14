@@ -576,7 +576,7 @@ function SuggestionsStep(props: {
             {tagsDraft.map((t) => (
               <span key={t} className="flex items-center gap-1.5 bg-[#0D0D0D]/15 text-[#0D0D0D] text-xs font-bold px-3 py-1.5 rounded-full">
                 {t}
-                <button onClick={() => removeTag(t)} className="hover:text-white">
+                <button onClick={() => removeTag(t)} className="hover:text-white" aria-label="Închide">
                   <X size={12} />
                 </button>
               </span>

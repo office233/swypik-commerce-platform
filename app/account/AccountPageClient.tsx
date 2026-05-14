@@ -225,9 +225,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       <header className="sticky top-12 z-30 bg-[#0D0D0D]/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center justify-between">
         <div className="w-8" /> {/* Spacer */}
         <h1 className="text-lg font-black">{customer?.username || "Profil"}</h1>
-        <button onClick={handleLogout} className="text-white/60 hover:text-white transition">
-          <Settings size={24} />
-        </button>
+        <button onClick={handleLogout} className="text-white/60 hover:text-white transition" aria-label="Setări"><Settings size={24}  /></button>
       </header>
 
       <div className="max-w-md mx-auto px-4 pt-6">

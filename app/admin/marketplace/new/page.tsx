@@ -4,12 +4,13 @@ import { createMarketplaceProduct } from "../actions";
 export const dynamic = "force-dynamic";
 
 type NewMarketplaceProductPageProps = {
-  searchParams?: { error?: string };
+  searchParams?: Promise<{ error?: string }>;
 };
 
-export default function NewMarketplaceProductPage({ searchParams }: NewMarketplaceProductPageProps) {
-  const notice = searchParams?.error
-    ? { type: "error" as const, message: decodeURIComponent(searchParams.error) }
+export default async function NewMarketplaceProductPage({ searchParams }: NewMarketplaceProductPageProps) {
+  const sp = searchParams ? await searchParams : undefined;
+  const notice = sp?.error
+    ? { type: "error" as const, message: decodeURIComponent(sp.error) }
     : null;
 
   return <ProductEditorForm mode="create" action={createMarketplaceProduct} notice={notice} />;

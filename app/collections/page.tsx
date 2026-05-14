@@ -117,7 +117,7 @@ export default function CollectionsPage() {
           <div className="bg-[#1A1A1A] border border-gray-800 rounded-2xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Colecție nouă</h2>
-              <button onClick={() => setShowNewModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowNewModal(false)} className="text-gray-400 hover:text-white" aria-label="Închide">
                 <X size={24} />
               </button>
             </div>

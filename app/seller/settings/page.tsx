@@ -6,7 +6,7 @@ import { Settings, Save, Bell, Shield, Wallet, CheckCircle2, ExternalLink } from
 export const dynamic = "force-dynamic";
 
 export default async function SellerSettingsPage() {
-  const heads = headers();
+  const heads = await headers();
   const sellerId = heads.get("x-seller-id");
   let seller: any = null;
 

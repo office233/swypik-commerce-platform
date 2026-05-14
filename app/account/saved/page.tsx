@@ -50,7 +50,7 @@ export default async function SavedProductsPage() {
       <div className="px-3 md:px-6 pt-4 max-w-5xl mx-auto">
         {rows.length === 0 ? (
           <p className="text-white/50 text-sm mt-8 text-center">
-            Nu ai produse salvate. Salvează produse din feed sau /shop.
+            Nu ai produse salvate. Salvează produse din feed sau /explore.
           </p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">

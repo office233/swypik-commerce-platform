@@ -28,7 +28,7 @@ export default function BottomNav() {
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
-          const disabled = item.flag ? !isEnabledClient(item.flag) : false;
+          const disabled = (item as any).flag ? !isEnabledClient((item as any).flag) : false;
 
           if (item.center) {
             return (

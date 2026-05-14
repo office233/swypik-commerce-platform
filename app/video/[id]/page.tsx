@@ -147,7 +147,7 @@ export default async function VideoPage({ params }: Props) {
               "@type": "Person",
               name: creatorLabel,
             },
-          }),
+          }).replace(/</g, "\\u003c"),
         }}
       />
 

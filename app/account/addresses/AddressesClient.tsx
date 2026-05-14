@@ -184,7 +184,7 @@ export default function AddressesClient() {
                       onClick={() => setDefault(a.id)}
                       title="Setează ca implicit"
                       className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-                    >
+                     aria-label="Apreciază">
                       <Star size={14} />
                     </button>
                   )}
@@ -192,14 +192,14 @@ export default function AddressesClient() {
                     onClick={() => startEdit(a)}
                     title="Editează"
                     className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-                  >
+                   aria-label="Editează">
                     <Pencil size={14} />
                   </button>
                   <button
                     onClick={() => remove(a.id)}
                     title="Șterge"
                     className="rounded-lg p-1.5 text-white/60 hover:bg-[#7C3AED]/20 hover:text-[#7C3AED]"
-                  >
+                   aria-label="Șterge">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -231,7 +231,7 @@ export default function AddressesClient() {
                 type="button"
                 onClick={() => setEditing(null)}
                 className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-              >
+               aria-label="Închide">
                 <X size={18} />
               </button>
             </div>

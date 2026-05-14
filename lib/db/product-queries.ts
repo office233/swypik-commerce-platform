@@ -451,6 +451,11 @@ export async function searchProducts(filters: ProductFilters = {}) {
   const { limit = 50, offset = 0, locale = "ro", sort, mode } = filters;
   const { where, params, paramIndex } = buildSearchFilters(filters);
   const orderBy = buildOrderBy(sort, mode);
+  const cappedLimit = Math.min(limit, 200);
+
+  // For mode=video (high-traffic, infinite-scroll) skip COUNT(*) — use LIMIT+1 instead.
+  const skipCount = mode === "video";
+  const fetchLimit = skipCount ? cappedLimit + 1 : cappedLimit;
 
   const sql = `
     ${BASE_PRODUCT_COLUMNS}
@@ -460,19 +465,29 @@ export async function searchProducts(filters: ProductFilters = {}) {
     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
   `;
 
-  const queryParams = [...params, Math.min(limit, 200), offset];
+  const queryParams = [...params, fetchLimit, offset];
   const { rows } = await dbQuery(sql, queryParams);
-  const products = rows.map((row: any) => transformProduct(row, locale));
 
-  const countSql = `
-    SELECT COUNT(*)::int AS total
-    ${BASE_PRODUCT_SELECT}
-    WHERE ${where.join(" AND ")}
-  `;
-  const { rows: countRows } = await dbQuery(countSql, params);
-  const total = Number(countRows[0]?.total || 0);
+  let sliced = rows;
+  let hasMore = false;
+  let total = 0;
 
-  return { products, total, offset, limit };
+  if (skipCount) {
+    hasMore = rows.length > cappedLimit;
+    sliced = hasMore ? rows.slice(0, cappedLimit) : rows;
+    total = offset + sliced.length + (hasMore ? 1 : 0); // approximation; caller should use hasMore
+  } else {
+    const countSql = `
+      SELECT COUNT(*)::int AS total
+      ${BASE_PRODUCT_SELECT}
+      WHERE ${where.join(" AND ")}
+    `;
+    const { rows: countRows } = await dbQuery(countSql, params);
+    total = Number(countRows[0]?.total || 0);
+  }
+
+  const products = sliced.map((row: any) => transformProduct(row, locale));
+  return { products, total, offset, limit: cappedLimit, hasMore };
 }
 
 export async function getProductById(id: string, locale = "ro") {

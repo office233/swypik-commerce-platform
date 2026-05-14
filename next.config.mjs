@@ -28,7 +28,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true // TODO: ridică gradual — Next 15 PageProps Promise migration,
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],

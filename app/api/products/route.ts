@@ -87,17 +87,33 @@ export async function GET(req: Request) {
 
     const cacheSeconds = mode === "video" ? 300 : 60;
 
+    // Minimal DTO for video mode (high-volume infinite scroll)
+    const products = mode === "video"
+      ? (result.products || []).map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          price: p.price,
+          oldPrice: p.oldPrice ?? null,
+          thumbnail: p.image || p.thumbnail || (Array.isArray(p.images) ? p.images[0] : null),
+        }))
+      : result.products;
+
+    const nextOffset = (result.offset || 0) + (result.limit || limit);
+    const hasMore = mode === "video"
+      ? Boolean((result as any).hasMore)
+      : nextOffset < result.total;
+
     return NextResponse.json(
       {
-        products: result.products,
+        products,
         total: result.total,
         offset: result.offset || 0,
         limit: result.limit || limit,
+        hasMore,
         source: "postgresql",
-        nextPage:
-          (result.offset || 0) + (result.limit || limit) < result.total
-            ? `?offset=${(result.offset || 0) + (result.limit || limit)}&limit=${result.limit || limit}`
-            : null,
+        nextPage: hasMore
+          ? `?offset=${nextOffset}&limit=${result.limit || limit}`
+          : null,
       },
       {
         headers: {

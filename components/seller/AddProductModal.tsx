@@ -54,9 +54,7 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
             onClick={onClose}
             type="button"
             className="text-neutral-400 hover:text-[#0D0D0D] transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+           aria-label="Închide"><X className="w-5 h-5" /></button>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">

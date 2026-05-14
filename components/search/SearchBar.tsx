@@ -132,7 +132,11 @@ export default function SearchBar({
 
   return (
     <div className="relative w-full" ref={containerRef}>
+      <label htmlFor="swypik-search" className="sr-only">Caută</label>
       <input
+        id="swypik-search"
+        name="q"
+        autoComplete="off"
         type="text"
         value={q}
         onChange={(e) => setQ(e.target.value)}

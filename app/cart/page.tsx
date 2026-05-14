@@ -127,7 +127,7 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+        <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
           <ArrowLeft size={16} />
         </button>
         <div className="flex-1">
@@ -179,7 +179,7 @@ export default function CartPage() {
                           <Minus size={14} />
                         </button>
                         <span className="w-8 h-8 flex items-center justify-center text-sm font-black text-[#0D0D0D] border-x border-[#E5E5E5]">{item.quantity}</span>
-                        <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= 99} className="w-8 h-8 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition">
+                        <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= 99} className="w-8 h-8 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition" aria-label="Adaugă">
                           <Plus size={14} />
                         </button>
                       </div>
@@ -191,7 +191,7 @@ export default function CartPage() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => removeItem(item)} className="self-start p-2 rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all">
+                  <button onClick={() => removeItem(item)} className="self-start p-2 rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all" aria-label="Șterge">
                     <Trash2 size={16} />
                   </button>
                 </div>

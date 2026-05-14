@@ -15,7 +15,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 
 export default async function Home() {
   type ProductSearchResult = Awaited<ReturnType<typeof searchProducts>>;
-  const emptyResult: ProductSearchResult = { products: [], total: 0, offset: 0, limit: 0 };
+  const emptyResult: ProductSearchResult = { products: [], total: 0, offset: 0, limit: 0, hasMore: false };
   let trending = emptyResult;
   let bestValue = emptyResult;
   let topRated = emptyResult;

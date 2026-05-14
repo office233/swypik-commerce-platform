@@ -191,7 +191,10 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      return NextResponse.json({ videos, page, hasMore });
+      const cacheHeaders = userId
+        ? { "Cache-Control": "private, no-store" }
+        : { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" };
+      return NextResponse.json({ videos, page, hasMore }, { headers: cacheHeaders });
     }
 
     // Fallback: creator_videos legacy
@@ -234,7 +237,12 @@ export async function GET(request: NextRequest) {
       } : null,
     }));
 
-    return NextResponse.json({ videos, page, hasMore: false });
+    return NextResponse.json(
+      { videos, page, hasMore: false },
+      { headers: userId
+          ? { "Cache-Control": "private, no-store" }
+          : { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+    );
   } catch (error: any) {
     logger.error({ err: error }, "Explore feed API error:");
     return NextResponse.json(

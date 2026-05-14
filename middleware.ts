@@ -76,7 +76,6 @@ export const config = {
     "/collections/:path*",
     "/orders/:path*",
     "/checkout/:path*",
-    "/profile/:path*",
     "/creator/:path*",
     "/onboarding",
     "/admin/:path*",

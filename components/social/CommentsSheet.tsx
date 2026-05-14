@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MessageCircle, RefreshCw, Reply, Send, X } from "lucide-react";
 
 type CommentAuthor = {
@@ -63,6 +63,36 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
   const [replyTo, setReplyTo] = useState<CommentItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [count, setCount] = useState(() => parseCount(initialCount));
+  const sheetRef = useRef<HTMLElement | null>(null);
+
+  // Body scroll lock
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
+  // Escape close + focus trap
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+      if (e.key === 'Tab' && sheetRef.current) {
+        const focusable = sheetRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"]), input, select, textarea'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    setTimeout(() => sheetRef.current?.querySelector<HTMLElement>('button, a[href], input, textarea')?.focus(), 50);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (open) setCount(parseCount(initialCount));
@@ -169,10 +199,10 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
   return (
     <div className="fixed inset-0 z-[100] flex flex-col justify-end">
       <button type="button" className="absolute inset-0 bg-black/60" onClick={onClose} aria-label="Inchide comentariile" />
-      <section className="relative flex h-[68vh] max-h-[720px] flex-col rounded-t-3xl bg-white text-[#0D0D0D] shadow-2xl animate-feed-slide">
+      <section ref={sheetRef} role="dialog" aria-modal="true" aria-labelledby="comments-title" tabIndex={-1} className="relative flex h-[68vh] max-h-[720px] flex-col rounded-t-3xl bg-white text-[#0D0D0D] shadow-2xl animate-feed-slide">
         <header className="flex items-center justify-between border-b border-[#E5E5E5] px-5 py-4">
           <div>
-            <h2 className="text-base font-black">Comentarii</h2>
+            <h2 id="comments-title" className="text-base font-black">Comentarii</h2>
             <p className="text-xs font-semibold text-[#6E6E80]">{count} total</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full bg-[#F7F7F8] p-2 text-[#6E6E80]" aria-label="Inchide comentariile">

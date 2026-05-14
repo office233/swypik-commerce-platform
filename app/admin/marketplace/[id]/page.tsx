@@ -10,7 +10,7 @@ type EditMarketplaceProductPageProps = {
   searchParams?: Promise<{ saved?: string; created?: string; error?: string }>;
 };
 
-function getNotice(searchParams?: EditMarketplaceProductPageProps["searchParams"]) {
+function getNotice(searchParams?: { saved?: string; created?: string; error?: string }) {
   if (searchParams?.error) {
     return { type: "error" as const, message: decodeURIComponent(searchParams.error) };
   }
@@ -30,7 +30,9 @@ export default async function EditMarketplaceProductPage({
   params,
   searchParams,
 }: EditMarketplaceProductPageProps) {
-  const { rows } = await dbQuery("SELECT * FROM marketplace_products WHERE id = $1", [params.id]);
+  const { id } = await params;
+  const sp = searchParams ? await searchParams : undefined;
+  const { rows } = await dbQuery("SELECT * FROM marketplace_products WHERE id = $1", [id]);
 
   if (rows.length === 0) {
     notFound();
@@ -40,8 +42,8 @@ export default async function EditMarketplaceProductPage({
     <ProductEditorForm
       mode="edit"
       product={rows[0]}
-      action={updateMarketplaceProduct.bind(null, params.id)}
-      notice={getNotice(searchParams)}
+      action={updateMarketplaceProduct.bind(null, id)}
+      notice={getNotice(sp)}
     />
   );
 }

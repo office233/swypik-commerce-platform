@@ -192,16 +192,16 @@ export default function ProductClient({ initialData }: Props) {
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+        <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
           <ArrowLeft size={16} />
         </button>
         <span className="flex-1 text-sm font-semibold text-[#6E6E80] truncate">
           {product.category || 'Produs'}
         </span>
-        <button onClick={() => setLiked(!liked)} className={`grid h-9 w-9 place-items-center rounded-xl border transition-all active:scale-90 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`}>
+        <button onClick={() => setLiked(!liked)} className={`grid h-9 w-9 place-items-center rounded-xl border transition-all active:scale-90 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`} aria-label="Like">
           <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
         </button>
-        <button onClick={() => router.push('/')} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+        <button onClick={() => router.push('/')} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Acasă">
           <Home size={16} />
         </button>
       </header>
@@ -240,12 +240,12 @@ export default function ProductClient({ initialData }: Props) {
               </span>
             )}
             {displayImages.length > 1 && selectedImage > 0 && (
-              <button onClick={() => setSelectedImage(selectedImage - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+              <button onClick={() => setSelectedImage(selectedImage - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
                 <ChevronLeft size={18} />
               </button>
             )}
             {displayImages.length > 1 && selectedImage < displayImages.length - 1 && (
-              <button onClick={() => setSelectedImage(selectedImage + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform">
+              <button onClick={() => setSelectedImage(selectedImage + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înainte">
                 <ChevronRight size={18} />
               </button>
             )}
@@ -367,7 +367,7 @@ export default function ProductClient({ initialData }: Props) {
               <Minus size={16} />
             </button>
             <span className="w-10 text-center text-sm font-black text-[#0D0D0D]">{qty}</span>
-            <button onClick={() => setQty(Math.min(10, qty + 1))} className="grid h-10 w-10 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all">
+            <button onClick={() => setQty(Math.min(10, qty + 1))} className="grid h-10 w-10 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all" aria-label="Adaugă">
               <Plus size={16} />
             </button>
           </div>
