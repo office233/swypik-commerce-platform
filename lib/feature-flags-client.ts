@@ -16,6 +16,7 @@ export const CLIENT_FEATURES = {
   dm: flag('NEXT_PUBLIC_FEATURE_DM', false),
   pushNotifications: flag('NEXT_PUBLIC_FEATURE_PUSH_NOTIFICATIONS', false),
   stripeConnect: flag('NEXT_PUBLIC_FEATURE_STRIPE_CONNECT', false),
+  returns: flag('NEXT_PUBLIC_FEATURE_RETURNS', false),
 } as const;
 
 export type ClientFeatureName = keyof typeof CLIENT_FEATURES;
