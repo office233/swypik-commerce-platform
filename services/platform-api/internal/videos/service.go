@@ -250,7 +250,7 @@ func (s *UploadService) Init(ctx context.Context, input InitUploadInput) (InitUp
 	}
 	creatorID, _ := creatorIDFromAliases(input.CreatorID, input.UserID)
 	now := s.cfg.Clock().UTC()
-	uploadID := newID("upl")
+	uploadID := newUUID()
 	objectKey := uploadObjectKey(creatorID, uploadID, input.Filename)
 	uploadURL := fmt.Sprintf("%s/%s", s.cfg.PublicUploadBaseURL, objectKey)
 	if presignedURL, ok := s.presignedUploadURL(objectKey, strings.TrimSpace(input.ContentType), now); ok {
