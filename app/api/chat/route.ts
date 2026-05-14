@@ -17,8 +17,27 @@ import { detectCategory, looksLikeShopping } from "@/lib/chat/category-detect";
 import { searchPG, searchWithFallback, fetchBundles, buildBundleSuggestionText, uniqueProducts } from "@/lib/chat/search-pg";
 import { inferBundleQueries, buildSalesSuggestion } from "@/lib/sales/bundle-engine";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { moderateOutput } from "@/lib/ai/moderation";
 
 export const maxDuration = 120;
+
+const SAFE_FALLBACK = "Imi pare rau, nu pot raspunde la asta.";
+
+async function safeReplyJson(payload: any) {
+  try {
+    const reply = String(payload?.reply ?? "");
+    if (reply) {
+      const verdict = await moderateOutput(reply);
+      if (!verdict.safe) {
+        console.warn("[chat] moderation blocked:", verdict.reason);
+        payload = { ...payload, reply: SAFE_FALLBACK, products: [], bundleProducts: [], moderation: { blocked: true, reason: verdict.reason } };
+      }
+    }
+  } catch (e) {
+    console.warn("[chat] moderation wrapper failed:", e);
+  }
+  return NextResponse.json(payload);
+}
 
 export async function POST(req: Request) {
   if (!isEnabled("aiChatFull")) return frozenResponse("aiChatFull");
@@ -52,7 +71,7 @@ export async function POST(req: Request) {
 
       const suggestion = products[0] ? ` ${buildSalesSuggestion(products[0], bundleProducts.slice(0, 2))}` : "";
 
-      return NextResponse.json({
+      return safeReplyJson({
         intent: "search_product",
         reply: products.length
           ? `Am găsit ${products.length} produse potrivite din 108k+ catalog. Alege unul și îți fac bundle instant. 🔥${suggestion}`
@@ -70,7 +89,7 @@ export async function POST(req: Request) {
 
     // Compare intent — no new search needed
     if (aiResult.intent === "compare_products") {
-      return NextResponse.json({
+      return safeReplyJson({
         intent: "compare_products",
         reply: aiResult.reply,
         products: [],
@@ -112,7 +131,7 @@ export async function POST(req: Request) {
       const bundleProducts = await fetchBundles(products, query, aiResult.bundleQueries || [], { maxPrice, category });
       const suggestion = buildBundleSuggestionText(products, bundleProducts);
 
-      return NextResponse.json({
+      return safeReplyJson({
         intent: aiResult.intent,
         reply: `${replyPrefix}${aiResult.reply}${suggestion}`,
         products,
@@ -130,7 +149,7 @@ export async function POST(req: Request) {
       const maxPrice = aiResult.maxPrice || (explicitMax ? Number(explicitMax) : undefined);
       const products = await searchPG(query, 16, { category, maxPrice });
 
-      return NextResponse.json({
+      return safeReplyJson({
         intent: aiResult.intent || "search_product",
         reply: aiResult.reply || "Iată ce am găsit pentru tine! 🔥",
         products,
@@ -143,7 +162,7 @@ export async function POST(req: Request) {
     }
 
     // ─── Pure chat (no products) ──────────────────────────────────
-    return NextResponse.json({
+    return safeReplyJson({
       intent: aiResult.intent,
       reply: aiResult.reply,
       products: [],
