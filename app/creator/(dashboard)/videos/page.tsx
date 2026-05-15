@@ -201,7 +201,7 @@ export default function CreatorVideosPage() {
           </p>
         </div>
         <Link
-          href="/creator/upload"
+          href="/upload"
           className="inline-flex items-center gap-2 px-6 py-3 bg-[#0D0D0D] hover:bg-[#0D8F6F] text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.97] text-sm whitespace-nowrap"
         >
           <Upload className="w-4 h-4" />
@@ -249,7 +249,7 @@ export default function CreatorVideosPage() {
             </p>
           </div>
           <Link
-            href="/creator/upload"
+            href="/upload"
             className="inline-flex items-center gap-2 px-8 py-4 bg-[#0D0D0D] hover:bg-[#2A2A2A] text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.97]"
           >
             Mergi la Upload

@@ -14,7 +14,17 @@ type PatchBody = {
   description?: string;
   thumbnail_url?: string;
   scheduled_at?: string | null;
+  scheduled_publish_at?: string | null;
+  is_draft?: boolean;
+  allow_comments?: boolean;
+  allow_duet?: boolean;
+  allow_stitch?: boolean;
+  audio_track_id?: number | null;
+  product_id?: string | null;
   tags?: string[];
+  ai_hook_selected?: string | null;
+  ai_caption_used?: boolean;
+  collection_hint?: string | null;
 };
 
 function sanitizeString(value: unknown, maxLen: number): string | undefined {
@@ -25,14 +35,48 @@ function sanitizeString(value: unknown, maxLen: number): string | undefined {
 }
 
 /**
+ * GET /api/creator/videos/[id]
+ * Returns owned video status + metadata (used by upload wizard polling + draft load).
+ */
+export async function GET(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await getCreatorUserIdWithRoleCheck();
+    if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { id: videoId } = await ctx.params;
+    if (!videoId || !UUID_RE.test(videoId)) {
+      return NextResponse.json({ error: "Invalid video id" }, { status: 400 });
+    }
+
+    const { rows } = await dbQuery(
+      `SELECT id, creator_id, title, description, thumbnail_url, playback_url,
+              visibility, status, tags, published_at, scheduled_publish_at,
+              is_draft, allow_duet, allow_stitch, allow_comments,
+              audio_track_id, product_refs, created_at, updated_at
+         FROM videos WHERE id = $1 LIMIT 1`,
+      [videoId],
+    );
+    const v = rows[0];
+    if (!v) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (v.creator_id !== session.userId && session.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.json({ video: v, status: v.status });
+  } catch (err: any) {
+    logger.error({ err }, "[creator/videos/:id GET] error");
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
+
+/**
  * PATCH /api/creator/videos/[id]
  *
  * Updates an owned video. Allowed fields: visibility, title, description,
- * thumbnail_url, tags, scheduled_at. Requires creator/admin role and
- * ownership of the video (admins may update any video).
- *
- * When visibility transitions to `public` and `published_at` is null, sets
- * `published_at = now()`.
+ * thumbnail_url, tags, scheduled_at, is_draft, allow_*, audio_track_id, product_id.
+ * Requires creator/admin role and ownership.
  */
 export async function PATCH(
   req: Request,
@@ -59,7 +103,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid body" }, { status: 400 });
     }
 
-    // Ownership check.
     const { rows: ownerRows } = await dbQuery<{
       creator_id: string;
       published_at: string | null;
@@ -75,21 +118,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Build dynamic update.
     const sets: string[] = [];
     const values: unknown[] = [];
     let i = 1;
 
     if (body.visibility !== undefined) {
       if (typeof body.visibility !== "string" || !ALLOWED_VISIBILITY.has(body.visibility)) {
-        return NextResponse.json(
-          { error: "Invalid visibility" },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: "Invalid visibility" }, { status: 400 });
       }
       sets.push(`visibility = $${i++}`);
       values.push(body.visibility);
-      // Auto-set published_at when first going public.
       if (body.visibility === "public" && !owner.published_at) {
         sets.push(`published_at = now()`);
       }
@@ -105,9 +143,7 @@ export async function PATCH(
       if (body.description !== null && typeof body.description !== "string") {
         return NextResponse.json({ error: "Invalid description" }, { status: 400 });
       }
-      const desc = body.description == null
-        ? null
-        : body.description.slice(0, 5000);
+      const desc = body.description == null ? null : body.description.slice(0, 5000);
       sets.push(`description = $${i++}`);
       values.push(desc);
     }
@@ -125,11 +161,60 @@ export async function PATCH(
         return NextResponse.json({ error: "Invalid tags" }, { status: 400 });
       }
       const cleaned = body.tags
-        .map((t) => t.trim())
+        .map((t) => t.trim().replace(/^#/, ""))
         .filter((t) => t.length > 0 && t.length <= 64)
         .slice(0, 30);
       sets.push(`tags = $${i++}::text[]`);
       values.push(cleaned);
+    }
+
+    if (body.is_draft !== undefined) {
+      if (typeof body.is_draft !== "boolean") {
+        return NextResponse.json({ error: "Invalid is_draft" }, { status: 400 });
+      }
+      sets.push(`is_draft = $${i++}`);
+      values.push(body.is_draft);
+    }
+
+    if (body.allow_comments !== undefined) {
+      sets.push(`allow_comments = $${i++}`);
+      values.push(!!body.allow_comments);
+    }
+    if (body.allow_duet !== undefined) {
+      sets.push(`allow_duet = $${i++}`);
+      values.push(!!body.allow_duet);
+    }
+    if (body.allow_stitch !== undefined) {
+      sets.push(`allow_stitch = $${i++}`);
+      values.push(!!body.allow_stitch);
+    }
+
+    if (body.audio_track_id !== undefined) {
+      if (body.audio_track_id !== null && typeof body.audio_track_id !== "number") {
+        return NextResponse.json({ error: "Invalid audio_track_id" }, { status: 400 });
+      }
+      sets.push(`audio_track_id = $${i++}`);
+      values.push(body.audio_track_id);
+    }
+
+    if (body.product_id !== undefined) {
+      if (body.product_id === null) {
+        sets.push(`product_refs = '[]'::jsonb`);
+      } else if (typeof body.product_id === "string" && body.product_id) {
+        sets.push(`product_refs = jsonb_build_array(jsonb_build_object('product_id', $${i++}::text))`);
+        values.push(body.product_id);
+      }
+    }
+
+    if (body.scheduled_publish_at !== undefined) {
+      if (body.scheduled_publish_at === null) {
+        sets.push(`scheduled_publish_at = NULL`);
+      } else if (typeof body.scheduled_publish_at === "string") {
+        sets.push(`scheduled_publish_at = $${i++}::timestamptz`);
+        values.push(body.scheduled_publish_at);
+      } else {
+        return NextResponse.json({ error: "Invalid scheduled_publish_at" }, { status: 400 });
+      }
     }
 
     if (body.scheduled_at !== undefined) {
@@ -140,6 +225,19 @@ export async function PATCH(
       values.push(body.scheduled_at);
     }
 
+    if (body.ai_hook_selected !== undefined) {
+      sets.push(`ai_hook_selected = $${i++}`);
+      values.push(body.ai_hook_selected);
+    }
+    if (body.ai_caption_used !== undefined) {
+      sets.push(`ai_caption_used = $${i++}`);
+      values.push(!!body.ai_caption_used);
+    }
+    if (body.collection_hint !== undefined) {
+      sets.push(`metadata = jsonb_set(coalesce(metadata, '{}'::jsonb), '{collection_hint}', to_jsonb($${i++}::text))`);
+      values.push(body.collection_hint);
+    }
+
     if (sets.length === 0) {
       return NextResponse.json({ error: "No updatable fields provided" }, { status: 400 });
     }
@@ -147,7 +245,7 @@ export async function PATCH(
     sets.push(`updated_at = now()`);
     values.push(videoId);
 
-    const sql = `UPDATE videos SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, creator_id, title, description, thumbnail_url, visibility, status, tags, published_at, updated_at`;
+    const sql = `UPDATE videos SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, creator_id, title, description, thumbnail_url, visibility, status, tags, published_at, updated_at, is_draft, scheduled_publish_at, allow_duet, allow_stitch, allow_comments`;
     const { rows: updated } = await dbQuery(sql, values);
 
     return NextResponse.json({ success: true, video: updated[0] });
@@ -158,5 +256,45 @@ export async function PATCH(
       { error: status === 500 ? "Internal error" : err.message },
       { status },
     );
+  }
+}
+
+/**
+ * DELETE /api/creator/videos/[id]
+ * Soft-archive a draft (or any owned video) — sets status='deleted', is_hidden=true.
+ */
+export async function DELETE(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await getCreatorUserIdWithRoleCheck();
+    if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { id: videoId } = await ctx.params;
+    if (!videoId || !UUID_RE.test(videoId)) {
+      return NextResponse.json({ error: "Invalid video id" }, { status: 400 });
+    }
+
+    const { rows } = await dbQuery<{ creator_id: string }>(
+      `SELECT creator_id FROM videos WHERE id = $1 LIMIT 1`,
+      [videoId],
+    );
+    const v = rows[0];
+    if (!v) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (v.creator_id !== session.userId && session.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await dbQuery(
+      `UPDATE videos
+          SET status = 'deleted', is_hidden = true, hidden_at = now(), updated_at = now()
+        WHERE id = $1`,
+      [videoId],
+    );
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    logger.error({ err }, "[creator/videos/:id DELETE] error");
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

@@ -245,7 +245,7 @@ export default function CreatorEarningsPage() {
             Clipurile mele →
           </Link>
           <Link
-            href="/creator/upload"
+            href="/upload"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D0D0D] text-white rounded-xl text-sm font-bold hover:bg-[#0E9272] transition-all shadow-sm hover:shadow-md"
           >
             Upload →
@@ -280,7 +280,7 @@ export default function CreatorEarningsPage() {
             din fiecare vânzare generată.
           </p>
           <Link
-            href="/creator/upload"
+            href="/upload"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#0D0D0D] text-white rounded-xl text-sm font-black hover:bg-[#0E9272] transition-all shadow-sm hover:shadow-md"
           >
             <svg
