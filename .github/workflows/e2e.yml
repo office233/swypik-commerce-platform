@@ -1,6 +1,8 @@
 name: e2e
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       base_url:
