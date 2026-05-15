@@ -8,38 +8,15 @@
 
 import { Metadata } from "next";
 import Link from "next/link";
-import { Fragment } from "react";
+import { parseHashtags } from "@/lib/text/parseHashtags";
 import { dbQuery } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 type Props = { params: Promise<{ id: string }> };
 
 export const dynamic = "force-dynamic";
 
-// Parsează #hashtag și @mention în linkuri.
-function renderDescription(text: string | null | undefined) {
-  if (!text) return null;
-  const parts = text.split(/(#[\p{L}0-9_]+|@[a-zA-Z0-9_.]+)/gu);
-  return parts.map((part, i) => {
-    if (part.startsWith("#") && part.length > 1) {
-      const tag = part.slice(1).toLowerCase();
-      return (
-        <Link key={i} href={`/hashtag/${tag}`} style={{ color: "#f43f5e", fontWeight: 600, textDecoration: "none" }}>
-          {part}
-        </Link>
-      );
-    }
-    if (part.startsWith("@") && part.length > 1) {
-      const username = part.slice(1);
-      return (
-        <Link key={i} href={`/u/${username}`} style={{ color: "#f43f5e", fontWeight: 600, textDecoration: "none" }}>
-          {part}
-        </Link>
-      );
-    }
-    return <Fragment key={i}>{part}</Fragment>;
-  });
-}
 
 // ── Shared fetch helper ─────────────────────────────────────────
 async function getVideo(id: string) {
@@ -125,7 +102,7 @@ export default async function VideoPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: safeJsonLd({
             "@context": "https://schema.org",
             "@type": "VideoObject",
             name: video.title,
@@ -147,14 +124,14 @@ export default async function VideoPage({ params }: Props) {
               "@type": "Person",
               name: creatorLabel,
             },
-          }).replace(/</g, "\\u003c"),
+          }),
         }}
       />
 
       {/* Auto-redirect script — redirects to the real player after 1s */}
       <script
         dangerouslySetInnerHTML={{
-          __html: `setTimeout(function(){window.location.href="/explore?v=${id}"},1000);`,
+          __html: `setTimeout(function(){window.location.href="/explore?v="+${JSON.stringify(encodeURIComponent(id))}},1000);`,
         }}
       />
 
@@ -258,7 +235,7 @@ export default async function VideoPage({ params }: Props) {
               letterSpacing: "-0.01em",
             }}
           >
-            {video.title}
+            {parseHashtags(video.title)}
           </h1>
 
           {/* Creator */}
@@ -294,7 +271,7 @@ export default async function VideoPage({ params }: Props) {
                 textAlign: "left",
               }}
             >
-              {renderDescription(video.description)}
+              {parseHashtags(video.description)}
             </p>
           )}
 

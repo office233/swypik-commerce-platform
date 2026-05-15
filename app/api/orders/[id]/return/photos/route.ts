@@ -1,0 +1,106 @@
+/**
+ * Customer Return Evidence Photos Upload API
+ * POST /api/orders/[id]/return/photos
+ *
+ * Multipart form upload (field name: file). Authenticated via the
+ * order_lookup_token passed in the 'token' form field. Uploads to S3/R2
+ * under returns/<orderId>/. Returns { ok, url, key, size }.
+ *
+ * Note: photos are persisted on the return request itself (in
+ * commerce_orders.metadata.return_evidence_urls) via the main
+ * POST /api/orders/[id]/return route; this endpoint is the staging step
+ * that returns URLs the client can include in the return submission.
+ *
+ * Constraints:
+ *   - Max 4 photos per order (enforced both here and at submission time)
+ *   - Reuses lib/storage/upload.ts which already validates MIME, size,
+ *     and image signature (max 5 MB, JPEG/PNG/WebP/AVIF/GIF)
+ */
+
+import { NextResponse } from "next/server";
+import { dbQuery } from "@/lib/db";
+import { uploadFile, isStorageConfigured } from "@/lib/storage/upload";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { logger } from "@/lib/logger";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+const MAX_PHOTOS = 4;
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  if (!isEnabled("returns")) return frozenResponse("returns");
+  const { id } = await params;
+
+  if (!isStorageConfigured()) {
+    return NextResponse.json(
+      { error: "Stocarea pentru fotografii nu este configurată." },
+      { status: 503 }
+    );
+  }
+
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return NextResponse.json(
+      { error: "Cerere invalidă: aștept multipart/form-data." },
+      { status: 400 }
+    );
+  }
+
+  const token = String(formData.get("token") || "");
+  const file = formData.get("file");
+
+  if (!token) {
+    return NextResponse.json({ error: "Token lipsă." }, { status: 401 });
+  }
+  if (!file || !(file instanceof Blob)) {
+    return NextResponse.json({ error: "Fișier lipsă." }, { status: 400 });
+  }
+
+  const { rows } = await dbQuery<{ id: string; metadata: Record<string, unknown> }>(
+    `SELECT id, metadata
+       FROM commerce_orders
+      WHERE id = $1::uuid
+        AND metadata->>'order_lookup_token' = $2
+      LIMIT 1`,
+    [id, token]
+  );
+  if (rows.length === 0) {
+    return NextResponse.json(
+      { error: "Comanda nu a fost găsită sau token invalid." },
+      { status: 404 }
+    );
+  }
+
+  const meta = rows[0].metadata || {};
+  const evidence = Array.isArray((meta as any).return_evidence_urls)
+    ? ((meta as any).return_evidence_urls as unknown[])
+    : [];
+  if (evidence.length >= MAX_PHOTOS) {
+    return NextResponse.json(
+      { error: `Limită de ${MAX_PHOTOS} fotografii atinsă.` },
+      { status: 409 }
+    );
+  }
+
+  try {
+    const buf = Buffer.from(await file.arrayBuffer());
+    const mime = (file as File).type || "image/jpeg";
+    const name = (file as File).name || "evidence";
+    const result = await uploadFile(buf, name, mime, {
+      keyPrefix: `returns/${id}`,
+    });
+    return NextResponse.json({ ok: true, ...result });
+  } catch (err: any) {
+    logger.error({ err }, "[Return Photo Upload] failed");
+    return NextResponse.json(
+      { error: err?.message || "Eroare la încărcarea fotografiei." },
+      { status: 400 }
+    );
+  }
+}

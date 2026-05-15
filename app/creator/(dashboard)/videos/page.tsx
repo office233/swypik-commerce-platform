@@ -156,19 +156,36 @@ export default function CreatorVideosPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchVideos() {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    async function fetchVideos(initial: boolean) {
       try {
-        const res = await fetch("/api/creator/videos");
+        const res = await fetch("/api/creator/videos", { cache: "no-store" });
         if (!res.ok) throw new Error("Eroare la încărcarea videoclipurilor.");
         const data = await res.json();
-        setVideos(data.videos || []);
+        if (cancelled) return;
+        const list: CreatorVideo[] = data.videos || [];
+        setVideos(list);
+        setError(null);
+        // Re-poll while any video still processes
+        const stillProcessing = list.some(
+          (v) => v.status === "processing" || v.status === "uploading"
+        );
+        if (stillProcessing && !cancelled) {
+          timer = setTimeout(() => fetchVideos(false), 10000);
+        }
       } catch (err: any) {
-        setError(err.message);
+        if (!cancelled && initial) setError(err.message);
       } finally {
-        setLoading(false);
+        if (initial && !cancelled) setLoading(false);
       }
     }
-    fetchVideos();
+    fetchVideos(true);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   return (

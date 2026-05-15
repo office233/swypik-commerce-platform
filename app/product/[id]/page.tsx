@@ -14,6 +14,7 @@ import ReviewForm from "@/components/reviews/ReviewForm";
 import StarRating from "@/components/reviews/StarRating";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -121,7 +122,7 @@ export default async function ProductPage({ params }: Props) {
       {jsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
         />
       )}
       <ProductClient initialData={data} />

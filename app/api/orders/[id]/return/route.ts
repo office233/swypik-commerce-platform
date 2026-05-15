@@ -4,7 +4,8 @@
  *
  * Allows a customer to request a return for a delivered/fulfilled order.
  * Requires the order_lookup_token for authentication (same as tracking page).
- * Updates order status to 'return_requested' and stores the return reason in metadata.
+ * Updates order status to 'return_requested', stores the reason, optional
+ * evidence photo URLs, and appends an event to return_history (timeline).
  */
 
 import { NextResponse } from "next/server";
@@ -22,6 +23,12 @@ export async function POST(
   try {
     const body = await req.json();
     const { reason, token } = body;
+    const rawEvidence = Array.isArray(body?.evidenceUrls) ? body.evidenceUrls : [];
+    const evidenceUrls = rawEvidence
+      .filter((u: unknown): u is string => typeof u === "string")
+      .map((u: string) => u.trim())
+      .filter((u: string) => /^https?:\/\//i.test(u))
+      .slice(0, 4);
 
     if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
       return NextResponse.json(
@@ -37,7 +44,6 @@ export async function POST(
       );
     }
 
-    // Verify order exists and belongs to this customer (via lookup token)
     const { rows } = await dbQuery(
       `SELECT id, status, metadata
        FROM commerce_orders
@@ -55,7 +61,6 @@ export async function POST(
     }
 
     const order = rows[0];
-    // Check if the order is in a returnable state
     if (!canRequestReturn({
       status: order.status,
       fulfillmentStatus: order.metadata?.fulfillment_status,
@@ -70,7 +75,6 @@ export async function POST(
       );
     }
 
-    // Check if a return was already requested
     if (order.status === "return_requested" || order.metadata?.return_reason) {
       return NextResponse.json(
         { error: "O cerere de retur a fost deja înregistrată pentru această comandă." },
@@ -78,20 +82,33 @@ export async function POST(
       );
     }
 
-    // Update order: set status to 'return_requested' and store the reason in metadata
+    const event = {
+      type: "requested",
+      at: new Date().toISOString(),
+      reason: reason.trim(),
+      evidence_count: evidenceUrls.length,
+    };
+
     await dbQuery(
       `UPDATE commerce_orders
        SET status = 'return_requested',
-           metadata = metadata || jsonb_build_object(
+           metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
              'return_reason', $1::text,
              'return_requested_at', NOW()::text,
-             'return_status', 'requested'
+             'return_status', 'requested',
+             'return_evidence_urls', $3::jsonb,
+             'return_history', COALESCE(metadata->'return_history', '[]'::jsonb) || $4::jsonb
            )
        WHERE id = $2::uuid`,
-      [reason.trim(), order.id]
+      [
+        reason.trim(),
+        order.id,
+        JSON.stringify(evidenceUrls),
+        JSON.stringify([event]),
+      ]
     );
 
-    console.log(`[Return Request] Order ${order.id} — reason: "${reason.trim()}"`);
+    console.log(`[Return Request] Order ${order.id} — reason: "${reason.trim()}" — photos: ${evidenceUrls.length}`);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

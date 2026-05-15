@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -30,6 +31,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// In production, Postgres and Redis are required. Fail fast on missing
+	// configuration or connection errors instead of silently degrading to
+	// in-memory / no-op stores (which causes data loss without alerts).
+	isProd := strings.EqualFold(cfg.Environment, "production")
+
 	// ── Database ───────────────────────────────────────────────────
 	var dbChecker db.HealthChecker = db.NewNoop()
 	var pgPool *db.Pool
@@ -39,6 +45,10 @@ func main() {
 		pool, err := db.New(connectCtx, db.DefaultConfig(cfg.DatabaseURL), log)
 		cancel()
 		if err != nil {
+			if isProd {
+				log.Error("FATAL: postgres unavailable in production", "error", err)
+				os.Exit(1)
+			}
 			log.Warn("postgres unavailable, running with in-memory stores", "error", err)
 		} else {
 			pgPool = pool
@@ -46,10 +56,17 @@ func main() {
 			defer pool.Close()
 		}
 	} else {
+		if isProd {
+			log.Error("FATAL: DATABASE_URL is required in production")
+			os.Exit(1)
+		}
 		log.Info("DATABASE_URL not set, running with in-memory stores")
 	}
 
 	// ── Redis ──────────────────────────────────────────────────────
+	// Redis powers the events publisher (Redis Streams) and the video upload
+	// job stream. In production these must be available; otherwise events and
+	// video processing are silently dropped.
 	var redisClient redis.Client = redis.NewNoop()
 
 	if cfg.RedisURL != "" {
@@ -57,12 +74,20 @@ func main() {
 		rc, err := redis.New(connectCtx, redis.DefaultConfig(cfg.RedisURL), log)
 		cancel()
 		if err != nil {
+			if isProd {
+				log.Error("FATAL: redis unavailable in production", "error", err)
+				os.Exit(1)
+			}
 			log.Warn("redis unavailable, running without streams/cache", "error", err)
 		} else {
 			redisClient = rc
 			defer rc.Close()
 		}
 	} else {
+		if isProd {
+			log.Error("FATAL: REDIS_URL is required in production")
+			os.Exit(1)
+		}
 		log.Info("REDIS_URL not set, running without streams/cache")
 	}
 

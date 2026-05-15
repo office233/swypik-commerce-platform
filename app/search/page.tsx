@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { Star } from "lucide-react";
 import { searchAll } from "@/lib/search/query";
 import SearchBar from "@/components/search/SearchBar";
 import { formatCurrency } from "@/lib/i18n/currency";
+import { getProductRatingMap } from "@/lib/reviews/aggregate";
 import {
   CURRENCY_COOKIE,
   LOCALE_COOKIE,
@@ -48,6 +50,13 @@ export default async function SearchPage({
         products: [],
         hashtags: [],
       }));
+
+  // Batched aggregate fetch for product cards — single query, no N+1.
+  const productIds = results.products.map((p: any) => String(p.id));
+  const ratingMap =
+    productIds.length > 0
+      ? await getProductRatingMap(productIds)
+      : new Map<string, { avgRating: number; reviewCount: number }>();
 
   const tabs: Array<{ key: typeof tab; label: string; count: number }> = [
     { key: "videos", label: "Videos", count: results.videos.length },
@@ -157,26 +166,40 @@ export default async function SearchPage({
                   <EmptyState label={`No products found for "${q}"`} />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {results.products.map((p) => (
-                      <Link
-                        key={p.id}
-                        href={`/product/${p.id}`}
-                        className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#7C3AED] transition-colors"
-                      >
-                        <div className="aspect-square bg-neutral-800 relative">
-                          {p.image_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.image_url} alt={p.title ?? ""} className="w-full h-full object-cover" />
-                          ) : null}
-                        </div>
-                        <div className="p-2">
-                          <div className="text-sm font-medium truncate">{p.title ?? "Product"}</div>
-                          <div className="text-sm font-semibold mt-1" style={{ color: ACCENT }}>
-                            {fmt(p.price_cents)}
+                    {results.products.map((p) => {
+                      const agg = ratingMap.get(String(p.id));
+                      return (
+                        <Link
+                          key={p.id}
+                          href={`/product/${p.id}`}
+                          className="group rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-[#7C3AED] transition-colors"
+                        >
+                          <div className="aspect-square bg-neutral-800 relative">
+                            {p.image_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={p.image_url} alt={p.title ?? ""} className="w-full h-full object-cover" />
+                            ) : null}
+                            {agg && agg.reviewCount > 0 && (
+                              <span
+                                className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm"
+                                aria-label={`Rating ${agg.avgRating.toFixed(1)} din 5 (${agg.reviewCount} recenzii)`}
+                                title={`${agg.avgRating.toFixed(1)} (${agg.reviewCount} recenzii)`}
+                              >
+                                <Star size={10} className="text-[#F59E0B]" fill="currentColor" />
+                                {agg.avgRating.toFixed(1)}
+                                <span className="text-white/60">({agg.reviewCount})</span>
+                              </span>
+                            )}
                           </div>
-                        </div>
-                      </Link>
-                    ))}
+                          <div className="p-2">
+                            <div className="text-sm font-medium truncate">{p.title ?? "Product"}</div>
+                            <div className="text-sm font-semibold mt-1" style={{ color: ACCENT }}>
+                              {fmt(p.price_cents)}
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </section>

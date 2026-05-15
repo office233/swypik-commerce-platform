@@ -9,7 +9,7 @@ import { haptic } from "@/lib/haptic";
 const NAV_ITEMS = [
   { href: "/", icon: Home, label: "Acasă" },
   { href: "/explore", icon: Search, label: "Explorează" },
-  { href: "/reels/record", icon: Plus, label: "", center: true },
+  { href: "/upload", icon: Plus, label: "", center: true },
   { href: "/inbox", icon: Inbox, label: "Inbox" },
   { href: "/account", icon: User, label: "Profil" },
 ];
@@ -36,7 +36,7 @@ export default function BottomNav() {
                 key={item.href}
                 href={item.href}
                 onClick={() => haptic("tap")}
-                aria-label="Înregistrează"
+                aria-label="Adaugă video"
                 className="flex items-center justify-center mx-auto w-12 h-9 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#EC4899] shadow-md active:scale-95 transition-transform"
               >
                 <Icon size={24} strokeWidth={2.5} className="text-white" />

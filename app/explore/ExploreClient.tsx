@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, Fragment, Suspense } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -10,6 +10,7 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
 import { trackEvent as trackFeedEvent, trackWatchTime, flushWatchTime, resetWatchTime, getSessionId } from "@/lib/feed/track";
+import { parseHashtags } from "@/lib/text/parseHashtags";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
@@ -18,30 +19,6 @@ const MoreLikeThisMenu = dynamic(() => import("@/components/feed/MoreLikeThisMen
 const MUTE_STORAGE_KEY = "swypik.feed.muted";
 // Mount range: only render real <video src> for slides within ±MOUNT_RADIUS of currentIndex
 const MOUNT_RADIUS = 1;
-
-export function renderDescription(text: string | null | undefined) {
-  if (!text) return null;
-  const parts = text.split(/(#[\p{L}0-9_]+|@[a-zA-Z0-9_.]+)/gu);
-  return parts.map((part, i) => {
-    if (part.startsWith("#") && part.length > 1) {
-      const tag = part.slice(1).toLowerCase();
-      return (
-        <Link key={i} href={`/hashtag/${tag}`} className="text-white font-semibold hover:underline">
-          {part}
-        </Link>
-      );
-    }
-    if (part.startsWith("@") && part.length > 1) {
-      const username = part.slice(1);
-      return (
-        <Link key={i} href={`/u/${username}`} className="text-white font-semibold hover:underline">
-          {part}
-        </Link>
-      );
-    }
-    return <Fragment key={i}>{part}</Fragment>;
-  });
-}
 
 interface FeedVideoProps {
   videoId: string;
@@ -693,6 +670,7 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
                       href={video.audioTrack.id ? `/audio/${video.audioTrack.id}` : '#'}
                       className="disc-spin"
                       aria-label={video.audioTrack.title || 'Audio'}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Image src={video.audioTrack.image_url} alt="" width={40} height={40} unoptimized />
                     </Link>
@@ -709,7 +687,7 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
                     {(video.creator as any)?.verified && <VerifiedBadge size={14} className="ml-1 align-middle" />}
                   </Link>
 
-                  <p className="video-desc">{renderDescription(video.description)}</p>
+                  <p className="video-desc">{parseHashtags(video.description)}</p>
 
                   {video.product?.id && (
                     <button type="button" className="product-chip" onClick={() => { haptic("tap"); openProduct(video); }} aria-label="Cumpără produsul prezentat">
@@ -731,7 +709,7 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
                     {video.audioTrack?.title ? (
                       <div className="marquee">
                         {video.audioTrack.id ? (
-                          <Link href={`/audio/${video.audioTrack.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                          <Link href={`/audio/${video.audioTrack.id}`} onClick={(e) => e.stopPropagation()} className="hover:underline transition" style={{ color: 'inherit', textDecoration: 'none' }}>
                             <span>
                               {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;
                               {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;

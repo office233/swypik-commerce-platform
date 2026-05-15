@@ -141,16 +141,120 @@ export async function POST(
       [orderId, sellerId, refundId, refundStatus]
     );
 
+    // Stamp refund metadata on every item belonging to this seller (informational).
     await dbQuery(
       `UPDATE commerce_order_items
-       SET payout_status = 'refunded',
-           metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
-             'refund_id', $3::text,
-             'refund_status', $4::text
-           )
+         SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+               'refund_id', $3::text,
+               'refund_status', $4::text
+             )
        WHERE order_id = $1::uuid
          AND metadata->>'seller_id' = $2`,
       [orderId, sellerId, refundId, refundStatus]
+    );
+
+    // SELLER payout state lives in metadata->>'seller_payout_status'.
+    // Items already 'paid' must NOT be flipped to 'refunded' (the Stripe transfer
+    // already moved money). Flag them for manual clawback and emit a structured
+    // log line so ops can pick it up from `docker logs`.
+    const { rows: sellerClawback } = await dbQuery<{
+      id: string;
+      amount_cents: number | null;
+      transfer_id: string | null;
+    }>(
+      `UPDATE commerce_order_items
+         SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+               'refunded_after_seller_payout', true,
+               'refunded_after_seller_payout_at', NOW()::text,
+               'refund_id', $3::text
+             )
+       WHERE order_id = $1::uuid
+         AND metadata->>'seller_id' = $2
+         AND metadata->>'seller_payout_status' = 'paid'
+       RETURNING id,
+                 NULLIF(metadata->>'seller_payout_cents','')::int AS amount_cents,
+                 metadata->>'seller_transfer_id' AS transfer_id`,
+      [orderId, sellerId, refundId]
+    );
+    for (const row of sellerClawback) {
+      console.error(
+        '[refund-after-payout] seller payout already settled - manual Stripe clawback required',
+        JSON.stringify({
+          order_id: orderId,
+          item_id: row.id,
+          seller_id: sellerId,
+          amount_cents: row.amount_cents,
+          transfer_id: row.transfer_id,
+          refund_id: refundId,
+        })
+      );
+    }
+
+    // Items not yet paid out to the seller: safe to mark as refunded so the
+    // payout cron skips them even before the order-status guard kicks in.
+    await dbQuery(
+      `UPDATE commerce_order_items
+         SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+               'seller_payout_status', 'refunded',
+               'seller_payout_refunded_at', NOW()::text
+             )
+       WHERE order_id = $1::uuid
+         AND metadata->>'seller_id' = $2
+         AND (
+           metadata->>'seller_payout_status' IS NULL
+           OR metadata->>'seller_payout_status' IN ('pending','no_account','restricted','failed')
+         )`,
+      [orderId, sellerId]
+    );
+
+    // CREATOR payout state lives in the dedicated `payout_status` column
+    // (see migration 20260514_0003_order_item_payout_status_check.sql).
+    // Same rule: don't overwrite 'paid' - flag for manual clawback.
+    const { rows: creatorClawback } = await dbQuery<{
+      id: string;
+      amount_cents: number | null;
+      transfer_id: string | null;
+      creator_id: string | null;
+    }>(
+      `UPDATE commerce_order_items
+         SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+               'refunded_after_creator_payout', true,
+               'refunded_after_creator_payout_at', NOW()::text
+             )
+       WHERE order_id = $1::uuid
+         AND metadata->>'seller_id' = $2
+         AND payout_status = 'paid'
+         AND creator_id IS NOT NULL
+       RETURNING id,
+                 commissionable_amount_cents AS amount_cents,
+                 metadata->>'creator_transfer_id' AS transfer_id,
+                 creator_id::text AS creator_id`,
+      [orderId, sellerId]
+    );
+    for (const row of creatorClawback) {
+      console.error(
+        '[refund-after-payout] creator payout already settled - manual Stripe clawback required',
+        JSON.stringify({
+          order_id: orderId,
+          item_id: row.id,
+          creator_id: row.creator_id,
+          amount_cents: row.amount_cents,
+          transfer_id: row.transfer_id,
+          refund_id: refundId,
+        })
+      );
+    }
+
+    // Creator items not yet paid: flip column to 'refunded' so payout cron
+    // skips them (cron filters payout_status IN (NULL,'pending')).
+    await dbQuery(
+      `UPDATE commerce_order_items
+         SET payout_status = 'refunded'
+       WHERE order_id = $1::uuid
+         AND metadata->>'seller_id' = $2
+         AND (payout_status IS NULL
+              OR payout_status IN ('pending','not_connected','no_account','restricted','failed'))`,
+      [orderId, sellerId]
     );
 
     await dbQuery(

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, Bell, MailQuestion, Wallet, EyeOff, ShoppingBag, Sparkles, MapPin } from "lucide-react";
-import EnablePushButton from "@/components/push/EnablePushButton";
+import PushNotificationCard from "@/components/push/PushNotificationCard";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -229,6 +229,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       </header>
 
       <div className="max-w-md mx-auto px-4 pt-6">
+        <PushNotificationCard />
         {/* Profile Info */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#7C3AED] to-[#EC4899] p-1 mb-4">
@@ -437,17 +438,6 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           </Link>
         </section>
 
-        {isEnabledClient('pushNotifications') && (
-          <section className="mt-8 mb-10 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-            <h3 className="text-base font-black text-white">Notificări push</h3>
-            <p className="mt-1 text-sm text-white/60">
-              Primește notificare când cineva îți dă follow, like sau comentariu.
-            </p>
-            <div className="mt-4">
-              <EnablePushButton />
-            </div>
-          </section>
-        )}
       </div>
     </div>
   );
