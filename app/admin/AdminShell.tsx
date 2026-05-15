@@ -53,8 +53,8 @@ const sections: NavSection[] = [
     icon: "\u{1F4CA}",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/health", label: "Health", icon: Activity, comingSoon: true },
-      { href: "/admin/cron", label: "Cron Jobs", icon: Clock, comingSoon: true },
+      { href: "/admin/health", label: "Health", icon: Activity },
+      { href: "/admin/cron", label: "Cron Jobs", icon: Clock },
     ],
   },
   {
@@ -63,10 +63,10 @@ const sections: NavSection[] = [
     icon: "\u{1F6D2}",
     items: [
       { href: "/admin/orders", label: "Comenzi", icon: ShoppingBag },
-      { href: "/admin/returns", label: "Returns", icon: Undo2, comingSoon: true },
-      { href: "/admin/refunds", label: "Refunds", icon: Coins, comingSoon: true },
+      { href: "/admin/returns", label: "Returns", icon: Undo2 },
+      { href: "/admin/refunds", label: "Refunds", icon: Coins },
       { href: "/admin/marketplace", label: "Marketplace", icon: Store },
-      { href: "/admin/reviews", label: "Reviews", icon: Star, comingSoon: true },
+      { href: "/admin/reviews", label: "Reviews", icon: Star },
     ],
   },
   {
@@ -97,8 +97,8 @@ const sections: NavSection[] = [
     title: "Finanțe",
     icon: "\u{1F4B0}",
     items: [
-      { href: "/admin/payouts", label: "Payouts", icon: Wallet, comingSoon: true },
-      { href: "/admin/commissions", label: "Commissions", icon: BarChart3, comingSoon: true },
+      { href: "/admin/payouts", label: "Payouts", icon: Wallet },
+      { href: "/admin/commissions", label: "Commissions", icon: BarChart3 },
     ],
   },
   {
