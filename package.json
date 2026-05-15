@@ -15,7 +15,10 @@
     "test:workers": "node tools/test-workers.mjs",
     "sync:catalog": "node scripts/sync-catalog.mjs",
     "ci": "npm run lint && npm run typecheck && npm run build && npm run test:platform && npm run test:workers",
-    "ci:social": "npm run ci"
+    "ci:social": "npm run ci",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",
@@ -60,6 +63,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "ae_sdk": "^0.6.0",
     "dotenv": "^17.4.2",
     "eslint-config-next": "^15.5.18"

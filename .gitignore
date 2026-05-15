@@ -37,3 +37,6 @@ fix-old-categories.mjs
 /layout.tsx
 static_analysis_semgrep_1/
 *.env*.bak*
+playwright-report/
+test-results/
+playwright/.cache/
