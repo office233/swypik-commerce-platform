@@ -17,7 +17,7 @@ type Variant = {
   color: string | null; size: string | null;
 };
 type ColorData = { image: string | null; sizes: { size: string; price: number; stock: number; skuId: string }[] };
-type SimilarProduct = { id: string; title: string; price: number; oldPrice: number; image: string; hasVideo: boolean; rating: number };
+type SimilarProduct = { id: string; title: string; price: number; oldPrice: number; image: string; hasVideo: boolean; rating: number; ratingAvg?: number | null; ratingCount?: number };
 
 type Props = { initialData?: ProductDetail | null };
 
@@ -527,6 +527,13 @@ export default function ProductClient({ initialData }: Props) {
                         <span className="text-[10px] text-[#A1A1AA] line-through">{s.oldPrice}</span>
                       )}
                     </div>
+                    {s.ratingAvg != null && (s.ratingCount ?? 0) > 0 && (
+                      <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-[#6E6E80]">
+                        <Star size={11} className="text-[#F59E0B]" fill="currentColor" />
+                        {s.ratingAvg.toFixed(1)}
+                        <span className="text-[#A1A1AA]">({s.ratingCount})</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

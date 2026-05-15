@@ -9,6 +9,8 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Star } from "lucide-react";
+import { getProductRatingMap } from "@/lib/reviews/aggregate";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 
@@ -122,6 +124,9 @@ export default async function SellerStorefrontPage({ params }: Props) {
     getSellerProducts(seller.id),
     getSellerStats(seller.id),
   ]);
+  const ratingMap = products.length > 0
+    ? await getProductRatingMap(products.map((p) => p.id))
+    : new Map();
 
   const displayName = getDisplayName(seller);
   const logoUrl = getLogo(seller);
@@ -208,13 +213,15 @@ export default async function SellerStorefrontPage({ params }: Props) {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
-              {products.map((p) => (
+              {products.map((p) => {
+                const agg = ratingMap.get(p.id);
+                return (
                 <Link
                   key={p.id}
                   href={`/product/${p.id}`}
                   className="group block overflow-hidden rounded-xl border border-[#E5E5E5] bg-white transition hover:border-[#0D0D0D]"
                 >
-                  <div className="aspect-square overflow-hidden bg-[#F7F7F8]">
+                  <div className="relative aspect-square overflow-hidden bg-[#F7F7F8]">
                     {p.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -233,12 +240,25 @@ export default async function SellerStorefrontPage({ params }: Props) {
                     <p className="line-clamp-2 text-sm font-semibold leading-snug">
                       {p.title}
                     </p>
-                    <p className="mt-1 text-sm font-black text-[#10A37F]">
-                      {formatPrice(p.price_cents, p.currency)}
-                    </p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="text-sm font-black text-[#10A37F]">
+                        {formatPrice(p.price_cents, p.currency)}
+                      </p>
+                      {agg && agg.reviewCount > 0 && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E6E80]"
+                          aria-label={`Rating ${agg.avgRating.toFixed(1)} din 5 (${agg.reviewCount} recenzii)`}
+                        >
+                          <Star size={11} className="text-[#F59E0B]" fill="currentColor" />
+                          {agg.avgRating.toFixed(1)}
+                          <span className="text-[#A1A1AA]">({agg.reviewCount})</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

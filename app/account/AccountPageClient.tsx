@@ -283,7 +283,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
 
           <div className="flex gap-3 w-full">
             <Link 
-              href="/creator/upload" 
+              href="/upload" 
               className="flex-1 bg-[#7C3AED] hover:bg-[#E0264A] text-white py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition"
             >
               <Plus size={18} /> Publică

@@ -88,6 +88,13 @@ export async function GET(req: Request) {
 
     const cacheSeconds = mode === "video" ? 300 : 60;
 
+    // Reviews aggregate (skip for video mode — minimal DTO)
+    let ratingMap = new Map<string, { avgRating: number; reviewCount: number }>();
+    if (mode !== "video" && result.products?.length) {
+      const { getProductRatingMap } = await import("@/lib/reviews/aggregate");
+      ratingMap = await getProductRatingMap((result.products as any[]).map((p: any) => String(p.id)));
+    }
+
     // Minimal DTO for video mode (high-volume infinite scroll)
     const products = mode === "video"
       ? (result.products || []).map((p: any) => ({
@@ -97,7 +104,14 @@ export async function GET(req: Request) {
           oldPrice: p.oldPrice ?? null,
           thumbnail: p.image || p.thumbnail || (Array.isArray(p.images) ? p.images[0] : null),
         }))
-      : result.products;
+      : (result.products || []).map((p: any) => {
+          const agg = ratingMap.get(String(p.id));
+          return {
+            ...p,
+            ratingAvg: agg && agg.reviewCount > 0 ? Number(agg.avgRating.toFixed(2)) : null,
+            ratingCount: agg ? agg.reviewCount : 0,
+          };
+        });
 
     const nextOffset = (result.offset || 0) + (result.limit || limit);
     const hasMore = mode === "video"

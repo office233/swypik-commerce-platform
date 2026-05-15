@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Hash, Package, Search, Tag, User } from "lucide-react";
 
 type Suggestion = {
-  type: "video" | "creator";
   label: string;
-  id: string;
-  thumbnail?: string | null;
+  type: "categorie" | "produs" | "hashtag" | "user";
+  href?: string;
+  count?: number;
 };
 
 type Props = {
@@ -19,7 +20,7 @@ const ACCENT = "#0D0D0D";
 
 export default function SearchBar({
   initialQuery = "",
-  placeholder = "Search videos, creators…",
+  placeholder = "Caută produse, creatori, #hashtag-uri…",
 }: Props) {
   const router = useRouter();
   const [q, setQ] = useState(initialQuery);
@@ -31,12 +32,13 @@ export default function SearchBar({
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const listboxId = "swypik-search-listbox";
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const trimmed = q.trim();
 
-    if (trimmed.length < 1) {
+    if (trimmed.length < 2) {
       setSuggestions([]);
       setOpen(false);
       setLoading(false);
@@ -50,12 +52,12 @@ export default function SearchBar({
       setLoading(true);
       try {
         const res = await fetch(
-          `/api/search/suggest?q=${encodeURIComponent(trimmed)}`,
+          `/api/search/suggest?q=${encodeURIComponent(trimmed)}&limit=8`,
           { signal: ctrl.signal, cache: "no-store" }
         );
         const data = await res.json();
         setSuggestions(
-          Array.isArray(data?.suggestions) ? data.suggestions : []
+          Array.isArray(data?.suggestions) ? data.suggestions.slice(0, 8) : []
         );
         setOpen(true);
         setActiveIdx(-1);
@@ -66,7 +68,7 @@ export default function SearchBar({
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 200);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -87,13 +89,14 @@ export default function SearchBar({
 
   function go(s: Suggestion) {
     setOpen(false);
-    if (s.type === "video") {
-      router.push(`/video/${s.id}`);
-    } else if (s.type === "creator") {
-      // label looks like "@username"
-      const handle = s.label.startsWith("@") ? s.label.slice(1) : s.label;
-      router.push(`/u/${encodeURIComponent(handle)}`);
+    if (s.href) {
+      router.push(s.href);
+      return;
     }
+    // Categorie / produs without explicit href → fall back to search results.
+    const cleaned = s.label.replace(/^[#@]/, "").trim();
+    if (cleaned.length === 0) return;
+    router.push(`/search?q=${encodeURIComponent(cleaned)}`);
   }
 
   function submitQuery(value: string) {
@@ -108,6 +111,8 @@ export default function SearchBar({
       if (e.key === "Enter") {
         e.preventDefault();
         submitQuery(q);
+      } else if (e.key === "Escape") {
+        setOpen(false);
       }
       return;
     }
@@ -130,6 +135,23 @@ export default function SearchBar({
     }
   }
 
+  function iconFor(s: Suggestion) {
+    if (s.type === "hashtag") return <Hash size={14} className="text-[#7C3AED]" />;
+    if (s.type === "user") return <User size={14} className="text-[#7C3AED]" />;
+    if (s.type === "produs") return <Package size={14} className="text-white/70" />;
+    if (s.type === "categorie") return <Tag size={14} className="text-white/70" />;
+    return <Search size={14} className="text-white/70" />;
+  }
+
+  function labelFor(s: Suggestion) {
+    if (s.type === "hashtag") return "Hashtag";
+    if (s.type === "user") return "Creator";
+    if (s.type === "produs") return "Produs";
+    return "Categorie";
+  }
+
+  const activeId = activeIdx >= 0 ? `${listboxId}-opt-${activeIdx}` : undefined;
+
   return (
     <div className="relative w-full" ref={containerRef}>
       <label htmlFor="swypik-search" className="sr-only">Caută</label>
@@ -145,6 +167,11 @@ export default function SearchBar({
         }}
         onKeyDown={onKeyDown}
         placeholder={placeholder}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open && suggestions.length > 0}
+        aria-controls={listboxId}
+        aria-activedescendant={activeId}
         className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-4 py-2 text-white placeholder-neutral-500 focus:outline-none"
         style={{ caretColor: ACCENT }}
       />
@@ -160,6 +187,7 @@ export default function SearchBar({
 
       {open && suggestions.length > 0 && (
         <ul
+          id={listboxId}
           className="absolute z-50 left-0 right-0 mt-1 max-h-96 overflow-auto rounded-lg border border-neutral-800 bg-neutral-950 shadow-xl"
           role="listbox"
         >
@@ -167,7 +195,8 @@ export default function SearchBar({
             const active = i === activeIdx;
             return (
               <li
-                key={`${s.type}-${s.id}`}
+                id={`${listboxId}-opt-${i}`}
+                key={`${s.type}-${s.label}-${i}`}
                 role="option"
                 aria-selected={active}
                 onMouseDown={(e) => {
@@ -180,23 +209,14 @@ export default function SearchBar({
                   backgroundColor: active ? "#1a1a1a" : "transparent",
                 }}
               >
-                <div className="w-8 h-8 rounded bg-neutral-800 overflow-hidden flex-shrink-0">
-                  {s.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={s.thumbnail}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : null}
-                </div>
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-neutral-900">
+                  {iconFor(s)}
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm text-white truncate">{s.label}</div>
-                  <div
-                    className="text-xs"
-                    style={{ color: s.type === "creator" ? ACCENT : "#888" }}
-                  >
-                    {s.type === "video" ? "Video" : "Creator"}
+                  <div className="text-xs text-white/50">
+                    {labelFor(s)}
+                    {typeof s.count === "number" && s.count > 0 ? ` · ${s.count}` : ""}
                   </div>
                 </div>
               </li>

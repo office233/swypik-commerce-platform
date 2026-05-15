@@ -148,7 +148,7 @@ export async function notifyVideoRejected(
     <p style="font-size:14px;color:#666;line-height:1.6">
       Te rugăm să încarci o versiune nouă a clipului care respectă cerințele platformei.
     </p>
-    ${ctaButton("Încarcă clip nou →", `${APP_URL()}/creator/upload`)}`;
+    ${ctaButton("Încarcă clip nou →", `${APP_URL()}/upload`)}`;
 
   return sendEmail({
     to: creatorEmail,

@@ -502,7 +502,7 @@ export default function ChatInterface({
           <Link href="/creator" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Zap size={18} className="text-[#0D0D0D]" /> Dashboard Creator
           </Link>
-          <Link href="/creator/upload" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          <Link href="/upload" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Upload size={18} className="text-[#6E6E80]" /> Încarcă clip
           </Link>
           <Link href="/creator/rewards" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">

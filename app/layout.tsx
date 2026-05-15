@@ -49,6 +49,8 @@ import RewardFlash from "@/components/RewardFlash";
 import BottomNav from "@/components/BottomNav";
 import EmailVerifyBanner from "@/components/auth/EmailVerifyBanner";
 import OnboardingGate from "@/components/onboarding/OnboardingGate";
+import PushPrompt from "@/components/notifications/PushPrompt";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale;
@@ -79,6 +81,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
             <BottomNav />
             <RewardFlash />
+            <PushPrompt />
+            <InstallPrompt />
           </CurrencyProvider>
         </NextIntlClientProvider>
       </body>

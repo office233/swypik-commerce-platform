@@ -72,6 +72,8 @@ export type ProductDetail = {
     image: string;
     hasVideo: boolean;
     rating: number;
+    ratingAvg: number | null;
+    ratingCount: number;
   }>;
 };
 
@@ -389,21 +391,29 @@ export async function getProductDetail(id: string): Promise<ProductDetail | null
     },
     variants,
     colorMap,
-    similar: similarRows
-      .map((similarRow: any) => {
-        const similarMetadata = metadataObject(similarRow.metadata);
-        const similarPriceCents = firstNumber(similarRow.price_cents, 0) || 0;
-        const similarCompareAtCents = firstNumber(similarRow.compare_at_price_cents, 0) || 0;
-        return {
-          id: String(firstNumber(similarRow.ae_internal_id) || similarRow.id),
-          title: String(firstString(similarRow.ae_title_ro, similarMetadata.title_ro, similarRow.title) || similarRow.title),
-          price: similarPriceCents / 100,
-          oldPrice: similarCompareAtCents > 0 ? similarCompareAtCents / 100 : Math.round((similarPriceCents / 100) * 1.3),
-          image: String(firstString(similarRow.image_url, ...(Array.isArray(similarMetadata.images) ? similarMetadata.images : [])) || ""),
-          hasVideo: firstBool(similarMetadata.has_video, similarRow.has_video, false),
-          rating: firstNumber(similarMetadata.rating, similarRow.rating, 0) || 0,
-        };
-      })
-      .filter((item) => item.image),
+    similar: (await (async () => {
+      const { getProductRatingMap } = await import("@/lib/reviews/aggregate");
+      const ids = similarRows.map((r: any) => String(r.id));
+      const ratingMap = ids.length ? await getProductRatingMap(ids) : new Map();
+      return similarRows
+        .map((similarRow: any) => {
+          const similarMetadata = metadataObject(similarRow.metadata);
+          const similarPriceCents = firstNumber(similarRow.price_cents, 0) || 0;
+          const similarCompareAtCents = firstNumber(similarRow.compare_at_price_cents, 0) || 0;
+          const agg = ratingMap.get(String(similarRow.id));
+          return {
+            id: String(firstNumber(similarRow.ae_internal_id) || similarRow.id),
+            title: String(firstString(similarRow.ae_title_ro, similarMetadata.title_ro, similarRow.title) || similarRow.title),
+            price: similarPriceCents / 100,
+            oldPrice: similarCompareAtCents > 0 ? similarCompareAtCents / 100 : Math.round((similarPriceCents / 100) * 1.3),
+            image: String(firstString(similarRow.image_url, ...(Array.isArray(similarMetadata.images) ? similarMetadata.images : [])) || ""),
+            hasVideo: firstBool(similarMetadata.has_video, similarRow.has_video, false),
+            rating: firstNumber(similarMetadata.rating, similarRow.rating, 0) || 0,
+            ratingAvg: agg && agg.reviewCount > 0 ? Number(agg.avgRating.toFixed(2)) : null,
+            ratingCount: agg ? agg.reviewCount : 0,
+          };
+        })
+        .filter((item: any) => item.image);
+    })()),
   };
 }

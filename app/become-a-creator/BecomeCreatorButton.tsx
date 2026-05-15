@@ -31,7 +31,7 @@ export default function BecomeCreatorButton() {
           msg: "Felicitări! Acum ești creator. Te redirecționăm...",
           kind: "ok",
         });
-        setTimeout(() => router.push("/creator/upload"), 900);
+        setTimeout(() => router.push("/upload"), 900);
       } else {
         setToast({
           msg: data.error || "Nu am putut activa contul de creator. Încearcă din nou.",

@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth"];
+  const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload"];
   if (hiddenPaths.some((p) => pathname.startsWith(p))) return null;
 
   return (
@@ -36,10 +36,10 @@ export default function BottomNav() {
                 key={item.href}
                 href={item.href}
                 onClick={() => haptic("tap")}
-                aria-label="Adaugă video"
-                className="flex items-center justify-center mx-auto w-12 h-9 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#EC4899] shadow-md active:scale-95 transition-transform"
+                aria-label="Încarcă video"
+                className="flex items-center justify-center mx-auto -mt-3 w-12 h-12 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#A855F7] shadow-lg ring-4 ring-white dark:ring-black active:scale-95 transition-transform"
               >
-                <Icon size={24} strokeWidth={2.5} className="text-white" />
+                <Icon size={26} strokeWidth={2.6} className="text-white" />
               </Link>
             );
           }

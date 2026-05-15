@@ -46,7 +46,7 @@ export default async function BecomeACreatorPage() {
   const auth = await getAuthUser();
 
   if (auth.role === "creator" || auth.role === "admin") {
-    redirect("/creator/upload");
+    redirect("/upload");
   }
 
   const isLoggedIn = auth.role === "shopper" || auth.role === "seller";
