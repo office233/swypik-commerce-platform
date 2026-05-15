@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Mail, Bell } from "lucide-react";
-import EnablePushButton from "@/components/push/EnablePushButton";
+import PushDeviceToggle from "@/components/notifications/PushDeviceToggle";
 
 type Prefs = {
   email_likes: boolean; email_comments: boolean; email_follows: boolean; email_messages: boolean; email_sales: boolean; email_marketing: boolean;
@@ -63,8 +63,8 @@ export default function NotificationsSettingsClient() {
       <div className="mx-auto max-w-md px-4 py-6 space-y-6">
         <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <h2 className="flex items-center gap-2 text-sm font-black"><Bell size={16} /> Push pe acest device</h2>
-          <p className="mt-1 text-xs text-white/60">Activează notificările direct în browser.</p>
-          <div className="mt-3"><EnablePushButton /></div>
+          <p className="mt-1 text-xs text-white/60">Activează sau dezactivează notificările pe acest browser.</p>
+          <div className="mt-3"><PushDeviceToggle /></div>
         </section>
 
         <Section title="Email" icon={<Mail size={16} />}>
