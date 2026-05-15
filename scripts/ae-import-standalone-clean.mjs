@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import { resolveTaxonomy, loadCategories } from '../lib/aliexpress/taxonomy-resolver.mjs';
+import { resolveTaxonomy, resolveTaxonomyV2, loadCategories, loadFullChainCache } from '../lib/aliexpress/taxonomy-resolver.mjs';
 
 const requireFromApp = createRequire('/opt/swypik/app/package.json');
 const { Pool } = requireFromApp('pg');
@@ -212,6 +212,7 @@ const pool = new Pool({ connectionString: hostDatabaseUrl() });
 // CLI flags override the AE response defaults so the same product can be re-imported
 // with the correct hints discovered during catalog audit.
 const aeCategories = await loadCategories(pool);
+const chainCache = await loadFullChainCache(pool);
 const taxonomyInput = {
   displayName: cliFlags['display-name'] || product.title,
   labelHint: cliFlags['label-hint'] || '',
@@ -219,8 +220,9 @@ const taxonomyInput = {
     ? cliFlags['post-cat-ids'].split(',').map((s) => s.trim()).filter(Boolean)
     : (product.categoryId ? [product.categoryId] : []),
   leafCatId: cliFlags['leaf-cat-id'] || product.categoryId || null,
+  aeCategoryId: product.categoryId || null,
 };
-const resolved = resolveTaxonomy(taxonomyInput, aeCategories);
+const resolved = resolveTaxonomyV2(taxonomyInput, aeCategories, chainCache);
 const taxonomy = {
   department: resolved.department,
   category: resolved.category,
@@ -248,7 +250,11 @@ const metadata = {
   ae_store: product.store,
   product_type: taxonomy.leaf,
   ae_category_name: taxonomy.leaf,
-  taxonomy_resolver_version: 1,
+  taxonomy_resolver_version: 2,
+  ae_chain_ids: resolved.chainIds || [],
+  ae_chain_names_ro: resolved.chainNamesRo || [],
+  taxonomy_unresolved: Boolean(resolved.unresolved),
+  taxonomy_unresolved_reason: resolved.unresolvedReason || null,
   images: product.images,
   rating: product.rating,
   orders_count: product.orders,
@@ -267,15 +273,15 @@ try {
         supplier_url, supplier_cost_cents, canonical_category, canonical_category_slug,
         classification_confidence, classification_reason, taxonomy_department,
         taxonomy_category, taxonomy_subcategory, taxonomy_leaf, taxonomy_slug,
-        taxonomy_confidence, taxonomy_reason, is_adult, adult_reason, created_at, updated_at
+        taxonomy_confidence, taxonomy_reason, is_adult, adult_reason, taxonomy_unresolved, created_at, updated_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
-        $7, 'active', 'RON', $8, NULL,
+        $7, $21, 'RON', $8, NULL,
         $9, $10::jsonb, 'aliexpress', 'aliexpress', $1,
         $6, NULL, $11, $12,
         $13, $14, $15,
         $16, $17, $18, $12,
-        $13, $14, $19, $20, now(), now()
+        $13, $14, $19, $20, $22, now(), now()
       )
       ON CONFLICT (source_type, supplier, supplier_product_id)
       WHERE supplier_product_id IS NOT NULL
@@ -301,6 +307,7 @@ try {
         taxonomy_reason = EXCLUDED.taxonomy_reason,
         is_adult = EXCLUDED.is_adult,
         adult_reason = EXCLUDED.adult_reason,
+        taxonomy_unresolved = EXCLUDED.taxonomy_unresolved,
         updated_at = now()
       RETURNING id::text AS id, slug
     `,
@@ -325,6 +332,8 @@ try {
       taxonomy.leaf,
       Boolean(adultReason),
       adultReason,
+      resolved.unresolved ? 'hidden' : 'active',
+      Boolean(resolved.unresolved),
     ],
   );
   const productDbId = inserted.rows[0].id;
