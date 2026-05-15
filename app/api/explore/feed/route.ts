@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN marketplace_products mp
         ON mp.id::text = (v.product_refs->0->>'product_id')
       LEFT JOIN audio_tracks at ON at.id = v.audio_track_id
-      WHERE v.status = 'ready'
+      WHERE v.status = 'ready' AND v.is_hidden = false
         AND v.visibility = 'public'
         ${onlyFollowing && userId ? `AND EXISTS (SELECT 1 FROM follows f2 WHERE f2.follower_user_id = $3 AND f2.following_user_id = v.creator_id)` : ''}
         AND NOT EXISTS (SELECT 1 FROM user_hidden_videos uhv WHERE uhv.user_id = ${userId ? '$3' : "'00000000-0000-0000-0000-000000000000'::uuid"} AND uhv.video_id = v.id)
@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
         p.image_url as product_image_url
       FROM creator_videos cv
       JOIN marketplace_products p ON cv.product_id = p.id::text
-      WHERE cv.status = 'ready'
+      WHERE cv.status = 'ready' AND cv.is_hidden = false
       ORDER BY cv.id DESC
       LIMIT 50
     `);
