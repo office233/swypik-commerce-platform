@@ -449,7 +449,6 @@ export async function POST(req: Request) {
           phoneTrimmed || null,
           typeof avatar_url === "string" ? avatar_url : null,
           passwordHash,
-          String(VERIFICATION_GRACE_DAYS),
         ],
       );
 
