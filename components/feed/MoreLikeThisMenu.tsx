@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MoreVertical, Sparkles, EyeOff, UserPlus, Flag, Loader2 } from "lucide-react";
+import ReportSheet from "./ReportSheet";
 
 type Props = {
   videoId: string;
@@ -35,6 +36,7 @@ export default function MoreLikeThisMenu({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -63,9 +65,8 @@ export default function MoreLikeThisMenu({
     }
   };
 
-  const report = () => {
-    showToast("Mulțumim, vom analiza.");
-    onActionDone?.("report");
+  const openReport = () => {
+    setReportOpen(true);
     setOpen(false);
   };
 
@@ -120,10 +121,17 @@ export default function MoreLikeThisMenu({
           <MenuItem
             icon={<Flag className="h-4 w-4 text-rose-400" />}
             label="Raportează"
-            onClick={report}
+            onClick={openReport}
             disabled={busy !== null}
           />
         </div>
+      )}
+      {reportOpen && (
+        <ReportSheet
+          videoId={videoId}
+          onClose={() => setReportOpen(false)}
+          onSubmitted={() => onActionDone?.("report")}
+        />
       )}
     </div>
   );

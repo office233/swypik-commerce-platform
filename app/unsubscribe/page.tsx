@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -106,7 +107,7 @@ export default async function UnsubscribePage({
         >
           Dacă ai ajuns aici din greșeală, nu te îngrijora — poți oricând să
           revii pe{" "}
-          <a
+          <Link
             href="/"
             style={{
               color: "#6366f1",
@@ -115,12 +116,12 @@ export default async function UnsubscribePage({
             }}
           >
             swypik.com
-          </a>
+          </Link>
           .
         </p>
 
         {/* CTA button */}
-        <a
+        <Link
           href="/"
           style={{
             display: "inline-block",
@@ -135,7 +136,7 @@ export default async function UnsubscribePage({
           }}
         >
           Mergi la magazin →
-        </a>
+        </Link>
       </div>
     </div>
   );

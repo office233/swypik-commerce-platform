@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Loader2,
   Mail,
@@ -326,9 +327,9 @@ function LoginForm({ nextPath }: { nextPath: string }) {
 
       <p className="mt-6 text-center text-xs text-white/40">
         Continuând, accepți{" "}
-        <a href="/terms" className="underline hover:text-white/70">Termenii</a>
+        <Link href="/terms" className="underline hover:text-white/70">Termenii</Link>
         {" "}și{" "}
-        <a href="/privacy" className="underline hover:text-white/70">Politica de confidențialitate</a>.
+        <Link href="/privacy" className="underline hover:text-white/70">Politica de confidențialitate</Link>.
       </p>
     </section>
   );
@@ -580,9 +581,9 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
 
       <p className="mt-6 text-center text-xs text-white/40">
         Continuând, accepți{" "}
-        <a href="/terms" className="underline hover:text-white/70">Termenii</a>
+        <Link href="/terms" className="underline hover:text-white/70">Termenii</Link>
         {" "}și{" "}
-        <a href="/privacy" className="underline hover:text-white/70">Politica de confidențialitate</a>.
+        <Link href="/privacy" className="underline hover:text-white/70">Politica de confidențialitate</Link>.
       </p>
     </section>
   );

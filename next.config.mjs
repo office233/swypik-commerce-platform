@@ -1,4 +1,3 @@
-import withPWAInit from "@ducanh2912/next-pwa";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
@@ -25,10 +24,10 @@ const nextConfig = {
   output: process.env.NEXT_BUILD_STANDALONE === "1" ? "standalone" : undefined,
   poweredByHeader: false,
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true // TODO: ridică gradual — Next 15 PageProps Promise migration,
+    ignoreBuildErrors: false,
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
@@ -89,12 +88,4 @@ const nextConfig = {
   },
 };
 
-const withPWA = withPWAInit({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-  register: true,
-  cacheOnFrontEndNav: false,
-  aggressiveFrontEndNavCaching: false,
-});
-
-export default withPWA(withNextIntl(nextConfig));
+export default withNextIntl(nextConfig);

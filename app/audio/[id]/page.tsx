@@ -34,7 +34,7 @@ function formatDuration(s: number) {
 }
 
 export default async function AudioPage({ params }: { params: Promise<{ id: string }> }) {
-  const id = params.id;
+  const { id } = await params;
   if (!/^\d+$/.test(id)) notFound();
 
   const trackRes = await dbQuery<AudioTrackRow>(

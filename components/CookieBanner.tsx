@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const COOKIE_NAME = "cookie_consent";
 
@@ -44,7 +45,7 @@ export default function CookieBanner() {
       <div className="pointer-events-auto max-w-xl mx-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl p-4 text-sm">
         <p className="text-neutral-700 dark:text-neutral-200 mb-3">
           Folosim cookies esentiale pentru autentificare si plati. Pentru analitice agregate cerem acordul tau.
-          Vezi <a href="/legal/cookies" className="underline">politica de cookies</a>.
+          Vezi <Link href="/legal/cookies" className="underline">politica de cookies</Link>.
         </p>
         <div className="flex gap-2 justify-end">
           <button

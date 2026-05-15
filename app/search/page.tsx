@@ -22,12 +22,9 @@ const BG = "#0D0D0D";
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams> | SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
-  const params: SearchParams =
-    typeof (searchParams as any)?.then === "function"
-      ? await (searchParams as Promise<SearchParams>)
-      : (searchParams as SearchParams);
+  const params: SearchParams = await searchParams;
 
   const q = (params.q ?? "").trim();
   const tab = (params.tab ?? "videos") as "videos" | "creators" | "products" | "hashtags";
