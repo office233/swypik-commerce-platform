@@ -8,6 +8,11 @@ import { convertCents } from "./fx";
 const INTL_LOCALE: Record<Locale, string> = {
   ro: "ro-RO",
   en: "en-GB",
+  es: "es-ES",
+  fr: "fr-FR",
+  de: "de-DE",
+  pt: "pt-PT",
+  it: "it-IT",
 };
 
 export interface FormatCurrencyOptions {

@@ -1,3 +1,4 @@
+import ResetConsentButton from "./ResetConsentButton";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -56,6 +57,9 @@ export default function CookiesPage() {
         <li>Safari: Preferinte → Confidentialitate</li>
       </ul>
       <p>Atentie: dezactivarea cookies esentiale va impiedica login-ul si efectuarea de comenzi.</p>
+
+      <h2>Preferințe</h2>
+      <p><ResetConsentButton /></p>
 
       <h2>Contact</h2>
       <p>Intrebari: <a href="mailto:privacy@swypik.com">privacy@swypik.com</a></p>

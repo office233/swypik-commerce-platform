@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { ArrowLeft, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 
 type ApiItem = {
@@ -57,6 +58,7 @@ async function migrateLocalCart(): Promise<boolean> {
 
 export default function CartPage() {
   const router = useRouter();
+  const t = useTranslations("cart");
   const formatPrice = useFormatPrice();
   const [items, setItems] = useState<ApiItem[]>([]);
   const [currency, setCurrency] = useState("RON");
@@ -131,7 +133,7 @@ export default function CartPage() {
           <ArrowLeft size={16} />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-black text-[#0D0D0D]">Coșul tău</h1>
+          <h1 className="text-lg font-black text-[#0D0D0D]">{t("title")}</h1>
           <p className="text-xs font-semibold text-[#6E6E80]">
             {totalItems} {totalItems === 1 ? "produs" : "produse"}
           </p>
@@ -148,7 +150,7 @@ export default function CartPage() {
           <div className="w-20 h-20 rounded-full bg-[#F7F7F8] flex items-center justify-center mb-6">
             <ShoppingCart size={36} className="text-[#D1D1D6]" />
           </div>
-          <h2 className="text-xl font-black text-[#0D0D0D] mb-2">Coșul tău este gol</h2>
+          <h2 className="text-xl font-black text-[#0D0D0D] mb-2">{t("empty")}</h2>
           <p className="text-sm text-[#6E6E80] mb-6 max-w-xs">Explorează feed-ul sau magazinul pentru a descoperi produse noi.</p>
           <div className="flex gap-3">
             <Link href="/explore" className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">Explorează Feed</Link>
@@ -208,9 +210,13 @@ export default function CartPage() {
       {items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-[#E5E5E5] px-4 pt-4 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] safe-pb">
           <div className="max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-semibold text-[#6E6E80]">{t("subtotal")} ({totalItems} produse)</span>
+              <span className="text-base font-bold text-[#0D0D0D]">{formatPrice(subtotalCents, { sourceCurrency: currency as any })}</span>
+            </div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-[#6E6E80]">Total ({totalItems} produse)</span>
-              <span className="text-xl font-black text-[#0D0D0D]">{formatPrice(subtotalCents, { sourceCurrency: currency as any })}</span>
+              <span className="text-xs text-[#A1A1AA]">{t("tax")}</span>
+              <span className="text-xs text-[#A1A1AA]">{t("taxCalculatedAtCheckout")}</span>
             </div>
             <Link href="/checkout" className="block w-full rounded-2xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white active:scale-[0.98] transition-transform shadow-xl">
               🔒 Finalizează comanda — {formatPrice(subtotalCents, { sourceCurrency: currency as any })}

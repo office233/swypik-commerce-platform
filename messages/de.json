@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "Wird geladen…",
+    "error": "Ein Fehler ist aufgetreten",
+    "retry": "Erneut versuchen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "search": "Suchen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige",
+    "yes": "Ja",
+    "no": "Nein",
+    "free": "Kostenlos",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "currency": "Währung",
+    "language": "Sprache"
+  },
+  "nav": {
+    "home": "Start",
+    "shop": "Shop",
+    "explore": "Entdecken",
+    "reels": "Reels",
+    "cart": "Warenkorb",
+    "upload": "Hochladen",
+    "inbox": "Posteingang",
+    "account": "Profil",
+    "collections": "Sammlungen",
+    "orders": "Bestellungen",
+    "messages": "Nachrichten",
+    "notifications": "Benachrichtigungen"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "register": "Registrieren",
+    "signIn": "Anmelden",
+    "signUp": "Konto erstellen",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "continueWithGoogle": "Mit Google fortfahren",
+    "continueWithApple": "Mit Apple fortfahren",
+    "or": "oder"
+  },
+  "product": {
+    "addToCart": "In den Warenkorb",
+    "buyNow": "Jetzt kaufen",
+    "outOfStock": "Ausverkauft",
+    "shipping": "Versand",
+    "freeShipping": "Kostenloser Versand",
+    "reviews": "Bewertungen",
+    "details": "Details",
+    "variants": "Varianten",
+    "from": "Ab"
+  },
+  "cart": {
+    "title": "Dein Warenkorb",
+    "empty": "Dein Warenkorb ist leer",
+    "subtotal": "Zwischensumme",
+    "shipping": "Versand",
+    "tax": "MwSt.",
+    "taxCalculatedAtCheckout": "An der Kasse berechnet",
+    "total": "Gesamt",
+    "checkout": "Zur Kasse"
+  },
+  "creator": {
+    "drafts": "Entwürfe",
+    "scheduled": "Geplant",
+    "publish": "Veröffentlichen",
+    "saveDraft": "Entwurf speichern",
+    "schedule": "Planen"
+  },
+  "settings": {
+    "preferences": "Einstellungen",
+    "selectLanguage": "Sprache wählen",
+    "selectCurrency": "Währung wählen"
+  }
+}

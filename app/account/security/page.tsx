@@ -20,5 +20,11 @@ export default async function SecurityPage() {
   const hasPassword = Boolean(rows[0]?.has_password);
   const totpEnabled = Boolean(rows[0]?.totp_enabled);
 
-  return <SecurityPageClient hasPassword={hasPassword} totpEnabled={totpEnabled} />;
+  const { rows: oauthRows } = await dbQuery<{ provider: string; email: string | null; created_at: string }>(
+    `SELECT provider, email, created_at FROM oauth_accounts WHERE user_id = $1 ORDER BY created_at ASC`,
+    [session.userId],
+  );
+  const connectedAccounts = oauthRows.map((r) => ({ provider: r.provider, email: r.email, createdAt: r.created_at }));
+
+  return <SecurityPageClient hasPassword={hasPassword} totpEnabled={totpEnabled} connectedAccounts={connectedAccounts} />;
 }

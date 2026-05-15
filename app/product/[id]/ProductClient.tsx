@@ -84,6 +84,32 @@ export default function ProductClient({ initialData }: Props) {
       .finally(() => setLoading(false));
   }, [id, initialData]);
 
+  /* AI Product Match — augment similar cu cosine similarity din /api/products/similar.
+     Fallback silent dacă pgvector neactivat (răspunde products:[]). */
+  useEffect(() => {
+    if (!id) return;
+    let aborted = false;
+    fetch(`/api/products/similar?product_id=${id}&limit=8`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (aborted || !data?.products?.length) return;
+        const mapped: SimilarProduct[] = data.products.map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          price: p.price || 0,
+          oldPrice: 0,
+          image: p.image || "",
+          hasVideo: false,
+          rating: p.rating || 0,
+          ratingAvg: p.rating || null,
+          ratingCount: p.ratingCount || 0,
+        }));
+        setSimilar(prev => prev.length ? prev : mapped);
+      })
+      .catch(() => undefined);
+    return () => { aborted = true; };
+  }, [id]);
+
   /* Loading State */
   if (loading) return (
     <div className="min-h-screen bg-white flex items-center justify-center">

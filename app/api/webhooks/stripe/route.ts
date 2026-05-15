@@ -219,6 +219,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const totalCents = session.amount_total || 0;
   const totalRon = totalCents / 100;
+  const taxCents = (session as any).total_details?.amount_tax || 0;
+  const taxCountry = session.customer_details?.address?.country || null;
+  const taxIds = (session.customer_details as any)?.tax_ids;
+  const taxIdCollected = Array.isArray(taxIds) && taxIds.length > 0
+    ? `${taxIds[0].type}:${taxIds[0].value}`
+    : null;
   const sessionAny = session as any;
   const shipping = sessionAny.shipping_details || sessionAny.shipping;
   const shippingAddress = shipping ? {
@@ -260,18 +266,21 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
            currency = upper($2),
            subtotal_cents = $3,
            total_cents = $3,
+           tax_cents = $5,
+           tax_country = $6,
+           tax_id_collected = $7,
            placed_at = COALESCE(placed_at, now()),
            metadata = metadata || $4::jsonb
        WHERE id = $1`,
-      [orderId, session.currency || "ron", totalCents, JSON.stringify(metadata)]
+      [orderId, session.currency || "ron", totalCents, JSON.stringify(metadata), taxCents, taxCountry, taxIdCollected]
     );
   } else {
     const { rows: orderRows } = await dbQuery(
       `INSERT INTO commerce_orders (
-        status, currency, subtotal_cents, total_cents, placed_at, metadata
-      ) VALUES ($1, $2, $3, $4, now(), $5::jsonb)
+        status, currency, subtotal_cents, total_cents, tax_cents, tax_country, tax_id_collected, placed_at, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), $8::jsonb)
       RETURNING id`,
-      ["paid", String(session.currency || "ron").toUpperCase(), totalCents, totalCents, JSON.stringify(metadata)]
+      ["paid", String(session.currency || "ron").toUpperCase(), totalCents, totalCents, taxCents, taxCountry, taxIdCollected, JSON.stringify(metadata)]
     );
     orderId = orderRows[0]?.id;
   }

@@ -125,7 +125,7 @@ services:
   # 3. postgres — PostgreSQL 16
   # ──────────────────────────────────────────────
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     env_file:
       - .env.production
     ports:
@@ -251,11 +251,53 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+
+  # ──────────────────────────────────────────────
+  # 8. pgbouncer — Connection pooler (NOT STARTED — see docs/scale-prep.md)
+  # ──────────────────────────────────────────────
+  pgbouncer:
+    image: bitnami/pgbouncer:1.23.1
+    restart: unless-stopped
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: swypik
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRESQL_DATABASE: swypik
+      PGBOUNCER_DATABASE: swypik
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_DEFAULT_POOL_SIZE: 25
+      PGBOUNCER_MAX_CLIENT_CONN: 200
+      PGBOUNCER_PORT: 6432
+      PGBOUNCER_AUTH_TYPE: scram-sha-256
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ──────────────────────────────────────────────
+  # 8. mediamtx — RTMP ingest + HLS output (live commerce)
+  # ──────────────────────────────────────────────
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: swypik-prod-mediamtx-1
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "127.0.0.1:8888:8888"
+      - "1935:1935"
+      - "127.0.0.1:9997:9997"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+      - swypik_mediamtx_recordings:/recordings
+
+
 # ============================================================================
 # Named volumes — persistent data on Hetzner VPS disk
 # ============================================================================
 volumes:
   swypik_postgres_data:
+  swypik_mediamtx_recordings:
   swypik_redis_data:
   swypik_caddy_data:
   swypik_caddy_config:

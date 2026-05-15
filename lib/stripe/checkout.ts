@@ -83,6 +83,9 @@ export async function createCheckoutSession(
       allowed_countries: ["RO", "GB", "DE", "FR", "IT", "ES", "NL", "BE", "AT", "PL", "HU", "BG"],
     },
     phone_number_collection: { enabled: true },
+    automatic_tax: { enabled: true },
+    tax_id_collection: { enabled: true },
+    billing_address_collection: 'auto',
     success_url: `${options?.successUrl || baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: options?.cancelUrl || baseUrl,
     metadata: {

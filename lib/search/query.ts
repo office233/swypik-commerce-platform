@@ -63,7 +63,7 @@ export async function searchVideos(
 
   const sql = `
     WITH query AS (
-      SELECT plainto_tsquery('simple', $1) AS tsq
+      SELECT websearch_to_tsquery('simple', $1) AS tsq
     )
     SELECT
       v.id::text                     AS id,
@@ -175,7 +175,7 @@ export async function searchProducts(
 
   const ftsSql = `
     WITH query AS (
-      SELECT plainto_tsquery('simple', $1) AS tsq
+      SELECT websearch_to_tsquery('simple', $1) AS tsq
     )
     SELECT
       mp.id::text     AS id,

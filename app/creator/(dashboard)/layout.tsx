@@ -9,6 +9,7 @@ const creatorNavItems = [
   { href: "/creator/drafts", icon: "📝", label: "Schițe" },
   { href: "/creator/analytics", icon: "📈", label: "Analytics" },
   { href: "/creator/earnings", icon: "💰", label: "Câștiguri" },
+  { href: "/creator/live", icon: "🔴", label: "Live" },
   { href: "/creator/rewards", icon: "🏆", label: "SWYP Points" },
 ];
 

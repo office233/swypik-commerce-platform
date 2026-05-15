@@ -6,6 +6,7 @@ const sellerNavItems = [
   { href: "/seller", icon: "📊", label: "Dashboard" },
   { href: "/seller/products", icon: "📦", label: "Produsele mele" },
   { href: "/seller/orders", icon: "🛍️", label: "Comenzi" },
+  { href: "/seller/payouts", icon: "💰", label: "Payouts" },
   { href: "/seller/settings", icon: "⚙️", label: "Setări" },
 ];
 
@@ -29,6 +30,9 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
           </Link>
           <Link href="/seller/orders" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">🛍️</span> Comenzi
+          </Link>
+          <Link href="/seller/payouts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
+            <span className="text-lg">💰</span> Payouts
           </Link>
           <Link href="/seller/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">⚙️</span> Setări

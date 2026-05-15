@@ -6,10 +6,33 @@ import { Loader2, Lock, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Copy,
 export default function SecurityPageClient({
   hasPassword,
   totpEnabled,
+  connectedAccounts,
 }: {
   hasPassword: boolean;
   totpEnabled: boolean;
+  connectedAccounts: { provider: string; email: string | null; createdAt: string }[];
 }) {
+  const [accounts, setAccounts] = useState(connectedAccounts);
+  const [accLoading, setAccLoading] = useState<string | null>(null);
+  const [accError, setAccError] = useState<string | null>(null);
+
+  async function disconnectProvider(provider: string) {
+    setAccError(null);
+    if (!window.confirm(`Sigur deconectezi ${provider}?`)) return;
+    setAccLoading(provider);
+    try {
+      const res = await fetch(`/api/users/me/oauth/${provider}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAccError(data.error || "Nu am putut deconecta.");
+        return;
+      }
+      setAccounts((prev) => prev.filter((a) => a.provider !== provider));
+    } finally {
+      setAccLoading(null);
+    }
+  }
+
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -401,6 +424,36 @@ export default function SecurityPageClient({
               </button>
             </div>
           </div>
+        )}
+      </section>
+
+      <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <h2 className="text-lg font-black">Conturi conectate</h2>
+        <p className="mt-1 text-sm text-white/60">Login social activ pentru contul tău.</p>
+        {accError && (
+          <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{accError}</div>
+        )}
+        {accounts.length === 0 ? (
+          <p className="mt-4 text-sm text-white/50">Nu ai conturi sociale conectate.</p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {accounts.map((a) => (
+              <li key={a.provider} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <div>
+                  <div className="text-sm font-bold capitalize">{a.provider}</div>
+                  {a.email && <div className="text-xs text-white/50">{a.email}</div>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => disconnectProvider(a.provider)}
+                  disabled={accLoading === a.provider}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-bold text-white/80 hover:border-rose-500/40 hover:text-rose-200 disabled:opacity-50"
+                >
+                  {accLoading === a.provider ? "…" : "Deconectează"}
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </main>

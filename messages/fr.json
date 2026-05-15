@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "search": "Rechercher",
+    "back": "Retour",
+    "next": "Continuer",
+    "previous": "Précédent",
+    "yes": "Oui",
+    "no": "Non",
+    "free": "Gratuit",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "currency": "Devise",
+    "language": "Langue"
+  },
+  "nav": {
+    "home": "Accueil",
+    "shop": "Boutique",
+    "explore": "Explorer",
+    "reels": "Reels",
+    "cart": "Panier",
+    "upload": "Publier",
+    "inbox": "Boîte",
+    "account": "Profil",
+    "collections": "Collections",
+    "orders": "Commandes",
+    "messages": "Messages",
+    "notifications": "Notifications"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "register": "S'inscrire",
+    "signIn": "Se connecter",
+    "signUp": "Créer un compte",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "continueWithGoogle": "Continuer avec Google",
+    "continueWithApple": "Continuer avec Apple",
+    "or": "ou"
+  },
+  "product": {
+    "addToCart": "Ajouter au panier",
+    "buyNow": "Acheter",
+    "outOfStock": "Rupture de stock",
+    "shipping": "Livraison",
+    "freeShipping": "Livraison gratuite",
+    "reviews": "Avis",
+    "details": "Détails",
+    "variants": "Variantes",
+    "from": "À partir de"
+  },
+  "cart": {
+    "title": "Votre panier",
+    "empty": "Votre panier est vide",
+    "subtotal": "Sous-total",
+    "shipping": "Livraison",
+    "tax": "TVA",
+    "taxCalculatedAtCheckout": "Calculé au paiement",
+    "total": "Total",
+    "checkout": "Passer au paiement"
+  },
+  "creator": {
+    "drafts": "Brouillons",
+    "scheduled": "Programmés",
+    "publish": "Publier",
+    "saveDraft": "Enregistrer brouillon",
+    "schedule": "Programmer"
+  },
+  "settings": {
+    "preferences": "Préférences",
+    "selectLanguage": "Choisir la langue",
+    "selectCurrency": "Choisir la devise"
+  }
+}

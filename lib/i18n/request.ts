@@ -5,6 +5,7 @@ import { getRequestConfig } from "next-intl/server";
 import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
+  LOCALES,
   isLocale,
   type Locale,
 } from "./config";
@@ -12,9 +13,8 @@ import {
 function parseAcceptLanguage(header: string | null): Locale | null {
   if (!header) return null;
   const first = header.split(",")[0]?.trim().toLowerCase() ?? "";
-  if (first.startsWith("ro")) return "ro";
-  if (first.startsWith("en")) return "en";
-  return null;
+  const code = first.slice(0, 2);
+  return (LOCALES as readonly string[]).includes(code) ? (code as Locale) : null;
 }
 
 export default getRequestConfig(async () => {

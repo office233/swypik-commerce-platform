@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "Caricamento…",
+    "error": "Si è verificato un errore",
+    "retry": "Riprova",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "close": "Chiudi",
+    "search": "Cerca",
+    "back": "Indietro",
+    "next": "Continua",
+    "previous": "Precedente",
+    "yes": "Sì",
+    "no": "No",
+    "free": "Gratis",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "currency": "Valuta",
+    "language": "Lingua"
+  },
+  "nav": {
+    "home": "Home",
+    "shop": "Negozio",
+    "explore": "Esplora",
+    "reels": "Reels",
+    "cart": "Carrello",
+    "upload": "Carica",
+    "inbox": "Posta",
+    "account": "Profilo",
+    "collections": "Collezioni",
+    "orders": "Ordini",
+    "messages": "Messaggi",
+    "notifications": "Notifiche"
+  },
+  "auth": {
+    "login": "Accedi",
+    "logout": "Esci",
+    "register": "Registrati",
+    "signIn": "Accedi",
+    "signUp": "Crea account",
+    "email": "Email",
+    "password": "Password",
+    "continueWithGoogle": "Continua con Google",
+    "continueWithApple": "Continua con Apple",
+    "or": "o"
+  },
+  "product": {
+    "addToCart": "Aggiungi al carrello",
+    "buyNow": "Compra ora",
+    "outOfStock": "Esaurito",
+    "shipping": "Spedizione",
+    "freeShipping": "Spedizione gratuita",
+    "reviews": "Recensioni",
+    "details": "Dettagli",
+    "variants": "Varianti",
+    "from": "Da"
+  },
+  "cart": {
+    "title": "Il tuo carrello",
+    "empty": "Il tuo carrello è vuoto",
+    "subtotal": "Subtotale",
+    "shipping": "Spedizione",
+    "tax": "IVA",
+    "taxCalculatedAtCheckout": "Calcolata al checkout",
+    "total": "Totale",
+    "checkout": "Vai al pagamento"
+  },
+  "creator": {
+    "drafts": "Bozze",
+    "scheduled": "Programmati",
+    "publish": "Pubblica",
+    "saveDraft": "Salva bozza",
+    "schedule": "Programma"
+  },
+  "settings": {
+    "preferences": "Preferenze",
+    "selectLanguage": "Scegli lingua",
+    "selectCurrency": "Scegli valuta"
+  }
+}

@@ -75,6 +75,10 @@ while true; do
   if [ $((TICK % 14400)) -lt 60 ]; then
     run_job abandoned-cart POST
   fi
+  # Every 6 hours (AI trend detection)
+  if [ $((TICK % 21600)) -lt 60 ]; then
+    run_job detect-trends POST
+  fi
   # Once per day
   if [ $((TICK % 86400)) -lt 60 ]; then
     run_job suspend-unverified GET

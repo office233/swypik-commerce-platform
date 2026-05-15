@@ -15,6 +15,7 @@ import { parseHashtags } from "@/lib/text/parseHashtags";
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
 const MoreLikeThisMenu = dynamic(() => import("@/components/feed/MoreLikeThisMenu"), { ssr: false });
+const CaptionsButton = dynamic(() => import("@/components/feed/CaptionsButton"), { ssr: false });
 
 const MUTE_STORAGE_KEY = "swypik.feed.muted";
 // Mount range: only render real <video src> for slides within ±MOUNT_RADIUS of currentIndex
@@ -88,6 +89,7 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const progressBarRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const currentTimeRefs = useRef<Map<string, { current: number }>>(new Map());
 
   const viewedVideosRef = useRef<Set<string>>(new Set());
   const sessionIdRef = useRef<string>("");
@@ -102,6 +104,9 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
     // ref-based progress update — no setState, no re-render
     const bar = progressBarRefs.current.get(videoId);
     if (bar) bar.style.transform = `scaleX(${Math.min(1, Math.max(0, ratio))})`;
+    let ctRef = currentTimeRefs.current.get(videoId);
+    if (!ctRef) { ctRef = { current: 0 }; currentTimeRefs.current.set(videoId, ctRef); }
+    ctRef.current = currentTime;
     // batched watch_time tick
     trackWatchTime(videoId, Math.round(currentTime * 1000));
   }, []);
@@ -664,6 +669,8 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
                       }}
                     />
                   </div>
+
+                  <CaptionsButton videoId={video.id} currentTimeRef={((): { current: number } => { let r = currentTimeRefs.current.get(video.id); if (!r) { r = { current: 0 }; currentTimeRefs.current.set(video.id, r); } return r; })()} />
 
                   {video.audioTrack?.image_url && (
                     <Link

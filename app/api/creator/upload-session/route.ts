@@ -9,6 +9,7 @@ import {
   isVideoStorageConfigured,
 } from "@/lib/storage/video-storage";
 import { publishProcessVideoJob } from "@/lib/video/redis-queue";
+import { moderate } from "@/lib/ai/moderate";
 import {
   UploadInputError,
   buildProcessVideoJobPayload,
@@ -217,6 +218,23 @@ async function createLocalUploadSession(input: CreatorUploadInput) {
   } finally {
     client.release();
   }
+
+  // AI moderation auto pe titlu+descriere (best-effort, never blocks upload).
+  // Dacă flagged → INSERT moderation_cases pending pt review admin.
+  void (async () => {
+    try {
+      const result = await moderate(`${title}\n${description}`);
+      if (result.flagged) {
+        await dbQuery(
+          `INSERT INTO moderation_cases (target_video_id, severity, status, metadata, created_at, updated_at)
+           VALUES ($1, 'medium', 'open', $2::jsonb, NOW(), NOW())`,
+          [videoId, JSON.stringify({ reasons: result.reasons, source: "ai_auto", text: `${title}\n${description}`.slice(0, 500) })]
+        ).catch(() => undefined);
+      }
+    } catch {
+      // best-effort; do not affect upload flow
+    }
+  })();
 
   return {
     uploadUrl: upload.url,

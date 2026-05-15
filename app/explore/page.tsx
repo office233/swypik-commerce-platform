@@ -5,6 +5,7 @@
  */
 import { headers } from "next/headers";
 import ExploreClient from "./ExploreClient";
+import LiveBadge from "@/components/live/LiveBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -27,5 +28,10 @@ async function fetchSeed(): Promise<any[]> {
 
 export default async function ExplorePage() {
   const initialVideos = await fetchSeed();
-  return <ExploreClient initialVideos={initialVideos} />;
+  return (
+    <>
+      <LiveBadge />
+      <ExploreClient initialVideos={initialVideos} />
+    </>
+  );
 }

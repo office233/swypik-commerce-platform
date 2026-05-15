@@ -8,11 +8,13 @@
     "close": "Închide",
     "search": "Caută",
     "back": "Înapoi",
-    "next": "Următor",
+    "next": "Continuă",
     "previous": "Anterior",
     "yes": "Da",
     "no": "Nu",
     "free": "Gratis",
+    "delete": "Șterge",
+    "edit": "Editează",
     "currency": "Monedă",
     "language": "Limbă"
   },
@@ -22,7 +24,9 @@
     "explore": "Explorează",
     "reels": "Reels",
     "cart": "Coș",
-    "account": "Cont",
+    "upload": "Încarcă",
+    "inbox": "Mesaje",
+    "account": "Profil",
     "collections": "Colecții",
     "orders": "Comenzi",
     "messages": "Mesaje",
@@ -31,7 +35,14 @@
   "auth": {
     "login": "Autentificare",
     "logout": "Ieșire",
-    "register": "Înregistrare"
+    "register": "Înregistrare",
+    "signIn": "Conectează-te",
+    "signUp": "Creează cont",
+    "email": "Email",
+    "password": "Parolă",
+    "continueWithGoogle": "Continuă cu Google",
+    "continueWithApple": "Continuă cu Apple",
+    "or": "sau"
   },
   "product": {
     "addToCart": "Adaugă în coș",
@@ -49,8 +60,17 @@
     "empty": "Coșul este gol",
     "subtotal": "Subtotal",
     "shipping": "Livrare",
+    "tax": "TVA",
+    "taxCalculatedAtCheckout": "Calculat la checkout",
     "total": "Total",
-    "checkout": "Finalizează comanda"
+    "checkout": "Continuă la plată"
+  },
+  "creator": {
+    "drafts": "Schițe",
+    "scheduled": "Programate",
+    "publish": "Publică",
+    "saveDraft": "Salvează draft",
+    "schedule": "Programează"
   },
   "settings": {
     "preferences": "Preferințe",

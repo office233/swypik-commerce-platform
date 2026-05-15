@@ -8,11 +8,13 @@
     "close": "Close",
     "search": "Search",
     "back": "Back",
-    "next": "Next",
+    "next": "Continue",
     "previous": "Previous",
     "yes": "Yes",
     "no": "No",
     "free": "Free",
+    "delete": "Delete",
+    "edit": "Edit",
     "currency": "Currency",
     "language": "Language"
   },
@@ -22,7 +24,9 @@
     "explore": "Explore",
     "reels": "Reels",
     "cart": "Cart",
-    "account": "Account",
+    "upload": "Upload",
+    "inbox": "Inbox",
+    "account": "Profile",
     "collections": "Collections",
     "orders": "Orders",
     "messages": "Messages",
@@ -31,7 +35,14 @@
   "auth": {
     "login": "Sign in",
     "logout": "Sign out",
-    "register": "Sign up"
+    "register": "Register",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
+    "or": "or"
   },
   "product": {
     "addToCart": "Add to cart",
@@ -49,8 +60,17 @@
     "empty": "Your cart is empty",
     "subtotal": "Subtotal",
     "shipping": "Shipping",
+    "tax": "Tax",
+    "taxCalculatedAtCheckout": "Calculated at checkout",
     "total": "Total",
-    "checkout": "Checkout"
+    "checkout": "Continue to checkout"
+  },
+  "creator": {
+    "drafts": "Drafts",
+    "scheduled": "Scheduled",
+    "publish": "Publish",
+    "saveDraft": "Save draft",
+    "schedule": "Schedule"
   },
   "settings": {
     "preferences": "Preferences",

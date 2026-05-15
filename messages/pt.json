@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "A carregar…",
+    "error": "Ocorreu um erro",
+    "retry": "Tentar novamente",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "search": "Pesquisar",
+    "back": "Voltar",
+    "next": "Continuar",
+    "previous": "Anterior",
+    "yes": "Sim",
+    "no": "Não",
+    "free": "Grátis",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "currency": "Moeda",
+    "language": "Idioma"
+  },
+  "nav": {
+    "home": "Início",
+    "shop": "Loja",
+    "explore": "Explorar",
+    "reels": "Reels",
+    "cart": "Carrinho",
+    "upload": "Enviar",
+    "inbox": "Caixa",
+    "account": "Perfil",
+    "collections": "Coleções",
+    "orders": "Pedidos",
+    "messages": "Mensagens",
+    "notifications": "Notificações"
+  },
+  "auth": {
+    "login": "Entrar",
+    "logout": "Sair",
+    "register": "Registar",
+    "signIn": "Entrar",
+    "signUp": "Criar conta",
+    "email": "Email",
+    "password": "Palavra-passe",
+    "continueWithGoogle": "Continuar com Google",
+    "continueWithApple": "Continuar com Apple",
+    "or": "ou"
+  },
+  "product": {
+    "addToCart": "Adicionar ao carrinho",
+    "buyNow": "Comprar agora",
+    "outOfStock": "Esgotado",
+    "shipping": "Envio",
+    "freeShipping": "Envio gratuito",
+    "reviews": "Avaliações",
+    "details": "Detalhes",
+    "variants": "Variantes",
+    "from": "A partir de"
+  },
+  "cart": {
+    "title": "O teu carrinho",
+    "empty": "O teu carrinho está vazio",
+    "subtotal": "Subtotal",
+    "shipping": "Envio",
+    "tax": "IVA",
+    "taxCalculatedAtCheckout": "Calculado na finalização",
+    "total": "Total",
+    "checkout": "Ir para pagamento"
+  },
+  "creator": {
+    "drafts": "Rascunhos",
+    "scheduled": "Agendados",
+    "publish": "Publicar",
+    "saveDraft": "Guardar rascunho",
+    "schedule": "Agendar"
+  },
+  "settings": {
+    "preferences": "Preferências",
+    "selectLanguage": "Escolher idioma",
+    "selectCurrency": "Escolher moeda"
+  }
+}
