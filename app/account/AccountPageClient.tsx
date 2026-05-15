@@ -376,11 +376,13 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             <span className="flex-1 text-sm font-semibold">Comenzile mele</span>
             <span className="text-white/40">›</span>
           </Link>
+          {isEnabledClient("returns") && (
           <Link href="/account/returns" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
             <Package size={18} className="text-white/60" />
             <span className="flex-1 text-sm font-semibold">Retururi</span>
             <span className="text-white/40">›</span>
           </Link>
+          )}
           <Link href="/account/saved" className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.06]">
             <Bookmark size={18} className="text-white/60" />
             <span className="flex-1 text-sm font-semibold">Produse salvate</span>

@@ -1,12 +1,15 @@
 /**
  * AliExpress OAuth Callback
- * Receives authorization code, exchanges for access_token, persists in DB.
- * IMPORTANT: never returns access_token in HTTP response.
+ * - Requires admin session.
+ * - Verifies anti-CSRF state token (Redis, single-use).
+ * - Exchanges code for token, persists in DB.
  */
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { Pool } from "pg";
 import { logger } from "@/lib/logger";
+import { getRedis } from "@/lib/redis";
+import { requireAuth } from "@/lib/auth/getAuthUser";
 
 const APP_KEY = process.env.ALIEXPRESS_APP_KEY || "";
 const APP_SECRET = process.env.ALIEXPRESS_APP_SECRET || "";
@@ -18,6 +21,9 @@ function db(): Pool {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req, ["admin"]);
+  if (auth instanceof NextResponse) return auth;
+
   if (!APP_KEY || !APP_SECRET) {
     logger.error("[AliExpress OAuth] missing env ALIEXPRESS_APP_KEY/SECRET");
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
@@ -25,8 +31,30 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   if (!code) {
     return NextResponse.json({ error: "No authorization code received" }, { status: 400 });
+  }
+  if (!state || !/^[a-f0-9]{64}$/.test(state)) {
+    return NextResponse.json({ error: "Missing or invalid state" }, { status: 403 });
+  }
+
+  try {
+    const key = `ae:oauth:state:${state}`;
+    const stored = await getRedis().get(key);
+    if (!stored) {
+      return NextResponse.json({ error: "State expired or invalid" }, { status: 403 });
+    }
+    try {
+      const parsed = JSON.parse(stored) as { userId: string | null };
+      if (parsed.userId && auth.userId && parsed.userId !== auth.userId) {
+        return NextResponse.json({ error: "State user mismatch" }, { status: 403 });
+      }
+    } catch {}
+    await getRedis().del(key);
+  } catch (e) {
+    logger.warn({ err: (e as Error)?.message }, "[AliExpress OAuth] state check error");
+    return NextResponse.json({ error: "State verification failed" }, { status: 403 });
   }
 
   try {

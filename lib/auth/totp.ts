@@ -4,6 +4,49 @@ import bcrypt from "bcryptjs";
 
 const ISSUER = "Swypik";
 
+/* ────────────────────────────────────────────────────────────────────
+ * Encryption helpers for TOTP secret at rest.
+ * AES-256-GCM with random IV per record. Format:
+ *   v1:<ivHex>:<tagHex>:<ciphertextHex>
+ * Backward compat: any value that does NOT start with "v1:" is treated
+ * as plaintext base32 (legacy). decryptSecret returns it as-is.
+ * ──────────────────────────────────────────────────────────────────── */
+function getKey(): Buffer {
+  const hex = process.env.APP_ENCRYPTION_KEY || "";
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
+    throw new Error("APP_ENCRYPTION_KEY missing or invalid (expected 32-byte hex)");
+  }
+  return Buffer.from(hex, "hex");
+}
+
+export function encryptSecret(plain: string): string {
+  const key = getKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `v1:${iv.toString("hex")}:${tag.toString("hex")}:${enc.toString("hex")}`;
+}
+
+export function decryptSecret(stored: string): string {
+  if (!stored) return stored;
+  if (!stored.startsWith("v1:")) return stored;
+  const parts = stored.split(":");
+  if (parts.length !== 4) return stored;
+  try {
+    const key = getKey();
+    const iv = Buffer.from(parts[1], "hex");
+    const tag = Buffer.from(parts[2], "hex");
+    const data = Buffer.from(parts[3], "hex");
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(tag);
+    const dec = Buffer.concat([decipher.update(data), decipher.final()]);
+    return dec.toString("utf8");
+  } catch {
+    return "";
+  }
+}
+
 export function generateSecret(): string {
   return new OTPAuth.Secret({ size: 20 }).base32;
 }
@@ -20,8 +63,13 @@ export function getOtpAuthUrl(secret: string, email: string): string {
   return totp.toString();
 }
 
-export function verifyToken(secret: string, token: string): boolean {
+/**
+ * Verify a TOTP code. `storedSecret` may be encrypted (v1:...) or legacy plaintext.
+ */
+export function verifyToken(storedSecret: string, token: string): boolean {
   try {
+    const secret = decryptSecret(storedSecret);
+    if (!secret) return false;
     const totp = new OTPAuth.TOTP({
       issuer: ISSUER,
       algorithm: "SHA1",
@@ -45,16 +93,24 @@ export function generateBackupCodes(count = 10): string[] {
 }
 
 export async function hashBackupCodes(codes: string[]): Promise<string[]> {
-  return Promise.all(codes.map((c) => bcrypt.hash(c, 10)));
+  // bcrypt cost 12
+  return Promise.all(codes.map((c) => bcrypt.hash(c, 12)));
 }
 
-export async function consumeBackupCode(hashedList: string[], submitted: string): Promise<{ matched: boolean; remaining: string[] }> {
+export async function consumeBackupCode(
+  hashedList: string[],
+  submitted: string,
+): Promise<{ matched: boolean; remaining: string[] }> {
   const clean = submitted.replace(/\s/g, "").toUpperCase();
   for (let i = 0; i < hashedList.length; i++) {
-    if (await bcrypt.compare(clean, hashedList[i])) {
-      const remaining = hashedList.filter((_, idx) => idx !== i);
-      return { matched: true, remaining };
-    }
+    const h = hashedList[i];
+    if (typeof h !== "string" || !/^\$2[aby]\$/.test(h)) continue;
+    try {
+      if (await bcrypt.compare(clean, h)) {
+        const remaining = hashedList.filter((_, idx) => idx !== i);
+        return { matched: true, remaining };
+      }
+    } catch {}
   }
   return { matched: false, remaining: hashedList };
 }

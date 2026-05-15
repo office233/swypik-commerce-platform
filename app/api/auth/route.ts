@@ -455,6 +455,20 @@ export async function POST(req: Request) {
 
       const userId = insertRows[0].id;
 
+      // Default rows pentru noi useri (idempotent — ON CONFLICT DO NOTHING)
+      try {
+        await dbQuery(
+          `INSERT INTO notification_preferences (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
+          [userId],
+        );
+        await dbQuery(
+          `INSERT INTO swyp_wallets (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
+          [userId],
+        );
+      } catch (err) {
+        console.warn('[auth/signup_password] default rows insert failed:', (err as Error).message);
+      }
+
       // Trimite OTP de verificare email asincron (fire-and-forget pentru UX rapid)
       try {
         const otp = crypto.randomInt(100000, 1000000).toString();

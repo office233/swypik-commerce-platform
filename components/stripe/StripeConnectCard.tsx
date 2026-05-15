@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isEnabledClient } from "@/lib/feature-flags-client";
 
 type Status = {
   accountId: string | null;
@@ -11,6 +12,7 @@ type Status = {
 };
 
 export default function StripeConnectCard({ variant = "creator" }: { variant?: "creator" | "seller" }) {
+  if (!isEnabledClient("stripeConnect")) return null;
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);

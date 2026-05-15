@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import crypto from "crypto";
 import { sendMagicLink } from "@/lib/email/service";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { getRedis } from "@/lib/redis";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -15,85 +17,145 @@ function hashToken(value: string): string {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
+const GENERIC_REQUEST_OK = {
+  success: true,
+  message: "Dacă există un cont, ai primit codul pe email.",
+};
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { action, email, token } = body;
 
-    if (action === "login") {
+    if (action === "login" || action === "request_otp") {
       if (!email || !String(email).includes("@")) {
-        return NextResponse.json({ success: false, error: "Email invalid." }, { status: 400 });
+        return NextResponse.json(GENERIC_REQUEST_OK);
       }
 
       const normalizedEmail = String(email).trim().toLowerCase();
-      const { rows } = await dbQuery(`SELECT id, status FROM sellers WHERE email = $1`, [normalizedEmail]);
+      const ip = getClientIP(req);
 
-      if (rows.length === 0) {
-        return NextResponse.json({ success: false, error: "Cont inexistent. Te rugam sa aplici prin portalul B2B." }, { status: 403 });
-      }
-
-      if (rows[0].status !== "active" && rows[0].status !== "approved") {
-        return NextResponse.json({ success: false, error: "Contul tau nu este aprobat inca. Vei fi contactat in curand." }, { status: 403 });
-      }
-
-      const sellerId = rows[0].id;
-      const otp = crypto.randomInt(100000, 1000000).toString();
-      const otpToken = `otp:${otp}`;
-      const otpHash = hashToken(otpToken);
-
-      await dbQuery(
-        `INSERT INTO seller_sessions (seller_id, token, expires_at, created_at)
-         VALUES ($1, $2, now() + interval '15 minutes', now())`,
-        [sellerId, otpHash],
-      );
-
-      if (!isProd) {
-        console.log(`[SELLER OTP] Code for ${normalizedEmail}: ${otp}`);
-      }
-      const sent = await sendMagicLink(normalizedEmail, otp);
-      if (!sent) {
+      const ipLimit = await rateLimit("seller-otp-ip", ip, { limit: 3, window: 60 });
+      if (!ipLimit.success) {
         return NextResponse.json(
-          { success: false, error: "Nu am putut trimite codul de autentificare." },
-          { status: 500 }
+          { success: false, error: "Prea multe cereri. Reîncearcă în 60s." },
+          { status: 429, headers: { "Retry-After": "60" } },
+        );
+      }
+      const emailLimit = await rateLimit("seller-otp-email", normalizedEmail, { limit: 5, window: 3600 });
+      if (!emailLimit.success) {
+        return NextResponse.json(
+          { success: false, error: "Prea multe cereri pentru acest email. Reîncearcă mai târziu." },
+          { status: 429, headers: { "Retry-After": "3600" } },
         );
       }
 
-      return NextResponse.json({ success: true, requiresVerification: true });
+      const { rows } = await dbQuery(`SELECT id, status FROM sellers WHERE email = $1`, [normalizedEmail]);
+      const start = Date.now();
+
+      let issued = false;
+      if (rows.length > 0 && (rows[0].status === "active" || rows[0].status === "approved")) {
+        const sellerId = rows[0].id;
+        const otp = crypto.randomInt(100000, 1000000).toString();
+        const otpToken = `otp:${otp}`;
+        const otpHash = hashToken(otpToken);
+
+        try { await getRedis().del(`seller-otp-attempts:${otpHash}`); } catch {}
+
+        await dbQuery(
+          `INSERT INTO seller_sessions (seller_id, token, expires_at, created_at)
+           VALUES ($1, $2, now() + interval '15 minutes', now())`,
+          [sellerId, otpHash],
+        );
+
+        if (!isProd) console.log(`[SELLER OTP] Code for ${normalizedEmail}: ${otp}`);
+        sendMagicLink(normalizedEmail, otp).catch((e) =>
+          logger.warn({ err: e?.message }, "[Seller Auth] email send failed"),
+        );
+        issued = true;
+      }
+
+      const elapsed = Date.now() - start;
+      if (elapsed < 150) await new Promise((r) => setTimeout(r, 150 - elapsed));
+      void issued;
+      return NextResponse.json(GENERIC_REQUEST_OK);
     }
 
     if (action === "verify_otp") {
       if (!email || !token) {
-        return NextResponse.json({ success: false, error: "Email si codul sunt obligatorii." }, { status: 400 });
+        return NextResponse.json({ success: false, error: "Email și codul sunt obligatorii." }, { status: 400 });
       }
 
       const normalizedEmail = String(email).trim().toLowerCase();
-      const otpToken = `otp:${String(token).trim()}`;
+      const codeRaw = String(token).trim();
+      if (!/^\d{6}$/.test(codeRaw)) {
+        return NextResponse.json({ success: false, error: "Cod invalid sau expirat." }, { status: 400 });
+      }
+      const otpToken = `otp:${codeRaw}`;
       const otpHash = hashToken(otpToken);
 
-      const { rows } = await dbQuery(
+      const ip = getClientIP(req);
+      const broad = await rateLimit("seller-otp-verify-ip", ip, { limit: 20, window: 300 });
+      if (!broad.success) {
+        return NextResponse.json(
+          { success: false, error: "Prea multe încercări. Reîncearcă în câteva minute." },
+          { status: 429, headers: { "Retry-After": "300" } },
+        );
+      }
+
+      const attemptsKey = `seller-otp-attempts:${otpHash}`;
+      let attempts = 0;
+      try {
+        attempts = await getRedis().incr(attemptsKey);
+        if (attempts === 1) await getRedis().expire(attemptsKey, 900);
+      } catch {}
+      if (attempts > 5) {
+        await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [otpHash]).catch(() => {});
+        return NextResponse.json(
+          { success: false, error: "Prea multe încercări. Solicită un cod nou." },
+          { status: 429 },
+        );
+      }
+
+      const { rows: candidates } = await dbQuery<{ seller_id: string; token: string }>(
         `SELECT ss.seller_id, ss.token
          FROM seller_sessions ss
          JOIN sellers s ON s.id = ss.seller_id
-          WHERE s.email = $1 AND ss.token = $2 AND ss.expires_at > now()`,
-        [normalizedEmail, otpHash],
+         WHERE s.email = $1 AND ss.expires_at > now() AND length(ss.token) = 64`,
+        [normalizedEmail],
       );
 
-      if (rows.length === 0) {
+      let matchedSellerId: string | null = null;
+      for (const c of candidates) {
+        if (timingSafeEqualStr(c.token, otpHash)) {
+          matchedSellerId = c.seller_id;
+          break;
+        }
+      }
+
+      if (!matchedSellerId) {
         return NextResponse.json({ success: false, error: "Cod invalid sau expirat." }, { status: 400 });
       }
 
-      const sellerId = rows[0].seller_id;
       await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [otpHash]);
+      try { await getRedis().del(attemptsKey); } catch {}
 
       const sessionToken = crypto.randomBytes(32).toString("hex");
       const sessionHash = hashToken(sessionToken);
       await dbQuery(
         `INSERT INTO seller_sessions (seller_id, token, expires_at, created_at)
          VALUES ($1, $2, now() + interval '30 days', now())`,
-        [sellerId, sessionHash],
+        [matchedSellerId, sessionHash],
       );
 
-      const response = NextResponse.json({ success: true, sellerId });
+      const response = NextResponse.json({ success: true, sellerId: matchedSellerId });
       response.headers.set(
         "Set-Cookie",
         `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}`,
@@ -104,6 +166,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "Unknown action" }, { status: 400 });
   } catch (error: any) {
     logger.error({ err: error }, "[Seller Auth API] Error:");
-    return NextResponse.json({ success: false, error: "Eroare interna la autentificare." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Eroare internă la autentificare." }, { status: 500 });
   }
 }
