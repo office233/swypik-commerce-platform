@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, RefreshCw, Reply, Send, X } from "lucide-react";
+import { Heart, Loader2, MessageCircle, RefreshCw, Reply, Send, X } from "lucide-react";
 
 type CommentAuthor = {
   id: string | null;
@@ -63,6 +63,38 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
   const [replyTo, setReplyTo] = useState<CommentItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [count, setCount] = useState(() => parseCount(initialCount));
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [likePending, setLikePending] = useState<Set<string>>(new Set());
+
+  const toggleCommentLike = useCallback(async (commentId: string) => {
+    if (likePending.has(commentId)) return;
+    setLikePending((s) => { const n = new Set(s); n.add(commentId); return n; });
+    const wasLiked = likedIds.has(commentId);
+    setLikedIds((s) => { const n = new Set(s); if (wasLiked) n.delete(commentId); else n.add(commentId); return n; });
+    setComments((list) => list.map((c) => {
+      if (c.id === commentId) return { ...c, likeCount: Math.max(0, c.likeCount + (wasLiked ? -1 : 1)) };
+      return { ...c, replies: c.replies.map((r) => r.id === commentId ? { ...r, likeCount: Math.max(0, r.likeCount + (wasLiked ? -1 : 1)) } : r) };
+    }));
+    try {
+      const res = await fetch(`/api/comments/${commentId}/like`, { method: 'POST' });
+      if (!res.ok) throw new Error('Like failed');
+      const data = await res.json();
+      setLikedIds((s) => { const n = new Set(s); if (data.liked) n.add(commentId); else n.delete(commentId); return n; });
+      setComments((list) => list.map((c) => {
+        if (c.id === commentId) return { ...c, likeCount: data.like_count };
+        return { ...c, replies: c.replies.map((r) => r.id === commentId ? { ...r, likeCount: data.like_count } : r) };
+      }));
+    } catch {
+      setLikedIds((s) => { const n = new Set(s); if (wasLiked) n.add(commentId); else n.delete(commentId); return n; });
+      setComments((list) => list.map((c) => {
+        if (c.id === commentId) return { ...c, likeCount: Math.max(0, c.likeCount + (wasLiked ? 1 : -1)) };
+        return { ...c, replies: c.replies.map((r) => r.id === commentId ? { ...r, likeCount: Math.max(0, r.likeCount + (wasLiked ? 1 : -1)) } : r) };
+      }));
+    } finally {
+      setLikePending((s) => { const n = new Set(s); n.delete(commentId); return n; });
+    }
+  }, [likedIds, likePending]);
+
   const sheetRef = useRef<HTMLElement | null>(null);
 
   // Body scroll lock
@@ -234,7 +266,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
           ) : (
             <div className="space-y-4">
               {comments.map((comment) => (
-                <CommentBlock key={comment.id} comment={comment} onReply={setReplyTo} />
+                <CommentBlock key={comment.id} comment={comment} onReply={setReplyTo} onLike={toggleCommentLike} likedIds={likedIds} likingIds={likePending} />
               ))}
             </div>
           )}
@@ -283,7 +315,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
   );
 }
 
-function CommentBlock({ comment, onReply }: { comment: CommentItem; onReply: (comment: CommentItem) => void }) {
+function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comment: CommentItem; onReply: (comment: CommentItem) => void; onLike: (id: string) => void; likedIds: Set<string>; likingIds: Set<string> }) {
   return (
     <article>
       <div className="flex gap-3">
@@ -296,10 +328,23 @@ function CommentBlock({ comment, onReply }: { comment: CommentItem; onReply: (co
             <span className="text-xs font-semibold text-[#8E8E93]">{relativeTime(comment.createdAt)}</span>
           </div>
           <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-5 text-[#1D1D1F]">{comment.text}</p>
-          <button type="button" onClick={() => onReply(comment)} className="mt-2 inline-flex items-center gap-1 text-xs font-black text-[#6E6E80]">
-            <Reply size={13} />
-            Raspunde
-          </button>
+          <div className="mt-2 flex items-center gap-4">
+            <button
+              type="button"
+              aria-label={likedIds.has(comment.id) ? "Anuleaza aprecierea" : "Apreciaza comentariul"}
+              aria-pressed={likedIds.has(comment.id)}
+              disabled={likingIds.has(comment.id)}
+              onClick={() => onLike(comment.id)}
+              className={"inline-flex items-center gap-1 text-xs font-black disabled:opacity-60 " + (likedIds.has(comment.id) ? "text-[#FE2C55]" : "text-[#6E6E80]")}
+            >
+              <Heart size={13} fill={likedIds.has(comment.id) ? "#FE2C55" : "none"} />
+              {comment.likeCount > 0 ? comment.likeCount : ""}
+            </button>
+            <button type="button" onClick={() => onReply(comment)} className="inline-flex items-center gap-1 text-xs font-black text-[#6E6E80]">
+              <Reply size={13} />
+              Raspunde
+            </button>
+          </div>
         </div>
       </div>
 
@@ -316,9 +361,22 @@ function CommentBlock({ comment, onReply }: { comment: CommentItem; onReply: (co
                   <span className="text-[11px] font-semibold text-[#8E8E93]">{relativeTime(reply.createdAt)}</span>
                 </div>
                 <p className="mt-1 break-words text-sm leading-5 text-[#1D1D1F]">{reply.text}</p>
-                <button type="button" onClick={() => onReply(reply)} className="mt-1 text-xs font-black text-[#6E6E80]">
-                  Raspunde
-                </button>
+                <div className="mt-1 flex items-center gap-4">
+                  <button
+                    type="button"
+                    aria-label={likedIds.has(reply.id) ? "Anuleaza aprecierea" : "Apreciaza raspunsul"}
+                    aria-pressed={likedIds.has(reply.id)}
+                    disabled={likingIds.has(reply.id)}
+                    onClick={() => onLike(reply.id)}
+                    className={"inline-flex items-center gap-1 text-xs font-black disabled:opacity-60 " + (likedIds.has(reply.id) ? "text-[#FE2C55]" : "text-[#6E6E80]")}
+                  >
+                    <Heart size={12} fill={likedIds.has(reply.id) ? "#FE2C55" : "none"} />
+                    {reply.likeCount > 0 ? reply.likeCount : ""}
+                  </button>
+                  <button type="button" onClick={() => onReply(reply)} className="text-xs font-black text-[#6E6E80]">
+                    Raspunde
+                  </button>
+                </div>
               </div>
             </div>
           ))}

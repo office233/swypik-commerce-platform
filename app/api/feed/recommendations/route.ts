@@ -1,3 +1,9 @@
+/**
+ * GENERATED-CONSUMER-NOTE
+ * Postgres ranking fast-path consumed by external clients while the Go
+ * platform-api ranking service ramps up. No in-app fetch caller today —
+ * /api/explore/feed handles the website feed directly.
+ */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";

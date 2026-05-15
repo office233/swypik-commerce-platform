@@ -1,3 +1,9 @@
+/**
+ * GENERATED-CONSUMER-NOTE
+ * Versioned public API (v1) consumed by external clients. Proxies to the Go
+ * social-api when SOCIAL_API_BASE_URL is set; falls back to local feed.
+ * No in-app fetch caller — only mobile / external consumers.
+ */
 import { NextResponse } from "next/server";
 import { getCreatorSnapshotForRequest } from "@/lib/social/creator-server";
 

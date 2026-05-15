@@ -1,3 +1,9 @@
+/**
+ * GENERATED-CONSUMER-NOTE
+ * Toggle like on a comment. Mirrors /api/videos/[id]/like (same likes table,
+ * uses comment_id instead of video_id). Wired to components/social/CommentsSheet
+ * (Heart button next to each comment).
+ */
 import { NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import {
