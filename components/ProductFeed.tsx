@@ -20,7 +20,6 @@ import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 
 // Heavy client-only components — lazy-load to keep initial bundle small.
-const CreatorUpload = dynamic(() => import("./CreatorUpload"), { ssr: false });
 const CommentsSheet = dynamic(() => import("./social/CommentsSheet"), { ssr: false });
 import {
   trackEvent as trackFeedEvent,
@@ -443,7 +442,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           </button>
         ) : <span />}
         <div className="flex items-center gap-2">
-          <CreatorUpload />
           <button
             type="button"
             onClick={() => setIsMuted((value) => !value)}
