@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Banknote, ExternalLink, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { Banknote, ExternalLink, CheckCircle2, AlertTriangle, Loader2, ArrowRightLeft } from "lucide-react";
 
 type ConnectStatus = {
   accountId: string | null;
@@ -28,6 +28,20 @@ type PayoutRow = {
   created_at: string;
 };
 
+type TransferRow = {
+  id: string;
+  status: string;
+  currency: string;
+  amount_cents: number;
+  reversed_amount_cents: number;
+  submitted_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  failure_message: string | null;
+  provider_transfer_id: string | null;
+  created_at: string;
+};
+
 function formatMoney(cents: number, currency: string): string {
   try {
     return new Intl.NumberFormat("ro-RO", { style: "currency", currency: (currency || "RON").toUpperCase() }).format((cents || 0) / 100);
@@ -36,7 +50,31 @@ function formatMoney(cents: number, currency: string): string {
   }
 }
 
-export default function PayoutsClient({ recentPayouts }: { recentPayouts: PayoutRow[] }) {
+const TRANSFER_STATUS_LABEL: Record<string, string> = {
+  pending: "În așteptare",
+  submitted: "Trimis",
+  succeeded: "Finalizat",
+  failed: "Eșuat",
+  reversed: "Anulat",
+  cancelled: "Anulat",
+};
+
+const TRANSFER_STATUS_CLASS: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800",
+  submitted: "bg-blue-100 text-blue-800",
+  succeeded: "bg-green-100 text-green-800",
+  failed: "bg-red-100 text-red-800",
+  reversed: "bg-gray-100 text-gray-800",
+  cancelled: "bg-gray-100 text-gray-800",
+};
+
+export default function PayoutsClient({
+  recentPayouts,
+  recentTransfers = [],
+}: {
+  recentPayouts: PayoutRow[];
+  recentTransfers?: TransferRow[];
+}) {
   const router = useRouter();
   const search = useSearchParams();
   const [status, setStatus] = useState<ConnectStatus | null>(null);
@@ -164,7 +202,44 @@ export default function PayoutsClient({ recentPayouts }: { recentPayouts: Payout
       )}
 
       <section className="mt-8">
-        <h3 className="text-lg font-black mb-3">Ultimele plăți</h3>
+        <h3 className="text-lg font-black mb-3 flex items-center gap-2"><ArrowRightLeft size={18} /> Istoric transferuri Stripe</h3>
+        {recentTransfers.length === 0 ? (
+          <p className="text-sm text-[#6E6E80]">Nu există transferuri Stripe încă.</p>
+        ) : (
+          <div className="rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
+                <tr>
+                  <th className="px-4 py-2">Data</th>
+                  <th className="px-4 py-2">Sumă</th>
+                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Ref</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E5E5E5]">
+                {recentTransfers.map((t) => (
+                  <tr key={t.id}>
+                    <td className="px-4 py-3 whitespace-nowrap">{new Date(t.completed_at || t.submitted_at || t.created_at).toLocaleDateString("ro-RO")}</td>
+                    <td className="px-4 py-3 font-bold whitespace-nowrap">{formatMoney(t.amount_cents - (t.reversed_amount_cents || 0), t.currency)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block px-2 py-1 rounded-md text-xs font-bold ${TRANSFER_STATUS_CLASS[t.status] || "bg-[#F7F7F8]"}`}>
+                        {TRANSFER_STATUS_LABEL[t.status] || t.status}
+                      </span>
+                      {t.failure_message && (
+                        <div className="mt-1 text-[11px] text-red-600">{t.failure_message}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[#6E6E80] font-mono">{t.provider_transfer_id ? t.provider_transfer_id.slice(0, 14) + "…" : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-8">
+        <h3 className="text-lg font-black mb-3">Ultimele plăți (comisioane)</h3>
         {recentPayouts.length === 0 ? (
           <p className="text-sm text-[#6E6E80]">Nu există plăți încă.</p>
         ) : (

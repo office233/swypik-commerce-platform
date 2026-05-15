@@ -23,13 +23,21 @@ type TxRow = {
   created_at: string;
 };
 
+type ChallengeRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  challenge_type: string;
+  reward_points: number;
+  ends_at: string;
+};
+
 export async function GET() {
   const user = await getAuthUser();
   if (!user.userId) {
     return NextResponse.json({ error: "unauth" }, { status: 401 });
   }
 
-  // Ensure wallet exists
   await dbQuery(
     `INSERT INTO swyp_wallets (user_id) VALUES ($1)
      ON CONFLICT (user_id) DO NOTHING`,
@@ -56,6 +64,14 @@ export async function GET() {
     [wallet.id],
   );
 
+  const { rows: chRows } = await dbQuery<ChallengeRow>(
+    `SELECT id, title, description, challenge_type, reward_points, ends_at
+       FROM daily_challenges
+      WHERE status = 'active' AND ends_at > now()
+      ORDER BY featured DESC, starts_at DESC
+      LIMIT 5`,
+  );
+
   const lastClaim = wallet.daily_claimed_at ? new Date(wallet.daily_claimed_at) : null;
   const canClaim = !lastClaim || Date.now() - lastClaim.getTime() >= 24 * 3600 * 1000;
   const nextClaimAt = lastClaim && !canClaim
@@ -77,6 +93,14 @@ export async function GET() {
       reason: t.reason,
       sourceType: t.source_type,
       createdAt: t.created_at,
+    })),
+    challenges: chRows.map((c) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      type: c.challenge_type,
+      reward: c.reward_points,
+      endsAt: c.ends_at,
     })),
   });
 }

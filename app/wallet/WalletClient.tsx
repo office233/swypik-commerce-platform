@@ -1,8 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Coins, Flame, Gift } from "lucide-react";
+import {
+  ArrowLeft,
+  Coins,
+  Flame,
+  Gift,
+  History,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Trophy,
+  Repeat,
+  ChevronRight,
+} from "lucide-react";
 
 type Tx = {
   id: string;
@@ -14,6 +25,15 @@ type Tx = {
   createdAt: string;
 };
 
+type Challenge = {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  reward: number;
+  endsAt: string;
+};
+
 type WalletData = {
   balance: number;
   lifetimeEarned: number;
@@ -22,6 +42,7 @@ type WalletData = {
   canClaim: boolean;
   nextClaimAt: string | null;
   transactions: Tx[];
+  challenges: Challenge[];
 };
 
 const REASON_LABELS: Record<string, string> = {
@@ -32,6 +53,8 @@ const REASON_LABELS: Record<string, string> = {
   earn: "Câștigat",
   admin_grant: "Acordat de admin",
   admin_deduct: "Reținut de admin",
+  challenge_reward: "Provocare câștigată",
+  referral: "Recomandare",
 };
 
 function formatDate(iso: string): string {
@@ -47,11 +70,23 @@ function formatDate(iso: string): string {
   }
 }
 
+function formatCountdown(targetIso: string, nowMs: number): string {
+  const diff = new Date(targetIso).getTime() - nowMs;
+  if (diff <= 0) return "acum";
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
 export default function WalletClient() {
   const [data, setData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,16 +103,23 @@ export default function WalletClient() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleClaim = useCallback(async () => {
     setClaiming(true);
     try {
       const res = await fetch("/api/wallet/daily-claim", { method: "POST" });
       const json = await res.json();
       if (res.ok) {
-        setToast(`+${json.amount} SWYP! Streak: ${json.streak}`);
+        setToast(`+${json.amount} SWYP! Streak: ${json.streak} 🔥`);
         await load();
       } else if (json.error === "already_claimed") {
         setToast("Ai revendicat deja recompensa azi.");
+      } else if (json.error === "unauth") {
+        setToast("Trebuie să fii autentificat.");
       } else {
         setToast("Eroare la revendicare.");
       }
@@ -89,10 +131,15 @@ export default function WalletClient() {
     }
   }, [load]);
 
+  const countdown = useMemo(() => {
+    if (!data?.nextClaimAt) return null;
+    return formatCountdown(data.nextClaimAt, now);
+  }, [data?.nextClaimAt, now]);
+
   return (
     <main className="min-h-screen bg-black text-white pb-24">
       <header className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur border-b border-white/10">
-        <Link href="/account" className="p-1 -ml-1">
+        <Link href="/account" className="p-1 -ml-1" aria-label="Înapoi">
           <ArrowLeft size={22} />
         </Link>
         <h1 className="text-lg font-black">Portofel SWYP</h1>
@@ -103,33 +150,48 @@ export default function WalletClient() {
           <div className="text-white/50 text-sm">Se încarcă...</div>
         ) : (
           <>
+            {/* Hero balance */}
             <section className="rounded-3xl bg-gradient-to-br from-yellow-500/20 via-orange-500/10 to-pink-500/10 border border-yellow-500/30 p-6">
               <div className="flex items-center gap-2 text-yellow-300/90 text-xs uppercase tracking-wider font-bold">
                 <Coins size={14} />
-                Balanță SWYP
+                Balanță Swyp Coins
               </div>
-              <div className="mt-2 text-5xl font-black tabular-nums">
+              <div className="mt-2 text-5xl font-black tabular-nums flex items-baseline gap-2">
+                <Coins size={36} className="text-yellow-400" />
                 {data.balance.toLocaleString("ro-RO")}
-                <span className="text-2xl ml-2 text-white/60">SWYP</span>
+                <span className="text-xl text-white/60">SWYP</span>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-sm">
+                <Flame size={16} className="text-orange-400" />
+                <span className="font-semibold">
+                  {data.dailyStreak} {data.dailyStreak === 1 ? "zi" : "zile"} la rând
+                </span>
               </div>
               <div className="mt-3 flex gap-4 text-xs text-white/60">
-                <span>Total câștigat: {data.lifetimeEarned.toLocaleString("ro-RO")}</span>
-                <span>Cheltuit: {data.lifetimeSpent.toLocaleString("ro-RO")}</span>
+                <span className="flex items-center gap-1">
+                  <ArrowUpCircle size={12} className="text-green-400" />
+                  Total: {data.lifetimeEarned.toLocaleString("ro-RO")}
+                </span>
+                <span className="flex items-center gap-1">
+                  <ArrowDownCircle size={12} className="text-red-400" />
+                  Cheltuit: {data.lifetimeSpent.toLocaleString("ro-RO")}
+                </span>
               </div>
             </section>
 
+            {/* Daily claim */}
             <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
               <div className="flex items-center gap-3">
                 <Gift size={20} className="text-pink-400" />
                 <div className="flex-1">
                   <h2 className="text-sm md:text-base font-bold">Recompensă zilnică</h2>
-                  <p className="text-xs text-white/60 mt-0.5 flex items-center gap-1">
-                    <Flame size={12} className="text-orange-400" />
-                    Streak: {data.dailyStreak} {data.dailyStreak === 1 ? "zi" : "zile"}
+                  <p className="text-xs text-white/60 mt-0.5">
+                    +10 coins ziua 1, +5 fiecare zi consecutivă (max 50)
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 disabled={!data.canClaim || claiming}
                 onClick={handleClaim}
                 className="mt-4 w-full rounded-xl bg-gradient-to-r from-pink-500 to-orange-500 disabled:from-white/10 disabled:to-white/10 disabled:text-white/40 text-white font-bold py-3 text-sm md:text-base transition"
@@ -137,18 +199,66 @@ export default function WalletClient() {
                 {claiming
                   ? "Se revendică..."
                   : data.canClaim
-                  ? "Revendică recompensa zilnică"
-                  : "Revendicat — revino mâine"}
+                  ? "Revendică recompensa zilnică (+10 coins)"
+                  : countdown
+                  ? `Disponibil în ${countdown}`
+                  : "Revendicat"}
               </button>
-              {!data.canClaim && data.nextClaimAt && (
-                <p className="mt-2 text-xs text-white/40 text-center">
-                  Disponibil din: {formatDate(data.nextClaimAt)}
-                </p>
+            </section>
+
+            {/* Active challenges */}
+            <section className="mt-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-white/80 flex items-center gap-2">
+                  <Trophy size={16} className="text-yellow-400" />
+                  Provocări active
+                </h2>
+                <Link
+                  href="/challenges"
+                  className="text-xs text-pink-400 font-semibold flex items-center gap-0.5 hover:text-pink-300"
+                >
+                  Toate <ChevronRight size={14} />
+                </Link>
+              </div>
+              {data.challenges.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/50">
+                  Nicio provocare activă momentan.
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {data.challenges.map((c) => (
+                    <li key={c.id}>
+                      <Link
+                        href="/challenges"
+                        className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] p-4 transition"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-bold truncate">{c.title}</div>
+                          {c.description && (
+                            <div className="text-xs text-white/50 truncate mt-0.5">
+                              {c.description}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-white/40 mt-1">
+                            Se încheie: {formatDate(c.endsAt)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-yellow-300 font-bold text-sm shrink-0">
+                          <Coins size={14} />+{c.reward}
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
 
+            {/* Transactions */}
             <section className="mt-6">
-              <h2 className="text-sm font-bold text-white/80 mb-3">Tranzacții recente</h2>
+              <h2 className="text-sm font-bold text-white/80 mb-3 flex items-center gap-2">
+                <History size={16} />
+                Tranzacții recente
+              </h2>
               {data.transactions.length === 0 ? (
                 <p className="text-sm text-white/50">Nicio tranzacție încă.</p>
               ) : (
@@ -157,11 +267,24 @@ export default function WalletClient() {
                     const isEarn = t.type === "earn" || t.type === "admin_grant";
                     return (
                       <li key={t.id} className="flex items-center gap-3 px-4 py-3">
+                        <div
+                          className={`shrink-0 ${
+                            isEarn ? "text-green-400" : "text-red-400"
+                          }`}
+                        >
+                          {isEarn ? (
+                            <ArrowUpCircle size={20} />
+                          ) : (
+                            <ArrowDownCircle size={20} />
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold truncate">
                             {REASON_LABELS[t.reason] || REASON_LABELS[t.type] || t.reason}
                           </div>
-                          <div className="text-xs text-white/40">{formatDate(t.createdAt)}</div>
+                          <div className="text-xs text-white/40">
+                            {formatDate(t.createdAt)}
+                          </div>
                         </div>
                         <div
                           className={`text-sm font-bold tabular-nums ${
@@ -177,12 +300,33 @@ export default function WalletClient() {
                 </ul>
               )}
             </section>
+
+            {/* Convert to RON placeholder */}
+            <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+              <div className="flex items-center gap-3">
+                <Repeat size={20} className="text-white/30" />
+                <div className="flex-1">
+                  <h2 className="text-sm font-bold text-white/60">
+                    Conversie în RON
+                  </h2>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    În curând vei putea schimba Swyp Coins în lei reali.
+                  </p>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider font-bold bg-white/5 text-white/40 px-2 py-1 rounded-full">
+                  Curând
+                </span>
+              </div>
+            </section>
           </>
         )}
       </div>
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur border border-white/20 px-4 py-2 rounded-full text-sm">
+        <div
+          role="status"
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur border border-white/20 px-4 py-2 rounded-full text-sm whitespace-nowrap"
+        >
           {toast}
         </div>
       )}
