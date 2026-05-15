@@ -11,13 +11,14 @@ type SearchParams = { user?: string };
 export default async function NewMessagePage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
   if (!isEnabled("dm")) {
     redirect("/inbox");
   }
 
-  const peerId = (searchParams?.user || "").trim();
+  const sp = await searchParams;
+  const peerId = (sp?.user || "").trim();
   if (!peerId) {
     redirect("/inbox");
   }

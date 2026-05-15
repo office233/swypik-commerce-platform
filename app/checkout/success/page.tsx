@@ -10,14 +10,15 @@ type SearchParams = { session_id?: string; payment_intent?: string; order_token?
 export default async function CheckoutSuccess({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
+  const sp = await searchParams;
   let order: any = null;
   let lookupError = false;
   let paymentConfirmed = false;
 
-  const sessionId = searchParams.session_id;
-  const paymentIntentId = searchParams.payment_intent;
+  const sessionId = sp.session_id;
+  const paymentIntentId = sp.payment_intent;
 
   if (sessionId) {
     try {
@@ -264,7 +265,7 @@ export default async function CheckoutSuccess({
           <div className="mt-8 space-y-3">
             {order && (
               <Link
-                href={`/orders/${encodeURIComponent(searchParams.order_token || order.order_lookup_token || order.id)}`}
+                href={`/orders/${encodeURIComponent(sp.order_token || order.order_lookup_token || order.id)}`}
                 className="inline-block w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-transform active:scale-[0.98]"
               >
                 📦 Urmărește comanda

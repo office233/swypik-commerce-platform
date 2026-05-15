@@ -17,9 +17,9 @@ type Video = {
 export default async function HashtagPage({
   params,
 }: {
-  params: Promise<Params> | Params;
+  params: Promise<Params>;
 }) {
-  const p = typeof (params as any)?.then === "function" ? await (params as Promise<Params>) : (params as Params);
+  const p = await params;
   const raw = decodeURIComponent(p.tag || "").replace(/^#+/, "").trim().toLowerCase();
 
   const { rows } = await dbQuery<Video>(

@@ -33,7 +33,7 @@ async function firstRow(sql: string, params: unknown[]): Promise<Record<string, 
   }
 }
 
-type RouteContext = { params: Promise<{ id: string }> | { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, context: RouteContext) {
   const { id } = await context.params;

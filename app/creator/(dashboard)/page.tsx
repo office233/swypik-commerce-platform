@@ -4,6 +4,7 @@ import { dbQuery } from "@/lib/db";
 import { summarizeCreatorEarnings } from "@/lib/creator/earnings";
 import { getCreatorUserId } from "@/lib/creator/session";
 import StripeConnectCard from "@/components/stripe/StripeConnectCard";
+import Link from "next/link";
 
 async function getCreatorDashboardSummary(creatorId: string) {
   try {
@@ -126,7 +127,7 @@ export default async function CreatorDashboard() {
         <h2 className="text-xl sm:text-2xl font-black text-[#0D0D0D] mb-4 sm:mb-6">Produse Recomandate</h2>
         <div className="bg-white rounded-2xl border border-[#E5E5E5] p-8 text-center">
           <p className="text-[#6E6E80] text-sm">Recomandările apar aici după ce postezi primul video.</p>
-          <a href="/creator/upload" className="inline-block mt-4 px-5 py-2.5 bg-[#0D0D0D] text-white rounded-xl text-sm font-bold hover:bg-[#1a1a1a] transition-colors">Încarcă primul video</a>
+          <Link href="/creator/upload" className="inline-block mt-4 px-5 py-2.5 bg-[#0D0D0D] text-white rounded-xl text-sm font-bold hover:bg-[#1a1a1a] transition-colors">Încarcă primul video</Link>
         </div>
       </div>
     </div>

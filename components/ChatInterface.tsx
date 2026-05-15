@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bot, Bookmark, ChevronDown, ChevronRight, ClipboardList, Compass, Flame, Grid3x3, Home, LogOut, Menu, MessageCircle, Package, Search, Send, Shield, ShoppingCart, SlidersHorizontal, Sparkles, Star, Tag, Trophy, Truck, Upload, User, X, Zap } from "lucide-react";
 import ProductFeed from "./ProductFeed";
 import { THEME, commerceBadgeClass, translateCategory } from "@/lib/ui/theme";
+import Link from "next/link";
 
 import Image from "next/image";
 
@@ -473,50 +474,50 @@ export default function ChatInterface({
         </div>
         <div className="p-3 overflow-y-auto" style={{maxHeight: 'calc(100vh - 120px)'}}>
           <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">Descoperă</p>
-          <a href="/explore" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          <Link href="/explore" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Compass size={18} className="text-[#0D0D0D]" /> Feed
-          </a>
-          <a href="/challenges" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          </Link>
+          <Link href="/challenges" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Trophy size={18} className="text-[#F59E0B]" /> Challenges
-          </a>
-          <a href="/onboarding" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          </Link>
+          <Link href="/onboarding" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Sparkles size={18} className="text-[#8B5CF6]" /> Alege interese
-          </a>
-          <a href="/collections" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          </Link>
+          <Link href="/collections" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Bookmark size={18} className="text-[#EC4899]" /> Colecțiile mele
-          </a>
+          </Link>
           <div className="my-2 border-t border-[#E5E5E5]" />
           <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">Cont</p>
-          <a href="/account" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          <Link href="/account" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <User size={18} className="text-[#6E6E80]" /> Contul meu
-          </a>
-          <a href="/account" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          </Link>
+          <Link href="/account" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <ClipboardList size={18} className="text-[#6E6E80]" /> Comenzile mele
-          </a>
+          </Link>
           <button onClick={() => { setActiveTab("cart"); setShowMenu(false); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <ShoppingCart size={18} className="text-[#6E6E80]" /> Coșul meu {cartCount > 0 && <span className="ml-auto rounded-full bg-[#0D0D0D] px-2 py-0.5 text-[10px] font-bold text-white">{cartCount}</span>}
           </button>
           <div className="my-2 border-t border-[#E5E5E5]" />
           <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">Creator</p>
-          <a href="/creator" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          <Link href="/creator" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Zap size={18} className="text-[#0D0D0D]" /> Dashboard Creator
-          </a>
-          <a href="/creator/upload" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          </Link>
+          <Link href="/creator/upload" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Upload size={18} className="text-[#6E6E80]" /> Încarcă clip
-          </a>
-          <a href="/creator/rewards" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          </Link>
+          <Link href="/creator/rewards" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Trophy size={18} className="text-[#F59E0B]" /> SWYP Points
-          </a>
-          <a href="/creator/videos" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          </Link>
+          <Link href="/creator/videos" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Flame size={18} className="text-[#EF4444]" /> Clipurile mele
-          </a>
-          <a href="/creator/earnings" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
+          </Link>
+          <Link href="/creator/earnings" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Star size={18} className="text-[#6E6E80]" /> Câștiguri
-          </a>
+          </Link>
           <div className="my-2 border-t border-[#E5E5E5]" />
-          <a href="/admin" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#A1A1AA] hover:bg-[#F7F7F8] transition">
+          <Link href="/admin" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#A1A1AA] hover:bg-[#F7F7F8] transition">
             <Shield size={18} /> Admin
-          </a>
+          </Link>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-[#E5E5E5]">
           <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest text-center">Swypik © 2026</p>

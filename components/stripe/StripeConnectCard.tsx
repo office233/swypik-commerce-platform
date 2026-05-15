@@ -12,19 +12,22 @@ type Status = {
 };
 
 export default function StripeConnectCard({ variant = "creator" }: { variant?: "creator" | "seller" }) {
-  if (!isEnabledClient("stripeConnect")) return null;
+  const enabled = isEnabledClient("stripeConnect");
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     fetch("/api/stripe-connect/status", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setStatus(d))
       .catch(() => setError("Eroare la verificarea statusului."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   async function startOnboarding() {
     setConnecting(true);

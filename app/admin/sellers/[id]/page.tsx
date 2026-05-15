@@ -6,6 +6,7 @@ import { ArrowLeft, Save, ShieldCheck, CreditCard, User, Store } from "lucide-re
 export const dynamic = "force-dynamic";
 
 export default async function EditSellerPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { rows } = await dbQuery(`
     SELECT 
       u.id as user_id, 
@@ -22,7 +23,7 @@ export default async function EditSellerPage({ params }: { params: Promise<{ id:
     FROM users u
     JOIN creator_profiles c ON u.id = c.user_id
     WHERE c.id = $1
-  `, [params.id]);
+  `, [id]);
 
   if (rows.length === 0) {
     notFound();
