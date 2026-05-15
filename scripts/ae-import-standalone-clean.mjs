@@ -1,9 +1,23 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import { resolveTaxonomy, loadCategories } from '../lib/aliexpress/taxonomy-resolver.mjs';
 
 const requireFromApp = createRequire('/opt/swypik/app/package.json');
 const { Pool } = requireFromApp('pg');
+
+/**
+ * Parse simple CLI flags after the positional product_id arg.
+ * Supported: --display-name=, --label-hint=, --leaf-cat-id=, --post-cat-ids=a,b,c
+ */
+function parseFlags(argv) {
+  const flags = {};
+  for (const a of argv.slice(3)) {
+    const m = a.match(/^--([a-z-]+)=(.*)$/);
+    if (m) flags[m[1]] = m[2];
+  }
+  return flags;
+}
 
 const envText = fs.readFileSync('/opt/swypik/app/infra/hetzner/.env.production', 'utf8');
 for (const line of envText.split(/\r?\n/)) {
@@ -12,7 +26,8 @@ for (const line of envText.split(/\r?\n/)) {
 }
 
 const productId = process.argv[2];
-if (!productId) throw new Error('Usage: node ae-import-standalone-clean.mjs <product_id>');
+if (!productId) throw new Error('Usage: node ae-import-standalone-clean.mjs <product_id> [--display-name=...] [--label-hint=...] [--leaf-cat-id=...] [--post-cat-ids=a,b,c]');
+const cliFlags = parseFlags(process.argv);
 
 const APP_KEY = process.env.ALIEXPRESS_APP_KEY || '';
 const APP_SECRET = process.env.ALIEXPRESS_APP_SECRET || '';
@@ -191,15 +206,33 @@ function mapProduct(result) {
 const detail = await getProductDetail(productId);
 const product = mapProduct(detail);
 const adultReason = getAdultReason(product);
-const taxonomy = {
-  department: 'Fashion',
-  category: 'Women',
-  subcategory: 'Clothing',
-  leaf: /dress/i.test(product.title) ? 'Dresses' : 'Clothing',
+
+const pool = new Pool({ connectionString: hostDatabaseUrl() });
+// Resolve taxonomy via ae_categories chain walk + display_name + gender hint.
+// CLI flags override the AE response defaults so the same product can be re-imported
+// with the correct hints discovered during catalog audit.
+const aeCategories = await loadCategories(pool);
+const taxonomyInput = {
+  displayName: cliFlags['display-name'] || product.title,
+  labelHint: cliFlags['label-hint'] || '',
+  postCatIds: cliFlags['post-cat-ids']
+    ? cliFlags['post-cat-ids'].split(',').map((s) => s.trim()).filter(Boolean)
+    : (product.categoryId ? [product.categoryId] : []),
+  leafCatId: cliFlags['leaf-cat-id'] || product.categoryId || null,
 };
-const canonicalCategory = [taxonomy.department, taxonomy.category, taxonomy.subcategory, taxonomy.leaf].filter(Boolean).join(' > ');
-const taxonomySlug = [taxonomy.department, taxonomy.category, taxonomy.subcategory, taxonomy.leaf].map(slugify).join('-');
-const classification = { confidence: 0.95, reason: 'official_ae_import_adult_checked' };
+const resolved = resolveTaxonomy(taxonomyInput, aeCategories);
+const taxonomy = {
+  department: resolved.department,
+  category: resolved.category,
+  subcategory: resolved.subcategory,
+  leaf: resolved.leaf,
+};
+const canonicalCategory = resolved.canonical;
+const taxonomySlug = resolved.slug;
+const classification = {
+  confidence: resolved.confidence,
+  reason: `ae_resolver_${resolved.reason}${adultReason ? '_adult_checked' : ''}`,
+};
 const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
 const activePrices = product.variants.filter((variant) => variant.status === 'active').map((variant) => centsRon(variant.priceRon)).filter(Number.isFinite);
 const priceCents = activePrices.length ? Math.min(...activePrices) : centsRon(product.variants[0].priceRon);
@@ -207,21 +240,21 @@ const slug = `${slugify(product.title) || 'aliexpress-product'}-${product.id}`;
 const metadata = {
   imported_from_official_ae_api: true,
   ae_product_id: product.id,
-  ae_category_id: product.categoryId,
+  ae_category_id: resolved.aeCategoryId ?? product.categoryId,
+  ae_root_category_id: resolved.aeRootCategoryId,
+  ae_root_category_name: resolved.aeRootCategoryName,
   ae_ship_to_country: product.shipToCountry,
   ae_package: product.packageInfo,
   ae_store: product.store,
   product_type: taxonomy.leaf,
-  product_type_ro: taxonomy.leaf === 'Dresses' ? 'Rochii' : 'Haine',
   ae_category_name: taxonomy.leaf,
-  ae_root_category_name: 'Women Clothing',
+  taxonomy_resolver_version: 1,
   images: product.images,
   rating: product.rating,
   orders_count: product.orders,
   delivery_days: product.deliveryDays,
 };
 
-const pool = new Pool({ connectionString: hostDatabaseUrl() });
 const client = await pool.connect();
 try {
   await client.query('BEGIN');
