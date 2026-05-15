@@ -215,11 +215,22 @@ function mapProduct(result) {
     };
   });
   if (!variants.length) throw new Error('Product has no variants');
+  const videoDtos = asArray(multimedia?.ae_video_dtos?.ae_video_d_t_o ?? multimedia?.ae_video_dtos);
+  const videos = videoDtos
+    .filter((v) => v && (v.media_url || v.url))
+    .map((v) => ({
+      url: String(v.media_url || v.url),
+      poster: v.poster_url || v.poster || null,
+      mediaId: v.media_id != null ? String(v.media_id) : null,
+      type: v.media_type || 'video',
+      status: v.media_status || null,
+    }));
   return {
     id,
     title: String(base.subject || ''),
     description: String(base.detail || base.subject || ''),
     images: splitImages(multimedia.image_urls),
+    videos,
     sourceUrl: `https://www.aliexpress.com/item/${id}.html`,
     rating: numberOf(base.avg_evaluation_rating, 0),
     orders: intOf(base.sales_count, 0),
@@ -285,6 +296,9 @@ const metadata = {
   taxonomy_unresolved: Boolean(resolved.unresolved),
   taxonomy_unresolved_reason: resolved.unresolvedReason || null,
   images: product.images,
+  videos: product.videos,
+  ae_video_url: product.videos[0]?.url || null,
+  ae_video_poster: product.videos[0]?.poster || null,
   rating: product.rating,
   orders_count: product.orders,
   delivery_days: product.deliveryDays,
@@ -361,7 +375,7 @@ try {
       taxonomy.leaf,
       Boolean(adultReason),
       adultReason,
-      resolved.unresolved ? 'hidden' : 'active',
+      resolved.unresolved ? 'draft' : 'active',
       Boolean(resolved.unresolved),
     ],
   );
