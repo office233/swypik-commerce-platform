@@ -89,26 +89,54 @@ function signParams(params) {
   return crypto.createHmac('sha256', APP_SECRET).update(signInput, 'utf8').digest('hex').toUpperCase();
 }
 
-async function callAE(method, params = {}) {
-  const all = {
-    app_key: APP_KEY,
-    method,
-    session: TOKEN,
-    sign_method: 'sha256',
-    timestamp: new Date().toISOString().replace(/\.\d+Z/, '+0000').replace('T', ' '),
-    v: '2.0',
-    format: 'json',
-  };
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) all[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
+function isRetryable(msg) {
+  const s = String(msg || '').toLowerCase();
+  return s.includes('rate') || s.includes('limit') || s.includes('flow') || s.includes('frequen') || s.includes('timeout') || s.includes('busy') || s.includes('try again');
+}
+
+async function callAE(method, params = {}, { retries = 3, baseDelayMs = 2000 } = {}) {
+  let attempt = 0;
+  while (true) {
+    const all = {
+      app_key: APP_KEY,
+      method,
+      session: TOKEN,
+      sign_method: 'sha256',
+      timestamp: new Date().toISOString().replace(/\.\d+Z/, '+0000').replace('T', ' '),
+      v: '2.0',
+      format: 'json',
+    };
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null) all[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    }
+    all.sign = signParams(all);
+    const url = new URL('https://api-sg.aliexpress.com/sync');
+    url.search = new URLSearchParams(all).toString();
+    let json;
+    try {
+      const res = await fetch(url, { method: 'POST' });
+      json = await res.json();
+    } catch (err) {
+      if (attempt < retries) {
+        const delay = baseDelayMs * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        attempt += 1;
+        continue;
+      }
+      throw err;
+    }
+    if (json.error_response) {
+      const msg = json.error_response.msg || json.error_response.sub_msg || 'AliExpress API error';
+      if (attempt < retries && isRetryable(msg)) {
+        const delay = baseDelayMs * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        attempt += 1;
+        continue;
+      }
+      throw new Error(msg);
+    }
+    return json;
   }
-  all.sign = signParams(all);
-  const url = new URL('https://api-sg.aliexpress.com/sync');
-  url.search = new URLSearchParams(all).toString();
-  const res = await fetch(url, { method: 'POST' });
-  const json = await res.json();
-  if (json.error_response) throw new Error(json.error_response.msg || 'AliExpress API error');
-  return json;
 }
 
 function splitImages(value) {
@@ -154,15 +182,16 @@ function mapProduct(result) {
   const store = result.ae_store_info || {};
   const packageInfo = result.package_info_dto || {};
   const id = String(base.product_id || productId);
-  const variants = asArray(result.ae_item_sku_info_dtos).map((sku) => {
+  const rawSkus = asArray(result.ae_item_sku_info_dtos);
+  const skuList = rawSkus.length ? rawSkus : [{}]; // synthesize single-variant fallback
+  const variants = skuList.map((sku) => {
     const props = skuProperties(sku);
     const options = {};
     for (const prop of props) if (prop.name && prop.value) options[optionName(prop.name)] = prop.value;
-    const skuId = String(sku.sku_id || sku.id || sku.sku_attr || '');
-    const skuAttr = String(sku.sku_attr || sku.id || '');
-    if (!skuId || !skuAttr) throw new Error(`SKU missing id/attr for product ${id}`);
-    const priceUsd = numberOf(sku.offer_sale_price ?? sku.sku_price, 0);
-    const stock = intOf(sku.sku_available_stock, 0);
+    const skuId = String(sku.sku_id || sku.id || sku.sku_attr || `${id}-default`);
+    const skuAttr = String(sku.sku_attr || sku.id || `default-${id}`);
+    const priceUsd = numberOf(sku.offer_sale_price ?? sku.sku_price ?? base.sale_price ?? base.original_price, 0);
+    const stock = intOf(sku.sku_available_stock ?? base.sale_count ?? 0, 0);
     return {
       sourceVariantId: skuId,
       title: Object.values(options).filter(Boolean).join(' / ') || 'Standard',
