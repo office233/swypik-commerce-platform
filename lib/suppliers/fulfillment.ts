@@ -1,11 +1,10 @@
 /**
  * Swypik Fulfillment Engine
- * Processes paid orders → places them with suppliers (CJ/AliExpress)
+ * Processes paid orders → places them with suppliers (AliExpress / manual)
  * Updates order status and tracking information
  */
 
 import { dbQuery } from "@/lib/db";
-import { createCJOrder, getCJVariantId } from "./cj-order";
 import { sendShippingNotification } from "@/lib/email/service";
 
 export interface FulfillmentResult {
@@ -31,7 +30,7 @@ type EnrichedItem = {
   quantity: number;
   item_metadata?: any;
   aeProductId: string | null;
-  supplier: "cj" | "aliexpress" | "unknown";
+  supplier: "aliexpress" | "unknown";
   externalVariantId?: string | null;
   supplierError?: string | null;
 };
@@ -40,11 +39,8 @@ type EnrichedItem = {
  * Determine which supplier to use for a given product
  * Based on ae_product_id prefix or source metadata
  */
-function detectSupplier(aeProductId: string, metadata?: any): "cj" | "aliexpress" | "unknown" {
-  if (metadata?.source === "cj" || metadata?.cj_pid) return "cj";
+function detectSupplier(aeProductId: string, metadata?: any): "aliexpress" | "unknown" {
   if (metadata?.source === "aliexpress") return "aliexpress";
-  // CJ product IDs are typically shorter alphanumeric
-  if (aeProductId && aeProductId.length < 15 && !/^\d+$/.test(aeProductId)) return "cj";
   // AliExpress IDs are long numeric
   if (/^\d{10,}$/.test(aeProductId)) return "aliexpress";
   return "unknown";
@@ -53,7 +49,7 @@ function detectSupplier(aeProductId: string, metadata?: any): "cj" | "aliexpress
 async function upsertSupplierOrder(params: {
   commerceOrderId: string;
   supplier: "aliexpress" | "manual" | "other";
-  source: "cj" | "aliexpress" | "unknown";
+  source: "aliexpress" | "unknown";
   supplierOrderId?: string | null;
   status: "pending" | "submitted" | "failed";
   metadata: Record<string, any>;
@@ -230,7 +226,6 @@ export async function fulfillOrder(orderId: string): Promise<FulfillmentResult> 
   }
 
   // 4. Group items by supplier
-  const cjItems = enrichedItems.filter(i => i.supplier === "cj");
   const aeItems = enrichedItems.filter(i => i.supplier === "aliexpress");
   const unknownItems = enrichedItems.filter(i => i.supplier === "unknown");
 
@@ -238,77 +233,7 @@ export async function fulfillOrder(orderId: string): Promise<FulfillmentResult> 
   let supplierError: string | undefined;
   const supplierOrders: SupplierRecord[] = [];
 
-  // 5. Attempt CJ fulfillment
-  if (cjItems.length > 0) {
-    try {
-      const cjProducts = [];
-      for (const item of cjItems) {
-        if (!item.aeProductId) continue;
-        await new Promise(r => setTimeout(r, 1100)); // CJ rate limit
-        const vid = await getCJVariantId(item.aeProductId);
-        if (vid) {
-          item.externalVariantId = vid;
-          cjProducts.push({ vid, quantity: item.quantity });
-        } else {
-          item.supplierError = "CJ variant not found";
-        }
-      }
-
-      if (cjProducts.length > 0) {
-        const result = await createCJOrder({
-          swypikOrderId: orderId.split("-")[0], // short ID for CJ
-          shippingName: shipping.name || "Customer",
-          shippingPhone: shipping.phone || "",
-          shippingEmail: meta.customer_email || "",
-          shippingAddress: shipping.line1 || "",
-          shippingCity: shipping.city || "",
-          shippingProvince: shipping.state || "",
-          shippingZip: shipping.postal_code || "",
-          shippingCountryCode: shipping.country || "RO",
-          products: cjProducts,
-        });
-
-        if (result.success) {
-          supplierOrderId = result.cjOrderId;
-          const supplierOrder = await upsertSupplierOrder({
-            commerceOrderId: orderId,
-            supplier: "other",
-            source: "cj",
-            supplierOrderId,
-            status: "submitted",
-            metadata: {
-              cj_order_id: supplierOrderId,
-              pay_url: result.payUrl || null,
-              swypik_order_id: orderId.split("-")[0],
-            },
-          });
-          await persistSupplierOrderItems(supplierOrder.id, cjItems.filter(i => i.externalVariantId));
-          supplierOrders.push(supplierOrder);
-          console.log(`[Fulfillment] ✅ CJ order created: ${result.cjOrderId}`);
-        } else {
-          supplierError = `CJ: ${result.error}`;
-        }
-      } else {
-        supplierError = "CJ: no valid variants found";
-      }
-    } catch (e: any) {
-      supplierError = `CJ error: ${e.message}`;
-    }
-
-    if (supplierError) {
-      const supplierOrder = await upsertSupplierOrder({
-        commerceOrderId: orderId,
-        supplier: "other",
-        source: "cj",
-        status: "failed",
-        metadata: { fulfillment_error: supplierError },
-      });
-      await persistSupplierOrderItems(supplierOrder.id, cjItems);
-      supplierOrders.push(supplierOrder);
-    }
-  }
-
-  // 6. AliExpress items → manual fulfillment note
+  // 5. AliExpress items → manual fulfillment note
   // AliExpress doesn't have a direct order API via RapidAPI,
   // so we log them for manual processing
   if (aeItems.length > 0) {

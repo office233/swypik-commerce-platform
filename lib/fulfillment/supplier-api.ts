@@ -21,12 +21,12 @@ export async function placeOrderWithSupplier(orderId: string, items: any[]) {
   // Preluăm adresa de livrare din metadata comenzii
   const shippingAddress = mockOrderDbResult.metadata.shipping_address;
 
-  // Formatarea array-ului de produse pentru API-ul din China (CJ Dropshipping / AliExpress)
+  // Formatarea array-ului de produse pentru API-ul din China (AliExpress)
   const formattedProducts = items.map((item, idx) => ({
     sku: item.sku || `MOCK-SKU-${idx + 1}`,
     vid: item.variant_id || "VAR_DEFAULT",
     quantity: item.quantity || 1,
-    shipping_name: "CJ_Packet_Romanian",
+    shipping_name: "AE_Standard_Romanian",
     price: item.price || 0,
     properties: item.properties || {}
   }));
@@ -37,7 +37,7 @@ export async function placeOrderWithSupplier(orderId: string, items: any[]) {
     shipping_address: shippingAddress,
     customer_email: mockOrderDbResult.metadata.customer_email,
     products: formattedProducts,
-    logistics_name: "CJPacket",
+    logistics_name: "AEPacket",
     order_type: "api_dropshipping",
     remark: "Please do not include invoices or promotional materials. Dropshipping order.",
     webhook_callbacks: {
@@ -59,7 +59,7 @@ export async function placeOrderWithSupplier(orderId: string, items: any[]) {
   // Returnează mock-ul de succes conform cerințelor
   return {
     success: true,
-    external_order_id: "CJ_99213123",
+    external_order_id: "AE_99213123",
     status: "processing"
   };
 }
