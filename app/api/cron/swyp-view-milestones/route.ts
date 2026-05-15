@@ -5,7 +5,7 @@
  * and which has not yet received that milestone in `video_milestones`,
  * award the creator a fixed SWYP amount and emit an in-app notification.
  *
- * Auth: CRON_SECRET (Bearer / x-cron-secret / cron-secret / query).
+ * Auth: CRON_SECRET (Bearer / x-cron-secret / cron-secret header).
  */
 
 import { NextResponse } from "next/server";
@@ -25,13 +25,11 @@ const TIERS: Array<{ key: string; threshold: number; reward: number; label: stri
 
 async function authorize(req: Request) {
   const authHeader = req.headers.get("authorization");
-  const url = new URL(req.url);
   const token =
     authHeader?.replace("Bearer ", "") ||
     req.headers.get("x-cron-secret") ||
     req.headers.get("cron-secret") ||
     req.headers.get("CRON_SECRET") ||
-    url.searchParams.get("token") ||
     "";
   const expected = process.env.CRON_SECRET || "";
   if (!expected || !token) return false;

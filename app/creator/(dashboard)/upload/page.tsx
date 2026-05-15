@@ -165,7 +165,7 @@ export default function CreatorUploadPage() {
     if (!videoId) return;
     setStep("publishing");
     try {
-      await fetch(`/api/creator/videos/${videoId}`, {
+      const res = await fetch(`/api/creator/videos/${videoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -178,6 +178,14 @@ export default function CreatorUploadPage() {
           collection_hint: suggestions.suggested_collection || null,
         }),
       });
+      if (!res.ok) {
+        let msg = "Eroare la publicare.";
+        try {
+          const j = await res.json();
+          if (j?.error) msg = typeof j.error === "string" ? j.error : msg;
+        } catch { /* ignore */ }
+        throw new Error(msg);
+      }
       setStep("success");
       setTimeout(() => router.push("/creator"), 1500);
     } catch (err: any) {

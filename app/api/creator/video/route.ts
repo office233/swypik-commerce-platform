@@ -1,16 +1,27 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { getCreatorUserId } from "@/lib/creator/session";
+import {
+  getCreatorUserId,
+  getCreatorUserIdWithRoleCheck,
+} from "@/lib/creator/session";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const creatorId = await getCreatorUserId();
-    if (!creatorId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Role gate: only creator/admin may upload via this legacy endpoint.
+    const session = await getCreatorUserIdWithRoleCheck();
+    if (!session) {
+      // Distinguish unauthenticated from forbidden for clearer client UX.
+      const userId = await getCreatorUserId();
+      const status = userId ? 403 : 401;
+      return NextResponse.json(
+        { error: status === 401 ? "Unauthorized" : "Forbidden" },
+        { status },
+      );
     }
+    const creatorId = session.userId;
 
     const formData = await req.formData();
     const file = (formData.get("file") || formData.get("video")) as File;

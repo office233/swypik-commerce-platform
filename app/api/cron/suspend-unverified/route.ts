@@ -10,7 +10,7 @@
  *   - sets status = 'suspended'
  *   - revokes all live sessions
  *
- * Auth: CRON_SECRET (Bearer / x-cron-secret / cron-secret / query).
+ * Auth: CRON_SECRET (Bearer / x-cron-secret / cron-secret header).
  */
 
 import { NextResponse } from "next/server";
@@ -21,13 +21,11 @@ export const dynamic = "force-dynamic";
 
 async function authorize(req: Request) {
   const authHeader = req.headers.get("authorization");
-  const url = new URL(req.url);
   const token =
     authHeader?.replace("Bearer ", "") ||
     req.headers.get("x-cron-secret") ||
     req.headers.get("cron-secret") ||
     req.headers.get("CRON_SECRET") ||
-    url.searchParams.get("token") ||
     "";
   const expected = process.env.CRON_SECRET || "";
   if (!expected || !token) return false;

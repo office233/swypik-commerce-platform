@@ -1,24 +1,24 @@
 import { dbQuery } from "@/lib/db";
 import { isEnabled } from "@/lib/feature-flags";
-import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { Settings, Save, Bell, Shield, Wallet, CheckCircle2, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function SellerSettingsPage() {
-  const heads = await headers();
-  const sellerId = heads.get("x-seller-id");
-  let seller: any = null;
-
-  if (sellerId) {
-    const { rows } = await dbQuery("SELECT * FROM sellers WHERE id = $1", [sellerId]);
-    seller = rows[0] || null;
+  // SECURITY (P0-D): resolve seller from signed cookie session, NEVER from client-supplied headers.
+  // Previously read x-seller-id from request headers => IDOR (any client could spoof via reverse proxy).
+  const sellerId = await getSellerSessionId();
+  if (!sellerId) {
+    redirect("/seller/login");
   }
 
-  // No authenticated seller — redirect to login
+  const { rows } = await dbQuery("SELECT * FROM sellers WHERE id = $1", [sellerId]);
+  const seller: any = rows[0] || null;
+
   if (!seller) {
-    const { redirect } = await import('next/navigation');
-    redirect('/seller/login');
+    redirect("/seller/login");
   }
 
   const isStripeConnected = !!seller.stripe_account_id;

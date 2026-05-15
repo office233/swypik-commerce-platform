@@ -59,6 +59,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  // Idempotency: atomic claim against processed_stripe_events. Stripe retries
+  // events; without this guard fulfillment, emails, payouts and stock
+  // decrements would all rerun. We INSERT ... ON CONFLICT DO NOTHING and
+  // require a returned row before proceeding.
+  try {
+    const { rows: claimRows } = await dbQuery<{ event_id: string }>(
+      `INSERT INTO processed_stripe_events (event_id, event_type)
+       VALUES ($1, $2)
+       ON CONFLICT (event_id) DO NOTHING
+       RETURNING event_id`,
+      [event.id, event.type]
+    );
+    if (claimRows.length === 0) {
+      logger.info(`[Stripe Webhook] duplicate stripe event, skipping: ${event.id} (${event.type})`);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+  } catch (err: any) {
+    logger.error({ err }, `[Stripe Webhook] idempotency claim failed for ${event.id}`);
+    // Returning 500 lets Stripe retry; do NOT proceed without a successful claim.
+    return NextResponse.json({ error: "Idempotency claim failed" }, { status: 500 });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed":
@@ -401,8 +423,28 @@ async function persistOrderItems(orderId: string, items: Array<{
       ]
     );
 
-    // Deduct stock to prevent overselling
-    if (skuId) {
+    // Deduct stock to prevent overselling.
+    // NOTE: we scope by (product_id, sku) because SKU is NOT globally unique
+    // across products. Concurrent-write locking (SELECT ... FOR UPDATE in a
+    // tx) is intentionally omitted here because lib/db does not expose a
+    // transaction helper and the primary double-decrement vector - Stripe
+    // event retries - is already neutralized by the processed_stripe_events
+    // idempotency guard added at the top of POST().
+    if (skuId && pgId) {
+      try {
+        await dbQuery(
+          `UPDATE marketplace_product_variants
+             SET inventory_quantity = GREATEST(0, inventory_quantity - $1)
+           WHERE product_id = $2 AND sku = $3`,
+          [item.quantity, String(pgId), String(skuId)]
+        );
+      } catch(e) {
+        logger.error({ err: e }, `[Stripe Webhook] Error deducting variant stock for product ${pgId} SKU ${skuId}`);
+      }
+    } else if (skuId) {
+      // No product_id available - fall back to SKU-only update but log a
+      // warning since this is ambiguous if SKUs collide across products.
+      logger.warn(`[Stripe Webhook] Decrementing variant stock without product_id scope (SKU ${skuId}); SKU collisions across products may decrement the wrong row.`);
       try {
         await dbQuery(
           `UPDATE marketplace_product_variants SET inventory_quantity = GREATEST(0, inventory_quantity - $1) WHERE sku = $2`,

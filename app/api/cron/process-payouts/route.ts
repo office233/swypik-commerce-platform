@@ -1,17 +1,34 @@
 /**
  * Cron Job: Automatic Seller Payouts (Stripe Transfers)
  *
- * Runs on a schedule and transfers money to sellers whose orders have been
- * fulfilled for more than 14 days (return window expired).
+ * Runs on a schedule and transfers money to sellers / creators whose orders
+ * have been fulfilled for more than 14 days (return window expired).
  *
- * Flow:
- *   1. Query commerce_order_items where source_status = 'fulfilled',
- *      updated_at older than 14 days, and payout_status IS NULL.
- *   2. Extract seller_payout_cents and seller_id from the item's metadata.
- *   3. Join with sellers table to get the stripe_account_id.
- *   4. Execute stripe.transfers.create for each eligible item.
- *   5. Update payout_status = 'paid' on success.
- *   6. Per-item try/catch so one failure doesn't block others.
+ * Concurrency safety:
+ *   - Each candidate row is "claimed" via an atomic single-row UPDATE that
+ *     stamps a `*_payout_processing_at` timestamp into metadata. Concurrent
+ *     cron invocations (or retries) racing on the same row will see only one
+ *     successful UPDATE; the loser skips the item.
+ *   - A claim "expires" after CLAIM_TTL_MINUTES so a row stuck mid-process
+ *     (e.g. crashed worker) is eventually retried.
+ *   - NOTE: payout_status CHECK constraint does not include a 'processing'
+ *     value (see 20260514_0003_order_item_payout_status_check.sql), so we
+ *     mark in-flight rows via a metadata timestamp rather than a status
+ *     transition. If a 'processing' state is added later, switch to
+ *     `UPDATE ... SET payout_status='processing' WHERE id=$1 AND payout_status IN (NULL,'pending') RETURNING ...`.
+ *
+ * Idempotency:
+ *   - Every Stripe `transfers.create` call passes a deterministic
+ *     `idempotencyKey` scoped per item + payout type. A network retry of the
+ *     same logical payout will return the original Transfer instead of moving
+ *     money twice.
+ *
+ * Refund safety:
+ *   - The candidate query joins `commerce_orders` and excludes orders whose
+ *     status is `refunded`, `cancelled`, `return_requested`, or `failed` so
+ *     we never pay out for an order that was reversed after fulfillment.
+ *   - The per-item `payout_status` / `seller_payout_status` filters already
+ *     exclude items individually marked `refunded`.
  */
 
 import { NextResponse } from "next/server";
@@ -23,6 +40,8 @@ import { timingSafeEqual } from "crypto";
 export const dynamic = "force-dynamic";
 
 const RETURN_WINDOW_DAYS = 14;
+// How long a claim is considered "in-flight" before another worker may retry it.
+const CLAIM_TTL_MINUTES = 10;
 
 export async function GET(req: Request) {
   if (!isEnabled("stripeConnect")) return frozenResponse("stripeConnect");
@@ -65,11 +84,14 @@ export async function GET(req: Request) {
      FROM commerce_order_items coi
      JOIN sellers s
        ON s.id::text = coi.metadata->>'seller_id'
+     LEFT JOIN commerce_orders co
+       ON co.id = coi.order_id
      WHERE coi.source_status = 'fulfilled'
        AND coi.updated_at < NOW() - ($1 || ' days')::interval
        AND (coi.metadata->>'seller_payout_status' IS NULL OR coi.metadata->>'seller_payout_status' = 'pending')
        AND coi.metadata->>'seller_payout_cents' IS NOT NULL
-       AND (coi.metadata->>'seller_payout_cents')::int > 0`,
+       AND (coi.metadata->>'seller_payout_cents')::int > 0
+       AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))`,
     [String(RETURN_WINDOW_DAYS)]
   );
 
@@ -90,67 +112,139 @@ export async function GET(req: Request) {
        coi.commissionable_amount_cents AS commissionable_cents,
        cca.provider_account_id AS stripe_account_id
      FROM commerce_order_items coi
-     JOIN creator_connect_accounts cca 
+     JOIN creator_connect_accounts cca
        ON cca.creator_id = coi.creator_id AND cca.payouts_enabled = true AND cca.account_status = 'active'
+     LEFT JOIN commerce_orders co
+       ON co.id = coi.order_id
      WHERE coi.source_status = 'fulfilled'
        AND coi.updated_at < NOW() - ($1 || ' days')::interval
        AND coi.creator_id IS NOT NULL
        AND (coi.payout_status IS NULL OR coi.payout_status = 'pending')
-       AND coi.commissionable_amount_cents > 0`,
+       AND coi.commissionable_amount_cents > 0
+       AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))`,
     [String(RETURN_WINDOW_DAYS)]
   );
 
   const stripe = getStripe();
   let paidSellerCount = 0;
   let paidCreatorCount = 0;
+  let skippedClaimedCount = 0;
 
   // 4. Process Seller Payouts
   for (const item of sellerItems) {
+    // Atomic claim: only one worker wins this UPDATE. The WHERE clause
+    // re-evaluates under a row lock, so concurrent invocations cannot both
+    // succeed even if the initial SELECT returned the same row to both.
+    const claim = await dbQuery(
+      `UPDATE commerce_order_items
+         SET metadata = coalesce(metadata, '{}'::jsonb)
+                      || jsonb_build_object('seller_payout_processing_at', NOW()::text)
+       WHERE id = $1
+         AND (metadata->>'seller_payout_status' IS NULL OR metadata->>'seller_payout_status' = 'pending')
+         AND COALESCE(
+               NULLIF(metadata->>'seller_payout_processing_at','')::timestamptz,
+               'epoch'::timestamptz
+             ) < NOW() - ($2 || ' minutes')::interval
+       RETURNING id`,
+      [item.item_id, String(CLAIM_TTL_MINUTES)]
+    );
+    if (claim.rowCount === 0) {
+      skippedClaimedCount++;
+      continue;
+    }
+
     try {
       if (!item.stripe_account_id) {
         await dbQuery(
-          `UPDATE commerce_order_items SET metadata = coalesce(metadata, '{}'::jsonb) || '{"seller_payout_status":"no_account"}'::jsonb WHERE id = $1`,
+          `UPDATE commerce_order_items
+             SET metadata = coalesce(metadata, '{}'::jsonb)
+                          || '{"seller_payout_status":"no_account"}'::jsonb
+           WHERE id = $1`,
           [item.item_id]
         );
         continue;
       }
-      const transfer = await stripe.transfers.create({
-        amount: item.seller_payout_cents,
-        currency: "ron",
-        destination: item.stripe_account_id,
-        description: `Seller payout for "${item.title}"`,
-        metadata: { order_id: item.order_id, item_id: item.item_id, type: 'seller' },
-      });
+      const transfer = await stripe.transfers.create(
+        {
+          amount: item.seller_payout_cents,
+          currency: "ron",
+          destination: item.stripe_account_id,
+          description: `Seller payout for "${item.title}"`,
+          metadata: { order_id: item.order_id, item_id: item.item_id, type: 'seller' },
+        },
+        { idempotencyKey: `swypik:seller-payout:${item.item_id}` }
+      );
       await dbQuery(
-        `UPDATE commerce_order_items SET metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('seller_payout_status', 'paid', 'seller_transfer_id', $2::text) WHERE id = $1`,
+        `UPDATE commerce_order_items
+           SET metadata = coalesce(metadata, '{}'::jsonb)
+                        || jsonb_build_object(
+                             'seller_payout_status', 'paid',
+                             'seller_transfer_id', $2::text,
+                             'seller_paid_at', NOW()::text
+                           )
+         WHERE id = $1`,
         [item.item_id, transfer.id]
       );
       paidSellerCount++;
     } catch (e: any) {
+      console.error(`[payout-cron] seller payout failed for item ${item.item_id}:`, e?.message || e);
       await dbQuery(
-        `UPDATE commerce_order_items SET metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('seller_payout_status', 'failed') WHERE id = $1`,
-        [item.item_id]
+        `UPDATE commerce_order_items
+           SET metadata = coalesce(metadata, '{}'::jsonb)
+                        || jsonb_build_object(
+                             'seller_payout_status', 'failed',
+                             'seller_payout_error', $2::text,
+                             'seller_payout_failed_at', NOW()::text
+                           )
+         WHERE id = $1`,
+        [item.item_id, String(e?.message || 'unknown_error').slice(0, 500)]
       );
     }
   }
 
   // 5. Process Creator Payouts
   for (const item of creatorItems) {
+    // Atomic claim — see seller loop for rationale.
+    const claim = await dbQuery(
+      `UPDATE commerce_order_items
+         SET metadata = coalesce(metadata, '{}'::jsonb)
+                      || jsonb_build_object('creator_payout_processing_at', NOW()::text)
+       WHERE id = $1
+         AND (payout_status IS NULL OR payout_status = 'pending')
+         AND COALESCE(
+               NULLIF(metadata->>'creator_payout_processing_at','')::timestamptz,
+               'epoch'::timestamptz
+             ) < NOW() - ($2 || ' minutes')::interval
+       RETURNING id`,
+      [item.item_id, String(CLAIM_TTL_MINUTES)]
+    );
+    if (claim.rowCount === 0) {
+      skippedClaimedCount++;
+      continue;
+    }
+
     try {
-      const creatorPayoutCents = Math.max(1, Math.round(item.commissionable_cents * 0.05)); // 5% commision
-      
-      const transfer = await stripe.transfers.create({
-        amount: creatorPayoutCents,
-        currency: "ron",
-        destination: item.stripe_account_id!,
-        description: `Creator commission for "${item.title}"`,
-        metadata: { order_id: item.order_id, item_id: item.item_id, type: 'creator' },
-      });
+      const creatorPayoutCents = Math.max(1, Math.round(item.commissionable_cents * 0.05)); // 5% commission
+
+      const transfer = await stripe.transfers.create(
+        {
+          amount: creatorPayoutCents,
+          currency: "ron",
+          destination: item.stripe_account_id!,
+          description: `Creator commission for "${item.title}"`,
+          metadata: { order_id: item.order_id, item_id: item.item_id, type: 'creator' },
+        },
+        { idempotencyKey: `swypik:creator-payout:${item.item_id}` }
+      );
 
       await dbQuery(
-        `UPDATE commerce_order_items 
-         SET payout_status = 'paid', 
-             metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('creator_transfer_id', $2::text) 
+        `UPDATE commerce_order_items
+           SET payout_status = 'paid',
+               metadata = coalesce(metadata, '{}'::jsonb)
+                        || jsonb_build_object(
+                             'creator_transfer_id', $2::text,
+                             'creator_paid_at', NOW()::text
+                           )
          WHERE id = $1`,
         [item.item_id, transfer.id]
       );
@@ -159,14 +253,23 @@ export async function GET(req: Request) {
         `INSERT INTO connect_transfers
            (connect_account_id, provider, provider_transfer_id, destination_account_id, status, currency, amount_cents, submitted_at, completed_at, metadata)
          VALUES
-           ((SELECT id FROM creator_connect_accounts WHERE provider_account_id = $1 LIMIT 1), 'stripe', $2, $1, 'succeeded', 'RON', $3, NOW(), NOW(), jsonb_build_object('item_id', $4::text))`,
+           ((SELECT id FROM creator_connect_accounts WHERE provider_account_id = $1 LIMIT 1), 'stripe', $2, $1, 'succeeded', 'RON', $3, NOW(), NOW(), jsonb_build_object('item_id', $4::text))
+         ON CONFLICT (provider, provider_transfer_id) DO NOTHING`,
         [item.stripe_account_id, transfer.id, creatorPayoutCents, item.item_id]
       );
       paidCreatorCount++;
     } catch (e: any) {
+      console.error(`[payout-cron] creator payout failed for item ${item.item_id}:`, e?.message || e);
       await dbQuery(
-        `UPDATE commerce_order_items SET payout_status = 'failed' WHERE id = $1`,
-        [item.item_id]
+        `UPDATE commerce_order_items
+           SET payout_status = 'failed',
+               metadata = coalesce(metadata, '{}'::jsonb)
+                        || jsonb_build_object(
+                             'creator_payout_error', $2::text,
+                             'creator_payout_failed_at', NOW()::text
+                           )
+         WHERE id = $1`,
+        [item.item_id, String(e?.message || 'unknown_error').slice(0, 500)]
       );
     }
   }
@@ -174,7 +277,8 @@ export async function GET(req: Request) {
   return NextResponse.json({
     success: true,
     sellerPayouts: paidSellerCount,
-    creatorPayouts: paidCreatorCount
+    creatorPayouts: paidCreatorCount,
+    skippedClaimed: skippedClaimedCount,
   });
 }
 
