@@ -3,7 +3,7 @@
  */
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
-import { dbQuery } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,21 +20,26 @@ export async function POST(
     return NextResponse.json({ error: "ID invalid" }, { status: 400 });
   }
 
-  await dbQuery("BEGIN");
+  const client = await getDb().connect();
   try {
-    await dbQuery(
-      `UPDATE users SET suspended_until = NULL, suspension_reason = NULL, updated_at = NOW() WHERE id = $1`,
-      [id]
-    );
-    await dbQuery(
-      `INSERT INTO moderation_actions (actor_user_id, target_user_id, action_type, reason, metadata)
-       VALUES (NULL, $1, 'restore', $2, $3::jsonb)`,
-      [id, "Suspendare ridicata de admin", JSON.stringify({ source: "admin_users_page" })]
-    );
-    await dbQuery("COMMIT");
-  } catch (e) {
-    await dbQuery("ROLLBACK");
-    throw e;
+    await client.query("BEGIN");
+    try {
+      await client.query(
+        `UPDATE users SET suspended_until = NULL, suspension_reason = NULL, updated_at = NOW() WHERE id = $1`,
+        [id]
+      );
+      await client.query(
+        `INSERT INTO moderation_actions (actor_user_id, target_user_id, action_type, reason, metadata)
+         VALUES (NULL, $1, 'restore', $2, $3::jsonb)`,
+        [id, "Suspendare ridicata de admin", JSON.stringify({ source: "admin_users_page" })]
+      );
+      await client.query("COMMIT");
+    } catch (e) {
+      try { await client.query("ROLLBACK"); } catch {}
+      throw e;
+    }
+  } finally {
+    client.release();
   }
 
   return NextResponse.json({ ok: true });

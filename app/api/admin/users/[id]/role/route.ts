@@ -3,7 +3,7 @@
  */
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
-import { dbQuery } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,29 +27,33 @@ export async function POST(
     return NextResponse.json({ error: "Rol invalid" }, { status: 400 });
   }
 
-  const exists = await dbQuery(`SELECT id, role FROM users WHERE id = $1`, [id]);
-  if (exists.rows.length === 0) {
-    return NextResponse.json({ error: "Utilizator inexistent" }, { status: 404 });
-  }
-  const oldRole = exists.rows[0].role;
-
-  await dbQuery("BEGIN");
+  const client = await getDb().connect();
   try {
-    await dbQuery(`UPDATE users SET role = $2, updated_at = NOW() WHERE id = $1`, [id, role]);
-    await dbQuery(
-      `INSERT INTO moderation_actions (actor_user_id, target_user_id, action_type, reason, metadata)
-       VALUES (NULL, $1, 'warn', $2, $3::jsonb)`,
-      [
-        id,
-        `Schimbare rol: ${oldRole} -> ${role}`,
-        JSON.stringify({ source: "admin_users_page", old_role: oldRole, new_role: role, kind: "role_change" }),
-      ]
-    );
-    await dbQuery("COMMIT");
-  } catch (e) {
-    await dbQuery("ROLLBACK");
-    throw e;
-  }
+    const exists = await client.query(`SELECT id, role FROM users WHERE id = $1`, [id]);
+    if (exists.rows.length === 0) {
+      return NextResponse.json({ error: "Utilizator inexistent" }, { status: 404 });
+    }
+    const oldRole = exists.rows[0].role;
 
-  return NextResponse.json({ ok: true, role });
+    await client.query("BEGIN");
+    try {
+      await client.query(`UPDATE users SET role = $2, updated_at = NOW() WHERE id = $1`, [id, role]);
+      await client.query(
+        `INSERT INTO moderation_actions (actor_user_id, target_user_id, action_type, reason, metadata)
+         VALUES (NULL, $1, 'warn', $2, $3::jsonb)`,
+        [
+          id,
+          `Schimbare rol: ${oldRole} -> ${role}`,
+          JSON.stringify({ source: "admin_users_page", old_role: oldRole, new_role: role, kind: "role_change" }),
+        ]
+      );
+      await client.query("COMMIT");
+      return NextResponse.json({ ok: true, role });
+    } catch (e) {
+      try { await client.query("ROLLBACK"); } catch {}
+      throw e;
+    }
+  } finally {
+    client.release();
+  }
 }
