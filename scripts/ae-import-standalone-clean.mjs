@@ -1,0 +1,332 @@
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+
+const requireFromApp = createRequire('/opt/swypik/app/package.json');
+const { Pool } = requireFromApp('pg');
+
+const envText = fs.readFileSync('/opt/swypik/app/infra/hetzner/.env.production', 'utf8');
+for (const line of envText.split(/\r?\n/)) {
+  const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
+  if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+}
+
+const productId = process.argv[2];
+if (!productId) throw new Error('Usage: node ae-import-standalone-clean.mjs <product_id>');
+
+const APP_KEY = process.env.ALIEXPRESS_APP_KEY || '';
+const APP_SECRET = process.env.ALIEXPRESS_APP_SECRET || '';
+const TOKEN = process.env.ALIEXPRESS_ACCESS_TOKEN || '';
+if (!APP_KEY || !APP_SECRET || !TOKEN) throw new Error('AliExpress credentials missing');
+
+function hostDatabaseUrl() {
+  const url = new URL(process.env.DATABASE_URL);
+  if (url.hostname === 'postgres') url.hostname = '127.0.0.1';
+  return url.toString();
+}
+
+function slugify(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 100);
+}
+
+function getAdultReason(product) {
+  const text = `${product.title} ${product.description}`.toLowerCase();
+  const adultTerms = [
+    'adult', 'sex', 'sexy', 'erotic', 'porn', 'lingerie', 'underwear',
+    'panties', 'bra', 'bdsm', 'fetish', 'vibrator', 'dildo', 'condom',
+  ];
+  const matched = adultTerms.find((term) => text.includes(term));
+  return matched ? `matched ${matched}` : null;
+}
+
+function centsRon(ron) {
+  const value = Number(ron);
+  return Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : null;
+}
+
+function numberOf(value, fallback = 0) {
+  const number = typeof value === 'number' ? value : parseFloat(String(value || ''));
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function intOf(value, fallback = 0) {
+  const number = typeof value === 'number' ? value : parseInt(String(value || ''), 10);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== 'object') return [];
+  for (const child of Object.values(value)) {
+    if (Array.isArray(child)) return child;
+  }
+  return [];
+}
+
+function signParams(params) {
+  const signInput = Object.keys(params).sort().map((key) => `${key}${params[key]}`).join('');
+  return crypto.createHmac('sha256', APP_SECRET).update(signInput, 'utf8').digest('hex').toUpperCase();
+}
+
+async function callAE(method, params = {}) {
+  const all = {
+    app_key: APP_KEY,
+    method,
+    session: TOKEN,
+    sign_method: 'sha256',
+    timestamp: new Date().toISOString().replace(/\.\d+Z/, '+0000').replace('T', ' '),
+    v: '2.0',
+    format: 'json',
+  };
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) all[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  }
+  all.sign = signParams(all);
+  const url = new URL('https://api-sg.aliexpress.com/sync');
+  url.search = new URLSearchParams(all).toString();
+  const res = await fetch(url, { method: 'POST' });
+  const json = await res.json();
+  if (json.error_response) throw new Error(json.error_response.msg || 'AliExpress API error');
+  return json;
+}
+
+function splitImages(value) {
+  return String(value || '')
+    .split(/[;,]/)
+    .map((url) => url.trim())
+    .filter(Boolean)
+    .map((url) => (url.startsWith('//') ? `https:${url}` : url));
+}
+
+function optionName(value) {
+  const raw = String(value || 'option').trim().toLowerCase();
+  if (raw === 'colour') return 'color';
+  return raw.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'option';
+}
+
+function skuProperties(sku) {
+  return asArray(sku?.ae_sku_property_dtos).map((property) => ({
+    name: String(property.sku_property_name || '').trim(),
+    value: String(property.property_value_definition_name || property.sku_property_value || '').trim(),
+    propertyId: property.sku_property_id ?? null,
+    valueId: property.property_value_id ?? null,
+    image: property.sku_image || null,
+  })).filter((property) => property.name || property.value);
+}
+
+async function getProductDetail(id) {
+  const response = await callAE('aliexpress.ds.product.get', {
+    product_id: id,
+    ship_to_country: 'RO',
+    target_currency: 'USD',
+    target_language: 'EN',
+  });
+  const result = response.aliexpress_ds_product_get_response?.result;
+  if (!result) throw new Error('AliExpress product detail missing result');
+  return result;
+}
+
+function mapProduct(result) {
+  const base = result.ae_item_base_info_dto || {};
+  const multimedia = result.ae_multimedia_info_dto || {};
+  const logistics = result.logistics_info_dto || {};
+  const store = result.ae_store_info || {};
+  const packageInfo = result.package_info_dto || {};
+  const id = String(base.product_id || productId);
+  const variants = asArray(result.ae_item_sku_info_dtos).map((sku) => {
+    const props = skuProperties(sku);
+    const options = {};
+    for (const prop of props) if (prop.name && prop.value) options[optionName(prop.name)] = prop.value;
+    const skuId = String(sku.sku_id || sku.id || sku.sku_attr || '');
+    const skuAttr = String(sku.sku_attr || sku.id || '');
+    if (!skuId || !skuAttr) throw new Error(`SKU missing id/attr for product ${id}`);
+    const priceUsd = numberOf(sku.offer_sale_price ?? sku.sku_price, 0);
+    const stock = intOf(sku.sku_available_stock, 0);
+    return {
+      sourceVariantId: skuId,
+      title: Object.values(options).filter(Boolean).join(' / ') || 'Standard',
+      options,
+      priceRon: Math.round(priceUsd * 4.55),
+      stock,
+      status: stock > 0 ? 'active' : 'out_of_stock',
+      metadata: {
+        source: 'official_ae_api',
+        ae_product_id: id,
+        ae_product_url: `https://www.aliexpress.com/item/${id}.html`,
+        ae_sku_id: skuId,
+        ae_sku_attr: skuAttr,
+        ae_sku_properties: props,
+        ae_price_usd: priceUsd,
+        ae_original_price_usd: numberOf(sku.sku_price, priceUsd),
+        ae_currency: sku.currency_code || 'USD',
+        ae_stock: stock,
+        ae_price_include_tax: sku.price_include_tax ?? null,
+      },
+    };
+  });
+  if (!variants.length) throw new Error('Product has no variants');
+  return {
+    id,
+    title: String(base.subject || ''),
+    description: String(base.detail || base.subject || ''),
+    images: splitImages(multimedia.image_urls),
+    sourceUrl: `https://www.aliexpress.com/item/${id}.html`,
+    rating: numberOf(base.avg_evaluation_rating, 0),
+    orders: intOf(base.sales_count, 0),
+    deliveryDays: intOf(logistics.delivery_time, 20),
+    categoryId: base.category_id ?? null,
+    store,
+    packageInfo,
+    shipToCountry: logistics.ship_to_country || null,
+    variants,
+  };
+}
+
+const detail = await getProductDetail(productId);
+const product = mapProduct(detail);
+const adultReason = getAdultReason(product);
+const taxonomy = {
+  department: 'Fashion',
+  category: 'Women',
+  subcategory: 'Clothing',
+  leaf: /dress/i.test(product.title) ? 'Dresses' : 'Clothing',
+};
+const canonicalCategory = [taxonomy.department, taxonomy.category, taxonomy.subcategory, taxonomy.leaf].filter(Boolean).join(' > ');
+const taxonomySlug = [taxonomy.department, taxonomy.category, taxonomy.subcategory, taxonomy.leaf].map(slugify).join('-');
+const classification = { confidence: 0.95, reason: 'official_ae_import_adult_checked' };
+const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
+const activePrices = product.variants.filter((variant) => variant.status === 'active').map((variant) => centsRon(variant.priceRon)).filter(Number.isFinite);
+const priceCents = activePrices.length ? Math.min(...activePrices) : centsRon(product.variants[0].priceRon);
+const slug = `${slugify(product.title) || 'aliexpress-product'}-${product.id}`;
+const metadata = {
+  imported_from_official_ae_api: true,
+  ae_product_id: product.id,
+  ae_category_id: product.categoryId,
+  ae_ship_to_country: product.shipToCountry,
+  ae_package: product.packageInfo,
+  ae_store: product.store,
+  product_type: taxonomy.leaf,
+  product_type_ro: taxonomy.leaf === 'Dresses' ? 'Rochii' : 'Haine',
+  ae_category_name: taxonomy.leaf,
+  ae_root_category_name: 'Women Clothing',
+  images: product.images,
+  rating: product.rating,
+  orders_count: product.orders,
+  delivery_days: product.deliveryDays,
+};
+
+const pool = new Pool({ connectionString: hostDatabaseUrl() });
+const client = await pool.connect();
+try {
+  await client.query('BEGIN');
+  const inserted = await client.query(
+    `
+      INSERT INTO marketplace_products (
+        external_product_id, slug, title, description, category, product_url,
+        image_url, status, currency, price_cents, compare_at_price_cents,
+        inventory_status, metadata, source_type, supplier, supplier_product_id,
+        supplier_url, supplier_cost_cents, canonical_category, canonical_category_slug,
+        classification_confidence, classification_reason, taxonomy_department,
+        taxonomy_category, taxonomy_subcategory, taxonomy_leaf, taxonomy_slug,
+        taxonomy_confidence, taxonomy_reason, is_adult, adult_reason, created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, 'active', 'RON', $8, NULL,
+        $9, $10::jsonb, 'aliexpress', 'aliexpress', $1,
+        $6, NULL, $11, $12,
+        $13, $14, $15,
+        $16, $17, $18, $12,
+        $13, $14, $19, $20, now(), now()
+      )
+      ON CONFLICT (source_type, supplier, supplier_product_id)
+      WHERE supplier_product_id IS NOT NULL
+      DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        category = EXCLUDED.category,
+        product_url = EXCLUDED.product_url,
+        image_url = EXCLUDED.image_url,
+        status = EXCLUDED.status,
+        currency = EXCLUDED.currency,
+        price_cents = EXCLUDED.price_cents,
+        inventory_status = EXCLUDED.inventory_status,
+        metadata = EXCLUDED.metadata,
+        canonical_category = EXCLUDED.canonical_category,
+        canonical_category_slug = EXCLUDED.canonical_category_slug,
+        taxonomy_department = EXCLUDED.taxonomy_department,
+        taxonomy_category = EXCLUDED.taxonomy_category,
+        taxonomy_subcategory = EXCLUDED.taxonomy_subcategory,
+        taxonomy_leaf = EXCLUDED.taxonomy_leaf,
+        taxonomy_slug = EXCLUDED.taxonomy_slug,
+        taxonomy_confidence = EXCLUDED.taxonomy_confidence,
+        taxonomy_reason = EXCLUDED.taxonomy_reason,
+        is_adult = EXCLUDED.is_adult,
+        adult_reason = EXCLUDED.adult_reason,
+        updated_at = now()
+      RETURNING id::text AS id, slug
+    `,
+    [
+      product.id,
+      slug,
+      product.title,
+      product.description,
+      canonicalCategory,
+      product.sourceUrl,
+      product.images[0] || null,
+      priceCents,
+      totalStock > 0 ? 'in_stock' : 'out_of_stock',
+      JSON.stringify(metadata),
+      canonicalCategory,
+      taxonomySlug,
+      classification.confidence,
+      classification.reason,
+      taxonomy.department,
+      taxonomy.category,
+      taxonomy.subcategory,
+      taxonomy.leaf,
+      Boolean(adultReason),
+      adultReason,
+    ],
+  );
+  const productDbId = inserted.rows[0].id;
+  for (const variant of product.variants) {
+    const image = variant.metadata.ae_sku_properties.find((prop) => prop.image)?.image || null;
+    await client.query(
+      `
+        INSERT INTO marketplace_product_variants (
+          product_id, external_variant_id, sku, title, attributes,
+          currency, price_cents, inventory_quantity, status, metadata, created_at, updated_at
+        ) VALUES (
+          $1, $2, $2, $3, $4::jsonb,
+          'RON', $5, $6, $7, $8::jsonb, now(), now()
+        )
+        ON CONFLICT (product_id, external_variant_id)
+        WHERE external_variant_id IS NOT NULL
+        DO UPDATE SET
+          sku = EXCLUDED.sku,
+          title = EXCLUDED.title,
+          attributes = EXCLUDED.attributes,
+          price_cents = EXCLUDED.price_cents,
+          inventory_quantity = EXCLUDED.inventory_quantity,
+          status = EXCLUDED.status,
+          metadata = EXCLUDED.metadata,
+          updated_at = now()
+      `,
+      [productDbId, variant.sourceVariantId, variant.title, JSON.stringify({ ...variant.options, image_url: image }), centsRon(variant.priceRon), variant.stock, variant.status, JSON.stringify(variant.metadata)],
+    );
+  }
+  await client.query('COMMIT');
+  console.log(JSON.stringify({ imported: true, productId: product.id, productDbId, slug: inserted.rows[0].slug, variants: product.variants.length, totalStock, taxonomy }, null, 2));
+} catch (error) {
+  await client.query('ROLLBACK');
+  throw error;
+} finally {
+  client.release();
+  await pool.end();
+}
