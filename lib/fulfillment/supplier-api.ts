@@ -1,4 +1,5 @@
 export async function placeOrderWithSupplier(orderId: string, items: any[]) {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "https://api.swypik.com";
   // Extragere simulată din DB a informațiilor comenzii (ex: Adresa de livrare)
   // În producție am face o interogare în baza de date folosind `orderId`
   const mockOrderDbResult = {
@@ -40,8 +41,8 @@ export async function placeOrderWithSupplier(orderId: string, items: any[]) {
     order_type: "api_dropshipping",
     remark: "Please do not include invoices or promotional materials. Dropshipping order.",
     webhook_callbacks: {
-      on_shipped: "https://api.swypik.com/webhooks/supplier/shipped",
-      on_delivered: "https://api.swypik.com/webhooks/supplier/delivered"
+      on_shipped: `${apiBase}/webhooks/supplier/shipped`,
+      on_delivered: `${apiBase}/webhooks/supplier/delivered`
     },
     timestamp: new Date().toISOString()
   };

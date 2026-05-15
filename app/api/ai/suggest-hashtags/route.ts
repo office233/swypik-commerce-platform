@@ -10,7 +10,7 @@ function aiClient(): OpenAI | null {
   if (token) {
     return new OpenAI({
       apiKey: token,
-      baseURL: "https://api.githubcopilot.com",
+      baseURL: process.env.GITHUB_MODELS_ENDPOINT ?? "https://api.githubcopilot.com",
       defaultHeaders: {
         "Editor-Version": "vscode/1.95.0",
         "Copilot-Integration-Id": "vscode-chat",

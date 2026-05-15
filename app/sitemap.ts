@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 3600; // Regenerate every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://swypik.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 
   // ── Static pages ──────────────────────────────────────────────
   const staticPages: MetadataRoute.Sitemap = [
