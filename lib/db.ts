@@ -25,6 +25,11 @@ function getPool(): Pool {
     connectionTimeoutMillis: 10_000,
   });
 
+  // Prevent uncaughtException on FATAL 57P01 (admin shutdown) or idle client errors.
+  pool.on("error", (err) => {
+    console.warn("[db] idle pg client error:", err.message);
+  });
+
   return pool;
 }
 
