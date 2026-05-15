@@ -12,10 +12,11 @@ async function isOwner(streamId: string, userId: string): Promise<boolean> {
   return rows[0]?.creator_id === userId;
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isOwner(params.id, session.userId)) && session.role !== "admin") {
+  if (!(await isOwner(id, session.userId)) && session.role !== "admin") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));
@@ -29,19 +30,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { rows } = await dbQuery<{ id: number }>(
     `INSERT INTO live_shop_items (stream_id, product_id, display_order, is_pinned, flash_price_cents, flash_until)
      VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-    [params.id, product_id, display_order, is_pinned, flash_price_cents, flash_until],
+    [id, product_id, display_order, is_pinned, flash_price_cents, flash_until],
   );
   return NextResponse.json({ id: rows[0].id });
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { rows } = await dbQuery(
     `SELECT lsi.*, p.title, p.image_url, p.price_cents, p.currency
        FROM live_shop_items lsi
        LEFT JOIN marketplace_products p ON p.id::text = lsi.product_id
       WHERE lsi.stream_id = $1
       ORDER BY lsi.is_pinned DESC, lsi.display_order ASC, lsi.created_at ASC`,
-    [params.id],
+    [id],
   );
   return NextResponse.json({ items: rows });
 }

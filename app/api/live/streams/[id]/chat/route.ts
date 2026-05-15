@@ -5,7 +5,8 @@ import { getAuthSession } from "@/lib/auth/session";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
@@ -14,19 +15,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { rows } = await dbQuery<{ id: number; created_at: string }>(
     `INSERT INTO live_chat_messages (stream_id, user_id, message) VALUES ($1,$2,$3)
      RETURNING id, created_at`,
-    [params.id, session.userId, message],
+    [id, session.userId, message],
   );
   return NextResponse.json({ id: rows[0].id, created_at: rows[0].created_at });
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const url = new URL(req.url);
   const accept = req.headers.get("accept") || "";
   // SSE long-poll mode
   if (accept.includes("text/event-stream")) {
     const lastEventId = req.headers.get("last-event-id") || url.searchParams.get("lastEventId");
     const encoder = new TextEncoder();
-    const streamId = params.id;
+    const streamId = id;
     let lastId = lastEventId ? Number(lastEventId) : 0;
     let closed = false;
     const stream = new ReadableStream({
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { rows } = await dbQuery(
     `SELECT id, user_id, message, created_at FROM live_chat_messages
        WHERE stream_id = $1 ORDER BY id DESC LIMIT $2`,
-    [params.id, limit],
+    [id, limit],
   );
   return NextResponse.json({ items: rows.reverse() });
 }

@@ -4,14 +4,15 @@ import LiveViewerClient from "./LiveViewerClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function LiveViewerPage({ params }: { params: { id: string } }) {
+export default async function LiveViewerPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { rows } = await dbQuery(
     `SELECT ls.id, ls.title, ls.description, ls.status, ls.hls_url, ls.viewer_count,
             ls.creator_id, u.username, u.display_name, u.avatar_url
        FROM live_streams ls
        LEFT JOIN users u ON u.id::text = ls.creator_id
       WHERE ls.id = $1 LIMIT 1`,
-    [params.id],
+    [id],
   );
   if (!rows[0]) notFound();
   const { rows: items } = await dbQuery(
@@ -21,7 +22,7 @@ export default async function LiveViewerPage({ params }: { params: { id: string 
        LEFT JOIN marketplace_products p ON p.id::text = lsi.product_id
       WHERE lsi.stream_id = $1
       ORDER BY lsi.is_pinned DESC, lsi.display_order ASC`,
-    [params.id],
+    [id],
   );
   return <LiveViewerClient stream={rows[0] as any} items={items as any} />;
 }

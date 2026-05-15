@@ -4,12 +4,13 @@ import { getAuthSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { rows: own } = await dbQuery<{ creator_id: string }>(
     `SELECT creator_id FROM live_streams WHERE id = $1`,
-    [params.id],
+    [id],
   );
   if (!own[0]) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (own[0].creator_id !== session.userId && session.role !== "admin") {
@@ -21,8 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const client = await getDb().connect();
   try {
     await client.query("BEGIN");
-    await client.query(`UPDATE live_shop_items SET is_pinned = false WHERE stream_id = $1`, [params.id]);
-    await client.query(`UPDATE live_shop_items SET is_pinned = true WHERE id = $1 AND stream_id = $2`, [item_id, params.id]);
+    await client.query(`UPDATE live_shop_items SET is_pinned = false WHERE stream_id = $1`, [id]);
+    await client.query(`UPDATE live_shop_items SET is_pinned = true WHERE id = $1 AND stream_id = $2`, [item_id, id]);
     await client.query("COMMIT");
   } catch (e) {
     await client.query("ROLLBACK");

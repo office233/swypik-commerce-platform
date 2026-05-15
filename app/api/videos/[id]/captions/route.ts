@@ -11,23 +11,25 @@ const SUPPORTED: TargetLang[] = ["en", "es", "fr", "de", "pt", "it", "ro"];
 
 type CapRow = { lang: string; text: string; segments: CaptionSegment[] | null; is_auto: boolean };
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const url = new URL(req.url);
   const lang = (url.searchParams.get("lang") || "").toLowerCase();
   if (!lang) return NextResponse.json({ error: "lang required" }, { status: 400 });
   const { rows } = await dbQuery<CapRow>(
     `SELECT lang, text, segments, is_auto FROM video_captions WHERE video_id=$1 AND lang=$2 LIMIT 1`,
-    [params.id, lang],
+    [id, lang],
   );
   if (!rows[0]) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json(rows[0], { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } });
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const vid = params.id;
+  const vid = id;
   const { rows: vrows } = await dbQuery<{ creator_id: string; playback_url: string | null }>(
     `SELECT creator_id, playback_url FROM videos WHERE id=$1 LIMIT 1`,
     [vid],
