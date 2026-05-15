@@ -1,0 +1,164 @@
+/**
+ * Admin Creators — top creators by followers + sales
+ */
+import Link from "next/link";
+import { dbQuery } from "@/lib/db";
+import { requireAdminSession } from "@/lib/security/admin-auth";
+
+export const dynamic = "force-dynamic";
+
+type Row = {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  is_verified: boolean;
+  followers: string;
+  videos: string;
+  sales_count: string;
+  sales_cents: string;
+};
+
+function fmtMoney(cents: string | number): string {
+  const n = Number(cents) || 0;
+  return (n / 100).toLocaleString("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 0 });
+}
+
+export default async function AdminCreatorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string; q?: string }>;
+}) {
+  await requireAdminSession();
+  const sp = await searchParams;
+  const sort = sp.sort === "sales" ? "sales" : sp.sort === "videos" ? "videos" : "followers";
+  const q = (sp.q || "").trim();
+
+  const orderSql =
+    sort === "sales"
+      ? "sales_cents DESC, followers DESC"
+      : sort === "videos"
+      ? "videos DESC, followers DESC"
+      : "followers DESC, videos DESC";
+
+  let rows: Row[] = [];
+  let loadError: string | null = null;
+
+  try {
+    const params: any[] = [];
+    let searchSql = "";
+    if (q) {
+      params.push(q);
+      searchSql = `AND (u.username ILIKE '%'||$1||'%' OR u.display_name ILIKE '%'||$1||'%')`;
+    }
+    const res = await dbQuery(
+      `
+      SELECT u.id, u.username, u.display_name, u.avatar_url, u.is_verified,
+             (SELECT COUNT(*) FROM follows WHERE following_user_id = u.id)::text AS followers,
+             (SELECT COUNT(*) FROM videos WHERE creator_id = u.id)::text AS videos,
+             (SELECT COUNT(*) FROM commerce_order_items WHERE creator_id = u.id)::text AS sales_count,
+             COALESCE((SELECT SUM(gross_amount_cents) FROM commerce_order_items WHERE creator_id = u.id), 0)::text AS sales_cents
+      FROM users u
+      WHERE (u.role IN ('creator', 'admin') OR EXISTS (SELECT 1 FROM creators c WHERE c.email = u.email))
+      ${searchSql}
+      ORDER BY ${orderSql}
+      LIMIT 100
+      `,
+      params
+    );
+    rows = res.rows as Row[];
+  } catch (e: any) {
+    loadError = e?.message || "Eroare DB";
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-[#0D0D0D]">Creators</h1>
+        <p className="text-sm text-black/60 mt-1">Top {rows.length} creators după {sort === "sales" ? "vânzări" : sort === "videos" ? "videoclipuri" : "urmăritori"}.</p>
+      </div>
+
+      <form className="mb-4 flex flex-wrap items-center gap-2" action="/admin/creators" method="GET">
+        <input
+          type="search"
+          name="q"
+          defaultValue={q}
+          placeholder="Caută username sau nume..."
+          className="rounded-lg border border-black/15 px-3 py-2 text-sm w-64"
+        />
+        <input type="hidden" name="sort" value={sort} />
+        <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">Caută</button>
+        <div className="ml-auto flex gap-1">
+          {(["followers", "videos", "sales"] as const).map((s) => (
+            <Link
+              key={s}
+              href={`/admin/creators?sort=${s}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold border ${
+                sort === s ? "bg-black text-white border-black" : "border-black/15 text-black/70"
+              }`}
+            >
+              {s === "followers" ? "Urmăritori" : s === "videos" ? "Videoclipuri" : "Vânzări"}
+            </Link>
+          ))}
+        </div>
+      </form>
+
+      {loadError && (
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{loadError}</div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-black/10 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-black/5 text-left text-xs uppercase tracking-wide text-black/60">
+            <tr>
+              <th className="px-4 py-3">Creator</th>
+              <th className="px-4 py-3 text-right">Urmăritori</th>
+              <th className="px-4 py-3 text-right">Videoclipuri</th>
+              <th className="px-4 py-3 text-right">Vânzări (#)</th>
+              <th className="px-4 py-3 text-right">Vânzări (total)</th>
+              <th className="px-4 py-3 text-right">Acțiuni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center text-black/50">Niciun creator găsit.</td>
+              </tr>
+            )}
+            {rows.map((r) => (
+              <tr key={r.id} className="border-t border-black/5">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    {r.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={r.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-black/10" />
+                    )}
+                    <div>
+                      <div className="font-bold flex items-center gap-1">
+                        @{r.username}
+                        {r.is_verified && <span className="text-xs text-blue-600">✓</span>}
+                      </div>
+                      {r.display_name && <div className="text-xs text-black/50">{r.display_name}</div>}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums">{Number(r.followers).toLocaleString("ro-RO")}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{Number(r.videos).toLocaleString("ro-RO")}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{Number(r.sales_count).toLocaleString("ro-RO")}</td>
+                <td className="px-4 py-3 text-right tabular-nums font-bold">{fmtMoney(r.sales_cents)}</td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex justify-end gap-2">
+                    <Link href={`/u/${r.username}`} className="text-xs font-bold text-blue-600 hover:underline">Profil</Link>
+                    <Link href={`/admin/users?q=${encodeURIComponent(r.username)}`} className="text-xs font-bold text-black/60 hover:underline">User</Link>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
