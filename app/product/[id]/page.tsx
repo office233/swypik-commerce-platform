@@ -9,6 +9,11 @@
 import { Metadata } from "next";
 import { getProductDetail } from "@/lib/products/get-product-detail";
 import ProductClient from "./ProductClient";
+import ReviewList from "@/components/reviews/ReviewList";
+import ReviewForm from "@/components/reviews/ReviewForm";
+import StarRating from "@/components/reviews/StarRating";
+import { getAuthSession } from "@/lib/auth/session";
+import { dbQuery } from "@/lib/db";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -46,6 +51,37 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
   const data = await getProductDetail(id);
+  const session = await getAuthSession();
+
+  // Reviews aggregate + capability checks
+  let reviewsAgg: { average: number | null; total: number } = { average: null, total: 0 };
+  let canReview = false;
+  let alreadyReviewed = false;
+  if (data) {
+    const { rows: aggRows } = await dbQuery<{ avg_rating: string | null; total: string }>(
+      "SELECT AVG(rating)::numeric(3,2) AS avg_rating, COUNT(*)::text AS total FROM product_reviews WHERE product_id = $1 AND is_hidden = false",
+      [id]
+    );
+    const a = aggRows[0];
+    reviewsAgg = {
+      average: a?.avg_rating ? Number(a.avg_rating) : null,
+      total: Number(a?.total || "0"),
+    };
+    if (session) {
+      const { rows: ownRows } = await dbQuery<{ id: string }>(
+        "SELECT id FROM product_reviews WHERE product_id = $1 AND user_id = $2 LIMIT 1",
+        [id, session.userId]
+      );
+      alreadyReviewed = ownRows.length > 0;
+      if (!alreadyReviewed) {
+        const { rows: orderRows } = await dbQuery<{ order_id: string }>(
+          "SELECT oi.order_id FROM commerce_order_items oi JOIN commerce_orders o ON o.id = oi.order_id WHERE oi.product_id = $1 AND o.buyer_user_id = $2 AND o.status IN ('paid','fulfilled') LIMIT 1",
+          [id, session.userId]
+        );
+        canReview = orderRows.length > 0;
+      }
+    }
+  }
 
   // JSON-LD — only include aggregateRating when data is REAL
   let jsonLd = null;
@@ -89,6 +125,32 @@ export default async function ProductPage({ params }: Props) {
         />
       )}
       <ProductClient initialData={data} />
+      {data && (
+        <section className="max-w-3xl mx-auto px-4 py-6" aria-labelledby="reviews-heading">
+          <h2 id="reviews-heading" className="text-lg font-semibold mb-2">Recenzii</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <StarRating value={reviewsAgg.average ?? 0} size={18} />
+            <span className="text-sm text-gray-600">
+              {reviewsAgg.average != null
+                ? `${reviewsAgg.average.toFixed(1)} / 5 (${reviewsAgg.total} recenzii)`
+                : "Niciun review încă"}
+            </span>
+          </div>
+          <ReviewList productId={data.product.id} limit={10} />
+          {session && canReview && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold mb-2">Lasă o recenzie</h3>
+              <ReviewForm productId={data.product.id} />
+            </div>
+          )}
+          {session && alreadyReviewed && (
+            <p className="mt-4 text-sm text-gray-500">Ai lăsat deja o recenzie pentru acest produs.</p>
+          )}
+          {session && !canReview && !alreadyReviewed && (
+            <p className="mt-4 text-sm text-gray-500">Doar cumpărătorii verificați pot lăsa recenzii.</p>
+          )}
+        </section>
+      )}
     </>
   );
 }
