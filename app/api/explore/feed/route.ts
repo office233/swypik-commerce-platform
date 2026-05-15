@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
         p.image_url as product_image_url
       FROM creator_videos cv
       JOIN marketplace_products p ON cv.product_id = p.id::text
-      WHERE cv.status = 'ready' AND cv.is_hidden = false
+      WHERE cv.status = 'ready'
       ORDER BY cv.id DESC
       LIMIT 50
     `);

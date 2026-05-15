@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { dbQuery } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -122,41 +123,34 @@ export default async function VideoPage({ params }: Props) {
   return (
     <>
       {/* JSON-LD for VideoObject structured data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "VideoObject",
-            name: video.title,
-            description: video.description || video.title,
-            thumbnailUrl: video.thumbnail_url,
-            contentUrl: video.playback_url,
-            uploadDate: video.published_at
-              ? new Date(video.published_at).toISOString()
-              : undefined,
-            duration: video.duration_ms
-              ? `PT${Math.floor(video.duration_ms / 60000)}M${Math.floor((video.duration_ms % 60000) / 1000)}S`
-              : undefined,
-            interactionStatistic: {
-              "@type": "InteractionCounter",
-              interactionType: { "@type": "WatchAction" },
-              userInteractionCount: video.view_count || 0,
-            },
-            author: {
-              "@type": "Person",
-              name: creatorLabel,
-            },
-          }).replace(/</g, "\\u003c"),
-        }}
-      />
+      <script type="application/ld+json">
+        {safeJsonLd({
+          "@context": "https://schema.org",
+          "@type": "VideoObject",
+          name: video.title,
+          description: video.description || video.title,
+          thumbnailUrl: video.thumbnail_url,
+          contentUrl: video.playback_url,
+          uploadDate: video.published_at
+            ? new Date(video.published_at).toISOString()
+            : undefined,
+          duration: video.duration_ms
+            ? `PT${Math.floor(video.duration_ms / 60000)}M${Math.floor((video.duration_ms % 60000) / 1000)}S`
+            : undefined,
+          interactionStatistic: {
+            "@type": "InteractionCounter",
+            interactionType: { "@type": "WatchAction" },
+            userInteractionCount: video.view_count || 0,
+          },
+          author: {
+            "@type": "Person",
+            name: creatorLabel,
+          },
+        })}
+      </script>
 
-      {/* Auto-redirect script — redirects to the real player after 1s */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `setTimeout(function(){window.location.href="/explore?v=${id}"},1000);`,
-        }}
-      />
+      {/* Auto-redirect to the real player after 1s. */}
+      <meta httpEquiv="refresh" content={`1;url=/explore?v=${encodeURIComponent(id)}`} />
 
       {/* SEO landing page — visible to crawlers & slow connections */}
       <div

@@ -68,6 +68,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
+      # nosemgrep: trailofbits.generic.wget-unencrypted-url.wget-unencrypted-url - container-local healthcheck over loopback.
       test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 5s
@@ -114,6 +115,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
+      # nosemgrep: trailofbits.generic.wget-unencrypted-url.wget-unencrypted-url - container-local healthcheck over loopback.
       test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8080/healthz"]
       interval: 30s
       timeout: 5s
@@ -231,8 +233,11 @@ services:
   caddy:
     image: caddy:2-alpine
     ports:
+      # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces - Caddy is the public edge and must bind HTTP/HTTPS on all interfaces.
       - "80:80"
+      # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces - Caddy is the public edge and must bind HTTP/HTTPS on all interfaces.
       - "443:443"
+      # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces - Caddy is the public edge and must bind HTTP/3 on all interfaces.
       - "443:443/udp"   # HTTP/3 QUIC
     volumes:
       - ../../infra/hetzner/Caddyfile:/etc/caddy/Caddyfile:ro

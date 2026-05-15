@@ -26,6 +26,7 @@ data:
   POSTGRES_USER: Swypik
   DATABASE_HOST: postgres
   DATABASE_PORT: "5432"
+  # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport - in-cluster Redis service; enabling rediss requires a matching TLS Redis deployment.
   REDIS_URL: redis://redis:6379
   CLICKHOUSE_DB: social_analytics
   CLICKHOUSE_USER: Swypik
@@ -86,6 +87,8 @@ spec:
       containers:
         - name: postgres
           image: postgres:16-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - name: postgres
               containerPort: 5432
@@ -160,6 +163,8 @@ spec:
       containers:
         - name: redis
           image: redis:7-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
           args: ["redis-server", "--appendonly", "yes"]
           ports:
             - name: redis
@@ -220,6 +225,8 @@ spec:
       containers:
         - name: clickhouse
           image: clickhouse/clickhouse-server:24.8
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - name: http
               containerPort: 8123
@@ -314,6 +321,8 @@ spec:
       containers:
         - name: opensearch
           image: opensearchproject/opensearch:2.15.0
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - name: http
               containerPort: 9200
@@ -380,6 +389,8 @@ spec:
       containers:
         - name: minio
           image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+          securityContext:
+            allowPrivilegeEscalation: false
           args: ["server", "/data", "--console-address", ":9001"]
           ports:
             - name: api

@@ -98,6 +98,7 @@ else
   HEALTH_OK=false
 fi
 
+# nosemgrep: trailofbits.generic.wget-unencrypted-url.wget-unencrypted-url - container-local healthcheck over loopback.
 if "${COMPOSE[@]}" exec -T platform-api wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1; then
   log "OK platform-api health"
 else

@@ -14,6 +14,7 @@ import ReviewForm from "@/components/reviews/ReviewForm";
 import StarRating from "@/components/reviews/StarRating";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -58,9 +59,10 @@ export default async function ProductPage({ params }: Props) {
   let canReview = false;
   let alreadyReviewed = false;
   if (data) {
+    const productId = data.product.id;
     const { rows: aggRows } = await dbQuery<{ avg_rating: string | null; total: string }>(
       "SELECT AVG(rating)::numeric(3,2) AS avg_rating, COUNT(*)::text AS total FROM product_reviews WHERE product_id = $1 AND is_hidden = false",
-      [id]
+      [productId]
     );
     const a = aggRows[0];
     reviewsAgg = {
@@ -70,13 +72,13 @@ export default async function ProductPage({ params }: Props) {
     if (session) {
       const { rows: ownRows } = await dbQuery<{ id: string }>(
         "SELECT id FROM product_reviews WHERE product_id = $1 AND user_id = $2 LIMIT 1",
-        [id, session.userId]
+        [productId, session.userId]
       );
       alreadyReviewed = ownRows.length > 0;
       if (!alreadyReviewed) {
         const { rows: orderRows } = await dbQuery<{ order_id: string }>(
           "SELECT oi.order_id FROM commerce_order_items oi JOIN commerce_orders o ON o.id = oi.order_id WHERE oi.product_id = $1 AND o.buyer_user_id = $2 AND o.status IN ('paid','fulfilled') LIMIT 1",
-          [id, session.userId]
+          [productId, session.userId]
         );
         canReview = orderRows.length > 0;
       }
@@ -119,10 +121,7 @@ export default async function ProductPage({ params }: Props) {
   return (
     <>
       {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-        />
+        <script type="application/ld+json">{safeJsonLd(jsonLd)}</script>
       )}
       <ProductClient initialData={data} />
       {data && (
