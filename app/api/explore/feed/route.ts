@@ -102,7 +102,10 @@ export async function GET(request: NextRequest) {
         mp.image_url   AS mp_image_url,
         at.id          AS at_id,
         at.title       AS at_title,
-        at.artist      AS at_artist
+        at.artist      AS at_artist,
+        at.image_url   AS at_image_url,
+        at.audio_url   AS at_audio_url,
+        at.duration_s AS at_duration_s
         ${scoreSelect}
         ${userId ? `,
         EXISTS(SELECT 1 FROM likes l WHERE l.user_id = $3 AND l.video_id = v.id) AS viewer_liked,
@@ -185,6 +188,9 @@ export async function GET(request: NextRequest) {
             id: String(row.at_id),
             title: row.at_title || null,
             artist: row.at_artist || null,
+            image_url: row.at_image_url || null,
+            audio_url: row.at_audio_url || null,
+            duration_s: row.at_duration_s != null ? Number(row.at_duration_s) : null,
           } : null,
           ...(row.engagement_score !== undefined && { engagementScore: Number(row.engagement_score) }),
           ...(row.trending_score !== undefined && { trendingScore: Number(row.trending_score) }),

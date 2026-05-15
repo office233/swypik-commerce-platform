@@ -15,6 +15,7 @@ export type ProductFilters = {
   excludeIds?: string[];
   seed?: number;
   locale?: string;
+  includeCount?: boolean;
 };
 
 const BASE_PRODUCT_SELECT = `
@@ -449,12 +450,14 @@ function buildOrderBy(sort?: ProductFilters["sort"], mode?: ProductFilters["mode
 
 export async function searchProducts(filters: ProductFilters = {}) {
   const { limit = 50, offset = 0, locale = "ro", sort, mode } = filters;
+  const includeCount = (filters as any).includeCount === true;
   const { where, params, paramIndex } = buildSearchFilters(filters);
   const orderBy = buildOrderBy(sort, mode);
   const cappedLimit = Math.min(limit, 200);
 
-  // For mode=video (high-traffic, infinite-scroll) skip COUNT(*) — use LIMIT+1 instead.
-  const skipCount = mode === "video";
+  // Skip COUNT(*) by default — use LIMIT+1 for hasMore. Caller may opt in
+  // with includeCount=true (rare admin/totals usage) at the cost of a full scan.
+  const skipCount = !includeCount || mode === "video";
   const fetchLimit = skipCount ? cappedLimit + 1 : cappedLimit;
 
   const sql = `
