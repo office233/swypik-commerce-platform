@@ -22,7 +22,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
 import { dbQuery } from "@/lib/db";
-import { sendMagicLink } from "@/lib/email/service";
+import { sendMagicLink, sendEmail } from "@/lib/email/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import {
   hashSessionToken,
@@ -796,6 +796,130 @@ export async function POST(req: Request) {
       appendSetCookie(response, clearCookieHeader(SELLER_COOKIE_NAME));
       appendSetCookie(response, clearCookieHeader(getAdminCookieName()));
       return response;
+    }
+
+    /* ═══════════════════ FORGOT PASSWORD ═══════════════════ */
+    case "forgot_password": {
+      if (!isValidEmail(email)) {
+        return NextResponse.json(
+          { success: true, message: "Dacă există un cont, am trimis un email cu instrucțiuni." },
+        );
+      }
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const ip = getClientIP(req);
+
+      const emailLimit = await rateLimit("auth-forgot-email", normalizedEmail, { limit: 3, window: 3600 });
+      const ipLimit = await rateLimit("auth-forgot-ip", ip, { limit: 5, window: 3600 });
+      if (!emailLimit.success || !ipLimit.success) {
+        return NextResponse.json(
+          { success: true, message: "Dacă există un cont, am trimis un email cu instrucțiuni." },
+        );
+      }
+
+      const { rows: userRows } = await dbQuery<{ id: string; email: string; first_name: string | null }>(
+        `SELECT id, email, first_name FROM users WHERE lower(email) = $1 LIMIT 1`,
+        [normalizedEmail],
+      );
+
+      if (userRows.length > 0) {
+        const userId = userRows[0].id;
+        const rawToken = generateToken();
+        const tokenHash = hashToken(rawToken);
+        await dbQuery(
+          `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+           VALUES ($1, $2, now() + interval '1 hour')`,
+          [userId, tokenHash],
+        );
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://swypik.com";
+        const resetUrl = `${baseUrl}/auth/reset?token=${rawToken}`;
+        const firstName = userRows[0].first_name || "";
+        const html = `
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;">
+          <h2 style="color:#7C3AED;">Resetare parolă Swypik</h2>
+          <p>Salut${firstName ? " " + firstName : ""},</p>
+          <p>Am primit o cerere de resetare a parolei pentru contul tău.</p>
+          <p style="text-align:center;margin:28px 0;">
+            <a href="${resetUrl}" style="background:#7C3AED;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Resetează parola</a>
+          </p>
+          <p style="color:#666;font-size:13px;">Sau copiază link-ul: <br/><span style="word-break:break-all;">${resetUrl}</span></p>
+          <p style="color:#666;font-size:12px;margin-top:24px;">Link-ul expiră în 1 oră. Dacă nu ai cerut resetarea, ignoră acest mesaj.</p>
+        </div>`;
+        sendEmail({ to: normalizedEmail, subject: "Resetare parolă Swypik", html }).catch((err) =>
+          console.error("[forgot_password] email error:", err),
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Dacă există un cont, am trimis un email cu instrucțiuni.",
+      });
+    }
+
+    /* ═══════════════════ RESET PASSWORD ═══════════════════ */
+    case "reset_password": {
+      const newPassword: unknown = body?.newPassword ?? body?.password;
+      const resetToken: unknown = body?.token;
+      if (typeof resetToken !== "string" || resetToken.length < 32) {
+        return NextResponse.json(
+          { success: false, error: "Token invalid." },
+          { status: 400 },
+        );
+      }
+      if (typeof newPassword !== "string" || newPassword.length < 8 || newPassword.length > 200) {
+        return NextResponse.json(
+          { success: false, error: "Parola trebuie să aibă minim 8 caractere." },
+          { status: 400 },
+        );
+      }
+      if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+        return NextResponse.json(
+          { success: false, error: "Parola trebuie să conțină litere și cifre." },
+          { status: 400 },
+        );
+      }
+
+      const ip = getClientIP(req);
+      const rl = await rateLimit("auth-reset", ip, { limit: 10, window: 600 });
+      if (!rl.success) {
+        return NextResponse.json(
+          { success: false, error: "Prea multe încercări. Așteaptă câteva minute." },
+          { status: 429 },
+        );
+      }
+
+      const tokenHashLookup = hashToken(resetToken);
+      const { rows: trows } = await dbQuery<{ id: string; user_id: string }>(
+        `SELECT id, user_id FROM password_reset_tokens
+         WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()
+         LIMIT 1`,
+        [tokenHashLookup],
+      );
+      if (trows.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "Token invalid sau expirat." },
+          { status: 400 },
+        );
+      }
+      const tokenId = trows[0].id;
+      const userId = trows[0].user_id;
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      await dbQuery("BEGIN");
+      try {
+        await dbQuery(`UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`, [tokenId]);
+        await dbQuery(`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, [passwordHash, userId]);
+        await dbQuery(`UPDATE user_sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);
+        await dbQuery("COMMIT");
+      } catch (e) {
+        await dbQuery("ROLLBACK");
+        console.error("[reset_password] tx error", e);
+        return NextResponse.json(
+          { success: false, error: "Nu am putut reseta parola." },
+          { status: 500 },
+        );
+      }
+
+      return NextResponse.json({ success: true, message: "Parola a fost resetată. Te poți autentifica." });
     }
 
     default:

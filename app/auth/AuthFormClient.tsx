@@ -273,6 +273,9 @@ function LoginForm({ nextPath }: { nextPath: string }) {
           <PrimaryButton loading={loading} disabled={!email || !password}>
             Intră în cont
           </PrimaryButton>
+          <div className="text-center text-sm">
+            <a href="/auth/forgot" className="text-violet-400 hover:underline">Ai uitat parola?</a>
+          </div>
         </form>
       )}
 
