@@ -1,3 +1,10 @@
+/**
+ * GET /api/categories?locale=ro
+ *
+ * Public alias for /api/products?hierarchy=true. Returns the category
+ * hierarchy used by storefront filters and the chat assistant.
+ * Internal callers should prefer /api/products?hierarchy=true.
+ */
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";

@@ -1,3 +1,9 @@
+/**
+ * GENERATED-CONSUMER-NOTE
+ * Public read-only profile endpoint consumed by external clients (mobile app,
+ * Go platform-api). The website itself uses /u/[username] + lib/social/user-profile
+ * server-side, so this route currently has no in-app fetch caller.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 

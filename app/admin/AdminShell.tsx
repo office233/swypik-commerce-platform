@@ -10,7 +10,6 @@ const navItems = [
   { href: "/admin/marketplace", label: "Marketplace" },
   { href: "/admin/sellers", label: "Selleri" },
   { href: "/admin/videos", label: "🎬 Videos" },
-  { href: "/admin/challenges", label: "🏆 Challenges" },
   { href: "/admin/moderation", label: "🛡️ Moderare" },
 ];
 
