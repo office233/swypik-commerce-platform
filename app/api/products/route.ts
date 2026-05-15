@@ -26,7 +26,7 @@ const RO_TO_EN: Record<string, string> = {
   animale: "pet dog cat", caine: "dog", pisica: "cat",
   beauty: "makeup beauty cosmetic", machiaj: "makeup", parfum: "perfume",
   skincare: "skincare cream serum", sport: "sports fitness yoga",
-  fitness: "fitness gym workout", auto: "car motorcycle accessories",
+  fitness: "fitness", auto: "car motorcycle accessories",
   masina: "car accessories", scule: "tools hardware",
   jucarii: "toys", cadou: "gift", ieftin: "cheap affordable",
 };
