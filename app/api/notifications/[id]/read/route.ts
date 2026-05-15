@@ -6,14 +6,14 @@ export const dynamic = "force-dynamic";
 
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const userId = await getOptionalSocialUserId();
   if (!userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const id = params.id;
+  const { id } = await params;
   if (!id) {
     return NextResponse.json({ error: "missing_id" }, { status: 400 });
   }

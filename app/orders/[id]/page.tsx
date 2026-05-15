@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 
 const STATUS_MAP: Record<string, { label: string; color: string; icon: string; step: number }> = {
@@ -20,7 +20,8 @@ const STEPS = [
   { label: "Livrată", icon: "🏠" },
 ];
 
-export default function OrderTrackingPage({ params }: { params: { id: string } }) {
+export default function OrderTrackingPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
 
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get("token") || "";
-    fetch(`/api/orders/${params.id}${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+    fetch(`/api/orders/${id}${token ? `?token=${encodeURIComponent(token)}` : ""}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) {
@@ -43,7 +44,7 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
       })
       .catch(() => setError("Nu am putut încărca comanda."))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   if (loading) {
     return (

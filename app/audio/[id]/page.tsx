@@ -33,7 +33,7 @@ function formatDuration(s: number) {
   return `${m}:${sec}`;
 }
 
-export default async function AudioPage({ params }: { params: { id: string } }) {
+export default async function AudioPage({ params }: { params: Promise<{ id: string }> }) {
   const id = params.id;
   if (!/^\d+$/.test(id)) notFound();
 

@@ -33,9 +33,10 @@ function statusForPolicyCode(code: string): number {
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   if (!isEnabled("returns")) return frozenResponse("returns");
+  const { id } = await params;
   try {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
@@ -45,7 +46,7 @@ export async function POST(
       );
     }
 
-    const orderId = params.id;
+    const orderId = id;
     const { rows: orderRows } = await dbQuery(
       `SELECT
          co.id,

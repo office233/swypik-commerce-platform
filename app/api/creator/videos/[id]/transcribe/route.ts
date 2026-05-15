@@ -54,12 +54,13 @@ Reguli:
   }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     const creatorId = await getCreatorUserId();
     if (!creatorId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const videoId = params.id;
+    const videoId = id;
     const { rows } = await dbQuery<{
       id: string;
       playback_url: string | null;

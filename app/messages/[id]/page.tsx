@@ -7,15 +7,16 @@ import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConversationPage({ params }: { params: { id: string } }) {
+export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const userId = await getOptionalSocialUserId();
   if (!userId) {
-    redirect(`/auth/login?next=/messages/${params.id}`);
+    redirect(`/auth/login?next=/messages/${id}`);
   }
-  const ok = await assertParticipant(params.id, userId).catch(() => false);
+  const ok = await assertParticipant(id, userId).catch(() => false);
   if (!ok) notFound();
 
-  const messages = await listMessages(params.id, userId, { limit: 50 }).catch(() => []);
+  const messages = await listMessages(id, userId, { limit: 50 }).catch(() => []);
 
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white">
@@ -27,7 +28,7 @@ export default async function ConversationPage({ params }: { params: { id: strin
       </header>
       <div className="mx-auto max-w-md">
         <ConversationView
-          conversationId={params.id}
+          conversationId={id}
           viewerId={userId}
           initialMessages={messages as any}
         />

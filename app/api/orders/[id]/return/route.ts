@@ -15,9 +15,10 @@ import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { logger } from "@/lib/logger";
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   if (!isEnabled("returns")) return frozenResponse("returns");
+  const { id } = await params;
   try {
     const body = await req.json();
     const { reason, token } = body;
@@ -43,7 +44,7 @@ export async function POST(
        WHERE id = $1::uuid
          AND metadata->>'order_lookup_token' = $2
        LIMIT 1`,
-      [params.id, token]
+      [id, token]
     );
 
     if (rows.length === 0) {

@@ -29,12 +29,12 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const __auth = await requireAuth(req, ["admin"]);
   if (__auth instanceof NextResponse) return __auth;
 
-  const { id: videoId } = await Promise.resolve(params);
+  const { id: videoId } = await params;
   if (!videoId) {
     return NextResponse.json({ error: "Missing video id" }, { status: 400 });
   }

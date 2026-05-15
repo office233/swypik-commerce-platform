@@ -5,7 +5,7 @@ import { ArrowLeft, Save, ShieldCheck, CreditCard, User, Store } from "lucide-re
 
 export const dynamic = "force-dynamic";
 
-export default async function EditSellerPage({ params }: { params: { id: string } }) {
+export default async function EditSellerPage({ params }: { params: Promise<{ id: string }> }) {
   const { rows } = await dbQuery(`
     SELECT 
       u.id as user_id, 

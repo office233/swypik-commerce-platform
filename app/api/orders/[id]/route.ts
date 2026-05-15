@@ -15,14 +15,15 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const url = new URL(req.url);
     const token = url.searchParams.get("token") || "";
     const isAdmin = await isAdminRequest(req);
-    const looksLikeUuid = UUID_RE.test(params.id);
-    const lookupValue = token || params.id;
+    const looksLikeUuid = UUID_RE.test(id);
+    const lookupValue = token || id;
 
     const { rows } = await dbQuery(
       `SELECT
@@ -37,7 +38,7 @@ export async function GET(
          metadata->>'order_lookup_token' = $1
          OR ($2::boolean AND id = $3::uuid)
        LIMIT 1`,
-      [lookupValue, isAdmin && looksLikeUuid, looksLikeUuid ? params.id : null]
+      [lookupValue, isAdmin && looksLikeUuid, looksLikeUuid ? id : null]
     );
 
     if (rows.length === 0) {

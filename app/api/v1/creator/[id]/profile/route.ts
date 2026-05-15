@@ -4,13 +4,13 @@ import { getCreatorSnapshotForRequest } from "@/lib/social/creator-server";
 export const dynamic = "force-dynamic";
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export async function GET(req: Request, context: RouteContext) {
-  const snapshot = await getCreatorSnapshotForRequest(req, context.params.id);
+  const snapshot = await getCreatorSnapshotForRequest(req, (await context.params).id);
   return NextResponse.json(
     {
       ...snapshot,

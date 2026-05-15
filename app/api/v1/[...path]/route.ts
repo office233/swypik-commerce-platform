@@ -4,9 +4,9 @@ import { proxyToSocialApi } from "@/lib/social/proxy";
 export const dynamic = "force-dynamic";
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     path: string[];
-  };
+  }>;
 };
 
 async function fallback(req: Request, socialPath: string) {
@@ -39,7 +39,8 @@ async function fallback(req: Request, socialPath: string) {
 }
 
 async function handle(req: Request, context: RouteContext) {
-  const socialPath = `/v1/${context.params.path.join("/")}`;
+  const { path } = await context.params;
+  const socialPath = `/v1/${path.join("/")}`;
   if (req.method === "POST" && socialPath === "/v1/checkout") {
     return fallback(req, socialPath);
   }
