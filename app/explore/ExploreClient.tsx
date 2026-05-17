@@ -83,7 +83,7 @@ function FeedVideo({ videoId, src, hlsUrl, poster, isCurrent, muted, registerRef
   );
 }
 
-function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
+function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: any[]; initialCategory?: string }) {
   const searchParams = useSearchParams();
   const initialVideoId = searchParams.get("v");
 
@@ -163,9 +163,10 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
 
     async function fetchVideos() {
       try {
+        const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
         const url = feedSource === "following"
-          ? "/api/explore/feed?limit=30&source=following"
-          : "/api/explore/feed?limit=30";
+          ? `/api/explore/feed?limit=30&source=following${catQs}`
+          : `/api/explore/feed?limit=30${catQs}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
@@ -784,10 +785,10 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
   );
 }
 
-export default function ExploreClient({ initialVideos = [] }: { initialVideos?: any[] }) {
+export default function ExploreClient({ initialVideos = [], initialCategory = "" }: { initialVideos?: any[]; initialCategory?: string }) {
   return (
     <Suspense fallback={<div style={{ background: '#000', height: '100dvh' }} />}>
-      <ExplorePageInner initialVideos={initialVideos} />
+      <ExplorePageInner initialVideos={initialVideos} initialCategory={initialCategory} />
     </Suspense>
   );
 }
