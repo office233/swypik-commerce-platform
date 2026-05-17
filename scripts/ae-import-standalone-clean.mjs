@@ -51,13 +51,27 @@ function slugify(text) {
 }
 
 function getAdultReason(product) {
-  const text = `${product.title} ${product.description}`.toLowerCase();
+  const text = `${product.title} ${product.description || ''}`.toLowerCase();
   const adultTerms = [
-    'adult', 'sex', 'sexy', 'erotic', 'porn', 'lingerie', 'underwear',
-    'panties', 'bra', 'bdsm', 'fetish', 'vibrator', 'dildo', 'condom',
+    'sex toy','sex toys','sex doll','sex products',
+    'vibrator','vibrators','dildo','dildos',
+    'masturbator','masturbation','fleshlight',
+    'bondage','bdsm','fetish',
+    'butt plug','anal plug','anal beads','anal toy',
+    'cock ring','penis ring','penis pump','penis sleeve',
+    'vibrating egg','love egg',
+    'g-spot','g spot',
+    'lubricant sex','sex lubricant','personal lubricant',
+    'adult only','adult-only','adults only',
+    'erotic','porn','pornographic','nsfw',
+    'crotchless','pheromone','xxx','18+',
   ];
-  const matched = adultTerms.find((term) => text.includes(term));
-  return matched ? `matched ${matched}` : null;
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const term of adultTerms) {
+    const r = new RegExp('(^|[^a-z0-9])' + esc(term) + '([^a-z0-9]|$)', 'i');
+    if (r.test(text)) return 'matched ' + term;
+  }
+  return null;
 }
 
 function centsRon(ron) {
