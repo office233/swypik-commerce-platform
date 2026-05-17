@@ -7,6 +7,7 @@ import { dbQuery } from "@/lib/db";
 import { formatCurrency } from "@/lib/i18n/currency";
 import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, type Currency } from "@/lib/i18n/config";
 import OrderReturnButton from "./OrderReturnButton";
+import ReviewItemButton from "./ReviewItemButton";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ type OrderRow = {
 
 type ItemRow = {
   id: string;
+  product_id: string | null;
   title: string;
   quantity: number;
   unit_amount_cents: number;
@@ -71,12 +73,24 @@ export default async function OrderDetailPage({
   if (!order) notFound();
 
   const { rows: items } = await dbQuery<ItemRow>(
-    `SELECT id, title, quantity, unit_amount_cents, gross_amount_cents, currency
+    `SELECT id, product_id, title, quantity, unit_amount_cents, gross_amount_cents, currency
        FROM commerce_order_items
       WHERE order_id = $1
       ORDER BY created_at ASC`,
     [id],
   );
+
+  const productIds = items.map((it) => it.product_id).filter((x): x is string => !!x);
+  let reviewedSet = new Set<string>();
+  if (productIds.length > 0 && order.status === "delivered") {
+    const { rows: reviewed } = await dbQuery<{ product_id: string }>(
+      `SELECT product_id FROM product_reviews
+        WHERE user_id = $1 AND product_id = ANY($2::uuid[])`,
+      [user.userId, productIds],
+    );
+    reviewedSet = new Set(reviewed.map((r) => r.product_id));
+  }
+  const canReview = order.status === "delivered";
 
   const src = (order.currency?.trim() as Currency) || "RON";
   const fmt = (c: number) =>
@@ -110,14 +124,22 @@ export default async function OrderDetailPage({
 
         <section className="rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
           {items.map((it) => (
-            <div key={it.id} className="px-4 py-3 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold line-clamp-2">{it.title}</div>
-                <div className="text-xs text-white/50">
-                  Cant: {it.quantity} × {fmt(it.unit_amount_cents)}
+            <div key={it.id} className="px-4 py-3 flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold line-clamp-2">{it.title}</div>
+                  <div className="text-xs text-white/50">
+                    Cant: {it.quantity} × {fmt(it.unit_amount_cents)}
+                  </div>
                 </div>
+                <div className="text-sm font-bold">{fmt(it.gross_amount_cents)}</div>
               </div>
-              <div className="text-sm font-bold">{fmt(it.gross_amount_cents)}</div>
+              {canReview && it.product_id && (
+                <ReviewItemButton
+                  productId={it.product_id}
+                  alreadyReviewed={reviewedSet.has(it.product_id)}
+                />
+              )}
             </div>
           ))}
         </section>
