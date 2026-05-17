@@ -27,6 +27,10 @@ export async function GET(
 ) {
   try {
     const { id: productId } = await params;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!productId || !UUID_RE.test(productId)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+    }
     const url = new URL(req.url);
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "10", 10) || 10));
     const offset = Math.max(0, parseInt(url.searchParams.get("offset") || "0", 10) || 0);
@@ -99,6 +103,10 @@ export async function POST(
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const { id: productId } = await params;
+    const UUID_RE2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!productId || !UUID_RE2.test(productId)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+    }
     const body = await req.json().catch(() => ({}));
     const rating = Number(body?.rating);
     const title: string | null = typeof body?.title === "string" ? body.title.slice(0, 200) : null;
