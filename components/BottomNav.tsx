@@ -21,7 +21,7 @@ const NAV_ITEMS: Item[] = [
 export default function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload"];
+  const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/explore"];
   if (hiddenPaths.some((p) => pathname.startsWith(p))) return null;
 
   return (
