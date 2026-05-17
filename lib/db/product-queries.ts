@@ -437,6 +437,14 @@ function buildSearchFilters(filters: ProductFilters) {
           OR COALESCE(p.metadata->>'ae_root_category_id', '') = $${paramIndex}
           OR COALESCE(ac.ae_category_id::text, '') = $${paramIndex}
           OR COALESCE(ar.ae_category_id::text, '') = $${paramIndex}
+          OR p.taxonomy_node_slug IN (
+            WITH RECURSIVE descendants AS (
+              SELECT slug FROM taxonomy_nodes WHERE slug = $${paramIndex}::text
+              UNION ALL
+              SELECT n.slug FROM taxonomy_nodes n JOIN descendants d ON n.parent_slug = d.slug
+            )
+            SELECT slug FROM descendants
+          )
         )
       `);
       params.push(String(categoryId));

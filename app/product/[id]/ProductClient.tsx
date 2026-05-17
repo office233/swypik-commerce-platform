@@ -275,6 +275,22 @@ export default function ProductClient({ initialData }: Props) {
           {title}
         </h1>
 
+        {Array.isArray(product.taxonomyPath) && product.taxonomyPath.length > 0 && (
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 mb-3 text-[12px] text-[#6E6E80]">
+            <Link href="/categories" className="hover:underline">Categorii</Link>
+            {product.taxonomyPath.map((node: { slug: string; label: string }, idx: number) => (
+              <span key={node.slug} className="flex items-center gap-1">
+                <span className="text-[#C7C7CD]">/</span>
+                {idx === product.taxonomyPath.length - 1 ? (
+                  <span className="text-[#0D0D0D] font-medium">{node.label}</span>
+                ) : (
+                  <Link href={`/categories/${node.slug}`} className="hover:underline">{node.label}</Link>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
+
         <button onClick={() => setLiked(!liked)} className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-100 border border-neutral-100 py-3.5 mb-5 text-sm font-black text-[#0D0D0D] hover:bg-neutral-100 active:scale-95 transition-transform">
           <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
           🔖 Salvează (Te anunțăm la reducere)

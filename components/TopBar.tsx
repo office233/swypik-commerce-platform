@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Inbox, ShoppingBag } from "lucide-react";
+import { Inbox, LayoutGrid, ShoppingBag } from "lucide-react";
 import Logo from "@/components/Logo";
 
 /**
@@ -101,6 +101,13 @@ export default function TopBar() {
         <Logo href="/" />
 
         <div className="flex items-center gap-2">
+        <Link
+          href="/categories"
+          aria-label="Categorii"
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+        >
+          <LayoutGrid className="h-5 w-5" />
+        </Link>
         <Link
           href="/cart"
           aria-label="Coș"
