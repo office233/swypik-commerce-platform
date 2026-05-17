@@ -46,6 +46,17 @@ const nextConfig = {
     ],
   },
   // ─── Cloudflare + Performance Headers ───
+  async redirects() {
+    return [
+      { source: "/login", destination: "/auth/login", permanent: true },
+      { source: "/register", destination: "/auth/signup", permanent: true },
+      { source: "/signup", destination: "/auth/signup", permanent: true },
+      { source: "/reels", destination: "/explore", permanent: true },
+      { source: "/sellers", destination: "/seller", permanent: true },
+      { source: "/audio", destination: "/voice", permanent: true },
+      { source: "/legal", destination: "/legal/terms", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
