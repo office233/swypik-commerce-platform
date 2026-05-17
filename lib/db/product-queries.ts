@@ -695,25 +695,106 @@ function localizeTaxonomyLabel(value: unknown, locale = "ro") {
 }
 
 export async function getCategoryHierarchy(locale = "ro") {
+  // i18n-ready: read from taxonomy_nodes + taxonomy_translations.
+  // Walks ancestors via recursive CTE so counts roll up; labels resolved per
+  // locale with English fallback. Falls back to legacy string columns if the
+  // new tables are not yet populated.
   const { rows } = await dbQuery(
     `
+      WITH RECURSIVE product_counts AS (
+        SELECT taxonomy_node_slug AS slug, COUNT(*)::int AS direct_count
+        FROM marketplace_products
+        WHERE status = 'active'
+          AND COALESCE(is_adult, false) = false
+          AND taxonomy_node_slug IS NOT NULL
+        GROUP BY taxonomy_node_slug
+      ),
+      ancestors AS (
+        SELECT pc.slug AS leaf_slug, n.slug AS ancestor_slug, n.parent_slug, n.kind, n.sort_order, pc.direct_count, 0 AS depth
+        FROM product_counts pc
+        JOIN taxonomy_nodes n ON n.slug = pc.slug AND n.is_active = true
+        UNION ALL
+        SELECT a.leaf_slug, n.slug, n.parent_slug, n.kind, n.sort_order, a.direct_count, a.depth + 1
+        FROM ancestors a
+        JOIN taxonomy_nodes n ON n.slug = a.parent_slug AND n.is_active = true
+        WHERE a.depth < 8
+      ),
+      node_counts AS (
+        SELECT ancestor_slug AS slug, SUM(direct_count)::int AS total
+        FROM ancestors
+        GROUP BY ancestor_slug
+      )
       SELECT
-        COALESCE(NULLIF(p.taxonomy_department, ''), 'Other') AS department,
-        COALESCE(NULLIF(p.taxonomy_category, ''), 'General') AS category,
-        COALESCE(NULLIF(p.taxonomy_subcategory, ''), 'General') AS subcategory,
-        COALESCE(NULLIF(p.taxonomy_leaf, ''), NULLIF(p.canonical_category, ''), NULLIF(p.category, ''), 'General') AS leaf,
-        COALESCE(NULLIF(p.taxonomy_slug, ''), NULLIF(p.canonical_category_slug, ''), md5(COALESCE(p.category, 'general'))) AS slug,
-        COUNT(*)::int AS count
-      FROM marketplace_products p
-      WHERE p.status = 'active'
-        AND COALESCE(p.is_adult, false) = false
-      GROUP BY 1, 2, 3, 4, 5
-      HAVING COUNT(*) > 0
-      ORDER BY 1, 2, 3, 4
+        n.slug,
+        n.parent_slug,
+        n.kind,
+        n.sort_order,
+        COALESCE(t_loc.label, t_en.label, n.slug) AS label,
+        nc.total
+      FROM node_counts nc
+      JOIN taxonomy_nodes n ON n.slug = nc.slug
+      LEFT JOIN taxonomy_translations t_loc ON t_loc.node_slug = n.slug AND t_loc.locale = $1
+      LEFT JOIN taxonomy_translations t_en ON t_en.node_slug = n.slug AND t_en.locale = 'en'
+      ORDER BY n.sort_order NULLS LAST, n.slug
     `,
+    [locale],
   );
 
-  return buildCategoryHierarchy(rows, locale);
+  if (rows.length === 0) {
+    // Legacy fallback for pre-migration environments / tests.
+    const legacy = await dbQuery(
+      `
+        SELECT
+          COALESCE(NULLIF(p.taxonomy_department, ''), 'Other') AS department,
+          COALESCE(NULLIF(p.taxonomy_category, ''), 'General') AS category,
+          COALESCE(NULLIF(p.taxonomy_subcategory, ''), 'General') AS subcategory,
+          COALESCE(NULLIF(p.taxonomy_leaf, ''), NULLIF(p.canonical_category, ''), NULLIF(p.category, ''), 'General') AS leaf,
+          COALESCE(NULLIF(p.taxonomy_slug, ''), NULLIF(p.canonical_category_slug, ''), md5(COALESCE(p.category, 'general'))) AS slug,
+          COUNT(*)::int AS count
+        FROM marketplace_products p
+        WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false
+        GROUP BY 1,2,3,4,5
+        HAVING COUNT(*) > 0
+      `,
+    );
+    return buildCategoryHierarchy(legacy.rows, locale);
+  }
+
+  return buildTaxonomyNodeTree(rows);
+}
+
+function buildTaxonomyNodeTree(rows: any[]) {
+  const nodes = new Map<string, any>();
+  for (const r of rows) {
+    nodes.set(r.slug, {
+      id: r.slug,
+      name: String(r.label),
+      tag: r.slug,
+      count: Number(r.total) || 0,
+      kind: r.kind,
+      _parent: r.parent_slug,
+      _sort: r.sort_order ?? 9999,
+      children: [],
+    });
+  }
+  const roots: any[] = [];
+  for (const node of nodes.values()) {
+    if (node._parent && nodes.has(node._parent)) {
+      nodes.get(node._parent).children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  const sortRec = (list: any[]) => {
+    list.sort((a, b) => (a._sort - b._sort) || (b.count - a.count) || a.name.localeCompare(b.name));
+    for (const n of list) {
+      if (n.children.length) sortRec(n.children);
+      delete n._parent;
+      delete n._sort;
+    }
+  };
+  sortRec(roots);
+  return roots;
 }
 
 function buildCategoryHierarchy(rows: any[], locale = "ro") {
