@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Star, Truck } from "lucide-react";
 import { mergeIntoCart } from "@/types/cart";
@@ -35,7 +36,33 @@ export default function ProductClient({ initialData }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [liked, setLiked] = useState(false);
+  const [savePending, setSavePending] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+
+  const toggleSave = async () => {
+    if (savePending) return;
+    const next = !liked;
+    setLiked(next);
+    setSavePending(true);
+    try {
+      const res = await fetch(`/api/products/${id}/save`, {
+        method: next ? "POST" : "DELETE",
+        credentials: "include",
+      });
+      if (res.status === 401) {
+        setLiked(!next);
+        router.push(`/auth/login?next=/product/${id}`);
+        return;
+      }
+      if (!res.ok) {
+        setLiked(!next);
+      }
+    } catch {
+      setLiked(!next);
+    } finally {
+      setSavePending(false);
+    }
+  };
   const [productVideos, setProductVideos] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"clips" | "details" | "reviews">("clips");
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
@@ -224,7 +251,7 @@ export default function ProductClient({ initialData }: Props) {
         <span className="flex-1 text-sm font-semibold text-[#6E6E80] truncate">
           {product.category || 'Produs'}
         </span>
-        <button onClick={() => setLiked(!liked)} className={`grid h-9 w-9 place-items-center rounded-xl border transition-all active:scale-90 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`} aria-label="Like">
+        <button onClick={toggleSave} disabled={savePending} className={`grid h-9 w-9 place-items-center rounded-xl border transition-all active:scale-90 disabled:opacity-60 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`} aria-label="Salvează" aria-pressed={liked}>
           <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
         </button>
         <button onClick={() => router.push('/')} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Acasă">
@@ -301,9 +328,9 @@ export default function ProductClient({ initialData }: Props) {
           {title}
         </h1>
 
-        <button onClick={() => setLiked(!liked)} className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-100 border border-neutral-100 py-3.5 mb-5 text-sm font-black text-[#0D0D0D] hover:bg-neutral-100 active:scale-95 transition-transform">
-          <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
-          🔖 Salvează (Te anunțăm la reducere)
+        <button onClick={toggleSave} disabled={savePending} aria-pressed={liked} className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-100 border border-neutral-100 py-3.5 mb-5 text-sm font-black text-[#0D0D0D] hover:bg-neutral-100 active:scale-95 transition-transform disabled:opacity-60">
+          <Heart size={18} className={liked ? 'text-red-500' : ''} fill={liked ? 'currentColor' : 'none'} />
+          {liked ? '🔖 Salvat (Te anunțăm la reducere)' : '🔖 Salvează (Te anunțăm la reducere)'}
         </button>
 
         {/* Rating & Orders */}
@@ -585,6 +612,13 @@ export default function ProductClient({ initialData }: Props) {
               {selectedColor && selectedSize ? `${selectedColor} / ${selectedSize}` : "Selectează varianta"}
             </p>
           </div>
+          <Link
+            href={`/try-on/${product.id}`}
+            aria-label="Probează virtual"
+            className="flex items-center justify-center rounded-2xl bg-[#7C3AED] px-4 py-3.5 text-lg shadow-xl active:scale-95 transition-transform"
+          >
+            🪞
+          </Link>
           <button onClick={handleAddToCart}
             className="flex items-center gap-2 rounded-2xl bg-[#0D0D0D] px-6 py-3.5 text-sm font-black text-white shadow-xl active:scale-95 transition-transform">
             <ShoppingCart size={17} />
