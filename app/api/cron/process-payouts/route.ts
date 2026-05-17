@@ -36,6 +36,7 @@ import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
 import { getStripe } from "@/lib/stripe/checkout";
 import { timingSafeEqual } from "crypto";
+import { runCron } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ const RETURN_WINDOW_DAYS = 14;
 // How long a claim is considered "in-flight" before another worker may retry it.
 const CLAIM_TTL_MINUTES = 10;
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   if (!isEnabled("stripeConnect")) return frozenResponse("stripeConnect");
   // 1. Authorization
   const authHeader = req.headers.get("authorization");
@@ -283,3 +284,5 @@ export async function GET(req: Request) {
 }
 
 export const POST = GET;
+
+export async function GET(req: Request) { return runCron("process-payouts", () => handleGET(req as any)); }

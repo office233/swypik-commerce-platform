@@ -21,9 +21,10 @@ import {
 import { timingSafeEqual } from "crypto";
 
 import { logger } from "@/lib/logger";
+import { runCron } from "@/lib/cron/runCron";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   /* ── 1. Authorization ───────────────────────────────────── */
   const authHeader = req.headers.get("authorization");
   const token =
@@ -164,3 +165,5 @@ export async function GET(req: Request) {
 }
 
 export const POST = GET;
+
+export async function GET(req: Request) { return runCron("abandoned-cart", () => handleGET(req as any)); }

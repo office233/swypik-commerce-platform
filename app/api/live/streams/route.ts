@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     `INSERT INTO live_streams (creator_id, title, description, stream_key, rtmp_url, hls_url, scheduled_at, status)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      RETURNING id`,
-    [session.userId, title, description, streamKey, urls.rtmp_url, urls.hls_url, scheduled_at, scheduled_at ? "scheduled" : "scheduled"],
+    [session.userId, title, description, streamKey, urls.rtmp_url, urls.hls_url, scheduled_at, scheduled_at ? "scheduled" : "live"],
   );
 
   return NextResponse.json({
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     stream_key: streamKey,
     rtmp_url: urls.rtmp_url,
     hls_url: urls.hls_url,
-    status: "scheduled",
+    status: scheduled_at ? "scheduled" : "live",
   });
 }
 

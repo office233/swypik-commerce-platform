@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "crypto";
+import { runCron } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -53,10 +54,14 @@ async function run(req: Request) {
   });
 }
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   return run(req);
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   return run(req);
 }
+
+export async function GET(req: Request) { return runCron("publish-scheduled", () => handleGET(req as any)); }
+
+export async function POST(req: Request) { return runCron("publish-scheduled", () => handlePOST(req as any)); }

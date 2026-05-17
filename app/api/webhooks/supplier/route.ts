@@ -9,41 +9,28 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { sendCustomerShippingAlert } from "@/lib/email/service";
-import crypto from "crypto";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { verifySupplierWebhook } from "@/lib/webhooks/verify-supplier";
 
 import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
   if (!isEnabled("fulfillment")) return frozenResponse("fulfillment");
-  // ── 1. Authentication ──
-  const secret = process.env.SUPPLIER_WEBHOOK_SECRET;
-  if (!secret) {
-    logger.error("[Supplier Webhook] SUPPLIER_WEBHOOK_SECRET is not configured");
-    return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
-  }
 
-  const providedSecret =
-    req.headers.get("x-webhook-secret") ||
-    req.headers.get("authorization")?.replace("Bearer ", "") ||
-    "";
-
-  try {
-    if (
-      !providedSecret ||
-      !crypto.timingSafeEqual(
-        Buffer.from(providedSecret),
-        Buffer.from(secret)
-      )
-    ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // ── 1. HMAC + timestamp + replay verification ──
+  const rawBody = await req.text();
+  const verify = await verifySupplierWebhook(req, rawBody);
+  if (!verify.ok) {
+    return NextResponse.json({ error: verify.error }, { status: verify.status });
   }
 
   // ── 2. Process webhook payload ──
   try {
-    const body = await req.json();
+    let body: any;
+    try {
+      body = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      return NextResponse.json({ success: false, error: "Invalid JSON" }, { status: 400 });
+    }
     const { external_order_id, status, tracking_number } = body;
 
     if (!external_order_id || !tracking_number) {

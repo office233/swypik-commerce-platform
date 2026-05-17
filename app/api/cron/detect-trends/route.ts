@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import OpenAI from "openai";
 import { dbQuery } from "@/lib/db";
+import { runCron } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -32,13 +33,13 @@ async function topHashtags(): Promise<Trend[]> {
   const sql = `
     WITH recent AS (
       SELECT unnest(tags) AS tag FROM videos
-       WHERE published_at >= now() - interval '24 hours'
+       WHERE published_at >= now() - interval '30 days'
          AND visibility='public' AND is_hidden=false
     ),
     prior AS (
       SELECT unnest(tags) AS tag FROM videos
-       WHERE published_at >= now() - interval '7 days'
-         AND published_at < now() - interval '24 hours'
+       WHERE published_at >= now() - interval '90 days'
+         AND published_at < now() - interval '30 days'
          AND visibility='public' AND is_hidden=false
     ),
     r AS (SELECT tag, COUNT(*)::int c FROM recent GROUP BY tag),
@@ -46,7 +47,7 @@ async function topHashtags(): Promise<Trend[]> {
     SELECT r.tag, r.c AS recent_count, COALESCE(p.c,0) AS prior_count,
            CASE WHEN COALESCE(p.c,0)=0 THEN r.c::numeric*10 ELSE (r.c::numeric*7 / NULLIF(p.c,0)) END AS growth
       FROM r LEFT JOIN p USING (tag)
-     WHERE r.c >= 3
+     WHERE r.c >= 1
      ORDER BY growth DESC NULLS LAST
      LIMIT 20`;
   const { rows } = await dbQuery<{ tag: string; recent_count: number; prior_count: number; growth: number }>(sql);
@@ -63,7 +64,7 @@ async function topAudios(): Promise<Trend[]> {
     SELECT v.audio_track_id, at.title, at.artist, COUNT(*)::int c
       FROM videos v
       JOIN audio_tracks at ON at.id = v.audio_track_id
-     WHERE v.published_at >= now() - interval '24 hours'
+     WHERE v.published_at >= now() - interval '30 days'
        AND v.audio_track_id IS NOT NULL
        AND v.visibility='public' AND v.is_hidden=false
      GROUP BY v.audio_track_id, at.title, at.artist
@@ -88,7 +89,7 @@ async function topProducts(): Promise<Trend[]> {
       SELECT (metadata->>'product_id')::text AS pid, COUNT(*)::int c
         FROM feed_events
        WHERE event_type IN ('purchase_click','product_view')
-         AND occurred_at >= now() - interval '24 hours'
+         AND occurred_at >= now() - interval '30 days'
          AND metadata ? 'product_id'
        GROUP BY pid
     )
@@ -175,5 +176,5 @@ async function run(req: Request) {
   });
 }
 
-export async function POST(req: Request) { return run(req); }
-export async function GET(req: Request) { return run(req); }
+export async function POST(req: Request) { return runCron("detect-trends", () => run(req)); }
+export async function GET(req: Request) { return runCron("detect-trends", () => run(req)); }

@@ -123,6 +123,13 @@ export default async function DraftsPage(
                     </Link>
                     <DraftActions
                       videoId={d.id}
+                      action="publish-now"
+                      label="Publică"
+                      icon="send"
+                      confirm="Publici acest draft acum?"
+                    />
+                    <DraftActions
+                      videoId={d.id}
                       action="delete"
                       label="Șterge"
                       icon="trash"

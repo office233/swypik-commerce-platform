@@ -855,11 +855,14 @@ function UsernameStatus({
 }
 
 function OAuthButtons({ nextPath }: { nextPath: string }) {
+  const googleEnabled = process.env.NEXT_PUBLIC_OAUTH_GOOGLE_ENABLED === "1";
+  const appleEnabled = process.env.NEXT_PUBLIC_OAUTH_APPLE_ENABLED === "1";
+  if (!googleEnabled && !appleEnabled) return null;
   const next = encodeURIComponent(nextPath || "/");
   return (
     <div className="mb-5">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <a
+        {googleEnabled && (<a
           href={`/api/auth/oauth/google/start?next=${next}`}
           className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-black transition hover:bg-white/90"
           aria-label="Continuă cu Google"
@@ -871,8 +874,8 @@ function OAuthButtons({ nextPath }: { nextPath: string }) {
             <path fill="#EA4335" d="M12 5.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C16.96 2.99 14.696 2 12 2A9.996 9.996 0 0 0 3.064 7.51l3.341 2.59C7.19 7.736 9.395 5.977 12 5.977z"/>
           </svg>
           Continuă cu Google
-        </a>
-        <a
+        </a>)}
+        {appleEnabled && (<a
           href={`/api/auth/oauth/apple/start?next=${next}`}
           className="flex items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-bold text-white ring-1 ring-white/15 transition hover:bg-white/5"
           aria-label="Continuă cu Apple"
@@ -881,7 +884,7 @@ function OAuthButtons({ nextPath }: { nextPath: string }) {
             <path d="M16.365 1.43c0 1.14-.4 2.218-1.198 3.222-.962 1.193-2.131 1.886-3.396 1.787a3.49 3.49 0 0 1-.027-.443c0-1.094.466-2.262 1.292-3.225C13.46.83 14.586.135 15.97 0c.027.144.038.289.038.443zM20.5 17.05c-.622 1.437-.92 2.078-1.722 3.348-1.12 1.77-2.7 3.97-4.658 3.987-1.74.016-2.188-1.13-4.55-1.117-2.362.013-2.854 1.137-4.595 1.121-1.958-.018-3.456-2.005-4.575-3.775C-2.85 14.97-3.18 9.31-1.058 6.342c1.504-2.105 3.876-3.336 6.105-3.336 2.27 0 3.696 1.247 5.572 1.247 1.819 0 2.926-1.249 5.548-1.249 1.987 0 4.094 1.085 5.594 2.96-4.916 2.69-4.117 9.717-1.262 11.086z"/>
           </svg>
           Continuă cu Apple
-        </a>
+        </a>)}
       </div>
       <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-widest text-white/40">
         <span className="h-px flex-1 bg-white/10" />

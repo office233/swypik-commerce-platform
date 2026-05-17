@@ -26,12 +26,31 @@ const BLOCKED_CATEGORIES = [
   "gambling", "counterfeit",
 ];
 
-// Adult content (allowed but gated)
-const ADULT_KEYWORDS = [
-  "18+", "xxx", "sex toy", "vibrator", "dildo", "anal", "masturbator",
-  "fleshlight", "bondage", "bdsm", "butt plug", "cock ring", "vibrating egg",
-  "g-spot", "penis ring", "lubricant sex", "adult only", "adult-only",
+// Adult content (allowed but gated). Multi-word phrases are matched with
+// word boundaries to avoid false positives like "brand"→"bra", "analyze"→"anal",
+// "unisex"→"sex". Each entry becomes a \b...\b regex.
+const ADULT_KEYWORDS: string[] = [
+  "18\\+", "xxx",
+  "sex toy", "sex toys", "sex doll", "sex products",
+  "vibrator", "vibrators", "dildo", "dildos",
+  "masturbator", "masturbation", "fleshlight",
+  "bondage", "bdsm", "fetish",
+  "butt plug", "anal plug", "anal beads", "anal toy",
+  "cock ring", "penis ring", "penis pump", "penis sleeve",
+  "vibrating egg", "love egg",
+  "g-spot", "g spot",
+  "lubricant sex", "sex lubricant", "personal lubricant",
+  "adult only", "adult-only", "adults only",
+  "erotic", "porn", "pornographic", "nsfw",
+  "crotchless", "pheromone",
 ];
+
+// Phrases that, when present, mean an otherwise-matched keyword is NOT adult.
+// Checked BEFORE keyword match — if any exclusion phrase is in text, that
+// associated keyword is skipped.
+const ADULT_EXCLUSIONS: Record<string, string[]> = {
+  // none currently — word-boundary regex handles brand/analyze/unisex
+};
 
 const ADULT_CATEGORIES = [
   "adult", "adult sex toys", "sex products", "intimates & sex toys",
@@ -53,13 +72,25 @@ export type FilterResult = {
   adultReason?: string;
 };
 
+// Pre-compile word-boundary regexes once.
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+const ADULT_REGEXES: { kw: string; re: RegExp }[] = ADULT_KEYWORDS.map((kw) => {
+  // Already-regex tokens like "18\+" pass through escaped; spaces/hyphens kept literal.
+  const body = kw.includes("\\") ? kw : escapeRegex(kw);
+  return { kw, re: new RegExp(`(^|[^a-z0-9])${body}([^a-z0-9]|$)`, "i") };
+});
+
 function detectAdult(fullText: string, category?: string): { isAdult: boolean; reason?: string } {
   const cat = (category || "").toLowerCase().trim();
   if (cat && ADULT_CATEGORIES.some((c) => cat === c || cat.includes(c))) {
     return { isAdult: true, reason: `category:${cat}` };
   }
-  for (const kw of ADULT_KEYWORDS) {
-    if (fullText.includes(kw)) {
+  for (const { kw, re } of ADULT_REGEXES) {
+    if (re.test(fullText)) {
+      const exclusions = ADULT_EXCLUSIONS[kw];
+      if (exclusions && exclusions.some((ex) => fullText.includes(ex))) continue;
       return { isAdult: true, reason: `keyword:${kw}` };
     }
   }

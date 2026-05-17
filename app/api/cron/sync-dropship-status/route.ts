@@ -5,9 +5,10 @@ import { getDropshipOrderStatus } from "@/lib/aliexpress/client";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
 import { logger } from "@/lib/logger";
+import { runCron } from "@/lib/cron/runCron";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   if (!isEnabled("fulfillment")) return frozenResponse("fulfillment");
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "") || req.headers.get("x-cron-secret");
@@ -115,3 +116,5 @@ export async function GET(req: Request) {
 }
 
 export const POST = GET;
+
+export async function GET(req: Request) { return runCron("sync-dropship-status", () => handleGET(req as any)); }

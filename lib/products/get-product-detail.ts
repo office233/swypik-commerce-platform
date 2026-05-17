@@ -26,6 +26,8 @@ export type ProductDetail = {
     brand: string | null;
     category: string | null;
     categoryId: number | null;
+    taxonomyNodeSlug: string | null;
+    taxonomyPath: Array<{ slug: string; label: string }>;
     shipMethod: string | null;
     shipCostUsd: number;
     shipFree: boolean;
@@ -342,6 +344,28 @@ export async function getProductDetail(id: string): Promise<ProductDetail | null
     [row.id, similarCategoryId, row.category || category],
   );
 
+  let taxonomyPath: Array<{ slug: string; label: string }> = [];
+  const taxonomyNodeSlug = typeof row.taxonomy_node_slug === "string" && row.taxonomy_node_slug ? row.taxonomy_node_slug : null;
+  if (taxonomyNodeSlug) {
+    try {
+      const { rows: pathRows } = await dbQuery(
+        `WITH RECURSIVE chain AS (
+           SELECT slug, parent_slug, 0 AS depth FROM taxonomy_nodes WHERE slug = $1
+           UNION ALL
+           SELECT n.slug, n.parent_slug, c.depth + 1 FROM taxonomy_nodes n JOIN chain c ON n.slug = c.parent_slug
+         )
+         SELECT c.slug, COALESCE(t.label, c.slug) AS label
+         FROM chain c
+         LEFT JOIN taxonomy_translations t ON t.node_slug = c.slug AND t.locale = 'ro'
+         ORDER BY c.depth DESC`,
+        [taxonomyNodeSlug]
+      );
+      taxonomyPath = pathRows.map((r: any) => ({ slug: String(r.slug), label: String(r.label) }));
+    } catch (_) {
+      taxonomyPath = [];
+    }
+  }
+
   return {
     product: {
       id: String(row.id),
@@ -363,6 +387,8 @@ export async function getProductDetail(id: string): Promise<ProductDetail | null
       brand: firstString(row.brand, row.ae_brand),
       category,
       categoryId,
+      taxonomyNodeSlug,
+      taxonomyPath,
       shipMethod: firstString(shipping.method, row.ship_method),
       shipCostUsd: firstNumber(shipping.cost_usd, row.ship_cost_usd, 0) || 0,
       shipFree: firstBool(shipping.free, row.ship_free, false),

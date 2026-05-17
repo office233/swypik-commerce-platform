@@ -40,3 +40,4 @@ static_analysis_semgrep_1/
 playwright-report/
 test-results/
 playwright/.cache/
+MEMORY.md

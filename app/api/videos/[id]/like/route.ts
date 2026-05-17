@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
-import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { getAuthSession } from "@/lib/auth/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
-
 import { logger } from "@/lib/logger";
+
 export const dynamic = "force-dynamic";
 
 export async function POST(
@@ -11,7 +11,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getOrCreateSocialUser();
+    const session = await getAuthSession();
+    if (!session?.userId) {
+      return NextResponse.json({ error: "auth_required" }, { status: 401 });
+    }
     const userId = session.userId;
     const { id: videoId } = await params;
 
@@ -22,14 +25,13 @@ export async function POST(
 
     try {
       await client.query("BEGIN");
-      
+
       const checkRes = await client.query(
         "SELECT id FROM likes WHERE user_id = $1 AND video_id = $2",
         [userId, videoId]
       );
 
       if (checkRes.rows.length > 0) {
-        // Exists -> DELETE + decrement
         await client.query(
           "DELETE FROM likes WHERE user_id = $1 AND video_id = $2",
           [userId, videoId]
@@ -41,7 +43,6 @@ export async function POST(
         liked = false;
         likeCount = parseInt(updateRes.rows[0]?.like_count || "0", 10);
       } else {
-        // Not exists -> INSERT + increment
         await client.query(
           "INSERT INTO likes (user_id, video_id) VALUES ($1, $2)",
           [userId, videoId]
@@ -67,7 +68,7 @@ export async function POST(
           [videoId],
         );
         const recipient = vrows[0]?.creator_id;
-        if (recipient) {
+        if (recipient && recipient !== userId) {
           void notifyUser(recipient, {
             type: "like",
             actorUserId: userId,
@@ -78,9 +79,7 @@ export async function POST(
         }
       }
 
-      const response = NextResponse.json({ liked, like_count: likeCount });
-      setAnonSessionCookie(response, session.anonSessionId);
-      return response;
+      return NextResponse.json({ liked, like_count: likeCount });
     } catch (e) {
       await client.query("ROLLBACK");
       throw e;
@@ -98,7 +97,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = await getOptionalSocialUserId();
+    const session = await getAuthSession();
+    const userId = session?.userId || null;
     const { id: videoId } = await params;
 
     const [likeRes, videoRes] = await Promise.all([

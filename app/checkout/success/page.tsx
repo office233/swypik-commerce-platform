@@ -2,6 +2,20 @@ import { dbQuery } from "@/lib/db";
 import Link from "next/link";
 import PurchaseTracker from "@/components/PurchaseTracker";
 import { getStripe } from "@/lib/stripe/checkout";
+import { getOptionalSocialUserId } from "@/lib/social/session";
+import crypto from "crypto";
+
+function tokensMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  const ba = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  if (ba.length !== bb.length) return false;
+  try {
+    return crypto.timingSafeEqual(ba, bb);
+  } catch {
+    return false;
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +33,15 @@ export default async function CheckoutSuccess({
 
   const sessionId = sp.session_id;
   const paymentIntentId = sp.payment_intent;
+  const providedToken = typeof sp.order_token === "string" ? sp.order_token : null;
+  const authedUserId = await getOptionalSocialUserId().catch(() => null);
 
   if (sessionId) {
     try {
       const { rows } = await dbQuery(
         `SELECT
            ord.id,
+           ord.buyer_user_id,
            cs.provider_session_id AS stripe_session_id,
            ord.metadata->>'customer_email' AS customer_email,
            (ord.total_cents::numeric / 100) AS total_ron,
@@ -79,9 +96,11 @@ export default async function CheckoutSuccess({
       const { rows } = await dbQuery(
         `SELECT
            ord.id,
+           ord.buyer_user_id,
            ord.metadata->>'stripe_payment_intent' AS stripe_payment_intent,
            ord.metadata->>'customer_email' AS customer_email,
            (ord.total_cents::numeric / 100) AS total_ron,
+           ord.metadata->'items' AS items,
            ord.metadata->'shipping_address' AS shipping_address,
            ord.metadata->>'order_lookup_token' AS order_lookup_token,
            ord.status,
@@ -125,8 +144,40 @@ export default async function CheckoutSuccess({
     }
   }
 
-  let items = order?.items ? (typeof order.items === "string" ? JSON.parse(order.items) : order.items) : [];
-  if (order && items.length === 0) {
+  // ── PII gate: only reveal order details if requester proves access ──
+  // Allow:
+  //  - Stripe session_id branch (the id itself is a one-shot capability scoped to this checkout).
+  //  - payment_intent branch only if (a) auth session match buyer_user_id, OR
+  //    (b) ?order_token= matches metadata.order_lookup_token via timingSafeEqual.
+  let pii_ok = false;
+  if (order) {
+    if (sessionId) {
+      pii_ok = true;
+    } else if (paymentIntentId) {
+      if (authedUserId && order.buyer_user_id && String(order.buyer_user_id) === String(authedUserId)) {
+        pii_ok = true;
+      } else if (providedToken && tokensMatch(providedToken, order.order_lookup_token)) {
+        pii_ok = true;
+      }
+    }
+  }
+  if (order && !pii_ok) {
+    // Don't leak PII (email/shipping/items/total). Keep only generic flags so we can render "success".
+    order = {
+      id: order.id,
+      status: order.status,
+      created_at: order.created_at,
+      customer_email: null,
+      shipping_address: null,
+      items: null,
+      total_ron: null,
+      order_lookup_token: null,
+      buyer_user_id: null,
+    };
+  }
+
+  let items = pii_ok && order?.items ? (typeof order.items === "string" ? JSON.parse(order.items) : order.items) : [];
+  if (pii_ok && order && items.length === 0) {
     const { rows } = await dbQuery(
       `SELECT title, quantity, (unit_amount_cents::numeric / 100) AS price
        FROM commerce_order_items WHERE order_id = $1 ORDER BY created_at`,
@@ -136,9 +187,9 @@ export default async function CheckoutSuccess({
   }
 
   const shipping =
-    order?.shipping_address && typeof order.shipping_address === "string"
+    pii_ok && order?.shipping_address && typeof order.shipping_address === "string"
       ? JSON.parse(order.shipping_address)
-      : order?.shipping_address || null;
+      : (pii_ok ? order?.shipping_address : null) || null;
 
   const hasLookup = Boolean(sessionId || paymentIntentId);
   const isPaid = order?.status === "paid" || paymentConfirmed;
@@ -170,7 +221,7 @@ export default async function CheckoutSuccess({
 
   return (
     <div className="min-h-screen bg-white px-4 py-10">
-      {isPaid && order?.id ? <PurchaseTracker orderId={String(order.id)} /> : null}
+      {isPaid && pii_ok && order?.id ? <PurchaseTracker orderId={String(order.id)} /> : null}
 
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center">
         <div className="w-full text-center">
@@ -193,7 +244,7 @@ export default async function CheckoutSuccess({
           <h1 className="text-3xl font-black text-[#0D0D0D]">{title}</h1>
           <p className="mt-3 text-sm font-medium text-[#6E6E80]">{description}</p>
 
-          {(order || hasLookup) && (
+          {(order || hasLookup) && pii_ok && (
             <div className="mt-6 rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5 text-left">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
@@ -263,7 +314,7 @@ export default async function CheckoutSuccess({
           )}
 
           <div className="mt-8 space-y-3">
-            {order && (
+            {order && pii_ok && (
               <Link
                 href={`/orders/${encodeURIComponent(sp.order_token || order.order_lookup_token || order.id)}`}
                 className="inline-block w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-transform active:scale-[0.98]"

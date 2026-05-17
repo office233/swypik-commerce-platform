@@ -61,7 +61,7 @@ function FeedVideo({ videoId, src, hlsUrl, poster, isCurrent, muted, registerRef
   );
 }
 
-function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
+function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: any[]; initialCategory?: string }) {
   const searchParams = useSearchParams();
   const initialVideoId = searchParams.get("v");
 
@@ -145,9 +145,10 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
 
     async function fetchVideos() {
       try {
+        const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
         const url = feedSource === "following"
-          ? "/api/explore/feed?limit=30&source=following"
-          : "/api/explore/feed?limit=30";
+          ? `/api/explore/feed?limit=30&source=following${catQs}`
+          : `/api/explore/feed?limit=30${catQs}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
@@ -472,7 +473,8 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
         .creator-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; overflow: hidden; position: relative; margin-bottom: 18px; padding: 0; background: #1a1a1a; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .creator-avatar-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 20px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%); }
         .creator-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .avatar-plus { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 22px; height: 22px; border-radius: 50%; background: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; border: 2px solid #000; color: #fff; padding: 0; cursor: pointer; transition: transform 0.15s; }
+        .avatar-plus { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; background: transparent; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; border: 0; color: transparent; transition: transform 0.15s; }
+        .avatar-plus::before { content: "+"; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #7C3AED; color: #fff; font-size: 16px; font-weight: 700; border: 2px solid #000; }
         .avatar-plus:active { transform: translateX(-50%) scale(0.85); }
         .bottom-content { position: absolute; bottom: max(80px, calc(80px + env(safe-area-inset-bottom, 0px))); left: max(14px, calc(14px + env(safe-area-inset-left, 0px))); right: max(80px, calc(80px + env(safe-area-inset-right, 0px))); max-width: calc(100% - 72px); z-index: 20; }
         .creator-name { font-weight: 700; font-size: 16px; text-shadow: 0 1px 4px rgba(0,0,0,0.9); margin-bottom: 6px; }
@@ -489,7 +491,7 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         .video-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; z-index: 30; background: rgba(255,255,255,0.2); overflow: hidden; }
         .video-progress-fill { height: 100%; background: #fff; width: 100%; transform: scaleX(0); transform-origin: left center; transition: transform 0.1s linear; will-change: transform; }
-        .mute-btn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 14px; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 25; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); transition: transform 0.15s; }
+        .mute-btn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 14px; width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 25; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); transition: transform 0.15s; }
         .mute-btn:active { transform: scale(0.9); }
         .feed-header { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 0; right: 0; display: flex; justify-content: center; align-items: center; z-index: 25; gap: 20px; }
         .feed-tab { font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.55); cursor: pointer; padding: 4px 0; position: relative; transition: color 0.2s; background: transparent; border: 0; }
@@ -769,10 +771,10 @@ function ExplorePageInner({ initialVideos }: { initialVideos: any[] }) {
   );
 }
 
-export default function ExploreClient({ initialVideos = [] }: { initialVideos?: any[] }) {
+export default function ExploreClient({ initialVideos = [], initialCategory = "" }: { initialVideos?: any[]; initialCategory?: string }) {
   return (
     <Suspense fallback={<div style={{ background: '#000', height: '100dvh' }} />}>
-      <ExplorePageInner initialVideos={initialVideos} />
+      <ExplorePageInner initialVideos={initialVideos} initialCategory={initialCategory} />
     </Suspense>
   );
 }

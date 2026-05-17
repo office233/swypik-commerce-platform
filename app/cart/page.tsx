@@ -139,7 +139,7 @@ export default function CartPage() {
           </p>
         </div>
         {items.length > 0 && (
-          <button onClick={clearCart} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-1.5 rounded-lg bg-red-50">
+          <button onClick={() => { if (confirm("Ești sigur că vrei să golești coșul?")) clearCart(); }} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-1.5 rounded-lg bg-red-50">
             Golește coșul
           </button>
         )}
@@ -193,7 +193,7 @@ export default function CartPage() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => removeItem(item)} className="self-start p-2 rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all" aria-label="Șterge">
+                  <button onClick={() => { if (confirm("Ești sigur că vrei să ștergi acest produs din coș?")) removeItem(item); }} className="self-start p-2 rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all" aria-label="Șterge">
                     <Trash2 size={16} />
                   </button>
                 </div>

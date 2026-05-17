@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { runCron } from "@/lib/cron/runCron";
 import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  return runCron("refresh-fx", async () => {
   const url = `https://api.exchangerate.host/latest?base=EUR&symbols=${SYMBOLS.join(",")}`;
   let data: { rates?: Record<string, number> } = {};
   try {
@@ -61,6 +63,7 @@ export async function GET(req: Request) {
   );
 
   return NextResponse.json({ updated, ts: new Date().toISOString() });
+  });
 }
 
 export async function POST(req: Request) {

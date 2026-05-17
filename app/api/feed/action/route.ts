@@ -62,11 +62,11 @@ export async function POST(req: NextRequest) {
 
       if (action === "follow_creator" && creatorId) {
         await dbQuery(
-          `INSERT INTO follows (follower_id, followee_id)
+          `INSERT INTO follows (follower_user_id, following_user_id)
            VALUES ($1, $2)
-           ON CONFLICT (follower_id, followee_id) DO NOTHING`,
+           ON CONFLICT (follower_user_id, following_user_id) DO NOTHING`,
           [userId, creatorId],
-        ).catch(() => { /* follows table may not exist in some envs */ });
+        );
         await recordFeedEvent({
           userId,
           videoId,
@@ -77,9 +77,9 @@ export async function POST(req: NextRequest) {
         await recordWatchEvent({ userId, videoId, eventType: "follow" });
       } else if (action === "unfollow" && creatorId) {
         await dbQuery(
-          `DELETE FROM follows WHERE follower_id = $1 AND followee_id = $2`,
+          `DELETE FROM follows WHERE follower_user_id = $1 AND following_user_id = $2`,
           [userId, creatorId],
-        ).catch(() => { /* ignore */ });
+        );
         await recordFeedEvent({
           userId,
           videoId,

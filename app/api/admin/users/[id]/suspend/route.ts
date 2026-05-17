@@ -61,6 +61,8 @@ export async function POST(
           JSON.stringify({ source: "admin_users_page", days }),
         ]
       );
+      await client.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [id]);
+      await client.query(`DELETE FROM seller_sessions WHERE seller_id IN (SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`, [id]).catch(()=>{});
       await client.query("COMMIT");
     } catch (e) {
       try { await client.query("ROLLBACK"); } catch {}

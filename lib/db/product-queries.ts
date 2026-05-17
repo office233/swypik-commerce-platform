@@ -5,6 +5,7 @@ export type ProductFilters = {
   search?: string;
   category?: string;
   categoryId?: string;
+  taxonomyNodeSlug?: string;
   tag?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -30,7 +31,20 @@ const BASE_PRODUCT_SELECT = `
 
 const BASE_PRODUCT_COLUMNS = `
   SELECT
-    p.*,
+    p.id,
+    p.price_cents,
+    p.compare_at_price_cents,
+    p.metadata,
+    p.title,
+    p.description,
+    p.image_url,
+    p.category,
+    p.brand,
+    p.taxonomy_node_slug,
+    p.supplier_product_id,
+    p.external_product_id,
+    p.created_at,
+    p.updated_at,
     ap.id AS ae_internal_id,
     ap.ae_product_id AS ae_product_id,
     ap.title AS ae_title,
@@ -238,6 +252,7 @@ function transformProduct(row: any, locale = "ro") {
     hasVideo,
     category,
     categoryId,
+    taxonomyNodeSlug: typeof row.taxonomy_node_slug === "string" ? row.taxonomy_node_slug : null,
     productType,
     rootCategory,
     vendor,
@@ -254,6 +269,13 @@ function transformProduct(row: any, locale = "ro") {
 }
 
 const CATEGORY_TEXT_EXPRESSIONS = [
+  "p.taxonomy_department",
+  "p.taxonomy_category",
+  "p.taxonomy_subcategory",
+  "p.taxonomy_leaf",
+  "p.taxonomy_slug",
+  "p.canonical_category",
+  "p.canonical_category_slug",
   "p.metadata->>'product_type'",
   "p.metadata->>'product_type_ro'",
   "ap.product_type",
@@ -307,6 +329,28 @@ function buildSyntheticRootCondition(rootType: string) {
   return null;
 }
 
+const TAXONOMY_PATH_COLUMNS = [
+  "p.taxonomy_department",
+  "p.taxonomy_category",
+  "p.taxonomy_subcategory",
+];
+
+function buildTaxonomyPathFilters(where: string[], params: unknown[], paramIndex: number, categoryId: string) {
+  const parts = categoryId
+    .replace("department:", "")
+    .split(":")
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, TAXONOMY_PATH_COLUMNS.length);
+
+  for (const [index, part] of parts.entries()) {
+    where.push(`REGEXP_REPLACE(LOWER(COALESCE(NULLIF(${TAXONOMY_PATH_COLUMNS[index]}, ''), '')), '[^a-z0-9]+', '-', 'g') = $${paramIndex}`);
+    params.push(part);
+    paramIndex += 1;
+  }
+  return paramIndex;
+}
+
 function addCategoryTextFilters(where: string[], params: unknown[], paramIndex: number, value: string) {
   const scoped = parseScopedTagFilter(value);
   const terms = scoped.tags.length > 0
@@ -348,6 +392,7 @@ function buildSearchFilters(filters: ProductFilters) {
     search,
     category,
     categoryId,
+    taxonomyNodeSlug,
     tag,
     minPrice,
     maxPrice,
@@ -386,23 +431,54 @@ function buildSearchFilters(filters: ProductFilters) {
       const rootType = String(categoryId).replace("root:", "");
       const rootCondition = buildSyntheticRootCondition(rootType);
       if (rootCondition) where.push(rootCondition);
+    } else if (String(categoryId).startsWith("department:")) {
+      paramIndex = buildTaxonomyPathFilters(where, params, paramIndex, String(categoryId));
     } else if (String(categoryId).startsWith("tag:")) {
       const tagValue = String(categoryId).replace("tag:", "");
       paramIndex = addCategoryTextFilters(where, params, paramIndex, tagValue);
     } else {
-      // AliExpress category ids must remain stable even after AI product_type enrichment.
+      // Support both clean taxonomy slugs and legacy AliExpress category ids.
       where.push(`
         (
-          COALESCE(p.metadata->>'ae_category_id', '') = $${paramIndex}
+          COALESCE(p.taxonomy_slug, '') = $${paramIndex}
+          OR COALESCE(p.canonical_category_slug, '') = $${paramIndex}
+          OR COALESCE(p.taxonomy_leaf, '') = $${paramIndex}
+          OR COALESCE(p.taxonomy_subcategory, '') = $${paramIndex}
+          OR COALESCE(p.taxonomy_category, '') = $${paramIndex}
+          OR COALESCE(p.metadata->>'ae_category_id', '') = $${paramIndex}
           OR COALESCE(p.metadata->>'ae_parent_category_id', '') = $${paramIndex}
           OR COALESCE(p.metadata->>'ae_root_category_id', '') = $${paramIndex}
           OR COALESCE(ac.ae_category_id::text, '') = $${paramIndex}
           OR COALESCE(ar.ae_category_id::text, '') = $${paramIndex}
+          OR p.taxonomy_node_slug IN (
+            WITH RECURSIVE descendants AS (
+              SELECT slug FROM taxonomy_nodes WHERE slug = $${paramIndex}::text
+              UNION ALL
+              SELECT n.slug FROM taxonomy_nodes n JOIN descendants d ON n.parent_slug = d.slug
+            )
+            SELECT slug FROM descendants
+          )
         )
       `);
       params.push(String(categoryId));
       paramIndex += 1;
     }
+  }
+
+  if (taxonomyNodeSlug) {
+    where.push(`
+      p.taxonomy_node_slug IN (
+        WITH RECURSIVE descendants AS (
+          SELECT slug FROM taxonomy_nodes WHERE slug = $${paramIndex}::text
+          UNION ALL
+          SELECT n.slug FROM taxonomy_nodes n
+          JOIN descendants d ON n.parent_slug = d.slug
+        )
+        SELECT slug FROM descendants
+      )
+    `);
+    params.push(String(taxonomyNodeSlug));
+    paramIndex += 1;
   }
 
   if (tag) {
@@ -626,10 +702,43 @@ function mapCategoryRow(row: any, locale = "ro") {
   };
 }
 
+function taxonomySlugPart(value: unknown) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "other";
+}
+
+function localizeTaxonomyLabel(value: unknown, locale = "ro") {
+  const label = cleanCategoryLabel(value, "General");
+  if (locale !== "ro") return label;
+  const ro: Record<string, string> = {
+    Fashion: "Fashion",
+    Women: "Femei",
+    Men: "Bărbați",
+    Shoes: "Încălțăminte",
+    Accessories: "Accesorii",
+    Clothing: "Îmbrăcăminte",
+    Bags: "Genți",
+    Dresses: "Rochii",
+    Pants: "Pantaloni",
+    "T-Shirts": "Tricouri",
+    "Shoes Accessories": "Accesorii încălțăminte",
+    Toys: "Jucării",
+    Kids: "Copii",
+    Other: "Altele",
+    General: "General",
+  };
+  return ro[label] || label;
+}
+
 export async function getCategoryHierarchy(locale = "ro") {
-  // i18n-ready: reads from taxonomy_nodes + taxonomy_translations.
-  // Recursive CTE walks ancestors so counts roll up to roots. Labels resolved
-  // per locale with English fallback.
+  // i18n-ready: read from taxonomy_nodes + taxonomy_translations.
+  // Walks ancestors via recursive CTE so counts roll up; labels resolved per
+  // locale with English fallback. Falls back to legacy string columns if the
+  // new tables are not yet populated.
   const { rows } = await dbQuery(
     `
       WITH RECURSIVE product_counts AS (
@@ -641,13 +750,11 @@ export async function getCategoryHierarchy(locale = "ro") {
         GROUP BY taxonomy_node_slug
       ),
       ancestors AS (
-        SELECT pc.slug AS leaf_slug, n.slug AS ancestor_slug, n.parent_slug,
-               n.kind, n.sort_order, pc.direct_count, 0 AS depth
+        SELECT pc.slug AS leaf_slug, n.slug AS ancestor_slug, n.parent_slug, n.kind, n.sort_order, pc.direct_count, 0 AS depth
         FROM product_counts pc
         JOIN taxonomy_nodes n ON n.slug = pc.slug AND n.is_active = true
         UNION ALL
-        SELECT a.leaf_slug, n.slug, n.parent_slug, n.kind, n.sort_order,
-               a.direct_count, a.depth + 1
+        SELECT a.leaf_slug, n.slug, n.parent_slug, n.kind, n.sort_order, a.direct_count, a.depth + 1
         FROM ancestors a
         JOIN taxonomy_nodes n ON n.slug = a.parent_slug AND n.is_active = true
         WHERE a.depth < 8
@@ -666,38 +773,27 @@ export async function getCategoryHierarchy(locale = "ro") {
         nc.total
       FROM node_counts nc
       JOIN taxonomy_nodes n ON n.slug = nc.slug
-      LEFT JOIN taxonomy_translations t_loc
-        ON t_loc.node_slug = n.slug AND t_loc.locale = $1
-      LEFT JOIN taxonomy_translations t_en
-        ON t_en.node_slug = n.slug AND t_en.locale = 'en'
+      LEFT JOIN taxonomy_translations t_loc ON t_loc.node_slug = n.slug AND t_loc.locale = $1
+      LEFT JOIN taxonomy_translations t_en ON t_en.node_slug = n.slug AND t_en.locale = 'en'
       ORDER BY n.sort_order NULLS LAST, n.slug
     `,
     [locale],
   );
 
   if (rows.length === 0) {
-    // Legacy fallback (pre-migration / empty taxonomy tables).
+    // Legacy fallback for pre-migration environments / tests.
     const legacy = await dbQuery(
       `
         SELECT
-          COALESCE(
-            NULLIF(p.metadata->>'ae_root_category_id', ''),
-            ar.ae_category_id::text,
-            NULLIF(p.metadata->>'ae_category_id', ''),
-            ac.ae_category_id::text,
-            md5(COALESCE(p.category, 'general'))
-          ) AS root_id,
-          COALESCE(NULLIF(p.metadata->>'ae_root_category_name', ''), NULLIF(ar.name, ''), NULLIF(p.category, ''), 'General') AS root_name,
-          COALESCE(NULLIF(p.metadata->>'ae_root_category_name_ro', ''), NULLIF(ar.name_ro, ''), NULLIF(p.metadata->>'ae_root_category_name', ''), NULLIF(ar.name, ''), NULLIF(p.category, ''), 'General') AS root_name_ro,
-          NULLIF(COALESCE(p.metadata->>'product_type', ap.product_type), '') AS tag_en,
-          NULLIF(COALESCE(p.metadata->>'product_type_ro', ap.product_type_ro), '') AS tag_ro,
-          COALESCE(NULLIF(p.metadata->>'ae_category_id', ''), ac.ae_category_id::text) AS leaf_id,
-          COALESCE(NULLIF(p.metadata->>'ae_category_name', ''), ac.name, p.category) AS leaf_name,
-          COALESCE(NULLIF(p.metadata->>'ae_category_name_ro', ''), ac.name_ro, NULLIF(p.metadata->>'ae_category_name', ''), ac.name, p.category) AS leaf_name_ro,
+          COALESCE(NULLIF(p.taxonomy_department, ''), 'Other') AS department,
+          COALESCE(NULLIF(p.taxonomy_category, ''), 'General') AS category,
+          COALESCE(NULLIF(p.taxonomy_subcategory, ''), 'General') AS subcategory,
+          COALESCE(NULLIF(p.taxonomy_leaf, ''), NULLIF(p.canonical_category, ''), NULLIF(p.category, ''), 'General') AS leaf,
+          COALESCE(NULLIF(p.taxonomy_slug, ''), NULLIF(p.canonical_category_slug, ''), md5(COALESCE(p.category, 'general'))) AS slug,
           COUNT(*)::int AS count
-        ${BASE_PRODUCT_SELECT}
-        WHERE p.status = 'active'
-        GROUP BY 1,2,3,4,5,6,7,8
+        FROM marketplace_products p
+        WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false
+        GROUP BY 1,2,3,4,5
         HAVING COUNT(*) > 0
       `,
     );
@@ -730,9 +826,7 @@ function buildTaxonomyNodeTree(rows: any[]) {
     }
   }
   const sortRec = (list: any[]) => {
-    list.sort(
-      (a, b) => (a._sort - b._sort) || (b.count - a.count) || a.name.localeCompare(b.name),
-    );
+    list.sort((a, b) => (a._sort - b._sort) || (b.count - a.count) || a.name.localeCompare(b.name));
     for (const n of list) {
       if (n.children.length) sortRec(n.children);
       delete n._parent;
@@ -744,140 +838,65 @@ function buildTaxonomyNodeTree(rows: any[]) {
 }
 
 function buildCategoryHierarchy(rows: any[], locale = "ro") {
-  const CATEGORY_MAP_RO: Record<string, string> = {
-    "underwear": "Lenjerie", "boxer briefs": "Lenjerie", "boxeri": "Lenjerie", "panties": "Lenjerie", "chiloți": "Lenjerie", "thermal underwear": "Lenjerie", "lenjerie": "Lenjerie",
-    "polo shirts": "Polo", "polo": "Polo",
-    "t-shirts": "Tricouri & Maiouri", "tricouri": "Tricouri & Maiouri", "tank tops": "Tricouri & Maiouri", "maiouri": "Tricouri & Maiouri", "undershirts": "Tricouri & Maiouri",
-    "jeans": "Blugi", "blugi": "Blugi",
-    "joggers": "Pantaloni Jogging", "sweatpants": "Pantaloni Jogging",
-    "suits": "Costume & Sacouri", "costume": "Costume & Sacouri", "blazers": "Costume & Sacouri",
-    "shorts": "Pantaloni Scurți", "pantaloni scurți": "Pantaloni Scurți", "board shorts": "Pantaloni Scurți",
-    "casual shirts": "Cămăși", "dress shirts": "Cămăși", "hawaiian shirts": "Cămăși", "cămăși": "Cămăși",
-    "tracksuits": "Treninguri & Seturi", "treninguri": "Treninguri & Seturi",
-    "casual pants": "Pantaloni Casual & Cargo", "cargo pants": "Pantaloni Casual & Cargo",
-    "jackets": "Jachete & Veste", "jachete": "Jachete & Veste", "vests": "Jachete & Veste",
-    "hoodies": "Hanorace & Bluze", "sweatshirts": "Hanorace & Bluze",
-    "coats": "Paltoane & Geci", "paltoane": "Paltoane & Geci",
-    "leggings": "Pantaloni Sport", "compression wear": "Pantaloni Sport", "activewear": "Echipament Sportiv",
-    "sweaters": "Pulovere & Cardigane", "cardigans": "Pulovere & Cardigane",
-    "socks": "Șosete", "șosete": "Șosete",
-    "pajamas": "Pijamale & Halate", "robes": "Pijamale & Halate",
-    "dresses": "Rochii", "rochii": "Rochii", "skirts": "Fuste", "fuste": "Fuste",
-    "blouses": "Bluze Damă", "bras": "Sutiene", "bodysuits": "Body-uri", "stockings": "Dresuri & Ciorapi",
-    "swimwear": "Costume de Baie", "rash guards": "Protecții Sport",
-    "shoes": "Încălțăminte", "bags": "Genți", "hats": "Pălării & Șepci",
-    "walkie talkie": "Stații Radio",
-    "girls clothing": "Îmbrăcăminte Fete", "boys clothing": "Îmbrăcăminte Băieți", "baby clothing": "Îmbrăcăminte Bebeluși",
-    "other": "Altele", "briefs": "Chiloți",
-  };
-
-  // ══════════════════════════════════════════════════════
-  // CONSOLIDATION MAP — reduce 23+ AliExpress roots to 6 clean storefront categories
-  // ══════════════════════════════════════════════════════
-  const ROOT_CONSOLIDATION: Record<string, { id: string; en: string; ro: string }> = {
-    // Keep these as-is (main categories)
-    "200000345": { id: "200000345", en: "Women's Clothing", ro: "Îmbrăcăminte Femei" },
-    "200000343": { id: "200000343", en: "Men's Clothing", ro: "Îmbrăcăminte Bărbați" },
-    "1501":      { id: "1501",      en: "Mom & Kids", ro: "Mamă & Copii" },
-    // Merge INTO main categories
-    "200574005": { id: "200000345", en: "Women's Clothing", ro: "Îmbrăcăminte Femei" },  // Lenjerie -> Femei
-    "320":       { id: "200000345", en: "Women's Clothing", ro: "Îmbrăcăminte Femei" },  // Nunți -> Femei
-    "322":       { id: "root:other", en: "Others", ro: "Altele" },                       // Încălțăminte
-    "509":       { id: "root:other", en: "Others", ro: "Altele" },                       // Phones (Walkie Talkie)
-    "18":        { id: "root:other", en: "Others", ro: "Altele" },                       // Sport
-    "15":        { id: "root:other", en: "Others", ro: "Altele" },                       // Casă & Grădină
-    "200000297": { id: "200000345", en: "Women's Clothing", ro: "Îmbrăcăminte Femei" },  // Accesorii vestimentare
-    "36":        { id: "root:other", en: "Others", ro: "Altele" },                       // Bijuterii
-    "26":        { id: "root:other", en: "Others", ro: "Altele" },                       // Jucării
-    "66":        { id: "root:other", en: "Others", ro: "Altele" },                       // Frumusețe
-    "1524":      { id: "root:other", en: "Others", ro: "Altele" },                       // Genți & Bagaje
-    "1511":      { id: "root:other", en: "Others", ro: "Altele" },                       // Ceasuri
-    "44":        { id: "root:other", en: "Others", ro: "Altele" },                       // Electronică
-    "200000532": { id: "root:other", en: "Others", ro: "Altele" },                       // Noutăți
-  };
-
   const roots: Record<string, any> = {};
 
   for (const row of rows) {
-    const rawRootId = cleanCategoryId(row.root_id);
-
-    // Consolidate: map small/irrelevant roots to main categories
-    const consolidated = ROOT_CONSOLIDATION[rawRootId];
-    let rootId: string;
-    let rootName: string;
-
-    if (consolidated) {
-      rootId = consolidated.id;
-      rootName = locale === "ro" ? consolidated.ro : consolidated.en;
-    } else if (rawRootId && !rawRootId.startsWith("root:")) {
-      // Unknown AE root — send to "Altele"
-      rootId = "root:other";
-      rootName = locale === "ro" ? "Altele" : "Others";
-    } else {
-      rootId = "root:other";
-      rootName = locale === "ro" ? "Altele" : "Others";
-    }
-    
+    const department = cleanCategoryLabel(row.department, "Other");
+    const category = cleanCategoryLabel(row.category, "General");
+    const subcategory = cleanCategoryLabel(row.subcategory, category);
+    const leaf = cleanCategoryLabel(row.leaf, subcategory);
+    const rootId = `department:${taxonomySlugPart(department)}`;
     if (!roots[rootId]) {
-      roots[rootId] = { id: rootId, name: rootName, count: 0, children: [] };
+      roots[rootId] = {
+        id: rootId,
+        name: localizeTaxonomyLabel(department, locale),
+        count: 0,
+        children: [],
+      };
     }
 
-    const bestString = (row.tag_en || row.tag_ro || row.leaf_name_ro || row.leaf_name || "").toLowerCase().trim();
-    let tagName = "";
-
-    if (locale === "ro") {
-      const matchedKey = Object.keys(CATEGORY_MAP_RO)
-        .sort((a, b) => b.length - a.length)
-        .find(k => bestString.includes(k));
-      if (matchedKey) tagName = CATEGORY_MAP_RO[matchedKey];
-    }
-    
-    if (!tagName) {
-      tagName = cleanCategoryLabel(
-        locale === "ro" ? row.tag_ro : row.tag_en,
-        cleanCategoryLabel(locale === "ro" ? row.leaf_name_ro : row.leaf_name, rootName),
-      );
-    }
-    
-    const tagKey = cleanCategoryLabel(row.tag_en || row.tag_ro || tagName, "");
-    const normalizedName = tagName.trim().toLowerCase();
     const count = Number(row.count) || 0;
-
-    const existing = roots[rootId].children.find((child: any) => child.name.toLowerCase() === normalizedName);
-    if (existing) {
-      existing.count += count;
-      if (tagKey && !existing.tagKeyList.includes(tagKey.toLowerCase())) {
-        existing.tagKeyList.push(tagKey.toLowerCase());
-        existing.id = buildScopedTagId(existing.tagKeyList, rootId);
-      }
-    } else {
-      const tagKeyList = tagKey ? [tagKey.toLowerCase()] : [];
-      roots[rootId].children.push({
-        id: tagKeyList.length > 0 ? buildScopedTagId(tagKeyList, rootId) : String(row.leaf_id || row.root_id),
-        name: tagName,
-        tag: tagKey || undefined,
-        count,
-        tagKeyList,
-      });
+    const categoryId = `${rootId}:${taxonomySlugPart(category)}`;
+    let categoryNode = roots[rootId].children.find((child: any) => child.id === categoryId);
+    if (!categoryNode) {
+      categoryNode = { id: categoryId, name: localizeTaxonomyLabel(category, locale), count: 0, children: [] };
+      roots[rootId].children.push(categoryNode);
     }
 
+    const subcategoryId = `${categoryId}:${taxonomySlugPart(subcategory)}`;
+    let subcategoryNode = categoryNode.children.find((child: any) => child.id === subcategoryId);
+    if (!subcategoryNode) {
+      subcategoryNode = { id: subcategoryId, name: localizeTaxonomyLabel(subcategory, locale), count: 0, children: [] };
+      categoryNode.children.push(subcategoryNode);
+    }
+
+    subcategoryNode.children.push({
+      id: String(row.slug),
+      name: localizeTaxonomyLabel(leaf, locale),
+      tag: String(row.slug),
+      count,
+    });
+    subcategoryNode.count += count;
+    categoryNode.count += count;
     roots[rootId].count += count;
   }
 
-  // Filter out subcategories with very few products (noise)
   return Object.values(roots)
-    .filter((root: any) => root.children.length > 0 && root.count >= 5)
     .map((root: any) => ({
       ...root,
       children: root.children
-        .filter((child: any) => child.count >= 3) // hide subcats with < 3 products
-        .map((child: any) => {
-          const { tagKeyList, ...rest } = child;
-          return rest;
-        })
-        .sort((left: any, right: any) => right.count - left.count),
+        .map((category: any) => ({
+          ...category,
+          children: category.children
+            .map((subcategory: any) => ({
+              ...subcategory,
+              children: subcategory.children.sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
+            }))
+            .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
+        }))
+        .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
     }))
-    .sort((left: any, right: any) => right.count - left.count);
+    .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name));
 }
 
 export {

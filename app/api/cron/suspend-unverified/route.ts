@@ -16,6 +16,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "crypto";
+import { runCron } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ async function authorize(req: Request) {
   return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
 }
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   if (!(await authorize(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -75,3 +76,5 @@ export async function GET(req: Request) {
     candidates: targets.length,
   });
 }
+
+export async function GET(req: Request) { return runCron("suspend-unverified", () => handleGET(req as any)); }

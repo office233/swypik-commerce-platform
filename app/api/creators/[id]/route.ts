@@ -27,8 +27,9 @@ export async function GET(
 ) {
   const { id: creatorId } = await params;
 
-  if (!creatorId) {
-    return NextResponse.json({ error: "Missing creator ID" }, { status: 400 });
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!creatorId || !UUID_RE.test(creatorId)) {
+    return NextResponse.json({ error: "Invalid creator ID" }, { status: 400 });
   }
 
   try {

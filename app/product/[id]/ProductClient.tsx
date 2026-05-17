@@ -20,9 +20,9 @@ type Variant = {
 type ColorData = { image: string | null; sizes: { size: string; price: number; stock: number; skuId: string }[] };
 type SimilarProduct = { id: string; title: string; price: number; oldPrice: number; image: string; hasVideo: boolean; rating: number; ratingAvg?: number | null; ratingCount?: number };
 
-type Props = { initialData?: ProductDetail | null };
+type Props = { initialData?: ProductDetail | null; initialVideos?: any[] };
 
-export default function ProductClient({ initialData }: Props) {
+export default function ProductClient({ initialData, initialVideos }: Props) {
   const { id } = useParams();
   const router = useRouter();
   const [product, setProduct] = useState<any>(initialData?.product || null);
@@ -63,29 +63,38 @@ export default function ProductClient({ initialData }: Props) {
       setSavePending(false);
     }
   };
-  const [productVideos, setProductVideos] = useState<any[]>([]);
+  const [productVideos, setProductVideos] = useState<any[]>(initialVideos || []);
   const [activeTab, setActiveTab] = useState<"clips" | "details" | "reviews">("clips");
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
-  // Fetch initial saved status
+  // Fetch save status + videos + similar in parallel (single waterfall pass)
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/products/${id}/save`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data && typeof data.saved === "boolean") setLiked(data.saved);
-      })
-      .catch(() => {});
-  }, [id]);
-
-  // Fetch product videos
-  useEffect(() => {
-    fetch(`/api/products/${id}/videos`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data.videos)) setProductVideos(data.videos);
-      })
-      .catch(() => {});
+    let aborted = false;
+    Promise.all([
+      fetch(`/api/products/${id}/save`, { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`/api/products/${id}/videos`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`/api/products/similar?product_id=${id}&limit=8`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([saveData, videosData, similarData]) => {
+      if (aborted) return;
+      if (saveData && typeof saveData.saved === "boolean") setLiked(saveData.saved);
+      if (videosData && Array.isArray(videosData.videos)) setProductVideos(videosData.videos);
+      if (similarData?.products?.length) {
+        const mapped: SimilarProduct[] = similarData.products.map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          price: p.price || 0,
+          oldPrice: 0,
+          image: p.image || "",
+          hasVideo: false,
+          rating: p.rating || 0,
+          ratingAvg: p.rating || null,
+          ratingCount: p.ratingCount || 0,
+        }));
+        setSimilar((prev) => (prev.length ? prev : mapped));
+      }
+    });
+    return () => { aborted = true; };
   }, [id]);
 
   // Initialize color/size selection from initialData
@@ -121,32 +130,6 @@ export default function ProductClient({ initialData }: Props) {
       })
       .finally(() => setLoading(false));
   }, [id, initialData]);
-
-  /* AI Product Match — augment similar cu cosine similarity din /api/products/similar.
-     Fallback silent dacă pgvector neactivat (răspunde products:[]). */
-  useEffect(() => {
-    if (!id) return;
-    let aborted = false;
-    fetch(`/api/products/similar?product_id=${id}&limit=8`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (aborted || !data?.products?.length) return;
-        const mapped: SimilarProduct[] = data.products.map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          price: p.price || 0,
-          oldPrice: 0,
-          image: p.image || "",
-          hasVideo: false,
-          rating: p.rating || 0,
-          ratingAvg: p.rating || null,
-          ratingCount: p.ratingCount || 0,
-        }));
-        setSimilar(prev => prev.length ? prev : mapped);
-      })
-      .catch(() => undefined);
-    return () => { aborted = true; };
-  }, [id]);
 
   /* Loading State */
   if (loading) return (
@@ -256,16 +239,16 @@ export default function ProductClient({ initialData }: Props) {
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
+        <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
           <ArrowLeft size={16} />
         </button>
         <span className="flex-1 text-sm font-semibold text-[#6E6E80] truncate">
           {product.category || 'Produs'}
         </span>
-        <button onClick={toggleSave} disabled={savePending} className={`grid h-9 w-9 place-items-center rounded-xl border transition-all active:scale-90 disabled:opacity-60 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`} aria-label="Salvează" aria-pressed={liked}>
+        <button onClick={toggleSave} disabled={savePending} className={`grid h-11 w-11 place-items-center rounded-xl border transition-all active:scale-90 disabled:opacity-60 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`} aria-label="Salvează" aria-pressed={liked}>
           <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
         </button>
-        <button onClick={() => router.push('/')} className="grid h-9 w-9 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Acasă">
+        <button onClick={() => router.push('/')} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Acasă">
           <Home size={16} />
         </button>
       </header>
@@ -304,19 +287,19 @@ export default function ProductClient({ initialData }: Props) {
               </span>
             )}
             {displayImages.length > 1 && selectedImage > 0 && (
-              <button onClick={() => setSelectedImage(selectedImage - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
+              <button onClick={() => setSelectedImage(selectedImage - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
                 <ChevronLeft size={18} />
               </button>
             )}
             {displayImages.length > 1 && selectedImage < displayImages.length - 1 && (
-              <button onClick={() => setSelectedImage(selectedImage + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înainte">
+              <button onClick={() => setSelectedImage(selectedImage + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înainte">
                 <ChevronRight size={18} />
               </button>
             )}
             {displayImages.length > 1 && (
               <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
                 {displayImages.slice(0, 8).map((_: string, i: number) => (
-                  <button key={i} onClick={() => setSelectedImage(i)} className={`rounded-full transition-all ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} />
+                  <button key={i} type="button" onClick={() => setSelectedImage(i)} aria-label={`Imaginea ${i+1}`} className="p-3 -m-2 grid place-items-center"><span className={`rounded-full transition-all block ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} /></button>
                 ))}
               </div>
             )}
@@ -338,6 +321,22 @@ export default function ProductClient({ initialData }: Props) {
         <h1 className="text-lg font-bold leading-snug text-[#0D0D0D] mb-3">
           {title}
         </h1>
+
+        {Array.isArray(product.taxonomyPath) && product.taxonomyPath.length > 0 && (
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 mb-3 text-[12px] text-[#6E6E80]">
+            <Link href="/categories" className="hover:underline">Categorii</Link>
+            {product.taxonomyPath.map((node: { slug: string; label: string }, idx: number) => (
+              <span key={node.slug} className="flex items-center gap-1">
+                <span className="text-[#C7C7CD]">/</span>
+                {idx === product.taxonomyPath.length - 1 ? (
+                  <span className="text-[#0D0D0D] font-medium">{node.label}</span>
+                ) : (
+                  <Link href={`/categories/${node.slug}`} className="hover:underline">{node.label}</Link>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
 
         {/* Rating & Orders */}
         <div className="flex flex-wrap gap-3 text-sm font-medium text-[#6E6E80] mb-5">
@@ -439,7 +438,7 @@ export default function ProductClient({ initialData }: Props) {
         {activeTab === "clips" && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {productVideos.map((video) => (
-              <div key={video.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-black cursor-pointer group" onClick={() => setPlayingVideo(video.playbackUrl)}>
+              <button type="button" key={video.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-black cursor-pointer group text-left w-full" onClick={() => setPlayingVideo(video.playbackUrl)} aria-label="Redă clip">
                 {video.thumbnailUrl ? (
                   <Image
                     src={video.thumbnailUrl}
@@ -459,7 +458,7 @@ export default function ProductClient({ initialData }: Props) {
                 <div className="absolute bottom-2 left-2 right-2 text-white text-[10px] font-bold line-clamp-2 drop-shadow-md">
                   {video.title}
                 </div>
-              </div>
+              </button>
             ))}
             {productVideos.length === 0 && (
               <p className="text-sm font-medium text-[#6E6E80] col-span-2 text-center py-10">Nu există clipuri pentru acest produs.</p>
@@ -573,8 +572,8 @@ export default function ProductClient({ initialData }: Props) {
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-3">Produse similare</h2>
             <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar">
               {similar.map(s => (
-                <div key={s.id} onClick={() => router.push(`/product/${s.id}`)}
-                  className="w-36 shrink-0 cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] hover:shadow-md transition-all active:scale-95">
+                <button type="button" key={s.id} onClick={() => router.push(`/product/${s.id}`)}
+                  className="w-36 shrink-0 cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] hover:shadow-md transition-all active:scale-95 text-left" aria-label={s.title || "Produs similar"}>
                   <div className="relative h-36 w-full">
                     <Image src={s.image} alt="" fill sizes="144px" className="object-cover" />
                   </div>
@@ -594,7 +593,7 @@ export default function ProductClient({ initialData }: Props) {
                       </div>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -610,7 +609,7 @@ export default function ProductClient({ initialData }: Props) {
       )}
 
       {/* Fixed Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="mx-auto max-w-lg flex items-center gap-3">
           <div className="flex-1">
             <p className="text-2xl font-black text-[#0D0D0D]">{currentPrice} lei</p>
@@ -618,13 +617,15 @@ export default function ProductClient({ initialData }: Props) {
               {selectedColor && selectedSize ? `${selectedColor} / ${selectedSize}` : "Selectează varianta"}
             </p>
           </div>
-          <Link
-            href={`/try-on/${product.id}`}
-            aria-label="Probează virtual"
-            className="flex items-center justify-center rounded-2xl bg-[#7C3AED] px-4 py-3.5 text-lg shadow-xl active:scale-95 transition-transform"
-          >
-            🪞
-          </Link>
+          {process.env.NEXT_PUBLIC_FEATURE_TRY_ON === "1" && (
+            <Link
+              href={`/try-on/${product.id}`}
+              aria-label="Probează virtual"
+              className="flex items-center justify-center rounded-2xl bg-[#7C3AED] px-4 py-3.5 text-lg shadow-xl active:scale-95 transition-transform"
+            >
+              🪞
+            </Link>
+          )}
           <button onClick={handleAddToCart}
             className="flex items-center gap-2 rounded-2xl bg-[#0D0D0D] px-6 py-3.5 text-sm font-black text-white shadow-xl active:scale-95 transition-transform">
             <ShoppingCart size={17} />

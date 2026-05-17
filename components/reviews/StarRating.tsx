@@ -25,7 +25,7 @@ export default function StarRating({ value, size = 16, className, ariaLabel }: S
           <Star
             key={i}
             size={size}
-            className={filled ? "fill-yellow-400 text-yellow-400" : half ? "fill-yellow-400/40 text-yellow-400" : "text-gray-300"}
+            className={filled ? "fill-yellow-400 text-yellow-400" : half ? "fill-yellow-400/40 text-yellow-400" : "text-gray-500"}
             aria-hidden="true"
           />
         );

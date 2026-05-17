@@ -11,6 +11,11 @@ export async function GET(req: Request) {
   if (__auth instanceof NextResponse) return __auth;
 
   try {
+    const url = new URL(req.url);
+    const rawLimit = Number(url.searchParams.get("limit") || 100);
+    const rawOffset = Number(url.searchParams.get("offset") || 0);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 500) : 100;
+    const offset = Number.isFinite(rawOffset) ? Math.max(Math.trunc(rawOffset), 0) : 0;
     const { rows } = await dbQuery(`
       SELECT
         id,
@@ -31,9 +36,9 @@ export async function GET(req: Request) {
         (metadata->>'has_video')::boolean AS has_video
       FROM marketplace_products
       ORDER BY updated_at DESC NULLS LAST, created_at DESC
-      LIMIT 5000
-    `);
-    return NextResponse.json({ products: rows });
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+    return NextResponse.json({ products: rows, limit, offset, hasMore: rows.length === limit });
   } catch (error: any) {
     logger.error({ err: error }, "Admin marketplace fetch error:");
     return NextResponse.json(

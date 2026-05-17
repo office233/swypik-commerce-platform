@@ -89,7 +89,7 @@ export async function GET(req: Request) {
 
     const responseData = { ok: true, q, suggestions: suggestions.slice(0, limit) };
     cache.set(cacheKey, { data: responseData, ts: Date.now() });
-    return NextResponse.json(responseData);
+    return NextResponse.json(responseData, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
   } catch (error: any) {
     logger.error({ err: error }, "[Search Suggest]");
     return NextResponse.json({ ok: false, error: "A apărut o eroare la căutare.", suggestions: [] }, { status: 500 });

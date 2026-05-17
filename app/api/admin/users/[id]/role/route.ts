@@ -38,6 +38,13 @@ export async function POST(
     await client.query("BEGIN");
     try {
       await client.query(`UPDATE users SET role = $2, updated_at = NOW() WHERE id = $1`, [id, role]);
+      // Revoke all live sessions when role changes (privilege change → re-login).
+      if (oldRole !== role) {
+        await client.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [id]);
+        if (oldRole === "seller") {
+          await client.query(`DELETE FROM seller_sessions WHERE seller_id IN (SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`, [id]).catch(()=>{});
+        }
+      }
       await client.query(
         `INSERT INTO moderation_actions (actor_user_id, target_user_id, action_type, reason, metadata)
          VALUES (NULL, $1, 'warn', $2, $3::jsonb)`,

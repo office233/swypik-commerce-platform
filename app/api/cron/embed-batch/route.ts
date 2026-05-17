@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { dbQuery } from "@/lib/db";
 import { embed, toPgVector, EmbeddingError } from "@/lib/ai/embeddings";
+import { runCron } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +23,10 @@ async function authorize(req: Request) {
 
 type Row = { id: string; title: string | null; description: string | null };
 
-async function processProducts(): Promise<{ done: number; errors: number }> {
+async function processProducts(): Promise<{ done: number; errors: number; lastError: string | null }> {
   let done = 0;
   let errors = 0;
+  let lastError: string | null = null;
   let rows: Row[] = [];
   try {
     const res = await dbQuery<Row>(
@@ -40,7 +42,7 @@ async function processProducts(): Promise<{ done: number; errors: number }> {
     rows = res.rows;
   } catch (e: any) {
     // probably column doesn't exist yet (migration 0024 not applied → pgvector missing)
-    return { done: 0, errors: 0 };
+    return { done: 0, errors: 0, lastError: ((e as Error)?.message || "").slice(0, 200) || null };
   }
   for (const r of rows) {
     const text = `${r.title || ""}. ${r.description || ""}`.trim();
@@ -56,15 +58,17 @@ async function processProducts(): Promise<{ done: number; errors: number }> {
       done += 1;
     } catch (e) {
       errors += 1;
+      lastError = (e as Error)?.message?.slice(0, 200) || String(e);
       if (e instanceof EmbeddingError && (e.status === 401 || e.status === 403)) break;
     }
   }
-  return { done, errors };
+  return { done, errors, lastError };
 }
 
-async function processVideos(): Promise<{ done: number; errors: number }> {
+async function processVideos(): Promise<{ done: number; errors: number; lastError: string | null }> {
   let done = 0;
   let errors = 0;
+  let lastError: string | null = null;
   let rows: Row[] = [];
   try {
     const res = await dbQuery<Row>(
@@ -80,7 +84,7 @@ async function processVideos(): Promise<{ done: number; errors: number }> {
     );
     rows = res.rows;
   } catch (e: any) {
-    return { done: 0, errors: 0 };
+    return { done: 0, errors: 0, lastError: ((e as Error)?.message || "").slice(0, 200) || null };
   }
   for (const r of rows) {
     const text = `${r.title || ""}. ${r.description || ""}`.trim();
@@ -96,13 +100,14 @@ async function processVideos(): Promise<{ done: number; errors: number }> {
       done += 1;
     } catch (e) {
       errors += 1;
+      lastError = (e as Error)?.message?.slice(0, 200) || String(e);
       if (e instanceof EmbeddingError && (e.status === 401 || e.status === 403)) break;
     }
   }
-  return { done, errors };
+  return { done, errors, lastError };
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (!(await authorize(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -113,9 +118,14 @@ export async function POST(req: Request) {
     products: products.done,
     videos: videos.done,
     errors: products.errors + videos.errors,
+    lastError: products.lastError || videos.lastError || null,
   });
 }
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   return POST(req);
 }
+
+export async function GET(req: Request) { return runCron("embed-batch", () => handleGET(req as any)); }
+
+export async function POST(req: Request) { return runCron("embed-batch", () => handlePOST(req as any)); }

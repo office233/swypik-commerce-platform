@@ -103,6 +103,37 @@ export async function POST(req: Request) {
         await persistConnectAccount(acc);
         break;
       }
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+        if (pi) {
+          await dbQuery(
+            "UPDATE commerce_orders SET status = 'refunded' WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1",
+            [pi]
+          );
+        }
+        break;
+      }
+      case "payment_intent.canceled":
+      case "checkout.session.async_payment_failed": {
+        const objId = (event.data.object as any).id;
+        await dbQuery(
+          "UPDATE commerce_orders SET status='canceled', metadata = metadata || jsonb_build_object('canceled_at', NOW()::text, 'canceled_event', $2::text) WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'sessionId' = $1 OR metadata->>'stripe_session_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
+          [objId, event.type]
+        );
+        break;
+      }
+      case "charge.dispute.created": {
+        const dispute = event.data.object as Stripe.Dispute;
+        const chargeId = typeof dispute.charge === "string" ? dispute.charge : dispute.charge?.id;
+        if (chargeId) {
+          await dbQuery(
+            "UPDATE commerce_orders SET status='disputed' WHERE metadata->>'chargeId' = $1 OR metadata->>'charge_id' = $1",
+            [chargeId]
+          );
+        }
+        break;
+      }
       default:
         console.log(`[Stripe Webhook] Unhandled event: ${event.type}`);
     }

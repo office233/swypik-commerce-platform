@@ -29,13 +29,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ro_RO",
     siteName: "Swypik",
-    images: [{ url: "/og-preview.png", width: 1200, height: 630 }],
+    images: [{ url: "/og-preview.webp", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Swypik - Descopera, Swipe, Cumpara",
     description: "Social video commerce. Swipe, discover, buy.",
-    images: ["/og-preview.png"],
+    images: ["/og-preview.webp"],
   },
 };
 

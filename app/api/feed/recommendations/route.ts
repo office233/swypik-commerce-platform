@@ -125,11 +125,13 @@ export async function GET(req: Request) {
       [candidateWindow, userParam, sessionParam, limit],
     );
 
+    const isAuth = Boolean(userParam);
+    const cacheHeader = isAuth ? "private, no-store" : "public, s-maxage=30, stale-while-revalidate=60";
     return NextResponse.json({
       video_ids: rows.map((r) => r.id),
       results: rows,
       personalised: Boolean(userParam || sessionParam),
-    });
+    }, { headers: { "Cache-Control": cacheHeader } });
   } catch (error) {
     logger.error({ err: error }, "[feed/recommendations]");
     return NextResponse.json({ error: "ranking_failed" }, { status: 500 });

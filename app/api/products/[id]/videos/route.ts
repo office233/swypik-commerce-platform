@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 /**
  * GET /api/products/[id]/videos
  * Public endpoint — returns videos that reference a given product.
+ * product_refs schema: [{"source":"...","product_id":"<uuid>"}] OR legacy ["<uuid>"].
  */
 export async function GET(
   _req: NextRequest,
@@ -34,10 +35,15 @@ export async function GET(
        JOIN users u ON v.creator_id = u.id
        WHERE v.status     = 'ready'
          AND v.visibility = 'public'
-         AND v.product_refs @> $1::jsonb
-       ORDER BY v.view_count DESC, v.published_at DESC
-       LIMIT 10`,
-      [JSON.stringify([productId])]
+         AND COALESCE(v.is_hidden, false) = false
+         AND EXISTS (
+           SELECT 1 FROM jsonb_array_elements(COALESCE(v.product_refs, '[]'::jsonb)) e
+           WHERE (e ? 'product_id' AND e->>'product_id' = $1)
+              OR (jsonb_typeof(e) = 'string' AND e #>> '{}' = $1)
+         )
+       ORDER BY v.view_count DESC NULLS LAST, v.published_at DESC NULLS LAST
+       LIMIT 12`,
+      [productId]
     );
 
     const videos = rows.map((r: any) => ({

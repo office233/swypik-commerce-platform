@@ -5,6 +5,12 @@ import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
+const SELLER_PRODUCT_COLS = `
+  id, title, slug, price_cents, compare_at_price_cents, currency, category,
+  status, inventory_status, image_url, source_type, supplier_product_id,
+  metadata, created_at, updated_at
+`;
+
 export async function GET(req: Request) {
   try {
     const sellerId = await getSellerSessionId();
@@ -12,12 +18,22 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const url = new URL(req.url);
+    const rawLimit = Number(url.searchParams.get("limit") || 20);
+    const rawOffset = Number(url.searchParams.get("offset") || 0);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 100) : 20;
+    const offset = Number.isFinite(rawOffset) ? Math.max(Math.trunc(rawOffset), 0) : 0;
+
     const { rows } = await dbQuery(
-      `SELECT * FROM marketplace_products WHERE seller_id = $1 ORDER BY created_at DESC`,
-      [sellerId],
+      `SELECT ${SELLER_PRODUCT_COLS}
+       FROM marketplace_products
+       WHERE seller_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [sellerId, limit, offset],
     );
 
-    return NextResponse.json({ success: true, products: rows });
+    return NextResponse.json({ success: true, products: rows, limit, offset, hasMore: rows.length === limit });
   } catch (error: any) {
     logger.error({ err: error }, "[Seller Products API] GET Error:");
     return NextResponse.json({ success: false, error: "Eroare la preluarea produselor." }, { status: 500 });
@@ -53,7 +69,7 @@ export async function POST(req: Request) {
         inventory_status,
         metadata
       ) VALUES ('seller', $1, $2, $3, $4, 'RON', 'active', $5, $6::jsonb)
-      RETURNING *`,
+      RETURNING ${SELLER_PRODUCT_COLS}`,
       [
         sellerId,
         title,

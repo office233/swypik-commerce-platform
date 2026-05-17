@@ -26,7 +26,7 @@ const RO_TO_EN: Record<string, string> = {
   animale: "pet dog cat", caine: "dog", pisica: "cat",
   beauty: "makeup beauty cosmetic", machiaj: "makeup", parfum: "perfume",
   skincare: "skincare cream serum", sport: "sports fitness yoga",
-  fitness: "fitness gym workout", auto: "car motorcycle accessories",
+  fitness: "fitness", auto: "car motorcycle accessories",
   masina: "car accessories", scule: "tools hardware",
   jucarii: "toys", cadou: "gift", ieftin: "cheap affordable",
 };
@@ -60,7 +60,10 @@ export async function GET(req: Request) {
 
     if (isCategories) {
       const categories = await getCategories(locale);
-      return NextResponse.json({ categories });
+      return NextResponse.json(
+        { categories, deprecated: true, replacement: "/api/categories?hierarchy=true" },
+        { headers: { Deprecation: "true", Sunset: "Sat, 01 Aug 2026 00:00:00 GMT", Link: "</api/categories>; rel=successor-version" } },
+      );
     }
 
     const rawOffset = parseInt(url.searchParams.get("offset") || "0", 10);
@@ -70,10 +73,19 @@ export async function GET(req: Request) {
     const rawMinPrice = url.searchParams.get("minPrice") ? Number(url.searchParams.get("minPrice")) : undefined;
     const rawMaxPrice = url.searchParams.get("maxPrice") ? Number(url.searchParams.get("maxPrice")) : undefined;
 
+    // Route category/categoryId into taxonomy slug filter when value looks like a taxonomy slug.
+    const rawCategory = url.searchParams.get("category") || undefined;
+    const rawCategoryId = url.searchParams.get("categoryId") || undefined;
+    const rawTaxonomySlug = url.searchParams.get("taxonomy_node_slug") || url.searchParams.get("taxonomyNodeSlug") || url.searchParams.get("categorySlug") || undefined;
+    const isTaxonomySlug = (v?: string) => !!v && /^[a-z][a-z0-9-]*$/.test(v) && !/^[0-9]+$/.test(v);
+    const inferredTaxonomySlug = rawTaxonomySlug || (isTaxonomySlug(rawCategoryId) ? rawCategoryId : undefined) || (isTaxonomySlug(rawCategory) ? rawCategory : undefined);
+    const passCategory = inferredTaxonomySlug && rawCategory && isTaxonomySlug(rawCategory) ? undefined : rawCategory;
+    const passCategoryId = inferredTaxonomySlug && rawCategoryId && isTaxonomySlug(rawCategoryId) ? undefined : rawCategoryId;
     const result = await searchProducts({
       search: translatedSearch || undefined,
-      category: url.searchParams.get("category") || undefined,
-      categoryId: url.searchParams.get("categoryId") || undefined,
+      category: passCategory,
+      categoryId: passCategoryId,
+      taxonomyNodeSlug: inferredTaxonomySlug,
       tag: url.searchParams.get("tag") || undefined,
       minPrice: rawMinPrice !== undefined && Number.isFinite(rawMinPrice) && rawMinPrice >= 0 ? rawMinPrice : undefined,
       maxPrice: rawMaxPrice !== undefined && Number.isFinite(rawMaxPrice) && rawMaxPrice >= 0 ? rawMaxPrice : undefined,
@@ -88,13 +100,6 @@ export async function GET(req: Request) {
 
     const cacheSeconds = mode === "video" ? 300 : 60;
 
-    // Reviews aggregate (skip for video mode — minimal DTO)
-    let ratingMap = new Map<string, { avgRating: number; reviewCount: number }>();
-    if (mode !== "video" && result.products?.length) {
-      const { getProductRatingMap } = await import("@/lib/reviews/aggregate");
-      ratingMap = await getProductRatingMap((result.products as any[]).map((p: any) => String(p.id)));
-    }
-
     // Minimal DTO for video mode (high-volume infinite scroll)
     const products = mode === "video"
       ? (result.products || []).map((p: any) => ({
@@ -104,14 +109,7 @@ export async function GET(req: Request) {
           oldPrice: p.oldPrice ?? null,
           thumbnail: p.image || p.thumbnail || (Array.isArray(p.images) ? p.images[0] : null),
         }))
-      : (result.products || []).map((p: any) => {
-          const agg = ratingMap.get(String(p.id));
-          return {
-            ...p,
-            ratingAvg: agg && agg.reviewCount > 0 ? Number(agg.avgRating.toFixed(2)) : null,
-            ratingCount: agg ? agg.reviewCount : 0,
-          };
-        });
+      : result.products;
 
     const nextOffset = (result.offset || 0) + (result.limit || limit);
     const hasMore = mode === "video"

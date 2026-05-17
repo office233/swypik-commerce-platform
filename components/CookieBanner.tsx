@@ -89,7 +89,7 @@ export default function CookieBanner() {
       role="dialog"
       aria-modal="false"
       aria-labelledby="cookie-banner-title"
-      className="fixed inset-x-0 bottom-0 z-[60] px-3 pb-3 pointer-events-none"
+      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 pointer-events-none"
       style={{ paddingBottom: "max(env(safe-area-inset-bottom, 12px), 12px)" }}
     >
       <div className="pointer-events-auto mx-auto w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950/95 backdrop-blur p-4 shadow-2xl text-sm text-neutral-100">

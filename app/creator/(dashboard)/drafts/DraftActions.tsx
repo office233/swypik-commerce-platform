@@ -2,15 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Trash2, X, Loader2 } from "lucide-react";
+import { Trash2, X, Loader2, Send } from "lucide-react";
 
-type Action = "delete" | "cancel-schedule";
+type Action = "delete" | "cancel-schedule" | "publish-now";
 
 export default function DraftActions(props: {
   videoId: string;
   action: Action;
   label: string;
-  icon: "trash" | "x";
+  icon: "trash" | "x" | "send";
   confirm: string;
 }) {
   const { videoId, action, label, icon, confirm } = props;
@@ -29,6 +29,16 @@ export default function DraftActions(props: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scheduled_publish_at: null }),
         });
+      } else if (action === "publish-now") {
+        await fetch(`/api/creator/videos/${videoId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            is_draft: false,
+            scheduled_publish_at: null,
+            visibility: "public",
+          }),
+        });
       }
       router.refresh();
     } catch {
@@ -38,14 +48,19 @@ export default function DraftActions(props: {
     }
   }
 
-  const Icon = icon === "trash" ? Trash2 : X;
+  const Icon = icon === "trash" ? Trash2 : icon === "send" ? Send : X;
+  const publish = action === "publish-now";
 
   return (
     <button
       type="button"
       onClick={run}
       disabled={busy}
-      className="h-9 px-3 rounded-lg border border-[#E5E5E5] text-xs font-bold text-[#0D0D0D] flex items-center gap-1 hover:bg-[#F7F7F8] disabled:opacity-50"
+      className={
+        publish
+          ? "h-9 px-3 rounded-lg bg-[#7C3AED] text-white text-xs font-bold flex items-center gap-1 hover:bg-[#6D28D9] disabled:opacity-50"
+          : "h-9 px-3 rounded-lg border border-[#E5E5E5] text-xs font-bold text-[#0D0D0D] flex items-center gap-1 hover:bg-[#F7F7F8] disabled:opacity-50"
+      }
     >
       {busy ? <Loader2 size={12} className="animate-spin" /> : <Icon size={12} />}
       {label}

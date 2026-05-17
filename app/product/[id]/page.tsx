@@ -7,7 +7,9 @@
  */
 
 import { Metadata } from "next";
-import { getProductDetail } from "@/lib/products/get-product-detail";
+import { cache } from "react";
+import { getProductDetail as _getProductDetail } from "@/lib/products/get-product-detail";
+const getProductDetail = cache(_getProductDetail);
 import ProductClient from "./ProductClient";
 import ReviewList from "@/components/reviews/ReviewList";
 import ReviewForm from "@/components/reviews/ReviewForm";
@@ -53,6 +55,43 @@ export default async function ProductPage({ params }: Props) {
   const { id } = await params;
   const data = await getProductDetail(id);
   const session = await getAuthSession();
+
+  // SSR-prefetch clips for this product (so "Clips (N)" is correct on first paint)
+  let initialVideos: Array<{ id: string; title: string; playbackUrl: string; thumbnailUrl: string; durationSeconds: number; viewCount: number; likeCount: number; publishedAt: string; creatorName: string; creatorId: string; description: string }> = [];
+  if (data) {
+    try {
+      const { rows: vRows } = await dbQuery<any>(
+        `SELECT v.id, v.title, v.description, v.playback_url, v.thumbnail_url, v.duration_ms,
+                v.view_count, v.like_count, v.published_at,
+                u.display_name AS creator_name, u.id AS creator_id
+           FROM videos v
+           JOIN users u ON v.creator_id = u.id
+          WHERE v.status='ready' AND v.visibility='public'
+            AND COALESCE(v.is_hidden,false)=false
+            AND EXISTS (
+              SELECT 1 FROM jsonb_array_elements(COALESCE(v.product_refs,'[]'::jsonb)) e
+              WHERE (e ? 'product_id' AND e->>'product_id' = $1)
+                 OR (jsonb_typeof(e)='string' AND e #>> '{}' = $1)
+            )
+          ORDER BY v.view_count DESC NULLS LAST, v.published_at DESC NULLS LAST
+          LIMIT 12`,
+        [id]
+      );
+      initialVideos = vRows.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        description: r.description ?? "",
+        playbackUrl: r.playback_url,
+        thumbnailUrl: r.thumbnail_url,
+        durationSeconds: r.duration_ms ? Math.round(r.duration_ms / 1000) : 0,
+        viewCount: Number(r.view_count) || 0,
+        likeCount: Number(r.like_count) || 0,
+        publishedAt: r.published_at,
+        creatorName: r.creator_name,
+        creatorId: r.creator_id,
+      }));
+    } catch { /* non-fatal */ }
+  }
 
   // Reviews aggregate + capability checks
   let reviewsAgg: { average: number | null; total: number } = { average: null, total: 0 };
@@ -125,7 +164,7 @@ export default async function ProductPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
         />
       )}
-      <ProductClient initialData={data} />
+      <ProductClient initialData={data} initialVideos={initialVideos} />
       {data && (
         <section className="max-w-3xl mx-auto px-4 py-6" aria-labelledby="reviews-heading">
           <h2 id="reviews-heading" className="text-lg font-semibold mb-2">Recenzii</h2>

@@ -115,7 +115,7 @@ export async function checkQueue(): Promise<HealthResult> {
         const [length, failed] = await withTimeout(Promise.all([redis.xlen(queueName), redis.xlen(failedName)]), 1_500);
         return { length: Number(length || 0), failed: Number(failed || 0) };
       });
-      return queueResult(value.length, value.failed, latency_ms, queueName, failedName);
+      return queueResult(value.length, value.failed, 0, 0, latency_ms, queueName, failedName, process.env.VIDEO_CONSUMER_GROUP || "video-workers");
     } catch (error) {
       return { status: "error", latency_ms: 0, detail: jsonDetail(error) };
     }
@@ -125,20 +125,51 @@ export async function checkQueue(): Promise<HealthResult> {
     return { status: "degraded", latency_ms: 0, detail: { reason: "redis_not_configured", queue: queueName } };
   }
 
+  const groupName = process.env.VIDEO_CONSUMER_GROUP || "video-workers";
   try {
     const { latency_ms, value } = await withLatency(async () => {
-      const replies = await redisRequest(process.env.REDIS_URL!, [["XLEN", queueName], ["XLEN", failedName]], 1_500);
-      return { length: Number(replies[0] || 0), failed: Number(replies[1] || 0) };
+      const replies = await redisRequest(
+        process.env.REDIS_URL!,
+        [
+          ["XLEN", queueName],
+          ["XLEN", failedName],
+          ["XPENDING", queueName, groupName],
+          ["XINFO", "GROUPS", queueName],
+        ],
+        1_500,
+      );
+      const length = Number(replies[0] || 0);
+      const failed = Number(replies[1] || 0);
+      const xpending = replies[2] as unknown;
+      // XPENDING summary returns array [pending_count, min_id, max_id, [[consumer, count], ...]]
+      let pending = 0;
+      if (Array.isArray(xpending) && xpending[0] != null) pending = Number(xpending[0] || 0);
+      // XINFO GROUPS returns array of group property arrays; find lag for our group
+      let lag = 0;
+      const groups = Array.isArray(replies[3]) ? (replies[3] as unknown[]) : [];
+      for (const g of groups) {
+        if (!Array.isArray(g)) continue;
+        const arr = g as unknown[];
+        let name: string | null = null;
+        let lagVal: number | null = null;
+        for (let i = 0; i < arr.length - 1; i += 2) {
+          const k = String(arr[i]);
+          if (k === "name") name = String(arr[i + 1]);
+          else if (k === "lag") lagVal = Number(arr[i + 1] || 0);
+        }
+        if (name === groupName && lagVal != null) lag = lagVal;
+      }
+      return { length, failed, pending, lag };
     });
-    return queueResult(value.length, value.failed, latency_ms, queueName, failedName);
+    return queueResult(value.length, value.failed, value.pending, value.lag, latency_ms, queueName, failedName, groupName);
   } catch (error) {
     return { status: "error", latency_ms: 0, detail: jsonDetail(error) };
   }
 }
 
-function queueResult(length: number, failed: number, latency_ms: number, queue: string, failedQueue: string): HealthResult {
-  const status: HealthStatus = failed > 100 || length > 10_000 ? "degraded" : "ok";
-  return { status, latency_ms, detail: { queue, failed_queue: failedQueue, length, failed } };
+function queueResult(length: number, failed: number, pending: number, lag: number, latency_ms: number, queue: string, failedQueue: string, group: string): HealthResult {
+  const status: HealthStatus = failed > 100 || lag > 10_000 || pending > 500 ? "degraded" : "ok";
+  return { status, latency_ms, detail: { queue, failed_queue: failedQueue, group, length, failed, pending, lag } };
 }
 
 export async function redisRequest(rawURL: string, commands: string[][], timeoutMs = DEFAULT_TIMEOUT_MS): Promise<unknown[]> {
@@ -215,6 +246,19 @@ function parseReply(buffer: string, index: number): { value: unknown; next: numb
     if (len < 0) return { value: null, next };
     if (buffer.length < next + len + 2) return null;
     return { value: buffer.slice(next, next + len), next: next + len + 2 };
+  }
+  if (type === "*") {
+    const count = Number(data);
+    if (count < 0) return { value: null, next };
+    const items: unknown[] = [];
+    let cursor = next;
+    for (let i = 0; i < count; i++) {
+      const child = parseReply(buffer, cursor);
+      if (!child) return null;
+      items.push(child.value);
+      cursor = child.next;
+    }
+    return { value: items, next: cursor };
   }
   throw new Error("unsupported redis reply");
 }

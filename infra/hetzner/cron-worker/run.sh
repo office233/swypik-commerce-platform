@@ -82,6 +82,7 @@ while true; do
   # Once per day
   if [ $((TICK % 86400)) -lt 60 ]; then
     run_job suspend-unverified GET
+    run_job cleanup-tokens GET
   fi
 
   sleep 60

@@ -21,12 +21,12 @@ const NAV_ITEMS: Item[] = [
 export default function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/explore"];
+  const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/explore", "/product"];
   if (hiddenPaths.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-[#E5E5E5] dark:border-[#1F1F1F] shadow-[0_-2px_20px_rgba(0,0,0,0.05)]"
+      data-testid="bottom-nav" className="fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-[#E5E5E5] dark:border-[#1F1F1F] shadow-[0_-2px_20px_rgba(0,0,0,0.05)]"
       style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
     >
       <div className="mx-auto max-w-lg grid grid-cols-5 items-center px-2 pt-1.5 pb-1">
@@ -71,7 +71,7 @@ export default function BottomNav() {
               className={`relative mx-auto flex flex-col items-center justify-center gap-0.5 w-full h-12 rounded-xl transition-all ${
                 isActive
                   ? "text-[#0D0D0D] dark:text-white"
-                  : "text-[#A1A1AA] hover:text-[#6E6E80] dark:hover:text-[#A1A1AA]"
+                  : "text-[#52525B] hover:text-[#0D0D0D] dark:text-[#A1A1AA] dark:hover:text-white"
               }`}
             >
               <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />

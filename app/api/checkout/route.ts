@@ -162,13 +162,21 @@ export async function POST(req: Request) {
     }
 
     const userAgent = req.headers.get("user-agent") || undefined;
-    const body = await req.json();
-    const rawItems = body.products || (body.product ? [body.product] : []);
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ success: false, error: "invalid_json" }, { status: 400 });
+    }
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ success: false, error: "invalid_body" }, { status: 400 });
+    }
+    const rawItems = body.items || body.products || (body.product ? [body.product] : []);
     const customer = body.customer;
 
     // Validate
     if (!Array.isArray(rawItems) || rawItems.length === 0) {
-      return NextResponse.json({ success: false, error: "Coșul este gol." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "missing_items" }, { status: 400 });
     }
     if (rawItems.length > 10) {
       return NextResponse.json({ success: false, error: "Maxim 10 produse per comandă." }, { status: 400 });

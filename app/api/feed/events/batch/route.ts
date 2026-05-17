@@ -33,14 +33,22 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return new NextResponse(null, { status: 204 });
   }
 
-  if (!body || typeof body !== "object" || !Array.isArray((body as any).events)) {
-    return NextResponse.json({ error: "events must be an array" }, { status: 400 });
+  if (!body || typeof body !== "object") {
+    return new NextResponse(null, { status: 204 });
   }
 
-  const rawEvents = (body as { events: unknown[] }).events;
+  let rawEvents: unknown[];
+  if (Array.isArray((body as any).events)) {
+    rawEvents = (body as { events: unknown[] }).events;
+  } else if ((body as any).event_type || (body as any).type) {
+    rawEvents = [body];
+  } else {
+    return new NextResponse(null, { status: 204 });
+  }
+
   if (rawEvents.length === 0) {
     return new NextResponse(null, { status: 204 });
   }
@@ -66,7 +74,8 @@ export async function POST(req: Request) {
   }
 
   if (accepted.length === 0) {
-    return NextResponse.json({ error: "no valid events", errors }, { status: 400 });
+    // Silent accept: clients should not be punished for malformed events.
+    return new NextResponse(null, { status: 204 });
   }
 
   // Rate limit on the shared session (count = batch size, fallback: 1 hit per

@@ -1,0 +1,103 @@
+/**
+ * Seller — accept return request
+ * POST /api/seller/orders/[id]/return/accept
+ *
+ * Marks an existing return request as approved (no refund yet).
+ * Refund happens via /api/seller/orders/[id]/refund.
+ * Requires the seller to own >=1 item in the order.
+ */
+
+import { NextResponse } from "next/server";
+import { dbQuery } from "@/lib/db";
+import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { logger } from "@/lib/logger";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  if (!isEnabled("returns")) return frozenResponse("returns");
+  const { id } = await params;
+  try {
+    const sellerId = await getSellerSessionId();
+    if (!sellerId) {
+      return NextResponse.json(
+        { success: false, error: "Neautorizat. Conecteaza-te ca seller." },
+        { status: 401 }
+      );
+    }
+
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+    const note: string | null =
+      typeof body?.note === "string" && body.note.trim().length > 0
+        ? body.note.trim().slice(0, 500)
+        : null;
+
+    const { rows } = await dbQuery(
+      `SELECT
+         co.id,
+         co.status,
+         co.metadata,
+         COUNT(coi.id) FILTER (WHERE coi.metadata->>'seller_id' = $2)::int AS seller_items
+       FROM commerce_orders co
+       JOIN commerce_order_items coi ON co.id = coi.order_id
+       WHERE co.id = $1::uuid
+       GROUP BY co.id, co.status, co.metadata
+       LIMIT 1`,
+      [id, sellerId]
+    );
+
+    if (rows.length === 0 || Number(rows[0].seller_items || 0) < 1) {
+      return NextResponse.json(
+        { success: false, error: "Comanda nu a fost gasita sau nu iti apartine." },
+        { status: 404 }
+      );
+    }
+
+    const order = rows[0];
+    if (
+      order.status !== "return_requested" &&
+      order.metadata?.return_status !== "requested"
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Nu exista o cerere de retur activa pentru aceasta comanda." },
+        { status: 422 }
+      );
+    }
+
+    const event = {
+      type: "approved",
+      at: new Date().toISOString(),
+      by: `seller:${sellerId}`,
+      note: note || "Cerere aprobata de vanzator",
+    };
+
+    await dbQuery(
+      `UPDATE commerce_orders
+       SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+             'return_status', 'approved',
+             'return_approved_at', NOW()::text,
+             'return_approved_by', $2::text,
+             'return_history', COALESCE(metadata->'return_history', '[]'::jsonb) || $3::jsonb
+           )
+       WHERE id = $1::uuid`,
+      [id, sellerId, JSON.stringify([event])]
+    );
+
+    return NextResponse.json({ success: true, status: "approved" });
+  } catch (err: any) {
+    logger.error({ err }, "[Seller Return Accept] failed");
+    return NextResponse.json(
+      { success: false, error: "Eroare interna." },
+      { status: 500 }
+    );
+  }
+}

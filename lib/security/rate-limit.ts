@@ -133,13 +133,21 @@ export async function rateLimit(
 }
 
 /**
- * Extract client IP from request headers (Vercel/Cloudflare compatible)
+ * Extract client IP from request headers.
+ * Caddy sets X-Real-IP from the connecting peer — that's non-spoofable.
+ * If X-Real-IP is absent (non-prod / direct connections), fall back to the LAST
+ * hop in X-Forwarded-For (the IP closest to our proxy), never the first
+ * (which a remote client can prepend).
  */
 export function getClientIP(req: Request): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    req.headers.get("cf-connecting-ip") ||
-    "unknown"
-  );
+  const real = req.headers.get("x-real-ip");
+  if (real) return real.trim();
+  const cf = req.headers.get("cf-connecting-ip");
+  if (cf) return cf.trim();
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return "unknown";
 }

@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     const sortParam = (searchParams.get("sort") || "recent") as SortMode;
     const sort: SortMode = VALID_SORTS.has(sortParam) ? sortParam : "recent";
     const sourceParam = searchParams.get("source");
+    const taxonomySlugParam = (searchParams.get("taxonomy_node_slug") || searchParams.get("category") || "").trim();
     const onlyFollowing = sourceParam === "following";
 
     const pageRaw = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -66,6 +67,7 @@ export async function GET(request: NextRequest) {
     const queryLimit = limit + 1;
     const queryParams: any[] = [queryLimit, offset];
     if (userId) queryParams.push(userId);
+    if (taxonomySlugParam) queryParams.push(taxonomySlugParam);
 
     const orderClause = buildOrderClause(sort);
     const scoreSelect =
@@ -132,6 +134,13 @@ export async function GET(request: NextRequest) {
         AND v.visibility = 'public'
         ${onlyFollowing && userId ? `AND EXISTS (SELECT 1 FROM follows f2 WHERE f2.follower_user_id = $3 AND f2.following_user_id = v.creator_id)` : ''}
         AND NOT EXISTS (SELECT 1 FROM user_hidden_videos uhv WHERE uhv.user_id = ${userId ? '$3' : "'00000000-0000-0000-0000-000000000000'::uuid"} AND uhv.video_id = v.id)
+      ${taxonomySlugParam ? `AND mp.taxonomy_node_slug IN (
+        WITH RECURSIVE descendants AS (
+          SELECT slug FROM taxonomy_nodes WHERE slug = $${userId ? 4 : 3}::text
+          UNION ALL
+          SELECT n.slug FROM taxonomy_nodes n JOIN descendants d ON n.parent_slug = d.slug
+        ) SELECT slug FROM descendants
+      )` : ''}
       ORDER BY ${orderClause}
       LIMIT $1 OFFSET $2`,
       queryParams
