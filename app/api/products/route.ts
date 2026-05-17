@@ -74,6 +74,7 @@ export async function GET(req: Request) {
       search: translatedSearch || undefined,
       category: url.searchParams.get("category") || undefined,
       categoryId: url.searchParams.get("categoryId") || undefined,
+      taxonomyNodeSlug: url.searchParams.get("taxonomy_node_slug") || url.searchParams.get("taxonomyNodeSlug") || undefined,
       tag: url.searchParams.get("tag") || undefined,
       minPrice: rawMinPrice !== undefined && Number.isFinite(rawMinPrice) && rawMinPrice >= 0 ? rawMinPrice : undefined,
       maxPrice: rawMaxPrice !== undefined && Number.isFinite(rawMaxPrice) && rawMaxPrice >= 0 ? rawMaxPrice : undefined,

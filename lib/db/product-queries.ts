@@ -5,6 +5,7 @@ export type ProductFilters = {
   search?: string;
   category?: string;
   categoryId?: string;
+  taxonomyNodeSlug?: string;
   tag?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -238,6 +239,7 @@ function transformProduct(row: any, locale = "ro") {
     hasVideo,
     category,
     categoryId,
+    taxonomyNodeSlug: typeof row.taxonomy_node_slug === "string" ? row.taxonomy_node_slug : null,
     productType,
     rootCategory,
     vendor,
@@ -377,6 +379,7 @@ function buildSearchFilters(filters: ProductFilters) {
     search,
     category,
     categoryId,
+    taxonomyNodeSlug,
     tag,
     minPrice,
     maxPrice,
@@ -439,6 +442,22 @@ function buildSearchFilters(filters: ProductFilters) {
       params.push(String(categoryId));
       paramIndex += 1;
     }
+  }
+
+  if (taxonomyNodeSlug) {
+    where.push(`
+      p.taxonomy_node_slug IN (
+        WITH RECURSIVE descendants AS (
+          SELECT slug FROM taxonomy_nodes WHERE slug = ${paramIndex}::text
+          UNION ALL
+          SELECT n.slug FROM taxonomy_nodes n
+          JOIN descendants d ON n.parent_slug = d.slug
+        )
+        SELECT slug FROM descendants
+      )
+    `);
+    params.push(String(taxonomyNodeSlug));
+    paramIndex += 1;
   }
 
   if (tag) {
