@@ -4,6 +4,21 @@ import { dbQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await getAuthUser();
+  const { id } = await params;
+  if (!user.userId) return NextResponse.json({ saved: false });
+
+  const { rows } = await dbQuery<{ id: string }>(
+    `SELECT id FROM saved_products WHERE user_id = $1 AND product_id = $2 LIMIT 1`,
+    [user.userId, id],
+  );
+  return NextResponse.json({ saved: rows.length > 0 });
+}
+
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },

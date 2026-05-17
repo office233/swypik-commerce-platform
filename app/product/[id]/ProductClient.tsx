@@ -67,6 +67,17 @@ export default function ProductClient({ initialData }: Props) {
   const [activeTab, setActiveTab] = useState<"clips" | "details" | "reviews">("clips");
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
+  // Fetch initial saved status
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/products/${id}/save`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && typeof data.saved === "boolean") setLiked(data.saved);
+      })
+      .catch(() => {});
+  }, [id]);
+
   // Fetch product videos
   useEffect(() => {
     fetch(`/api/products/${id}/videos`)
@@ -327,11 +338,6 @@ export default function ProductClient({ initialData }: Props) {
         <h1 className="text-lg font-bold leading-snug text-[#0D0D0D] mb-3">
           {title}
         </h1>
-
-        <button onClick={toggleSave} disabled={savePending} aria-pressed={liked} className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-100 border border-neutral-100 py-3.5 mb-5 text-sm font-black text-[#0D0D0D] hover:bg-neutral-100 active:scale-95 transition-transform disabled:opacity-60">
-          <Heart size={18} className={liked ? 'text-red-500' : ''} fill={liked ? 'currentColor' : 'none'} />
-          {liked ? '🔖 Salvat (Te anunțăm la reducere)' : '🔖 Salvează (Te anunțăm la reducere)'}
-        </button>
 
         {/* Rating & Orders */}
         <div className="flex flex-wrap gap-3 text-sm font-medium text-[#6E6E80] mb-5">
