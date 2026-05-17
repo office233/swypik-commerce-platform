@@ -22,6 +22,55 @@ function usernameFromSeed(prefix: string, seed: string): string {
   return `${prefix}_${compact || crypto.randomBytes(4).toString("hex")}`;
 }
 
+// ---------- HMAC-signed anon cookie (UUID.hmac) ----------
+
+function getAnonSigningKey(): string {
+  const key = process.env.APP_ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || "";
+  if (!key) {
+    // Last-resort dev fallback. Production MUST set APP_ENCRYPTION_KEY.
+    return "swypik-dev-anon-fallback-key";
+  }
+  return key;
+}
+
+function anonHmac(uuid: string): string {
+  return crypto
+    .createHmac("sha256", getAnonSigningKey())
+    .update(uuid)
+    .digest("hex")
+    .slice(0, 32); // 16 bytes hex
+}
+
+export function signAnonValue(uuid: string): string {
+  return `${uuid}.${anonHmac(uuid)}`;
+}
+
+/**
+ * Parse anon cookie. Returns the UUID iff the HMAC is valid.
+ * Legacy plain-UUID cookies are rejected to prevent impersonation.
+ */
+function parseSignedAnon(value: string | undefined | null): string | null {
+  if (!value) return null;
+  const dot = value.indexOf(".");
+  if (dot < 0) {
+    // Legacy plain UUID — REJECT (security: no impersonation).
+    return null;
+  }
+  const uuid = value.slice(0, dot);
+  const mac = value.slice(dot + 1);
+  if (!isUuid(uuid) || mac.length !== 32) return null;
+  const expected = anonHmac(uuid);
+  try {
+    const a = Buffer.from(mac, "hex");
+    const b = Buffer.from(expected, "hex");
+    if (a.length !== b.length) return null;
+    if (!crypto.timingSafeEqual(a, b)) return null;
+  } catch {
+    return null;
+  }
+  return uuid;
+}
+
 async function ensureUuidUser(userId: string, source: string): Promise<string> {
   const username = usernameFromSeed(source, userId);
   const { rows } = await dbQuery<{ id: string }>(
@@ -105,19 +154,45 @@ async function resolveCustomerSession(sessionToken: string): Promise<string | nu
   }
 }
 
+/**
+ * Verify that a UUID corresponds to a real anon user (no password set, role=shopper).
+ * Used for backward-compat with legacy plain-UUID swypik_session cookies — we now
+ * require the DB row to be a true anon shell, otherwise an attacker could
+ * impersonate any user by guessing/leaking their UUID.
+ */
+async function isAnonUser(userId: string): Promise<boolean> {
+  try {
+    const { rows } = await dbQuery<{ id: string }>(
+      `SELECT id FROM users
+       WHERE id = $1
+         AND password_hash IS NULL
+         AND email IS NULL
+         AND (metadata->>'source') IN ('anon_session','shopper_session')
+       LIMIT 1`,
+      [userId],
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function resolveExistingSocialUser(cookieStore: CookieStore): Promise<string | null> {
   const shopperSession = cookieStore.get("swypik_session")?.value;
   if (shopperSession) {
-    // Try new hashed-token user_sessions first
+    // 1) New hashed-token user_sessions (canonical authenticated path)
     const userSessionId = await resolveUserSession(shopperSession);
     if (userSessionId) return userSessionId;
 
-    // Legacy: UUID-based session
-    if (isUuid(shopperSession)) return ensureUuidUser(shopperSession, "shopper");
-
-    // Legacy: customer_sessions plaintext token
+    // 2) Legacy customer_sessions plaintext token
     const customerUserId = await resolveCustomerSession(shopperSession);
     if (customerUserId) return customerUserId;
+
+    // 3) Legacy plain-UUID cookie: ONLY accept if the DB row is a real anon shell.
+    //    Otherwise refuse — forces re-login and blocks UUID impersonation.
+    if (isUuid(shopperSession) && (await isAnonUser(shopperSession))) {
+      return ensureUuidUser(shopperSession, "shopper");
+    }
   }
 
   const creatorSession = cookieStore.get("creator_session")?.value;
@@ -125,8 +200,9 @@ async function resolveExistingSocialUser(cookieStore: CookieStore): Promise<stri
     return ensureUuidUser(creatorSession, "creator");
   }
 
-  const anonSession = cookieStore.get(ANON_SESSION_COOKIE)?.value;
-  if (isUuid(anonSession)) return ensureUuidUser(anonSession, "anon");
+  const rawAnon = cookieStore.get(ANON_SESSION_COOKIE)?.value;
+  const verifiedAnon = parseSignedAnon(rawAnon);
+  if (verifiedAnon) return ensureUuidUser(verifiedAnon, "anon");
 
   return null;
 }
@@ -153,7 +229,8 @@ export function setAnonSessionCookie(response: Response, anonSessionId?: string)
     cookies?: { set: (name: string, value: string, options: Record<string, unknown>) => void };
   };
 
-  nextResponse.cookies?.set(ANON_SESSION_COOKIE, anonSessionId, {
+  // Store signed value: <uuid>.<hmac> — prevents impersonation if cookie is leaked/guessed.
+  nextResponse.cookies?.set(ANON_SESSION_COOKIE, signAnonValue(anonSessionId), {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
     httpOnly: true,
