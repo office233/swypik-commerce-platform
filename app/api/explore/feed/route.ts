@@ -212,52 +212,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ videos, page, hasMore }, { headers: cacheHeaders });
     }
 
-    // Fallback: creator_videos legacy
-    const fallback = await dbQuery(`
-      SELECT
-        cv.id as video_id,
-        cv.creator_id,
-        cv.video_url,
-        cv.description,
-        p.id as product_id,
-        p.title as product_title,
-        p.price_cents as product_price_cents,
-        p.image_url as product_image_url
-      FROM creator_videos cv
-      JOIN marketplace_products p ON cv.product_id = p.id::text
-      WHERE cv.status = 'ready'
-      ORDER BY cv.id DESC
-      LIMIT 50
-    `);
-
-    const videos = fallback.rows.map((row: any) => ({
-      id: row.video_id,
-      url: row.video_url,
-      hlsUrl: null,
-      thumbnail: null,
-      duration: null,
-      creator: { id: row.creator_id, name: "Creator" },
-      description: row.description || "",
-      likes: "0",
-      saves: "0",
-      shares: "0",
-      comments: "0",
-      viewer: { liked: false, saved: false, following: false },
-      audioTrack: null,
-      product: row.product_id ? {
-        id: row.product_id,
-        name: row.product_title,
-        price: row.product_price_cents ? `${(row.product_price_cents / 100).toFixed(2)} RON` : null,
-        image: row.product_image_url,
-      } : null,
-    }));
-
-    return NextResponse.json(
-      { videos, page, hasMore: false },
-      { headers: userId
-          ? { "Cache-Control": "private, no-store" }
-          : { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
-    );
+    // No videos available
+    const emptyHeaders = userId
+      ? { "Cache-Control": "private, no-store" }
+      : { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" };
+    return NextResponse.json({ videos: [], page, hasMore: false }, { headers: emptyHeaders });
   } catch (error: any) {
     logger.error({ err: error }, "Explore feed API error:");
     return NextResponse.json(

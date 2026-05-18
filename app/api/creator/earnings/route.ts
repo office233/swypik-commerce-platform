@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  * GET /api/creator/earnings
  *
  * Schema references:
- *   videos / creator_videos: creator_id, status
+ *   videos: creator_id, status
  *   commerce_order_items: creator_id, unit_amount_cents, quantity,
  *                         commissionable_amount_cents, payout_status
  */
@@ -24,11 +24,8 @@ export async function GET() {
 
     const videosRes = await dbQuery<{ count: string }>(
       `SELECT COUNT(DISTINCT id) AS count
-       FROM (
-         SELECT id::text AS id FROM videos WHERE creator_id::text = $1 AND status = 'ready'
-         UNION ALL
-         SELECT id::text AS id FROM creator_videos WHERE creator_id = $1 AND status = 'ready'
-       ) ready_videos`,
+       FROM videos
+       WHERE creator_id::text = $1 AND status = 'ready'`,
       [creatorId]
     );
     const totalVideos = parseInt(videosRes.rows[0]?.count || "0", 10);

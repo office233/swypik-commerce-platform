@@ -110,50 +110,6 @@ async function resolveUserSession(sessionToken: string): Promise<string | null> 
   return null;
 }
 
-async function resolveCustomerSession(sessionToken: string): Promise<string | null> {
-  try {
-    const { rows } = await dbQuery<{
-      customer_id: string;
-      email: string | null;
-      name: string | null;
-    }>(
-      `SELECT cs.customer_id, c.email, c.name
-       FROM customer_sessions cs
-       JOIN customers c ON c.id = cs.customer_id
-       WHERE cs.token = $1 AND cs.expires_at > NOW()
-       LIMIT 1`,
-      [sessionToken],
-    );
-
-    if (rows.length === 0) return null;
-
-    const customer = rows[0];
-    const externalAuthId = `customer:${customer.customer_id}`;
-    const { rows: userRows } = await dbQuery<{ id: string }>(
-      `INSERT INTO users (external_auth_id, username, display_name, email, locale, role, metadata, last_seen_at)
-       VALUES ($1, $2, $3, $4, 'ro', 'shopper', $5::jsonb, NOW())
-       ON CONFLICT (external_auth_id) WHERE external_auth_id IS NOT NULL
-       DO UPDATE SET
-         display_name = COALESCE(EXCLUDED.display_name, users.display_name),
-         email = COALESCE(EXCLUDED.email, users.email),
-         last_seen_at = NOW()
-       RETURNING id`,
-      [
-        externalAuthId,
-        usernameFromSeed("shopper", customer.customer_id),
-        customer.name || customer.email || "Shopper",
-        customer.email,
-        JSON.stringify({ source: "customer_session", customer_id: customer.customer_id }),
-      ],
-    );
-
-    return userRows[0].id;
-  } catch (error) {
-    console.warn("[Social Session] Could not resolve customer session", error);
-    return null;
-  }
-}
-
 /**
  * Verify that a UUID corresponds to a real anon user (no password set, role=shopper).
  * Used for backward-compat with legacy plain-UUID swypik_session cookies — we now
@@ -183,10 +139,6 @@ async function resolveExistingSocialUser(cookieStore: CookieStore): Promise<stri
     // 1) New hashed-token user_sessions (canonical authenticated path)
     const userSessionId = await resolveUserSession(shopperSession);
     if (userSessionId) return userSessionId;
-
-    // 2) Legacy customer_sessions plaintext token
-    const customerUserId = await resolveCustomerSession(shopperSession);
-    if (customerUserId) return customerUserId;
 
     // 3) Legacy plain-UUID cookie: ONLY accept if the DB row is a real anon shell.
     //    Otherwise refuse — forces re-login and blocks UUID impersonation.
