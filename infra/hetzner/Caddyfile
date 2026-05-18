@@ -59,6 +59,18 @@ swypik.com {
 		reverse_proxy web-next:3000
 	}
 
+	# Same-origin media proxy for HLS/video assets. R2 public domain does not
+	# expose CORS headers with the current bucket key, so the feed reads via /media.
+	handle_path /media/* {
+		header Access-Control-Allow-Origin "https://swypik.com"
+		header Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+		header Access-Control-Allow-Headers "Range, Content-Type"
+		header Access-Control-Expose-Headers "Content-Length, Content-Range, Accept-Ranges, ETag"
+		reverse_proxy https://media.swypik.com {
+			header_up Host media.swypik.com
+		}
+	}
+
 	# Everything else → Next.js SSR
 	handle {
 		reverse_proxy web-next:3000

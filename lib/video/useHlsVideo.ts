@@ -16,7 +16,7 @@ import type HlsType from "hls.js";
  * hls.js is loaded dynamically only when needed (non-Safari + HLS source),
  * keeping it out of the main bundle (~500KB savings on initial load).
  */
-export function useHlsVideo(src: string | undefined | null) {
+export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string | undefined | null) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -40,6 +40,20 @@ export function useHlsVideo(src: string | undefined | null) {
 
     let cancelled = false;
     let hlsInstance: HlsType | null = null;
+    let fallbackTried = false;
+
+    const fallbackToProgressive = () => {
+      if (cancelled || fallbackTried || !fallbackSrc || fallbackSrc === src) return;
+      fallbackTried = true;
+      try {
+        hlsInstance?.destroy();
+      } catch {}
+      video.src = fallbackSrc;
+      video.load();
+      void video.play().catch(() => {});
+    };
+
+    video.addEventListener("error", fallbackToProgressive);
 
     void (async () => {
       try {
@@ -61,6 +75,9 @@ export function useHlsVideo(src: string | undefined | null) {
           maxMaxBufferLength: 30,
         });
         hlsInstance = hls;
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data?.fatal) fallbackToProgressive();
+        });
         hls.loadSource(src);
         hls.attachMedia(video);
       } catch {
@@ -71,6 +88,7 @@ export function useHlsVideo(src: string | undefined | null) {
 
     return () => {
       cancelled = true;
+      video.removeEventListener("error", fallbackToProgressive);
       if (hlsInstance) {
         try {
           hlsInstance.destroy();
@@ -79,7 +97,7 @@ export function useHlsVideo(src: string | undefined | null) {
         }
       }
     };
-  }, [src]);
+  }, [src, fallbackSrc]);
 
   return ref;
 }

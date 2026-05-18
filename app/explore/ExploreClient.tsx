@@ -5,21 +5,47 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Music2, ShoppingBag } from "lucide-react";
+import { Bookmark, Coins, MessageCircle, Scale, Search, ShoppingCart, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
 import { trackEvent as trackFeedEvent, trackWatchTime, flushWatchTime, resetWatchTime, getSessionId } from "@/lib/feed/track";
-import { parseHashtags } from "@/lib/text/parseHashtags";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
-const MoreLikeThisMenu = dynamic(() => import("@/components/feed/MoreLikeThisMenu"), { ssr: false });
-const CaptionsButton = dynamic(() => import("@/components/feed/CaptionsButton"), { ssr: false });
 
 const MUTE_STORAGE_KEY = "swypik.feed.muted";
 // Mount range: only render real <video src> for slides within ±MOUNT_RADIUS of currentIndex
 const MOUNT_RADIUS = 1;
+const FEED_FORMATS = ["Merită?", "Sub 50", "Testate", "AliExpress Finds", "Selleri locali", "Battles", "Live Deals"];
+
+function getProductVerdict(product: any): string {
+  const score = Number(product?.swypikScore || 0);
+  const price = Number(product?.priceCents || 0);
+  const delivery = String(product?.deliveryLabel || "").toLowerCase();
+  const title = String(product?.name || product?.title || "").toLowerCase();
+  if (score >= 86) return "Preț bun";
+  if (delivery.includes("livrare") && /[5-9][0-9]\.|[1-9][0-9]{2}/.test(delivery)) return "Verifică livrarea";
+  if (price > 0 && price <= 5000) return "Sub 50 lei";
+  if (title.includes("viral") || title.includes("trending")) return "Trending azi";
+  if (score < 55) return "Risc de verificat";
+  return "AI verdict rapid";
+}
+
+function withOptimisticVote(product: any, vote: "worth_it" | "not_worth_it") {
+  const votes = product?.votes || {};
+  const previousVote = votes.viewerVote || null;
+  let worthIt = Number(votes.worthIt || 0);
+  let notWorthIt = Number(votes.notWorthIt || 0);
+  if (previousVote === "worth_it") worthIt = Math.max(0, worthIt - 1);
+  if (previousVote === "not_worth_it") notWorthIt = Math.max(0, notWorthIt - 1);
+  if (vote === "worth_it") worthIt += 1;
+  if (vote === "not_worth_it") notWorthIt += 1;
+  return {
+    ...product,
+    votes: { worthIt, notWorthIt, total: worthIt + notWorthIt, viewerVote: vote },
+  };
+}
 
 interface FeedVideoProps {
   videoId: string;
@@ -75,6 +101,11 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const [activeCommentsVideo, setActiveCommentsVideo] = useState<any | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [shareToast, setShareToast] = useState<string | null>(null);
+  const [activeFormat, setActiveFormat] = useState(FEED_FORMATS[0]);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [voteBusyKey, setVoteBusyKey] = useState<string | null>(null);
+  const [coinBurst, setCoinBurst] = useState<{ videoId: string; nonce: number } | null>(null);
+  const [cartBusyProductId, setCartBusyProductId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -115,13 +146,14 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const trackEvent = useCallback((videoId: string, eventType: string, data?: any) => {
     // Route via batched client. Map legacy event names to canonical FeedEventType.
     const map: Record<string, string> = {
-      impression: "video_impression",
+      impression: "impression",
       like: "like",
       unlike: "unlike",
       save: "save",
       unsave: "unsave",
       share: "share",
-      buy_now: "purchase_click",
+      buy_now: "product_click",
+      add_to_cart: "add_to_cart",
     };
     const mapped = (map[eventType] || eventType) as any;
     try {
@@ -147,9 +179,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     async function fetchVideos() {
       try {
         const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
+        const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
         const url = feedSource === "following"
-          ? `/api/explore/feed?limit=30&source=following${catQs}`
-          : `/api/explore/feed?limit=30${catQs}`;
+          ? `/api/explore/feed?limit=30&source=following${catQs}${sessionQs}`
+          : `/api/explore/feed?limit=30${catQs}${sessionQs}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
@@ -165,8 +198,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         setLoading(false);
       }
     }
-    if (initialVideos && initialVideos.length > 0 && feedSource === 'foryou') {
-      // skip initial fetch — server provided seed
+    if (initialVideos && initialVideos.length >= 20 && feedSource === 'foryou') {
+      // skip initial fetch only when the server provided a full first batch
       const seeded = initialVideos;
       setLikedVideos(new Set(seeded.filter((v: any) => v.viewer?.liked).map((v: any) => v.id)));
       setSavedVideos(new Set(seeded.filter((v: any) => v.viewer?.saved).map((v: any) => v.id)));
@@ -442,10 +475,85 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       setActiveProduct(null);
       return;
     }
+    trackEvent(video.id, "product_click", { product_id: video.product.id, surface: "feed_chip" });
     // Open instantly with the data we already have from the feed.
     // ProductDrawer enriches in background if description is missing.
     setActiveProduct({ ...video.product, videoId: video.id });
-  }, []);
+  }, [trackEvent]);
+
+  const handleProductVote = useCallback(async (video: any, vote: "worth_it" | "not_worth_it") => {
+    if (!video?.id || !video.product?.id || video.product?.votes?.viewerVote === vote) return;
+    haptic("tap");
+    const previousProduct = video.product;
+    const nextProduct = withOptimisticVote(previousProduct, vote);
+    const busyKey = `${video.id}:${vote}`;
+    setVoteBusyKey(busyKey);
+    updateVideo(video.id, { product: nextProduct });
+    const burstNonce = Date.now();
+    setCoinBurst({ videoId: video.id, nonce: burstNonce });
+    window.setTimeout(() => {
+      setCoinBurst((current) => current?.nonce === burstNonce ? null : current);
+    }, 900);
+
+    try {
+      const sessionId = sessionIdRef.current || getSessionId();
+      sessionIdRef.current = sessionId;
+      const res = await fetch(`/api/videos/${video.id}/product-vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ productId: String(video.product.id), vote, sessionId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "vote_failed");
+      updateVideo(video.id, { product: { ...nextProduct, votes: data.votes } });
+      trackEvent(video.id, "product_click", { product_id: video.product.id, action: "feed_vote", vote });
+      window.dispatchEvent(new CustomEvent("reward", { detail: { points: 8, msg: "Vot +8 XP" } }));
+    } catch {
+      updateVideo(video.id, { product: previousProduct });
+      setShareToast("Votul nu s-a salvat");
+      setTimeout(() => setShareToast(null), 1600);
+    } finally {
+      setVoteBusyKey(null);
+    }
+  }, [trackEvent, updateVideo]);
+
+  const handleAddProductToCart = useCallback(async (video: any) => {
+    if (!video?.product?.id || cartBusyProductId === String(video.product.id)) return;
+    haptic("tap");
+    setCartBusyProductId(String(video.product.id));
+    try {
+      const product = video.product;
+      const res = await fetch("/api/cart/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          productId: String(product.id),
+          quantity: 1,
+          title: product.name || product.title || "Produs",
+          image: product.image || product.image_url || null,
+          priceCents: product.priceCents || undefined,
+          currency: product.currency || "RON",
+        }),
+      });
+      if (!res.ok) throw new Error("cart_failed");
+      trackEvent(video.id, "add_to_cart", { product_id: product.id, surface: "feed_cockpit" });
+      setShareToast("Adăugat în coș");
+      window.dispatchEvent(new CustomEvent("reward", { detail: { points: 10, msg: "Coș +10 XP" } }));
+    } catch {
+      setShareToast("Coșul nu s-a actualizat");
+    } finally {
+      setCartBusyProductId(null);
+      setTimeout(() => setShareToast(null), 1600);
+    }
+  }, [cartBusyProductId, trackEvent]);
+
+  const submitAiPrompt = useCallback(() => {
+    const q = aiPrompt.trim();
+    if (!q) return;
+    router.push(`/search?q=${encodeURIComponent(q)}`);
+  }, [aiPrompt, router]);
 
   const formatCount = (n: string | number) => {
     const num = typeof n === 'string' ? parseInt(n) : n;
@@ -468,6 +576,45 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .video-slide .poster-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .video-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 55%; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, transparent 100%); }
         .video-gradient-top { position: absolute; top: 0; left: 0; right: 0; height: 120px; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%); }
+        .feed-topbar { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(12px, calc(12px + env(safe-area-inset-left, 0px))); right: max(64px, calc(64px + env(safe-area-inset-right, 0px))); z-index: 30; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+        .ai-search { height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.16); background: rgba(12,12,14,0.58); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 12px 34px rgba(0,0,0,0.25); }
+        .ai-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font-size: 14px; font-weight: 650; }
+        .ai-search input::placeholder { color: rgba(255,255,255,0.72); }
+        .format-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+        .format-tabs::-webkit-scrollbar { display: none; }
+        .format-tab { flex: 0 0 auto; min-height: 32px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.86); padding: 0 12px; font-size: 12px; font-weight: 800; backdrop-filter: blur(12px); }
+        .format-tab.active { background: #FDE047; color: #111; border-color: #FDE047; }
+        .product-cockpit { position: absolute; left: max(8px, calc(8px + env(safe-area-inset-left, 0px))); right: max(8px, calc(8px + env(safe-area-inset-right, 0px))); bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 10px); z-index: 24; display: flex; flex-direction: column; gap: 5px; max-width: 620px; margin: 0 auto; padding: 8px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.14); background: linear-gradient(180deg, rgba(18,16,18,0.66), rgba(10,10,12,0.86)); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 14px 36px rgba(0,0,0,0.34); pointer-events: auto; }
+        .cockpit-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; }
+        .creator-link { color: #fff; text-decoration: none; font-size: 12px; font-weight: 850; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .verdict-pill { display: inline-flex; align-items: center; gap: 5px; min-height: 20px; padding: 0 8px; border-radius: 999px; background: rgba(16,163,127,0.18); color: #B7F7E6; border: 1px solid rgba(16,163,127,0.34); font-size: 10px; font-weight: 900; white-space: nowrap; }
+        .cockpit-main { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 8px; align-items: center; width: 100%; min-height: 42px; border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; }
+        .cockpit-image { width: 42px; height: 42px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.08); position: relative; }
+        .cockpit-image img { width: 100%; height: 100%; object-fit: cover; }
+        .cockpit-title { display: block; font-size: 13px; line-height: 1.12; font-weight: 850; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cockpit-sub { display: flex; align-items: center; gap: 6px; margin-top: 2px; min-width: 0; color: rgba(255,255,255,0.76); font-size: 10px; font-weight: 750; }
+        .cockpit-sub span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cockpit-price { font-size: 14px; font-weight: 950; color: #10A37F; white-space: nowrap; }
+        .cockpit-score { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+        .score-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 28px; border-radius: 999px; background: #FDE047; color: #111; font-size: 14px; font-weight: 950; }
+        .score-label { color: rgba(255,255,255,0.68); font-size: 9px; font-weight: 800; white-space: nowrap; }
+        .cockpit-actions { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 5px; }
+        .cockpit-btn { min-width: 0; min-height: 34px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.10); color: #fff; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px; font-size: 9px; font-weight: 850; line-height: 1.05; padding: 0 5px; }
+        .cockpit-btn svg { width: 14px; height: 14px; flex: 0 0 auto; }
+        .cockpit-secondary { grid-template-columns: repeat(3, minmax(0,1fr)); }
+        .cockpit-secondary .cockpit-btn { min-height: 28px; border-radius: 10px; background: rgba(255,255,255,0.075); font-size: 10px; }
+        .cockpit-btn.primary { background: #10A37F; border-color: #10A37F; color: #fff; }
+        .cockpit-btn.vote-on { background: #FDE047; border-color: #FDE047; color: #111; }
+        .cockpit-btn:active { transform: scale(0.96); }
+        .cockpit-btn:disabled { opacity: 0.68; }
+        .coin-burst { position: absolute; right: 14px; top: -34px; display: flex; align-items: center; gap: 4px; pointer-events: none; z-index: 3; animation: coinRise 0.9s ease-out forwards; }
+        .coin-burst span { width: 28px; height: 28px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: #FDE047; color: #111; border: 1px solid rgba(255,255,255,0.72); box-shadow: 0 8px 20px rgba(253,224,71,0.34); font-size: 11px; font-weight: 950; }
+        .coin-burst span:nth-child(2) { animation-delay: 0.05s; transform: translateY(6px); }
+        .coin-burst span:nth-child(3) { animation-delay: 0.1s; transform: translateY(2px); }
+        .coin-burst svg { width: 14px; height: 14px; }
+        @keyframes coinRise { 0% { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.86); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate3d(-8px, -42px, 0) scale(1.08); } }
+        @media (max-width: 420px) { .product-cockpit { border-radius: 14px; padding: 7px; gap: 4px; } .cockpit-main { grid-template-columns: 38px minmax(0,1fr) auto; gap: 7px; min-height: 38px; } .cockpit-image { width: 38px; height: 38px; border-radius: 11px; } .cockpit-title { font-size: 12px; } .cockpit-price { font-size: 13px; } .score-badge { min-width: 34px; height: 26px; font-size: 13px; } .cockpit-btn { min-height: 31px; font-size: 8.5px; gap: 3px; padding: 0 3px; } .cockpit-secondary .cockpit-btn { min-height: 26px; font-size: 9px; } }
+        @media (max-height: 640px) { .feed-topbar { gap: 6px; } .ai-search { height: 36px; border-radius: 16px; } .format-tab { min-height: 28px; padding: 0 10px; font-size: 11px; } .product-cockpit { gap: 4px; padding: 7px; } .cockpit-meta { display: none; } .cockpit-main { min-height: 38px; } .cockpit-image { width: 38px; height: 38px; } .cockpit-btn { min-height: 30px; } .cockpit-secondary .cockpit-btn { min-height: 24px; } }
         .action-bar { position: absolute; right: max(10px, calc(10px + env(safe-area-inset-right, 0px))); bottom: var(--feed-action-bottom); display: flex; flex-direction: column; align-items: center; gap: 18px; z-index: 22; pointer-events: auto; }
         .action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; -webkit-tap-highlight-color: transparent; background: transparent; border: 0; padding: 0; min-width: 48px; min-height: 48px; }
         .action-btn .icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); transition: transform 0.15s; }
@@ -487,6 +634,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .product-chip img { width: 32px; height: 32px; border-radius: 14px; object-fit: cover; flex-shrink: 0; }
         .product-chip .chip-label { font-size: 13px; font-weight: 500; color: #fff; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .product-chip .chip-price { font-weight: 700; font-size: 13px; color: #fff; background: rgba(0,0,0,0.35); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+        .product-chip .chip-score { font-weight: 800; font-size: 12px; color: #0D0D0D; background: #FDE047; padding: 3px 7px; border-radius: 999px; white-space: nowrap; }
         .product-chip .chip-buy { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #7C3AED, #EC4899); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .music-ticker { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.85); min-height: 20px; }
         .music-ticker .marquee { display: inline-block; white-space: nowrap; max-width: min(60vw, 220px); overflow: hidden; }
@@ -509,9 +657,31 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .disc-spin::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; border-radius: 50%; background: #000; border: 2px solid rgba(255,255,255,0.4); }
       `}} />
 
-      <div className="feed-header">
-        <button type="button" onClick={() => setFeedSource("following")} className={`feed-tab ${feedSource === "following" ? "active" : ""}`}>Urmărești</button>
-        <button type="button" onClick={() => setFeedSource("foryou")} className={`feed-tab ${feedSource === "foryou" ? "active" : ""}`}>Pentru Tine</button>
+      <div className="feed-topbar">
+        <form className="ai-search" onSubmit={(event) => { event.preventDefault(); submitAiPrompt(); }}>
+          <Search size={16} color="rgba(255,255,255,0.78)" />
+          <input
+            value={aiPrompt}
+            onChange={(event) => setAiPrompt(event.target.value)}
+            placeholder="Ce vrei să găsești azi?"
+            aria-label="Caută cu AI în feed"
+          />
+          <Sparkles size={15} color="#FDE047" />
+        </form>
+        <div className="format-tabs" role="tablist" aria-label="Formate de shopping show">
+          {FEED_FORMATS.map((format) => (
+            <button
+              key={format}
+              type="button"
+              className={`format-tab ${activeFormat === format ? "active" : ""}`}
+              onClick={() => { setActiveFormat(format); trackFeedEvent("product_click", { metadata: { action: "format_tab", format } }); }}
+              role="tab"
+              aria-selected={activeFormat === format}
+            >
+              {format}
+            </button>
+          ))}
+        </div>
       </div>
 
       <button className="mute-btn" onClick={toggleMute} aria-label={isMuted ? "Activează sunetul" : "Oprește sunetul"} aria-pressed={!isMuted}>
@@ -587,162 +757,111 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                   </div>
                 )}
 
-                {nearActive && (<>
-                <div className="action-bar">
-                  <div style={{ position: 'relative', marginBottom: 8 }}>
-                    <Link
-                      href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
-                      className="creator-avatar"
-                      aria-label={`Profil ${(video.creator as any)?.username || 'creator'}`}
-                    >
-                      {video.creator?.avatar ? (
-                        <Image src={video.creator.avatar} alt="" width={48} height={48} unoptimized />
-                      ) : (
-                        <span className="creator-avatar-fallback">
-                          {((video.creator as any)?.username || video.creator?.name || 'S').charAt(0).toUpperCase()}
+                {nearActive && video.product?.id && (
+                  <section className="product-cockpit" aria-label="Product cockpit">
+                    <div className="cockpit-meta">
+                      <Link
+                        href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
+                        className="creator-link"
+                      >
+                        @{(video.creator as any)?.username || video.creator?.name || 'Swypik'}
+                        {(video.creator as any)?.verified && <VerifiedBadge size={13} className="ml-1 align-middle" />}
+                      </Link>
+                      <span className="verdict-pill"><Sparkles size={12} />{getProductVerdict(video.product)}</span>
+                    </div>
+
+                    {coinBurst?.videoId === video.id && (
+                      <div className="coin-burst" aria-hidden="true">
+                        <span><Coins /></span>
+                        <span>+8</span>
+                        <span><Coins /></span>
+                      </div>
+                    )}
+
+                    <button type="button" className="cockpit-main" onClick={() => { haptic("tap"); openProduct(video); }} aria-label="Deschide produsul">
+                      <span className="cockpit-image">
+                        {video.product.image ? (
+                          <Image src={video.product.image} alt="" width={52} height={52} unoptimized />
+                        ) : (
+                          <ShoppingCart size={22} color="rgba(255,255,255,0.7)" />
+                        )}
+                      </span>
+                      <span style={{ minWidth: 0, textAlign: 'left' }}>
+                        <span className="cockpit-title">{video.product.name || 'Produs Swypik'}</span>
+                        <span className="cockpit-sub">
+                          <span className="cockpit-price">{video.product.priceDisplay || video.product.price || 'Vezi preț'}</span>
+                          <span>{video.product.deliveryLabel || 'Livrare la checkout'}</span>
                         </span>
-                      )}
-                    </Link>
-                    {video.creator?.id && !followingCreators.has(video.creator.id) && (
+                      </span>
+                      <span className="cockpit-score">
+                        <span className="score-badge">{video.product.swypikScore ?? '—'}</span>
+                        <span className="score-label">Score</span>
+                      </span>
+                    </button>
+
+                    <div className="cockpit-actions">
                       <button
                         type="button"
-                        className="avatar-plus"
-                        onClick={(e) => { e.preventDefault(); handleFollow(video.creator?.id); }}
-                        aria-label="Urmărește creatorul"
-                      >+</button>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    className={`action-btn ${likedVideos.has(video.id) ? 'liked' : ''}`}
-                    onClick={() => handleLike(video.id)}
-                    aria-label={likedVideos.has(video.id) ? "Anulează aprecierea" : "Apreciază"}
-                    aria-pressed={likedVideos.has(video.id)}
-                  >
-                    <div className="icon-wrap">
-                      <Heart size={32} strokeWidth={1.5} color={likedVideos.has(video.id) ? "#EF4444" : "#fff"} fill={likedVideos.has(video.id) ? "#EF4444" : "none"} />
+                        className={`cockpit-btn ${video.product.votes?.viewerVote === 'worth_it' ? 'vote-on' : ''}`}
+                        onClick={() => handleProductVote(video, 'worth_it')}
+                        disabled={voteBusyKey === `${video.id}:worth_it`}
+                        aria-pressed={video.product.votes?.viewerVote === 'worth_it'}
+                      >
+                        <ThumbsUp />Merită
+                      </button>
+                      <button
+                        type="button"
+                        className={`cockpit-btn ${video.product.votes?.viewerVote === 'not_worth_it' ? 'vote-on' : ''}`}
+                        onClick={() => handleProductVote(video, 'not_worth_it')}
+                        disabled={voteBusyKey === `${video.id}:not_worth_it`}
+                        aria-pressed={video.product.votes?.viewerVote === 'not_worth_it'}
+                      >
+                        <ThumbsDown />Nu merită
+                      </button>
+                      <button
+                        type="button"
+                        className={`cockpit-btn ${savedVideos.has(video.id) ? 'vote-on' : ''}`}
+                        onClick={() => handleSave(video.id)}
+                        aria-pressed={savedVideos.has(video.id)}
+                      >
+                        <Bookmark />Salvează
+                      </button>
+                      <button
+                        type="button"
+                        className="cockpit-btn"
+                        onClick={() => router.push(`/search?q=${encodeURIComponent(video.product.name || video.product.title || '')}`)}
+                      >
+                        <Scale />Alternative
+                      </button>
+                      <button
+                        type="button"
+                        className="cockpit-btn primary"
+                        onClick={() => handleAddProductToCart(video)}
+                        disabled={cartBusyProductId === String(video.product.id)}
+                      >
+                        <ShoppingCart />Coș
+                      </button>
                     </div>
-                    <span className="count">{formatCount(video.likes)}</span>
-                  </button>
 
-                  <button
-                    type="button"
-                    className="action-btn"
-                    onClick={() => { haptic("tap"); setActiveCommentsVideo(video); }}
-                    aria-label="Vezi comentariile"
-                  >
-                    <div className="icon-wrap">
-                      <MessageCircle size={32} strokeWidth={1.5} color="#fff" />
-                    </div>
-                    <span className="count">{formatCount(video.comments)}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="action-btn"
-                    onClick={() => handleSave(video.id)}
-                    aria-label={savedVideos.has(video.id) ? "Elimină din salvate" : "Salvează videoul"}
-                    aria-pressed={savedVideos.has(video.id)}
-                  >
-                    <div className="icon-wrap">
-                      <Bookmark size={32} strokeWidth={1.5} color={savedVideos.has(video.id) ? "#fbbf24" : "#fff"} fill={savedVideos.has(video.id) ? "#fbbf24" : "none"} />
-                    </div>
-                    <span className="count">{formatCount(video.saves)}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="action-btn"
-                    onClick={() => handleShare(video.id)}
-                    aria-label="Distribuie videoul"
-                  >
-                    <div className="icon-wrap">
-                      <Share2 size={32} strokeWidth={1.5} color="#fff" />
-                    </div>
-                    <span className="count">{formatCount(video.shares)}</span>
-                  </button>
-
-                  <div className="action-btn" aria-label="Mai multe opțiuni">
-                    <MoreLikeThisMenu
-                      videoId={video.id}
-                      creatorId={video.creator?.id}
-                      isFollowing={followingCreators.has(video.creator?.id)}
-                      onActionDone={(action: string) => {
-                        if (action === "not_interested") {
-                          setVideos((prev) => prev.filter((v) => v.id !== video.id));
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <CaptionsButton videoId={video.id} currentTimeRef={((): { current: number } => { let r = currentTimeRefs.current.get(video.id); if (!r) { r = { current: 0 }; currentTimeRefs.current.set(video.id, r); } return r; })()} />
-
-                  {video.audioTrack?.image_url && (
-                    <Link
-                      href={video.audioTrack.id ? `/audio/${video.audioTrack.id}` : '#'}
-                      className="disc-spin"
-                      aria-label={video.audioTrack.title || 'Audio'}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Image src={video.audioTrack.image_url} alt="" width={40} height={40} unoptimized />
-                    </Link>
-                  )}
-                </div>
-
-                <div className="bottom-content">
-                  <Link
-                    href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
-                    className="creator-name"
-                    style={{ display: 'inline-block', color: '#fff', textDecoration: 'none' }}
-                  >
-                    @{(video.creator as any)?.username || video.creator?.name || 'Swypik'}
-                    {(video.creator as any)?.verified && <VerifiedBadge size={14} className="ml-1 align-middle" />}
-                  </Link>
-
-                  <p className="video-desc">{parseHashtags(video.description)}</p>
-
-                  {video.product?.id && (
-                    <button type="button" className="product-chip" onClick={() => { haptic("tap"); openProduct(video); }} aria-label="Cumpără produsul prezentat">
-                      {video.product.image && (
-                        <Image src={video.product.image} alt="" width={36} height={36} unoptimized style={{ borderRadius: 16, objectFit: 'cover', flexShrink: 0 }} />
+                    <div className="cockpit-actions cockpit-secondary">
+                      <button type="button" className="cockpit-btn" onClick={() => { haptic("tap"); setActiveCommentsVideo(video); }}>
+                        <MessageCircle />Discuții {formatCount(video.comments)}
+                      </button>
+                      <button type="button" className="cockpit-btn" onClick={() => handleShare(video.id)}>
+                        Share {formatCount(video.shares)}
+                      </button>
+                      {video.creator?.id && !followingCreators.has(video.creator.id) ? (
+                        <button type="button" className="cockpit-btn" onClick={() => handleFollow(video.creator?.id)}>
+                          Urmărește
+                        </button>
+                      ) : (
+                        <button type="button" className="cockpit-btn" onClick={() => openProduct(video)}>
+                          Detalii
+                        </button>
                       )}
-                      <span className="chip-label">
-                        {video.product.name || 'Vezi produs'}
-                      </span>
-                      <span className="chip-price">{video.product.price || 'Vezi'}</span>
-                      <div className="chip-buy">
-                        <ShoppingCart size={14} color="#fff" />
-                      </div>
-                    </button>
-                  )}
-
-                  <div className="music-ticker">
-                    <Music2 size={14} />
-                    {video.audioTrack?.title ? (
-                      <div className="marquee">
-                        {video.audioTrack.id ? (
-                          <Link href={`/audio/${video.audioTrack.id}`} onClick={(e) => e.stopPropagation()} className="hover:underline transition" style={{ color: 'inherit', textDecoration: 'none' }}>
-                            <span>
-                              {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;
-                              {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;
-                            </span>
-                          </Link>
-                        ) : (
-                          <span>
-                            {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;
-                            {video.audioTrack.title}{video.audioTrack.artist ? ` – ${video.audioTrack.artist}` : ''} &nbsp;&nbsp;&nbsp;
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="music-original">
-                        Original – @{(video.creator as any)?.username || video.creator?.name || 'swypik'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                </>)}
+                    </div>
+                  </section>
+                )}
               </div>
             );
           })
@@ -753,8 +872,19 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         <ProductDrawer
           initialProduct={activeProduct}
           onClose={() => setActiveProduct(null)}
+          onVoteChange={(nextProduct: any) => {
+            if (!activeProduct?.videoId) return;
+            const mergedProduct = { ...activeProduct, ...nextProduct };
+            setActiveProduct(mergedProduct);
+            updateVideo(activeProduct.videoId, { product: mergedProduct });
+            trackEvent(activeProduct.videoId, "product_click", {
+              product_id: activeProduct.id,
+              action: "product_vote",
+              vote: nextProduct?.votes?.viewerVote,
+            });
+          }}
           onBuyNow={() => {
-            trackEvent(activeProduct.videoId, "buy_now");
+            trackEvent(activeProduct.videoId, "buy_now", { product_id: activeProduct.id, surface: "product_drawer" });
             router.push(`/product/${activeProduct.id}`);
           }}
         />

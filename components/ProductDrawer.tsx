@@ -1,8 +1,10 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { X, ShoppingCart, Star, ChevronRight, ExternalLink } from "lucide-react";
+import { X, ShoppingCart, Star, ChevronRight, ExternalLink, ThumbsUp, ThumbsDown, CheckCircle2, Loader2 } from "lucide-react";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { getSessionId, trackEvent as trackFeedEvent } from "@/lib/feed/track";
+import { isCurrency, type Currency } from "@/lib/i18n/config";
 
 export interface ProductData {
   id: string | number;
@@ -11,13 +13,26 @@ export interface ProductData {
   image?: string | null;
   image_url?: string | null;
   images?: string[];
-  price?: number;
+  price?: number | string | null;
+  priceCents?: number | null;
+  priceDisplay?: string | null;
+  currency?: string | null;
   priceRon?: number;
   description?: string | null;
   rating?: number;
   ratingCount?: number;
   reviews?: number;
   videoId?: string;
+  deliveryLabel?: string | null;
+  inventoryStatus?: string | null;
+  swypikScore?: number | null;
+  swypikScoreLabel?: string | null;
+  votes?: {
+    worthIt?: number;
+    notWorthIt?: number;
+    total?: number;
+    viewerVote?: "worth_it" | "not_worth_it" | null;
+  };
   [key: string]: any;
 }
 
@@ -28,14 +43,34 @@ interface ProductDrawerProps {
   initialProduct?: ProductData | null;
   onClose: () => void;
   onBuyNow: () => void;
+  onVoteChange?: (product: ProductData) => void;
 }
 
-export default function ProductDrawer({ product, initialProduct, onClose, onBuyNow }: ProductDrawerProps) {
+function cleanProductDescription(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const cleaned = value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned || cleaned.length < 8) return null;
+  return cleaned.length > 260 ? `${cleaned.slice(0, 257).trim()}...` : cleaned;
+}
+
+export default function ProductDrawer({ product, initialProduct, onClose, onBuyNow, onVoteChange }: ProductDrawerProps) {
   const formatPrice = useFormatPrice();
   const seed = product ?? initialProduct ?? null;
   const [data, setData] = useState<ProductData | null>(seed);
   const [isVisible, setIsVisible] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [votePending, setVotePending] = useState<"worth_it" | "not_worth_it" | null>(null);
+  const [cartPending, setCartPending] = useState(false);
+  const [cartMessage, setCartMessage] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Body scroll lock
@@ -103,12 +138,116 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
 
   const productImage = data.image || data.images?.[0] || data.image_url || null;
   const productName = data.name || data.title || "Produs";
+  const currencyCandidate = String(data.currency || "RON").trim().toUpperCase();
+  const productCurrency: Currency = isCurrency(currencyCandidate) ? currencyCandidate : "RON";
+  const numericPriceCents = Number(data.priceCents ?? data.price_cents);
+  const priceCents = Number.isFinite(numericPriceCents) ? numericPriceCents : null;
   const rawPrice = data.price ?? data.priceRon;
-  const productPriceDisplay = typeof rawPrice === "number"
-    ? formatPrice(Math.round(rawPrice * 100), { sourceCurrency: "RON" })
-    : "—";
+  const productPriceDisplay = data.priceDisplay
+    || (priceCents != null
+      ? formatPrice(priceCents, { sourceCurrency: productCurrency })
+      : typeof rawPrice === "number"
+        ? formatPrice(Math.round(rawPrice * 100), { sourceCurrency: productCurrency })
+        : typeof rawPrice === "string"
+          ? rawPrice
+          : "—");
   const productRating = data.rating || 4.5;
   const productReviews = data.ratingCount || data.reviews || 0;
+  const productDescription = cleanProductDescription(data.description);
+  const votes = data.votes || {};
+  const worthIt = Number(votes.worthIt || 0);
+  const notWorthIt = Number(votes.notWorthIt || 0);
+  const totalVotes = Number(votes.total ?? worthIt + notWorthIt);
+  const viewerVote = votes.viewerVote || null;
+  const positivePct = totalVotes > 0 ? Math.round((worthIt / totalVotes) * 100) : null;
+  const score = typeof data.swypikScore === "number" ? data.swypikScore : null;
+  const inventoryLabel = data.inventoryStatus
+    ? String(data.inventoryStatus).replace(/_/g, " ")
+    : null;
+
+  const applyOptimisticVote = (current: ProductData, vote: "worth_it" | "not_worth_it"): ProductData => {
+    const currentVotes = current.votes || {};
+    const previousVote = currentVotes.viewerVote || null;
+    let nextWorth = Number(currentVotes.worthIt || 0);
+    let nextNotWorth = Number(currentVotes.notWorthIt || 0);
+    if (previousVote === "worth_it") nextWorth = Math.max(0, nextWorth - 1);
+    if (previousVote === "not_worth_it") nextNotWorth = Math.max(0, nextNotWorth - 1);
+    if (vote === "worth_it") nextWorth += 1;
+    if (vote === "not_worth_it") nextNotWorth += 1;
+    return {
+      ...current,
+      votes: {
+        worthIt: nextWorth,
+        notWorthIt: nextNotWorth,
+        total: nextWorth + nextNotWorth,
+        viewerVote: vote,
+      },
+    };
+  };
+
+  const handleVote = async (vote: "worth_it" | "not_worth_it") => {
+    if (!data.videoId || !data.id || votePending || viewerVote === vote) return;
+    const previous = data;
+    const optimistic = applyOptimisticVote(data, vote);
+    setData(optimistic);
+    setVotePending(vote);
+
+    try {
+      const res = await fetch(`/api/videos/${data.videoId}/product-vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ productId: String(data.id), vote, sessionId: getSessionId() }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "vote_failed");
+      const nextProduct = { ...optimistic, votes: json.votes };
+      setData(nextProduct);
+      onVoteChange?.(nextProduct);
+      trackFeedEvent("product_click", {
+        video_id: String(data.videoId),
+        metadata: { product_id: String(data.id), action: "product_vote", vote },
+      });
+    } catch {
+      setData(previous);
+    } finally {
+      setVotePending(null);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!data.id || cartPending) return;
+    setCartPending(true);
+    setCartMessage(null);
+    try {
+      const res = await fetch("/api/cart/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          productId: String(data.id),
+          quantity: 1,
+          title: productName,
+          image: productImage,
+          priceCents: priceCents || undefined,
+          currency: productCurrency,
+        }),
+      });
+      if (!res.ok) throw new Error("cart_failed");
+      setCartMessage("Adăugat");
+      trackFeedEvent("add_to_cart", {
+        video_id: data.videoId ? String(data.videoId) : undefined,
+        metadata: { product_id: String(data.id), surface: "product_drawer" },
+      });
+      window.dispatchEvent(new CustomEvent("reward", { detail: { points: 10, msg: "Coș +10 XP" } }));
+      setTimeout(() => setCartMessage(null), 1800);
+    } catch {
+      setCartMessage("Încearcă din nou");
+      setTimeout(() => setCartMessage(null), 1800);
+    } finally {
+      setCartPending(false);
+    }
+  };
 
   return (
     <>
@@ -172,13 +311,67 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
               <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Preț</p>
               <h2 className="text-3xl font-bold text-[#10A37F]">{productPriceDisplay}</h2>
             </div>
+            {score != null && (
+              <div className="text-right">
+                <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Swypik Score</p>
+                <div className="inline-flex items-center gap-2 rounded-full bg-yellow-300 px-3 py-1 text-sm font-black text-black">
+                  {score}
+                  <span className="text-[11px] font-bold text-black/70">{data.swypikScoreLabel || "Score"}</span>
+                </div>
+              </div>
+            )}
             {enriching && (
               <span className="text-[10px] uppercase tracking-wider text-white/40">Se încarcă detalii…</span>
             )}
           </div>
 
+          <div className="mb-5 flex flex-wrap gap-2 text-xs text-white/75">
+            {inventoryLabel && (
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 capitalize">{inventoryLabel}</span>
+            )}
+            {data.deliveryLabel && (
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{data.deliveryLabel}</span>
+            )}
+          </div>
+
+          <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/45">Vot comunitate</p>
+                <p className="text-sm font-semibold text-white">
+                  {positivePct == null ? "Spune primul dacă merită" : `${positivePct}% spun că merită`}
+                </p>
+              </div>
+              <span className="text-xs text-white/45">{totalVotes} voturi</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleVote("worth_it")}
+                disabled={Boolean(votePending)}
+                aria-pressed={viewerVote === "worth_it"}
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition active:scale-95 disabled:opacity-70 ${viewerVote === "worth_it" ? "border-[#10A37F] bg-[#10A37F] text-white" : "border-white/10 bg-white/10 text-white hover:bg-white/15"}`}
+              >
+                {votePending === "worth_it" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="h-4 w-4" />}
+                Merită
+                <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{worthIt}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleVote("not_worth_it")}
+                disabled={Boolean(votePending)}
+                aria-pressed={viewerVote === "not_worth_it"}
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition active:scale-95 disabled:opacity-70 ${viewerVote === "not_worth_it" ? "border-red-400 bg-red-500 text-white" : "border-white/10 bg-white/10 text-white hover:bg-white/15"}`}
+              >
+                {votePending === "not_worth_it" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="h-4 w-4" />}
+                Nu merită
+                <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{notWorthIt}</span>
+              </button>
+            </div>
+          </div>
+
           <p className="text-gray-300 text-sm mb-6 leading-relaxed line-clamp-3">
-            {data.description || "Descoperă acest produs premium pe Swypik. Adaugă-l în coș și bucură-te de o experiență de cumpărături rapidă și sigură!"}
+            {productDescription || "Verdict rapid, voturi comunitate și checkout direct din feed."}
           </p>
 
           <a
@@ -193,15 +386,31 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
           </a>
+
+          <a
+            href={`/search?q=${encodeURIComponent(productName)}`}
+            className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors mb-6 group border border-white/10"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-yellow-300/20 flex items-center justify-center text-yellow-300">
+                <ChevronRight className="w-5 h-5" />
+              </div>
+              <span className="text-white font-medium">Alternative mai bune</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+          </a>
         </div>
 
         <div className="p-4 border-t border-white/10 bg-black/50 flex gap-3 pb-safe">
-          <a
-            href={`/product/${data.id}`}
-            className="flex-1 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-colors border border-white/10 active:scale-95 text-center"
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={cartPending}
+            className="flex-1 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-colors border border-white/10 active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
           >
-            Vezi detalii
-          </a>
+            {cartPending ? <Loader2 className="h-4 w-4 animate-spin" /> : cartMessage === "Adăugat" ? <CheckCircle2 className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+            {cartMessage || "Adaugă în coș"}
+          </button>
           <button
             onClick={onBuyNow}
             className="flex-[1.5] py-4 bg-[#10A37F] hover:bg-[#0e8f6e] text-white rounded-xl font-bold shadow-[0_0_20px_rgba(16,163,127,0.3)] transition-all active:scale-95"

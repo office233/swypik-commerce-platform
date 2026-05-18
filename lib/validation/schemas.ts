@@ -98,3 +98,10 @@ export const SellerApplicationSchema = z.object({
   productType: z.string().trim().min(2, "productType is required").max(120),
 });
 export type SellerApplicationInput = z.infer<typeof SellerApplicationSchema>;
+
+export const VideoProductVoteSchema = z.object({
+  productId: z.string().uuid("productId must be a valid UUID"),
+  vote: z.enum(["worth_it", "not_worth_it"]),
+  sessionId: z.string().trim().min(8).max(80).optional(),
+});
+export type VideoProductVoteInput = z.infer<typeof VideoProductVoteSchema>;
