@@ -9,7 +9,33 @@
  */
 
 import { Resend } from "resend";
+import { createHmac } from "node:crypto";
 import { isEnabled } from "@/lib/feature-flags";
+import { dbQuery } from "@/lib/db";
+
+export function unsubscribeToken(email: string): string {
+  const secret = process.env.APP_ENCRYPTION_KEY || process.env.SESSION_SECRET || "swypik-unsubscribe-fallback";
+  return createHmac("sha256", secret).update(email.toLowerCase()).digest("hex").slice(0, 32);
+}
+
+export function unsubscribeUrl(email: string): string {
+  const base = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+  const t = unsubscribeToken(email);
+  return `${base}/api/unsubscribe?email=${encodeURIComponent(email)}&t=${t}`;
+}
+
+async function isUnsubscribed(email: string): Promise<boolean> {
+  try {
+    const res = await dbQuery<{ ok: number }>(
+      `SELECT 1 AS ok FROM email_unsubscribes WHERE email_lower = lower($1) LIMIT 1`,
+      [email]
+    );
+    return (res.rows?.length || 0) > 0;
+  } catch (e) {
+    console.warn("[email] unsubscribes check failed:", (e as Error).message);
+    return false;
+  }
+}
 
 const FROM_EMAIL = process.env.EMAIL_FROM || "Swypik <onboarding@resend.dev>";
 const resendKey = process.env.RESEND_API_KEY;
@@ -251,15 +277,22 @@ function orderTrackingUrl(data: OrderEmailData): string {
 /**
  * Core email sender — uses Resend if configured, logs to console otherwise
  */
-export async function sendEmail(params: { to: string; subject: string; html: string }): Promise<boolean> {
+export async function sendEmail(params: { to: string; subject: string; html: string; marketing?: boolean }): Promise<boolean> {
   if (!params.to || !params.to.includes("@")) {
     console.warn("[Email] Invalid recipient:", params.to);
     return false;
   }
 
+  // Suppress marketing emails for unsubscribed recipients
+  if (params.marketing && (await isUnsubscribed(params.to))) {
+    console.log("[email] suppressed (unsubscribed):", params.to, params.subject);
+    return true;
+  }
+
   const supportEmail = process.env.SUPPORT_EMAIL || "support@swypik.com";
-  const unsubscribeUrl = `mailto:${supportEmail}?subject=${encodeURIComponent("Dezabonare Swypik")}&body=${encodeURIComponent(`Te rog dezaboneaza ${params.to} de la emailurile Swypik.`)}`;
-  const safeUnsubscribeUrl = escapeHtml(unsubscribeUrl);
+  const oneClickUrl = unsubscribeUrl(params.to);
+  const mailtoUrl = `mailto:${supportEmail}?subject=${encodeURIComponent("Dezabonare Swypik")}&body=${encodeURIComponent(`Te rog dezaboneaza ${params.to} de la emailurile Swypik.`)}`;
+  const safeUnsubscribeUrl = escapeHtml(oneClickUrl);
 
   // Inject GDPR/CAN-SPAM unsubscribe footer into all emails
   const unsubscribeFooter = `
@@ -283,11 +316,18 @@ export async function sendEmail(params: { to: string; subject: string; html: str
   }
 
   try {
+    const marketingHeaders = params.marketing
+      ? {
+          "List-Unsubscribe": `<${oneClickUrl}>, <${mailtoUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        }
+      : undefined;
     const { data, error } = await client.emails.send({
       from: FROM_EMAIL,
       to: params.to,
       subject: params.subject,
       html: finalHtml,
+      ...(marketingHeaders ? { headers: marketingHeaders } : {}),
     });
 
     if (error) {
@@ -556,6 +596,9 @@ export async function sendAbandonedCartEmail(
         <p style="margin:8px 0 0;font-size:11px;color:#bbb">
           Dacă ai finalizat deja comanda, te rugăm să ignori acest email.
         </p>
+        <p style="margin:8px 0 0;font-size:11px;color:#bbb">
+          <a href="${escapeHtml(unsubscribeUrl(email))}" style="color:#999;text-decoration:underline">Dezabonare</a>
+        </p>
       </div>
     </div>
   </body>
@@ -565,6 +608,7 @@ export async function sendAbandonedCartEmail(
     to: email,
     subject: "Ai uitat ceva în coș! 🛒 — Swypik",
     html,
+    marketing: true,
   });
 }
 
