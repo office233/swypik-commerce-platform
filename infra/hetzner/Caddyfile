@@ -105,3 +105,10 @@ api.swypik.com {
 	# All traffic → Go API
 	reverse_proxy platform-api:8080
 }
+
+# -------------------------------------------------------
+# www.swypik.com → swypik.com (301)
+# -------------------------------------------------------
+www.swypik.com {
+	redir https://swypik.com{uri} 301
+}
