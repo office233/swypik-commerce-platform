@@ -8,6 +8,7 @@ import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { rateLimit, idempotencyGet, idempotencySet, clientIp } from "@/lib/rate-limit";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { CheckoutCreateIntentSchema, parseBody } from "@/lib/validation/schemas";
 function parseQuantity(value: unknown) {
   const quantity = Number(value);
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) return null;
@@ -16,11 +17,13 @@ function parseQuantity(value: unknown) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const rawItems = body.products || [];
-    const idempotencyKey = typeof body.idempotencyKey === "string" && body.idempotencyKey.length <= 128
-      ? body.idempotencyKey
-      : null;
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseBody(CheckoutCreateIntentSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+    }
+    const rawItems = parsed.data.products;
+    const idempotencyKey = parsed.data.idempotencyKey ?? null;
 
     // Rate limit per user (if authed) or per IP: max 10 req/min
     const uid = await getOptionalSocialUserId().catch(() => null);
@@ -41,13 +44,6 @@ export async function POST(req: Request) {
       }
     }
 
-
-    if (!Array.isArray(rawItems) || rawItems.length === 0) {
-      return NextResponse.json({ success: false, error: "Coșul este gol." }, { status: 400 });
-    }
-    if (rawItems.length > 50) {
-      return NextResponse.json({ success: false, error: "Maxim 50 produse per comandă." }, { status: 400 });
-    }
 
     const checkoutItems = [];
     let totalRon = 0;

@@ -7,29 +7,16 @@
  * row by setting taxonomy_node_slug based on the existing
  * taxonomy_department / taxonomy_category / taxonomy_subcategory columns.
  *
- * Multi-locale ready: ships EN + RO labels today; new locales = INSERT into
- * taxonomy_translations only (no code change).
+ * v2 (2026-05-18): Enriched match rules with RO labels + Wedding/Health/Kids
+ *   coverage. Adds new leaf nodes for Health (massage/oral/adult) and Fashion
+ *   wedding. Targets > 98% catOnly+ confidence on AE-imported corpus.
  *
  * Idempotent: ON CONFLICT upsert on both tables.
- *
- *   docker cp scripts/seed-taxonomy-i18n.mjs swypik-prod-web-next-1:/app/
- *   docker exec swypik-prod-web-next-1 sh -c 'cd /app && node seed-taxonomy-i18n.mjs'
  */
 import pg from "pg";
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
-/**
- * Canonical tree.
- *
- * - `slug` is the stable, language-neutral identifier used everywhere.
- * - `labels` is `{ locale: label }`. Add German/French later by extending here.
- * - `aeRoots` is the list of AliExpress root category IDs that map onto a
- *   department (used by the resolver to route imports).
- * - `match` is the set of (department, category, subcategory) string triples
- *   currently used by marketplace_products that map onto this leaf.
- *   Strings are lowercased before comparison.
- */
 const TREE = [
   // ── FASHION ──────────────────────────────────────────────────────────────
   {
@@ -43,11 +30,70 @@ const TREE = [
         labels: { en: "Women", ro: "Femei" },
         match: [{ dep: "fashion", cat: "women" }],
         children: [
-          { slug: "fashion-women-clothing", labels: { en: "Clothing", ro: "Îmbrăcăminte" }, match: [{ dep: "fashion", cat: "women", sub: "clothing" }] },
-          { slug: "fashion-women-dresses", labels: { en: "Dresses", ro: "Rochii" }, match: [{ dep: "fashion", cat: "women", sub: "dresses" }] },
-          { slug: "fashion-women-tops", labels: { en: "Tops", ro: "Bluze și tricouri" }, match: [{ dep: "fashion", cat: "women", sub: "tops" }] },
-          { slug: "fashion-women-pants", labels: { en: "Pants", ro: "Pantaloni" }, match: [{ dep: "fashion", cat: "women", sub: "pants" }] },
-          { slug: "fashion-women-outerwear", labels: { en: "Outerwear", ro: "Jachete și paltoane" }, match: [{ dep: "fashion", cat: "women", sub: "outerwear" }] },
+          {
+            slug: "fashion-women-clothing",
+            labels: { en: "Clothing", ro: "Îmbrăcăminte" },
+            match: [
+              { dep: "fashion", cat: "women", sub: "clothing" },
+              { dep: "fashion", cat: "women", sub: "îmbrăcăminte" },
+              { dep: "fashion", cat: "women", sub: "seturi asortate" },
+              { dep: "fashion", cat: "women", sub: "articole basic" },
+              { dep: "fashion", cat: "women", sub: "haine plus size" },
+              { dep: "fashion", cat: "women", sub: "costume de baie" },
+              { dep: "fashion", cat: "women", sub: "fuste" },
+              { dep: "fashion", cat: "women", sub: "faux leather" },
+              { dep: "fashion", cat: "women", sub: "wool & blends" },
+              { dep: "fashion", cat: "women", sub: "robes" },
+              { dep: "fashion", cat: "women", sub: "ethnic wear" },
+            ],
+          },
+          {
+            slug: "fashion-women-dresses",
+            labels: { en: "Dresses", ro: "Rochii" },
+            match: [
+              { dep: "fashion", cat: "women", sub: "dresses" },
+              { dep: "fashion", cat: "women", sub: "rochii" },
+              { dep: "fashion", cat: "women", sub: "rochii de mireasă" },
+              { dep: "fashion", cat: "women", sub: "shirt dresses" },
+              { dep: "fashion", cat: "women", sub: "nightgowns" },
+              { dep: "fashion", cat: "women", sub: "vintage dresses" },
+              { dep: "fashion", cat: "wedding", sub: "rochii pentru nuntă" },
+              { dep: "fashion", cat: "wedding", sub: "mother of bride" },
+              { dep: "fashion", cat: "wedding", sub: "ținute de petrecere și vacanță" },
+              { dep: "fashion", cat: "wedding" },
+            ],
+          },
+          {
+            slug: "fashion-women-tops",
+            labels: { en: "Tops", ro: "Bluze și tricouri" },
+            match: [
+              { dep: "fashion", cat: "women", sub: "tops" },
+              { dep: "fashion", cat: "women", sub: "topuri și tricouri" },
+              { dep: "fashion", cat: "women", sub: "bluze și cămăși" },
+              { dep: "fashion", cat: "women", sub: "cămăși și bluze" },
+              { dep: "fashion", cat: "women", sub: "plus size tops" },
+            ],
+          },
+          {
+            slug: "fashion-women-pants",
+            labels: { en: "Pants", ro: "Pantaloni" },
+            match: [
+              { dep: "fashion", cat: "women", sub: "pants" },
+              { dep: "fashion", cat: "women", sub: "pantaloni" },
+            ],
+          },
+          {
+            slug: "fashion-women-outerwear",
+            labels: { en: "Outerwear", ro: "Jachete și paltoane" },
+            match: [
+              { dep: "fashion", cat: "women", sub: "outerwear" },
+              { dep: "fashion", cat: "women", sub: "outerwear & coats" },
+              { dep: "fashion", cat: "women", sub: "coats" },
+              { dep: "fashion", cat: "women", sub: "paltoane și jachete" },
+              { dep: "fashion", cat: "women", sub: "trench coats" },
+              { dep: "fashion", cat: "women", sub: "sacouri și costume" },
+            ],
+          },
         ],
       },
       {
@@ -55,16 +101,110 @@ const TREE = [
         labels: { en: "Men", ro: "Bărbați" },
         match: [{ dep: "fashion", cat: "men" }],
         children: [
-          { slug: "fashion-men-clothing-basic", labels: { en: "Basic clothing", ro: "Îmbrăcăminte basic" }, match: [{ dep: "fashion", cat: "men", sub: "îmbrăcăminte basic" }, { dep: "fashion", cat: "men", sub: "clothing" }] },
-          { slug: "fashion-men-tshirts", labels: { en: "T-shirts", ro: "Tricouri" }, match: [{ dep: "fashion", cat: "men", sub: "t-shirts" }, { dep: "fashion", cat: "men", sub: "tricouri" }] },
-          { slug: "fashion-men-shirts", labels: { en: "Shirts", ro: "Cămăși" }, match: [{ dep: "fashion", cat: "men", sub: "shirts" }, { dep: "fashion", cat: "men", sub: "cămăși" }] },
-          { slug: "fashion-men-polo", labels: { en: "Polo shirts", ro: "Tricouri polo" }, match: [{ dep: "fashion", cat: "men", sub: "polo shirts" }, { dep: "fashion", cat: "men", sub: "polo" }] },
-          { slug: "fashion-men-pants", labels: { en: "Pants", ro: "Pantaloni" }, match: [{ dep: "fashion", cat: "men", sub: "pants" }] },
-          { slug: "fashion-men-jeans", labels: { en: "Jeans", ro: "Blugi" }, match: [{ dep: "fashion", cat: "men", sub: "jeans" }] },
-          { slug: "fashion-men-shorts", labels: { en: "Shorts", ro: "Pantaloni scurți" }, match: [{ dep: "fashion", cat: "men", sub: "shorts" }] },
-          { slug: "fashion-men-coats", labels: { en: "Coats & jackets", ro: "Paltoane și jachete" }, match: [{ dep: "fashion", cat: "men", sub: "paltoane și jachete" }, { dep: "fashion", cat: "men", sub: "coats" }, { dep: "fashion", cat: "men", sub: "jackets" }] },
-          { slug: "fashion-men-hoodies", labels: { en: "Hoodies & sweatshirts", ro: "Hanorace și bluze" }, match: [{ dep: "fashion", cat: "men", sub: "hoodies" }, { dep: "fashion", cat: "men", sub: "sweatshirts" }] },
-          { slug: "fashion-men-underwear", labels: { en: "Underwear", ro: "Lenjerie intimă bărbați" }, match: [{ dep: "fashion", cat: "men", sub: "underwear" }] },
+          {
+            slug: "fashion-men-clothing-basic",
+            labels: { en: "Basic clothing", ro: "Îmbrăcăminte basic" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "îmbrăcăminte basic" },
+              { dep: "fashion", cat: "men", sub: "clothing" },
+              { dep: "fashion", cat: "men", sub: "suits & sets" },
+              { dep: "fashion", cat: "men", sub: "sets & outfits" },
+              { dep: "fashion", cat: "men", sub: "îmbrăcăminte bărbați plus size" },
+              { dep: "fashion", cat: "men", sub: "ethnic wear" },
+              { dep: "fashion", cat: "men", sub: "dress vests" },
+              { dep: "fashion", cat: "men", sub: "gothic clothing" },
+              { dep: "fashion", cat: "men", sub: "vintage dresses" },
+            ],
+          },
+          {
+            slug: "fashion-men-tshirts",
+            labels: { en: "T-shirts", ro: "Tricouri" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "t-shirts" },
+              { dep: "fashion", cat: "men", sub: "tricouri" },
+              { dep: "fashion", cat: "men", sub: "topuri și tricouri" },
+            ],
+          },
+          {
+            slug: "fashion-men-shirts",
+            labels: { en: "Shirts", ro: "Cămăși" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "shirts" },
+              { dep: "fashion", cat: "men", sub: "cămăși" },
+              { dep: "fashion", cat: "men", sub: "cămăși bărbați" },
+              { dep: "fashion", cat: "men", sub: "dress shirts" },
+              { dep: "fashion", cat: "men", sub: "hawaiian shirts" },
+            ],
+          },
+          {
+            slug: "fashion-men-polo",
+            labels: { en: "Polo shirts", ro: "Tricouri polo" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "polo shirts" },
+              { dep: "fashion", cat: "men", sub: "polo" },
+            ],
+          },
+          {
+            slug: "fashion-men-pants",
+            labels: { en: "Pants", ro: "Pantaloni" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "pants" },
+              { dep: "fashion", cat: "men", sub: "pantaloni" },
+              { dep: "fashion", cat: "men", sub: "suit pants" },
+            ],
+          },
+          {
+            slug: "fashion-men-jeans",
+            labels: { en: "Jeans", ro: "Blugi" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "jeans" },
+              { dep: "fashion", cat: "men", sub: "blugi" },
+              { dep: "fashion", cat: "men", sub: "denim (nou)" },
+              { dep: "fashion", cat: "men", sub: "denim" },
+            ],
+          },
+          {
+            slug: "fashion-men-shorts",
+            labels: { en: "Shorts", ro: "Pantaloni scurți" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "shorts" },
+              { dep: "fashion", cat: "men", sub: "board shorts" },
+              { dep: "fashion", cat: "men", sub: "pantaloni scurți" },
+              { dep: "fashion", cat: "men", sub: "costume de baie" },
+            ],
+          },
+          {
+            slug: "fashion-men-coats",
+            labels: { en: "Coats & jackets", ro: "Paltoane și jachete" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "paltoane și jachete" },
+              { dep: "fashion", cat: "men", sub: "coats" },
+              { dep: "fashion", cat: "men", sub: "jackets" },
+              { dep: "fashion", cat: "men", sub: "outerwear & coats" },
+              { dep: "fashion", cat: "men", sub: "overcoats" },
+              { dep: "fashion", cat: "men", sub: "windbreakers" },
+            ],
+          },
+          {
+            slug: "fashion-men-hoodies",
+            labels: { en: "Hoodies & sweatshirts", ro: "Hanorace și bluze" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "hoodies" },
+              { dep: "fashion", cat: "men", sub: "sweatshirts" },
+              { dep: "fashion", cat: "men", sub: "hanorace & bluze" },
+              { dep: "fashion", cat: "men", sub: "hanorace și bluze" },
+            ],
+          },
+          {
+            slug: "fashion-men-underwear",
+            labels: { en: "Underwear", ro: "Lenjerie intimă bărbați" },
+            match: [
+              { dep: "fashion", cat: "men", sub: "underwear" },
+              { dep: "fashion", cat: "men", sub: "long johns" },
+              { dep: "fashion", cat: "men", sub: "sleepwear" },
+              { dep: "fashion", cat: "men", sub: "lenjerie intimă bărbați" },
+            ],
+          },
         ],
       },
       {
@@ -83,9 +223,32 @@ const TREE = [
         labels: { en: "Underwear & lingerie", ro: "Lenjerie intimă" },
         match: [{ dep: "fashion", cat: "underwear" }],
         children: [
-          { slug: "fashion-underwear-women", labels: { en: "Women's lingerie", ro: "Lenjerie intimă damă" }, match: [{ dep: "fashion", cat: "underwear", sub: "lenjerie intimă damă" }, { dep: "fashion", cat: "underwear", sub: "women" }] },
-          { slug: "fashion-underwear-men", labels: { en: "Men's underwear", ro: "Lenjerie intimă bărbați" }, match: [{ dep: "fashion", cat: "underwear", sub: "men" }] },
-          { slug: "fashion-underwear-socks", labels: { en: "Socks & hosiery", ro: "Șosete și ciorapi" }, match: [{ dep: "fashion", cat: "underwear", sub: "socks" }] },
+          {
+            slug: "fashion-underwear-women",
+            labels: { en: "Women's lingerie", ro: "Lenjerie intimă damă" },
+            match: [
+              { dep: "fashion", cat: "underwear", sub: "lenjerie intimă damă" },
+              { dep: "fashion", cat: "underwear", sub: "women" },
+              { dep: "fashion", cat: "underwear", sub: "pijamale și loungewear damă" },
+            ],
+          },
+          {
+            slug: "fashion-underwear-men",
+            labels: { en: "Men's underwear", ro: "Lenjerie intimă bărbați" },
+            match: [
+              { dep: "fashion", cat: "underwear", sub: "men" },
+              { dep: "fashion", cat: "underwear", sub: "lenjerie intimă bărbați" },
+            ],
+          },
+          {
+            slug: "fashion-underwear-socks",
+            labels: { en: "Socks & hosiery", ro: "Șosete și ciorapi" },
+            match: [
+              { dep: "fashion", cat: "underwear", sub: "socks" },
+              { dep: "fashion", cat: "underwear", sub: "șosete bărbați" },
+              { dep: "fashion", cat: "underwear", sub: "șosete și ciorapi damă" },
+            ],
+          },
         ],
       },
       {
@@ -110,11 +273,28 @@ const TREE = [
       {
         slug: "beauty-makeup", kind: "category",
         labels: { en: "Makeup", ro: "Machiaj" },
-        match: [{ dep: "beauty", cat: "makeup" }],
+        match: [
+          { dep: "beauty", cat: "makeup" },
+          { dep: "beauty", cat: "health", sub: "machiaj" },
+        ],
         children: [
-          { slug: "beauty-makeup-face", labels: { en: "Face makeup", ro: "Machiaj ten" }, match: [{ dep: "beauty", cat: "makeup", sub: "face" }] },
+          {
+            slug: "beauty-makeup-face",
+            labels: { en: "Face makeup", ro: "Machiaj ten" },
+            match: [
+              { dep: "beauty", cat: "makeup", sub: "face" },
+              { dep: "beauty", cat: "health", sub: "face makeup" },
+            ],
+          },
           { slug: "beauty-makeup-eyes", labels: { en: "Eye makeup", ro: "Machiaj ochi" }, match: [{ dep: "beauty", cat: "makeup", sub: "eyes" }] },
-          { slug: "beauty-makeup-lips", labels: { en: "Lip makeup", ro: "Machiaj buze" }, match: [{ dep: "beauty", cat: "makeup", sub: "lips" }] },
+          {
+            slug: "beauty-makeup-lips",
+            labels: { en: "Lip makeup", ro: "Machiaj buze" },
+            match: [
+              { dep: "beauty", cat: "makeup", sub: "lips" },
+              { dep: "beauty", cat: "health", sub: "lip makeup" },
+            ],
+          },
           { slug: "beauty-makeup-nails", labels: { en: "Nail care", ro: "Manichiură" }, match: [{ dep: "beauty", cat: "makeup", sub: "nails" }] },
         ],
       },
@@ -131,7 +311,11 @@ const TREE = [
       {
         slug: "beauty-haircare", kind: "category",
         labels: { en: "Hair care", ro: "Îngrijirea părului" },
-        match: [{ dep: "beauty", cat: "hair care" }, { dep: "beauty", cat: "haircare" }],
+        match: [
+          { dep: "beauty", cat: "hair care" },
+          { dep: "beauty", cat: "haircare" },
+          { dep: "beauty", cat: "health", sub: "îngrijirea și styling-ul părului" },
+        ],
         children: [
           { slug: "beauty-hair-styling", labels: { en: "Styling", ro: "Styling păr" }, match: [{ dep: "beauty", cat: "hair care", sub: "styling" }] },
           { slug: "beauty-hair-extensions", labels: { en: "Extensions & wigs", ro: "Extensii și peruci" }, match: [{ dep: "beauty", cat: "hair care", sub: "extensions" }] },
@@ -140,7 +324,21 @@ const TREE = [
       {
         slug: "beauty-fragrance", kind: "category",
         labels: { en: "Fragrance", ro: "Parfumuri" },
-        match: [{ dep: "beauty", cat: "fragrance" }, { dep: "beauty", cat: "perfume" }],
+        match: [
+          { dep: "beauty", cat: "fragrance" },
+          { dep: "beauty", cat: "perfume" },
+          { dep: "beauty", cat: "health", sub: "parfum" },
+          { dep: "beauty", cat: "health", sub: "parfumuri și deodorante" },
+        ],
+      },
+      {
+        slug: "beauty-tools", kind: "category",
+        labels: { en: "Beauty devices", ro: "Aparate de înfrumusețare" },
+        match: [
+          { dep: "beauty", cat: "tools" },
+          { dep: "beauty", cat: "devices" },
+          { dep: "beauty", cat: "health", sub: "aparate de înfrumusețare" },
+        ],
       },
     ],
   },
@@ -153,10 +351,33 @@ const TREE = [
       {
         slug: "electronics-phones", kind: "category",
         labels: { en: "Phones & accessories", ro: "Telefoane și accesorii" },
-        match: [{ dep: "electronics", cat: "phone accessories" }, { dep: "electronics", cat: "phones" }],
+        match: [
+          { dep: "electronics", cat: "phone accessories" },
+          { dep: "electronics", cat: "phones" },
+          { dep: "electronics", cat: "phones", sub: "telefoane mobile" },
+          { dep: "electronics", cat: "phones", sub: "piese pentru telefoane mobile" },
+          { dep: "electronics", cat: "phones", sub: "stații walkie talkie" },
+        ],
         children: [
-          { slug: "electronics-phones-sim", labels: { en: "SIM cards & adapters", ro: "Cartele SIM și accesorii" }, match: [{ dep: "electronics", cat: "phone accessories", sub: "cartele sim și accesorii" }, { dep: "electronics", cat: "phone accessories", sub: "sim card" }] },
-          { slug: "electronics-phones-cases", labels: { en: "Cases & covers", ro: "Huse și carcase" }, match: [{ dep: "electronics", cat: "phone accessories", sub: "cases" }] },
+          {
+            slug: "electronics-phones-sim",
+            labels: { en: "SIM cards & adapters", ro: "Cartele SIM și accesorii" },
+            match: [
+              { dep: "electronics", cat: "phone accessories", sub: "cartele sim și accesorii" },
+              { dep: "electronics", cat: "phone accessories", sub: "sim card" },
+            ],
+          },
+          {
+            slug: "electronics-phones-cases",
+            labels: { en: "Cases & covers", ro: "Huse și carcase" },
+            match: [
+              { dep: "electronics", cat: "phone accessories", sub: "cases" },
+              { dep: "electronics", cat: "phone accessories", sub: "huse de telefon" },
+              { dep: "electronics", cat: "phone accessories", sub: "accesorii pentru telefon" },
+              { dep: "electronics", cat: "phone accessories", sub: "folii de protecție pentru telefon" },
+              { dep: "electronics", cat: "phone accessories", sub: "accesorii foto pentru telefon" },
+            ],
+          },
           { slug: "electronics-phones-chargers", labels: { en: "Chargers & cables", ro: "Încărcătoare și cabluri" }, match: [{ dep: "electronics", cat: "phone accessories", sub: "chargers" }] },
         ],
       },
@@ -169,26 +390,10 @@ const TREE = [
           { slug: "electronics-audio-speakers", labels: { en: "Speakers", ro: "Boxe" }, match: [{ dep: "electronics", cat: "audio", sub: "speakers" }] },
         ],
       },
-      {
-        slug: "electronics-computing", kind: "category",
-        labels: { en: "Computers & tablets", ro: "Computere și tablete" },
-        match: [{ dep: "electronics", cat: "computing" }, { dep: "electronics", cat: "computers" }],
-      },
-      {
-        slug: "electronics-wearables", kind: "category",
-        labels: { en: "Smartwatches & wearables", ro: "Smartwatch și wearables" },
-        match: [{ dep: "electronics", cat: "wearables" }, { dep: "electronics", cat: "smartwatch" }],
-      },
-      {
-        slug: "electronics-cameras", kind: "category",
-        labels: { en: "Cameras", ro: "Camere foto/video" },
-        match: [{ dep: "electronics", cat: "cameras" }],
-      },
-      {
-        slug: "electronics-gaming", kind: "category",
-        labels: { en: "Gaming", ro: "Gaming" },
-        match: [{ dep: "electronics", cat: "gaming" }],
-      },
+      { slug: "electronics-computing", kind: "category", labels: { en: "Computers & tablets", ro: "Computere și tablete" }, match: [{ dep: "electronics", cat: "computing" }, { dep: "electronics", cat: "computers" }] },
+      { slug: "electronics-wearables", kind: "category", labels: { en: "Smartwatches & wearables", ro: "Smartwatch și wearables" }, match: [{ dep: "electronics", cat: "wearables" }, { dep: "electronics", cat: "smartwatch" }] },
+      { slug: "electronics-cameras", kind: "category", labels: { en: "Cameras", ro: "Camere foto/video" }, match: [{ dep: "electronics", cat: "cameras" }] },
+      { slug: "electronics-gaming", kind: "category", labels: { en: "Gaming", ro: "Gaming" }, match: [{ dep: "electronics", cat: "gaming" }] },
     ],
   },
   // ── HOME ─────────────────────────────────────────────────────────────────
@@ -200,18 +405,51 @@ const TREE = [
       {
         slug: "home-appliances", kind: "category",
         labels: { en: "Appliances", ro: "Electrocasnice" },
-        match: [{ dep: "home", cat: "appliances" }],
+        match: [
+          { dep: "home", cat: "appliances" },
+          { dep: "home", cat: "appliances", sub: "electrocasnice mari" },
+        ],
         children: [
-          { slug: "home-appliances-personal-care", labels: { en: "Personal care", ro: "Aparate de îngrijire personală" }, match: [{ dep: "home", cat: "appliances", sub: "aparate de îngrijire personală" }, { dep: "home", cat: "appliances", sub: "personal care" }] },
-          { slug: "home-appliances-kitchen", labels: { en: "Kitchen appliances", ro: "Aparate de bucătărie" }, match: [{ dep: "home", cat: "appliances", sub: "kitchen" }] },
+          {
+            slug: "home-appliances-personal-care",
+            labels: { en: "Personal care", ro: "Aparate de îngrijire personală" },
+            match: [
+              { dep: "home", cat: "appliances", sub: "aparate de îngrijire personală" },
+              { dep: "home", cat: "appliances", sub: "personal care" },
+            ],
+          },
+          {
+            slug: "home-appliances-kitchen",
+            labels: { en: "Kitchen appliances", ro: "Aparate de bucătărie" },
+            match: [
+              { dep: "home", cat: "appliances", sub: "kitchen" },
+              { dep: "home", cat: "appliances", sub: "electrocasnice de bucătărie" },
+            ],
+          },
           { slug: "home-appliances-cleaning", labels: { en: "Cleaning appliances", ro: "Aparate de curățenie" }, match: [{ dep: "home", cat: "appliances", sub: "cleaning" }] },
         ],
       },
       { slug: "home-decor", kind: "category", labels: { en: "Decor", ro: "Decorațiuni" }, match: [{ dep: "home", cat: "decor" }] },
       { slug: "home-furniture", kind: "category", labels: { en: "Furniture", ro: "Mobilier" }, match: [{ dep: "home", cat: "furniture" }] },
-      { slug: "home-textiles", kind: "category", labels: { en: "Bedding & textiles", ro: "Lenjerie de pat și textile" }, match: [{ dep: "home", cat: "textiles" }, { dep: "home", cat: "bedding" }] },
+      {
+        slug: "home-textiles", kind: "category",
+        labels: { en: "Bedding & textiles", ro: "Lenjerie de pat și textile" },
+        match: [
+          { dep: "home", cat: "textiles" },
+          { dep: "home", cat: "bedding" },
+          { dep: "home", cat: "garden", sub: "bedding" },
+        ],
+      },
       { slug: "home-kitchen", kind: "category", labels: { en: "Kitchen & dining", ro: "Bucătărie și servire" }, match: [{ dep: "home", cat: "kitchen" }] },
       { slug: "home-storage", kind: "category", labels: { en: "Storage & organization", ro: "Depozitare și organizare" }, match: [{ dep: "home", cat: "storage" }] },
+      {
+        slug: "home-bathroom", kind: "category",
+        labels: { en: "Bathroom", ro: "Baie" },
+        match: [
+          { dep: "home", cat: "bathroom" },
+          { dep: "home", cat: "garden", sub: "bathroom products" },
+        ],
+      },
     ],
   },
   // ── TOYS & KIDS ──────────────────────────────────────────────────────────
@@ -220,8 +458,26 @@ const TREE = [
     labels: { en: "Toys & kids", ro: "Jucării și copii" },
     aeRoots: ["26", "1501"],
     children: [
-      { slug: "toys-games", kind: "category", labels: { en: "Toys & games", ro: "Jucării" }, match: [{ dep: "toys", cat: "games" }, { dep: "toys", cat: "toys" }] },
-      { slug: "toys-baby", kind: "category", labels: { en: "Baby gear", ro: "Articole bebe" }, match: [{ dep: "toys", cat: "baby" }] },
+      {
+        slug: "toys-games", kind: "category",
+        labels: { en: "Toys & games", ro: "Jucării" },
+        match: [
+          { dep: "toys", cat: "games" },
+          { dep: "toys", cat: "toys" },
+          { dep: "toys", cat: "kids", sub: "toys" },
+          { dep: "toys", cat: "kids" },
+        ],
+      },
+      {
+        slug: "toys-baby", kind: "category",
+        labels: { en: "Baby gear", ro: "Articole bebe" },
+        match: [
+          { dep: "toys", cat: "baby" },
+          { dep: "kids", cat: "general", sub: "maternity" },
+          { dep: "kids", cat: "general" },
+          { dep: "kids" },
+        ],
+      },
       { slug: "toys-school", kind: "category", labels: { en: "School supplies", ro: "Rechizite școlare" }, match: [{ dep: "toys", cat: "school" }] },
     ],
   },
@@ -232,7 +488,15 @@ const TREE = [
     aeRoots: ["18"],
     children: [
       { slug: "sports-fitness", kind: "category", labels: { en: "Fitness", ro: "Fitness" }, match: [{ dep: "sports", cat: "fitness" }] },
-      { slug: "sports-outdoor", kind: "category", labels: { en: "Outdoor & camping", ro: "Outdoor și camping" }, match: [{ dep: "sports", cat: "outdoor" }] },
+      {
+        slug: "sports-outdoor", kind: "category",
+        labels: { en: "Outdoor & camping", ro: "Outdoor și camping" },
+        match: [
+          { dep: "sports", cat: "outdoor" },
+          { dep: "sports", cat: "outdoor", sub: "yoga clothing" },
+          { dep: "sports", cat: "outdoor", sub: "fishing apparel" },
+        ],
+      },
       { slug: "sports-cycling", kind: "category", labels: { en: "Cycling", ro: "Ciclism" }, match: [{ dep: "sports", cat: "cycling" }] },
     ],
   },
@@ -251,9 +515,45 @@ const TREE = [
     slug: "health", kind: "department",
     labels: { en: "Health & wellness", ro: "Sănătate și wellness" },
     aeRoots: [],
+    match: [
+      // catch-all: Beauty/Health (AE often misroutes wellness under Beauty dept)
+      { dep: "beauty", cat: "health" },
+    ],
     children: [
-      { slug: "health-personal", kind: "category", labels: { en: "Personal care", ro: "Îngrijire personală" }, match: [{ dep: "health", cat: "personal" }] },
+      {
+        slug: "health-personal", kind: "category",
+        labels: { en: "Personal care", ro: "Îngrijire personală" },
+        match: [
+          { dep: "health", cat: "personal" },
+          { dep: "beauty", cat: "health", sub: "hârtie igienică" },
+        ],
+      },
       { slug: "health-supplements", kind: "category", labels: { en: "Supplements", ro: "Suplimente" }, match: [{ dep: "health", cat: "supplements" }] },
+      {
+        slug: "health-massage", kind: "category",
+        labels: { en: "Massage & recovery", ro: "Masaj și recuperare" },
+        match: [
+          { dep: "health", cat: "massage" },
+          { dep: "beauty", cat: "health", sub: "masaj și relaxare" },
+          { dep: "beauty", cat: "health", sub: "articole de recuperare" },
+        ],
+      },
+      {
+        slug: "health-oral-care", kind: "category",
+        labels: { en: "Oral care", ro: "Igienă orală" },
+        match: [
+          { dep: "health", cat: "oral" },
+          { dep: "beauty", cat: "health", sub: "igienă orală" },
+        ],
+      },
+      {
+        slug: "health-adult", kind: "category",
+        labels: { en: "Adult products", ro: "Produse pentru adulți" },
+        match: [
+          { dep: "health", cat: "adult" },
+          { dep: "beauty", cat: "health", sub: "produse pentru adulți" },
+        ],
+      },
     ],
   },
   // ── OFFICE ───────────────────────────────────────────────────────────────
@@ -284,24 +584,9 @@ const TREE = [
       { slug: "pets-supplies", kind: "category", labels: { en: "Pet supplies", ro: "Accesorii animale" }, match: [{ dep: "pets", cat: "supplies" }] },
     ],
   },
-  // ── GARDEN ───────────────────────────────────────────────────────────────
-  {
-    slug: "garden", kind: "department",
-    labels: { en: "Garden & outdoor", ro: "Grădină și outdoor" },
-    aeRoots: [],
-  },
-  // ── FOOD ─────────────────────────────────────────────────────────────────
-  {
-    slug: "food", kind: "department",
-    labels: { en: "Food & beverages", ro: "Alimente și băuturi" },
-    aeRoots: [],
-  },
-  // ── OTHER (fallback for unresolved) ─────────────────────────────────────
-  {
-    slug: "other", kind: "department",
-    labels: { en: "Other", ro: "Altele" },
-    aeRoots: [],
-  },
+  { slug: "garden", kind: "department", labels: { en: "Garden & outdoor", ro: "Grădină și outdoor" }, aeRoots: [] },
+  { slug: "food", kind: "department", labels: { en: "Food & beverages", ro: "Alimente și băuturi" }, aeRoots: [] },
+  { slug: "other", kind: "department", labels: { en: "Other", ro: "Altele" }, aeRoots: [] },
 ];
 
 function flatten(tree, parent = null, kindFallback = "category") {
@@ -333,8 +618,6 @@ function norm(s) {
 }
 
 async function upsertNodes(client, flat) {
-  // Insert root departments first (no parent FK), then their children in order.
-  // The flatten() output is already parent-before-child.
   for (const n of flat) {
     await client.query(
       `INSERT INTO taxonomy_nodes (slug, parent_slug, kind, sort_order, ae_root_ids, ae_leaf_ids)
@@ -360,14 +643,13 @@ async function upsertNodes(client, flat) {
 }
 
 /**
- * Build a (dep|cat|sub) -> slug lookup using each node's `match` rules.
- * More specific matches (with `sub`) win over less specific (`cat`-only,
- * then `dep`-only).
+ * Build (dep|cat|sub) → slug lookup. More specific matches (with `sub`)
+ * win over less specific (`cat`-only, then `dep`-only).
  */
 function buildMatcher(flat) {
-  const exact = new Map(); // "dep|cat|sub" -> slug
-  const catOnly = new Map(); // "dep|cat" -> slug (department leaf when no subcat)
-  const depOnly = new Map(); // "dep"     -> slug
+  const exact = new Map();
+  const catOnly = new Map();
+  const depOnly = new Map();
 
   for (const n of flat) {
     for (const m of n.match || []) {
@@ -378,7 +660,6 @@ function buildMatcher(flat) {
       else if (dep && cat) catOnly.set(`${dep}|${cat}`, n.slug);
       else if (dep) depOnly.set(dep, n.slug);
     }
-    // department root nodes also self-register as fallback
     if (n.kind === "department") depOnly.set(norm(n.slug), n.slug);
   }
   return { exact, catOnly, depOnly };
@@ -435,7 +716,6 @@ async function main() {
     const stats = await reclassifyProducts(client, matcher);
     console.log(`[reclassify] ${JSON.stringify(stats)}`);
 
-    // Final distribution
     const { rows: dist } = await client.query(
       `SELECT n.slug, t.label AS label_ro, COUNT(p.id)::int AS n
          FROM taxonomy_nodes n
