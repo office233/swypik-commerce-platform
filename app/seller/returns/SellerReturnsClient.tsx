@@ -59,7 +59,7 @@ export default function SellerReturnsClient({ initialRows }: { initialRows: Row[
   }
 
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 px-4 md:px-6 py-6 max-w-5xl mx-auto pb-[max(24px,env(safe-area-inset-bottom))]">
       <header className="mb-6">
         <h1 className="text-2xl font-black text-[#0D0D0D]">Cereri de retur</h1>
         <p className="mt-1 text-sm text-[#6E6E80]">
@@ -134,7 +134,8 @@ export default function SellerReturnsClient({ initialRows }: { initialRows: Row[
                       type="button"
                       onClick={() => accept(r.id)}
                       disabled={busy === r.id}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#10A37F] px-4 py-2 text-xs font-bold text-white hover:bg-[#0e8e6e] disabled:opacity-50"
+                      aria-label="Acceptă cererea și restituie banii"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#10A37F] px-4 py-2.5 min-h-[44px] text-xs font-bold text-white hover:bg-[#0e8e6e] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                       <Check size={14} /> Acceptă & restituie
                     </button>
@@ -142,7 +143,8 @@ export default function SellerReturnsClient({ initialRows }: { initialRows: Row[
                       type="button"
                       onClick={() => reject(r.id)}
                       disabled={busy === r.id}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E5] px-4 py-2 text-xs font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] disabled:opacity-50"
+                      aria-label="Respinge cererea de retur"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E5E5E5] px-4 py-2.5 min-h-[44px] text-xs font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                       <X size={14} /> Respinge
                     </button>

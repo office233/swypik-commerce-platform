@@ -79,7 +79,7 @@ export default function PayoutsClient({
 }) {
   if (!seller.hasStripe) {
     return (
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
         <h1 className="text-2xl font-black text-[#0D0D0D] mb-2">Payout-uri</h1>
         <p className="text-sm text-[#6E6E80] mb-6">Pentru a primi banii din vânzări, configurează contul Stripe Connect.</p>
 
@@ -95,7 +95,7 @@ export default function PayoutsClient({
               </p>
               <Link
                 href="/seller/settings"
-                className="inline-flex items-center gap-2 bg-[#0D0D0D] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition"
+                className="inline-flex items-center justify-center gap-2 bg-[#0D0D0D] text-white px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-bold hover:bg-black transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 Configurează Stripe Connect
                 <ExternalLink className="w-4 h-4" />
@@ -115,7 +115,7 @@ export default function PayoutsClient({
   ];
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
       <header className="mb-6">
         <h1 className="text-2xl font-black text-[#0D0D0D]">Payout-uri</h1>
         <p className="text-sm text-[#6E6E80] mt-1">

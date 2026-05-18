@@ -1,31 +1,14 @@
-import OpenAI from "openai";
-
-import { logger } from "@/lib/logger";
 /**
  * Lightweight output moderation for AI chat / generation.
- * Uses GitHub Copilot API (https://api.githubcopilot.com) with a GitHub token
- * that has Copilot access. Defaults to "safe" on any error — moderation must
- * never break the user-facing flow.
+ * Migrated to Copilot 2-pass auth via fetchCopilot.
+ * Defaults to "safe" on any error — moderation must never break the user-facing flow.
  */
 
-function moderationClient(): OpenAI | null {
-  const token = process.env.GITHUB_TOKEN || process.env.GH_PAT;
-  if (token) {
-    return new OpenAI({
-      apiKey: token,
-      baseURL: process.env.GITHUB_MODELS_ENDPOINT ?? "https://api.githubcopilot.com",
-      defaultHeaders: {
-        "Editor-Version": "vscode/1.95.0",
-        "Copilot-Integration-Id": "vscode-chat",
-      },
-    });
-  }
-  if (process.env.OPENAI_API_KEY) return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return null;
-}
+import { logger } from "@/lib/logger";
+import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
 
 function moderationModel(): string {
-  return process.env.MODERATION_MODEL || "claude-opus-4.7";
+  return (process.env.MODERATION_MODEL || "gpt-4o-mini").replace(/^openai\//, "");
 }
 
 const SYSTEM = `You are a strict content-safety classifier for a Romanian-language e-commerce assistant.
@@ -44,21 +27,29 @@ export async function moderateOutput(text: string): Promise<ModerationResult> {
   const trimmed = String(text || "").slice(0, 8_000);
   if (!trimmed) return { safe: true, reason: "empty" };
 
-  const client = moderationClient();
-  if (!client) return { safe: true, reason: "no-provider" };
+  if (getCopilotGhuTokens().length === 0) return { safe: true, reason: "no-provider" };
 
   try {
-    const res = await client.chat.completions.create({
-      model: moderationModel(),
-      messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: trimmed },
-      ],
-      temperature: 0,
-      response_format: { type: "json_object" },
-      max_tokens: 80,
+    const { res } = await fetchCopilot("/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: moderationModel(),
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: trimmed },
+        ],
+        temperature: 0,
+        response_format: { type: "json_object" },
+        max_tokens: 80,
+      }),
     });
-    const raw = res.choices?.[0]?.message?.content || "{}";
+    if (!res.ok) {
+      logger.warn({ status: res.status }, "[moderation] http failed open");
+      return { safe: true, reason: "moderation-http" };
+    }
+    const json: any = await res.json();
+    const raw = json?.choices?.[0]?.message?.content || "{}";
     const parsed = JSON.parse(raw);
     return {
       safe: parsed?.safe !== false,

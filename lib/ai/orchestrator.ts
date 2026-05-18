@@ -1,17 +1,11 @@
-import OpenAI from "openai";
 import type { ShoppingSession } from "@/lib/sales/shopping-session";
 import { buildSessionPrompt } from "@/lib/sales/shopping-session";
 import { getCategories } from "@/lib/db/product-queries";
+import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
 
-function getAIClient(): OpenAI | null {
-  if (process.env.OPENROUTER_API_KEY) {
-    return new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" });
-  }
-  if (process.env.OPENAI_API_KEY) return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return null;
-}
+function hasAIProvider(): boolean { return getCopilotGhuTokens().length > 0; }
 
-function getModel(): string { return process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001"; }
+function getModel(): string { return (process.env.ORCHESTRATOR_MODEL || process.env.OPENROUTER_MODEL || "gpt-4o-mini").replace(/^openai\//, ""); }
 
 // ─── Dynamic category cache (60s TTL + force refresh) ───
 let cachedCategories: { name: string; nameEn: string; count: number }[] = [];
@@ -270,9 +264,8 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
     };
   }
 
-  const client = getAIClient();
   const categories = await loadCategories();
-  if (!client) return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
+  if (!hasAIProvider()) return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
 
   try {
     const contextSummary = productContext.slice(0, 10).map((p) => ({ id: p.id, title: p.title, price: p.price, category: p.category, rating: p.rating, orders: p.orders }));
@@ -280,8 +273,17 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
     const messages: any[] = [{ role: "system", content: systemPrompt }, { role: "system", content: buildSessionPrompt(shoppingSession) }, ...chatHistory.slice(-10)];
     if (contextSummary.length) messages.push({ role: "system", content: `Products in context: ${JSON.stringify(contextSummary)}` });
     messages.push({ role: "user", content: userMessage });
-    const completion = await client.chat.completions.create({ model: getModel(), messages, temperature: 0.72, max_tokens: 750 });
-    const content = completion.choices[0]?.message?.content || "{}";
+    const { res } = await fetchCopilot("/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: getModel(), messages, temperature: 0.72, max_tokens: 750, response_format: { type: "json_object" } }),
+    });
+    if (!res.ok) {
+      console.warn("[AI Orchestrator] http", res.status);
+      return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
+    }
+    const completion: any = await res.json();
+    const content = completion?.choices?.[0]?.message?.content || "{}";
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const result = JSON.parse(cleaned);
     return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, category: result.category || undefined, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p: any) => String(p.id)) : undefined };

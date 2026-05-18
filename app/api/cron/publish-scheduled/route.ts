@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "crypto";
 import { runCron } from "@/lib/cron/runCron";
+import { autoEmbedVideo } from "@/lib/ai/auto-embed";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ async function run(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { rows } = await dbQuery<{ id: string }>(
+  const { rows } = await dbQuery<{ id: string; title: string | null; description: string | null }>(
     `UPDATE videos
         SET is_draft = false,
             scheduled_publish_at = NULL,
@@ -44,8 +45,9 @@ async function run(req: Request) {
       WHERE scheduled_publish_at IS NOT NULL
         AND scheduled_publish_at <= now()
         AND status <> 'deleted'
-      RETURNING id`,
+      RETURNING id, title, description`,
   );
+  for (const r of rows) autoEmbedVideo(r.id, r.title, r.description);
 
   return NextResponse.json({
     success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { autoEmbedProduct } from "@/lib/ai/auto-embed";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -80,6 +81,7 @@ export async function POST(req: Request) {
       ],
     );
 
+    if (rows[0]?.id) autoEmbedProduct(rows[0].id, rows[0].title, null);
     return NextResponse.json({ success: true, product: rows[0] });
   } catch (error: any) {
     logger.error({ err: error }, "[Seller Products API] POST Error:");

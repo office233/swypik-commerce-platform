@@ -56,13 +56,14 @@ export default function DraftActions(props: {
       type="button"
       onClick={run}
       disabled={busy}
+      aria-label={label}
       className={
         publish
-          ? "h-9 px-3 rounded-lg bg-[#7C3AED] text-white text-xs font-bold flex items-center gap-1 hover:bg-[#6D28D9] disabled:opacity-50"
-          : "h-9 px-3 rounded-lg border border-[#E5E5E5] text-xs font-bold text-[#0D0D0D] flex items-center gap-1 hover:bg-[#F7F7F8] disabled:opacity-50"
+          ? "h-11 px-3 rounded-lg bg-[#7C3AED] text-white text-xs font-bold flex items-center gap-1 hover:bg-[#6D28D9] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
+          : "h-11 px-3 rounded-lg border border-[#E5E5E5] text-xs font-bold text-[#0D0D0D] flex items-center gap-1 hover:bg-[#F7F7F8] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
       }
     >
-      {busy ? <Loader2 size={12} className="animate-spin" /> : <Icon size={12} />}
+      {busy ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
       {label}
     </button>
   );

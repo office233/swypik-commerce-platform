@@ -56,23 +56,30 @@ export default function LiveStudioClient({ streams }: { streams: Stream[] }) {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2"><Radio className="w-6 h-6 text-red-500" /> Live Studio</h1>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg">
+    <div className="px-4 md:px-6 py-6 max-w-5xl mx-auto pb-[max(24px,env(safe-area-inset-bottom))]">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <h1 className="text-2xl font-black text-[#0D0D0D] flex items-center gap-2"><Radio className="w-6 h-6 text-red-500" /> Live Studio</h1>
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          aria-label="Creează stream nou"
+          className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 min-h-[44px] rounded-lg text-sm font-bold focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none transition"
+        >
           <Plus className="w-4 h-4" /> Stream nou
         </button>
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowCreate(false)}>
+        <div role="dialog" aria-modal="true" aria-labelledby="live-create-title" className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowCreate(false)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-semibold mb-4">Programează stream</h2>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titlu" className="w-full border rounded px-3 py-2 mb-3" />
-            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Descriere" className="w-full border rounded px-3 py-2 mb-3" rows={3} />
+            <h2 id="live-create-title" className="font-semibold mb-4">Programează stream</h2>
+            <label className="sr-only" htmlFor="live-title">Titlu</label>
+            <input id="live-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titlu" className="w-full border rounded-lg px-3 py-2.5 mb-3 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" />
+            <label className="sr-only" htmlFor="live-desc">Descriere</label>
+            <textarea id="live-desc" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Descriere" className="w-full border rounded-lg px-3 py-2.5 mb-3 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" rows={3} />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowCreate(false)} className="px-4 py-2">Renunță</button>
-              <button onClick={onCreate} disabled={busy} className="bg-violet-600 text-white px-4 py-2 rounded disabled:opacity-50">Creează</button>
+              <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2.5 min-h-[44px] rounded-lg text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8]">Renunță</button>
+              <button type="button" onClick={onCreate} disabled={busy} className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 min-h-[44px] rounded-lg text-sm font-bold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">Creează</button>
             </div>
           </div>
         </div>
@@ -94,14 +101,14 @@ export default function LiveStudioClient({ streams }: { streams: Stream[] }) {
                   <div className="text-gray-600">RTMP URL (OBS → Settings → Stream → Custom):</div>
                   <div className="flex items-center gap-2">
                     <code className="font-mono text-[11px] flex-1 truncate">{s.rtmp_url}</code>
-                    <button onClick={() => copy(s.rtmp_url)} className="p-1"><Copy className="w-3 h-3" /></button>
+                    <button type="button" aria-label="Copiază URL RTMP" onClick={() => copy(s.rtmp_url)} className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-[#F7F7F8] focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><Copy className="w-4 h-4" /></button>
                   </div>
                 </div>
                 <div>
                   <div className="text-gray-600">Stream Key:</div>
                   <div className="flex items-center gap-2">
                     <code className="font-mono text-[11px] flex-1 truncate">{s.stream_key}</code>
-                    <button onClick={() => copy(s.stream_key)} className="p-1"><Copy className="w-3 h-3" /></button>
+                    <button type="button" aria-label="Copiază Stream Key" onClick={() => copy(s.stream_key)} className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-[#F7F7F8] focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><Copy className="w-4 h-4" /></button>
                   </div>
                 </div>
               </div>
@@ -110,7 +117,7 @@ export default function LiveStudioClient({ streams }: { streams: Stream[] }) {
               <Link href={`/live/${s.id}`} className="text-violet-600 underline">Vezi pagina</Link>
               {s.status === "live" && <span>👁 {s.viewer_count} viewers</span>}
               {s.status === "live" && (
-                <button onClick={() => onEnd(s.id)} className="ml-auto flex items-center gap-1 text-red-600">
+                <button type="button" onClick={() => onEnd(s.id)} className="ml-auto inline-flex items-center gap-1 min-h-[40px] px-3 rounded-lg text-red-600 hover:bg-red-50 font-bold text-sm focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                   <Square className="w-3 h-3" /> Termină
                 </button>
               )}

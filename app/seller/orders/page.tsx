@@ -88,7 +88,7 @@ export default function SellerOrdersPage() {
   const isLoading = !data && !error;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-black text-[#0D0D0D]">Comenzi primite</h1>
@@ -121,8 +121,9 @@ export default function SellerOrdersPage() {
                     <p className="font-bold text-red-700">Nu am putut incarca comenzile.</p>
                     <p className="text-sm text-[#6E6E80] mt-1">{error.message || "Eroare necunoscuta."}</p>
                     <button
+                      type="button"
                       onClick={() => mutate()}
-                      className="mt-4 rounded-lg bg-[#0D0D0D] px-4 py-2 text-xs font-bold text-white"
+                      className="mt-4 inline-flex items-center min-h-[44px] rounded-lg bg-[#0D0D0D] px-4 py-2.5 text-xs font-bold text-white focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none hover:bg-black"
                     >
                       Reincearca
                     </button>
@@ -211,9 +212,11 @@ export default function SellerOrdersPage() {
                             !isReturnRequested &&
                             !isRefunded && (
                               <button
+                                type="button"
                                 onClick={() => handleAddAwb(order.order_id)}
                                 disabled={loadingAwb === order.order_id}
-                                className="px-3 py-1.5 bg-[#0D0D0D] text-white text-xs font-semibold rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
+                                aria-label={`Adaugă AWB pentru comanda ${order.order_id.split("-")[0]}`}
+                                className="px-3 py-2 min-h-[40px] bg-[#0D0D0D] text-white text-xs font-semibold rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                               >
                                 {loadingAwb === order.order_id ? "Se salvează..." : "Adaugă AWB"}
                               </button>
@@ -222,13 +225,15 @@ export default function SellerOrdersPage() {
                           {/* Approve return & refund button */}
                           {isReturnRequested && (
                             <button
+                              type="button"
                               onClick={() => handleRefund(order.order_id)}
                               disabled={loadingRefund === order.order_id}
-                              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-lg hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                              aria-label="Aprobă retur și restituie banii"
+                              className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-lg hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                             >
                               {loadingRefund === order.order_id
                                 ? "Se procesează..."
-                                : "🔄 Aprobă Retur & Restituie Banii"}
+                                : "Aprobă Retur & Restituie Banii"}
                             </button>
                           )}
 

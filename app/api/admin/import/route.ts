@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { autoEmbedProduct } from "@/lib/ai/auto-embed";
 import { dbQuery } from "@/lib/db";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
@@ -170,7 +171,7 @@ export async function POST(req: Request) {
       const inventoryStatus = inventoryFromStock(row.stock);
 
       try {
-        await dbQuery(
+        const { rows: insRows } = await dbQuery(
           `INSERT INTO marketplace_products (
             title, slug, description, image_url, category,
             currency, price_cents, status, inventory_status,
@@ -179,9 +180,10 @@ export async function POST(req: Request) {
             $1, $2, $3, $4, $5,
             'RON', $6, 'active', $7,
             'manual', jsonb_build_object('imported_via', 'csv_bulk', 'imported_at', now()::text)
-          )`,
+          ) RETURNING id`,
           [title, slug, description, imageUrl, category, priceCents, inventoryStatus]
         );
+        if (insRows[0]?.id) autoEmbedProduct(insRows[0].id, title, description);
         imported++;
       } catch (dbErr: any) {
         errors.push({

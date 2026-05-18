@@ -1,4 +1,9 @@
-import OpenAI from "openai";
+/**
+ * Upload suggestions for creator videos.
+ * Migrated to Copilot 2-pass auth via fetchCopilot.
+ */
+
+import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
 
 export type UploadSuggestionInput = {
   description?: string;
@@ -15,31 +20,19 @@ export type UploadSuggestionResult = {
   product_keywords: string[];
 };
 
-function getAIClient(): OpenAI | null {
-  if (process.env.OPENROUTER_API_KEY) {
-    return new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: "https://openrouter.ai/api/v1",
-    });
-  }
-  if (process.env.OPENAI_API_KEY) return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return null;
-}
-
 function getModel(): string {
-  return process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
+  return (process.env.UPLOAD_SUGGEST_MODEL || process.env.OPENROUTER_MODEL || "gpt-4o-mini").replace(/^openai\//, "");
 }
 
-const SYSTEM_PROMPT = `Ești asistentul AI pentru creatori Swypik. Generezi idei scurte pentru clipuri verticale de commerce în limba română.
+const SYSTEM_PROMPT = `Esti asistentul AI pentru creatori Swypik. Generezi idei scurte pentru clipuri verticale in limba romana.
 
 Reguli stricte:
-- Răspunde DOAR JSON valid, fără markdown/backticks.
-- hooks: EXACT 3 opțiuni, fiecare max 95 caractere, naturale și catchy.
-- caption: o singură descriere gata de lipit, 1-2 propoziții, max 280 caractere.
-- tags: 5-10 hashtag-uri fără spații, cu #, relevante pentru clip.
-- product_keywords: 3-8 cuvinte/expresii scurte pentru căutare produs, fără #.
-- Nu inventa claims medicale, reduceri garantate, rezultate garantate sau stocuri reale.
-- Dacă informația e vagă, folosește sugestii generale dar utile.`;
+- Raspunde DOAR JSON valid, fara markdown.
+- hooks: EXACT 3 optiuni, fiecare max 95 caractere.
+- caption: 1-2 propozitii, max 280 caractere.
+- tags: 5-10 hashtag-uri cu #.
+- product_keywords: 3-8 cuvinte scurte fara #.
+- Fara claims medicale, reduceri sau stocuri.`;
 
 function normalizeText(value: unknown, maxLength = 120): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -47,19 +40,11 @@ function normalizeText(value: unknown, maxLength = 120): string {
 
 function asStringArray(value: unknown, limit: number): string[] {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter(Boolean)
-    .slice(0, limit);
+  return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean).slice(0, limit);
 }
 
 function normalizeTag(tag: string): string {
-  const cleaned = tag
-    .trim()
-    .replace(/^#+/, "")
-    .replace(/\s+/g, "")
-    .replace(/[^\p{L}\p{N}_-]/gu, "")
-    .toLowerCase();
+  const cleaned = tag.trim().replace(/^#+/, "").replace(/\s+/g, "").replace(/[^\p{L}\p{N}_-]/gu, "").toLowerCase();
   return cleaned ? `#${cleaned}` : "";
 }
 
@@ -70,11 +55,7 @@ function parseSuggestionJson(content: string): Partial<UploadSuggestionResult> |
   } catch {
     const match = cleaned.match(/\{[\s\S]*\}/);
     if (!match) return null;
-    try {
-      return JSON.parse(match[0]);
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(match[0]); } catch { return null; }
   }
 }
 
@@ -82,7 +63,6 @@ function sanitizeResult(value: Partial<UploadSuggestionResult> | null, fallback:
   const hooks = asStringArray(value?.hooks, 3);
   const tags = asStringArray(value?.tags, 10).map(normalizeTag).filter(Boolean);
   const productKeywords = asStringArray(value?.product_keywords, 8);
-
   return {
     hooks: [
       normalizeText(hooks[0], 95) || fallback.hooks[0],
@@ -98,31 +78,22 @@ function sanitizeResult(value: Partial<UploadSuggestionResult> | null, fallback:
 function inferProductName(input: UploadSuggestionInput): string {
   const direct = normalizeText(input.product_name || input.productName, 80);
   if (direct) return direct;
-
   const link = normalizeText(input.product_link || input.productLink, 240);
   const productId = link.match(/\/product\/([^/?#]+)/)?.[1];
   if (productId) return productId.replace(/[-_]+/g, " ").trim();
-
   return "produsul";
 }
 
 export function fallbackUploadSuggestions(input: UploadSuggestionInput): UploadSuggestionResult {
   const productName = inferProductName(input);
-  const slug = productName
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "")
-    .toLowerCase();
-
+  const slug = productName.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "").toLowerCase();
   return {
     hooks: [
-      `Nu mă așteptam ca ${productName} să fie atât de util...`,
-      `Am testat ${productName} ca să vezi dacă merită banii`,
-      `3 detalii despre ${productName} pe care le observi abia după ce îl folosești`,
+      `Nu ma asteptam ca ${productName} sa fie atat de util...`,
+      `Am testat ${productName} ca sa vezi daca merita banii`,
+      `3 detalii despre ${productName} pe care le observi abia dupa ce il folosesti`,
     ],
-    caption: `Am testat ${productName} și am strâns cele mai importante detalii într-un clip scurt. Tu l-ai încerca?`,
+    caption: `Am testat ${productName} si am strans cele mai importante detalii intr-un clip scurt.`,
     tags: ["#swypik", "#recomandare", "#testat", "#viral", slug ? `#${slug}` : "#produs"],
     product_keywords: [productName, "review", "test", "recomandare"],
   };
@@ -130,29 +101,34 @@ export function fallbackUploadSuggestions(input: UploadSuggestionInput): UploadS
 
 export async function suggestUploadContent(input: UploadSuggestionInput): Promise<UploadSuggestionResult> {
   const fallback = fallbackUploadSuggestions(input);
-  const client = getAIClient();
-  if (!client) return fallback;
+  if (getCopilotGhuTokens().length === 0) return fallback;
 
   try {
     const productName = inferProductName(input);
     const description = normalizeText(input.description, 800);
     const productLink = normalizeText(input.product_link || input.productLink, 240);
 
-    const completion = await client.chat.completions.create({
-      model: getModel(),
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Context clip creator:\nProdus: ${productName}\nLink produs: ${productLink || "n/a"}\nDescriere/idei creator: ${description || "n/a"}`,
-        },
-      ],
-      temperature: 0.75,
-      max_tokens: 450,
-      response_format: { type: "json_object" },
+    const { res } = await fetchCopilot("/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: getModel(),
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: `Context clip:\nProdus: ${productName}\nLink: ${productLink || "n/a"}\nDescriere: ${description || "n/a"}` },
+        ],
+        temperature: 0.75,
+        max_tokens: 450,
+        response_format: { type: "json_object" },
+      }),
     });
 
-    const content = completion.choices[0]?.message?.content || "{}";
+    if (!res.ok) {
+      console.warn("[upload-suggestions] http", res.status);
+      return fallback;
+    }
+    const json: any = await res.json();
+    const content = json?.choices?.[0]?.message?.content || "{}";
     return sanitizeResult(parseSuggestionJson(content), fallback);
   } catch (error) {
     console.error("[AI Upload Suggestions] Error:", error);

@@ -62,13 +62,13 @@ export default async function DraftsPage(
       : [];
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto px-4 md:px-6">
       <h1 className="text-2xl font-black text-[#0D0D0D] mb-6">Schițe & Programate</h1>
 
-      <div className="flex gap-2 mb-6 border-b border-[#E5E5E5]">
+      <div className="flex gap-2 mb-6 border-b border-[#E5E5E5] overflow-x-auto">
         <Link
           href="/creator/drafts?tab=drafts"
-          className={`px-4 py-3 text-sm font-bold border-b-2 transition ${
+          className={`px-4 py-3 min-h-[44px] text-sm font-bold border-b-2 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none whitespace-nowrap ${
             tab === "drafts" ? "border-[#7C3AED] text-[#7C3AED]" : "border-transparent text-[#6E6E80] hover:text-[#0D0D0D]"
           }`}
         >
@@ -76,7 +76,7 @@ export default async function DraftsPage(
         </Link>
         <Link
           href="/creator/drafts?tab=scheduled"
-          className={`px-4 py-3 text-sm font-bold border-b-2 transition ${
+          className={`px-4 py-3 min-h-[44px] text-sm font-bold border-b-2 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none whitespace-nowrap ${
             tab === "scheduled" ? "border-[#7C3AED] text-[#7C3AED]" : "border-transparent text-[#6E6E80] hover:text-[#0D0D0D]"
           }`}
         >
@@ -117,9 +117,9 @@ export default async function DraftsPage(
                   <div className="mt-auto flex gap-2">
                     <Link
                       href={`/upload?draft=${d.id}`}
-                      className="flex-1 h-9 rounded-lg bg-[#7C3AED] text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-[#6D28D9]"
+                      className="flex-1 h-11 rounded-lg bg-[#7C3AED] text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-[#6D28D9] focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
                     >
-                      <Pencil size={12} /> Editează
+                      <Pencil size={14} /> Editează
                     </Link>
                     <DraftActions
                       videoId={d.id}
@@ -188,7 +188,7 @@ function EmptyState({ title, hint }: { title: string; hint: string }) {
       <p className="text-sm text-[#6E6E80] max-w-sm mx-auto">{hint}</p>
       <Link
         href="/upload"
-        className="inline-flex mt-4 h-10 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold items-center"
+        className="inline-flex mt-4 h-11 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold items-center focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none hover:bg-[#6D28D9]"
       >
         Încarcă clip nou
       </Link>

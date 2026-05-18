@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { autoEmbedVideo } from "@/lib/ai/auto-embed";
 import { dbQuery } from "@/lib/db";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
@@ -142,11 +143,13 @@ export async function POST(req: Request) {
           [videoId]
         );
         // Also set parent video to ready + public
-        await dbQuery(
+        const { rows: appRows } = await dbQuery<{ id: string; title: string | null; description: string | null }>(
           `UPDATE videos SET status = 'ready', visibility = 'public', published_at = NOW()
-           WHERE id = (SELECT video_id FROM video_assets WHERE id = $1)`,
+           WHERE id = (SELECT video_id FROM video_assets WHERE id = $1)
+           RETURNING id, title, description`,
           [videoId]
         );
+        if (appRows[0]?.id) autoEmbedVideo(appRows[0].id, appRows[0].title, appRows[0].description);
 
         // Fire-and-forget creator email notification
         dbQuery(

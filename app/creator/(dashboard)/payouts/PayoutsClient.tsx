@@ -143,7 +143,7 @@ export default function PayoutsClient({
   }, [toast]);
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
       <header className="mb-6 flex items-center gap-3">
         <Banknote size={28} className="text-[#0D0D0D]" />
         <div>
@@ -162,7 +162,7 @@ export default function PayoutsClient({
         <section className="rounded-2xl border border-[#E5E5E5] bg-white p-6">
           <h2 className="text-lg font-black mb-2">Activează plățile</h2>
           <p className="text-sm text-[#6E6E80] mb-4">Vei fi redirecționat către Stripe pentru a-ți completa datele de identitate și contul bancar. Procesul durează 3-5 minute.</p>
-          <button onClick={startOnboarding} disabled={busy} className="px-5 py-3 rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50">
+          <button type="button" onClick={startOnboarding} disabled={busy} className="inline-flex items-center justify-center px-5 py-3 min-h-[44px] rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none hover:bg-black">
             {busy ? "Se inițializează..." : "Activează plățile"}
           </button>
         </section>
@@ -180,7 +180,7 @@ export default function PayoutsClient({
               {status.requirementsCurrentlyDue.slice(0, 8).map((r) => <li key={r}>{r}</li>)}
             </ul>
           )}
-          <button onClick={startOnboarding} disabled={busy} className="px-5 py-3 rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50">
+          <button type="button" onClick={startOnboarding} disabled={busy} className="inline-flex items-center justify-center px-5 py-3 min-h-[44px] rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none hover:bg-black">
             {busy ? "..." : "Continuă verificarea"}
           </button>
         </section>
@@ -195,7 +195,7 @@ export default function PayoutsClient({
               </p>
             </div>
           </div>
-          <button onClick={openDashboard} disabled={busy} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50">
+          <button type="button" onClick={openDashboard} disabled={busy} className="inline-flex items-center gap-2 px-5 py-3 min-h-[44px] rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none hover:bg-black">
             Deschide dashboard Stripe <ExternalLink size={16} />
           </button>
         </section>
@@ -207,7 +207,8 @@ export default function PayoutsClient({
           <p className="text-sm text-[#6E6E80]">Nu există transferuri Stripe încă.</p>
         ) : (
           <div className="rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
               <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
                 <tr>
                   <th className="px-4 py-2">Data</th>
@@ -234,6 +235,7 @@ export default function PayoutsClient({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </section>
@@ -244,7 +246,8 @@ export default function PayoutsClient({
           <p className="text-sm text-[#6E6E80]">Nu există plăți încă.</p>
         ) : (
           <div className="rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
               <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
                 <tr>
                   <th className="px-4 py-2">Data</th>
@@ -268,6 +271,7 @@ export default function PayoutsClient({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </section>

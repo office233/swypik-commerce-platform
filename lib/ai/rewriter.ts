@@ -1,27 +1,11 @@
 /**
- * AI Product Rewriter
- * Takes raw supplier product data and creates
- * beautiful Romanian titles, descriptions, and benefits
- * Supports OpenRouter + OpenAI
+ * AI Product Rewriter - Migrated to Copilot 2-pass auth via fetchCopilot.
  */
 
-import OpenAI from "openai";
-
-function getAIClient(): OpenAI | null {
-  if (process.env.OPENROUTER_API_KEY) {
-    return new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: "https://openrouter.ai/api/v1",
-    });
-  }
-  if (process.env.OPENAI_API_KEY) {
-    return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return null;
-}
+import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
 
 function getModel(): string {
-  return process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
+  return (process.env.REWRITER_MODEL || process.env.OPENROUTER_MODEL || "gpt-4o-mini").replace(/^openai\//, "");
 }
 
 export type RewriteResult = {
@@ -33,27 +17,17 @@ export type RewriteResult = {
   warnings: string[];
 };
 
-const REWRITE_PROMPT = `Ești CEL MAI BUN copywriter de vânzări din România. Scrii pentru un magazin online premium.
-Primești un produs cu titlu și descriere în engleză. Transformă-l într-o ofertă IREZISTIBILĂ.
+const REWRITE_PROMPT = `Esti CEL MAI BUN copywriter de vanzari din Romania. Scrii pentru un magazin online premium.
+Transforma produsul in oferta IREZISTIBILA.
 
-REGULI:
-- Titlu: max 60 caractere, în ROMÂNĂ, sexy, care atrage instant atenția. Folosește emoji-uri strategic
-- Descriere: 2-3 propoziții MAGNETICE care creează dorință. Subliniază economiile vs. magazinele din România
-- Beneficii: exact 3 bullet points PUTERNICE. Folosește ✅ și limbaj de urgență
-- Deal label: Alege cel mai potrivit: "🔥 Super Ofertă" / "⚡ Flash Sale" / "💎 Premium" / "🏆 Nr.1 Vânzări" / "🎯 Cel mai mic preț"
-- whyBuy: O propoziție KILLER care face clientul să cumpere ACUM (menționează prețul mic vs. România)
-- Warnings: Include "⏰ Stoc limitat" + o atenționare reală
-
-TONUL: Profesionist dar URGENT. Fă clientul să simtă că pierde o oportunitate dacă nu cumpără.
-
-Răspunde DOAR cu JSON valid (fără markdown, fără backticks):
+Raspunde DOAR cu JSON valid:
 {
-  "aiTitle": "Titlul MAGNETIC tradus din original",
-  "aiDescription": "Descriere care VINDE",
-  "benefits": ["✅ Beneficiu puternic 1", "✅ Beneficiu puternic 2", "✅ Beneficiu puternic 3"],
-  "dealLabel": "Label marketing",
-  "whyBuy": "De ce trebuie să cumperi ACUM",
-  "warnings": ["⏰ Stoc limitat", "Atenționare reală"]
+  "aiTitle": "Titlu RO max 60 char",
+  "aiDescription": "2-3 propozitii magnetice",
+  "benefits": ["B1","B2","B3"],
+  "dealLabel": "label",
+  "whyBuy": "de ce ACUM",
+  "warnings": ["w1","w2"]
 }`;
 
 export async function rewriteProduct(product: {
@@ -65,41 +39,37 @@ export async function rewriteProduct(product: {
   category: string;
   deliveryDays: number;
 }): Promise<RewriteResult> {
-  const client = getAIClient();
-  if (!client) {
-    return fallbackRewrite(product);
-  }
+  if (getCopilotGhuTokens().length === 0) return fallbackRewrite(product);
 
   try {
-    const model = getModel();
-
-    const completion = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: "system", content: REWRITE_PROMPT },
-        {
-          role: "user",
-          content: `Produs de rescris:
-Titlu original: ${product.title}
-Descriere originală: ${product.description}
-Preț: ${product.price} lei
-Rating: ${product.rating}/5
-Comenzi: ${product.orders}
-Categorie: ${product.category}
-Livrare: ${product.deliveryDays} zile`,
-        },
-      ],
-      temperature: 0.8,
-      max_tokens: 400,
+    const { res } = await fetchCopilot("/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: getModel(),
+        messages: [
+          { role: "system", content: REWRITE_PROMPT },
+          {
+            role: "user",
+            content: `Titlu: ${product.title}\nDescriere: ${product.description}\nPret: ${product.price} lei\nRating: ${product.rating}/5\nComenzi: ${product.orders}\nCategorie: ${product.category}\nLivrare: ${product.deliveryDays} zile`,
+          },
+        ],
+        temperature: 0.8,
+        max_tokens: 400,
+        response_format: { type: "json_object" },
+      }),
     });
 
-    const content = completion.choices[0]?.message?.content || "{}";
+    if (!res.ok) {
+      console.warn("[AI Rewriter] http", res.status);
+      return fallbackRewrite(product);
+    }
+    const json: any = await res.json();
+    const content = json?.choices?.[0]?.message?.content || "{}";
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-
     try {
       return JSON.parse(cleaned) as RewriteResult;
     } catch {
-      console.log("[AI Rewriter] JSON parse failed, using fallback");
       return fallbackRewrite(product);
     }
   } catch (error) {
@@ -117,26 +87,14 @@ function fallbackRewrite(product: {
   category: string;
   deliveryDays: number;
 }): RewriteResult {
-  const cleanTitle = product.title
-    .replace(/[^\x00-\x7F\u0100-\u024F\u0250-\u02AF\u1E00-\u1EFF]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 60);
-
+  const cleanTitle = product.title.replace(/\s+/g, " ").trim().slice(0, 60);
   const discountPercent = Math.round(Math.random() * 15 + 25);
-
   return {
     aiTitle: cleanTitle || product.title.slice(0, 60),
-    aiDescription: product.description || `Un produs ${product.category} cu rating de ${product.rating}/5 și peste ${product.orders} comenzi. Livrare în ${product.deliveryDays} zile.`,
-    benefits: [
-      `Rating excelent: ${product.rating}/5`,
-      `Peste ${product.orders} clienți mulțumiți`,
-      `Livrare în ${product.deliveryDays} zile`,
-    ],
+    aiDescription: product.description || `Produs ${product.category} cu rating ${product.rating}/5 si peste ${product.orders} comenzi.`,
+    benefits: [`Rating: ${product.rating}/5`, `Peste ${product.orders} clienti`, `Livrare ${product.deliveryDays} zile`],
     dealLabel: product.rating >= 4.8 ? "Top rating" : `-${discountPercent}%`,
-    whyBuy: `Raport bun între preț, calitate și livrare rapidă.`,
-    warnings: product.deliveryDays > 15
-      ? ["Livrarea poate dura până la " + product.deliveryDays + " zile"]
-      : [],
+    whyBuy: `Raport bun pret/calitate si livrare rapida.`,
+    warnings: product.deliveryDays > 15 ? ["Livrare lenta"] : [],
   };
 }

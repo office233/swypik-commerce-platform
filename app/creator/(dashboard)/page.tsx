@@ -246,7 +246,7 @@ export default async function CreatorDashboard() {
   ]);
 
   return (
-    <div className="space-y-6 animate-fadeIn mobile-page-bottom">
+    <div className="space-y-6 animate-fadeIn mobile-page-bottom max-w-7xl mx-auto pb-[max(24px,env(safe-area-inset-bottom))]">
       <div>
         <h1 className="text-3xl font-black text-[#0D0D0D]">Dashboard Creator</h1>
         <p className="text-[#6E6E80] mt-2">Bine ai venit! Aici poți urmări performanța clipurilor tale în ultimele 30 de zile.</p>
@@ -350,7 +350,7 @@ export default async function CreatorDashboard() {
             </p>
           </div>
         </div>
-        <Link href="/creator/earnings" className="inline-block mt-4 text-sm font-bold text-[#7C3AED] hover:underline">
+        <Link href="/creator/earnings" className="inline-flex items-center mt-4 min-h-[44px] px-3 -mx-3 rounded-lg text-sm font-bold text-[#7C3AED] hover:underline focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
           Vezi detalii câștiguri →
         </Link>
       </section>

@@ -80,6 +80,12 @@ while true; do
     run_job detect-trends POST
     run_job watchdog-videos POST
   fi
+  # Weekly Monday 09:00 — email digest
+  DOW=$(date -u +%u); HOUR=$(date -u +%H); MIN=$(date -u +%M)
+  if [ "${DOW}" = "1" ] && [ "${HOUR}" = "09" ] && [ "${MIN}" -lt 2 ]; then
+    run_job email-digest POST
+  fi
+
   # Once per day
   if [ $((TICK % 86400)) -lt 60 ]; then
     run_job suspend-unverified GET

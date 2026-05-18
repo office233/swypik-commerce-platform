@@ -61,15 +61,17 @@ export default function SellerProductsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-black text-[#0D0D0D]">Produsele mele</h1>
           <p className="text-sm text-[#6E6E80] mt-1">Gestionează catalogul tău de produse locale.</p>
         </div>
         <button
+          type="button"
           onClick={() => setIsAdding(true)}
-          className="bg-[#0D0D0D] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#0D0D0D]/80 transition active:scale-95"
+          aria-label="Adaugă produs nou"
+          className="inline-flex items-center justify-center bg-[#0D0D0D] text-white px-5 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:bg-[#0D0D0D]/80 transition active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           + Adaugă Produs
         </button>
@@ -121,11 +123,11 @@ export default function SellerProductsPage() {
       </div>
 
       {isAdding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0D0D0D]/40 backdrop-blur-sm">
+        <div role="dialog" aria-modal="true" aria-labelledby="add-product-title" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0D0D0D]/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="px-6 py-4 border-b border-[#E5E5E5] flex items-center justify-between">
-              <h3 className="font-black text-[#0D0D0D] text-lg">Adaugă Produs Nou</h3>
-              <button onClick={() => setIsAdding(false)} className="text-[#6E6E80] hover:text-[#0D0D0D] text-xl">✕</button>
+              <h3 id="add-product-title" className="font-black text-[#0D0D0D] text-lg">Adaugă Produs Nou</h3>
+              <button type="button" aria-label="Închide" onClick={() => setIsAdding(false)} className="w-11 h-11 inline-flex items-center justify-center rounded-lg text-[#6E6E80] hover:text-[#0D0D0D] hover:bg-[#F7F7F8] text-xl focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">✕</button>
             </div>
             <form onSubmit={handleAddProduct} className="p-6">
               <div className="space-y-4">
@@ -148,7 +150,7 @@ export default function SellerProductsPage() {
                   </div>
                 </div>
               </div>
-              <button disabled={saving} type="submit" className="w-full bg-[#0D0D0D] text-white font-bold py-3.5 rounded-xl mt-6 hover:bg-[#0E906F] transition active:scale-95 disabled:opacity-50">
+              <button disabled={saving} type="submit" className="w-full bg-[#0D0D0D] text-white font-bold py-3.5 min-h-[48px] rounded-xl mt-6 hover:bg-[#0E906F] transition active:scale-95 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
                 {saving ? "Se salvează..." : "Salvează Produsul"}
               </button>
             </form>

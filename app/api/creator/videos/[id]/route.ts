@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { autoEmbedVideo } from "@/lib/ai/auto-embed";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserIdWithRoleCheck } from "@/lib/creator/session";
 import { logger } from "@/lib/logger";
@@ -247,6 +248,12 @@ export async function PATCH(
 
     const sql = `UPDATE videos SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, creator_id, title, description, thumbnail_url, visibility, status, tags, published_at, updated_at, is_draft, scheduled_publish_at, allow_duet, allow_stitch, allow_comments`;
     const { rows: updated } = await dbQuery(sql, values);
+
+    // Re-embed dacă title/description s-au schimbat
+    const u = updated[0];
+    if (u?.id && (sets.some((s: string) => /^title\s*=/.test(s) || /^description\s*=/.test(s)))) {
+      autoEmbedVideo(u.id, u.title, u.description);
+    }
 
     return NextResponse.json({ success: true, video: updated[0] });
   } catch (err: any) {
