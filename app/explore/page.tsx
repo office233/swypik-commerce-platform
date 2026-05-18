@@ -1,6 +1,6 @@
 /**
  * Explore — RSC shell.
- * Fetches first 3 videos server-side so LCP gets a poster without waiting for JS.
+ * Fetches the first feed batch server-side so LCP gets a poster without waiting for JS.
  * Heavy interactive feed lives in ExploreClient.tsx (client component).
  */
 import { headers } from "next/headers";
@@ -15,13 +15,13 @@ async function fetchSeed(category: string): Promise<any[]> {
     const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
     const proto = h.get("x-forwarded-proto") || "https";
     const qs = category ? `&taxonomy_node_slug=${encodeURIComponent(category)}` : "";
-    const res = await fetch(`${proto}://${host}/api/explore/feed?limit=3${qs}`, {
+    const res = await fetch(`${proto}://${host}/api/explore/feed?limit=30${qs}`, {
       cache: "no-store",
       headers: { cookie: h.get("cookie") || "" },
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data?.videos) ? data.videos.slice(0, 3) : [];
+    return Array.isArray(data?.videos) ? data.videos.slice(0, 30) : [];
   } catch {
     return [];
   }

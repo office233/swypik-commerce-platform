@@ -27,6 +27,34 @@ const BASE_PRODUCT_SELECT = `
    AND ap.ae_product_id::text = p.supplier_product_id
   LEFT JOIN ae_categories ac ON ac.ae_category_id = ap.category_id
   LEFT JOIN ae_categories ar ON ar.ae_category_id = COALESCE(ac.parent_id, ac.ae_category_id)
+  LEFT JOIN LATERAL (
+    SELECT
+      v.id AS linked_video_id,
+      v.playback_url AS linked_video_playback_url,
+      v.thumbnail_url AS linked_video_thumbnail_url,
+      va.object_key AS linked_video_source_key
+    FROM videos v
+    LEFT JOIN LATERAL (
+      SELECT object_key
+      FROM video_assets
+      WHERE video_id = v.id AND asset_type = 'source'
+      ORDER BY created_at DESC
+      LIMIT 1
+    ) va ON true
+    WHERE v.status = 'ready'
+      AND v.visibility = 'public'
+      AND COALESCE(v.is_hidden, false) = false
+      AND EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(
+          CASE WHEN jsonb_typeof(v.product_refs) = 'array' THEN v.product_refs ELSE '[]'::jsonb END
+        ) ref
+        WHERE (jsonb_typeof(ref) = 'object' AND ref->>'product_id' = p.id::text)
+           OR (jsonb_typeof(ref) = 'string' AND ref #>> '{}' = p.id::text)
+      )
+    ORDER BY v.created_at DESC
+    LIMIT 1
+  ) linked_video ON true
 `;
 
 const BASE_PRODUCT_COLUMNS = `
@@ -60,6 +88,10 @@ const BASE_PRODUCT_COLUMNS = `
     ap.video_url AS ae_video_url,
     ap.has_video AS ae_has_video,
     ap.store_name AS ae_store_name,
+    linked_video.linked_video_id AS linked_video_id,
+    linked_video.linked_video_playback_url AS linked_video_playback_url,
+    linked_video.linked_video_thumbnail_url AS linked_video_thumbnail_url,
+    linked_video.linked_video_source_key AS linked_video_source_key,
     ac.ae_category_id AS ae_category_id,
     ac.name AS ae_category_name,
     ac.name_ro AS ae_category_name_ro,
@@ -70,7 +102,29 @@ const BASE_PRODUCT_COLUMNS = `
 
 const ORDERS_SQL = `COALESCE(NULLIF(p.metadata->>'orders_count', '')::int, ap.orders_count, 0)`;
 const RATING_SQL = `COALESCE(NULLIF(p.metadata->>'rating', '')::numeric, ap.rating, 0)`;
-const VIDEO_SQL = `COALESCE((p.metadata->>'has_video')::boolean, ap.has_video, false)`;
+const VIDEO_SQL = `(
+  COALESCE((p.metadata->>'has_video')::boolean, ap.has_video, false)
+  OR NULLIF(p.metadata->>'ae_video_url', '') IS NOT NULL
+  OR CASE
+    WHEN jsonb_typeof(p.metadata->'videos') = 'array' THEN jsonb_array_length(p.metadata->'videos') > 0
+    ELSE false
+  END
+  OR EXISTS (
+    SELECT 1
+    FROM videos v
+    WHERE v.status = 'ready'
+      AND v.visibility = 'public'
+      AND COALESCE(v.is_hidden, false) = false
+      AND EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(
+          CASE WHEN jsonb_typeof(v.product_refs) = 'array' THEN v.product_refs ELSE '[]'::jsonb END
+        ) ref
+        WHERE (jsonb_typeof(ref) = 'object' AND ref->>'product_id' = p.id::text)
+           OR (jsonb_typeof(ref) = 'string' AND ref #>> '{}' = p.id::text)
+      )
+  )
+)`;
 const DISCOUNT_SQL = `GREATEST(COALESCE(p.compare_at_price_cents, 0) - COALESCE(p.price_cents, 0), 0)`;
 const ROOT_CATEGORY_ID_SQL = `COALESCE(NULLIF(p.metadata->>'ae_root_category_id', ''), ar.ae_category_id::text, NULLIF(p.metadata->>'ae_category_id', ''), ac.ae_category_id::text, '')`;
 const ACTUAL_ROOT_CATEGORY_ID_SQL = `COALESCE(NULLIF(p.metadata->>'ae_root_category_id', ''), ar.ae_category_id::text, '')`;
@@ -146,6 +200,32 @@ function buildImages(row: any, metadata: any) {
     }
   }
   return images.slice(0, 6);
+}
+
+function firstMetadataVideoUrl(metadata: any) {
+  const direct = firstNonEmpty(
+    metadata.video_url,
+    metadata.ae_video_url,
+    getMetadataValue(metadata, "video.url"),
+    getMetadataValue(metadata, "video.play_url"),
+  );
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+
+  const videos = Array.isArray(metadata?.videos) ? metadata.videos : [];
+  for (const entry of videos) {
+    if (typeof entry === "string" && entry.trim()) return entry.trim();
+    if (entry && typeof entry === "object") {
+      const url = firstNonEmpty(
+        (entry as any).url,
+        (entry as any).video_url,
+        (entry as any).play_url,
+        (entry as any).media_url,
+      );
+      if (typeof url === "string" && url.trim()) return url.trim();
+    }
+  }
+
+  return undefined;
 }
 
 function chooseLocalizedLabel(
@@ -224,8 +304,12 @@ function transformProduct(row: any, locale = "ro") {
     row.ae_ship_free,
     shipCostUsd === 0,
   ) || false;
-  const video = firstNonEmpty(metadata.video_url, row.ae_video_url);
-  const hasVideo = toBoolean(metadata.has_video, row.ae_has_video, Boolean(metadata.video_url || row.ae_video_url)) || false;
+  const publicUrl = (process.env.S3_PUBLIC_URL || process.env.R2_PUBLIC_URL || "").replace(/\/$/, "");
+  const linkedSourceUrl = row.linked_video_source_key && publicUrl
+    ? `${publicUrl}/${row.linked_video_source_key}`
+    : undefined;
+  const video = firstNonEmpty(firstMetadataVideoUrl(metadata), row.ae_video_url, linkedSourceUrl, row.linked_video_playback_url);
+  const hasVideo = toBoolean(metadata.has_video, row.ae_has_video, Boolean(video || row.linked_video_id)) || false;
 
   return {
     id: String(row.id),
@@ -249,6 +333,8 @@ function transformProduct(row: any, locale = "ro") {
     hasValidPrice,
     images,
     video: typeof video === "string" ? video : undefined,
+    videoId: row.linked_video_id ? String(row.linked_video_id) : undefined,
+    videoThumbnail: typeof row.linked_video_thumbnail_url === "string" ? row.linked_video_thumbnail_url : undefined,
     hasVideo,
     category,
     categoryId,

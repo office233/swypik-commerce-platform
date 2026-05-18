@@ -136,6 +136,10 @@ export async function GET(req: Request) {
           priceRon: p.price,
           oldPrice: p.oldPrice != null ? convertPrice(p.oldPrice) : null,
           thumbnail: p.image || p.thumbnail || (Array.isArray(p.images) ? p.images[0] : null),
+          video: p.video || null,
+          hasVideo: Boolean(p.hasVideo || p.video),
+          videoId: p.videoId || null,
+          videoThumbnail: p.videoThumbnail || null,
         }))
       : (result.products || []).map((p: any) => ({
           ...p,

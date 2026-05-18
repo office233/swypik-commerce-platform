@@ -20,6 +20,8 @@ function toFeedItem(product: any, index: number, seed: number) {
   const numericProductId = Number(product.pgId || product.id);
   const videoId = product.video_id || product.videoId || (product.video ? `product_${product.id}` : `feed_${product.id}`);
   const creatorId = product.creator_id || product.creatorId || "swypik";
+  const videoUrl = typeof product.video === "string" ? product.video : null;
+  const isHls = videoUrl ? /\.m3u8(\?|$)/i.test(videoUrl) : false;
   const score =
     (product.orders || 0) * 0.45 +
     (product.rating || 0) * 80 +
@@ -41,10 +43,10 @@ function toFeedItem(product: any, index: number, seed: number) {
       avatarUrl: null,
     },
     video: {
-      hlsUrl: product.video || null,
-      mp4Url: product.video || null,
+      hlsUrl: isHls ? videoUrl : null,
+      mp4Url: videoUrl && !isHls ? videoUrl : null,
       posterUrl: product.images?.[0] || null,
-      status: product.video ? "ready" : "poster_only",
+      status: videoUrl ? "ready" : "poster_only",
     },
     product: {
       ...product,
@@ -69,15 +71,97 @@ function toFeedItem(product: any, index: number, seed: number) {
   };
 }
 
+function toExploreFeedItem(video: any, index: number, seed: number) {
+  const productId = video.product?.id ? String(video.product.id) : null;
+  const likes = Number(video.likes) || 0;
+  const comments = Number(video.comments) || 0;
+  const creatorId = video.creator?.id || "swypik";
+  const score = (Number(video.product?.swypikScore) || 60) + ((seed + index * 31) % 10);
+
+  return {
+    id: String(video.id),
+    product_id: productId,
+    productId: productId,
+    video_id: String(video.id),
+    videoId: String(video.id),
+    creator_id: creatorId,
+    creatorId,
+    creator: {
+      id: creatorId,
+      username: video.creator?.username || "swypik-system",
+      displayName: video.creator?.name || "Swypik",
+      avatarUrl: video.creator?.avatar || null,
+    },
+    video: {
+      hlsUrl: video.hlsUrl || null,
+      mp4Url: video.url || null,
+      posterUrl: video.thumbnail || null,
+      status: video.url ? "ready" : "poster_only",
+    },
+    product: video.product || null,
+    stats: {
+      likes,
+      comments,
+      saves: Number(video.saves) || 0,
+      shares: Number(video.shares) || 0,
+      orders: 0,
+    },
+    ranking: {
+      score,
+      reason: "explore_feed_filtered",
+    },
+  };
+}
+
 export async function GET(req: Request) {
   try {
-    const proxied = await proxyToSocialApi(req, "/v1/feed");
-    if (proxied) return proxied;
-
     const url = new URL(req.url);
     const limit = toInt(url.searchParams.get("limit"), 15, 1, 50);
     const offset = toInt(url.searchParams.get("offset"), 0, 0, 100000);
     const seed = toInt(url.searchParams.get("seed"), 0, 0, 1000000);
+
+    if (url.searchParams.get("source") === "platform") {
+      const proxied = await proxyToSocialApi(req, "/v1/feed");
+      if (proxied) return proxied;
+    }
+
+    try {
+      const page = Math.floor(offset / limit) + 1;
+      const exploreUrl = new URL("/api/explore/feed", url.origin);
+      exploreUrl.searchParams.set("limit", String(limit));
+      exploreUrl.searchParams.set("page", String(page));
+      const cookie = req.headers.get("cookie");
+      const exploreResponse = await fetch(exploreUrl, {
+        cache: "no-store",
+        headers: cookie ? { cookie } : undefined,
+      });
+      if (exploreResponse.ok) {
+        const payload = await exploreResponse.json();
+        const videos = Array.isArray(payload?.videos) ? payload.videos : [];
+        const items = videos.map((video: any, index: number) => toExploreFeedItem(video, offset + index, seed));
+        return NextResponse.json(
+          {
+            items,
+            products: videos.map((video: any) => video.product).filter(Boolean),
+            paging: {
+              offset,
+              limit,
+              nextOffset: payload?.hasMore ? offset + items.length : null,
+              total: null,
+            },
+            source: "explore-feed",
+          },
+          {
+            headers: {
+              "Cache-Control": "public, max-age=30, s-maxage=120, stale-while-revalidate=240",
+              "CDN-Cache-Control": "public, max-age=120",
+            },
+          }
+        );
+      }
+    } catch (e) {
+      logger.warn({ err: e }, "[v1/feed] explore-feed bridge failed");
+    }
 
     const result = await searchProducts({
       mode: "video",

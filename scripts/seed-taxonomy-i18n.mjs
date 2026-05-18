@@ -15,9 +15,7 @@
  */
 import pg from "pg";
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-
-const TREE = [
+export const TREE = [
   // ── FASHION ──────────────────────────────────────────────────────────────
   {
     slug: "fashion",
@@ -59,6 +57,7 @@ const TREE = [
               { dep: "fashion", cat: "women", sub: "vintage dresses" },
               { dep: "fashion", cat: "wedding", sub: "rochii pentru nuntă" },
               { dep: "fashion", cat: "wedding", sub: "mother of bride" },
+              { dep: "fashion", cat: "wedding", sub: "rochii de bal" },
               { dep: "fashion", cat: "wedding", sub: "ținute de petrecere și vacanță" },
               { dep: "fashion", cat: "wedding" },
             ],
@@ -69,6 +68,9 @@ const TREE = [
             match: [
               { dep: "fashion", cat: "women", sub: "tops" },
               { dep: "fashion", cat: "women", sub: "topuri și tricouri" },
+              { dep: "fashion", cat: "women", sub: "body-uri" },
+              { dep: "fashion", cat: "women", sub: "crop tops" },
+              { dep: "fashion", cat: "women", sub: "maiouri" },
               { dep: "fashion", cat: "women", sub: "bluze și cămăși" },
               { dep: "fashion", cat: "women", sub: "cămăși și bluze" },
               { dep: "fashion", cat: "women", sub: "plus size tops" },
@@ -228,6 +230,8 @@ const TREE = [
             labels: { en: "Women's lingerie", ro: "Lenjerie intimă damă" },
             match: [
               { dep: "fashion", cat: "underwear", sub: "lenjerie intimă damă" },
+              { dep: "fashion", cat: "underwear", sub: "bustiere" },
+              { dep: "fashion", cat: "underwear", sub: "furouri" },
               { dep: "fashion", cat: "underwear", sub: "women" },
               { dep: "fashion", cat: "underwear", sub: "pijamale și loungewear damă" },
             ],
@@ -589,7 +593,7 @@ const TREE = [
   { slug: "other", kind: "department", labels: { en: "Other", ro: "Altele" }, aeRoots: [] },
 ];
 
-function flatten(tree, parent = null, kindFallback = "category") {
+export function flatten(tree, parent = null, kindFallback = "category") {
   const out = [];
   let order = 10;
   for (const node of tree) {
@@ -646,7 +650,7 @@ async function upsertNodes(client, flat) {
  * Build (dep|cat|sub) → slug lookup. More specific matches (with `sub`)
  * win over less specific (`cat`-only, then `dep`-only).
  */
-function buildMatcher(flat) {
+export function buildMatcher(flat) {
   const exact = new Map();
   const catOnly = new Map();
   const depOnly = new Map();
@@ -665,7 +669,7 @@ function buildMatcher(flat) {
   return { exact, catOnly, depOnly };
 }
 
-function resolveSlug(matcher, dep, cat, sub) {
+export function resolveSlug(matcher, dep, cat, sub) {
   const d = norm(dep);
   const c = norm(cat);
   const s = norm(sub);
@@ -702,6 +706,7 @@ async function reclassifyProducts(client, matcher) {
 }
 
 async function main() {
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   const client = await pool.connect();
   try {
     const flat = flatten(TREE);
@@ -733,7 +738,9 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

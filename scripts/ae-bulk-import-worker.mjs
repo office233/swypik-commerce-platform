@@ -39,6 +39,7 @@ import fs from 'node:fs';
 import readline from 'node:readline';
 import { createRequire } from 'node:module';
 import { resolveTaxonomyV2, loadCategories, loadFullChainCache } from '../lib/aliexpress/taxonomy-resolver.mjs';
+import { TREE, flatten, buildMatcher, resolveSlug } from './seed-taxonomy-i18n.mjs';
 
 const requireFromApp = createRequire('/opt/swypik/app/package.json');
 const { Pool } = requireFromApp('pg');
@@ -86,6 +87,7 @@ const log = (level, msg, extra = {}) => {
 
 // ─── DB ──────────────────────────────────────────────────────────────────────
 const pool = new Pool({ connectionString: hostDbUrl(), max: 5 });
+const uiTaxonomyMatcher = buildMatcher(flatten(TREE));
 
 if (STATUS) {
   const { rows } = await pool.query(`SELECT status, count(*) FROM ae_import_jobs GROUP BY status ORDER BY status`);
@@ -194,9 +196,18 @@ const ADULT_TERMS = [
   'anal beads','anal toy','cock ring','penis ring','penis pump','penis sleeve','vibrating egg',
   'love egg','g-spot','g spot','lubricant sex','sex lubricant','personal lubricant','adult only',
   'adult-only','adults only','erotic','porn','pornographic','nsfw','crotchless','pheromone','xxx','18+',
+  'sissy','chastity','open butt','anal','penis','bulge','g-string','g string','jockstrap','jock strap',
+];
+const ADULT_COMBO_RULES = [
+  { reason: 'matched jockstrap+g-string', pattern: /(?:jock\s*strap|jockstrap).*g[-\s]?strings?|g[-\s]?strings?.*(?:jock\s*strap|jockstrap)/i },
+  { reason: 'matched thong underwear', pattern: /\b(?:thongs?|g[-\s]?strings?)\b.*\b(?:underwear|underpants|panties|lingerie|pouch)\b|\b(?:underwear|underpants|panties|lingerie|pouch)\b.*\b(?:thongs?|g[-\s]?strings?)\b/i },
+  { reason: 'matched sexualized underwear', pattern: /\b(?:sexy|transparent|see[-\s]?through|hollow|backless)\b.{0,80}\b(?:lingerie|panties|panty|underwear|underpants|briefs|bras?|breasts?)\b|\b(?:lingerie|panties|panty|underwear|underpants|briefs|bras?|breasts?)\b.{0,80}\b(?:sexy|transparent|see[-\s]?through|hollow|backless)\b/i },
 ];
 function adultReason(p) {
   const t = `${p.title} ${p.description || ''}`.toLowerCase();
+  for (const rule of ADULT_COMBO_RULES) {
+    if (rule.pattern.test(t)) return rule.reason;
+  }
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   for (const term of ADULT_TERMS) {
     if (new RegExp('(^|[^a-z0-9])' + esc(term) + '([^a-z0-9]|$)', 'i').test(t)) return 'matched ' + term;
@@ -284,11 +295,14 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
     leafCatId: product.categoryId || null,
     aeCategoryId: product.categoryId || null,
   }, aeCategories, chainCache);
+  const uiTax = resolveSlug(uiTaxonomyMatcher, tax.department, tax.category, tax.subcategory);
   const canonicalCategory = tax.canonical;
   const taxonomySlug = tax.slug;
+  const taxonomyNodeSlug = uiTax.slug;
   const totalStock = product.variants.reduce((s, v) => s + v.stock, 0);
   const activePrices = product.variants.filter(v => v.status === 'active').map(v => centsRon(v.priceRon)).filter(Number.isFinite);
   const priceCents = activePrices.length ? Math.min(...activePrices) : centsRon(product.variants[0].priceRon);
+  const productStatus = tax.unresolved || totalStock <= 0 || ar ? 'draft' : 'active';
   const slug = `${slugify(product.title) || 'aliexpress-product'}-${product.id}`;
 
   const metadata = {
@@ -303,6 +317,8 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
     product_type: tax.leaf,
     ae_category_name: tax.leaf,
     taxonomy_resolver_version: 2,
+    taxonomy_node_slug: taxonomyNodeSlug,
+    taxonomy_node_confidence: uiTax.confidence,
     ae_chain_ids: tax.chainIds || [],
     ae_chain_names_ro: tax.chainNamesRo || [],
     taxonomy_unresolved: Boolean(tax.unresolved),
@@ -332,7 +348,7 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
       supplier_url, supplier_cost_cents, canonical_category, canonical_category_slug,
       classification_confidence, classification_reason, taxonomy_department,
       taxonomy_category, taxonomy_subcategory, taxonomy_leaf, taxonomy_slug,
-      taxonomy_confidence, taxonomy_reason, is_adult, adult_reason, taxonomy_unresolved, created_at, updated_at
+      taxonomy_node_slug, taxonomy_confidence, taxonomy_reason, is_adult, adult_reason, taxonomy_unresolved, created_at, updated_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $21, 'RON', $8::int, NULL,
@@ -340,7 +356,7 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
       $6, NULL, $11, $12,
       $13, $14, $15,
       $16, $17, $18, $12,
-      $13, $14, $19, $20, $22, now(), now()
+      $23, $13, $14, $19, $20, $22, now(), now()
     )
     ON CONFLICT (source_type, supplier, supplier_product_id)
     WHERE supplier_product_id IS NOT NULL
@@ -355,7 +371,8 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
       canonical_category=EXCLUDED.canonical_category, canonical_category_slug=EXCLUDED.canonical_category_slug,
       taxonomy_department=EXCLUDED.taxonomy_department, taxonomy_category=EXCLUDED.taxonomy_category,
       taxonomy_subcategory=EXCLUDED.taxonomy_subcategory, taxonomy_leaf=EXCLUDED.taxonomy_leaf,
-      taxonomy_slug=EXCLUDED.taxonomy_slug, taxonomy_confidence=EXCLUDED.taxonomy_confidence,
+      taxonomy_slug=EXCLUDED.taxonomy_slug, taxonomy_node_slug=EXCLUDED.taxonomy_node_slug,
+      taxonomy_confidence=EXCLUDED.taxonomy_confidence,
       taxonomy_reason=EXCLUDED.taxonomy_reason, is_adult=EXCLUDED.is_adult,
       adult_reason=EXCLUDED.adult_reason, taxonomy_unresolved=EXCLUDED.taxonomy_unresolved,
       updated_at=now()
@@ -366,7 +383,7 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
     JSON.stringify(metadata), canonicalCategory, taxonomySlug, tax.confidence,
     `ae_resolver_${tax.reason}${ar ? '_adult_checked' : ''}`,
     tax.department, tax.category, tax.subcategory, tax.leaf,
-    Boolean(ar), ar, tax.unresolved ? 'draft' : 'active', Boolean(tax.unresolved),
+    Boolean(ar), ar, productStatus, Boolean(tax.unresolved), taxonomyNodeSlug,
   ]);
   const productDbId = inserted.rows[0].id;
 
