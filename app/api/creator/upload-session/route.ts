@@ -17,6 +17,11 @@ import {
   normalizeCreatorUploadInput,
   type CreatorUploadInput,
 } from "@/lib/video/upload-session";
+import {
+  CreatorUploadSessionCompleteSchema,
+  CreatorUploadSessionCreateSchema,
+  parseBody,
+} from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -28,8 +33,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const input = normalizeCreatorUploadInput({ ...body, creatorId });
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseBody(CreatorUploadSessionCreateSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const input = normalizeCreatorUploadInput({ ...parsed.data, creatorId });
 
     if (isVideoStorageConfigured() && process.env.DATABASE_URL) {
       return NextResponse.json(await createLocalUploadSession(input));
@@ -93,9 +102,13 @@ export async function PATCH(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const body = await req.json().catch(() => ({}));
-    const sessionId = searchParams.get("id") || body?.sessionId || body?.uploadId;
-    const action = searchParams.get("action") || body?.action;
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = parseBody(CreatorUploadSessionCompleteSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const sessionId = searchParams.get("id") || parsed.data.sessionId || parsed.data.uploadId;
+    const action = searchParams.get("action") || parsed.data.action;
 
     if (!sessionId || action !== "complete") {
       return NextResponse.json(

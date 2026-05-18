@@ -65,3 +65,36 @@ export const SellerOrderTrackingSchema = z.object({
   tracking_url: z.string().url("tracking_url must be a valid URL").max(512).optional(),
 });
 export type SellerOrderTrackingInput = z.infer<typeof SellerOrderTrackingSchema>;
+
+export const CreatorUploadSessionCreateSchema = z.object({
+  filename: z.string().trim().min(1, "filename is required").max(255),
+  contentType: z.string().trim().max(128).optional(),
+  sizeBytes: z.coerce.number().finite().positive("sizeBytes must be positive").max(1024 * 1024 * 1024, "sizeBytes exceeds 1GB"),
+  title: z.string().trim().max(180).optional(),
+  description: z.string().trim().max(5000).optional(),
+  caption: z.string().trim().max(5000).optional(),
+  challengeId: z.string().trim().max(128).optional(),
+  productId: z.string().trim().max(128).optional(),
+  source: z.string().trim().max(64).optional(),
+  hashtags: z.unknown().optional(),
+  audioTrackId: z.unknown().optional(),
+}).passthrough();
+export type CreatorUploadSessionCreateInput = z.infer<typeof CreatorUploadSessionCreateSchema>;
+
+const UploadSessionIdSchema = z.string().trim().min(1).max(128).regex(/^[A-Za-z0-9._:-]+$/, "Invalid upload session id");
+
+export const CreatorUploadSessionCompleteSchema = z.object({
+  sessionId: UploadSessionIdSchema.optional(),
+  uploadId: UploadSessionIdSchema.optional(),
+  action: z.literal("complete").optional(),
+}).passthrough();
+export type CreatorUploadSessionCompleteInput = z.infer<typeof CreatorUploadSessionCompleteSchema>;
+
+export const SellerApplicationSchema = z.object({
+  companyName: z.string().trim().min(2, "companyName is required").max(160),
+  cui: z.string().trim().min(2, "cui is required").max(64),
+  email: z.string().trim().email("email must be valid").max(254),
+  phone: z.string().trim().min(6, "phone is required").max(32),
+  productType: z.string().trim().min(2, "productType is required").max(120),
+});
+export type SellerApplicationInput = z.infer<typeof SellerApplicationSchema>;

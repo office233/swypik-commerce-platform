@@ -1,22 +1,20 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { SellerApplicationSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
-    const { companyName, cui, email, phone, productType } = data;
-
-    if (!companyName || !cui || !email || !phone || !productType) {
-      return NextResponse.json(
-        { success: false, error: "Toate campurile sunt obligatorii." },
-        { status: 400 },
-      );
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseBody(SellerApplicationSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
+    const { companyName, cui, email, phone, productType } = parsed.data;
 
-    const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedEmail = email.toLowerCase();
     const businessDetails = {
       cui,
       phone,
