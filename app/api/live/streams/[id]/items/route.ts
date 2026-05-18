@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,44 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const is_pinned = !!body.is_pinned;
   const flash_price_cents = body.flash_price_cents != null ? Number(body.flash_price_cents) : null;
   const flash_until = body.flash_until ? new Date(body.flash_until).toISOString() : null;
+
+  // Validate product exists + ownership (seller/merchant === user OR stream creator)
+  const { rows: prodRows } = await dbQuery<{ price_cents: number | null; seller_id: string | null; merchant_id: string | null }>(
+    `SELECT price_cents, seller_id, merchant_id
+       FROM marketplace_products
+      WHERE id::text = $1
+      LIMIT 1`,
+    [product_id],
+  );
+  if (prodRows.length === 0) {
+    return NextResponse.json({ error: "product_not_found" }, { status: 400 });
+  }
+  const prod = prodRows[0];
+  const isAuthorized =
+    session.role === "admin" ||
+    prod.seller_id === session.userId ||
+    prod.merchant_id === session.userId ||
+    (await isOwner(id, session.userId));
+  if (!isAuthorized) {
+    logger.warn(
+      { userId: session.userId, streamId: id, product_id },
+      "[live.items] product_ownership_denied",
+    );
+    return NextResponse.json({ error: "product_ownership_denied" }, { status: 403 });
+  }
+
+  if (flash_price_cents !== null) {
+    if (!Number.isFinite(flash_price_cents) || flash_price_cents < 50) {
+      return NextResponse.json({ error: "flash_price_too_low" }, { status: 400 });
+    }
+    if (prod.price_cents != null && flash_price_cents > prod.price_cents) {
+      return NextResponse.json({ error: "flash_price_above_original" }, { status: 400 });
+    }
+    logger.info(
+      { userId: session.userId, streamId: id, product_id, flash_price_cents, original_cents: prod.price_cents },
+      "[live.items] flash_price_set",
+    );
+  }
 
   const { rows } = await dbQuery<{ id: number }>(
     `INSERT INTO live_shop_items (stream_id, product_id, display_order, is_pinned, flash_price_cents, flash_until)

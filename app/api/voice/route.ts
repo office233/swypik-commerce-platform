@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
-
 export function GET() {
-  return NextResponse.redirect(new URL("/api/voice/search", BASE), 308);
+  return NextResponse.json(
+    { endpoint: "/api/voice/search", method: "POST", body: "{ audio: <base64|url> }" },
+    { status: 200 },
+  );
 }
 
 export function POST() {
-  return NextResponse.redirect(new URL("/api/voice/search", BASE), 308);
+  return NextResponse.json(
+    { error: "use_search_endpoint", endpoint: "/api/voice/search", method: "POST" },
+    { status: 308, headers: { Location: "/api/voice/search" } },
+  );
 }

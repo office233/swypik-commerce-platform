@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
+import { UUID_RE } from "@/lib/validation/uuid";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   const { rows } = await dbQuery(
     `SELECT ls.*, u.username, u.display_name, u.avatar_url
        FROM live_streams ls
@@ -39,6 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 

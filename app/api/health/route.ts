@@ -1,16 +1,19 @@
 /**
  * Health Check Endpoint — GET /api/health
  *
- * Public (no auth). Checks: DB, Redis (optional), Storage (env check).
+ * Public (no auth). Checks: DB, Redis (optional), Storage (real R2 HeadBucket).
  */
 
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { checkR2 } from "@/lib/health";
 
 const APP_VERSION = "0.1.0";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
-  const services: Record<string, string> = {
+  const services: Record<string, unknown> = {
     database: "ok",
     redis: "not_configured",
     storage: "not_configured",
@@ -45,9 +48,17 @@ export async function GET() {
     }
   }
 
-  // --- c. Storage (env check only) ---
-  if (process.env.S3_ENDPOINT || process.env.S3_ENDPOINT_URL || process.env.R2_ENDPOINT) {
-    services.storage = "ok";
+  // --- c. Storage (real R2 HeadBucket via shared lib) ---
+  try {
+    const r2 = await checkR2();
+    services.storage = {
+      ok: r2.status === "ok",
+      status: r2.status,
+      latency_ms: r2.latency_ms,
+      ...r2.detail,
+    };
+  } catch (err) {
+    services.storage = { ok: false, status: "error", error: String(err) };
   }
 
   const status = services.database === "error" ? "degraded" : "healthy";

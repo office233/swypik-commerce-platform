@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { canRequestReturn } from "@/lib/commerce/order-status";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { isSafeEvidenceUrl } from "@/lib/security/safe-url";
 
 import { logger } from "@/lib/logger";
 export async function POST(
@@ -24,11 +25,20 @@ export async function POST(
     const body = await req.json();
     const { reason, token } = body;
     const rawEvidence = Array.isArray(body?.evidenceUrls) ? body.evidenceUrls : [];
-    const evidenceUrls = rawEvidence
+    const trimmedEvidence: string[] = rawEvidence
       .filter((u: unknown): u is string => typeof u === "string")
       .map((u: string) => u.trim())
-      .filter((u: string) => /^https?:\/\//i.test(u))
+      .filter((u: string) => u.length > 0)
       .slice(0, 4);
+    const unsafe = trimmedEvidence.filter((u) => !isSafeEvidenceUrl(u));
+    if (unsafe.length > 0) {
+      logger.warn({ orderId: id, unsafe }, "[Return Request] rejected_unsafe_evidence_urls");
+      return NextResponse.json(
+        { error: "URL-uri de dovadă invalide. Folosește încărcarea de fotografii." },
+        { status: 400 }
+      );
+    }
+    const evidenceUrls = trimmedEvidence;
 
     if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
       return NextResponse.json(

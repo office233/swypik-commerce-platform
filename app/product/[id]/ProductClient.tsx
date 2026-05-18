@@ -421,11 +421,11 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         <div className="flex items-center gap-4 mb-5">
           <span className="text-sm font-bold text-[#0D0D0D]">Cantitate:</span>
           <div className="flex items-center rounded-xl border border-[#E5E5E5] overflow-hidden">
-            <button onClick={() => setQty(Math.max(1, qty - 1))} className="grid h-10 w-10 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all">
+            <button onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Minus" className="grid h-11 w-11 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
               <Minus size={16} />
             </button>
             <span className="w-10 text-center text-sm font-black text-[#0D0D0D]">{qty}</span>
-            <button onClick={() => setQty(Math.min(10, qty + 1))} className="grid h-10 w-10 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all" aria-label="Adaugă">
+            <button onClick={() => setQty(Math.min(10, qty + 1))} className="grid h-11 w-11 place-items-center text-[#6E6E80] hover:bg-[#F7F7F8] active:scale-90 transition-all focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Plus">
               <Plus size={16} />
             </button>
           </div>

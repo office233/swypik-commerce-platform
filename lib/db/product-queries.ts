@@ -400,7 +400,7 @@ function buildSearchFilters(filters: ProductFilters) {
     excludeIds,
   } = filters;
 
-  const where = ["p.status = 'active'"];
+  const where = ["p.status = 'active'", "COALESCE(p.is_adult, false) = false"];
   const params: unknown[] = [];
   let paramIndex = 1;
 
@@ -594,7 +594,7 @@ export async function getCheckoutProductById(id: string) {
     `
       SELECT p.*
       FROM marketplace_products p
-      WHERE p.status = 'active'
+      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false
         AND (p.id::text = $1 OR p.supplier_product_id = $1 OR p.external_product_id = $1)
       ORDER BY
         CASE
@@ -674,15 +674,14 @@ export async function getCategories(locale = "ro") {
           )
         ) AS name_ro,
         COALESCE(
-          NULLIF(p.metadata->>'ae_category_id', ''),
-          ac.ae_category_id::text,
-          NULLIF(p.metadata->>'ae_root_category_id', ''),
-          ar.ae_category_id::text,
+          NULLIF(p.taxonomy_node_slug, ''),
+          NULLIF(p.canonical_category_slug, ''),
+          NULLIF(p.taxonomy_slug, ''),
           md5(COALESCE(p.category, 'general'))
         ) AS category_id,
         COUNT(*)::int AS count
       ${BASE_PRODUCT_SELECT}
-      WHERE p.status = 'active'
+      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false
       GROUP BY 1, 2, 3
       ORDER BY COUNT(*) DESC, 1 ASC
     `,

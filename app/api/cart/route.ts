@@ -10,7 +10,7 @@ import { buildCartCookie, getOrCreateCart, loadCartItems } from "@/lib/cart/sess
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
 export async function GET() {
-  const cart = await getOrCreateCart({ create: true });
+  const cart = await getOrCreateCart({ create: false });
   if (!cart) {
     return NextResponse.json({ items: [], subtotalCents: 0, currency: "RON" }, { headers: NO_STORE });
   }

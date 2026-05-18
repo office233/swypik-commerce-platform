@@ -31,10 +31,13 @@ export default async function Home() {
   }
 
   return (
-    <ChatInterface
-      initialTrending={trending.products}
-      initialBestValue={bestValue.products}
-      initialTopRated={topRated.products}
-    />
+    <>
+      <h1 className="sr-only">Swypik — Shop by video</h1>
+      <ChatInterface
+        initialTrending={trending.products}
+        initialBestValue={bestValue.products}
+        initialTopRated={topRated.products}
+      />
+    </>
   );
 }

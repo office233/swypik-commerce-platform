@@ -276,7 +276,7 @@ function LoginForm({ nextPath }: { nextPath: string }) {
             Intră în cont
           </PrimaryButton>
           <div className="text-center text-sm">
-            <a href="/auth/forgot" className="text-violet-400 hover:underline">Ai uitat parola?</a>
+            <a href="/auth/forgot" className="inline-flex items-center justify-center min-h-[44px] px-3 text-violet-400 hover:underline focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded">Ai uitat parola?</a>
           </div>
         </form>
       )}
@@ -332,9 +332,9 @@ function LoginForm({ nextPath }: { nextPath: string }) {
 
       <p className="mt-6 text-center text-xs text-white/40">
         Continuând, accepți{" "}
-        <Link href="/terms" className="underline hover:text-white/70">Termenii</Link>
+        <Link href="/terms" className="inline-block min-h-[44px] py-2.5 underline hover:text-white/70 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded">Termenii</Link>
         {" "}și{" "}
-        <Link href="/privacy" className="underline hover:text-white/70">Politica de confidențialitate</Link>.
+        <Link href="/privacy" className="inline-block min-h-[44px] py-2.5 underline hover:text-white/70 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded">Politica de confidențialitate</Link>.
       </p>
     </section>
   );
@@ -587,9 +587,9 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
 
       <p className="mt-6 text-center text-xs text-white/40">
         Continuând, accepți{" "}
-        <Link href="/terms" className="underline hover:text-white/70">Termenii</Link>
+        <Link href="/terms" className="inline-block min-h-[44px] py-2.5 underline hover:text-white/70 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded">Termenii</Link>
         {" "}și{" "}
-        <Link href="/privacy" className="underline hover:text-white/70">Politica de confidențialitate</Link>.
+        <Link href="/privacy" className="inline-block min-h-[44px] py-2.5 underline hover:text-white/70 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded">Politica de confidențialitate</Link>.
       </p>
     </section>
   );
@@ -698,7 +698,7 @@ function FieldPassword({
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white transition"
+          className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg px-2 py-1 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
         >
           {show ? "Ascunde" : "Arată"}
         </button>

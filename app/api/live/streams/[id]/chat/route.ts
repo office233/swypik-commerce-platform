@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,6 +10,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // 5 messages / 10s per user (across all streams)
+  const rl = await rateLimit(`live:chat:${session.userId}`, 5, 10);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   const body = await req.json().catch(() => ({}));
   const message = String(body.message || "").trim().slice(0, 500);
   if (!message) return NextResponse.json({ error: "empty" }, { status: 400 });

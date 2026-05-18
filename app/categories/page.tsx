@@ -83,7 +83,7 @@ export default async function CategoriesPage() {
                       <li key={child.id}>
                         <Link
                           href={`/categories/${child.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-xs text-neutral-300 transition hover:border-neutral-600 hover:text-white"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-950 px-3 py-2.5 min-h-[44px] text-xs text-neutral-300 transition hover:border-neutral-600 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
                         >
                           <span>{child.name}</span>
                           {child.count != null && (

@@ -11,7 +11,7 @@ R2_PREFIX="${R2_PREFIX:-backups}"
 PG_CONTAINER="${PG_CONTAINER:-swypik-prod-postgres-1}"
 PG_USER="${PG_USER:-swypik}"
 PG_DB="${PG_DB:-swypik}"
-MIN_SIZE="${MIN_SIZE:-100000}"
+MIN_SIZE="${MIN_SIZE:-1048576}"
 
 DATE=$(date +%F)
 KEY="${R2_PREFIX}/postgres/${DATE}.sql.gz"

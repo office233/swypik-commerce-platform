@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Heart, Share2, ShoppingCart, MessageCircle, Bookmark, Volume2, VolumeX, Music2, ShoppingBag } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
@@ -63,6 +63,7 @@ function FeedVideo({ videoId, src, hlsUrl, poster, isCurrent, muted, registerRef
 
 function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: any[]; initialCategory?: string }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialVideoId = searchParams.get("v");
 
   const [videos, setVideos] = useState<any[]>(initialVideos || []);
@@ -476,7 +477,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .avatar-plus { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; background: transparent; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; border: 0; color: transparent; transition: transform 0.15s; }
         .avatar-plus::before { content: "+"; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #7C3AED; color: #fff; font-size: 16px; font-weight: 700; border: 2px solid #000; }
         .avatar-plus:active { transform: translateX(-50%) scale(0.85); }
-        .bottom-content { position: absolute; bottom: max(80px, calc(80px + env(safe-area-inset-bottom, 0px))); left: max(14px, calc(14px + env(safe-area-inset-left, 0px))); right: max(80px, calc(80px + env(safe-area-inset-right, 0px))); max-width: calc(100% - 72px); z-index: 20; }
+        .bottom-content { position: absolute; bottom: max(112px, calc(112px + env(safe-area-inset-bottom, 0px))); left: max(14px, calc(14px + env(safe-area-inset-left, 0px))); right: max(80px, calc(80px + env(safe-area-inset-right, 0px))); max-width: calc(100% - 72px); z-index: 20; }
         .creator-name { font-weight: 700; font-size: 16px; text-shadow: 0 1px 4px rgba(0,0,0,0.9); margin-bottom: 6px; }
         .video-desc { font-size: 14px; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 10px; line-height: 1.4; }
         .product-chip { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 6px 12px 6px 6px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; transition: background 0.2s; margin-bottom: 8px; border: 0; color: #fff; }
@@ -751,7 +752,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
           onClose={() => setActiveProduct(null)}
           onBuyNow={() => {
             trackEvent(activeProduct.videoId, "buy_now");
-            window.location.href = `/product/${activeProduct.id}`;
+            router.push(`/product/${activeProduct.id}`);
           }}
         />
       )}
