@@ -11,6 +11,7 @@
 
 import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
+import { getRedis as getLocalRedis } from "@/lib/redis";
 
 // ── Redis client (lazy init) ────────────────────────────────────────
 let redis: Redis | null = null;
@@ -27,6 +28,7 @@ function getRedis(): Redis | null {
 // ── Pre-built rate limiters ─────────────────────────────────────────
 const limiters = new Map<string, Ratelimit>();
 let warnedAboutMemoryFallback = false;
+let warnedAboutLocalRedisError = false;
 
 function getLimiter(prefix: string, limit: number, windowSeconds: number): Ratelimit | null {
   const r = getRedis();
@@ -47,6 +49,30 @@ function getLimiter(prefix: string, limit: number, windowSeconds: number): Ratel
 
 // ── In-memory fallback for dev/missing Redis ────────────────────────
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
+
+async function localRedisRateLimit(identifier: string, limit: number, windowSeconds: number): Promise<{ success: boolean; remaining: number } | null> {
+  if (!process.env.REDIS_URL) return null;
+  try {
+    const redis = getLocalRedis();
+    const key = `rl:local:${identifier}`;
+    const count = await redis.incr(key);
+    if (count === 1) {
+      await redis.expire(key, windowSeconds);
+    }
+    if (count > limit) {
+      const ttl = await redis.ttl(key);
+      if (ttl < 0) await redis.expire(key, windowSeconds);
+      return { success: false, remaining: 0 };
+    }
+    return { success: true, remaining: Math.max(0, limit - count) };
+  } catch (e) {
+    if (process.env.NODE_ENV === "production" && !warnedAboutLocalRedisError) {
+      warnedAboutLocalRedisError = true;
+      console.warn("[RateLimit] Local Redis error:", (e as Error).message);
+    }
+    return null;
+  }
+}
 
 function memoryRateLimit(identifier: string, limit: number, windowSeconds: number): { success: boolean; remaining: number } {
   const now = Date.now();
@@ -117,6 +143,9 @@ export async function rateLimit(
       console.warn("[RateLimit] Upstash error:", (e as Error).message);
     }
   }
+
+  const localRedisResult = await localRedisRateLimit(fullIdentifier, cfg.limit, cfg.window);
+  if (localRedisResult) return localRedisResult;
 
   if (process.env.NODE_ENV === "production" && process.env.RATE_LIMIT_REDIS_REQUIRED !== "false") {
     console.error("[RateLimit] Redis is required in production! Failing closed.");
