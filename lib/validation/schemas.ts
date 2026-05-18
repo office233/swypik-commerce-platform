@@ -39,3 +39,22 @@ export function parseBody<T extends z.ZodTypeAny>(schema: T, body: unknown):
     issues: result.error.issues,
   };
 }
+
+// Allowed values mirror commerce_orders_status_check enum.
+export const OrderStatusEnum = z.enum([
+  "pending", "authorized", "paid", "fulfilled", "delivered",
+  "return_requested", "cancelled", "refunded", "failed", "disputed",
+]);
+
+export const AdminOrderPatchSchema = z.object({
+  orderId: z.string().uuid("orderId must be a valid UUID"),
+  status: OrderStatusEnum.optional(),
+  trackingNumber: z.string().trim().min(1).max(128).optional(),
+  trackingUrl: z.string().url("trackingUrl must be a valid URL").max(512).optional(),
+  fulfillmentStatus: z.enum([
+    "pending", "processing", "shipped", "fulfilled", "delivered", "failed",
+  ]).optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+export type AdminOrderPatchInput = z.infer<typeof AdminOrderPatchSchema>;

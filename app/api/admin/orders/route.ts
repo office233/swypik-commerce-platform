@@ -10,6 +10,7 @@ import { dbQuery } from "@/lib/db";
 import { requireAuth } from "@/lib/auth/getAuthUser";
 
 import { logger } from "@/lib/logger";
+import { AdminOrderPatchSchema, parseBody } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -79,12 +80,12 @@ export async function PATCH(req: Request) {
   if (__auth instanceof NextResponse) return __auth;
 
   try {
-    const body = await req.json();
-    const { orderId, status, trackingNumber, trackingUrl, fulfillmentStatus, notes } = body;
-
-    if (!orderId) {
-      return NextResponse.json({ error: "orderId required" }, { status: 400 });
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseBody(AdminOrderPatchSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
+    const { orderId, status, trackingNumber, trackingUrl, fulfillmentStatus, notes } = parsed.data;
 
     const updates: string[] = [];
     const params: any[] = [orderId];
