@@ -120,9 +120,10 @@ export async function searchCreators(
       u.display_name      AS display_name,
       u.avatar_url        AS avatar_url,
       u.bio               AS bio,
-      COALESCE(cp.follower_count, 0)::int AS follower_count
+      COALESCE(f.followers, 0)::int AS follower_count
     FROM users u
     LEFT JOIN creator_profiles cp ON cp.user_id = u.id
+    LEFT JOIN (SELECT following_user_id, COUNT(*) AS followers FROM follows GROUP BY 1) f ON f.following_user_id = u.id
     WHERE u.username       ILIKE $1
        OR u.display_name   ILIKE $1
     ORDER BY
@@ -135,7 +136,7 @@ export async function searchCreators(
         similarity(COALESCE(u.username, ''),     $3),
         similarity(COALESCE(u.display_name, ''), $3)
       ) DESC,
-      COALESCE(cp.follower_count, 0) DESC
+      COALESCE(f.followers, 0) DESC
     LIMIT $4 OFFSET $5
   `;
 

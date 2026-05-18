@@ -48,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        LIMIT 1000`
     );
     productPages = rows.map((row: any) => ({
-      url: `${baseUrl}/product/${row.slug || row.id}`,
+      url: `${baseUrl}/product/${row.id}`,
       lastModified: row.updated_at ? new Date(row.updated_at) : new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.7,

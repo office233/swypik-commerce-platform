@@ -7,6 +7,7 @@
  */
 
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { cache } from "react";
 import { getProductDetail as _getProductDetail } from "@/lib/products/get-product-detail";
 const getProductDetail = cache(_getProductDetail);
@@ -54,6 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
   const data = await getProductDetail(id);
+  if (!data) notFound();
   const session = await getAuthSession();
 
   // SSR-prefetch clips for this product (so "Clips (N)" is correct on first paint)

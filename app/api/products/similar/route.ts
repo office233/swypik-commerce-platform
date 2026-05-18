@@ -28,6 +28,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "product_id or text required" }, { status: 400 });
   }
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (productId && !UUID_RE.test(productId)) {
+    return NextResponse.json({ error: "invalid_product_id" }, { status: 400 });
+  }
+  if (text && (text.length < 2 || text.length > 200)) {
+    return NextResponse.json({ error: "invalid_text" }, { status: 400 });
+  }
+
   let pgVec: string | null = null;
   let excludeId: string | null = null;
 
