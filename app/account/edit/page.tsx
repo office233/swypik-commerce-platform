@@ -39,7 +39,7 @@ export default function EditProfilePage() {
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
-        if (!data?.success || !data?.customer) {
+        if (!data?.authenticated || !data?.customer) {
           router.replace("/auth/login?next=/account/edit");
           return;
         }
