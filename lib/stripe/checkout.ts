@@ -47,7 +47,7 @@ export async function createCheckoutSession(
     successUrl?: string;
     cancelUrl?: string;
   }
-): Promise<{ url: string; sessionId: string }> {
+): Promise<{ url: string; sessionId: string; expiresAt: number | null }> {
   const stripe = getStripe();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
 
@@ -108,5 +108,6 @@ export async function createCheckoutSession(
   return {
     url: session.url,
     sessionId: session.id,
+    expiresAt: session.expires_at || null,
   };
 }

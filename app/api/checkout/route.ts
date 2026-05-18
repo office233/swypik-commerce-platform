@@ -29,7 +29,7 @@ function ronToCents(value: number): number {
   return Math.round(value * 100);
 }
 
-async function persistOpenCheckoutSession(items: CheckoutItem[], sessionId: string, customerEmail?: string) {
+async function persistOpenCheckoutSession(items: CheckoutItem[], sessionId: string, expiresAt?: number | null, customerEmail?: string) {
   const client = await getDb().connect();
   const currency = "RON";
   const subtotalCents = items.reduce((sum, item) => sum + ronToCents(item.price) * item.quantity, 0);
@@ -119,13 +119,14 @@ async function persistOpenCheckoutSession(items: CheckoutItem[], sessionId: stri
     await client.query(
       `INSERT INTO checkout_sessions (
         order_id, provider, provider_session_id, status, currency,
-        amount_total_cents, success_url, cancel_url, metadata, created_at
-      ) VALUES ($1, 'stripe', $2, 'open', $3, $4, $5, $6, $7::jsonb, now())
+        amount_total_cents, success_url, cancel_url, expires_at, metadata, created_at
+      ) VALUES ($1, 'stripe', $2, 'open', $3, $4, $5, $6, to_timestamp($7), $8::jsonb, now())
       ON CONFLICT (provider, provider_session_id)
       DO UPDATE SET
         order_id = EXCLUDED.order_id,
         status = EXCLUDED.status,
         amount_total_cents = EXCLUDED.amount_total_cents,
+        expires_at = EXCLUDED.expires_at,
         metadata = EXCLUDED.metadata`,
       [
         orderId,
@@ -134,6 +135,7 @@ async function persistOpenCheckoutSession(items: CheckoutItem[], sessionId: stri
         subtotalCents,
         `${process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com"}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com",
+        expiresAt || null,
         JSON.stringify(metadata),
       ]
     );
@@ -287,11 +289,11 @@ export async function POST(req: Request) {
     }
 
     // Create Stripe Checkout session
-    const { url, sessionId } = await createCheckoutSession(checkoutItems, {
+    const { url, sessionId, expiresAt } = await createCheckoutSession(checkoutItems, {
       customerEmail: customer?.email,
     });
 
-    const orderLookupToken = await persistOpenCheckoutSession(checkoutItems, sessionId, customer?.email);
+    const orderLookupToken = await persistOpenCheckoutSession(checkoutItems, sessionId, expiresAt, customer?.email);
 
     logCheckoutEvent("checkout_success", {
       clientIp: ip,

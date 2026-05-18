@@ -44,6 +44,40 @@ async function handleGET(req: Request) {
     process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
 
   try {
+    const { rows: expiredRows } = await dbQuery(
+      `WITH expired_sessions AS (
+         UPDATE checkout_sessions cs
+            SET status = 'expired',
+                metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+                  'expired_at', NOW()::text,
+                  'expired_event', 'local_checkout_expiry'
+                )
+          WHERE cs.status IN ('created', 'open')
+            AND COALESCE(cs.expires_at, cs.created_at + INTERVAL '24 hours') <= NOW()
+          RETURNING cs.id, cs.order_id, cs.provider_session_id
+       ), cancelled_orders AS (
+         UPDATE commerce_orders co
+            SET status = 'cancelled',
+                metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
+                  'cancelled_at', NOW()::text,
+                  'cancelled_event', 'local_checkout_expiry'
+                )
+           FROM expired_sessions es
+          WHERE co.id = es.order_id
+            AND co.status = 'pending'
+            AND NOT EXISTS (
+              SELECT 1 FROM payment_transactions pt
+               WHERE pt.order_id = co.id AND pt.status = 'succeeded'
+            )
+          RETURNING co.id
+       )
+       SELECT
+         (SELECT count(*) FROM expired_sessions)::int AS expired_sessions,
+         (SELECT count(*) FROM cancelled_orders)::int AS cancelled_orders`
+    );
+    const expiredSessions = Number(expiredRows[0]?.expired_sessions || 0);
+    const cancelledOrders = Number(expiredRows[0]?.cancelled_orders || 0);
+
     /* ── 2. Query abandoned sessions ──────────────────────── */
     const { rows: abandonedSessions } = await dbQuery(
       `SELECT
@@ -52,7 +86,7 @@ async function handleGET(req: Request) {
          metadata,
          created_at
        FROM checkout_sessions
-       WHERE status != 'completed'
+       WHERE status IN ('created', 'open')
          AND created_at >= NOW() - INTERVAL '48 hours'
          AND created_at <= NOW() - INTERVAL '2 hours'
          AND (metadata->>'recovery_email_sent') IS NULL`
@@ -151,6 +185,8 @@ async function handleGET(req: Request) {
 
     return NextResponse.json({
       success: true,
+      expiredSessions,
+      cancelledOrders,
       sent,
       skipped,
       total: abandonedSessions.length,
