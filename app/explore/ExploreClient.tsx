@@ -584,25 +584,26 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .format-tabs::-webkit-scrollbar { display: none; }
         .format-tab { flex: 0 0 auto; min-height: 32px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.86); padding: 0 12px; font-size: 12px; font-weight: 800; backdrop-filter: blur(12px); }
         .format-tab.active { background: #FDE047; color: #111; border-color: #FDE047; }
-        .product-cockpit { position: absolute; left: max(8px, calc(8px + env(safe-area-inset-left, 0px))); right: max(8px, calc(8px + env(safe-area-inset-right, 0px))); bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 10px); z-index: 24; display: flex; flex-direction: column; gap: 5px; max-width: 620px; margin: 0 auto; padding: 8px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.14); background: linear-gradient(180deg, rgba(18,16,18,0.66), rgba(10,10,12,0.86)); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 14px 36px rgba(0,0,0,0.34); pointer-events: auto; }
-        .cockpit-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; }
-        .creator-link { color: #fff; text-decoration: none; font-size: 12px; font-weight: 850; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .verdict-pill { display: inline-flex; align-items: center; gap: 5px; min-height: 20px; padding: 0 8px; border-radius: 999px; background: rgba(16,163,127,0.18); color: #B7F7E6; border: 1px solid rgba(16,163,127,0.34); font-size: 10px; font-weight: 900; white-space: nowrap; }
-        .cockpit-main { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 8px; align-items: center; width: 100%; min-height: 42px; border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; }
-        .cockpit-image { width: 42px; height: 42px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.08); position: relative; }
+        .product-cockpit { position: absolute; left: max(8px, calc(8px + env(safe-area-inset-left, 0px))); right: max(8px, calc(8px + env(safe-area-inset-right, 0px))); bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 10px); z-index: 24; display: flex; flex-direction: column; gap: 4px; max-width: 620px; margin: 0 auto; padding: 6px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.14); background: linear-gradient(180deg, rgba(18,16,18,0.62), rgba(10,10,12,0.84)); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 12px 30px rgba(0,0,0,0.32); pointer-events: auto; }
+        .cockpit-meta { position: absolute; left: 6px; right: 6px; top: -25px; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 20px; pointer-events: auto; }
+        .creator-link { color: #fff; text-decoration: none; font-size: 11px; font-weight: 850; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 8px rgba(0,0,0,0.88); }
+        .verdict-pill { display: inline-flex; align-items: center; gap: 4px; min-height: 20px; padding: 0 7px; border-radius: 999px; background: rgba(16,16,18,0.58); color: #B7F7E6; border: 1px solid rgba(16,163,127,0.34); font-size: 9px; font-weight: 900; white-space: nowrap; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .cockpit-main { display: grid; grid-template-columns: 38px minmax(0,1fr) auto; gap: 7px; align-items: center; width: 100%; min-height: 38px; border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; }
+        .cockpit-image { width: 38px; height: 38px; border-radius: 11px; overflow: hidden; background: rgba(255,255,255,0.08); position: relative; }
         .cockpit-image img { width: 100%; height: 100%; object-fit: cover; }
-        .cockpit-title { display: block; font-size: 13px; line-height: 1.12; font-weight: 850; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .cockpit-sub { display: flex; align-items: center; gap: 6px; margin-top: 2px; min-width: 0; color: rgba(255,255,255,0.76); font-size: 10px; font-weight: 750; }
+        .cockpit-title { display: block; font-size: 12.5px; line-height: 1.08; font-weight: 850; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cockpit-sub { display: flex; align-items: center; gap: 5px; margin-top: 1px; min-width: 0; color: rgba(255,255,255,0.76); font-size: 9.5px; font-weight: 750; }
         .cockpit-sub span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .cockpit-price { font-size: 14px; font-weight: 950; color: #10A37F; white-space: nowrap; }
+        .cockpit-price { font-size: 13px; font-weight: 950; color: #10A37F; white-space: nowrap; }
         .cockpit-score { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-        .score-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 28px; border-radius: 999px; background: #FDE047; color: #111; font-size: 14px; font-weight: 950; }
-        .score-label { color: rgba(255,255,255,0.68); font-size: 9px; font-weight: 800; white-space: nowrap; }
-        .cockpit-actions { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 5px; }
-        .cockpit-btn { min-width: 0; min-height: 34px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.10); color: #fff; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px; font-size: 9px; font-weight: 850; line-height: 1.05; padding: 0 5px; }
-        .cockpit-btn svg { width: 14px; height: 14px; flex: 0 0 auto; }
+        .score-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 24px; border-radius: 999px; background: #FDE047; color: #111; font-size: 13px; font-weight: 950; }
+        .score-label { color: rgba(255,255,255,0.68); font-size: 8px; font-weight: 800; white-space: nowrap; }
+        .cockpit-actions { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 4px; }
+        .cockpit-btn { min-width: 0; min-height: 29px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.10); color: #fff; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 3px; font-size: 8.5px; font-weight: 850; line-height: 1.05; padding: 0 4px; }
+        .cockpit-btn svg { width: 13px; height: 13px; flex: 0 0 auto; }
         .cockpit-secondary { grid-template-columns: repeat(3, minmax(0,1fr)); }
-        .cockpit-secondary .cockpit-btn { min-height: 28px; border-radius: 10px; background: rgba(255,255,255,0.075); font-size: 10px; }
+        .cockpit-secondary .cockpit-btn { min-height: 22px; border-radius: 8px; background: rgba(255,255,255,0.075); font-size: 9px; }
+        .cockpit-secondary .cockpit-btn svg { display: none; }
         .cockpit-btn.primary { background: #10A37F; border-color: #10A37F; color: #fff; }
         .cockpit-btn.vote-on { background: #FDE047; border-color: #FDE047; color: #111; }
         .cockpit-btn:active { transform: scale(0.96); }
@@ -613,8 +614,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .coin-burst span:nth-child(3) { animation-delay: 0.1s; transform: translateY(2px); }
         .coin-burst svg { width: 14px; height: 14px; }
         @keyframes coinRise { 0% { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.86); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate3d(-8px, -42px, 0) scale(1.08); } }
-        @media (max-width: 420px) { .product-cockpit { border-radius: 14px; padding: 7px; gap: 4px; } .cockpit-main { grid-template-columns: 38px minmax(0,1fr) auto; gap: 7px; min-height: 38px; } .cockpit-image { width: 38px; height: 38px; border-radius: 11px; } .cockpit-title { font-size: 12px; } .cockpit-price { font-size: 13px; } .score-badge { min-width: 34px; height: 26px; font-size: 13px; } .cockpit-btn { min-height: 31px; font-size: 8.5px; gap: 3px; padding: 0 3px; } .cockpit-secondary .cockpit-btn { min-height: 26px; font-size: 9px; } }
-        @media (max-height: 640px) { .feed-topbar { gap: 6px; } .ai-search { height: 36px; border-radius: 16px; } .format-tab { min-height: 28px; padding: 0 10px; font-size: 11px; } .product-cockpit { gap: 4px; padding: 7px; } .cockpit-meta { display: none; } .cockpit-main { min-height: 38px; } .cockpit-image { width: 38px; height: 38px; } .cockpit-btn { min-height: 30px; } .cockpit-secondary .cockpit-btn { min-height: 24px; } }
+        @media (max-width: 420px) { .product-cockpit { border-radius: 13px; padding: 6px; gap: 4px; } .cockpit-main { grid-template-columns: 36px minmax(0,1fr) auto; gap: 6px; min-height: 36px; } .cockpit-image { width: 36px; height: 36px; border-radius: 10px; } .cockpit-title { font-size: 11.5px; } .cockpit-price { font-size: 12.5px; } .score-badge { min-width: 32px; height: 23px; font-size: 12px; } .cockpit-btn { min-height: 28px; font-size: 8px; gap: 2px; padding: 0 3px; } .cockpit-secondary .cockpit-btn { min-height: 21px; font-size: 8.5px; } }
+        @media (max-height: 640px) { .feed-topbar { gap: 6px; } .ai-search { height: 36px; border-radius: 16px; } .format-tab { min-height: 28px; padding: 0 10px; font-size: 11px; } .product-cockpit { gap: 3px; padding: 6px; } .cockpit-meta { display: none; } .cockpit-main { min-height: 36px; } .cockpit-image { width: 36px; height: 36px; } .cockpit-btn { min-height: 27px; } .cockpit-secondary .cockpit-btn { min-height: 20px; } }
         .action-bar { position: absolute; right: max(10px, calc(10px + env(safe-area-inset-right, 0px))); bottom: var(--feed-action-bottom); display: flex; flex-direction: column; align-items: center; gap: 18px; z-index: 22; pointer-events: auto; }
         .action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; -webkit-tap-highlight-color: transparent; background: transparent; border: 0; padding: 0; min-width: 48px; min-height: 48px; }
         .action-btn .icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); transition: transform 0.15s; }
