@@ -142,10 +142,11 @@ export async function POST(req: Request) {
         break;
       }
       case "payment_intent.canceled":
-      case "checkout.session.async_payment_failed": {
+      case "checkout.session.async_payment_failed":
+      case "checkout.session.expired": {
         const objId = (event.data.object as any).id;
         await dbQuery(
-          "UPDATE commerce_orders SET status='canceled', metadata = metadata || jsonb_build_object('canceled_at', NOW()::text, 'canceled_event', $2::text) WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'sessionId' = $1 OR metadata->>'stripe_session_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
+          "UPDATE commerce_orders SET status='cancelled', metadata = metadata || jsonb_build_object('cancelled_at', NOW()::text, 'cancelled_event', $2::text) WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'sessionId' = $1 OR metadata->>'stripe_session_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
           [objId, event.type]
         );
         break;
