@@ -9,8 +9,6 @@ type ProductRow = {
   title: string;
   price_cents: number | null;
   image_url: string | null;
-  rating_avg: number | null;
-  rating_count: number | null;
   distance: number;
 };
 
@@ -69,7 +67,7 @@ export async function GET(req: Request) {
     }
 
     const res = await dbQuery<ProductRow>(
-      `SELECT id, title, price_cents, image_url, rating_avg, rating_count,
+      `SELECT id, title, price_cents, image_url,
               (embedding <=> $1::vector) AS distance
          FROM marketplace_products
         WHERE ${where}
@@ -83,8 +81,8 @@ export async function GET(req: Request) {
       title: r.title,
       price: (r.price_cents || 0) / 100,
       image: r.image_url,
-      rating: r.rating_avg ? Number(r.rating_avg) : null,
-      ratingCount: r.rating_count || 0,
+      rating: null,
+      ratingCount: 0,
       similarity: 1 - Number(r.distance),
     }));
 

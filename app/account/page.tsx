@@ -12,7 +12,10 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const redirectTo = Array.isArray(redirectValue) ? redirectValue[0] || "/" : redirectValue || "/";
 
   const session = await getAuthSession();
-  if (!session) redirect(`/auth?next=${encodeURIComponent("/account")}`);
+  if (!session) {
+    const nextTarget = redirectTo && redirectTo !== "/" ? redirectTo : "/account";
+    redirect(`/auth?next=${encodeURIComponent(nextTarget)}`);
+  }
 
   return <AccountPageClient redirectTo={redirectTo} />;
 }
