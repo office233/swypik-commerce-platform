@@ -351,7 +351,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2 border-b border-[#E5E5E5] mb-5 sticky top-[60px] bg-white z-40 pb-2">
+        <div className="flex items-center gap-2 border-b border-[#E5E5E5] mb-5 sticky top-[calc(68px+env(safe-area-inset-top))] bg-white z-40 pb-2">
           <button onClick={() => setActiveTab("clips")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "clips" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
             Clips ({productVideos.length})
           </button>

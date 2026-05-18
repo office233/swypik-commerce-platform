@@ -547,6 +547,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
             placeholder="+40712345678"
             autoComplete="tel"
             type="tel"
+            inputMode="tel"
           />
           <p className="text-xs text-white/40">
             Avatar îl poți adăuga din contul tău după înregistrare.
@@ -559,7 +560,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
           <button
             type="button"
             onClick={back}
-            className="flex h-14 flex-1 items-center justify-center gap-1 rounded-2xl border border-white/10 bg-white/5 text-sm font-bold text-white/80 transition active:scale-[0.98]"
+            className="flex h-14 flex-1 items-center justify-center gap-1 rounded-2xl border border-white/10 bg-white/5 text-sm font-bold text-white/80 transition active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
           >
             <ArrowLeft className="h-4 w-4" /> Înapoi
           </button>
@@ -569,7 +570,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
             type="button"
             onClick={next}
             disabled={!canAdvance}
-            className="flex h-14 flex-[2] items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
+            className="flex h-14 flex-[2] items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
           >
             Continuă
           </button>
@@ -578,7 +579,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
             type="button"
             onClick={submitFinal}
             disabled={loading}
-            className="flex h-14 flex-[2] items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
+            className="flex h-14 flex-[2] items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Creează contul"}
           </button>
@@ -659,7 +660,7 @@ function FieldEmail({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="nume@email.ro"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
+          className="min-h-[44px] w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
         />
       </span>
     </label>
@@ -693,7 +694,7 @@ function FieldPassword({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="••••••••"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-16 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
+          className="min-h-[44px] w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-16 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
         />
         <button
           type="button"
@@ -716,6 +717,7 @@ function FieldText({
   placeholder,
   autoComplete,
   type = "text",
+  inputMode,
 }: {
   label: string;
   icon: React.ReactNode;
@@ -724,6 +726,7 @@ function FieldText({
   placeholder?: string;
   autoComplete?: string;
   type?: string;
+  inputMode?: "text" | "email" | "numeric" | "tel" | "url" | "search" | "decimal" | "none";
 }) {
   return (
     <label className="block">
@@ -737,10 +740,11 @@ function FieldText({
         <input
           type={type}
           autoComplete={autoComplete}
+          inputMode={inputMode}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
+          className="min-h-[44px] w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-4 text-base text-white placeholder-white/30 outline-none transition focus:border-[#7C3AED] focus:bg-white/[0.06] focus:ring-2 focus:ring-[#7C3AED]/30"
         />
       </span>
     </label>
@@ -797,7 +801,7 @@ function PrimaryButton({
     <button
       type="submit"
       disabled={loading || disabled}
-      className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+      className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
     >
       {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : children}
     </button>
@@ -827,26 +831,28 @@ function UsernameStatus({
   value: string;
 }) {
   if (!value.trim()) return null;
+  // aria-live: status updates announced for screen readers
+
   if (status === "checking") {
-    return <p className="text-xs text-white/40">Verificăm disponibilitatea...</p>;
+    return <p role="status" aria-live="polite" className="text-xs text-white/40">Verificăm disponibilitatea...</p>;
   }
   if (status === "invalid") {
     return (
-      <p className="text-xs text-[#7C3AED]">
+      <p role="status" aria-live="polite" className="text-xs text-[#7C3AED]">
         3-20 caractere, doar litere mici, cifre, _ sau .
       </p>
     );
   }
   if (status === "available") {
     return (
-      <p className="flex items-center gap-1 text-xs text-[#10A37F]">
+      <p role="status" aria-live="polite" className="flex items-center gap-1 text-xs text-[#10A37F]">
         <CheckCircle2 className="h-3.5 w-3.5" /> @{value} este disponibil
       </p>
     );
   }
   if (status === "taken") {
     return (
-      <p className="flex items-center gap-1 text-xs text-[#7C3AED]">
+      <p role="status" aria-live="polite" className="flex items-center gap-1 text-xs text-[#7C3AED]">
         <AlertCircle className="h-3.5 w-3.5" /> @{value} este deja folosit
       </p>
     );

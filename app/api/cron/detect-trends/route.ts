@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import OpenAI from "openai";
+import { fetchCopilot, getCopilotGhuTokens } from "@/lib/ai/github-models-tokens";
 import { dbQuery } from "@/lib/db";
 import { runCron } from "@/lib/cron/runCron";
 
@@ -13,18 +13,6 @@ function authorize(req: Request): boolean {
   if (!expected || !token) return false;
   if (Buffer.byteLength(token) !== Buffer.byteLength(expected)) return false;
   return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
-}
-
-function aiClient(): OpenAI | null {
-  const token = process.env.GITHUB_TOKEN || process.env.GH_PAT;
-  if (token) {
-    return new OpenAI({
-      apiKey: token,
-      baseURL: process.env.GITHUB_MODELS_ENDPOINT ?? "https://models.github.ai/inference",
-    });
-  }
-  if (process.env.OPENAI_API_KEY) return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return null;
 }
 
 type Trend = { name: string; score: number; type: "hashtag" | "audio" | "product" | "topic"; metadata?: any };
@@ -113,30 +101,39 @@ async function topProducts(): Promise<Trend[]> {
 }
 
 async function aiSynthesize(input: { hashtags: Trend[]; audios: Trend[]; products: Trend[] }): Promise<Trend[]> {
-  const c = aiClient();
-  if (!c) return [];
+  if (getCopilotGhuTokens().length === 0) return [];
   try {
-    const res = await c.chat.completions.create({
-      model: process.env.TRANSLATE_MODEL || "openai/gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: 'You analyze marketplace metrics and surface emerging shopping/cultural topics. Return STRICT JSON {"trends":[{"name":string,"score":number,"type":"topic"}...]} max 5 entries.',
-        },
-        {
-          role: "user",
-          content: JSON.stringify({
-            top_hashtags: input.hashtags.slice(0, 10).map((t) => ({ name: t.name, growth: t.score })),
-            top_audios: input.audios.slice(0, 5).map((t) => ({ name: t.name, count: t.score })),
-            top_products: input.products.slice(0, 5).map((t) => ({ name: t.name, count: t.score })),
-          }),
-        },
-      ],
-      temperature: 0.3,
-      response_format: { type: "json_object" } as any,
-      max_tokens: 400,
+    const model = (process.env.TRANSLATE_MODEL || "gpt-4o-mini").replace(/^openai\//, "");
+    const { res } = await fetchCopilot("/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: 'You analyze marketplace metrics and surface emerging shopping/cultural topics. Return STRICT JSON {"trends":[{"name":string,"score":number,"type":"topic"}...]} max 5 entries.',
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              top_hashtags: input.hashtags.slice(0, 10).map((t) => ({ name: t.name, growth: t.score })),
+              top_audios: input.audios.slice(0, 5).map((t) => ({ name: t.name, count: t.score })),
+              top_products: input.products.slice(0, 5).map((t) => ({ name: t.name, count: t.score })),
+            }),
+          },
+        ],
+        temperature: 0.3,
+        response_format: { type: "json_object" },
+        max_tokens: 400,
+      }),
     });
-    const raw = res.choices?.[0]?.message?.content || "{}";
+    if (!res.ok) {
+      console.warn("[detect-trends] ai synth http", res.status);
+      return [];
+    }
+    const json: any = await res.json();
+    const raw = json?.choices?.[0]?.message?.content || "{}";
     const parsed = JSON.parse(raw);
     const arr = Array.isArray(parsed?.trends) ? parsed.trends : [];
     return arr.slice(0, 5).map((t: any) => ({

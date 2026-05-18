@@ -1,18 +1,17 @@
 /**
- * Speech-to-text via GitHub Models / OpenAI-compatible Whisper.
+ * Speech-to-text via Copilot 2-pass auth Whisper.
  * Fallback: stub returnând { text:'', segments:[] } cu warning.
  *
- * GitHub Models nu garantează Whisper public; folosim env-flag pt control.
+ * GitHub Copilot nu garantează Whisper public; folosim env-flag pt control.
  * Dacă `GITHUB_MODELS_WHISPER` ≠ "1" → fallback stub direct.
  */
+
+import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
 
 export type CaptionSegment = { start: number; end: number; text: string };
 export type TranscribeResult = { text: string; segments: CaptionSegment[] };
 
-const WHISPER_ENDPOINT =
-  process.env.GITHUB_MODELS_WHISPER_ENDPOINT ||
-  "https://models.github.ai/inference/audio/transcriptions";
-const WHISPER_MODEL = process.env.GITHUB_MODELS_WHISPER_MODEL || "openai/whisper-1";
+const WHISPER_MODEL = (process.env.GITHUB_MODELS_WHISPER_MODEL || "whisper-1").replace(/^openai\//, "");
 const ENABLED = process.env.GITHUB_MODELS_WHISPER === "1";
 
 export async function transcribe(
@@ -24,9 +23,8 @@ export async function transcribe(
     console.warn("[transcribe] disabled (GITHUB_MODELS_WHISPER!=1) → empty stub");
     return { text: "", segments: [] };
   }
-  const token = process.env.GITHUB_TOKEN || process.env.GH_PAT;
-  if (!token) {
-    console.warn("[transcribe] no GITHUB_TOKEN → empty stub");
+  if (getCopilotGhuTokens().length === 0) {
+    console.warn("[transcribe] no Copilot tokens → empty stub");
     return { text: "", segments: [] };
   }
   if (audioBuffer.length > 25 * 1024 * 1024) {
@@ -41,9 +39,8 @@ export async function transcribe(
     form.append("response_format", "verbose_json");
     if (lang) form.append("language", lang);
 
-    const res = await fetch(WHISPER_ENDPOINT, {
+    const { res } = await fetchCopilot("/audio/transcriptions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
       body: form,
     });
     if (!res.ok) {
