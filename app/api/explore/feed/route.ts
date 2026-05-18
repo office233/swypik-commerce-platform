@@ -220,8 +220,7 @@ export async function GET(request: NextRequest) {
           : "";
     const softCommerceClause = hideSoftCommerce ? `
               AND COALESCE(mp.title, '') !~* '${DEFAULT_FEED_SOFT_BLOCK_SQL_RE}'
-              AND COALESCE(mp.taxonomy_node_slug, '') NOT IN ('fashion-underwear-women', 'fashion-underwear-men')
-              AND COALESCE(mp.taxonomy_node_slug, '') !~* '(lingerie|swimwear)'
+              AND COALESCE(mp.taxonomy_node_slug, '') !~* '(underwear|lingerie|swimwear)'
     ` : "";
 
     const { rows } = await dbQuery(
