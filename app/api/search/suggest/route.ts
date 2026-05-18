@@ -3,8 +3,7 @@
  * Supports: products, categories, #hashtags, @users.
  */
 import { NextResponse } from "next/server";
-import { searchProducts } from "@/lib/db/product-queries";
-import { searchCreators, searchHashtags } from "@/lib/search/query";
+import { searchCreators, searchHashtags, searchProducts } from "@/lib/search/query";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -13,6 +12,14 @@ type Suggestion = { label: string; type: "categorie" | "produs" | "hashtag" | "u
 
 const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
+const SOFT_COMMERCE_QUERY_RE = /\b(sexy|adult|erotic|fetish|bdsm|underwear|underpants|panties|panty|lingerie|shapewear|bodysuit|bra|bras|bralette|briefs|bikini|swimwear|nightdress|sleepwear|corset|socks?)\b/i;
+const SOFT_COMMERCE_TITLE_RE = /\b(sexy|adult|erotic|fetish|bdsm|underwear|underpants|panties|panty|lingerie|shapewear|bodysuit|bra|bras|bralette|briefs|bikini|swimwear|nightdress|sleepwear|corset)\b/i;
+const MARKETPLACE_SPAM_TITLE_RE = /\b(amazon|hot[ -]?selling|luxury|wholesale|factory direct|dropship)\b/i;
+
+function suggestionLabel(title: string | null) {
+  const cleaned = String(title || "").replace(/\s+/g, " ").trim();
+  return cleaned.length > 50 ? `${cleaned.slice(0, 50)}...` : cleaned;
+}
 
 export async function GET(req: Request) {
   try {
@@ -64,22 +71,14 @@ export async function GET(req: Request) {
         }
       }
 
-      // Products
-      const result = await searchProducts({ search: cleaned || q, limit: 20 });
-
-      const categories = new Map<string, number>();
-      for (const p of result.products) {
-        const cat = (p.category || "").split(" > ")[0];
-        if (cat) categories.set(cat, (categories.get(cat) || 0) + 1);
-      }
-      for (const [cat] of Array.from(categories.entries()).sort((a, b) => b[1] - a[1]).slice(0, 2)) {
-        if (suggestions.length < limit && !seenLabels.has(cat)) {
-          suggestions.push({ label: cat, type: "categorie" });
-          seenLabels.add(cat);
-        }
-      }
-      for (const p of result.products) {
-        const label = p.title.length > 50 ? p.title.slice(0, 50) + "..." : p.title;
+      const allowSoftCommerce = SOFT_COMMERCE_QUERY_RE.test(cleaned || q);
+      const products = await searchProducts(cleaned || q, { limit: 20 }).catch(() => []);
+      for (const p of products) {
+        if (!allowSoftCommerce && SOFT_COMMERCE_TITLE_RE.test(p.title || "")) continue;
+        if (MARKETPLACE_SPAM_TITLE_RE.test(p.title || "")) continue;
+        if (suggestions.length >= 4 && Number(p.rank || 0) < 1.2) continue;
+        const label = suggestionLabel(p.title);
+        if (!label) continue;
         if (suggestions.length < limit && !seenLabels.has(label)) {
           suggestions.push({ label, type: "produs" });
           seenLabels.add(label);
