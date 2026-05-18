@@ -43,7 +43,8 @@ class Settings:
     consumer_name: str = "video-worker"
     output_bucket: str | None = None
     failed_stream: str | None = None
-    ack_failed_jobs: bool = False
+    stale_pending_ms: int = 10 * 60 * 1000
+    ack_failed_jobs: bool = True
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -72,7 +73,8 @@ class Settings:
             aws_access_key_id=_optional(values, "AWS_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID", "S3_ACCESS_KEY", "R2_ACCESS_KEY_ID"),
             aws_secret_access_key=_optional(values, "AWS_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY", "S3_SECRET_KEY", "R2_SECRET_ACCESS_KEY"),
             failed_stream=_optional(values, "VIDEO_FAILED_STREAM"),
-            ack_failed_jobs=_bool(values.get("VIDEO_ACK_FAILED_JOBS")),
+            stale_pending_ms=int(values.get("VIDEO_STALE_PENDING_MS", "600000")),
+            ack_failed_jobs=_bool(values.get("VIDEO_ACK_FAILED_JOBS", "true")),
         )
 
 

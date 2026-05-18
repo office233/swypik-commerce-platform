@@ -24,6 +24,7 @@ class RedisQueue:
         self.settings = settings
         self._client = None
         self._stream_group_ready = False
+        self._pending_start_id = "0-0"
 
     @property
     def client(self):
@@ -77,6 +78,9 @@ class RedisQueue:
 
     def _pop_stream_message(self) -> QueuedVideoJob | None:
         self._ensure_stream_group()
+        stale = self._pop_stale_stream_message()
+        if stale is not None:
+            return stale
         messages = self.client.xreadgroup(
             groupname=self.settings.consumer_group,
             consumername=self.settings.consumer_name,
@@ -98,6 +102,66 @@ class RedisQueue:
                     stream=stream_name,
                     raw_payload=decoded_fields,
                 )
+        return None
+
+    def _pop_stale_stream_message(self) -> QueuedVideoJob | None:
+        if self.settings.stale_pending_ms <= 0:
+            return None
+        try:
+            if hasattr(self.client, "xautoclaim"):
+                result = self.client.xautoclaim(
+                    name=self.settings.queue_name,
+                    groupname=self.settings.consumer_group,
+                    consumername=self.settings.consumer_name,
+                    min_idle_time=self.settings.stale_pending_ms,
+                    start_id=self._pending_start_id,
+                    count=1,
+                )
+            elif hasattr(self.client, "execute_command"):
+                result = self.client.execute_command(
+                    "XAUTOCLAIM",
+                    self.settings.queue_name,
+                    self.settings.consumer_group,
+                    self.settings.consumer_name,
+                    self.settings.stale_pending_ms,
+                    self._pending_start_id,
+                    "COUNT",
+                    1,
+                )
+            else:
+                return None
+        except TypeError:
+            if not hasattr(self.client, "execute_command"):
+                return None
+            result = self.client.execute_command(
+                "XAUTOCLAIM",
+                self.settings.queue_name,
+                self.settings.consumer_group,
+                self.settings.consumer_name,
+                self.settings.stale_pending_ms,
+                self._pending_start_id,
+                "COUNT",
+                1,
+            )
+        except Exception as exc:
+            if "unknown command" in str(exc).lower():
+                return None
+            raise
+
+        next_start_id, entries = _parse_xautoclaim(result)
+        self._pending_start_id = str(_decode_value(next_start_id) or "0-0")
+        if not entries:
+            return None
+
+        for message_id, fields in entries:
+            decoded_fields = _decode_mapping(fields)
+            payload = _payload_from_stream_fields(decoded_fields)
+            return QueuedVideoJob(
+                job=VideoJob.from_payload(payload),
+                message_id=_decode_value(message_id),
+                stream=self.settings.queue_name,
+                raw_payload=decoded_fields,
+            )
         return None
 
     def _ensure_stream_group(self) -> None:
@@ -128,6 +192,12 @@ def _payload_from_stream_fields(fields: Mapping[str, Any]) -> Mapping[str, Any] 
 
 def _decode_mapping(fields: Mapping[Any, Any]) -> dict[str, Any]:
     return {str(_decode_value(key)): _decode_value(value) for key, value in fields.items()}
+
+
+def _parse_xautoclaim(result: Any) -> tuple[Any, list[tuple[Any, Mapping[Any, Any]]]]:
+    if isinstance(result, (list, tuple)) and len(result) >= 2:
+        return result[0], list(result[1] or [])
+    return "0-0", []
 
 
 def _decode_value(value: Any) -> Any:
