@@ -71,6 +71,11 @@ const DEFAULT_FEED_SOFT_BLOCK_SQL_RE = [
 ].join("|");
 const SESSION_RE = /^[A-Za-z0-9._:-]{8,80}$/;
 const MEDIA_PUBLIC_HOST = "media.swypik.com";
+const DEFAULT_MIN_SWYPIK_SCORE = 58;
+
+const TITLE_SPAM_RE = /(amazon|hot[ -]?selling|shop products?|must[ -]?have|viral product|dropship|wholesale|factory direct|ce certified|luxury|high[ -]?end|202[5-9])/i;
+const TITLE_GENERIC_RE = /\b(woman clothing|women clothing|for women women|female ladies|new fashion|summer sale|spring summer)\b/i;
+const BRAND_RISK_RE = /\b(amazon|tiktok|shein|zara|nike|adidas|louis vuitton|gucci|prada|chanel)\b/i;
 
 const ENGAGEMENT_EXPR = `(
   COALESCE(v.view_count, 0) * 1
@@ -140,33 +145,147 @@ function clampScore(score: number): number {
 }
 
 function scoreLabel(score: number): string {
-  if (score >= 82) return "Merită urmărit";
-  if (score >= 68) return "Promițător";
+  if (score >= 86) return "Merită cumpărat";
+  if (score >= 74) return "Merită urmărit";
+  if (score >= 62) return "Promițător";
   if (score >= 50) return "De verificat";
-  return "Atenție";
+  return "Risc ridicat";
 }
 
-function computeSwypikScore(row: any): number {
+function metadataNumber(metadata: any, keys: string[]): number | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  for (const key of keys) {
+    const value = metadata[key];
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function titleQualitySignals(title: string): { penalty: number; flags: string[] } {
+  const normalizedTitle = title.trim();
+  const flags: string[] = [];
+  let penalty = 0;
+
+  if (normalizedTitle.length > 180) {
+    penalty -= 10;
+    flags.push("titlu prea lung");
+  } else if (normalizedTitle.length > 140) {
+    penalty -= 6;
+    flags.push("titlu lung");
+  }
+  if (TITLE_SPAM_RE.test(normalizedTitle)) {
+    penalty -= 8;
+    flags.push("copy de marketplace");
+  }
+  if (TITLE_GENERIC_RE.test(normalizedTitle)) {
+    penalty -= 4;
+    flags.push("titlu generic");
+  }
+  if (BRAND_RISK_RE.test(normalizedTitle)) {
+    penalty -= 7;
+    flags.push("brand/risc trust");
+  }
+  if ((normalizedTitle.match(/\b(women|woman|female|ladies)\b/gi) || []).length >= 4) {
+    penalty -= 3;
+    flags.push("keyword stuffing");
+  }
+
+  return { penalty, flags };
+}
+
+function computeSwypikScoreDetails(row: any): { score: number; reasons: string[]; riskFlags: string[] } {
+  const metadata = row.mp_metadata || {};
+  const productTitle = String(row.mp_name || "");
+  const reasons: string[] = [];
+  const riskFlags: string[] = [];
+
   const worthIt = asNumber(row.worth_it_count) || 0;
   const notWorthIt = asNumber(row.not_worth_it_count) || 0;
   const totalVotes = worthIt + notWorthIt;
-  const voteSignal = totalVotes > 0 ? ((worthIt - notWorthIt) / totalVotes) * 18 : 0;
+  const voteSignal = totalVotes > 0 ? ((worthIt - notWorthIt) / Math.max(3, totalVotes)) * 18 : 0;
+  if (totalVotes > 0) reasons.push(`${Math.round((worthIt / totalVotes) * 100)}% comunitate`);
 
   const engagement =
     (asNumber(row.like_count) || 0) * 2
     + (asNumber(row.save_count) || 0) * 3
     + (asNumber(row.share_count) || 0) * 4
     + (asNumber(row.comment_count) || 0) * 2;
-  const engagementSignal = Math.min(12, Math.log10(engagement + 1) * 6);
+  const engagementSignal = Math.min(10, Math.log10(engagement + 1) * 5);
+
+  const rating = metadataNumber(metadata, ["rating", "rating_avg", "average_rating"]);
+  const orders = metadataNumber(metadata, ["orders_count", "orders", "sales_count", "sold"]);
+  const reviews = metadataNumber(metadata, ["review_count", "reviews_count", "reviews"]);
+
+  let ratingSignal = -3;
+  if (rating != null && rating > 0) {
+    if (rating >= 4.8) ratingSignal = 8;
+    else if (rating >= 4.5) ratingSignal = 5;
+    else if (rating >= 4.2) ratingSignal = 2;
+    else if (rating >= 3.8) ratingSignal = -2;
+    else ratingSignal = -10;
+    reasons.push(`rating ${rating.toFixed(1)}`);
+  } else {
+    riskFlags.push("fără rating");
+  }
+
+  const orderSignal = orders != null && orders > 0 ? Math.min(12, Math.log10(orders + 1) * 4) : -4;
+  if (orders != null && orders > 0) reasons.push(`${Math.round(orders)} comenzi`);
+
+  const reviewSignal = reviews != null && reviews > 0 ? Math.min(5, Math.log10(reviews + 1) * 3) : 0;
 
   const inventory = String(row.mp_inventory_status || "").toLowerCase();
-  const inventorySignal = inventory === "in_stock" || inventory === "available" ? 8 : inventory === "out_of_stock" ? -30 : 0;
+  const inventorySignal = inventory === "in_stock" || inventory === "available" ? 7 : inventory === "out_of_stock" ? -35 : -3;
   const shippingCents = asNumber(row.mp_shipping_cost_cents);
-  const shippingSignal = shippingCents === 0 ? 4 : shippingCents && shippingCents > 2500 ? -4 : 0;
-  const priceSignal = (asNumber(row.mp_price_cents) || 0) > 0 ? 4 : -10;
-  const safetySignal = row.mp_is_adult ? -50 : 0;
+  const priceCents = asNumber(row.mp_price_cents) || 0;
+  const shippingRatio = priceCents > 0 && shippingCents != null ? shippingCents / priceCents : null;
+  let shippingSignal = 0;
+  if (shippingCents === 0) {
+    shippingSignal = 4;
+    reasons.push("livrare inclusă");
+  } else if (shippingRatio != null && shippingRatio > 0.4) {
+    shippingSignal = -8;
+    riskFlags.push("livrare scumpă");
+  } else if (shippingRatio != null && shippingRatio > 0.25) {
+    shippingSignal = -5;
+  } else if (shippingCents && shippingCents > 2500) {
+    shippingSignal = -4;
+  } else {
+    shippingSignal = 1;
+  }
 
-  return clampScore(62 + voteSignal + engagementSignal + inventorySignal + shippingSignal + priceSignal + safetySignal);
+  let priceSignal = priceCents > 0 ? 3 : -12;
+  if (priceCents > 100000) priceSignal -= 8;
+  else if (priceCents > 50000) priceSignal -= 4;
+
+  const titleSignals = titleQualitySignals(productTitle);
+  riskFlags.push(...titleSignals.flags);
+
+  const taxonomySignal = row.mp_taxonomy_node_slug ? 2 : -10;
+  const imageSignal = row.mp_image_url ? 2 : -8;
+  const safetySignal = row.mp_is_adult ? -60 : 0;
+  if (row.mp_is_adult) riskFlags.push("adult");
+
+  const score = clampScore(
+    54
+    + voteSignal
+    + engagementSignal
+    + ratingSignal
+    + orderSignal
+    + reviewSignal
+    + inventorySignal
+    + shippingSignal
+    + priceSignal
+    + titleSignals.penalty
+    + taxonomySignal
+    + imageSignal
+    + safetySignal,
+  );
+
+  if (score >= 74 && reasons.length === 0) reasons.push("semnale produs bune");
+  if (score < 58 && riskFlags.length === 0) riskFlags.push("scor calitate mic");
+
+  return { score, reasons: reasons.slice(0, 3), riskFlags: riskFlags.slice(0, 3) };
 }
 
 export async function GET(request: NextRequest) {
@@ -179,6 +298,13 @@ export async function GET(request: NextRequest) {
     const taxonomySlugParam = (searchParams.get("taxonomy_node_slug") || searchParams.get("category") || "").trim();
     const onlyFollowing = sourceParam === "following";
     const hideSoftCommerce = !taxonomySlugParam && sourceParam !== "following" && searchParams.get("include_soft_commerce") !== "1";
+    const minScoreParam = searchParams.get("min_score");
+    const minScoreRaw = minScoreParam == null ? NaN : Number(minScoreParam);
+    const minSwypikScore = taxonomySlugParam || onlyFollowing
+      ? 1
+      : Number.isFinite(minScoreRaw)
+        ? Math.max(1, Math.min(99, Math.round(minScoreRaw)))
+        : DEFAULT_MIN_SWYPIK_SCORE;
 
     const pageRaw = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
     const limitRaw = parseInt(searchParams.get("limit") || "20", 10) || 20;
@@ -192,8 +318,9 @@ export async function GET(request: NextRequest) {
     const rawSessionId = (searchParams.get("session_id") || "").trim();
     const viewerSessionId = SESSION_RE.test(rawSessionId) ? rawSessionId : null;
 
-    // Fetch limit+1 to compute hasMore without COUNT(*)
-    const queryLimit = limit + 1;
+    // Fetch extra rows when quality filtering is active so the default feed can
+    // skip low-quality products without looking empty.
+    const queryLimit = minSwypikScore > 1 ? Math.min(limit * 4 + 1, 200) : limit + 1;
     const queryParams: any[] = [queryLimit, offset];
     let userParam = "";
     let sessionParam = "";
@@ -359,11 +486,8 @@ export async function GET(request: NextRequest) {
       queryParams
     );
 
-    const hasMore = rows.length > limit;
-    const sliced = hasMore ? rows.slice(0, limit) : rows;
-
-    if (sliced.length > 0) {
-      const videos = sliced.map((row: any) => {
+    if (rows.length > 0) {
+      const mappedVideos = rows.map((row: any) => {
         const productId = row.mp_id ? String(row.mp_id) : firstProductRefId(row.product_refs);
         const currency = String(row.mp_currency || "RON").trim().toUpperCase();
         const priceCents = asNumber(row.mp_price_cents);
@@ -371,7 +495,8 @@ export async function GET(request: NextRequest) {
         const worthIt = asNumber(row.worth_it_count) || 0;
         const notWorthIt = asNumber(row.not_worth_it_count) || 0;
         const totalVotes = worthIt + notWorthIt;
-        const swypikScore = row.mp_id ? computeSwypikScore(row) : null;
+        const swypikScoreDetails = row.mp_id ? computeSwypikScoreDetails(row) : null;
+        const swypikScore = swypikScoreDetails?.score ?? null;
 
         const sourceUrl = row.source_key && publicUrl ? `${publicUrl}/${row.source_key}` : null;
         const playbackUrl = row.playback_url || sourceUrl;
@@ -422,6 +547,8 @@ export async function GET(request: NextRequest) {
             linkPlacement: row.product_placement || "product_refs",
             swypikScore,
             swypikScoreLabel: swypikScore ? scoreLabel(swypikScore) : null,
+            swypikScoreReasons: swypikScoreDetails?.reasons || [],
+            qualityFlags: swypikScoreDetails?.riskFlags || [],
             votes: {
               worthIt,
               notWorthIt,
@@ -441,6 +568,13 @@ export async function GET(request: NextRequest) {
           ...(row.trending_score !== undefined && { trendingScore: Number(row.trending_score) }),
         };
       });
+
+      const qualityFilteredVideos = mappedVideos.filter((video: any) => {
+        if (!video.product?.id) return true;
+        return Number(video.product.swypikScore || 0) >= minSwypikScore;
+      });
+      const videos = qualityFilteredVideos.slice(0, limit);
+      const hasMore = qualityFilteredVideos.length > limit || rows.length >= queryLimit;
 
       const cacheHeaders = { "Cache-Control": "no-store" };
       return NextResponse.json({ videos, page, hasMore }, { headers: cacheHeaders });
