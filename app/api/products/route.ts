@@ -4,6 +4,8 @@
  */
 
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { getRate } from "@/lib/fx/convert";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -100,16 +102,47 @@ export async function GET(req: Request) {
 
     const cacheSeconds = mode === "video" ? 300 : 60;
 
+    // Currency conversion (aligned with /api/products/[id]): listing stores price in RON.
+    const cookieStore = await cookies();
+    const targetCurrency = (cookieStore.get("swypik_currency")?.value || "RON").toUpperCase();
+    let fxRate = 1;
+    if (targetCurrency !== "RON") {
+      try {
+        const eurPerRon = await getRate("RON", "EUR"); // EUR->RON
+        if (targetCurrency === "EUR") {
+          if (isFinite(eurPerRon) && eurPerRon > 0) fxRate = 1 / eurPerRon;
+        } else {
+          const eurPerTarget = await getRate(targetCurrency, "EUR");
+          if (isFinite(eurPerRon) && eurPerRon > 0 && isFinite(eurPerTarget) && eurPerTarget > 0) {
+            fxRate = eurPerTarget / eurPerRon;
+          }
+        }
+      } catch (e) {
+        logger.warn({ err: e }, "[Products API] fx convert failed");
+      }
+    }
+    const convertPrice = (p: any) => {
+      const n = Number(p);
+      if (!isFinite(n) || n <= 0) return p;
+      return Math.round(n * fxRate * 100) / 100;
+    };
+
     // Minimal DTO for video mode (high-volume infinite scroll)
     const products = mode === "video"
       ? (result.products || []).map((p: any) => ({
           id: p.id,
           title: p.title,
-          price: p.price,
-          oldPrice: p.oldPrice ?? null,
+          price: convertPrice(p.price),
+          priceRon: p.price,
+          oldPrice: p.oldPrice != null ? convertPrice(p.oldPrice) : null,
           thumbnail: p.image || p.thumbnail || (Array.isArray(p.images) ? p.images[0] : null),
         }))
-      : result.products;
+      : (result.products || []).map((p: any) => ({
+          ...p,
+          price: convertPrice(p.price),
+          priceRon: p.price,
+          oldPrice: p.oldPrice != null ? convertPrice(p.oldPrice) : (p.oldPrice ?? null),
+        }));
 
     const nextOffset = (result.offset || 0) + (result.limit || limit);
     const hasMore = mode === "video"
@@ -119,6 +152,7 @@ export async function GET(req: Request) {
     return NextResponse.json(
       {
         products,
+        currency: targetCurrency,
         total: result.total,
         offset: result.offset || 0,
         limit: result.limit || limit,

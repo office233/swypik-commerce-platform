@@ -100,7 +100,7 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
   const trackingUrl = orderTrackingUrl(data);
   const itemsHtml = data.items.map(i =>
     `<tr>
-      <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">${i.title}</td>
+      <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">${escapeHtml(i.title)}</td>
       <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;text-align:center;font-size:14px;color:#666">${i.quantity}</td>
       <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:14px;font-weight:700;color:#333">${(i.price * i.quantity).toFixed(2)} lei</td>
     </tr>`
@@ -109,9 +109,9 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
   const addressHtml = data.shippingAddress ? `
     <div style="margin-top:24px;padding:16px;background:#f8f9fa;border-radius:12px">
       <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px">Adresă de livrare</p>
-      <p style="margin:0;font-size:14px;color:#333">${data.shippingAddress.name || ""}</p>
-      <p style="margin:0;font-size:14px;color:#666">${data.shippingAddress.line1 || ""}</p>
-      <p style="margin:0;font-size:14px;color:#666">${data.shippingAddress.city || ""}, ${data.shippingAddress.postal_code || ""}</p>
+      <p style="margin:0;font-size:14px;color:#333">${escapeHtml(data.shippingAddress.name || "")}</p>
+      <p style="margin:0;font-size:14px;color:#666">${escapeHtml(data.shippingAddress.line1 || "")}</p>
+      <p style="margin:0;font-size:14px;color:#666">${escapeHtml(data.shippingAddress.city || "")}, ${escapeHtml(data.shippingAddress.postal_code || "")}</p>
     </div>` : "";
 
   const html = `
@@ -134,7 +134,7 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
         </div>
         
         <p style="font-size:15px;color:#333;line-height:1.6">
-          Bună, ${data.customerName || "acolo"}! 👋<br>
+          Bună, ${escapeHtml(data.customerName || "acolo")}! 👋<br>
           Mulțumim pentru comandă. Mai jos găsești detaliile:
         </p>
         
@@ -160,7 +160,7 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
         
         <!-- CTA -->
         <div style="text-align:center;margin-top:32px">
-          <a href="${trackingUrl}" 
+          <a href="${escapeHtml(trackingUrl)}" 
              style="display:inline-block;background:#0D0D0D;color:white;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none">
             📦 Urmărește comanda
           </a>
@@ -209,19 +209,19 @@ export async function sendShippingNotification(data: OrderEmailData): Promise<bo
         </div>
         
         <p style="font-size:15px;color:#333;line-height:1.6">
-          Bună, ${data.customerName || "acolo"}! 👋<br>
+          Bună, ${escapeHtml(data.customerName || "acolo")}! 👋<br>
           Comanda ta a fost expediată și este pe drum către tine.
         </p>
         
         ${data.trackingNumber ? `
         <div style="margin:24px 0;padding:20px;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;text-align:center">
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#0D0D0D;text-transform:uppercase;letter-spacing:1px">Cod de urmărire</p>
-          <p style="margin:0;font-size:22px;font-weight:900;font-family:monospace;color:#0D0D0D">${data.trackingNumber}</p>
-          ${data.trackingUrl ? `<a href="${data.trackingUrl}" style="display:inline-block;margin-top:12px;color:#0D0D0D;font-size:13px;font-weight:700">Urmărește coletul →</a>` : ""}
+          <p style="margin:0;font-size:22px;font-weight:900;font-family:monospace;color:#0D0D0D">${escapeHtml(data.trackingNumber)}</p>
+          ${data.trackingUrl ? `<a href="${escapeHtml(data.trackingUrl)}" style="display:inline-block;margin-top:12px;color:#0D0D0D;font-size:13px;font-weight:700">Urmărește coletul →</a>` : ""}
         </div>` : ""}
         
         <div style="text-align:center;margin-top:32px">
-          <a href="${trackingUrl}" 
+          <a href="${escapeHtml(trackingUrl)}" 
              style="display:inline-block;background:#0D0D0D;color:white;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none">
             📦 Urmărește comanda
           </a>
@@ -313,7 +313,7 @@ export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: a
   }
   const itemsHtml = orderItems.map(i =>
     `<tr>
-      <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">${i.title || i.name || 'Produs'}</td>
+      <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333">${escapeHtml(i.title || i.name || 'Produs')}</td>
       <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;text-align:center;font-size:14px;color:#666">${i.quantity || 1}</td>
     </tr>`
   ).join("");
@@ -329,7 +329,7 @@ export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: a
       <div style="padding:32px">
         <h2 style="margin:16px 0 4px;font-size:22px;font-weight:900;color:#0D0D0D;text-align:center;">Ai o comandă nouă! 🎉</h2>
         <p style="font-size:15px;color:#333;line-height:1.6;margin-top:24px;">
-          Salut, ai o comandă nouă de la clientul ${customerName} pentru produsele:
+          Salut, ai o comandă nouă de la clientul ${escapeHtml(customerName)} pentru produsele:
         </p>
         <table style="width:100%;border-collapse:collapse;margin:24px 0">
           <thead>
@@ -381,7 +381,7 @@ export async function sendSellerApprovalEmail(email: string, name: string): Prom
         <div style="width:64px;height:64px;background:#0D0D0D20;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px;">🎉</div>
         <h2 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#0D0D0D;">Felicitări!</h2>
         <p style="font-size:15px;color:#333;line-height:1.6;margin-bottom:24px;">
-          Salut ${name}, contul tău de Seller Swypik a fost aprobat!
+          Salut ${escapeHtml(name)}, contul tău de Seller Swypik a fost aprobat!
         </p>
         <p style="font-size:15px;color:#333;line-height:1.6;margin-bottom:32px;">
           Acum poți să îți adaugi produsele și să începi să vinzi pe platforma noastră.
@@ -425,7 +425,7 @@ export async function sendCustomerShippingAlert(email: string, trackingNumber: s
           Pachetul tău a fost predat curierului. Îl poți urmări folosind numărul de AWB de mai jos:
         </p>
         <div style="font-size:24px;font-weight:bold;letter-spacing:2px;margin:20px 0;padding:16px;background:#f5f5f5;border-radius:8px;font-family:monospace;">
-          ${trackingNumber}
+          ${escapeHtml(trackingNumber)}
         </div>
       </div>
     </div>

@@ -384,13 +384,13 @@ export async function POST(req: Request) {
       }
 
       // Verifică unicitate email + username + phone (ignoră anonimi cu email NULL)
-      console.log(`[auth/signup_password] attempt email=${normalizedEmail} username=${cleanUsername} hasPhone=${!!phoneTrimmed}`);
+      // [auth/signup_password] attempt (PII redacted)
       const { rows: existingEmailRows } = await dbQuery<{ id: string; status: string }>(
         `SELECT id, status FROM users WHERE email IS NOT NULL AND lower(email) = $1 LIMIT 1`,
         [normalizedEmail],
       );
       if (existingEmailRows.length > 0) {
-        console.log(`[auth/signup_password] EMAIL_TAKEN id=${existingEmailRows[0].id} status=${existingEmailRows[0].status}`);
+        console.log(`[auth/signup_password] EMAIL_TAKEN user_id=${existingEmailRows[0].id} status=${existingEmailRows[0].status}`);
         return NextResponse.json(
           { success: false, field: "email", code: "email_taken", error: "Există deja un cont cu acest email. Încearcă să te autentifici." },
           { status: 409 },
@@ -402,7 +402,7 @@ export async function POST(req: Request) {
         [cleanUsername],
       );
       if (existingUserRows.length > 0) {
-        console.log(`[auth/signup_password] USERNAME_TAKEN handle=${cleanUsername}`);
+        console.log(`[auth/signup_password] USERNAME_TAKEN`);
         return NextResponse.json(
           { success: false, field: "username", code: "username_taken", error: `Username-ul "${cleanUsername}" este deja folosit. Alege altul.` },
           { status: 409 },
@@ -415,7 +415,7 @@ export async function POST(req: Request) {
           [phoneTrimmed],
         );
         if (existingPhoneRows.length > 0) {
-          console.log(`[auth/signup_password] PHONE_TAKEN phone=${phoneTrimmed}`);
+          console.log(`[auth/signup_password] PHONE_TAKEN`);
           return NextResponse.json(
             { success: false, field: "phone", code: "phone_taken", error: "Există deja un cont cu acest telefon." },
             { status: 409 },

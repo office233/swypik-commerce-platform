@@ -198,15 +198,24 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     shipping_address: shippingAddress,
   };
 
-  // Update the pending order to paid
-  await dbQuery(
+  // Update the pending order to paid (idempotent via RETURNING gate).
+  const { rows: transitionRows } = await dbQuery<{ id: string }>(
     `UPDATE commerce_orders 
      SET status = 'paid', 
          placed_at = COALESCE(placed_at, now()),
          metadata = metadata || $1::jsonb
-     WHERE id = $2 AND status = 'pending'`,
+     WHERE id = $2 AND status = 'pending'
+     RETURNING id`,
     [JSON.stringify(metadata), orderId]
   );
+
+  // Decrement stock atomically ONLY on the actual pending->paid transition.
+  // The processed_stripe_events guard at the top of POST() neutralizes Stripe
+  // event retries; this RETURNING gate additionally protects against any
+  // non-webhook path that may have already flipped the order out of 'pending'.
+  if (transitionRows.length > 0) {
+    await decrementOrderStock(orderId);
+  }
 
   // Record payment transaction
   await dbQuery(
@@ -505,3 +514,56 @@ async function persistOrderItems(orderId: string, items: Array<{
     }
   }
 }
+
+async function decrementOrderStock(orderId: string) {
+  // Pull order items recorded by /api/checkout (embedded flow). We decrement
+  // per (product_id, variant_id) atomically using a CHECK-guarded UPDATE so
+  // the row only changes when sufficient stock exists. Variants use a real
+  // integer column; product-level fallback uses metadata.available_stock
+  // (jsonb int) since marketplace_products has no top-level stock column.
+  let items: Array<{ product_id: string | null; variant_id: string | null; quantity: number; title: string | null }> = [];
+  try {
+    const { rows } = await dbQuery<{ product_id: string | null; variant_id: string | null; quantity: number; title: string | null }>(
+      `SELECT product_id::text AS product_id, variant_id::text AS variant_id, quantity, title
+         FROM commerce_order_items WHERE order_id = $1`,
+      [orderId]
+    );
+    items = rows;
+  } catch (e) {
+    logger.error({ err: e, orderId }, '[Stripe Webhook] Failed to load order items for stock decrement');
+    return;
+  }
+
+  for (const it of items) {
+    const qty = Number(it.quantity) || 0;
+    if (qty <= 0) continue;
+    try {
+      if (it.variant_id) {
+        const { rowCount } = await dbQuery(
+          `UPDATE marketplace_product_variants
+              SET inventory_quantity = inventory_quantity - $1,
+                  updated_at = now()
+            WHERE id = $2 AND inventory_quantity IS NOT NULL AND inventory_quantity >= $1`,
+          [qty, it.variant_id]
+        );
+        if (!rowCount) {
+          logger.warn({ orderId, variantId: it.variant_id, qty, title: it.title }, '[Stripe Webhook] Oversell prevented: variant stock insufficient or NULL; manual review required');
+        }
+      } else if (it.product_id) {
+        const { rowCount } = await dbQuery(
+          `UPDATE marketplace_products
+              SET metadata = jsonb_set(metadata, '{available_stock}', to_jsonb(GREATEST(0, COALESCE((metadata->>'available_stock')::int, 0) - $1)), true),
+                  updated_at = now()
+            WHERE id = $2 AND COALESCE((metadata->>'available_stock')::int, 0) >= $1`,
+          [qty, it.product_id]
+        );
+        if (!rowCount) {
+          logger.warn({ orderId, productId: it.product_id, qty, title: it.title }, '[Stripe Webhook] Oversell prevented: product available_stock insufficient or missing; manual review required');
+        }
+      }
+    } catch (e) {
+      logger.error({ err: e, orderId, productId: it.product_id, variantId: it.variant_id }, '[Stripe Webhook] Stock decrement failed');
+    }
+  }
+}
+

@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /_next/
 
-Sitemap: https://aicevrei.ro/sitemap.xml
+Sitemap: https://swypik.com/sitemap.xml
