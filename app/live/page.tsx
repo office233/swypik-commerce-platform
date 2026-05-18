@@ -13,7 +13,7 @@ export default async function LivePage() {
       LIMIT 24`
   ).catch(() => ({ rows: [] as any[] }));
   return (
-    <main className="max-w-6xl mx-auto p-4">
+    <main className="max-w-6xl mx-auto px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
       <h1 className="text-2xl font-bold mb-4">🔴 Live acum</h1>
       {rows.length === 0 ? (
         <p className="text-gray-500">Niciun stream activ.</p>
@@ -23,7 +23,7 @@ export default async function LivePage() {
             <Link
               key={s.id}
               href={`/live/${s.id}`}
-              className="aspect-[9/16] bg-gray-900 rounded-xl overflow-hidden relative block"
+              className="aspect-[9/16] bg-gray-900 rounded-xl overflow-hidden relative block focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
             >
               {s.avatar_url ? (
                 /* eslint-disable-next-line @next/next/no-img-element */

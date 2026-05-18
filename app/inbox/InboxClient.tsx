@@ -128,14 +128,14 @@ export default function InboxClient() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-5 pb-24">
+    <div className="mx-auto max-w-lg px-4 py-5 pb-[max(96px,calc(80px+env(safe-area-inset-bottom)))]">
       <h1 className="mb-4 text-2xl font-black tracking-tight">Inbox</h1>
 
       <div className="mb-4 flex items-center gap-2 rounded-2xl bg-[#F3F4F6] dark:bg-white/5 p-1">
         <button
           type="button"
           onClick={() => setTab("messages")}
-          className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${
+          className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 min-h-[44px] text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${
             tab === "messages"
               ? "bg-white dark:bg-[#0D0D0D] text-[#0D0D0D] dark:text-white shadow-sm"
               : "text-[#6E6E80]"
@@ -152,7 +152,7 @@ export default function InboxClient() {
         <button
           type="button"
           onClick={() => setTab("notifications")}
-          className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${
+          className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 min-h-[44px] text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${
             tab === "notifications"
               ? "bg-white dark:bg-[#0D0D0D] text-[#0D0D0D] dark:text-white shadow-sm"
               : "text-[#6E6E80]"
@@ -296,7 +296,7 @@ function NotificationsTab({
           type="button"
           onClick={markAll}
           disabled={marking || unread === 0}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#0D0D0D] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#1a1a1a] disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#0D0D0D] px-4 py-2.5 min-h-[40px] text-xs font-bold text-white transition hover:bg-[#1a1a1a] disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
         >
           <CheckCheck className="h-3.5 w-3.5" />
           Marchează toate citite

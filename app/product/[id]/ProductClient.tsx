@@ -352,13 +352,13 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
 
         {/* Tabs */}
         <div className="flex items-center gap-2 border-b border-[#E5E5E5] mb-5 sticky top-[60px] bg-white z-40 pb-2">
-          <button onClick={() => setActiveTab("clips")} className={`pb-2 px-1 text-sm font-black border-b-2 transition-colors ${activeTab === "clips" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
+          <button onClick={() => setActiveTab("clips")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "clips" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
             Clips ({productVideos.length})
           </button>
-          <button onClick={() => setActiveTab("details")} className={`pb-2 px-1 text-sm font-black border-b-2 transition-colors ${activeTab === "details" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
+          <button onClick={() => setActiveTab("details")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "details" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
             Detalii
           </button>
-          <button onClick={() => setActiveTab("reviews")} className={`pb-2 px-1 text-sm font-black border-b-2 transition-colors ${activeTab === "reviews" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
+          <button onClick={() => setActiveTab("reviews")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "reviews" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
             Reviews
           </button>
         </div>
@@ -603,7 +603,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       {/* Lightbox Modal */}
       {playingVideo && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fadeIn" onClick={() => setPlayingVideo(null)}>
-          <button className="absolute top-4 right-4 text-white p-2 rounded-full bg-white/10 backdrop-blur" onClick={() => setPlayingVideo(null)}>✕</button>
+          <button className="absolute top-4 right-4 grid h-11 w-11 place-items-center text-white rounded-full bg-white/10 backdrop-blur hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Închide" onClick={() => setPlayingVideo(null)}>✕</button>
           <video src={playingVideo} autoPlay controls playsInline className="w-full max-w-sm max-h-[80vh] rounded-2xl object-contain shadow-2xl" onClick={e => e.stopPropagation()} />
         </div>
       )}

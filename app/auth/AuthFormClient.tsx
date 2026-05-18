@@ -247,7 +247,7 @@ function LoginForm({ nextPath }: { nextPath: string }) {
           <button
             type="button"
             onClick={() => setTab("password")}
-            className={`rounded-xl py-2 text-sm font-bold transition ${
+            className={`rounded-xl py-3 min-h-[44px] text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${
               tab === "password" ? "bg-white text-black" : "text-white/60"
             }`}
           >
@@ -256,7 +256,7 @@ function LoginForm({ nextPath }: { nextPath: string }) {
           <button
             type="button"
             onClick={() => setTab("otp")}
-            className={`rounded-xl py-2 text-sm font-bold transition ${
+            className={`rounded-xl py-3 min-h-[44px] text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${
               tab === "otp" ? "bg-white text-black" : "text-white/60"
             }`}
           >

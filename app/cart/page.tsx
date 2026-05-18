@@ -139,7 +139,7 @@ export default function CartPage() {
           </p>
         </div>
         {items.length > 0 && (
-          <button onClick={() => { if (confirm("Ești sigur că vrei să golești coșul?")) clearCart(); }} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-1.5 rounded-lg bg-red-50">
+          <button onClick={() => { if (confirm("Ești sigur că vrei să golești coșul?")) clearCart(); }} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-2 rounded-lg bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none min-h-[36px]">
             Golește coșul
           </button>
         )}
@@ -177,11 +177,11 @@ export default function CartPage() {
                     </Link>
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex items-center rounded-xl border border-[#E5E5E5] overflow-hidden">
-                        <button onClick={() => updateQty(item, -1)} disabled={item.quantity <= 1} className="w-8 h-8 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition">
+                        <button onClick={() => updateQty(item, -1)} disabled={item.quantity <= 1} className="w-11 h-11 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Scade">
                           <Minus size={14} />
                         </button>
-                        <span className="w-8 h-8 flex items-center justify-center text-sm font-black text-[#0D0D0D] border-x border-[#E5E5E5]">{item.quantity}</span>
-                        <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= 99} className="w-8 h-8 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition" aria-label="Adaugă">
+                        <span className="min-w-[44px] h-11 flex items-center justify-center text-sm font-black text-[#0D0D0D] border-x border-[#E5E5E5]" aria-live="polite">{item.quantity}</span>
+                        <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= 99} className="w-11 h-11 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Adaugă">
                           <Plus size={14} />
                         </button>
                       </div>
@@ -193,7 +193,7 @@ export default function CartPage() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => { if (confirm("Ești sigur că vrei să ștergi acest produs din coș?")) removeItem(item); }} className="self-start p-2 rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all" aria-label="Șterge">
+                  <button onClick={() => { if (confirm("Ești sigur că vrei să ștergi acest produs din coș?")) removeItem(item); }} className="self-start grid h-11 w-11 place-items-center rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none" aria-label="Șterge">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -208,7 +208,7 @@ export default function CartPage() {
       )}
 
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-[#E5E5E5] px-4 pt-4 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] safe-pb">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-[#E5E5E5] px-4 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-semibold text-[#6E6E80]">{t("subtotal")} ({totalItems} produse)</span>

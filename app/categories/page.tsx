@@ -68,7 +68,7 @@ export default async function CategoriesPage() {
                 key={dept.id}
                 className="group rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 transition hover:border-neutral-700"
               >
-                <Link href={`/categories/${dept.id}`} className="block">
+                <Link href={`/categories/${dept.id}`} className="block focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded-lg">
                   <div className="flex items-baseline justify-between gap-3">
                     <h2 className="text-lg font-medium" style={{ color: ACCENT }}>
                       {dept.name}

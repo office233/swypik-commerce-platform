@@ -92,7 +92,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-black text-white flex flex-col lg:flex-row"><h1 className="sr-only">Live stream</h1>
       <div className="flex-1 relative">
         <video ref={videoRef} controls autoPlay playsInline className="w-full h-full object-contain" />
         <div className="absolute top-3 left-3 flex items-center gap-2">
@@ -120,11 +120,11 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
                 )}
               </div>
             </div>
-            <Link href={`/product/${pinned.product_id}`} className="bg-violet-600 text-white px-4 py-2 rounded text-sm font-semibold">Cumpără</Link>
+            <Link href={`/product/${pinned.product_id}`} className="inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-5 py-3 min-h-[44px] rounded-lg text-sm font-semibold focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none">Cumpără</Link>
           </div>
         )}
         {items.length > 1 && (
-          <button onClick={() => setShowDrawer(true)} className="absolute bottom-24 right-4 bg-violet-600 text-white px-3 py-2 rounded text-sm">
+          <button onClick={() => setShowDrawer(true)} className="absolute bottom-24 right-4 inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-4 py-3 min-h-[44px] rounded-lg text-sm font-semibold shadow-lg focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none" aria-label="Vezi produse">
             🛍 {items.length} produse
           </button>
         )}
@@ -140,15 +140,15 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
           ))}
         </div>
         <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="p-2 border-t border-white/10 flex gap-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Mesaj…" className="flex-1 bg-white/10 px-3 py-2 rounded text-sm" />
-          <button type="submit" className="bg-violet-600 px-3 rounded text-sm">Send</button>
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Mesaj…" aria-label="Mesaj chat" className="flex-1 bg-white/10 px-3 py-2 min-h-[40px] rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none" />
+          <button type="submit" className="inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-4 min-h-[40px] rounded-lg text-sm font-semibold focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none">Trimite</button>
         </form>
       </aside>
 
       {showDrawer && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-end" onClick={() => setShowDrawer(false)}>
           <div className="bg-white text-black w-full rounded-t-2xl p-4 max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold mb-3">Produse</h3>
+            <h2 className="font-semibold mb-3 text-base">Produse</h2>
             <div className="space-y-2">
               {items.map((it) => (
                 <Link key={it.id} href={`/product/${it.product_id}`} className="flex items-center gap-3 border rounded p-2">

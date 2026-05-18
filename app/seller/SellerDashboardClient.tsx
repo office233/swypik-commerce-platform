@@ -90,7 +90,7 @@ export default function SellerDashboardPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-[#0D0D0D]">Dashboard Vanzator</h1>
@@ -99,7 +99,7 @@ export default function SellerDashboardPage() {
         <button
           onClick={fetchDashboard}
           disabled={loading}
-          className="rounded-lg border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] disabled:opacity-50"
+          className="rounded-lg border border-[#E5E5E5] bg-white px-4 py-2.5 min-h-[40px] text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
         >
           {loading ? "Se incarca..." : "Reincarca"}
         </button>
@@ -108,7 +108,7 @@ export default function SellerDashboardPage() {
       {error && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-bold text-red-700">{error}</p>
-          <button onClick={fetchDashboard} className="mt-3 text-sm font-bold text-red-700 underline">
+          <button onClick={fetchDashboard} className="mt-3 inline-flex items-center min-h-[36px] px-2 text-sm font-bold text-red-700 underline focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none rounded">
             Incearca din nou
           </button>
         </div>
@@ -125,7 +125,7 @@ export default function SellerDashboardPage() {
           <button
             onClick={handleConnectStripe}
             disabled={connecting}
-            className="whitespace-nowrap bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
+            className="whitespace-nowrap bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-3 px-5 min-h-[44px] rounded-lg transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-yellow-600 focus-visible:outline-none"
           >
             {connecting ? "Se conecteaza..." : "Conecteaza Stripe"}
           </button>

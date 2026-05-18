@@ -67,7 +67,7 @@ export default async function SearchPage({
 
   return (
     <main className="min-h-screen text-white" style={{ backgroundColor: BG }}>
-      <div className="mx-auto max-w-5xl px-4 py-6">
+      <div className="mx-auto max-w-5xl px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold mb-4">Search</h1>
           <SearchBar initialQuery={q} />
@@ -87,7 +87,7 @@ export default async function SearchPage({
                   <Link
                     key={t.key}
                     href={href}
-                    className="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
+                    className="inline-flex items-center px-4 py-3 min-h-[44px] text-sm font-medium border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
                     style={{
                       borderColor: active ? ACCENT : "transparent",
                       color: active ? ACCENT : "#d4d4d4",

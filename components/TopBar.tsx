@@ -104,14 +104,14 @@ export default function TopBar() {
         <Link
           href="/categories"
           aria-label="Categorii"
-          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
         >
           <LayoutGrid className="h-5 w-5" />
         </Link>
         <Link
           href="/cart"
           aria-label="Coș"
-          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
         >
           <ShoppingBag className="h-5 w-5" />
           {cartCount > 0 && (
@@ -123,7 +123,7 @@ export default function TopBar() {
         <Link
           href="/inbox"
           aria-label="Inbox"
-          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
         >
           <Inbox className="h-5 w-5" />
           {unread > 0 && (
