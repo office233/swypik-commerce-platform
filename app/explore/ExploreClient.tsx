@@ -455,7 +455,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   };
 
   return (
-    <div className="explore-root">
+    <main className="explore-root" aria-label="Discover videos">
+      <h1 className="sr-only">Descoperă videoclipuri Swypik</h1>
       <style dangerouslySetInnerHTML={{__html: `
         :root { --feed-bottom-nav: 64px; --feed-safe-bottom: env(safe-area-inset-bottom, 0px); --feed-action-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 16px); --feed-content-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 12px); }
         .explore-root { position: fixed; inset: env(safe-area-inset-top, 0px) 0 0 0; background: #000; color: #fff; overflow: hidden; min-height: 100dvh; }
@@ -770,7 +771,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
           setActiveCommentsVideo((current: any) => current ? { ...current, comments: String(nextCount) } : current);
         }}
       />
-    </div>
+    </main>
   );
 }
 

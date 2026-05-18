@@ -5,6 +5,7 @@ import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { sendCustomerShippingAlert } from "@/lib/email/service";
 
 import { logger } from "@/lib/logger";
+import { SellerOrderTrackingSchema, parseBody } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
@@ -87,18 +88,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { order_id, tracking_number, tracking_url } = body;
-    const trackingNumber = String(tracking_number || "").trim();
-    const trackingUrl = tracking_url ? String(tracking_url).trim() : `https://track24.net/?code=${encodeURIComponent(trackingNumber)}`;
-
-    if (!order_id || !trackingNumber) {
-      return NextResponse.json({ success: false, error: "order_id si tracking_number sunt obligatorii." }, { status: 400 });
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseBody(SellerOrderTrackingSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
-
-    if (trackingNumber.length < 3 || trackingNumber.length > 120) {
-      return NextResponse.json({ success: false, error: "tracking_number invalid." }, { status: 400 });
-    }
+    const { order_id, tracking_number, tracking_url } = parsed.data;
+    const trackingNumber = tracking_number;
+    const trackingUrl = tracking_url ?? `https://track24.net/?code=${encodeURIComponent(trackingNumber)}`;
 
     const checkOrder = await dbQuery(
       `SELECT co.status

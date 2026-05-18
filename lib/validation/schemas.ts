@@ -58,3 +58,10 @@ export const AdminOrderPatchSchema = z.object({
 });
 
 export type AdminOrderPatchInput = z.infer<typeof AdminOrderPatchSchema>;
+
+export const SellerOrderTrackingSchema = z.object({
+  order_id: z.string().uuid("order_id must be a valid UUID"),
+  tracking_number: z.string().trim().min(3, "tracking_number too short").max(120, "tracking_number too long"),
+  tracking_url: z.string().url("tracking_url must be a valid URL").max(512).optional(),
+});
+export type SellerOrderTrackingInput = z.infer<typeof SellerOrderTrackingSchema>;
