@@ -3,13 +3,14 @@ import crypto from "crypto";
 import {
   buildStateCookie,
   getOAuthRedirectBase,
+  isSafeRedirect,
 } from "@/lib/auth/oauth/helpers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const next = url.searchParams.get("next") || "/";
+  const next = isSafeRedirect(url.searchParams.get("next"));
   const clientId = process.env.APPLE_CLIENT_ID;
   if (!clientId) {
     return NextResponse.json(

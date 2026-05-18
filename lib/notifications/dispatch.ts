@@ -106,9 +106,31 @@ export async function notifyUser(
     } catch { /* table missing or query error → fall through */ }
   }
 
-  if (pushAllowed) {
-    void sendPushToUser(recipientUserId, pushPayload).catch((err) => {
+  if (pushAllowed && notificationId) {
+    void sendPushToUser(recipientUserId, pushPayload).then(async () => {
+      try {
+        await dbQuery(
+          `UPDATE notifications SET delivery_status = 'sent', updated_at = NOW() WHERE id = $1`,
+          [notificationId],
+        );
+      } catch (e) {
+        console.warn("[notifyUser] mark sent failed:", (e as Error)?.message);
+      }
+    }).catch(async (err) => {
       console.warn("[notifyUser] push failed:", err?.message || err);
+      try {
+        await dbQuery(
+          `UPDATE notifications SET delivery_status = 'failed', updated_at = NOW() WHERE id = $1`,
+          [notificationId],
+        );
+      } catch (e) {
+        console.warn("[notifyUser] mark failed failed:", (e as Error)?.message);
+      }
     });
+  } else if (notificationId && !pushAllowed) {
+    void dbQuery(
+      `UPDATE notifications SET delivery_status = 'suppressed', updated_at = NOW() WHERE id = $1`,
+      [notificationId],
+    ).catch((e) => console.warn("[notifyUser] mark suppressed failed:", (e as Error)?.message));
   }
 }

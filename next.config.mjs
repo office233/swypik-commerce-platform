@@ -18,6 +18,22 @@ const cspHeader = `
   frame-ancestors 'none';
   upgrade-insecure-requests;
 `.replace(/\s{2,}/g, " ").trim();
+const cspReportOnly = `
+  default-src 'self';
+  script-src 'self' 'strict-dynamic' https://js.stripe.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https:;
+  media-src 'self' blob: https://media.swypik.com https://*.aliexpress-media.com https://video.aliexpress-media.com;
+  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
+  frame-src https://js.stripe.com https://hooks.stripe.com;
+  font-src 'self' data:;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self' https://checkout.stripe.com;
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
+`.replace(/\s{2,}/g, " ").trim();
+
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -46,8 +62,27 @@ const nextConfig = {
     ],
   },
   // ─── Cloudflare + Performance Headers ───
+  async redirects() {
+    return [
+      { source: "/login", destination: "/auth/login", permanent: true },
+      { source: "/register", destination: "/auth/signup", permanent: true },
+      { source: "/signup", destination: "/auth/signup", permanent: true },
+      { source: "/reels", destination: "/explore", permanent: true },
+      { source: "/sellers", destination: "/seller", permanent: true },
+      { source: "/audio", destination: "/voice", permanent: true },
+      { source: "/legal", destination: "/legal/terms", permanent: true },
+    ];
+  },
   async headers() {
     return [
+      {
+        // Public folder static assets (icons, favicons, images) — 1 year immutable
+        source: '/:asset(.*\.(?:ico|png|jpg|jpeg|webp|avif|gif|svg|woff2|woff|mp4|m3u8|ts))',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          { key: 'CDN-Cache-Control', value: 'public, max-age=31536000' },
+        ],
+      },
       {
         // Static assets: cache 1 year (Cloudflare + browser)
         source: '/_next/static/:path*',
@@ -67,6 +102,7 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=()' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
           { key: 'Content-Security-Policy', value: cspHeader },
+          { key: 'Content-Security-Policy-Report-Only', value: cspReportOnly },
         ],
       },
       {

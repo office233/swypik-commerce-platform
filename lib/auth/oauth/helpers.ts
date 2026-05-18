@@ -129,3 +129,14 @@ export function clearStateCookie(): string {
 export function getOAuthRedirectBase(): string {
   return process.env.OAUTH_REDIRECT_BASE || "https://swypik.com";
 }
+
+export function isSafeRedirect(next: string | null | undefined): string {
+  if (!next) return '/';
+  // reject protocol-relative URLs (//evil.com)
+  if (next.startsWith('//') || next.startsWith('\\')) return '/';
+  // require relative path starting with single /
+  if (!next.startsWith('/')) return '/';
+  // reject embedded protocol (e.g. /javascript:alert)
+  if (/^\/[a-z][a-z0-9+.-]*:/i.test(next)) return '/';
+  return next;
+}

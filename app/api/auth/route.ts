@@ -22,7 +22,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
 import { dbQuery } from "@/lib/db";
-import { sendMagicLink, sendEmail } from "@/lib/email/service";
+import { sendMagicLink, sendEmail, sendWelcomeEmail } from "@/lib/email/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import {
   hashSessionToken,
@@ -483,6 +483,11 @@ export async function POST(req: Request) {
       } catch (err) {
         console.warn("[auth/signup_password] could not stage verification OTP:", (err as Error).message);
       }
+
+      // Welcome email (transactional, best-effort)
+      sendWelcomeEmail(normalizedEmail, cleanUsername).catch((err) =>
+        console.warn("[welcome-email]", err?.message || err),
+      );
 
       return issueSessionResponse(
         userId,

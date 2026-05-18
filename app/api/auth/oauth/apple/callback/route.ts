@@ -13,6 +13,7 @@ import {
   findOrCreateUserFromOAuth,
   issueOAuthSessionCookie,
   getOAuthRedirectBase,
+  isSafeRedirect,
 } from "@/lib/auth/oauth/helpers";
 
 export const dynamic = "force-dynamic";
@@ -143,7 +144,7 @@ async function handle(req: Request, params: URLSearchParams, userJson?: string) 
   });
 
   const sessionCookie = await issueOAuthSessionCookie(userId);
-  const safeNext = nextPath.startsWith("/") ? nextPath : "/";
+  const safeNext = isSafeRedirect(nextPath);
   const res = NextResponse.redirect(`${getOAuthRedirectBase()}${safeNext}`, 303);
   res.headers.append("Set-Cookie", sessionCookie);
   res.headers.append("Set-Cookie", clearStateCookie());

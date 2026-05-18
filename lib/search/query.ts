@@ -63,7 +63,8 @@ export async function searchVideos(
 
   const sql = `
     WITH query AS (
-      SELECT websearch_to_tsquery('simple', $1) AS tsq
+      SELECT websearch_to_tsquery('simple', public.f_unaccent($1)) AS tsq,
+             public.f_unaccent(lower($1)) AS qn
     )
     SELECT
       v.id::text                     AS id,
@@ -74,13 +75,19 @@ export async function searchVideos(
       COALESCE(u.display_name, u.username) AS creator_name,
       COALESCE(v.like_count, 0)::int       AS like_count,
       COALESCE(v.view_count, 0)::int       AS view_count,
-      ts_rank_cd(v.search_document, query.tsq)::float AS rank
+      GREATEST(
+        ts_rank_cd(v.search_document, query.tsq),
+        similarity(public.f_unaccent(lower(coalesce(v.title, ''))), query.qn)
+      )::float AS rank
     FROM videos v
     LEFT JOIN users u ON u.id = v.creator_id
     CROSS JOIN query
     WHERE v.status = 'ready'
       AND v.visibility = 'public'
-      AND v.search_document @@ query.tsq
+      AND (
+        v.search_document @@ query.tsq
+        OR similarity(public.f_unaccent(lower(coalesce(v.title, ''))), query.qn) > 0.2
+      )
     ORDER BY rank DESC, v.like_count DESC NULLS LAST, v.published_at DESC NULLS LAST
     LIMIT $2 OFFSET $3
   `;
@@ -175,17 +182,23 @@ export async function searchProducts(
 
   const ftsSql = `
     WITH query AS (
-      SELECT websearch_to_tsquery('simple', $1) AS tsq
+      SELECT websearch_to_tsquery('simple', public.f_unaccent($1)) AS tsq,
+             public.f_unaccent(lower($1)) AS qn
     )
     SELECT
       mp.id::text     AS id,
       mp.title        AS title,
       mp.price_cents  AS price_cents,
       mp.image_url    AS image_url,
-      ts_rank_cd(mp.search_document, query.tsq)::float AS rank
+      GREATEST(
+        ts_rank_cd(mp.search_document, query.tsq),
+        similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn)
+      )::float AS rank
     FROM marketplace_products mp
     CROSS JOIN query
-    WHERE mp.search_document @@ query.tsq
+    WHERE
+      mp.search_document @@ query.tsq
+      OR similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn) > 0.2
     ORDER BY rank DESC
     LIMIT $2 OFFSET $3
   `;

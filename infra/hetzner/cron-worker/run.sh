@@ -78,6 +78,7 @@ while true; do
   # Every 6 hours (AI trend detection)
   if [ $((TICK % 21600)) -lt 60 ]; then
     run_job detect-trends POST
+    run_job watchdog-videos POST
   fi
   # Once per day
   if [ $((TICK % 86400)) -lt 60 ]; then

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     try {
       const { rows } = await dbQuery<any>(
         `SELECT id, title, price_cents, currency, image_url
-         FROM marketplace_products WHERE id::text = $1 OR external_id = $1 LIMIT 1`,
+         FROM marketplace_products WHERE id::text = $1 OR external_product_id = $1 LIMIT 1`,
         [productId],
       );
       if (rows[0]) {

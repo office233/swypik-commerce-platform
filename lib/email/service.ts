@@ -567,3 +567,92 @@ export async function sendAbandonedCartEmail(
     html,
   });
 }
+
+/**
+ * Welcome email (transactional — sent on signup, NOT gated by emailMarketing flag)
+ */
+export async function sendWelcomeEmail(email: string, name: string): Promise<boolean> {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+  const safeName = escapeHtml(name || "acolo");
+  const exploreUrl = escapeHtml(`${appUrl}/explore`);
+  const accountUrl = escapeHtml(`${appUrl}/account`);
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+    <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+      <div style="background:#7C3AED;padding:32px;text-align:center">
+        <h1 style="margin:0;color:white;font-size:24px;font-weight:900">Swypik</h1>
+      </div>
+      <div style="padding:32px">
+        <h2 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#0D0D0D">Bun venit, ${safeName}! 👋</h2>
+        <p style="font-size:15px;color:#333;line-height:1.6">
+          Ne bucurăm că ești aici. Swypik e marketplace-ul tău video: descoperă produse, urmărește creatori și cumpără direct din feed.
+        </p>
+        <div style="text-align:center;margin:32px 0">
+          <a href="${exploreUrl}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;margin:4px">🎥 Explorează feed</a>
+          <a href="${accountUrl}" style="display:inline-block;background:#0D0D0D;color:white;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;margin:4px">⚙️ Contul tău</a>
+        </div>
+        <p style="font-size:13px;color:#666;line-height:1.6">
+          Dacă ai întrebări, scrie-ne oricând la <a href="mailto:support@swypik.com" style="color:#7C3AED">support@swypik.com</a>.
+        </p>
+      </div>
+      <div style="padding:24px 32px;background:#f8f9fa;text-align:center;border-top:1px solid #eee">
+        <p style="margin:0;font-size:12px;color:#999">Swypik — Shopping inteligent, powered by AI</p>
+      </div>
+    </div>
+  </body>
+  </html>`;
+  return sendEmail({
+    to: email,
+    subject: "Bun venit pe Swypik! 🎉",
+    html,
+  });
+}
+
+/**
+ * Refund confirmation (transactional — NOT gated by emailMarketing flag)
+ */
+export async function sendRefundEmail(
+  toEmail: string,
+  orderId: string,
+  amountCents: number,
+  currency: string,
+): Promise<boolean> {
+  const amount = (Math.max(0, amountCents) / 100).toFixed(2);
+  const safeCurrency = escapeHtml((currency || "RON").toUpperCase());
+  const shortId = orderId.split("-")[0];
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+  const orderUrl = escapeHtml(`${appUrl}/orders/${encodeURIComponent(orderId)}`);
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+    <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+      <div style="background:#0D0D0D;padding:32px;text-align:center">
+        <h1 style="margin:0;color:white;font-size:24px;font-weight:900">Swypik</h1>
+      </div>
+      <div style="padding:32px;text-align:center">
+        <div style="width:64px;height:64px;background:#10B98120;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;">💸</div>
+        <h2 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#0D0D0D">Rambursare confirmată</h2>
+        <p style="margin:0 0 16px;font-size:14px;color:#888">Comanda #${escapeHtml(shortId)}</p>
+        <p style="font-size:15px;color:#333;line-height:1.6;text-align:left">
+          Ți-am procesat o rambursare în valoare de <strong>${amount} ${safeCurrency}</strong>.
+          Banii vor reveni în contul tău în 5-10 zile lucrătoare, în funcție de banca emitentă.
+        </p>
+        <div style="margin-top:32px">
+          <a href="${orderUrl}" style="display:inline-block;background:#0D0D0D;color:white;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none">Vezi comanda</a>
+        </div>
+      </div>
+      <div style="padding:24px 32px;background:#f8f9fa;text-align:center;border-top:1px solid #eee">
+        <p style="margin:0;font-size:12px;color:#999">Swypik — Întrebări? <a href="mailto:support@swypik.com" style="color:#7C3AED">support@swypik.com</a></p>
+      </div>
+    </div>
+  </body>
+  </html>`;
+  return sendEmail({
+    to: toEmail,
+    subject: `💸 Rambursare confirmată — Comanda #${shortId}`,
+    html,
+  });
+}

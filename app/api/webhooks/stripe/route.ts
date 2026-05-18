@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery } from "@/lib/db";
-import { sendOrderConfirmation } from "@/lib/email/service";
+import { sendOrderConfirmation, sendRefundEmail } from "@/lib/email/service";
 import { routeOrder } from "@/lib/fulfillment/order-router";
 import { awardOrderSwyp } from "@/lib/swyp/order-rewards";
 import { logCheckoutEvent } from "@/lib/security/audit-log";
@@ -111,6 +111,33 @@ export async function POST(req: Request) {
             "UPDATE commerce_orders SET status = 'refunded' WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1",
             [pi]
           );
+          try {
+            const { rows: oRows } = await dbQuery<{ id: string; currency: string; total_cents: number; customer_email: string | null; user_email: string | null }>(
+              `SELECT co.id, co.currency, co.total_cents,
+                      (co.metadata->>'customer_email') AS customer_email,
+                      u.email AS user_email
+                 FROM commerce_orders co
+                 LEFT JOIN users u ON u.id = co.buyer_user_id
+                WHERE co.metadata->>'paymentIntentId' = $1
+                   OR co.metadata->>'payment_intent_id' = $1
+                LIMIT 1`,
+              [pi]
+            );
+            const order = oRows[0];
+            if (order) {
+              const toEmail = order.customer_email || order.user_email;
+              const amountCents = typeof charge.amount_refunded === "number" && charge.amount_refunded > 0
+                ? charge.amount_refunded
+                : (order.total_cents || 0);
+              if (toEmail) {
+                await sendRefundEmail(toEmail, order.id, amountCents, order.currency || "RON").catch((err) =>
+                  console.warn("[refund-email]", err?.message || err)
+                );
+              }
+            }
+          } catch (err) {
+            console.warn("[refund-email] lookup failed:", (err as Error).message);
+          }
         }
         break;
       }
