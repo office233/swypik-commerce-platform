@@ -62,9 +62,15 @@ export async function idempotencySet(
 export function clientIp(req: Request): string {
   const h = (req as any).headers;
   if (!h) return "unknown";
-  const xff = h.get?.("x-forwarded-for") || h.get?.("X-Forwarded-For");
-  if (xff) return String(xff).split(",")[0].trim();
+  // Prefer X-Real-IP (set by Caddy from its own connection — not spoofable).
   const real = h.get?.("x-real-ip");
-  if (real) return String(real);
+  if (real) return String(real).trim();
+  // Fallback: take the LAST hop in XFF (the IP closest to our trusted proxy),
+  // not the first (which an attacker can prepend).
+  const xff = h.get?.("x-forwarded-for") || h.get?.("X-Forwarded-For");
+  if (xff) {
+    const parts = String(xff).split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
   return "unknown";
 }

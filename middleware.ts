@@ -7,7 +7,71 @@ const SHOPPER_COOKIE = "swypik_session";
 const LEGACY_CREATOR_COOKIE = "creator_session";
 const SELLER_COOKIE = "seller_session";
 const ADMIN_COOKIE = "admin_token";
+const ADMIN_SESSION_COOKIE = "admin_session";
 const ONBOARDED_COOKIE = "swypik_onboarded";
+
+// ---------- CSRF / Origin guard ----------
+
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+// Paths that legitimately receive cross-origin POSTs (no auth cookie semantics).
+const CSRF_EXEMPT_PREFIXES = [
+  "/api/webhooks/",
+  "/api/cron/",
+  "/api/health",
+  "/api/internal/", // server-to-server (if any)
+];
+
+function allowedOrigins(req: NextRequest): string[] {
+  const out = new Set<string>();
+  const envSite = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
+  if (envSite) out.add(envSite.replace(/\/$/, ""));
+  // Always trust our canonical hosts.
+  out.add("https://swypik.com");
+  out.add("https://www.swypik.com");
+  // Same-origin as the request itself (covers preview/staging hosts).
+  try {
+    out.add(`${req.nextUrl.protocol}//${req.nextUrl.host}`);
+  } catch {
+    /* noop */
+  }
+  return Array.from(out);
+}
+
+function hostFromUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const u = new URL(value);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return null;
+  }
+}
+
+function csrfBlocked(req: NextRequest): boolean {
+  if (!MUTATING_METHODS.has(req.method)) return false;
+  const { pathname } = req.nextUrl;
+
+  // Only enforce when an auth cookie is present — otherwise the request can't
+  // do harm in someone else's name via CSRF.
+  const hasAuthCookie =
+    Boolean(req.cookies.get(SHOPPER_COOKIE)?.value) ||
+    Boolean(req.cookies.get(SELLER_COOKIE)?.value) ||
+    Boolean(req.cookies.get(ADMIN_COOKIE)?.value) ||
+    Boolean(req.cookies.get(ADMIN_SESSION_COOKIE)?.value) ||
+    Boolean(req.cookies.get(LEGACY_CREATOR_COOKIE)?.value);
+  if (!hasAuthCookie) return false;
+
+  if (CSRF_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p))) return false;
+
+  const origin = req.headers.get("origin");
+  const referer = req.headers.get("referer");
+  const candidate = origin || hostFromUrl(referer);
+  if (!candidate) return true; // no Origin and no Referer → block
+
+  const allowed = allowedOrigins(req);
+  return !allowed.includes(candidate.replace(/\/$/, ""));
+}
 
 function redirectTo(req: NextRequest, target: string, withRedirect = true) {
   const url = new URL(target, req.url);
@@ -18,7 +82,21 @@ function redirectTo(req: NextRequest, target: string, withRedirect = true) {
 }
 
 export function middleware(request: NextRequest) {
+  // CSRF / Origin check runs first for any mutating request that carries auth cookies.
+  if (csrfBlocked(request)) {
+    return new NextResponse(JSON.stringify({ error: "csrf" }), {
+      status: 403,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
   const { pathname } = request.nextUrl;
+
+  // For /api/* (and any other non-gated path) we only enforce CSRF — no redirects.
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   const cookies = request.cookies;
 
   const hasShopper = Boolean(cookies.get(SHOPPER_COOKIE)?.value);
@@ -80,5 +158,7 @@ export const config = {
     "/onboarding",
     "/admin/:path*",
     "/seller/:path*",
+    // CSRF guard scope:
+    "/api/:path*",
   ],
 };
