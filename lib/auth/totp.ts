@@ -22,7 +22,7 @@ function getKey(): Buffer {
 export function encryptSecret(plain: string): string {
   const key = getKey();
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv, { authTagLength: 16 });
   const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return `v1:${iv.toString("hex")}:${tag.toString("hex")}:${enc.toString("hex")}`;
@@ -38,7 +38,7 @@ export function decryptSecret(stored: string): string {
     const iv = Buffer.from(parts[1], "hex");
     const tag = Buffer.from(parts[2], "hex");
     const data = Buffer.from(parts[3], "hex");
-    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv, { authTagLength: 16 });
     decipher.setAuthTag(tag);
     const dec = Buffer.concat([decipher.update(data), decipher.final()]);
     return dec.toString("utf8");

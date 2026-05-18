@@ -197,9 +197,12 @@ export async function searchProducts(
       )::float AS rank
     FROM marketplace_products mp
     CROSS JOIN query
-    WHERE
-      mp.search_document @@ query.tsq
-      OR similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn) > 0.2
+    WHERE mp.status = 'active'
+      AND COALESCE(mp.is_adult, false) = false
+      AND (
+        mp.search_document @@ query.tsq
+        OR similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn) > 0.2
+      )
     ORDER BY rank DESC
     LIMIT $2 OFFSET $3
   `;
@@ -217,7 +220,9 @@ export async function searchProducts(
         mp.image_url    AS image_url,
         0::float        AS rank
       FROM marketplace_products mp
-      WHERE mp.title ILIKE $1
+      WHERE mp.status = 'active'
+        AND COALESCE(mp.is_adult, false) = false
+        AND mp.title ILIKE $1
       ORDER BY mp.title ASC
       LIMIT $2 OFFSET $3
     `;

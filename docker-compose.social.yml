@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-swypik}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swypik_dev_password}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - social_postgres_data:/var/lib/postgresql/data
       - ./db/migrations:/docker-entrypoint-initdb.d:ro
@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - social_redis_data:/data
     healthcheck:
@@ -42,9 +42,9 @@ services:
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-swypik_dev_password}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     ports:
-      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
-      - "${CLICKHOUSE_NATIVE_PORT:-9002}:9000"
-      - "${CLICKHOUSE_METRICS_PORT:-9363}:9363"
+      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "127.0.0.1:${CLICKHOUSE_NATIVE_PORT:-9002}:9000"
+      - "127.0.0.1:${CLICKHOUSE_METRICS_PORT:-9363}:9363"
     volumes:
       - social_clickhouse_data:/var/lib/clickhouse
       - ./infra/clickhouse/init:/docker-entrypoint-initdb.d:ro
@@ -72,7 +72,7 @@ services:
         soft: 65536
         hard: 65536
     ports:
-      - "${OPENSEARCH_PORT:-9200}:9200"
+      - "127.0.0.1:${OPENSEARCH_PORT:-9200}:9200"
     volumes:
       - social_opensearch_data:/usr/share/opensearch/data
     healthcheck:
@@ -89,8 +89,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-swypik}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-swypik_dev_password}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - social_minio_data:/data
     healthcheck:
@@ -123,9 +123,10 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      # nosemgrep: trailofbits.generic.postgres-insecure-sslmode.postgres-insecure-sslmode - local Docker network only; TLS is not enabled on this dev Postgres service.
       DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-swypik}:${POSTGRES_PASSWORD:-swypik_dev_password}@postgres:5432/${POSTGRES_DB:-swypik_social}?sslmode=disable
     ports:
-      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+      - "127.0.0.1:${POSTGRES_EXPORTER_PORT:-9187}:9187"
 
   redis-exporter:
     image: oliver006/redis_exporter:v1.61.0
@@ -134,9 +135,10 @@ services:
       redis:
         condition: service_healthy
     environment:
+      # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport - local Docker network only; Redis TLS is not enabled for the dev exporter.
       REDIS_ADDR: redis://redis:6379
     ports:
-      - "${REDIS_EXPORTER_PORT:-9121}:9121"
+      - "127.0.0.1:${REDIS_EXPORTER_PORT:-9121}:9121"
 
   prometheus:
     image: prom/prometheus:v2.54.1
@@ -153,7 +155,7 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-7d}
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - social_prometheus_data:/prometheus
       - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -171,7 +173,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-swypik}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swypik_dev_password}
     ports:
-      - "${GRAFANA_PORT:-3001}:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
     volumes:
       - social_grafana_data:/var/lib/grafana
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
