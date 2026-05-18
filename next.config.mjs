@@ -77,7 +77,7 @@ const nextConfig = {
     return [
       {
         // Public folder static assets (icons, favicons, images) — 1 year immutable
-        source: '/:asset(.*\.(?:ico|png|jpg|jpeg|webp|avif|gif|svg|woff2|woff|mp4|m3u8|ts))',
+        source: '/:path*.:ext(ico|png|jpg|jpeg|webp|avif|gif|svg|woff2|woff|mp4|m3u8|ts)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
           { key: 'CDN-Cache-Control', value: 'public, max-age=31536000' },

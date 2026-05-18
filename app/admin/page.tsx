@@ -3,6 +3,7 @@
  */
 
 import { dbQuery } from "@/lib/db";
+import { hasAdminSession, isAdminConfigured } from "@/lib/security/admin-auth";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -139,6 +140,12 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 export default async function AdminDashboard() {
+  // SECURITY: gate înainte de orice fetch DB. Layout-ul oricum afișează
+  // login form dacă nu e admin, dar fără gate aici getStats() rulează și
+  // datele ajung în payload-ul RSC pentru utilizatori neautentificați.
+  if (!isAdminConfigured() || !(await hasAdminSession())) {
+    return null;
+  }
   const stats = await getStats();
 
   if (!stats) {
