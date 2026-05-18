@@ -148,15 +148,15 @@ services:
       - .env.production
     ports:
       - "127.0.0.1:5432:5432"
-    shm_size: 256mb
+    shm_size: 2g
     command:
       - postgres
       - -c
-      - shared_buffers=256MB
+      - shared_buffers=2GB
       - -c
       - work_mem=16MB
       - -c
-      - effective_cache_size=1GB
+      - effective_cache_size=5GB
     volumes:
       - swypik_postgres_data:/var/lib/postgresql/data
       - ../../db/migrations/:/docker-entrypoint-initdb.d:ro
