@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/rate-limit";
+import { isUuid } from "@/lib/validation/uuid";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuid(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -33,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuid(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   const url = new URL(req.url);
   const accept = req.headers.get("accept") || "";
   // SSE long-poll mode

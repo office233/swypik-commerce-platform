@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { checkDb, checkRedis, checkR2, checkQueue } from "@/lib/health";
 
 export const dynamic = "force-dynamic";
@@ -6,16 +6,33 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/health/full
  *
- * Aggregated health: DB write + DB read (split-pool ready) + Redis + R2 + BullMQ queue.
- * Returns 200 if all OK, 503 if any error. Each subcheck reports latency_ms.
+ * Detailed health check: DB write/read + Redis + R2 + BullMQ queue.
+ * REQUIRES header `x-internal-secret` (or ?secret=…) matching
+ * INTERNAL_HEALTH_SECRET / ADMIN_SECRET. Without it, returns a minimal
+ * `{status:"ok"}` 200 (sufficient for uptime monitors) and DOES NOT
+ * expose internal infrastructure details.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const want =
+    process.env.INTERNAL_HEALTH_SECRET ||
+    process.env.INTERNAL_SECRET ||
+    process.env.ADMIN_SECRET ||
+    "";
+  const provided =
+    req.headers.get("x-internal-secret") ||
+    new URL(req.url).searchParams.get("secret") ||
+    "";
+  if (!want || provided !== want) {
+    return NextResponse.json(
+      { status: "ok", timestamp: new Date().toISOString() },
+      { status: 200 },
+    );
+  }
+
   const startedAt = Date.now();
 
   const [dbWrite, dbRead, redis, r2, queue] = await Promise.all([
     checkDb(),
-    // Currently the read pool == write pool; when REPLICA_DATABASE_URL is wired
-    // into lib/db.ts (see docs/scale-prep.md), this will exercise the replica.
     checkDb(),
     checkRedis(),
     checkR2(),
@@ -29,16 +46,17 @@ export async function GET() {
         ? "degraded"
         : "ok";
 
-  const body = {
-    status: overall,
-    timestamp: new Date().toISOString(),
-    total_latency_ms: Date.now() - startedAt,
-    db_write: dbWrite,
-    db_read: dbRead,
-    redis,
-    r2,
-    queue,
-  };
-
-  return NextResponse.json(body, { status: overall === "error" ? 503 : 200 });
+  return NextResponse.json(
+    {
+      status: overall,
+      timestamp: new Date().toISOString(),
+      total_latency_ms: Date.now() - startedAt,
+      db_write: dbWrite,
+      db_read: dbRead,
+      redis,
+      r2,
+      queue,
+    },
+    { status: overall === "error" ? 503 : 200 },
+  );
 }
