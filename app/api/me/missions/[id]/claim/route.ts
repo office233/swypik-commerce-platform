@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) {
@@ -33,7 +33,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
           AND completed_at IS NOT NULL
           AND claimed_at IS NULL
         RETURNING id, reward_xp, reward_coins, reward_reputation::text`,
-      [id, user.id],
+      [id, user.userId],
     );
 
     if (rows.length === 0) {
@@ -46,14 +46,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const m = rows[0];
 
     if (m.reward_xp > 0) {
-      await dbQuery(`SELECT wallet_apply($1, 'xp', $2, 'mission_claim', 'mission', $3)`, [user.id, m.reward_xp, m.id]);
+      await dbQuery(`SELECT wallet_apply($1, 'xp', $2, 'mission_claim', 'mission', $3)`, [user.userId, m.reward_xp, m.id]);
     }
     if (m.reward_coins > 0) {
-      await dbQuery(`SELECT wallet_apply($1, 'coins', $2, 'mission_claim', 'mission', $3)`, [user.id, m.reward_coins, m.id]);
+      await dbQuery(`SELECT wallet_apply($1, 'coins', $2, 'mission_claim', 'mission', $3)`, [user.userId, m.reward_coins, m.id]);
     }
     if (Number(m.reward_reputation) !== 0) {
       await dbQuery(`SELECT wallet_apply($1, 'reputation', $2::numeric, 'mission_claim', 'mission', $3)`, [
-        user.id,
+        user.userId,
         m.reward_reputation,
         m.id,
       ]);
@@ -61,7 +61,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
     const { rows: walletRows } = await dbQuery<{ xp: string; coins: number; reputation: string; level: number }>(
       `SELECT xp::text, coins, reputation::text, level FROM user_wallets WHERE user_id = $1`,
-      [user.id],
+      [user.userId],
     );
 
     return NextResponse.json({

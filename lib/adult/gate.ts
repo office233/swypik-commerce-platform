@@ -28,7 +28,7 @@ export type AdultAccess =
  */
 export async function getAdultAccess(): Promise<AdultAccess> {
   const user = await getAuthUser();
-  if (!user) return { ok: false, reason: "unauthenticated", redirectTo: "/account?redirect=/adult" };
+  if (!user.userId) return { ok: false, reason: "unauthenticated", redirectTo: "/account?redirect=/adult" };
 
   try {
     const { rows } = await dbQuery<{
@@ -44,7 +44,7 @@ export async function getAdultAccess(): Promise<AdultAccess> {
          FROM (SELECT $1::uuid AS uid) u
          LEFT JOIN adult.access_grants ag ON ag.user_id = u.uid
          LEFT JOIN adult.creator_kyc kyc ON kyc.user_id = u.uid`,
-      [user.id],
+      [user.userId],
     );
 
     const row = rows[0] ?? { viewer_verified: false, expires_at: null, blocked_reason: null, creator_status: null };
@@ -55,7 +55,7 @@ export async function getAdultAccess(): Promise<AdultAccess> {
       return { ok: false, reason: "expired", redirectTo: "/adult/verify" };
     }
 
-    return { ok: true, userId: user.id, creatorApproved: row.creator_status === "approved" };
+    return { ok: true, userId: user.userId, creatorApproved: row.creator_status === "approved" };
   } catch {
     // If the adult schema isn't deployed yet (or any DB hiccup), fail closed.
     return { ok: false, reason: "not_verified", redirectTo: "/adult/verify" };

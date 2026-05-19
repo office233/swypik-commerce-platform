@@ -28,12 +28,12 @@ type Row = {
 
 export async function GET() {
   const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   try {
     // Bump streak (idempotent per day) and assign up to 4 missions.
-    await dbQuery(`SELECT wallet_bump_streak($1)`, [user.id]);
-    await dbQuery(`SELECT daily_missions_assign($1, 4)`, [user.id]);
+    await dbQuery(`SELECT wallet_bump_streak($1)`, [user.userId]);
+    await dbQuery(`SELECT daily_missions_assign($1, 4)`, [user.userId]);
 
     const { rows } = await dbQuery<Row>(
       `SELECT m.id, m.template_id, t.slug, t.title, t.description, t.kind,
@@ -46,7 +46,7 @@ export async function GET() {
         ORDER BY (m.claimed_at IS NOT NULL),
                  (m.completed_at IS NULL),
                  m.progress::numeric / NULLIF(m.target,0) DESC`,
-      [user.id],
+      [user.userId],
     );
 
     return NextResponse.json(

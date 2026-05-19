@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   // Region check — some jurisdictions block adult access entirely.
   const region = req.headers.get("cf-ipcountry") || req.headers.get("x-country") || null;
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       `INSERT INTO adult.age_verifications(user_id, provider, provider_session_ref, status)
             VALUES ($1, 'manual_admin', $2, 'pending')
        RETURNING id::text`,
-      [user.id, `dev_${Date.now()}`],
+      [user.userId, `dev_${Date.now()}`],
     );
     return NextResponse.json({
       stub: true,

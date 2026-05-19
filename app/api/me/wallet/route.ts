@@ -11,13 +11,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   try {
     // Ensure wallet row exists (idempotent).
     await dbQuery(
       `INSERT INTO user_wallets(user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
-      [user.id],
+      [user.userId],
     );
 
     const { rows } = await dbQuery<{
@@ -36,7 +36,7 @@ export async function GET() {
               streak_current, streak_best, last_active_day,
               total_xp_earned::text, total_coins_earned, total_coins_spent
          FROM user_wallets WHERE user_id = $1`,
-      [user.id],
+      [user.userId],
     );
 
     const w = rows[0];

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   try {
     const { rows } = await dbQuery<{
@@ -31,12 +31,12 @@ export async function GET() {
         WHERE user_id = $1
         ORDER BY (read_at IS NOT NULL), created_at DESC
         LIMIT 30`,
-      [user.id],
+      [user.userId],
     );
 
     const { rows: countRows } = await dbQuery<{ unread: string }>(
       `SELECT COUNT(*)::text AS unread FROM notifications WHERE user_id = $1 AND read_at IS NULL`,
-      [user.id],
+      [user.userId],
     );
 
     return NextResponse.json(
@@ -66,7 +66,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = (await req.json().catch(() => ({}))) as { ids?: string[]; markAll?: boolean };
 
@@ -74,14 +74,14 @@ export async function POST(req: Request) {
     if (body.markAll) {
       await dbQuery(
         `UPDATE notifications SET read_at = now() WHERE user_id = $1 AND read_at IS NULL`,
-        [user.id],
+        [user.userId],
       );
     } else if (Array.isArray(body.ids) && body.ids.length > 0) {
       const ids = body.ids.filter((x) => typeof x === "string" && /^\d+$/.test(x)).map(Number);
       if (ids.length === 0) return NextResponse.json({ error: "invalid_ids" }, { status: 400 });
       await dbQuery(
         `UPDATE notifications SET read_at = now() WHERE user_id = $1 AND id = ANY($2::bigint[]) AND read_at IS NULL`,
-        [user.id, ids],
+        [user.userId, ids],
       );
     } else {
       return NextResponse.json({ error: "nothing_to_do" }, { status: 400 });
