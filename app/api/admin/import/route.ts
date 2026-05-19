@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { labelProduct } from "@/lib/moderation/labelProduct";
 import { autoEmbedProduct } from "@/lib/ai/auto-embed";
 import { dbQuery } from "@/lib/db";
 
@@ -183,7 +184,10 @@ export async function POST(req: Request) {
           ) RETURNING id`,
           [title, slug, description, imageUrl, category, priceCents, inventoryStatus]
         );
-        if (insRows[0]?.id) autoEmbedProduct(insRows[0].id, title, description);
+        if (insRows[0]?.id) {
+          autoEmbedProduct(insRows[0].id, title, description);
+          labelProduct({ id: insRows[0].id, title, description, category }).catch(() => {});
+        }
         imported++;
       } catch (dbErr: any) {
         errors.push({

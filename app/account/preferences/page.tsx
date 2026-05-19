@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import LocaleSwitcher from "@/components/i18n/LocaleSwitcher";
 import { CurrencySwitcher } from "@/components/i18n/CurrencyProvider";
+import AdultActivationCard from "@/components/adult/AdultActivationCard";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,8 @@ export default async function PreferencesPage() {
           {tCommon("language")} / {tCommon("currency")}
         </p>
       </section>
+
+      <AdultActivationCard />
     </main>
   );
 }

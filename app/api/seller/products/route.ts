@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { labelProduct } from "@/lib/moderation/labelProduct";
 import { autoEmbedProduct } from "@/lib/ai/auto-embed";
 
 import { logger } from "@/lib/logger";
@@ -81,7 +82,10 @@ export async function POST(req: Request) {
       ],
     );
 
-    if (rows[0]?.id) autoEmbedProduct(rows[0].id, rows[0].title, null);
+    if (rows[0]?.id) {
+      autoEmbedProduct(rows[0].id, rows[0].title, null);
+      labelProduct({ id: rows[0].id, title: rows[0].title, description: null, category: rows[0].category ?? null }).catch(() => {});
+    }
     return NextResponse.json({ success: true, product: rows[0] });
   } catch (error: any) {
     logger.error({ err: error }, "[Seller Products API] POST Error:");

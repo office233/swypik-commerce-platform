@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { dbQuery } from "@/lib/db";
+import { labelProduct } from "@/lib/moderation/labelProduct";
 import { assertAdminSession } from "@/lib/security/admin-auth";
 
 type ProductFormValues = {
@@ -219,6 +220,14 @@ async function writeMarketplaceProduct(values: ProductFormValues, currentId?: st
     ]
   );
 
+  if (rows[0]?.id) {
+    labelProduct({
+      id: rows[0].id,
+      title: values.title,
+      description: values.description ?? null,
+      category: values.category ?? null,
+    }).catch(() => {});
+  }
   return rows[0].id;
 }
 
