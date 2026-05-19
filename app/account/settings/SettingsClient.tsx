@@ -1,29 +1,17 @@
 "use client";
-/**
- * Account settings menu — afișează lista de scurtături (Devino creator,
- * Editează profil, Portofel SWYP, etc.) + buton Deconectare.
- *
- * Înainte: rotița ⚙️ apela direct handleLogout → user era deconectat și
- * redirectat la "/". Acum ⚙️ deschide această pagină.
- */
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Store,
   ArrowLeft,
-  Sparkles,
   UserCircle2,
   Wallet,
   ShoppingBag,
-  Bookmark,
-  Heart,
-  EyeOff,
   MapPin,
   ShieldCheck,
   Globe,
   ShieldAlert,
-  Inbox,
   Bell,
   LogOut,
   ChevronRight,
@@ -55,25 +43,19 @@ export default function SettingsClient({ isAdmin = false, sellerStatus = null }:
   }
 
   const items: Item[] = [
-    ...(isAdmin ? [{ href: "/admin", icon: ShieldAlert, label: "🛡️ Admin Dashboard" }] : []),
+    ...(isAdmin ? [{ href: "/admin", icon: ShieldAlert, label: "Admin Dashboard" }] : []),
     ...(sellerStatus === "active" || sellerStatus === "approved"
-      ? [{ href: "/seller", icon: Store, label: "🏪 Seller Dashboard" }]
+      ? [{ href: "/seller", icon: Store, label: "Seller Dashboard" }]
       : sellerStatus === "pending"
-      ? [{ href: "/become-a-seller", icon: Store, label: "⏳ Aplicație seller în review" }]
+      ? [{ href: "/become-a-seller", icon: Store, label: "Aplicație seller în review" }]
       : [{ href: "/become-a-seller", icon: Store, label: "Devino seller" }]),
-    { href: "/upload", icon: Sparkles, label: "Publică un clip" },
     { href: "/account/edit", icon: UserCircle2, label: "Editează profil" },
     { href: "/wallet", icon: Wallet, label: "Portofel SWYP" },
     { href: "/account/orders", icon: ShoppingBag, label: "Comenzile mele" },
-    { href: "/account/saved", icon: Bookmark, label: "Produse salvate" },
-    { href: "/account/liked", icon: Heart, label: "Videoclipuri likeuite" },
-    { href: "/account/hidden", icon: EyeOff, label: "Videoclipuri ascunse" },
     { href: "/account/addresses", icon: MapPin, label: "Adrese de livrare" },
     { href: "/account/security", icon: ShieldCheck, label: "Securitate & parolă" },
     { href: "/account/preferences", icon: Globe, label: "Limbă & monedă" },
-    { href: "/account/age-verification", icon: ShieldAlert, label: "Verificare vârstă" },
-    { href: "/account/notifications", icon: Inbox, label: "Inbox / Notificări" },
-    { href: "/account/notifications", icon: Bell, label: "Notificări (email & push)" },
+    { href: "/account/notifications", icon: Bell, label: "Notificări" },
     { icon: LogOut, label: busy ? "Se deconectează…" : "Deconectează-te", onClick: handleLogout, danger: true },
   ];
 
