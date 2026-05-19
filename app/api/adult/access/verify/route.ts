@@ -48,7 +48,7 @@ export async function POST(req: Request) {
               VALUES ($1, 'veriff', $2, 'pending')`,
         [user.userId, session.sessionId],
       );
-      await writeAuditFromRequest(req, {
+      await writeAuditFromRequest({
         actorUserId: user.userId,
         action: "age_verification.session_created",
         targetType: "age_verification",
@@ -57,10 +57,11 @@ export async function POST(req: Request) {
       });
       return NextResponse.json({ verificationId: session.sessionId, hostedUrl: session.url });
     } catch (e: any) {
-      await writeAuditFromRequest(req, {
+      await writeAuditFromRequest({
         actorUserId: user.userId,
         action: "age_verification.session_failed",
         targetType: "age_verification",
+        targetId: "none",
         reason: String(e?.message || e).slice(0, 500),
       });
       return NextResponse.json({ error: "provider_error", message: String(e?.message || e) }, { status: 502 });
