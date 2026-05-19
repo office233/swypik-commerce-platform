@@ -451,7 +451,16 @@ export async function GET(request: NextRequest) {
         at.artist      AS at_artist,
         at.image_url   AS at_image_url,
         at.audio_url   AS at_audio_url,
-        at.duration_s AS at_duration_s
+        at.duration_s AS at_duration_s,
+        cp.id          AS post_id,
+        cp.slug        AS post_slug,
+        cp.format      AS post_format,
+        cp.title       AS post_title,
+        cp.vote_count  AS post_vote_count,
+        cp.ends_at     AS post_ends_at,
+        cm.id          AS mission_id,
+        cm.title       AS mission_title,
+        cm.slug        AS mission_slug
         ${scoreSelect}
         ${userId ? `,
         EXISTS(SELECT 1 FROM likes l WHERE l.user_id = ${userParam} AND l.video_id = v.id) AS viewer_liked,
@@ -515,6 +524,14 @@ export async function GET(request: NextRequest) {
         LIMIT 1
       ) vpvv ON mp.id IS NOT NULL` : ``}
       LEFT JOIN audio_tracks at ON at.id = v.audio_track_id
+      LEFT JOIN LATERAL (
+        SELECT cp.id, cp.slug, cp.format, cp.title, cp.vote_count, cp.ends_at, cp.mission_id
+        FROM community_posts cp
+        WHERE cp.video_id = v.id AND cp.status = 'active'
+        ORDER BY cp.created_at DESC
+        LIMIT 1
+      ) cp ON true
+      LEFT JOIN creator_missions cm ON cm.id = cp.mission_id
       LEFT JOIN video_rank_14d vr ON vr.video_id = v.id
       ${userId ? `LEFT JOIN LATERAL (
         SELECT 1 AS actor_user_id FROM feed_events rep_fe
@@ -669,6 +686,26 @@ export async function GET(request: NextRequest) {
             image_url: row.at_image_url || null,
             audio_url: row.at_audio_url || null,
             duration_s: row.at_duration_s != null ? Number(row.at_duration_s) : null,
+          } : null,
+          cardType: row.mission_id
+            ? "mission"
+            : row.post_format === "battle"
+              ? "battle"
+              : row.post_format === "merita"
+                ? "decide"
+                : "watch",
+          linkedPost: row.post_id ? {
+            id: String(row.post_id),
+            slug: row.post_slug || null,
+            format: row.post_format || null,
+            title: row.post_title || null,
+            voteCount: asNumber(row.post_vote_count) || 0,
+            endsAt: row.post_ends_at ? new Date(row.post_ends_at).toISOString() : null,
+          } : null,
+          mission: row.mission_id ? {
+            id: String(row.mission_id),
+            title: row.mission_title || null,
+            slug: row.mission_slug || null,
           } : null,
           ...(row.engagement_score !== undefined && { engagementScore: Number(row.engagement_score) }),
           ...(row.trending_score !== undefined && { trendingScore: Number(row.trending_score) }),

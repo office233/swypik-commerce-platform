@@ -24,6 +24,7 @@ import bcrypt from "bcryptjs";
 import { dbQuery } from "@/lib/db";
 import { sendMagicLink, sendEmail, sendWelcomeEmail } from "@/lib/email/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { attributeOnSignup } from "@/lib/referral/attribution";
 import {
   hashSessionToken,
   resolvePostLoginRedirect,
@@ -40,6 +41,7 @@ const SELLER_COOKIE_NAME = "seller_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 const isProd = process.env.NODE_ENV === "production";
 const SECURE_FLAG = isProd ? "; Secure" : "";
+const COOKIE_DOMAIN_FLAG = isProd ? "; Domain=swypik.com" : "";
 const VERIFICATION_GRACE_DAYS = 7;
 
 /* ────────────────────────────────────────── helpers ──── */
@@ -76,11 +78,39 @@ function isValidPhone(value: string): boolean {
 }
 
 function clearCookieHeader(name: string): string {
-  return `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${SECURE_FLAG}`;
+  return `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${SECURE_FLAG}${COOKIE_DOMAIN_FLAG}`;
 }
 
 function appendSetCookie(response: NextResponse, cookie: string): void {
-  response.headers.append("Set-Cookie", cookie);
+  // FIX: NextResponse.cookies.set() rebuilds the Set-Cookie header on serialize
+  // and overwrites any raw headers.append("Set-Cookie", ...) calls. So we parse
+  // the cookie string and route through the cookie store instead.
+  const parts = cookie.split("; ");
+  const pair = parts[0];
+  const eq = pair.indexOf("=");
+  const name = pair.slice(0, eq);
+  const value = pair.slice(eq + 1);
+  const opts: {
+    path?: string;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: "lax" | "strict" | "none";
+    maxAge?: number;
+    domain?: string;
+    expires?: Date;
+  } = {};
+  for (let i = 1; i < parts.length; i++) {
+    const [k, v] = parts[i].split("=");
+    const key = (k || "").toLowerCase();
+    if (key === "path") opts.path = v;
+    else if (key === "httponly") opts.httpOnly = true;
+    else if (key === "secure") opts.secure = true;
+    else if (key === "samesite") opts.sameSite = ((v || "lax").toLowerCase() as "lax" | "strict" | "none");
+    else if (key === "max-age") opts.maxAge = parseInt(v, 10);
+    else if (key === "domain") opts.domain = v;
+    else if (key === "expires") opts.expires = new Date(v);
+  }
+  response.cookies.set(name, value, opts);
 }
 
 /**
@@ -174,7 +204,7 @@ async function issueSessionResponse(
 
   appendSetCookie(
     response,
-    `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}`,
+    `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}${COOKIE_DOMAIN_FLAG}`,
   );
 
   if (role === "admin") {
@@ -197,7 +227,7 @@ async function issueSessionResponse(
       );
       appendSetCookie(
         response,
-        `${SELLER_COOKIE_NAME}=${sellerToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}`,
+        `${SELLER_COOKIE_NAME}=${sellerToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}${COOKIE_DOMAIN_FLAG}`,
       );
     } catch (err) {
       console.warn("[auth] could not create seller cookie:", (err as Error).message);
@@ -205,7 +235,7 @@ async function issueSessionResponse(
   }
 
   if (alreadyOnboarded) {
-    response.cookies.set("swypik_onboarded", "1", {
+    response.cookies.set("swypik_onboarded", "1", { domain: isProd ? "swypik.com" : undefined,
       path: "/",
       maxAge: 60 * 60 * 24 * 730,
       sameSite: "lax",
@@ -256,11 +286,17 @@ async function handleSendOtp(req: Request, rawEmail: unknown) {
     const username = generateUsername(normalizedEmail);
     const { rows: newRows } = await dbQuery<{ id: string }>(
       `INSERT INTO users (username, email, display_name, locale, role, status, metadata, auth_providers)
-       VALUES ($1, $2, $3, 'ro', 'shopper', 'active', '{}', ARRAY['email_otp']::text[])
+       VALUES ($1, $2, $3, 'ro', 'creator', 'active', '{}', ARRAY['email_otp']::text[])
        RETURNING id`,
       [username, normalizedEmail, normalizedEmail.split("@")[0]],
     );
     rows = newRows;
+    // M1.3 referral attribution — best-effort, never blocks signup
+    try {
+      await attributeOnSignup({ inviteeUserId: newRows[0].id });
+    } catch (err) {
+      console.warn("[auth/otp_signup] referral attribution failed:", (err as Error).message);
+    }
   }
 
   const userId = rows[0].id;
@@ -435,7 +471,7 @@ export async function POST(req: Request) {
          ) VALUES (
            $1, $2, $3, $4, $5,
            $6, $7, $8, now(),
-           'ro', 'shopper', 'active',
+           'ro', 'creator', 'active',
            NULL,
            ARRAY['email_password']::text[],
            '{}'::jsonb
@@ -467,6 +503,13 @@ export async function POST(req: Request) {
         );
       } catch (err) {
         console.warn('[auth/signup_password] default rows insert failed:', (err as Error).message);
+      }
+
+      // M1.3 referral attribution — best-effort, never blocks signup
+      try {
+        await attributeOnSignup({ inviteeUserId: userId });
+      } catch (err) {
+        console.warn("[auth/signup_password] referral attribution failed:", (err as Error).message);
       }
 
       // Trimite OTP de verificare email asincron (fire-and-forget pentru UX rapid)

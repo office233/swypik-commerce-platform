@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, SwitchCamera, Loader2, Sparkles, Timer, Music } from "lucide-react";
+import { X, SwitchCamera, Loader2, Sparkles, Timer, Music, ImagePlus } from "lucide-react";
 import { useCamera } from "@/lib/reels/use-camera";
 import { useRecorder } from "@/lib/reels/use-recorder";
 import { uploadReel } from "@/lib/reels/upload-reel";
@@ -34,6 +34,7 @@ export default function Recorder() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [phase, setPhase] = useState<Phase>("capture");
   const [blob, setBlob] = useState<Blob | null>(null);
@@ -118,12 +119,14 @@ export default function Recorder() {
     countdownSeconds: countdownSec,
   });
 
-  // attach live preview
+  // attach live preview — depindem DOAR de phase + stream pentru a evita
+  // re-rularea efectului la fiecare render (elapsedMs ticks 10x/s ⇒ flicker).
   useEffect(() => {
     if (phase === "capture" && videoRef.current) {
       camera.attachVideo(videoRef.current);
     }
-  }, [phase, camera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, camera.stream, camera.attachVideo]);
 
   // cleanup blob URL
   useEffect(() => {
@@ -182,8 +185,40 @@ export default function Recorder() {
   }, []);
 
   const handleClose = useCallback(() => {
-    router.back();
+    // dacă utilizatorul a venit direct (ex. share link), back() poate ieși din site
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
   }, [router]);
+
+  const handlePickFromGallery = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith('video/')) {
+      setErrorMsg('Fișierul selectat nu este un video.');
+      e.target.value = '';
+      return;
+    }
+    // max 100MB la upload din galerie (limita backend)
+    if (f.size > 100 * 1024 * 1024) {
+      setErrorMsg('Fișier prea mare (max 100MB).');
+      e.target.value = '';
+      return;
+    }
+    setErrorMsg(null);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    const url = URL.createObjectURL(f);
+    setBlob(f);
+    setPreviewUrl(url);
+    setPhase('meta');
+    e.target.value = '';
+  }, [previewUrl]);
 
   const handleRecordButton = useCallback(() => {
     if (recorder.state === "idle") {
@@ -450,14 +485,14 @@ export default function Recorder() {
 
   return (
     <div className="fixed inset-0 z-[60] bg-black text-white overflow-hidden">
-      {/* video layer */}
+      {/* video layer — object-contain ca să nu cropăm webcam landscape în portret */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative w-full h-full max-h-screen aspect-[9/16] mx-auto">
+        <div className="relative w-full h-full mx-auto">
           {isPreview ? (
             <video
               ref={previewVideoRef}
               src={previewUrl || undefined}
-              className="absolute inset-0 w-full h-full object-cover bg-black"
+              className="absolute inset-0 w-full h-full object-contain bg-black"
               playsInline
               loop
               autoPlay
@@ -466,11 +501,11 @@ export default function Recorder() {
           ) : (
             <video
               ref={videoRef}
-              className="absolute inset-0 w-full h-full object-cover bg-black"
+              className="absolute inset-0 w-full h-full object-contain bg-black"
               autoPlay
               playsInline
               muted
-              style={{ filter: filterCss }}
+              style={filterId === 'none' ? undefined : { filter: filterCss }}
             />
           )}
         </div>
@@ -605,9 +640,9 @@ export default function Recorder() {
           )}
 
           <div className="flex items-center gap-6">
-            {/* Done button — vizibil când există segmente înregistrate */}
-            <div className="w-14">
-              {hasContent && (
+            {/* Stânga: Galerie (idle) sau Gata (cu segmente) */}
+            <div className="w-14 flex items-center justify-center">
+              {hasContent ? (
                 <button
                   onClick={handleFinalize}
                   aria-label="Finalizează"
@@ -615,7 +650,16 @@ export default function Recorder() {
                 >
                   Gata
                 </button>
-              )}
+              ) : isIdle ? (
+                <button
+                  onClick={handlePickFromGallery}
+                  aria-label="Încarcă din galerie"
+                  className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex flex-col items-center justify-center text-white active:scale-95"
+                >
+                  <ImagePlus size={20} />
+                  <span className="text-[9px] font-bold mt-0.5">Clip</span>
+                </button>
+              ) : null}
             </div>
 
             <RecordButton
@@ -641,6 +685,15 @@ export default function Recorder() {
           )}
         </div>
       )}
+
+      {/* hidden file input pentru opțiunea "Galerie" */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
 
       {/* preview controls */}
       {isPreview && (

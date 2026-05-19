@@ -4,6 +4,7 @@ import { dbQuery } from "@/lib/db";
 import { getCreatorUserId } from "@/lib/creator/session";
 import { Pencil, Trash2, Clock, X } from "lucide-react";
 import DraftActions from "./DraftActions";
+import Countdown from "./Countdown";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Schițe & Programate | Swypik Creators" };
@@ -196,16 +197,3 @@ function EmptyState({ title, hint }: { title: string; hint: string }) {
   );
 }
 
-function Countdown({ target }: { target: string }) {
-  const t = new Date(target).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, t - now);
-  const h = Math.floor(diff / 3_600_000);
-  const m = Math.floor((diff % 3_600_000) / 60_000);
-  const fmt = new Date(target).toLocaleString("ro-RO");
-  return (
-    <span>
-      Se publică în <strong>{h}h {m}m</strong> · {fmt}
-    </span>
-  );
-}

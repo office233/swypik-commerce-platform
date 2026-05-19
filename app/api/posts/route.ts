@@ -24,6 +24,7 @@ import { NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { moderateText } from "@/lib/moderation/moderateText";
+import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
 
 export const dynamic = "force-dynamic";
 
@@ -275,6 +276,8 @@ export async function POST(req: Request) {
   if (!auth.userId) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
+  const block = await suspensionGuard(auth.userId);
+  if (block) return NextResponse.json(block.body, { status: block.status });
 
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
@@ -301,6 +304,14 @@ export async function POST(req: Request) {
   // Moderation gate on combined text — context="post" ⇒ blocked/adult reject (422).
   const modCheck = moderateText(`${title}\n${text ?? ""}`, "post");
   if (modCheck.action === "reject") {
+    void recordStrike({
+      userId: auth.userId,
+      label: modCheck.label === "blocked" ? "blocked" : "adult",
+      context: "post",
+      reason: modCheck.message,
+      reasons: modCheck.reasons,
+      signals: modCheck.signals as Record<string, unknown>,
+    });
     return NextResponse.json(
       {
         error: modCheck.message ?? "Conținut respins de moderare.",

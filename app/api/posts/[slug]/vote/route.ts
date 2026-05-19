@@ -19,6 +19,7 @@ import { NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getOrCreateAnonId } from "@/lib/anon/session";
+import { tryValidateReferral } from "@/lib/referral/attribution";
 
 export const dynamic = "force-dynamic";
 
@@ -176,11 +177,24 @@ export async function POST(
            VALUES ($1, $2, $3, 'community_post', $4, jsonb_build_object('optionKey', $5::text, 'slug', $6::text))`,
           [userId, REWARD_ACTION, REWARD_POINTS, post.id, optionKey, slug],
         );
+        // Wallet balance is reconciled by AFTER INSERT trigger
+        // trg_reward_events_credit_wallet (migration 0012).
         rewarded = REWARD_POINTS;
       }
     }
 
     await client.query("COMMIT");
+
+    // Best-effort: if this is the invitee's first authenticated vote,
+    // award their referrer (+50). Runs outside the vote TX so failure here
+    // never blocks the vote response.
+    if (userId && isNew) {
+      try {
+        await tryValidateReferral(userId, REWARD_ACTION);
+      } catch {
+        // swallow — vote already committed; referral can be retried on next action
+      }
+    }
 
     return NextResponse.json(
       {

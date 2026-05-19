@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import {
   UploadCloud,
   Video as VideoIcon,
+  Camera,
   Loader2,
   CheckCircle2,
   ArrowLeft,
@@ -411,6 +412,27 @@ function Step1(props: {
   return (
     <div className="space-y-6">
       {!previewUrl ? (
+        <>
+        <Link
+          href="/reels/record"
+          className="relative block rounded-3xl bg-gradient-to-br from-[#EF4444] via-[#EC4899] to-[#A855F7] p-[2px] shadow-lg shadow-[#EC4899]/30 active:scale-[0.99] transition-transform"
+        >
+          <div className="rounded-[calc(1.5rem-2px)] bg-[#0D0D0D] px-6 py-5 flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#EF4444] to-[#EC4899] flex items-center justify-center shadow-lg shrink-0">
+              <Camera size={26} className="text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-base font-black text-white">Filmează cu camera</p>
+              <p className="text-xs font-medium text-white/60 mt-0.5">Înregistrează direct din browser, ca pe TikTok</p>
+            </div>
+            <span className="text-white/40 text-xl">›</span>
+          </div>
+        </Link>
+        <div className="flex items-center gap-3 py-1">
+          <div className="flex-1 h-px bg-white/10"></div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">sau încarcă</span>
+          <div className="flex-1 h-px bg-white/10"></div>
+        </div>
         <div
           onDragEnter={(e) => {
             e.preventDefault();
@@ -445,6 +467,7 @@ function Step1(props: {
             }}
           />
         </div>
+        </>
       ) : (
         <div className="space-y-4">
           <div className="relative aspect-[9/16] bg-black rounded-3xl overflow-hidden border border-white/10 mx-auto max-w-xs shadow-2xl">

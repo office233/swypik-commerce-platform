@@ -9,6 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { moderateText } from "@/lib/moderation/moderateText";
+import { recordStrike } from "@/lib/moderation/strikes";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -73,6 +74,14 @@ export async function PATCH(request: Request) {
     if (dnText.length > 0) {
       const mDn = moderateText(dnText, "display_name");
       if (mDn.action !== "allow") {
+        void recordStrike({
+          userId: session.userId,
+          label: mDn.label === "blocked" ? "blocked" : mDn.label === "adult" ? "adult" : "sensitive",
+          context: "display_name",
+          reason: mDn.message,
+          reasons: mDn.reasons,
+          signals: mDn.signals as Record<string, unknown>,
+        });
         return NextResponse.json(
           { error: mDn.message ?? "Nume respins de moderare.", reasons: mDn.reasons },
           { status: 422 },
@@ -97,6 +106,14 @@ export async function PATCH(request: Request) {
     if (v.length > 0) {
       const m = moderateText(v, "bio");
       if (m.action !== "allow") {
+        void recordStrike({
+          userId: session.userId,
+          label: m.label === "blocked" ? "blocked" : m.label === "adult" ? "adult" : "sensitive",
+          context: "bio",
+          reason: m.message,
+          reasons: m.reasons,
+          signals: m.signals as Record<string, unknown>,
+        });
         return NextResponse.json(
           { error: m.message ?? "Bio respins de moderare.", reasons: m.reasons },
           { status: 422 },

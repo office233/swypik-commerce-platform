@@ -31,10 +31,12 @@ export default function SellerLogin() {
         throw new Error(data.error || "A apărut o eroare. Te rugăm să încerci din nou.");
       }
 
-      if (data.requiresVerification) {
+      // API răspunde generic (anti-enumeration) cu {success:true, message}
+      // Trecem mereu la step 2 dacă requestul a fost OK.
+      if (data.success || data.requiresVerification) {
         setStep(2);
       } else {
-        setError("Autentificarea necesită verificare OTP.");
+        setError(data.error || "Nu am putut trimite codul. Verifică emailul.");
       }
     } catch (err: any) {
       setError(err.message);

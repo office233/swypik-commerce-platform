@@ -13,7 +13,7 @@ type Item = { href: string; icon: typeof Home; key: NavKey; center?: boolean; fl
 const NAV_ITEMS: Item[] = [
   { href: "/", icon: Home, key: "home" },
   { href: "/explore", icon: Search, key: "explore" },
-  { href: "/upload", icon: Plus, key: "upload", center: true },
+  { href: "/reels/record", icon: Plus, key: "upload", center: true },
   { href: "/inbox", icon: Inbox, key: "inbox" },
   { href: "/account", icon: User, key: "account" },
 ];
