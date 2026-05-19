@@ -121,7 +121,17 @@ function isRetryable(msg) {
 
 function parseBanSeconds(msg) {
   const m = String(msg || '').match(/(\d+)\s*seconds?/i);
-  return m ? Math.min(60, parseInt(m[1], 10) + 2) : 0;
+  if (!m) return 0;
+  const seconds = parseInt(m[1], 10);
+  return Number.isFinite(seconds) && seconds > 0 ? Math.min(24 * 60 * 60, seconds + 10) : 0;
+}
+
+async function retrySleep(ms) {
+  const endAt = Date.now() + ms;
+  while (Date.now() < endAt) {
+    if (stopRequested) throw new Error('AE worker stopping');
+    await new Promise(r => setTimeout(r, Math.min(60_000, endAt - Date.now())));
+  }
 }
 
 async function callAE(method, params = {}, { retries = 5, baseDelayMs = 3000 } = {}) {
@@ -148,7 +158,7 @@ async function callAE(method, params = {}, { retries = 5, baseDelayMs = 3000 } =
       json = await res.json();
     } catch (err) {
       if (attempt < retries) {
-        await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)));
+        await retrySleep(baseDelayMs * Math.pow(2, attempt));
         attempt++; continue;
       }
       throw err;
@@ -158,7 +168,8 @@ async function callAE(method, params = {}, { retries = 5, baseDelayMs = 3000 } =
       if (attempt < retries && isRetryable(msg)) {
         const ban = parseBanSeconds(msg);
         const wait = ban > 0 ? ban * 1000 : baseDelayMs * Math.pow(2, attempt);
-        await new Promise(r => setTimeout(r, wait));
+        if (ban >= 300) log('warn', 'AE API ban backoff', { method, ban_seconds: ban, wait_until: new Date(Date.now() + wait).toISOString() });
+        await retrySleep(wait);
         attempt++; continue;
       }
       throw new Error(msg);
