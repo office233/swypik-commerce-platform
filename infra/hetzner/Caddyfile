@@ -46,17 +46,32 @@ swypik.com {
 
 	# Next.js static assets — long cache (Cache-Control set by Next, no dup here)
 	handle /_next/static/* {
-		reverse_proxy web-next:3000
+		reverse_proxy web-next:3000 {
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 5s
+			max_fails 3
+		}
 	}
 
 	# Next.js data / image optimisation routes
 	handle /_next/* {
-		reverse_proxy web-next:3000
+		reverse_proxy web-next:3000 {
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 5s
+			max_fails 3
+		}
 	}
 
 	# API routes served by the Next.js backend (BFF)
 	handle /api/* {
-		reverse_proxy web-next:3000
+		reverse_proxy web-next:3000 {
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 5s
+			max_fails 3
+		}
 	}
 
 	# Same-origin media proxy for HLS/video assets. R2 public domain does not
@@ -73,7 +88,12 @@ swypik.com {
 
 	# Everything else → Next.js SSR
 	handle {
-		reverse_proxy web-next:3000
+		reverse_proxy web-next:3000 {
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 5s
+			max_fails 3
+		}
 	}
 }
 
@@ -115,7 +135,12 @@ api.swypik.com {
 	}
 
 	# All traffic → Go API
-	reverse_proxy platform-api:8080
+	reverse_proxy platform-api:8080 {
+		lb_try_duration 10s
+		lb_try_interval 250ms
+		fail_duration 5s
+		max_fails 3
+	}
 }
 
 # -------------------------------------------------------
@@ -168,6 +193,11 @@ www.swypik.com {
 
         # Everything else → Next.js (middleware.ts enforces /adult-only paths).
         handle {
-                reverse_proxy swypik-adult-web:3000
+                reverse_proxy swypik-adult-web:3000 {
+                        lb_try_duration 10s
+                        lb_try_interval 250ms
+                        fail_duration 5s
+                        max_fails 3
+                }
         }
 }
