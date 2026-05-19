@@ -22,7 +22,7 @@ services:
       context: ../../
       dockerfile_inline: |
         # ── Build stage ──
-        FROM node:20.18-alpine AS builder
+        FROM node:20.19.0-alpine AS builder
         WORKDIR /app
 
         # Install deps first (Docker layer cache)
@@ -37,7 +37,7 @@ services:
         RUN npm run build
 
         # ── Runtime stage ──
-        FROM node:20.18-alpine AS runner
+        FROM node:20.19.0-alpine AS runner
         WORKDIR /app
 
         ENV NODE_ENV=production
@@ -316,7 +316,7 @@ services:
       POSTGRESQL_HOST: postgres
       POSTGRESQL_PORT: 5432
       POSTGRESQL_USERNAME: swypik
-      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-}
       POSTGRESQL_DATABASE: swypik
       PGBOUNCER_DATABASE: swypik
       PGBOUNCER_POOL_MODE: transaction

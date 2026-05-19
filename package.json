@@ -69,5 +69,10 @@
     "ae_sdk": "^0.6.0",
     "dotenv": "^17.4.2",
     "eslint-config-next": "^15.5.18"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.15"
+    }
   }
 }
