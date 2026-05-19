@@ -168,6 +168,6 @@ www.swypik.com {
 
         # Everything else → Next.js (middleware.ts enforces /adult-only paths).
         handle {
-                reverse_proxy web-next:3000
+                reverse_proxy swypik-adult-web:3000
         }
 }

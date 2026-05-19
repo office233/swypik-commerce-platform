@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import LocaleSwitcher from "@/components/i18n/LocaleSwitcher";
 import { CurrencySwitcher } from "@/components/i18n/CurrencyProvider";
-import AdultActivationCard from "@/components/adult/AdultActivationCard";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,20 @@ export default async function PreferencesPage() {
         </p>
       </section>
 
-      <AdultActivationCard />
+      {/* Swypik 18+ runs on a separate site/app (18.swypik.com).
+          The activation card lives there; from here we just link out. */}
+      <section className="mt-8 rounded-xl border border-white/10 bg-white/5 p-4">
+        <h2 className="text-sm font-semibold mb-1">Swypik 18+</h2>
+        <p className="text-xs text-white/60 mb-3">
+          Conținutul pentru adulți este pe un site separat, complet izolat.
+        </p>
+        <Link
+          href="https://18.swypik.com"
+          className="inline-block rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-500"
+        >
+          Mergi la 18.swypik.com →
+        </Link>
+      </section>
     </main>
   );
 }
