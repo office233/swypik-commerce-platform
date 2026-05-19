@@ -55,6 +55,20 @@ function firstString(...values: any[]) {
   return "";
 }
 
+function isSafeDirectVideoUrl(value?: string) {
+  if (!value) return false;
+  if (value.startsWith("/")) return true;
+
+  try {
+    const fallbackOrigin = "https://swypik.com";
+    const currentOrigin = typeof window === "undefined" ? fallbackOrigin : window.location.origin;
+    const parsed = new URL(value, currentOrigin);
+    return parsed.origin === currentOrigin;
+  } catch {
+    return false;
+  }
+}
+
 function firstNumber(...values: any[]) {
   for (const value of values) {
     const number = Number(value);
@@ -439,7 +453,7 @@ export default function ChatInterface({
   const TrendingHero = () => {
     const hero = trendingProducts[0];
     const heroImg = hero?.images?.[0];
-    const heroVid = hero?.video;
+    const heroVid = isSafeDirectVideoUrl(hero?.video) ? hero?.video : undefined;
     return (
       <div className="mt-4 overflow-hidden rounded-2xl bg-black relative h-[500px]">
         {/* IMAGINEA stă mereu dedesubt ca fallback dacă videoclipul nu se încarcă */}

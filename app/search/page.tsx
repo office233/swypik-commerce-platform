@@ -66,8 +66,8 @@ export default async function SearchPage({
   ];
 
   return (
-    <main className="min-h-screen text-white" style={{ backgroundColor: BG }}>
-      <div className="mx-auto max-w-5xl px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
+    <main className="min-h-screen overflow-x-hidden text-white" style={{ backgroundColor: BG }}>
+      <div className="mx-auto max-w-5xl min-w-0 px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold mb-4">Search</h1>
           <SearchBar initialQuery={q} />
@@ -79,24 +79,26 @@ export default async function SearchPage({
           </div>
         ) : (
           <>
-            <nav className="flex gap-1 border-b border-neutral-800 mb-6">
-              {tabs.map((t) => {
-                const active = t.key === tab;
-                const href = `/search?q=${encodeURIComponent(q)}&tab=${t.key}`;
-                return (
-                  <Link
-                    key={t.key}
-                    href={href}
-                    className="inline-flex items-center px-4 py-3 min-h-[44px] text-sm font-medium border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
-                    style={{
-                      borderColor: active ? ACCENT : "transparent",
-                      color: active ? ACCENT : "#d4d4d4",
-                    }}
-                  >
-                    {t.label} <span className="text-neutral-500">({t.count})</span>
-                  </Link>
-                );
-              })}
+            <nav className="-mx-4 mb-6 overflow-x-auto border-b border-neutral-800 px-4">
+              <div className="flex min-w-full w-max gap-1">
+                {tabs.map((t) => {
+                  const active = t.key === tab;
+                  const href = `/search?q=${encodeURIComponent(q)}&tab=${t.key}`;
+                  return (
+                    <Link
+                      key={t.key}
+                      href={href}
+                      className="inline-flex shrink-0 items-center whitespace-nowrap px-4 py-3 min-h-[44px] text-sm font-medium border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
+                      style={{
+                        borderColor: active ? ACCENT : "transparent",
+                        color: active ? ACCENT : "#d4d4d4",
+                      }}
+                    >
+                      {t.label} <span className="text-neutral-500">({t.count})</span>
+                    </Link>
+                  );
+                })}
+              </div>
             </nav>
 
             {tab === "videos" && (
