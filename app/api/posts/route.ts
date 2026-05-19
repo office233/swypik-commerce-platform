@@ -44,6 +44,7 @@ type PostRow = {
   created_at: string;
   author_id: string;
   author_handle: string | null;
+  author_display: string | null;
   author_avatar: string | null;
 };
 
@@ -107,7 +108,8 @@ export async function GET(req: Request) {
          p.hot_score::text AS hot_score,
          p.ends_at, p.created_at,
          p.author_user_id AS author_id,
-         u.handle AS author_handle,
+         u.username AS author_handle,
+         u.display_name AS author_display,
          u.avatar_url AS author_avatar
        FROM community_posts p
        LEFT JOIN users u ON u.id = p.author_user_id
@@ -170,6 +172,7 @@ export async function GET(req: Request) {
       author: {
         id: p.author_id,
         handle: p.author_handle,
+        displayName: p.author_display,
         avatar: p.author_avatar,
       },
       items: (itemsByPost.get(p.id) ?? []).map((i) => ({
