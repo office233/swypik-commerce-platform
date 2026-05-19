@@ -11,6 +11,8 @@ import {
 import { publishProcessVideoJob } from "@/lib/video/redis-queue";
 import { moderate } from "@/lib/ai/moderate";
 import { labelVideo } from "@/lib/moderation/labelVideo";
+import { recordStrike } from "@/lib/moderation/strikes";
+import { classifyText } from "@/lib/moderation/classifier";
 import {
   UploadInputError,
   buildProcessVideoJobPayload,
@@ -257,6 +259,26 @@ async function createLocalUploadSession(input: CreatorUploadInput) {
     description,
     tags: input.hashtags ?? [],
   });
+  // Strike if creator uploaded adult/blocked content (uses same classifier).
+  {
+    const res = classifyText({
+      title,
+      description,
+      category: "",
+      tags: input.hashtags ?? [],
+    });
+    if (res.label === "adult" || res.label === "blocked") {
+      void recordStrike({
+        userId: input.creatorId,
+        label: res.label,
+        context: "video",
+        refType: "video",
+        refId: videoId,
+        reasons: res.reasons,
+        signals: res.signals as Record<string, unknown>,
+      });
+    }
+  }
 
   return {
     uploadUrl: upload.url,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import { attachReplies, chooseCommentStatus, mapCommentRow, validateCommentText } from "@/lib/social/comments";
 import { moderateText } from "@/lib/moderation/moderateText";
+import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 
@@ -160,10 +161,34 @@ export async function POST(
     const initialStatus = chooseCommentStatus(textResult.text);
     const moderation = moderateText(textResult.text, "comment");
     if (moderation.action === "reject") {
+      if (session.userId) {
+        void recordStrike({
+          userId: session.userId,
+          label: moderation.label === "blocked" ? "blocked" : "adult",
+          context: "comment",
+          refType: "video",
+          refId: videoId,
+          reason: moderation.message,
+          reasons: moderation.reasons,
+          signals: moderation.signals as Record<string, unknown>,
+        });
+      }
       return NextResponse.json(
         { error: moderation.message ?? "Conținut interzis.", reasons: moderation.reasons },
         { status: 422 },
       );
+    }
+    if (moderation.action === "hide" && session.userId) {
+      void recordStrike({
+        userId: session.userId,
+        label: "adult",
+        context: "comment",
+        refType: "video",
+        refId: videoId,
+        reason: moderation.message,
+        reasons: moderation.reasons,
+        signals: moderation.signals as Record<string, unknown>,
+      });
     }
     const status = moderation.action === "hide" ? "hidden" : initialStatus;
     let parentCommentId = requestedParentCommentId;
