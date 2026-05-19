@@ -128,6 +128,12 @@ export function useRecorder(
       accumMsRef.current += Date.now() - segmentStartTsRef.current;
     }
     setState("stopping");
+    // Forțează flush-ul ultimului chunk înainte de stop (esențial Safari/iOS)
+    try {
+      rec.requestData();
+    } catch {
+      /* ignore */
+    }
     try {
       rec.stop();
     } catch {
@@ -166,6 +172,12 @@ export function useRecorder(
       const blob = new Blob(chunksRef.current, { type: finalMime });
       const finalElapsed = accumMsRef.current;
       setElapsedMs(finalElapsed);
+      if (blob.size === 0) {
+        // Niciun chunk capturat — resetăm și marcăm idle ca să nu rămână UI blocat
+        console.error('[recorder] blob gol; chunks=', chunksRef.current.length);
+        setState("idle");
+        return;
+      }
       setState("preview");
       onCompleteRef.current(blob, finalElapsed);
     };
