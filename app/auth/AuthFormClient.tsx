@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -679,14 +679,16 @@ function FieldPassword({
   hint?: string;
 }) {
   const [show, setShow] = useState(false);
+  const passwordId = useId();
   return (
-    <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-white/60">
+    <div className="block">
+      <label htmlFor={passwordId} className="mb-2 block text-xs font-bold uppercase tracking-widest text-white/60">
         Parolă
-      </span>
-      <span className="relative block">
+      </label>
+      <div className="relative block">
         <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
         <input
+          id={passwordId}
           type={show ? "text" : "password"}
           autoComplete={autoComplete}
           required
@@ -699,13 +701,14 @@ function FieldPassword({
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
+          aria-label={show ? "Ascunde parola" : "Arată parola"}
           className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg px-2 py-1 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
         >
           {show ? "Ascunde" : "Arată"}
         </button>
-      </span>
+      </div>
       {hint && <p className="mt-1.5 text-xs text-white/40">{hint}</p>}
-    </label>
+    </div>
   );
 }
 
