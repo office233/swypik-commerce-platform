@@ -192,6 +192,7 @@ services:
   # 5. video-worker — Python FFmpeg pipeline
   # ──────────────────────────────────────────────
   video-worker:
+    scale: 2
     build:
       context: ../../workers/video-worker
       dockerfile_inline: |
