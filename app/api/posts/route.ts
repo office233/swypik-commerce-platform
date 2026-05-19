@@ -1,18 +1,29 @@
 /**
- * Swypik Arena feed — community posts in all 8 formats.
+ * Swypik Arena — community posts in all 8 formats.
  *
- * Read-only for now. Authoring (POST /api/posts) lands once the upload/
- * moderation flow for non-video posts is wired through ContentModeration.
+ *   GET  /api/posts   → public feed (read-only listing, hot/new/ending)
+ *   POST /api/posts   → create a new post (authenticated)
  *
- * Query params:
+ * Query params for GET:
  *   format=merita|battle|find_me|setup|drop|review_real|dupe_hunt|roast_cart
  *   sort=hot|new|ending     (default: hot)
  *   limit=1..50             (default: 20)
  *   cursor=<iso ts>         (optional)
+ *
+ * POST body (JSON):
+ *   { format, title, body?, endsAt?, options?: Array<{
+ *       optionKey?, label?, productId?, externalUrl?, externalImage?, externalTitle?
+ *   }> }
+ *   - battle / find_me / dupe_hunt require ≥2 options.
+ *   - Each option needs productId OR externalUrl.
+ *
+ * Title + body are run through `moderateText("post")` — blocked/adult ⇒ 422.
  */
 
 import { NextResponse } from "next/server";
-import { dbQuery } from "@/lib/db";
+import { dbQuery, getDb } from "@/lib/db";
+import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { moderateText } from "@/lib/moderation/moderateText";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +37,16 @@ const FORMATS = new Set([
   "dupe_hunt",
   "roast_cart",
 ]);
+
+const MIN_OPTIONS_BY_FORMAT: Record<string, number> = {
+  battle: 2,
+  find_me: 2,
+  dupe_hunt: 2,
+};
+
+// ===================================================================
+// GET — public feed
+// ===================================================================
 
 type PostRow = {
   id: string;
@@ -219,5 +240,197 @@ export async function GET(req: Request) {
       { posts: [], nextCursor: null, error: (err as Error).message },
       { status: 200, headers: { "Cache-Control": "no-store" } },
     );
+  }
+}
+
+// ===================================================================
+// POST — create new community post
+// ===================================================================
+
+type IncomingOption = {
+  optionKey?: unknown;
+  label?: unknown;
+  productId?: unknown;
+  externalUrl?: unknown;
+  externalImage?: unknown;
+  externalTitle?: unknown;
+};
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+function randomSuffix(len = 6): string {
+  return Math.random().toString(36).slice(2, 2 + len);
+}
+
+export async function POST(req: Request) {
+  const auth = await getAuthUser();
+  if (!auth.userId) {
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
+
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+
+  const format = String(body.format || "").trim();
+  if (!FORMATS.has(format)) {
+    return NextResponse.json({ error: "invalid_format" }, { status: 400 });
+  }
+
+  const title = String(body.title || "").trim();
+  if (title.length < 3 || title.length > 140) {
+    return NextResponse.json({ error: "title_length" }, { status: 400 });
+  }
+
+  const text = String(body.body || "").trim().slice(0, 2000) || null;
+  const endsAtRaw = body.endsAt;
+  const endsAt =
+    endsAtRaw && typeof endsAtRaw === "string" && !Number.isNaN(Date.parse(endsAtRaw))
+      ? new Date(endsAtRaw)
+      : null;
+
+  // Moderation gate on combined text — context="post" ⇒ blocked/adult reject (422).
+  const modCheck = moderateText(`${title}\n${text ?? ""}`, "post");
+  if (modCheck.action === "reject") {
+    return NextResponse.json(
+      {
+        error: modCheck.message ?? "Conținut respins de moderare.",
+        reasons: modCheck.reasons,
+      },
+      { status: 422 },
+    );
+  }
+
+  // Options validation
+  const rawOptions = Array.isArray(body.options) ? (body.options as IncomingOption[]) : [];
+  const minOptions = MIN_OPTIONS_BY_FORMAT[format] ?? 0;
+  if (rawOptions.length < minOptions) {
+    return NextResponse.json(
+      { error: "need_min_options", min: minOptions },
+      { status: 400 },
+    );
+  }
+  if (rawOptions.length > 8) {
+    return NextResponse.json({ error: "too_many_options" }, { status: 400 });
+  }
+
+  const normalizedOptions = rawOptions.map((opt, idx) => {
+    const optionKey = String(opt.optionKey || String.fromCharCode(97 + idx)).slice(0, 12);
+    const label = opt.label != null ? String(opt.label).trim().slice(0, 80) : null;
+    const productId =
+      typeof opt.productId === "string" && opt.productId.trim().length === 36
+        ? opt.productId
+        : null;
+    const externalUrl =
+      typeof opt.externalUrl === "string" && /^https?:\/\//i.test(opt.externalUrl)
+        ? opt.externalUrl.slice(0, 500)
+        : null;
+    const externalImage =
+      typeof opt.externalImage === "string" && /^https?:\/\//i.test(opt.externalImage)
+        ? opt.externalImage.slice(0, 500)
+        : null;
+    const externalTitle =
+      typeof opt.externalTitle === "string" ? opt.externalTitle.trim().slice(0, 140) : null;
+    if (!productId && !externalUrl) return null;
+    return { optionKey, label, productId, externalUrl, externalImage, externalTitle, position: idx };
+  });
+  if (normalizedOptions.some((o) => o === null)) {
+    return NextResponse.json({ error: "option_needs_product_or_url" }, { status: 400 });
+  }
+
+  const baseSlug = slugify(title) || "post";
+  let slug = `${baseSlug}-${randomSuffix()}`;
+
+  const pool = getDb();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    let inserted: { id: string; slug: string } | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await client.query<{ id: string; slug: string }>(
+          `INSERT INTO community_posts
+             (slug, author_user_id, format, title, body, ends_at, status, metadata)
+           VALUES ($1, $2, $3, $4, $5, $6, 'active', $7::jsonb)
+           RETURNING id, slug`,
+          [
+            slug,
+            auth.userId,
+            format,
+            title,
+            text,
+            endsAt,
+            JSON.stringify({
+              moderation: { label: modCheck.label, reasons: modCheck.reasons },
+              created_via: "api_v1",
+            }),
+          ],
+        );
+        inserted = res.rows[0];
+        break;
+      } catch (err) {
+        const msg = (err as Error).message || "";
+        if (msg.includes("community_posts_slug_key")) {
+          slug = `${baseSlug}-${randomSuffix()}`;
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!inserted) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ error: "slug_collision" }, { status: 500 });
+    }
+
+    for (const opt of normalizedOptions) {
+      if (!opt) continue;
+      await client.query(
+        `INSERT INTO community_post_items
+           (post_id, product_id, external_url, external_image, external_title,
+            option_key, label, position)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          inserted.id,
+          opt.productId,
+          opt.externalUrl,
+          opt.externalImage,
+          opt.externalTitle,
+          opt.optionKey,
+          opt.label,
+          opt.position,
+        ],
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return NextResponse.json(
+      {
+        id: inserted.id,
+        slug: inserted.slug,
+        url: `/b/${inserted.slug}`,
+        moderation: { label: modCheck.label, action: modCheck.action },
+      },
+      { status: 201 },
+    );
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    return NextResponse.json(
+      { error: "internal", message: (err as Error).message },
+      { status: 500 },
+    );
+  } finally {
+    client.release();
   }
 }
