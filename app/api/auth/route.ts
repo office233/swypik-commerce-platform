@@ -24,6 +24,7 @@ import bcrypt from "bcryptjs";
 import { dbQuery } from "@/lib/db";
 import { sendMagicLink, sendEmail, sendWelcomeEmail } from "@/lib/email/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { attributeOnSignup } from "@/lib/referral/attribution";
 import {
   hashSessionToken,
   resolvePostLoginRedirect,
@@ -261,6 +262,12 @@ async function handleSendOtp(req: Request, rawEmail: unknown) {
       [username, normalizedEmail, normalizedEmail.split("@")[0]],
     );
     rows = newRows;
+    // M1.3 referral attribution — best-effort, never blocks signup
+    try {
+      await attributeOnSignup({ inviteeUserId: newRows[0].id });
+    } catch (err) {
+      console.warn("[auth/otp_signup] referral attribution failed:", (err as Error).message);
+    }
   }
 
   const userId = rows[0].id;
@@ -467,6 +474,13 @@ export async function POST(req: Request) {
         );
       } catch (err) {
         console.warn('[auth/signup_password] default rows insert failed:', (err as Error).message);
+      }
+
+      // M1.3 referral attribution — best-effort, never blocks signup
+      try {
+        await attributeOnSignup({ inviteeUserId: userId });
+      } catch (err) {
+        console.warn("[auth/signup_password] referral attribution failed:", (err as Error).message);
       }
 
       // Trimite OTP de verificare email asincron (fire-and-forget pentru UX rapid)

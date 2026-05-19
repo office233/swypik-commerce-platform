@@ -19,6 +19,7 @@ import { NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getOrCreateAnonId } from "@/lib/anon/session";
+import { tryValidateReferral } from "@/lib/referral/attribution";
 
 export const dynamic = "force-dynamic";
 
@@ -183,6 +184,17 @@ export async function POST(
     }
 
     await client.query("COMMIT");
+
+    // Best-effort: if this is the invitee's first authenticated vote,
+    // award their referrer (+50). Runs outside the vote TX so failure here
+    // never blocks the vote response.
+    if (userId && isNew) {
+      try {
+        await tryValidateReferral(userId, REWARD_ACTION);
+      } catch {
+        // swallow — vote already committed; referral can be retried on next action
+      }
+    }
 
     return NextResponse.json(
       {

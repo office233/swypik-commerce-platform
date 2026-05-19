@@ -83,6 +83,13 @@ export async function findOrCreateUserFromOAuth(
       ],
     );
     userId = created.rows[0].id;
+    // M1.3 referral attribution — best-effort, never blocks signup
+    try {
+      const { attributeOnSignup } = await import("@/lib/referral/attribution");
+      await attributeOnSignup({ inviteeUserId: userId });
+    } catch (err) {
+      console.warn("[oauth/signup] referral attribution failed:", (err as Error).message);
+    }
   } else if (profile.email && profile.emailVerified) {
     // backfill verification on existing email
     await dbQuery(
