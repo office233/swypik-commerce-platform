@@ -141,10 +141,13 @@ export function middleware(request: NextRequest) {
     return redirectTo(request, "/account");
   }
 
-  const isOnboarded = Boolean(cookies.get(ONBOARDED_COOKIE)?.value);
-  if (!isOnboarded) {
-    return redirectTo(request, ONBOARDING_PATH);
-  }
+  // NOTE: onboarding is enforced by the in-app <OnboardingGate /> modal
+  // (server component reading users.onboarding_completed_at). We intentionally
+  // do NOT redirect here on missing `swypik_onboarded` cookie because:
+  //   1) OAuth (Google/Apple) login never sets this cookie → every gated nav
+  //      would bounce to /onboarding, looking like the user got logged out.
+  //   2) The cookie can drift from DB truth (completed onboarding in another
+  //      browser/device). The DB is the source of truth; the modal handles it.
 
   return NextResponse.next();
 }

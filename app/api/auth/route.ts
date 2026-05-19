@@ -152,7 +152,8 @@ async function issueSessionResponse(
 
   const { rows: onboardedRows } = await dbQuery<{ onboarded: boolean }>(
     `SELECT (
-       EXISTS (SELECT 1 FROM user_interests WHERE user_id = $1)
+       EXISTS (SELECT 1 FROM users WHERE id = $1 AND onboarding_completed_at IS NOT NULL)
+       OR EXISTS (SELECT 1 FROM user_interests WHERE user_id = $1)
        OR EXISTS (SELECT 1 FROM users WHERE id = $1 AND created_at < now() - interval '1 hour')
      ) AS onboarded`,
     [userId],
