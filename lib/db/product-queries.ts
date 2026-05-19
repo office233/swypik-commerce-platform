@@ -126,6 +126,82 @@ function cleanCategoryLabel(value: unknown, fallback = "General") {
   return label;
 }
 
+// Rejects category candidates that are obviously product titles or raw AE blobs.
+// A label longer than 80 chars, equal to / prefix of the title, or containing the
+// title as a breadcrumb tail is treated as garbage and replaced with the fallback.
+function safeCategoryLabel(value: unknown, title: string | undefined, fallback = "General") {
+  const cleaned = cleanCategoryLabel(value, fallback);
+  if (cleaned === fallback) return fallback;
+  if (cleaned.length > 80) return fallback;
+  const t = (title || "").trim().toLowerCase();
+  if (!t) return cleaned;
+  const l = cleaned.toLowerCase();
+  if (l === t) return fallback;
+  const titlePrefix = t.slice(0, 30);
+  if (titlePrefix.length >= 12 && l.includes(titlePrefix)) {
+    // Try to recover the breadcrumb portion before the title slipped in.
+    if (cleaned.includes(" > ")) {
+      const head = cleaned.split(" > ").filter((p) => {
+        const pl = p.toLowerCase();
+        return pl && !pl.includes(titlePrefix);
+      });
+      if (head.length > 0) return head.join(" > ").slice(0, 80);
+    }
+    return fallback;
+  }
+  return cleaned;
+}
+
+export type TaxonomyLabels = {
+  department?: string;
+  category?: string;
+  subcategory?: string;
+  leaf?: string;
+};
+
+// One query per request resolves every distinct taxonomy_node_slug found in the
+// result set to its localized department/category/subcategory labels. Falls back
+// to English when the requested locale has no translation row.
+export async function resolveTaxonomyLabels(slugs: string[], locale = "ro"): Promise<Map<string, TaxonomyLabels>> {
+  const unique = Array.from(new Set(slugs.filter((s) => typeof s === "string" && s.length > 0)));
+  if (unique.length === 0) return new Map();
+  const { rows } = await dbQuery(
+    `
+      WITH RECURSIVE leaves AS (
+        SELECT s AS leaf_slug FROM unnest($1::text[]) AS t(s)
+      ),
+      chain AS (
+        SELECT l.leaf_slug, n.slug AS node_slug, n.parent_slug, n.kind, 0 AS depth
+        FROM leaves l JOIN taxonomy_nodes n ON n.slug = l.leaf_slug
+        UNION ALL
+        SELECT c.leaf_slug, n.slug, n.parent_slug, n.kind, c.depth + 1
+        FROM chain c JOIN taxonomy_nodes n ON n.slug = c.parent_slug
+        WHERE c.depth < 8
+      )
+      SELECT c.leaf_slug, c.node_slug, c.kind,
+             COALESCE(tl.label, te.label, c.node_slug) AS label
+      FROM chain c
+      LEFT JOIN taxonomy_translations tl ON tl.node_slug = c.node_slug AND tl.locale = $2
+      LEFT JOIN taxonomy_translations te ON te.node_slug = c.node_slug AND te.locale = 'en'
+    `,
+    [unique, locale],
+  );
+  const map = new Map<string, TaxonomyLabels>();
+  for (const row of rows) {
+    const entry = map.get(row.leaf_slug) || {};
+    const label = String(row.label || "").trim();
+    if (!label) continue;
+    const kind = String(row.kind || "");
+    if (kind === "department" && !entry.department) entry.department = label;
+    else if (kind === "category" && !entry.category) entry.category = label;
+    else if (kind === "subcategory" && !entry.subcategory) entry.subcategory = label;
+    else if (kind === "leaf" && !entry.leaf) entry.leaf = label;
+    else if (kind === "product_type" && !entry.leaf) entry.leaf = label;
+    map.set(row.leaf_slug, entry);
+  }
+  return map;
+}
+
 function cleanCategoryId(value: unknown, fallback = "") {
   const id = String(value ?? "").trim();
   if (!id) return fallback;
@@ -226,7 +302,7 @@ function chooseLocalizedLabel(
   return cleanCategoryLabel(selected, fallback);
 }
 
-function transformProduct(row: any, locale = "ro") {
+function transformProduct(row: any, locale = "ro", taxonomyMap?: Map<string, TaxonomyLabels>) {
   const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
   const rawPriceCents = Number(row.price_cents);
   const hasValidPrice = Number.isFinite(rawPriceCents) && rawPriceCents > 0;
@@ -240,27 +316,44 @@ function transformProduct(row: any, locale = "ro") {
     ? String(firstNonEmpty(row.ae_title_ro, metadata.title_ro, row.title) || row.title)
     : String(firstNonEmpty(row.ae_title, metadata.title_en, row.title) || row.title);
 
-  const rootCategory = chooseLocalizedLabel(
-    locale,
-    [metadata.ae_root_category_name_ro, row.ae_root_name_ro, row.category, metadata.ae_root_category_name],
-    [metadata.ae_root_category_name, row.ae_root_name, row.category, metadata.ae_root_category_name_ro],
-  );
+  // Prefer taxonomy_nodes labels (curated, localized) over AliExpress raw text
+  // which often contains the product title in category fields.
+  const taxLabels: TaxonomyLabels = (taxonomyMap && row.taxonomy_node_slug)
+    ? (taxonomyMap.get(String(row.taxonomy_node_slug)) || {})
+    : {};
 
-  const leafCategory = chooseLocalizedLabel(
-    locale,
-    [metadata.ae_category_name_ro, row.ae_category_name_ro, row.category, metadata.ae_category_name, rootCategory],
-    [metadata.ae_category_name, row.ae_category_name, row.category, metadata.ae_category_name_ro, rootCategory],
-    rootCategory,
-  );
+  const rootCategoryRaw = taxLabels.department
+    || taxLabels.category
+    || chooseLocalizedLabel(
+      locale,
+      [metadata.ae_root_category_name_ro, row.ae_root_name_ro, metadata.ae_root_category_name],
+      [metadata.ae_root_category_name, row.ae_root_name, metadata.ae_root_category_name_ro],
+    );
+  const rootCategory = safeCategoryLabel(rootCategoryRaw, title, "General");
 
-  const productType = chooseLocalizedLabel(
-    locale,
-    [metadata.product_type_ro, row.ae_product_type_ro, metadata.product_type, row.ae_product_type, leafCategory],
-    [metadata.product_type, row.ae_product_type, metadata.product_type_ro, row.ae_product_type_ro, leafCategory],
-    leafCategory,
-  );
+  const leafCategoryRaw = taxLabels.leaf
+    || taxLabels.subcategory
+    || taxLabels.category
+    || chooseLocalizedLabel(
+      locale,
+      [metadata.ae_category_name_ro, row.ae_category_name_ro, metadata.ae_category_name],
+      [metadata.ae_category_name, row.ae_category_name, metadata.ae_category_name_ro],
+      rootCategory,
+    );
+  const leafCategory = safeCategoryLabel(leafCategoryRaw, title, rootCategory);
 
-  const category = cleanCategoryLabel(firstNonEmpty(productType, row.category, leafCategory, rootCategory), rootCategory);
+  const productTypeRaw = taxLabels.subcategory
+    || taxLabels.leaf
+    || taxLabels.category
+    || chooseLocalizedLabel(
+      locale,
+      [metadata.product_type_ro, row.ae_product_type_ro, metadata.product_type, row.ae_product_type],
+      [metadata.product_type, row.ae_product_type, metadata.product_type_ro, row.ae_product_type_ro],
+      leafCategory,
+    );
+  const productType = safeCategoryLabel(productTypeRaw, title, leafCategory);
+
+  const category = safeCategoryLabel(firstNonEmpty(taxLabels.leaf, taxLabels.subcategory, productType, leafCategory, rootCategory), title, rootCategory);
   const categoryId = toNumber(metadata.ae_category_id, row.ae_category_id, metadata.ae_root_category_id, row.ae_root_id);
   const orders = toNumber(metadata.orders_count, row.ae_orders_count, 0) || 0;
   const rating = Number((toNumber(metadata.rating, row.ae_rating, 4.5) || 4.5).toFixed(1));
@@ -639,7 +732,11 @@ export async function searchProducts(filters: ProductFilters = {}) {
     total = Number(countRows[0]?.total || 0);
   }
 
-  const products = sliced.map((row: any) => transformProduct(row, locale));
+  const slugList = sliced
+    .map((r: any) => (typeof r.taxonomy_node_slug === "string" ? r.taxonomy_node_slug : ""))
+    .filter((s: string) => s);
+  const taxonomyMap = slugList.length > 0 ? await resolveTaxonomyLabels(slugList, locale) : undefined;
+  const products = sliced.map((row: any) => transformProduct(row, locale, taxonomyMap));
   return { products, total, offset, limit: cappedLimit, hasMore };
 }
 
@@ -660,7 +757,9 @@ export async function getProductById(id: string, locale = "ro") {
     [id],
   );
   if (rows.length === 0) return null;
-  return transformProduct(rows[0], locale);
+  const slug = typeof rows[0].taxonomy_node_slug === "string" ? rows[0].taxonomy_node_slug : "";
+  const taxonomyMap = slug ? await resolveTaxonomyLabels([slug], locale) : undefined;
+  return transformProduct(rows[0], locale, taxonomyMap);
 }
 
 export async function getCheckoutProductById(id: string) {
