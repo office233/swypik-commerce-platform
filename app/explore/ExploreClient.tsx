@@ -17,7 +17,7 @@ const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"),
 const MUTE_STORAGE_KEY = "swypik.feed.muted";
 // Mount range: only render real <video src> for slides within ±MOUNT_RADIUS of currentIndex
 const MOUNT_RADIUS = 1;
-const FEED_FORMATS = ["Merită?", "Sub 50", "Testate", "AliExpress Finds", "Selleri locali", "Battles", "Live Deals"];
+const FEED_FORMATS = ["Merită?", "Sub 50", "Testate", "Swypik Finds", "Selleri locali", "Battles", "Live Deals"];
 
 function getProductVerdict(product: any): string {
   const score = Number(product?.swypikScore || 0);

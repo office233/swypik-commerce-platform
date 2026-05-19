@@ -90,10 +90,10 @@ export default function PrivacyPage() {
             tranzacției; (b) Cloudflare, Inc., pentru servicii de CDN,
             protecție DDoS și stocarea fișierelor media în Cloudflare R2;
             (c) furnizori de e-mail tranzacțional pentru livrarea
-            notificărilor; (d) furnizorii de dropshipping (de exemplu,
-            AliExpress) — doar atunci când produsul comandat este onorat
-            printr-un astfel de canal, fiind transmise adresa de livrare
-            și detaliile minime ale comenzii. Nu vindem și nu închiriem
+            notificărilor; (d) furnizori parteneri de fulfillment și
+            dropshipping internațional — doar atunci când produsul comandat
+            este onorat printr-un astfel de canal, fiind transmise adresa
+            de livrare și detaliile minime ale comenzii. Nu vindem și nu închiriem
             date personale către terți pentru scopuri de marketing
             independent. Transferurile în afara Spațiului Economic European
             sunt protejate prin clauze contractuale standard.
