@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Loader2, Lock, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Copy, Download } from "lucide-react";
 
 export default function SecurityPageClient({
@@ -326,7 +327,7 @@ export default function SecurityPageClient({
           <div className="space-y-3">
             <p className="text-xs text-white/70">Scanează QR-ul cu aplicația ta:</p>
             <div className="flex justify-center rounded-xl bg-white p-3">
-              <img src={qrUrl} alt="QR Code 2FA" className="h-48 w-48" />
+              <Image src={qrUrl} alt="QR Code 2FA" width={192} height={192} className="h-48 w-48" unoptimized />
             </div>
             {otpAuthUrl && (
               <details className="rounded-lg bg-white/5 p-3 text-xs">

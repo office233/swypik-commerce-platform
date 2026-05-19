@@ -208,7 +208,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       return;
     }
     fetchVideos();
-  }, [feedSource]);
+  }, [feedSource, initialCategory, initialVideos]);
 
   // Intersection Observer — snap play/pause + currentIndex tracking
   useEffect(() => {

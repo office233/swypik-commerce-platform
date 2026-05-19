@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import { Search, X, Play, Pause, Check, Music } from "lucide-react";
 
 export interface AudioTrackDTO {
@@ -241,7 +242,7 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
                   className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 active:scale-95"
                 >
                   {t.imageUrl ? (
-                    <img src={t.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <Image src={t.imageUrl} alt="" width={48} height={48} className="h-full w-full object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Music size={18} className="text-white/40" />

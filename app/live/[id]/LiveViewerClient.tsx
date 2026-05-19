@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 type Stream = {
@@ -104,7 +105,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
         </div>
         {pinned && (
           <div className="absolute bottom-4 left-4 right-4 bg-white text-black rounded-xl p-3 flex items-center gap-3 shadow-lg">
-            {pinned.image_url && <img src={pinned.image_url} alt="" className="w-14 h-14 object-cover rounded" />}
+            {pinned.image_url && <Image src={pinned.image_url} alt="" width={56} height={56} className="h-14 w-14 rounded object-cover" unoptimized />}
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold truncate">{pinned.title}</div>
               <div className="text-xs">
@@ -152,7 +153,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
             <div className="space-y-2">
               {items.map((it) => (
                 <Link key={it.id} href={`/product/${it.product_id}`} className="flex items-center gap-3 border rounded p-2">
-                  {it.image_url && <img src={it.image_url} alt="" className="w-12 h-12 object-cover rounded" />}
+                  {it.image_url && <Image src={it.image_url} alt="" width={48} height={48} className="h-12 w-12 rounded object-cover" unoptimized />}
                   <div className="flex-1 text-sm">
                     <div className="font-medium">{it.title}</div>
                     <div className="text-xs text-gray-600">{it.price_cents != null && `${(it.price_cents / 100).toFixed(2)} ${it.currency}`}</div>

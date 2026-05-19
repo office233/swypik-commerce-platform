@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { X, ShoppingCart, Star, ChevronRight, ExternalLink, ThumbsUp, ThumbsDown, CheckCircle2, Loader2 } from "lucide-react";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
@@ -73,6 +73,11 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
   const [cartMessage, setCartMessage] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(onClose, 300);
+  }, [onClose]);
+
   // Body scroll lock
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -102,7 +107,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
       el?.focus();
     }, 50);
     return () => document.removeEventListener('keydown', onKey);
-  }, []);
+  }, [handleClose]);
 
 
   useEffect(() => {
@@ -127,12 +132,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
       .catch(() => {})
       .finally(() => !cancelled && setEnriching(false));
     return () => { cancelled = true; };
-  }, [seed?.id]);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(onClose, 300);
-  };
+  }, [seed?.id, seed?.description]);
 
   if (!data) return null;
 
@@ -252,8 +252,6 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/60 z-[60] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-        onClick={handleClose}
       />
 
       <div
