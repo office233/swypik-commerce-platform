@@ -20,6 +20,10 @@ services:
   web-next:
     build:
       context: ../../
+      args:
+        BUILD_COMMIT: ${BUILD_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+        DEPLOYED_AT: ${DEPLOYED_AT:-unknown}
       dockerfile_inline: |
         # ── Build stage ──
         FROM node:20.19.0-alpine AS builder
@@ -43,6 +47,14 @@ services:
         ENV NODE_ENV=production
         ENV PORT=3000
         ENV HOSTNAME="0.0.0.0"
+
+        # Release metadata injected at build time and exposed by /api/health.
+        ARG BUILD_COMMIT=unknown
+        ARG BUILD_TIME=unknown
+        ARG DEPLOYED_AT=unknown
+        ENV BUILD_COMMIT=$BUILD_COMMIT
+        ENV BUILD_TIME=$BUILD_TIME
+        ENV DEPLOYED_AT=$DEPLOYED_AT
 
         RUN addgroup --system --gid 1001 nodejs && \
             adduser  --system --uid 1001 nextjs

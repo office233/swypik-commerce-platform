@@ -2,6 +2,7 @@
  * Health Check Endpoint — GET /api/health
  *
  * Public (no auth). Checks: DB, Redis (optional), Storage (real R2 HeadBucket).
+ * Reports release metadata (commit, build_time) for deploy auditability.
  */
 
 import { NextResponse } from "next/server";
@@ -63,11 +64,18 @@ export async function GET() {
 
   const status = services.database === "error" ? "degraded" : "healthy";
 
+  const release = {
+    commit: process.env.BUILD_COMMIT || process.env.GIT_COMMIT || "unknown",
+    build_time: process.env.BUILD_TIME || "unknown",
+    deployed_at: process.env.DEPLOYED_AT || "unknown",
+  };
+
   return NextResponse.json(
     {
       status,
       timestamp: new Date().toISOString(),
       version: APP_VERSION,
+      release,
       services,
       uptime: process.uptime(),
     },
