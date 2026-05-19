@@ -437,16 +437,39 @@ export default function ChatInterface({
   const ProductCarousel = ({ title, products, isLoading }: { title: string; products?: ChatProduct[]; isLoading?: boolean }) => { if (isLoading) return <div className="mt-4 text-left"><p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#6E6E80]">{title}</p><div className="flex snap-x gap-3 overflow-x-auto pb-3 no-scrollbar"><div className="snap-start"><ProductSkeleton compact /></div><div className="snap-start"><ProductSkeleton compact /></div><div className="snap-start"><ProductSkeleton compact /></div></div></div>; if (!products?.length) return null; return <div className="mt-4 text-left" onTouchStart={(e)=>e.stopPropagation()} onTouchEnd={(e)=>e.stopPropagation()}><p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#6E6E80]">{title}</p><div className="flex snap-x gap-3 overflow-x-auto pb-3 no-scrollbar">{products.map((p) => <div key={p.id} className="snap-start"><ProductCard product={p} compact /></div>)}</div></div>; };
 
   const TrendingHero = () => {
+    const hero = trendingProducts[0];
+    const heroImg = hero?.images?.[0];
+    const heroVid = hero?.video;
     return (
       <div className="mt-4 overflow-hidden rounded-2xl bg-black relative h-[500px]">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/80 z-10"></div>
-        {trendingProducts.length > 0 && trendingProducts[0].video ? (
-          <video src={trendingProducts[0].video} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover opacity-80" />
-        ) : trendingProducts.length > 0 && trendingProducts[0].images?.[0] ? (
-          <Image src={trendingProducts[0].images[0]} alt={trendingProducts[0].title || ""} fill sizes="(max-width: 768px) 100vw, 672px" priority className="absolute inset-0 h-full w-full object-cover opacity-90" />
+        {/* IMAGINEA stă mereu dedesubt ca fallback dacă videoclipul nu se încarcă */}
+        {heroImg ? (
+          <Image
+            src={heroImg}
+            alt={hero?.title || ""}
+            fill
+            sizes="(max-width: 768px) 100vw, 672px"
+            priority
+            className="absolute inset-0 h-full w-full object-cover opacity-90"
+          />
         ) : (
           <div className="absolute inset-0 bg-[#1a1a1a]"></div>
         )}
+        {heroVid && (
+          <video
+            src={heroVid}
+            poster={heroImg}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            crossOrigin="anonymous"
+            onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
+            className="absolute inset-0 h-full w-full object-cover opacity-80"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/80 z-10"></div>
         <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
           <div className="flex items-center gap-2 mb-2">
             <span className="rounded-full bg-[#EF4444] px-2 py-1 text-[10px] font-black text-white uppercase tracking-wider animate-pulse">🔥 Trending Today</span>

@@ -65,12 +65,14 @@ export function useCamera(opts: UseCameraOptions): UseCameraReturn {
     setError(null);
 
     try {
+      // NU forțăm aspectRatio — webcam-ul desktop e landscape (4:3 sau 16:9).
+      // Dacă cerem 9:16, browserul cropează agresiv ⇒ "ultra zoom".
+      // Lăsăm rezoluția nativă, iar UI-ul se adaptează cu object-contain.
       const ms = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: mode,
-          width: { ideal: 1080 },
-          height: { ideal: 1920 },
-          aspectRatio: 9 / 16,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
         },
         audio: {
           echoCancellation: true,

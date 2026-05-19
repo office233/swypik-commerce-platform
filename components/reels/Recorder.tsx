@@ -450,14 +450,14 @@ export default function Recorder() {
 
   return (
     <div className="fixed inset-0 z-[60] bg-black text-white overflow-hidden">
-      {/* video layer */}
+      {/* video layer — object-contain ca să nu cropăm webcam landscape în portret */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative w-full h-full max-h-screen aspect-[9/16] mx-auto">
+        <div className="relative w-full h-full mx-auto">
           {isPreview ? (
             <video
               ref={previewVideoRef}
               src={previewUrl || undefined}
-              className="absolute inset-0 w-full h-full object-cover bg-black"
+              className="absolute inset-0 w-full h-full object-contain bg-black"
               playsInline
               loop
               autoPlay
@@ -466,7 +466,7 @@ export default function Recorder() {
           ) : (
             <video
               ref={videoRef}
-              className="absolute inset-0 w-full h-full object-cover bg-black"
+              className="absolute inset-0 w-full h-full object-contain bg-black"
               autoPlay
               playsInline
               muted
