@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { MessageSquare, TrendingUp, Clock, Eye, Share2 } from "lucide-react";
+import VoteButtons from "./VoteButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +35,6 @@ type ItemRow = {
   product_id: string | null;
   product_title: string | null;
   product_image: string | null;
-  product_price_cents: number | null;
-  product_currency: string | null;
   external_url: string | null;
   external_image: string | null;
   external_title: string | null;
@@ -107,14 +106,17 @@ export default async function PostPage({
   const post = rows[0];
   if (!post) notFound();
 
+  // Fire-and-forget view increment
+  dbQuery(`UPDATE community_posts SET view_count = view_count + 1 WHERE id=$1`, [
+    post.id,
+  ]).catch(() => {});
+
   const { rows: items } = await dbQuery<ItemRow>(
     `SELECT
        i.option_key, i.label, i.vote_count, i.position,
        i.product_id,
        p.title       AS product_title,
        p.image_url   AS product_image,
-       p.price_cents AS product_price_cents,
-       p.currency    AS product_currency,
        i.external_url, i.external_image, i.external_title
      FROM community_post_items i
      LEFT JOIN marketplace_products p ON p.id = i.product_id
@@ -123,7 +125,14 @@ export default async function PostPage({
     [post.id],
   );
 
-  const totalVotes = items.reduce((s, i) => s + i.vote_count, 0) || 1;
+  const voteItems = items.map((it) => ({
+    optionKey: it.option_key,
+    label: it.product_title || it.external_title || it.label || it.option_key,
+    voteCount: it.vote_count,
+    imageUrl: it.product_image || it.external_image,
+  }));
+
+  const canonicalSlug = post.slug || post.id;
 
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white pb-24">
@@ -138,11 +147,24 @@ export default async function PostPage({
         <h1 className="text-2xl font-black mt-1">{post.title}</h1>
 
         <div className="mt-3 flex items-center gap-3 text-xs text-white/60">
-          {post.author_avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={post.author_avatar} alt="" className="w-6 h-6 rounded-full" />
-          ) : null}
-          <span>@{post.author_handle || post.author_display || "anon"}</span>
+          {post.author_handle ? (
+            <Link
+              href={`/u/${post.author_handle}`}
+              className="flex items-center gap-2 hover:text-white transition"
+            >
+              {post.author_avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={post.author_avatar} alt="" className="w-6 h-6 rounded-full" />
+              ) : (
+                <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px]">
+                  {(post.author_handle || "?").slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              <span>@{post.author_handle}</span>
+            </Link>
+          ) : (
+            <span className="text-white/40">anonim</span>
+          )}
           {post.ends_at ? (
             <span className="inline-flex items-center gap-1">
               <Clock className="w-3 h-3" /> {fmtRemaining(post.ends_at)}
@@ -166,50 +188,9 @@ export default async function PostPage({
           </div>
         ) : null}
 
-        {items.length > 0 ? (
-          <section className="mt-6 space-y-3">
-            {items.map((it) => {
-              const pct = Math.round((it.vote_count / totalVotes) * 100);
-              const img = it.product_image || it.external_image;
-              const title = it.product_title || it.external_title || it.label || it.option_key;
-              return (
-                <div
-                  key={it.option_key}
-                  className="relative rounded-2xl border border-white/10 bg-white/[0.04] overflow-hidden"
-                >
-                  <div
-                    className="absolute inset-y-0 left-0 bg-[#7C3AED]/15 transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
-                  <div className="relative flex items-center gap-3 p-3">
-                    {img ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={img}
-                        alt=""
-                        className="w-16 h-16 rounded-xl object-cover border border-white/10 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-2xl flex-shrink-0">
-                        🛍️
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold line-clamp-2">{title}</div>
-                      <div className="mt-1 text-xs text-white/60">
-                        {it.vote_count} voturi · {pct}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            <p className="text-xs text-white/40 text-center mt-2">
-              Logare necesară pentru a vota.{" "}
-              <Link href={`/account?redirect=/post/${post.slug || post.id}`} className="text-[#7C3AED] underline">
-                Intră în cont
-              </Link>
-            </p>
+        {voteItems.length > 0 ? (
+          <section className="mt-6">
+            <VoteButtons slug={canonicalSlug} items={voteItems} />
           </section>
         ) : null}
 
