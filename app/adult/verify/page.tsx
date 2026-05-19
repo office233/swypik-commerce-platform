@@ -1,5 +1,6 @@
 /* eslint-disable react/no-unescaped-entities */
 import Link from "next/link";
+import VerifyStartButton from "@/components/adult/VerifyStartButton";
 
 export const metadata = { title: "Verify your age — Swypik After Dark" };
 
@@ -26,12 +27,10 @@ export default function AdultVerifyPage() {
       </section>
 
       <section style={cardStyle}>
-        <form action="/api/adult/access/verify" method="POST">
-          <button type="submit" style={primaryBtn}>Start Veriff check</button>
-        </form>
+        <VerifyStartButton />
         <p style={{ color: "#a1a1aa", fontSize: 13, margin: "12px 0 0" }}>
-          The integration is currently being finalised. If the button returns an error, please
-          check back shortly.
+          When the Veriff integration is enabled in production you will be redirected to their
+          hosted verification flow. After approval, return to <Link href="/adult" style={inline}>/adult</Link>.
         </p>
       </section>
     </article>
@@ -42,8 +41,4 @@ const cardStyle: React.CSSProperties = {
   background: "#111114", border: "1px solid #1f1f23", borderRadius: 14, padding: 24,
 };
 const h2Style: React.CSSProperties = { fontSize: 20, margin: "0 0 12px", color: "#ededed" };
-const primaryBtn: React.CSSProperties = {
-  background: "#f43f5e", color: "#fff", border: "none", padding: "12px 22px",
-  borderRadius: 999, fontWeight: 600, cursor: "pointer", fontSize: 14,
-};
 const inline: React.CSSProperties = { color: "#fda4af", textDecoration: "underline" };

@@ -60,6 +60,7 @@ while true; do
   if [ $((TICK % 900)) -lt 60 ]; then
     run_job process-dropship POST
     run_job embed-batch POST
+    run_job classify-pending POST
   fi
   # Every 30 min
   if [ $((TICK % 1800)) -lt 60 ]; then
