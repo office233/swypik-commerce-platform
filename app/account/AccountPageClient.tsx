@@ -243,11 +243,17 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
   /* ════════════════════ TIKTOK STYLE PROFILE ════════════════════ */
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white mobile-page-bottom">
-      {/* Top Navbar */}
-      <header className="sticky top-12 z-30 bg-[#0D0D0D]/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center justify-between">
+      {/* Top Navbar (NU mai e sticky — header se suprapunea peste avatar la scroll) */}
+      <header className="relative z-10 bg-[#0D0D0D] border-b border-white/10 px-4 py-4 flex items-center justify-between">
         <div className="w-11" aria-hidden="true" />
         <h1 className="text-lg font-black">{customer?.username || "Profil"}</h1>
-        <button onClick={handleLogout} className="grid h-11 w-11 place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Deconectare"><Settings size={22} /></button>
+        <Link
+          href="/account/settings"
+          className="grid h-11 w-11 place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
+          aria-label="Setări"
+        >
+          <Settings size={22} />
+        </Link>
       </header>
 
       <div className="max-w-md mx-auto px-4 pt-6">

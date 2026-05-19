@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { dbQuery } from "@/lib/db";
 import { Trophy, Coins, Clock, Users } from "lucide-react";
 
@@ -80,12 +81,15 @@ export default async function MissionsPage() {
                 >
                   <div className="flex gap-3">
                     {m.product_image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={m.product_image}
-                        alt=""
-                        className="w-20 h-20 rounded-xl object-cover border border-white/10 flex-shrink-0"
-                      />
+                      <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10 flex-shrink-0 bg-white/5">
+                        <Image
+                          src={m.product_image}
+                          alt={m.product_title ?? ""}
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
+                      </div>
                     ) : (
                       <div className="w-20 h-20 rounded-xl bg-white/5 flex items-center justify-center text-2xl flex-shrink-0">
                         🎯

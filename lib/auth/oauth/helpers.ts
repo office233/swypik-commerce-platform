@@ -70,7 +70,7 @@ export async function findOrCreateUserFromOAuth(
          username, email, display_name, avatar_url, locale, role, status, metadata, auth_providers,
          email_verified_at
        )
-       VALUES ($1, $2, $3, $4, 'ro', 'shopper', 'active', '{}', ARRAY[$5]::text[],
+       VALUES ($1, $2, $3, $4, 'ro', 'creator', 'active', '{}', ARRAY[$5]::text[],
                CASE WHEN $6::boolean THEN now() ELSE NULL END)
        RETURNING id`,
       [
