@@ -8,6 +8,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { moderateText } from "@/lib/moderation/moderateText";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -68,6 +69,16 @@ export async function PATCH(request: Request) {
         { status: 400 }
       );
     }
+    const dnText = typeof v === "string" ? v : "";
+    if (dnText.length > 0) {
+      const mDn = moderateText(dnText, "display_name");
+      if (mDn.action !== "allow") {
+        return NextResponse.json(
+          { error: mDn.message ?? "Nume respins de moderare.", reasons: mDn.reasons },
+          { status: 422 },
+        );
+      }
+    }
     updates.push({ col: "display_name", val: v });
   }
 
@@ -82,6 +93,15 @@ export async function PATCH(request: Request) {
         { error: "bio nu poate depăși 300 de caractere" },
         { status: 400 }
       );
+    }
+    if (v.length > 0) {
+      const m = moderateText(v, "bio");
+      if (m.action !== "allow") {
+        return NextResponse.json(
+          { error: m.message ?? "Bio respins de moderare.", reasons: m.reasons },
+          { status: 422 },
+        );
+      }
     }
     updates.push({ col: "bio", val: v.length === 0 ? null : v });
   }

@@ -3,6 +3,7 @@
  * Supports: products, categories, #hashtags, @users.
  */
 import { NextResponse } from "next/server";
+import { moderateText } from "@/lib/moderation/moderateText";
 import { searchCreators, searchHashtags, searchProducts } from "@/lib/search/query";
 
 import { logger } from "@/lib/logger";
@@ -25,6 +26,10 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const q = String(url.searchParams.get("q") || "").trim();
+    const __mod = moderateText(typeof q === "string" ? q : "", "search");
+    if (__mod.action === "reject") {
+      return NextResponse.json({ suggestions: [], blocked: true }, { status: 200 });
+    }
     const rawLimit = Number(url.searchParams.get("limit") || 8);
     const limit = Number.isInteger(rawLimit) ? Math.max(1, Math.min(rawLimit, 12)) : 8;
 

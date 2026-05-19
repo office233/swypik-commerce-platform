@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import { attachReplies, chooseCommentStatus, mapCommentRow, validateCommentText } from "@/lib/social/comments";
+import { moderateText } from "@/lib/moderation/moderateText";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 
@@ -156,7 +157,15 @@ export async function POST(
       typeof body?.parent_comment_id === "string" && body.parent_comment_id.trim()
         ? body.parent_comment_id.trim()
         : null;
-    const status = chooseCommentStatus(textResult.text);
+    const initialStatus = chooseCommentStatus(textResult.text);
+    const moderation = moderateText(textResult.text, "comment");
+    if (moderation.action === "reject") {
+      return NextResponse.json(
+        { error: moderation.message ?? "Conținut interzis.", reasons: moderation.reasons },
+        { status: 422 },
+      );
+    }
+    const status = moderation.action === "hide" ? "hidden" : initialStatus;
     let parentCommentId = requestedParentCommentId;
     let commentCount = 0;
 

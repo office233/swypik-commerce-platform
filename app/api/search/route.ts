@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { moderateText } from "@/lib/moderation/moderateText";
 import {
   searchAll,
   searchCreators,
@@ -29,6 +30,10 @@ function parseInt32(v: string | null, def: number, min: number, max: number) {
 export async function GET(req: NextRequest) {
   const url = req.nextUrl;
   const q = (url.searchParams.get("q") ?? "").trim();
+    const __mod = moderateText(typeof q === "string" ? q : "", "search");
+    if (__mod.action === "reject") {
+      return NextResponse.json({ items: [], total: 0, blocked: true, reason: __mod.message }, { status: 200 });
+    }
   const type = parseType(url.searchParams.get("type"));
   const limit = parseInt32(url.searchParams.get("limit"), PAGE_LIMIT, 1, 50);
   const offset = parseInt32(url.searchParams.get("offset"), 0, 0, 10_000);
