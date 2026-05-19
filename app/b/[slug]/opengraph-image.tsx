@@ -41,9 +41,9 @@ export default async function OgImage({
   const { rows } = await dbQuery<Row>(
     `WITH first_two AS (
        SELECT i.post_id,
-              MAX(CASE WHEN i.position = 0 THEN COALESCE((mp.images->>0), i.external_image) END) AS opt_a_image,
+              MAX(CASE WHEN i.position = 0 THEN COALESCE(mp.image_url, i.external_image) END) AS opt_a_image,
               MAX(CASE WHEN i.position = 0 THEN COALESCE(i.label, mp.title, i.external_title) END) AS opt_a_label,
-              MAX(CASE WHEN i.position = 1 THEN COALESCE((mp.images->>0), i.external_image) END) AS opt_b_image,
+              MAX(CASE WHEN i.position = 1 THEN COALESCE(mp.image_url, i.external_image) END) AS opt_b_image,
               MAX(CASE WHEN i.position = 1 THEN COALESCE(i.label, mp.title, i.external_title) END) AS opt_b_label
          FROM community_post_items i
          LEFT JOIN marketplace_products mp ON mp.id = i.product_id

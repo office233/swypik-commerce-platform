@@ -153,8 +153,8 @@ export async function GET(req: Request) {
          i.post_id, i.option_key, i.label, i.vote_count, i.position,
          i.product_id,
          mp.title AS product_title,
-         (mp.images->>0) AS product_image,
-         mp.price_minor AS product_price_minor,
+         mp.image_url AS product_image,
+         mp.price_cents AS product_price_minor,
          mp.currency AS product_currency,
          i.external_url, i.external_image, i.external_title,
          i.external_price_minor, i.external_currency

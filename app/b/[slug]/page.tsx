@@ -60,8 +60,8 @@ async function loadPost(slug: string) {
   const { rows: opts } = await dbQuery<OptionRow>(
     `SELECT i.option_key, i.label, i.vote_count, i.position,
             i.product_id, mp.title AS product_title,
-            (mp.images->>0) AS product_image,
-            mp.price_minor AS product_price_minor, mp.currency AS product_currency,
+            mp.image_url AS product_image,
+            mp.price_cents AS product_price_minor, mp.currency AS product_currency,
             i.external_url, i.external_image, i.external_title
      FROM community_post_items i
      LEFT JOIN marketplace_products mp ON mp.id = i.product_id
