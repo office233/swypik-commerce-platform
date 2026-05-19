@@ -98,7 +98,7 @@ const TRENDING_EXPR = `(
 // Mirrors /api/feed/recommendations weights.
 const RANK_SCORE_EXPR = `(
   SELECT (
-      LEAST(COALESCE(SUM(fe.watch_ms)::numeric, 0) / NULLIF(v.duration_ms, 0), 50) * 5
+      CASE WHEN v.duration_ms IS NULL OR v.duration_ms <= 0 THEN 0 ELSE LEAST(COALESCE(SUM(fe.watch_ms)::numeric, 0) / v.duration_ms, 50) END * 5
     + COUNT(*) FILTER (WHERE fe.event_type = 'save')           * 3
     + COUNT(*) FILTER (WHERE fe.event_type = 'share')          * 2
     + COUNT(*) FILTER (WHERE fe.event_type = 'like')           * 1.5
