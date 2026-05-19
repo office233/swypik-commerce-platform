@@ -33,7 +33,8 @@ const BASE_PRODUCT_SELECT = `
       v.playback_url AS linked_video_playback_url,
       v.thumbnail_url AS linked_video_thumbnail_url,
       va.object_key AS linked_video_source_key
-    FROM videos v
+    FROM video_product_links vpl
+    JOIN videos v ON v.id = vpl.video_id
     LEFT JOIN LATERAL (
       SELECT object_key
       FROM video_assets
@@ -41,17 +42,10 @@ const BASE_PRODUCT_SELECT = `
       ORDER BY created_at DESC
       LIMIT 1
     ) va ON true
-    WHERE v.status = 'ready'
+    WHERE vpl.product_id = p.id
+      AND v.status = 'ready'
       AND v.visibility = 'public'
       AND COALESCE(v.is_hidden, false) = false
-      AND EXISTS (
-        SELECT 1
-        FROM jsonb_array_elements(
-          CASE WHEN jsonb_typeof(v.product_refs) = 'array' THEN v.product_refs ELSE '[]'::jsonb END
-        ) ref
-        WHERE (jsonb_typeof(ref) = 'object' AND ref->>'product_id' = p.id::text)
-           OR (jsonb_typeof(ref) = 'string' AND ref #>> '{}' = p.id::text)
-      )
     ORDER BY v.created_at DESC
     LIMIT 1
   ) linked_video ON true
@@ -111,18 +105,12 @@ const VIDEO_SQL = `(
   END
   OR EXISTS (
     SELECT 1
-    FROM videos v
-    WHERE v.status = 'ready'
+    FROM video_product_links vpl
+    JOIN videos v ON v.id = vpl.video_id
+    WHERE vpl.product_id = p.id
+      AND v.status = 'ready'
       AND v.visibility = 'public'
       AND COALESCE(v.is_hidden, false) = false
-      AND EXISTS (
-        SELECT 1
-        FROM jsonb_array_elements(
-          CASE WHEN jsonb_typeof(v.product_refs) = 'array' THEN v.product_refs ELSE '[]'::jsonb END
-        ) ref
-        WHERE (jsonb_typeof(ref) = 'object' AND ref->>'product_id' = p.id::text)
-           OR (jsonb_typeof(ref) = 'string' AND ref #>> '{}' = p.id::text)
-      )
   )
 )`;
 const DISCOUNT_SQL = `GREATEST(COALESCE(p.compare_at_price_cents, 0) - COALESCE(p.price_cents, 0), 0)`;
