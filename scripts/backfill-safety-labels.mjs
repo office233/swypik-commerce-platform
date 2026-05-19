@@ -12,13 +12,17 @@ const { Pool } = pg;
 // ===== Classifier v2 (mirror of lib/moderation/classifier.ts) =====
 
 const BLOCKED_KEYWORDS = [
-  "child porn", "kid sex", "minor sex", "underage sex", "lolita sex",
-  "preteen", "pre-teen", "schoolgirl porn", "loli porn",
+  "child porn", "child sex", "kid sex", "minor sex", "underage sex",
+  "lolita sex", "lolita porn", "loli porn", "shota porn",
+  "preteen sex", "preteen porn", "pre-teen sex",
+  "schoolgirl porn", "kiddie porn", "jailbait",
   "rape video", "revenge porn", "leaked nude", "hidden cam sex",
-  "switchblade", "ballistic knife", "silencer", "ghost gun",
-  "explosive", "tnt", "c4 explosive", "grenade",
-  "cocaine", "heroin", "fentanyl", "meth pipe", "crack pipe",
-  "fake id", "counterfeit money", "fake passport",
+  "spycam sex", "upskirt video",
+  "switchblade knife", "ballistic knife", "gun silencer",
+  "ghost gun kit", "plastic explosive", "c4 explosive",
+  "live grenade", "frag grenade",
+  "cocaine", "heroin", "fentanyl", "meth pipe", "crack pipe", "crystal meth",
+  "fake id card", "counterfeit money", "fake passport", "counterfeit currency",
 ];
 
 const ADULT_KEYWORDS = [
@@ -90,8 +94,16 @@ const BLOCKED_REGEX = BLOCKED_KEYWORDS.map((kw) => ({ kw, re: compile(kw) }));
 const ADULT_REGEX = ADULT_KEYWORDS.map((kw) => ({ kw, re: compile(kw) }));
 const SENSITIVE_REGEX = SENSITIVE_KEYWORDS.map((kw) => ({ kw, re: compile(kw) }));
 
+function stripHtml(s) {
+  return s
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/&#x?[0-9a-f]+;/gi, " ")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\s+/g, " ");
+}
 function classifyText({ title, description, category }) {
-  const text = `${title || ""}  ${description || ""}`.toLowerCase();
+  const text = `${stripHtml(title || "")}  ${stripHtml(description || "")}`.toLowerCase();
   const cat = (category || "").toLowerCase().trim();
   const signals = {};
   const reasons = [];

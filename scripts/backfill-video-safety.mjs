@@ -5,13 +5,17 @@ import pg from "pg";
 
 // ====== START MIRROR OF lib/moderation/classifier.ts ======
 const BLOCKED_KEYWORDS = [
-  "child porn","kid sex","minor sex","underage sex","lolita sex",
-  "preteen","pre-teen","schoolgirl porn","loli porn",
+  "child porn","child sex","kid sex","minor sex","underage sex",
+  "lolita sex","lolita porn","loli porn","shota porn",
+  "preteen sex","preteen porn","pre-teen sex",
+  "schoolgirl porn","kiddie porn","jailbait",
   "rape video","revenge porn","leaked nude","hidden cam sex",
-  "switchblade","ballistic knife","silencer","ghost gun",
-  "explosive","tnt","c4 explosive","grenade",
-  "cocaine","heroin","fentanyl","meth pipe","crack pipe",
-  "fake id","counterfeit money","fake passport",
+  "spycam sex","upskirt video",
+  "switchblade knife","ballistic knife","gun silencer",
+  "ghost gun kit","plastic explosive","c4 explosive",
+  "live grenade","frag grenade",
+  "cocaine","heroin","fentanyl","meth pipe","crack pipe","crystal meth",
+  "fake id card","counterfeit money","fake passport","counterfeit currency",
 ];
 const ADULT_KEYWORDS_EN = [
   "18\\+","xxx","nsfw","porn","pornographic","pornhub","onlyfans",
@@ -69,8 +73,16 @@ const BLOCKED_REGEX = BLOCKED_KEYWORDS.map(kw => ({ kw, re: compile(kw) }));
 const ADULT_REGEX = [...ADULT_KEYWORDS_EN, ...ADULT_KEYWORDS_RU, ...ADULT_KEYWORDS_CN, ...ADULT_KEYWORDS_JP, ...ADULT_KEYWORDS_RO].map(kw => ({ kw, re: compile(kw) }));
 const SENSITIVE_REGEX = [...SENSITIVE_KEYWORDS_EN, ...SENSITIVE_KEYWORDS_RU, ...SENSITIVE_KEYWORDS_RO].map(kw => ({ kw, re: compile(kw) }));
 
+function stripHtml(s) {
+  return s
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/&#x?[0-9a-f]+;/gi, " ")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\s+/g, " ");
+}
 function classifyText(input) {
-  const text = [(input.title||""), (input.description||""), (input.tags||[]).join(" ")].join("  ").toLowerCase();
+  const text = [stripHtml(input.title||""), stripHtml(input.description||""), (input.tags||[]).join(" ")].join("  ").toLowerCase();
   const cat = (input.category||"").toLowerCase().trim();
   const signals = {};
   const reasons = [];

@@ -168,6 +168,7 @@ export async function POST(
        WHERE id = $1
          AND status = 'ready'
          AND visibility = 'public'
+         AND EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = videos.id AND ves.effective_label = 'safe')
        FOR UPDATE`,
       [videoId],
     );

@@ -52,6 +52,7 @@ export async function GET(request: Request) {
       WHERE s.user_id = $1
         AND v.status = 'ready'
         AND (v.visibility = 'public' OR v.creator_id = $1)
+        AND (v.creator_id = $1 OR EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = v.id AND ves.effective_label = 'safe'))
       ORDER BY s.created_at DESC
       LIMIT $2 OFFSET $3`,
     [user.userId, limit, offset],

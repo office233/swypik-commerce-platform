@@ -71,7 +71,7 @@ const DEFAULT_FEED_SOFT_BLOCK_SQL_RE = [
 ].join("|");
 const SESSION_RE = /^[A-Za-z0-9._:-]{8,80}$/;
 const MEDIA_PUBLIC_HOST = "media.swypik.com";
-const DEFAULT_MIN_SWYPIK_SCORE = 58;
+const DEFAULT_MIN_SWYPIK_SCORE = 40;
 
 const TITLE_SPAM_RE = /(amazon|hot[ -]?selling|shop products?|must[ -]?have|viral product|dropship|wholesale|factory direct|ce certified|luxury|high[ -]?end|202[5-9])/i;
 const TITLE_GENERIC_RE = /\b(woman clothing|women clothing|for women women|female ladies|new fashion|summer sale|spring summer)\b/i;
@@ -92,6 +92,35 @@ const TRENDING_EXPR = `(
   / GREATEST(1, EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / 3600)
 )`;
 
+
+
+// Ranking from real engagement events (last 14 days). Scored per video.
+// Mirrors /api/feed/recommendations weights.
+const RANK_SCORE_EXPR = `(
+  SELECT (
+      LEAST(COALESCE(SUM(fe.watch_ms)::numeric, 0) / NULLIF(v.duration_ms, 0), 50) * 5
+    + COUNT(*) FILTER (WHERE fe.event_type = 'save')           * 3
+    + COUNT(*) FILTER (WHERE fe.event_type = 'share')          * 2
+    + COUNT(*) FILTER (WHERE fe.event_type = 'like')           * 1.5
+    + COUNT(*) FILTER (WHERE fe.event_type = 'completion')     * 5
+    + COUNT(*) FILTER (WHERE fe.event_type = 'add_to_cart')    * 4
+    + COUNT(*) FILTER (WHERE fe.event_type = 'purchase')       * 8
+    + COUNT(*) FILTER (WHERE fe.event_type = 'more_like_this') * 4
+    + COUNT(*) FILTER (WHERE fe.event_type = 'product_click')  * 1
+    + COUNT(*) FILTER (WHERE fe.event_type = 'comment')        * 4
+    + COUNT(*) FILTER (WHERE fe.event_type = 'follow')         * 4
+    - COUNT(*) FILTER (WHERE fe.event_type = 'skip_fast')      * 4
+    - COUNT(*) FILTER (WHERE fe.event_type = 'not_interested') * 6
+    - COUNT(*) FILTER (WHERE fe.event_type = 'report')         * 10
+  )
+  FROM feed_events fe
+  WHERE fe.video_id = v.id
+    AND fe.occurred_at > NOW() - INTERVAL '14 days'
+)`;
+
+// Freshness bonus: declines over 3 days. Boost in [0..5].
+const FRESHNESS_EXPR = `GREATEST(0, 5 - EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / (86400.0 * 3))`;
+
 function buildOrderClause(sort: SortMode): string {
   switch (sort) {
     case "popular":
@@ -100,7 +129,8 @@ function buildOrderClause(sort: SortMode): string {
       return `${TRENDING_EXPR} DESC, v.published_at DESC NULLS LAST`;
     case "recent":
     default:
-      return `v.published_at DESC NULLS LAST, v.created_at DESC`;
+      // Real engagement first (feed_events 14d), tie-break by recency.
+      return `COALESCE((${RANK_SCORE_EXPR}), 0) + ${FRESHNESS_EXPR} DESC, v.published_at DESC NULLS LAST, v.created_at DESC`;
   }
 }
 
@@ -456,6 +486,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN audio_tracks at ON at.id = v.audio_track_id
       WHERE v.status = 'ready' AND v.is_hidden = false
         AND v.visibility = 'public'
+        AND EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = v.id AND ves.effective_label = 'safe')
           AND CASE
             WHEN vpl.product_id IS NOT NULL
               OR CASE

@@ -10,6 +10,7 @@ import {
 } from "@/lib/storage/video-storage";
 import { publishProcessVideoJob } from "@/lib/video/redis-queue";
 import { moderate } from "@/lib/ai/moderate";
+import { labelVideo } from "@/lib/moderation/labelVideo";
 import {
   UploadInputError,
   buildProcessVideoJobPayload,
@@ -248,6 +249,14 @@ async function createLocalUploadSession(input: CreatorUploadInput) {
       // best-effort; do not affect upload flow
     }
   })();
+
+  // Safety classifier v2 (heuristic) — replaces auto_pending label with real verdict.
+  void labelVideo({
+    id: videoId,
+    title,
+    description,
+    tags: input.hashtags ?? [],
+  });
 
   return {
     uploadUrl: upload.url,

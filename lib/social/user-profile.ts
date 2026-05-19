@@ -120,7 +120,8 @@ export async function getPublicUserProfile(
           FROM videos v
          WHERE v.creator_id = u.id
            AND v.status = 'ready'
-           AND v.visibility = 'public') AS video_count,
+           AND v.visibility = 'public'
+             AND EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = v.id AND ves.effective_label = 'safe')) AS video_count,
        (SELECT COUNT(*)
           FROM follows f
          WHERE f.following_user_id = u.id) AS follower_count,

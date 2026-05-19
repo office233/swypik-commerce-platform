@@ -37,19 +37,27 @@ export type SafetyResult = {
 };
 
 // ----- BLOCKED (illegal / hard-block) -----
+// IMPORTANT: every term must be specific enough to avoid false positives
+// against legit fashion / shipping vocabulary. Avoid bare "tnt" (= courier),
+// bare "explosive" (= marketing), bare "loli" (= part of "lollipop"), etc.
 const BLOCKED_KEYWORDS = [
-  // CSAM-adjacent (zero tolerance)
-  "child porn", "kid sex", "minor sex", "underage sex", "lolita sex",
-  "preteen", "pre-teen", "schoolgirl porn", "loli porn",
+  // CSAM-adjacent (zero tolerance) — only compound forms
+  "child porn", "child sex", "kid sex", "minor sex", "underage sex",
+  "lolita sex", "lolita porn", "loli porn", "shota porn",
+  "preteen sex", "preteen porn", "pre-teen sex",
+  "schoolgirl porn", "kiddie porn", "jailbait",
   // Non-consensual
   "rape video", "revenge porn", "leaked nude", "hidden cam sex",
-  // Weapons / dangerous
-  "switchblade", "ballistic knife", "silencer", "ghost gun",
-  "explosive", "tnt", "c4 explosive", "grenade",
-  // Drugs
-  "cocaine", "heroin", "fentanyl", "meth pipe", "crack pipe",
+  "spycam sex", "upskirt video",
+  // Weapons / dangerous (compound only — "switchblade" alone OK as it's a
+  // restricted weapon name with no fashion overlap)
+  "switchblade knife", "ballistic knife", "gun silencer",
+  "ghost gun kit", "plastic explosive", "c4 explosive",
+  "live grenade", "frag grenade",
+  // Drugs (hard substances only — cocaine/heroin have no benign use)
+  "cocaine", "heroin", "fentanyl", "meth pipe", "crack pipe", "crystal meth",
   // Counterfeit currency / IDs
-  "fake id", "counterfeit money", "fake passport",
+  "fake id card", "counterfeit money", "fake passport", "counterfeit currency",
 ];
 
 // ----- ADULT EXPLICIT (multi-language) -----
@@ -164,9 +172,20 @@ export function classifyText(input: {
   category?: string | null;
   tags?: string[] | null;
 }): SafetyResult {
+  // Strip HTML tags and decode common entities so we classify the visible
+  // text, not URLs / inline CSS / CDN paths that often contain noise like
+  // "tnt-cdn" (TNT courier abbreviation) or random ASCII triplets.
+  const stripHtml = (s: string): string =>
+    s
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&[a-z]+;/gi, " ")
+      .replace(/&#x?[0-9a-f]+;/gi, " ")
+      .replace(/https?:\/\/\S+/gi, " ")
+      .replace(/\s+/g, " ");
+
   const parts = [
-    input.title || "",
-    input.description || "",
+    stripHtml(input.title || ""),
+    stripHtml(input.description || ""),
     (input.tags || []).join(" "),
   ];
   const text = parts.join("  ").toLowerCase();

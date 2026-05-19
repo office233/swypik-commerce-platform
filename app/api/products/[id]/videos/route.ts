@@ -35,6 +35,7 @@ export async function GET(
        JOIN users u ON v.creator_id = u.id
        WHERE v.status     = 'ready'
          AND v.visibility = 'public'
+         AND EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = v.id AND ves.effective_label = 'safe')
          AND COALESCE(v.is_hidden, false) = false
          AND EXISTS (
            SELECT 1 FROM jsonb_array_elements(COALESCE(v.product_refs, '[]'::jsonb)) e
