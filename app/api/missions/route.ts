@@ -1,10 +1,4 @@
-/**
- * Creator Missions API — public list + single mission lookup.
- *
- * Read-only at this stage. Seller authoring + submission endpoints follow
- * once the wallet/payout pipeline lands.
- */
-
+// Fix bug: marketplace_products.images nu există, e image_url
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
@@ -45,7 +39,7 @@ export async function GET(req: Request) {
          m.format_hint,
          m.product_id,
          p.title                                       AS product_title,
-         (p.images->>0)                                AS product_image,
+         p.image_url                                   AS product_image,
          m.prize_amount_minor,
          m.prize_currency,
          m.bounty_per_sale_minor,
@@ -84,17 +78,10 @@ export async function GET(req: Request) {
           submissionsCount: r.submissions_count,
         })),
       },
-      {
-        headers: {
-          "Cache-Control": "public, max-age=30, s-maxage=120, stale-while-revalidate=240",
-        },
-      },
+      { headers: { "cache-control": "public, s-maxage=60, stale-while-revalidate=300" } },
     );
   } catch (err) {
-    // Table may not exist yet on first deploy — fail soft.
-    return NextResponse.json(
-      { missions: [], error: (err as Error).message },
-      { status: 200, headers: { "Cache-Control": "no-store" } },
-    );
+    console.error("[api/missions] GET failed", err);
+    return NextResponse.json({ error: "internal_error", missions: [] }, { status: 500 });
   }
 }
