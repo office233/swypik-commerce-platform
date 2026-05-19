@@ -122,8 +122,12 @@ export function useCamera(opts: UseCameraOptions): UseCameraReturn {
   const attachVideo = useCallback((el: HTMLVideoElement | null) => {
     videoElRef.current = el;
     if (el && streamRef.current) {
-      el.srcObject = streamRef.current;
-      el.muted = true;
+      // IDEMPOTENT: re-asignarea srcObject la fiecare render cauzează flicker
+      // pe Chrome/Safari (videoul se reîncarcă). Setăm DOAR dacă diferă.
+      if (el.srcObject !== streamRef.current) {
+        el.srcObject = streamRef.current;
+      }
+      if (!el.muted) el.muted = true;
     }
   }, []);
 

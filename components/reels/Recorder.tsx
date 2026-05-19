@@ -119,12 +119,14 @@ export default function Recorder() {
     countdownSeconds: countdownSec,
   });
 
-  // attach live preview
+  // attach live preview — depindem DOAR de phase + stream pentru a evita
+  // re-rularea efectului la fiecare render (elapsedMs ticks 10x/s ⇒ flicker).
   useEffect(() => {
     if (phase === "capture" && videoRef.current) {
       camera.attachVideo(videoRef.current);
     }
-  }, [phase, camera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, camera.stream, camera.attachVideo]);
 
   // cleanup blob URL
   useEffect(() => {
@@ -183,7 +185,12 @@ export default function Recorder() {
   }, []);
 
   const handleClose = useCallback(() => {
-    router.back();
+    // dacă utilizatorul a venit direct (ex. share link), back() poate ieși din site
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
   }, [router]);
 
   const handlePickFromGallery = useCallback(() => {
@@ -498,7 +505,7 @@ export default function Recorder() {
               autoPlay
               playsInline
               muted
-              style={{ filter: filterCss }}
+              style={filterId === 'none' ? undefined : { filter: filterCss }}
             />
           )}
         </div>

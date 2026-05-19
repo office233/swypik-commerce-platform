@@ -211,7 +211,7 @@ export function useRecorder(
         }
         clearTick();
       }
-    }, 100);
+    }, 200);
   }, [stream, clearTick]);
 
   const pause = useCallback(() => {
@@ -259,7 +259,7 @@ export function useRecorder(
         }
         clearTick();
       }
-    }, 100);
+    }, 200);
   }, [clearTick]);
 
   const startCountdown = useCallback(() => {
