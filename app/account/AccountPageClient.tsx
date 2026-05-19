@@ -4,10 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Globe, Lock, ShieldCheck, Bell, MailQuestion, Wallet, EyeOff, ShoppingBag, Sparkles, MapPin, Trophy, Coins, ChevronRight } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
-import { isEnabledClient } from "@/lib/feature-flags-client";
-import ThemeToggle from "@/components/ThemeToggle";
 
 type AccountPageClientProps = {
   redirectTo: string;
@@ -427,94 +425,6 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             </div>
           )}
         </div>
-
-        {/* Settings: Notificări push */}
-        <div className="flex justify-end px-4 mt-2"><ThemeToggle /></div>
-
-        {/* Settings menu */}
-        <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
-          {customer?.role === "shopper" && (
-            <Link href="/become-a-creator" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-              <Sparkles size={18} className="text-[#7C3AED]" />
-              <span className="flex-1 text-sm font-semibold">Devino creator</span>
-              <span className="text-white/40">›</span>
-            </Link>
-          )}
-          <Link href="/account/edit" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <Settings size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Editează profil</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/wallet" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <Wallet size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Portofel SWYP</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/account/orders" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <ShoppingBag size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Comenzile mele</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          {isEnabledClient("returns") && (
-          <Link href="/account/returns" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <Package size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Retururi</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          )}
-          <Link href="/account/saved" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <Bookmark size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Produse salvate</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/account/liked" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <Heart size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Videoclipuri likeuite</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/account/hidden" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <EyeOff size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Videoclipuri ascunse</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/account/addresses" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <MapPin size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Adrese de livrare</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/account/security" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <Lock size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Securitate & parolă</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/account/preferences" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <Globe size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Limbă & monedă</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/account/age-verification" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <ShieldCheck size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Verificare vârstă</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          {(customer?.role === "creator" || customer?.role === "seller" || customer?.role === "admin") && (
-            <Link href="/creator/payouts" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-              <Wallet size={18} className="text-white/60" />
-              <span className="flex-1 text-sm font-semibold">Plăți (Stripe)</span>
-              <span className="text-white/40">›</span>
-            </Link>
-          )}
-          <Link href="/inbox" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <MailQuestion size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Inbox / Notificări</span>
-            <span className="text-white/40">›</span>
-          </Link>
-          <Link href="/account/notifications" className="flex items-center gap-3 px-5 py-4 min-h-[48px] hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none">
-            <Bell size={18} className="text-white/60" />
-            <span className="flex-1 text-sm font-semibold">Notificări (email & push)</span>
-            <span className="text-white/40">›</span>
-          </Link>
-        </section>
 
       </div>
     </div>
