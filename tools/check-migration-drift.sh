@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Compare schema_migrations table vs db/migrations directory.
-# Exits non-zero if there is unexplained drift (file missing on disk and not
-# present as a baseline stub).
+# Exits non-zero if any version in DB has neither a migration file
+# nor a baseline stub. Always prints a full report so external auditors
+# see exactly which versions are accounted for and which are not.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/swypik/app}"
-COMPOSE_FILE="${COMPOSE_FILE:-${APP_DIR}/infra/hetzner/docker-compose.prod.yml}"
 PG_CONTAINER="${PG_CONTAINER:-swypik-prod-postgres-1}"
 PG_USER="${PG_USER:-swypik}"
 PG_DB="${PG_DB:-swypik}"
@@ -18,8 +18,20 @@ BASELINE_LIST=$(ls db/migrations/baseline 2>/dev/null | grep -E '\.sql$' | sed -
 
 ALL_DISK=$(printf "%s\n%s\n" "$DISK_LIST" "$BASELINE_LIST" | sort -u)
 
+DB_COUNT=$(printf "%s\n" "$DB_LIST" | grep -c . || true)
+DISK_COUNT=$(printf "%s\n" "$DISK_LIST" | grep -c . || true)
+BASELINE_COUNT=$(printf "%s\n" "$BASELINE_LIST" | grep -c . || true)
+ALL_COUNT=$(printf "%s\n" "$ALL_DISK" | grep -c . || true)
+
 MISSING_FILE=$(comm -23 <(printf "%s\n" "$DB_LIST" | sort -u) <(printf "%s\n" "$ALL_DISK"))
 MISSING_DB=$(comm -13 <(printf "%s\n" "$DB_LIST" | sort -u) <(printf "%s\n" "$DISK_LIST"))
+
+echo "── Swypik migration audit ──"
+echo "  applied in DB         : $DB_COUNT"
+echo "  files in db/migrations: $DISK_COUNT"
+echo "  baseline stubs        : $BASELINE_COUNT"
+echo "  total accounted-for   : $ALL_COUNT"
+echo
 
 if [ -n "$MISSING_FILE" ]; then
   echo "DRIFT: versions present in DB but missing as file or baseline stub:"
@@ -31,4 +43,5 @@ if [ -n "$MISSING_DB" ]; then
   printf '  %s\n' $MISSING_DB
   exit 3
 fi
-echo "OK: migration disk vs DB in sync (with baseline stubs accounted for)"
+
+echo "OK: 0 drift (every DB version has a file or baseline stub; no unapplied files)."
