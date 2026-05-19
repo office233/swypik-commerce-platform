@@ -10,6 +10,57 @@ const ADMIN_COOKIE = "admin_token";
 const ADMIN_SESSION_COOKIE = "admin_session";
 const ONBOARDED_COOKIE = "swypik_onboarded";
 
+// ---------- Hostname routing (Swypik 18+ on 18.swypik.com) ----------
+
+const ADULT_HOST = (process.env.ADULT_HOST || "18.swypik.com").toLowerCase();
+const MAIN_HOST = "swypik.com";
+const WWW_HOST = "www.swypik.com";
+
+// Paths that are valid on the adult host. Anything else served on
+// 18.swypik.com gets bounced back to the main host so the two domains
+// stay strictly separated (per project brief: "nici feed, nimic nu
+// trebuie sa fie la fel").
+const ADULT_HOST_ALLOWED_PREFIXES = [
+  "/adult",
+  "/welcome", // handoff landing
+  "/api/adult",
+  "/api/auth", // login + handoff consume
+  "/api/health",
+  "/api/webhooks/ccbill",
+  "/api/webhooks/veriff",
+  "/api/webhooks/paxum",
+  "/_next",
+  "/favicon.ico",
+  "/robots.txt",
+];
+
+function normaliseHost(raw: string | null): string {
+  if (!raw) return "";
+  return raw.toLowerCase().split(":")[0]!;
+}
+
+function isAdultHost(host: string): boolean {
+  return host === ADULT_HOST;
+}
+
+function isAdultPath(pathname: string): boolean {
+  return (
+    pathname === "/adult" ||
+    pathname.startsWith("/adult/") ||
+    pathname.startsWith("/api/adult/") ||
+    pathname.startsWith("/api/webhooks/ccbill") ||
+    pathname.startsWith("/api/webhooks/veriff") ||
+    pathname.startsWith("/api/webhooks/paxum")
+  );
+}
+
+function adultHostAllows(pathname: string): boolean {
+  if (pathname === "/") return true; // landing
+  return ADULT_HOST_ALLOWED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(p),
+  );
+}
+
 // ---------- CSRF / Origin guard ----------
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -29,6 +80,7 @@ function allowedOrigins(req: NextRequest): string[] {
   // Always trust our canonical hosts.
   out.add("https://swypik.com");
   out.add("https://www.swypik.com");
+  out.add(`https://${ADULT_HOST}`);
   // Same-origin as the request itself (covers preview/staging hosts).
   try {
     out.add(`${req.nextUrl.protocol}//${req.nextUrl.host}`);
@@ -81,6 +133,15 @@ function redirectTo(req: NextRequest, target: string, withRedirect = true) {
   return NextResponse.redirect(url);
 }
 
+function crossHostRedirect(req: NextRequest, host: string, pathname: string, status = 308): NextResponse {
+  const url = new URL(req.url);
+  url.host = host;
+  url.protocol = "https:";
+  url.port = "";
+  url.pathname = pathname;
+  return NextResponse.redirect(url, status);
+}
+
 export function middleware(request: NextRequest) {
   // CSRF / Origin check runs first for any mutating request that carries auth cookies.
   if (csrfBlocked(request)) {
@@ -91,6 +152,24 @@ export function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+  const host = normaliseHost(request.headers.get("host"));
+
+  // ---------- Hostname routing ----------
+  // 1) On the adult host (18.swypik.com), reject anything that isn't part
+  //    of the adult surface — the two sites must look totally separate.
+  if (isAdultHost(host)) {
+    if (!adultHostAllows(pathname)) {
+      return crossHostRedirect(request, MAIN_HOST, pathname);
+    }
+    const res = NextResponse.next();
+    res.headers.set("X-Swypik-Surface", "adult");
+    return res;
+  }
+
+  // 2) On the main host, anything pointing at the adult surface goes to 18.*.
+  if ((host === MAIN_HOST || host === WWW_HOST) && isAdultPath(pathname)) {
+    return crossHostRedirect(request, ADULT_HOST, pathname);
+  }
 
   // For /api/* (and any other non-gated path) we only enforce CSRF — no redirects.
   if (pathname.startsWith("/api/")) {
@@ -136,8 +215,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Default: shopper/creator gating for matched paths
-  if (!isAuthed) {
+  // Only enforce shopper auth on the legacy gated paths.
+  const gatedPrefixes = ["/collections", "/orders", "/checkout", "/creator"];
+  const isGated = gatedPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (isGated && !isAuthed) {
     return redirectTo(request, "/account");
   }
 
@@ -152,16 +233,10 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Wide matcher: hostname routing must fire on every request to either host.
+// Static assets are excluded for performance.
 export const config = {
   matcher: [
-    "/collections/:path*",
-    "/orders/:path*",
-    "/checkout/:path*",
-    "/creator/:path*",
-    "/onboarding",
-    "/admin/:path*",
-    "/seller/:path*",
-    // CSRF guard scope:
-    "/api/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
   ],
 };

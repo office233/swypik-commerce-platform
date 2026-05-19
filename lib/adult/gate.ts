@@ -14,9 +14,14 @@
  *
  * For creator-only routes (publish, KYC, payouts) ALSO require
  * adult.creator_kyc.status='approved'.
+ *
+ * IMPORTANT: this module uses the ISOLATED adult DB pool (`adultQuery`).
+ * It must NEVER import `dbQuery` from `@/lib/db` — the swypik DB is a
+ * different physical database.
  */
 
-import { dbQuery } from "@/lib/db";
+import { adultQuery } from "./db";
+import { upsertUserMirror } from "./userMirror";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 
 export type AdultAccess =
@@ -28,16 +33,18 @@ export type AdultAccess =
  */
 export async function getAdultAccess(): Promise<AdultAccess> {
   const user = await getAuthUser();
-  if (!user.userId) return { ok: false, reason: "unauthenticated", redirectTo: "/account?redirect=/adult" };
+  if (!user.userId) {
+    return { ok: false, reason: "unauthenticated", redirectTo: "/account?redirect=/adult" };
+  }
 
   try {
-    const { rows } = await dbQuery<{
+    const { rows } = await adultQuery<{
       viewer_verified: boolean;
       expires_at: string | null;
       blocked_reason: string | null;
       creator_status: string | null;
     }>(
-      `SELECT ag.viewer_verified,
+      `SELECT COALESCE(ag.viewer_verified, FALSE) AS viewer_verified,
               ag.expires_at,
               ag.blocked_reason,
               kyc.status AS creator_status
@@ -47,7 +54,12 @@ export async function getAdultAccess(): Promise<AdultAccess> {
       [user.userId],
     );
 
-    const row = rows[0] ?? { viewer_verified: false, expires_at: null, blocked_reason: null, creator_status: null };
+    const row = rows[0] ?? {
+      viewer_verified: false,
+      expires_at: null,
+      blocked_reason: null,
+      creator_status: null,
+    };
 
     if (row.blocked_reason) return { ok: false, reason: "blocked", redirectTo: "/adult/blocked" };
     if (!row.viewer_verified) return { ok: false, reason: "not_verified", redirectTo: "/adult/verify" };
@@ -55,9 +67,17 @@ export async function getAdultAccess(): Promise<AdultAccess> {
       return { ok: false, reason: "expired", redirectTo: "/adult/verify" };
     }
 
-    return { ok: true, userId: user.userId, creatorApproved: row.creator_status === "approved" };
-  } catch {
+    // Lazy mirror — fire-and-forget; never blocks access.
+    void upsertUserMirror({ userId: user.userId, email: user.email, role: user.role });
+
+    return {
+      ok: true,
+      userId: user.userId,
+      creatorApproved: row.creator_status === "approved",
+    };
+  } catch (err) {
     // If the adult schema isn't deployed yet (or any DB hiccup), fail closed.
+    console.warn("[adult-gate] failing closed:", (err as Error).message);
     return { ok: false, reason: "not_verified", redirectTo: "/adult/verify" };
   }
 }

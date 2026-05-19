@@ -124,3 +124,50 @@ api.swypik.com {
 www.swypik.com {
 	redir https://swypik.com{uri} 301
 }
+# -------------------------------------------------------
+# Swypik 18+ ("After Dark") — 18.swypik.com
+# Strictly isolated UI surface; same Next.js process, gated
+# by hostname in middleware.ts. Aggressively no-index.
+# -------------------------------------------------------
+18.swypik.com {
+        header {
+                X-Frame-Options            "DENY"
+                X-Content-Type-Options     "nosniff"
+                Referrer-Policy            "no-referrer"
+                Strict-Transport-Security  "max-age=63072000; includeSubDomains; preload"
+                X-XSS-Protection           "1; mode=block"
+                Permissions-Policy         "camera=(), microphone=(), geolocation=()"
+                # Adult content must never appear in search engines or shared caches.
+                X-Robots-Tag               "noindex, nofollow, noarchive, nosnippet"
+                Cache-Control              "no-store, private"
+                X-Adult-Section            "true"
+                -Server
+        }
+
+        encode zstd gzip
+
+        log {
+                output file /var/log/caddy/adult-access.log {
+                        roll_size 100MiB
+                        roll_keep 10
+                        roll_keep_for 720h
+                }
+                format json
+        }
+
+        # Same-origin media proxy for adult assets (separate R2 bucket).
+        handle_path /media/* {
+                header Access-Control-Allow-Origin "https://18.swypik.com"
+                header Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+                header Access-Control-Allow-Headers "Range, Content-Type"
+                header Access-Control-Expose-Headers "Content-Length, Content-Range, Accept-Ranges, ETag"
+                reverse_proxy https://media-adult.swypik.com {
+                        header_up Host media-adult.swypik.com
+                }
+        }
+
+        # Everything else → Next.js (middleware.ts enforces /adult-only paths).
+        handle {
+                reverse_proxy web-next:3000
+        }
+}

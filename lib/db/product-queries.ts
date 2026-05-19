@@ -486,7 +486,7 @@ function buildSearchFilters(filters: ProductFilters) {
     excludeIds,
   } = filters;
 
-  const where = ["p.status = 'active'", "COALESCE(p.is_adult, false) = false"];
+  const where = ["p.status = 'active'", "COALESCE(p.is_adult, false) = false", "EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')"];
   const params: unknown[] = [];
   let paramIndex = 1;
 
@@ -680,7 +680,7 @@ export async function getCheckoutProductById(id: string) {
     `
       SELECT p.*
       FROM marketplace_products p
-      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false
+      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')
         AND (p.id::text = $1 OR p.supplier_product_id = $1 OR p.external_product_id = $1)
       ORDER BY
         CASE
@@ -767,7 +767,7 @@ export async function getCategories(locale = "ro") {
         ) AS category_id,
         COUNT(*)::int AS count
       ${BASE_PRODUCT_SELECT}
-      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false
+      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')
       GROUP BY 1, 2, 3
       ORDER BY COUNT(*) DESC, 1 ASC
     `,
@@ -830,7 +830,7 @@ export async function getCategoryHierarchy(locale = "ro") {
         SELECT taxonomy_node_slug AS slug, COUNT(*)::int AS direct_count
         FROM marketplace_products
         WHERE status = 'active'
-          AND COALESCE(is_adult, false) = false
+          AND COALESCE(is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = id AND pes.effective_label = 'safe')
           AND taxonomy_node_slug IS NOT NULL
         GROUP BY taxonomy_node_slug
       ),
@@ -877,7 +877,7 @@ export async function getCategoryHierarchy(locale = "ro") {
           COALESCE(NULLIF(p.taxonomy_slug, ''), NULLIF(p.canonical_category_slug, ''), md5(COALESCE(p.category, 'general'))) AS slug,
           COUNT(*)::int AS count
         FROM marketplace_products p
-        WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false
+        WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')
         GROUP BY 1,2,3,4,5
         HAVING COUNT(*) > 0
       `,

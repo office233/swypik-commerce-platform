@@ -204,6 +204,7 @@ export async function getProductDetail(id: string): Promise<ProductDetail | null
     `
       ${DETAIL_SELECT}
       WHERE p.status = 'active'
+        AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')
         AND (
           p.id::text = $1
           OR p.supplier_product_id = $1

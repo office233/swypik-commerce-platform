@@ -464,7 +464,7 @@ export async function GET(request: NextRequest) {
               END THEN
               mp.id IS NOT NULL
               AND mp.status = 'active'
-              AND COALESCE(mp.is_adult, false) = false
+              AND COALESCE(mp.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = mp.id AND pes.effective_label = 'safe')
               AND COALESCE(mp.price_cents, 0) > 0
               AND NULLIF(BTRIM(mp.image_url), '') IS NOT NULL
               AND NULLIF(BTRIM(mp.taxonomy_node_slug), '') IS NOT NULL

@@ -198,7 +198,7 @@ export async function searchProducts(
     FROM marketplace_products mp
     CROSS JOIN query
     WHERE mp.status = 'active'
-      AND COALESCE(mp.is_adult, false) = false
+      AND COALESCE(mp.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = mp.id AND pes.effective_label = 'safe')
       AND (
         mp.search_document @@ query.tsq
         OR similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn) > 0.2
@@ -221,7 +221,7 @@ export async function searchProducts(
         0::float        AS rank
       FROM marketplace_products mp
       WHERE mp.status = 'active'
-        AND COALESCE(mp.is_adult, false) = false
+        AND COALESCE(mp.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = mp.id AND pes.effective_label = 'safe')
         AND mp.title ILIKE $1
       ORDER BY mp.title ASC
       LIMIT $2 OFFSET $3

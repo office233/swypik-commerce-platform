@@ -22,7 +22,7 @@ const VECTOR_MIN_SIMILARITY = 0.35;
 const PRODUCT_VECTOR_MIN_SIMILARITY = 0.42;
 const BASE_PRODUCT_WHERE = `
   status = 'active'
-  AND COALESCE(is_adult, false) = false
+  AND COALESCE(is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = id AND pes.effective_label = 'safe')
   AND price_cents IS NOT NULL
   AND image_url IS NOT NULL
   AND taxonomy_node_slug IS NOT NULL
