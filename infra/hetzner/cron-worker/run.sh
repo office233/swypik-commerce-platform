@@ -57,6 +57,10 @@ while true; do
     run_job publish-scheduled POST
     run_job refresh-rank POST
   fi
+  # Every 10 min
+  if [ $((TICK % 600)) -lt 60 ]; then
+    run_job watchdog-videos POST
+  fi
   # Every 15 min
   if [ $((TICK % 900)) -lt 60 ]; then
     run_job process-dropship POST
@@ -80,7 +84,6 @@ while true; do
   # Every 6 hours (AI trend detection)
   if [ $((TICK % 21600)) -lt 60 ]; then
     run_job detect-trends POST
-    run_job watchdog-videos POST
   fi
   # Weekly Monday 09:00 — email digest
   DOW=$(date -u +%u); HOUR=$(date -u +%H); MIN=$(date -u +%M)
