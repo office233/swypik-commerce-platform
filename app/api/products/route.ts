@@ -61,10 +61,25 @@ export async function GET(req: Request) {
     }
 
     if (isCategories) {
-      const categories = await getCategories(locale);
+      // Legacy endpoint: 60s response, 1.88MB payload, 5750 deprecated categories.
+      // No UI consumers (audit 2026-05-19). Short-circuit with 410 + tiny payload.
       return NextResponse.json(
-        { categories, deprecated: true, replacement: "/api/categories?hierarchy=true" },
-        { headers: { Deprecation: "true", Sunset: "Sat, 01 Aug 2026 00:00:00 GMT", Link: "</api/categories>; rel=successor-version" } },
+        {
+          categories: [],
+          deprecated: true,
+          gone: true,
+          replacement: "/api/categories?hierarchy=true",
+          message: "categories=true is gone. Use /api/categories?hierarchy=true.",
+        },
+        {
+          status: 410,
+          headers: {
+            Deprecation: "true",
+            Sunset: "Sat, 01 Aug 2026 00:00:00 GMT",
+            Link: "</api/categories>; rel=successor-version",
+            "Cache-Control": "public, max-age=3600",
+          },
+        },
       );
     }
 

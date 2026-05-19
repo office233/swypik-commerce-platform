@@ -127,13 +127,17 @@ export async function GET(req: Request) {
 
     try {
       const page = Math.floor(offset / limit) + 1;
-      const exploreUrl = new URL("/api/explore/feed", url.origin);
+      // Avoid round-tripping through Caddy → self (causes deadlock on swypik.com).
+      // Hit the same Node process on loopback directly.
+      const internalBase = process.env.INTERNAL_APP_URL || "http://127.0.0.1:3000";
+      const exploreUrl = new URL("/api/explore/feed", internalBase);
       exploreUrl.searchParams.set("limit", String(limit));
       exploreUrl.searchParams.set("page", String(page));
       const cookie = req.headers.get("cookie");
       const exploreResponse = await fetch(exploreUrl, {
         cache: "no-store",
         headers: cookie ? { cookie } : undefined,
+        signal: AbortSignal.timeout(8_000),
       });
       if (exploreResponse.ok) {
         const payload = await exploreResponse.json();
