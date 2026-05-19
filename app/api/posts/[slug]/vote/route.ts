@@ -176,17 +176,8 @@ export async function POST(
            VALUES ($1, $2, $3, 'community_post', $4, jsonb_build_object('optionKey', $5::text, 'slug', $6::text))`,
           [userId, REWARD_ACTION, REWARD_POINTS, post.id, optionKey, slug],
         );
-        // Wallet reconciliation: keep swyp_wallets in sync with reward_events ledger.
-        // Creates wallet if missing (first earn). Same TX = consistent.
-        await client.query(
-          `INSERT INTO swyp_wallets (user_id, balance_points, lifetime_earned)
-           VALUES ($1, $2, $2)
-           ON CONFLICT (user_id) DO UPDATE
-             SET balance_points = swyp_wallets.balance_points + EXCLUDED.balance_points,
-                 lifetime_earned = swyp_wallets.lifetime_earned + EXCLUDED.lifetime_earned,
-                 updated_at = now()`,
-          [userId, REWARD_POINTS],
-        );
+        // Wallet balance is reconciled by AFTER INSERT trigger
+        // trg_reward_events_credit_wallet (migration 0012).
         rewarded = REWARD_POINTS;
       }
     }
