@@ -78,9 +78,12 @@ CREATE TABLE IF NOT EXISTS community_post_items (
   vote_count      integer NOT NULL DEFAULT 0,
   position        integer NOT NULL DEFAULT 0,
   created_at      timestamptz NOT NULL DEFAULT now(),
-  CHECK (product_id IS NOT NULL OR external_url IS NOT NULL),
-  UNIQUE (post_id, option_key, COALESCE(product_id::text, external_url))
+  CHECK (product_id IS NOT NULL OR external_url IS NOT NULL)
 );
+
+-- Postgres requires an expression index for UNIQUE over COALESCE.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_post_items_dedup
+  ON community_post_items(post_id, option_key, COALESCE(product_id::text, external_url));
 
 CREATE INDEX IF NOT EXISTS idx_post_items_post
   ON community_post_items(post_id, position);
