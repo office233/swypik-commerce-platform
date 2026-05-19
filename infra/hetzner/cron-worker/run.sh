@@ -55,6 +55,7 @@ while true; do
   # Every 5 min
   if [ $((TICK % 300)) -lt 60 ]; then
     run_job publish-scheduled POST
+    run_job refresh-rank POST
   fi
   # Every 15 min
   if [ $((TICK % 900)) -lt 60 ]; then

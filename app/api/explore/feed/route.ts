@@ -121,16 +121,42 @@ const RANK_SCORE_EXPR = `(
 // Freshness bonus: declines over 3 days. Boost in [0..5].
 const FRESHNESS_EXPR = `GREATEST(0, 5 - EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / (86400.0 * 3))`;
 
-function buildOrderClause(sort: SortMode): string {
+// Uses pre-aggregated video_rank_14d (refreshed every ~5min by /api/cron/refresh-rank).
+// Falls back to inline RANK_SCORE_EXPR subquery if mat view row missing (new video).
+const RANK_FROM_MV = `COALESCE(vr.rank_score, (${RANK_SCORE_EXPR}), 0)`;
+
+// Repetition penalty: -50 if viewer already saw this video in last 24h.
+// Injected only when userId or sessionId present (see buildPenaltyExpr below).
+function buildPenaltyExpr(hasUser: boolean, hasSession: boolean): string {
+  if (!hasUser && !hasSession) return "0";
+  const conds: string[] = [];
+  if (hasUser) conds.push("rep_user.actor_user_id IS NOT NULL");
+  if (hasSession) conds.push("rep_sess.session_id IS NOT NULL");
+  return `(CASE WHEN ${conds.join(" OR ")} THEN -50 ELSE 0 END)`;
+}
+
+// Personalization: +rank_score boost when video's product matches viewer's preferred categories.
+function buildAffinityExpr(hasUser: boolean): string {
+  if (!hasUser) return "0";
+  return `(COALESCE(uca.affinity_boost, 0))`;
+}
+
+function buildOrderClause(
+  sort: SortMode,
+  hasUser: boolean,
+  hasSession: boolean,
+): string {
+  const penalty = buildPenaltyExpr(hasUser, hasSession);
+  const affinity = buildAffinityExpr(hasUser);
   switch (sort) {
     case "popular":
-      return `${ENGAGEMENT_EXPR} DESC, v.published_at DESC NULLS LAST`;
+      return `${ENGAGEMENT_EXPR} + ${penalty} DESC, v.published_at DESC NULLS LAST`;
     case "trending":
-      return `${TRENDING_EXPR} DESC, v.published_at DESC NULLS LAST`;
+      return `${TRENDING_EXPR} + ${penalty} DESC, v.published_at DESC NULLS LAST`;
     case "recent":
     default:
-      // Real engagement first (feed_events 14d), tie-break by recency.
-      return `COALESCE((${RANK_SCORE_EXPR}), 0) + ${FRESHNESS_EXPR} DESC, v.published_at DESC NULLS LAST, v.created_at DESC`;
+      // Real engagement (mat view) + freshness + personalization - repetition penalty.
+      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${penalty} DESC, v.published_at DESC NULLS LAST, v.created_at DESC`;
   }
 }
 
@@ -368,7 +394,7 @@ export async function GET(request: NextRequest) {
       taxonomyParam = `$${queryParams.length}`;
     }
 
-    const orderClause = buildOrderClause(sort);
+    const orderClause = buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId));
     const scoreSelect =
       sort === "popular"
         ? `, ${ENGAGEMENT_EXPR} AS engagement_score`
@@ -484,6 +510,50 @@ export async function GET(request: NextRequest) {
         LIMIT 1
       ) vpvv ON mp.id IS NOT NULL` : ``}
       LEFT JOIN audio_tracks at ON at.id = v.audio_track_id
+      LEFT JOIN video_rank_14d vr ON vr.video_id = v.id
+      ${userId ? `LEFT JOIN LATERAL (
+        SELECT 1 AS actor_user_id FROM feed_events rep_fe
+        WHERE rep_fe.video_id = v.id
+          AND rep_fe.actor_user_id = ${userParam}::uuid
+          AND rep_fe.occurred_at > NOW() - INTERVAL '24 hours'
+        LIMIT 1
+      ) rep_user ON true` : ``}
+      ${viewerSessionId ? `LEFT JOIN LATERAL (
+        SELECT 1 AS session_id FROM feed_events rep_fe2
+        WHERE rep_fe2.video_id = v.id
+          AND rep_fe2.session_id = ${sessionParam}
+          AND rep_fe2.occurred_at > NOW() - INTERVAL '24 hours'
+        LIMIT 1
+      ) rep_sess ON true` : ``}
+      ${userId ? `LEFT JOIN LATERAL (
+        WITH user_pref AS (
+          SELECT mp2.taxonomy_node_slug AS slug,
+                 SUM(CASE fe2.event_type
+                       WHEN 'purchase' THEN 10
+                       WHEN 'save' THEN 5
+                       WHEN 'more_like_this' THEN 4
+                       WHEN 'add_to_cart' THEN 3
+                       WHEN 'completion' THEN 2
+                       WHEN 'like' THEN 1
+                       ELSE 0 END)::numeric AS weight
+          FROM feed_events fe2
+          JOIN videos v2 ON v2.id = fe2.video_id
+          LEFT JOIN video_product_links vpl2 ON vpl2.video_id = v2.id
+          LEFT JOIN marketplace_products mp2 ON mp2.id = COALESCE(
+            vpl2.product_id,
+            CASE WHEN COALESCE(v2.product_refs->0->>'product_id', v2.product_refs->>0) ~* '${UUID_SQL_RE}'
+              THEN COALESCE(v2.product_refs->0->>'product_id', v2.product_refs->>0)::uuid
+              ELSE NULL END
+          )
+          WHERE fe2.actor_user_id = ${userParam}::uuid
+            AND fe2.occurred_at > NOW() - INTERVAL '30 days'
+            AND mp2.taxonomy_node_slug IS NOT NULL
+          GROUP BY mp2.taxonomy_node_slug
+        )
+        SELECT LEAST(weight / 5.0, 10)::numeric AS affinity_boost
+        FROM user_pref WHERE slug = mp.taxonomy_node_slug
+        LIMIT 1
+      ) uca ON mp.id IS NOT NULL` : ``}
       WHERE v.status = 'ready' AND v.is_hidden = false
         AND v.visibility = 'public'
         AND EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = v.id AND ves.effective_label = 'safe')
