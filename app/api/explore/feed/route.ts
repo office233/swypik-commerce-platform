@@ -576,12 +576,12 @@ export async function GET(request: NextRequest) {
       const videos = qualityFilteredVideos.slice(0, limit);
       const hasMore = qualityFilteredVideos.length > limit || rows.length >= queryLimit;
 
-      const cacheHeaders = { "Cache-Control": "no-store" };
+      const cacheHeaders = { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" };
       return NextResponse.json({ videos, page, hasMore }, { headers: cacheHeaders });
     }
 
     // No videos available
-    const emptyHeaders = { "Cache-Control": "no-store" };
+    const emptyHeaders = { "Cache-Control": "private, max-age=5" };
     return NextResponse.json({ videos: [], page, hasMore: false }, { headers: emptyHeaders });
   } catch (error: any) {
     logger.error({ err: error }, "Explore feed API error:");
