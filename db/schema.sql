@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 1xP9TVX3mFDIhJSra6Tr1FnrZMrsefCWXbiqFQGD3SkgFL2gBr3SlokYvMZuh5a
+\restrict FAjfnsAVNhgYsdlydTMXHmur7d8f8sc4CdrMPeS9P02EEQlEjyz315rNluw734O
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg12+1)
 -- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg12+1)
@@ -3593,6 +3593,29 @@ CREATE MATERIALIZED VIEW public.video_rank_14d AS
 
 
 --
+-- Name: video_stats_daily; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_stats_daily (
+    video_id uuid NOT NULL,
+    stat_date date NOT NULL,
+    impressions bigint DEFAULT 0 NOT NULL,
+    views bigint DEFAULT 0 NOT NULL,
+    watch_ms_sum bigint DEFAULT 0 NOT NULL,
+    completions bigint DEFAULT 0 NOT NULL,
+    likes bigint DEFAULT 0 NOT NULL,
+    saves bigint DEFAULT 0 NOT NULL,
+    shares bigint DEFAULT 0 NOT NULL,
+    comments bigint DEFAULT 0 NOT NULL,
+    product_clicks bigint DEFAULT 0 NOT NULL,
+    add_to_cart bigint DEFAULT 0 NOT NULL,
+    purchases bigint DEFAULT 0 NOT NULL,
+    follows bigint DEFAULT 0 NOT NULL,
+    computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: video_upload_sessions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5139,6 +5162,14 @@ ALTER TABLE ONLY public.video_product_votes
 
 ALTER TABLE ONLY public.video_safety_labels
     ADD CONSTRAINT video_safety_labels_pkey PRIMARY KEY (video_id);
+
+
+--
+-- Name: video_stats_daily video_stats_daily_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_stats_daily
+    ADD CONSTRAINT video_stats_daily_pkey PRIMARY KEY (video_id, stat_date);
 
 
 --
@@ -6788,6 +6819,13 @@ CREATE INDEX idx_video_safety_labels_reviewed_by_user_id ON public.video_safety_
 --
 
 CREATE INDEX idx_video_safety_labels_unreviewed ON public.video_safety_labels USING btree (classified_at) WHERE ((reviewed_by_human = false) AND (label = ANY (ARRAY['sensitive'::text, 'adult'::text])));
+
+
+--
+-- Name: idx_video_stats_daily_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_video_stats_daily_date ON public.video_stats_daily USING btree (stat_date DESC);
 
 
 --
@@ -9722,6 +9760,14 @@ ALTER TABLE ONLY public.video_safety_labels
 
 
 --
+-- Name: video_stats_daily video_stats_daily_video_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_stats_daily
+    ADD CONSTRAINT video_stats_daily_video_id_fkey FOREIGN KEY (video_id) REFERENCES public.videos(id) ON DELETE CASCADE;
+
+
+--
 -- Name: video_upload_sessions video_upload_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9781,5 +9827,5 @@ ALTER TABLE ONLY public.wallet_transactions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 1xP9TVX3mFDIhJSra6Tr1FnrZMrsefCWXbiqFQGD3SkgFL2gBr3SlokYvMZuh5a
+\unrestrict FAjfnsAVNhgYsdlydTMXHmur7d8f8sc4CdrMPeS9P02EEQlEjyz315rNluw734O
 
