@@ -587,14 +587,6 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     : "Produs nou — fără recenzii încă"}
               </p>
             </div>
-            <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5 text-center">
-              <p className="text-sm font-medium text-[#6E6E80]">
-                💬 Recenziile cu text vor apărea aici după ce primii clienți primesc produsul și lasă o părere.
-              </p>
-              <p className="mt-2 text-xs text-[#A1A1AA]">
-                Cumperi prin Swypik? Vei primi o notificare să lași o recenzie după livrare.
-              </p>
-            </div>
           </div>
         )}
 
