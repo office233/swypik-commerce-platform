@@ -44,20 +44,29 @@ async function handle(request: NextRequest) {
     const elapsedMs = Date.now() - startedAt;
     const stats = rows[0] || { total: 0, positive: 0, max_score: 0 };
 
-    // Persist a row in cron_runs if table exists (best-effort).
+    // cron_runs schema: (job_name, started_at, completed_at, status, duration_ms, result jsonb, error)
     try {
       await dbQuery(
-        `INSERT INTO cron_runs (job_name, started_at, finished_at, duration_ms, status, metadata)
+        `INSERT INTO cron_runs (job_name, started_at, completed_at, duration_ms, status, result)
          VALUES ('refresh-rank', NOW() - ($1 || ' milliseconds')::interval, NOW(), $1, 'success', $2::jsonb)`,
         [elapsedMs, JSON.stringify(stats)]
       );
-    } catch {
-      /* table may not have these columns; ignore */
+    } catch (err: any) {
+      logger.warn({ err: err?.message }, "refresh-rank: cron_runs insert failed");
     }
 
     return NextResponse.json({ ok: true, elapsedMs, ...stats });
   } catch (e: any) {
     logger.error({ err: e?.message }, "refresh-rank failed");
+    try {
+      await dbQuery(
+        `INSERT INTO cron_runs (job_name, started_at, completed_at, duration_ms, status, error)
+         VALUES ('refresh-rank', NOW() - ($1 || ' milliseconds')::interval, NOW(), $1, 'failed', $2)`,
+        [Date.now() - startedAt, String(e?.message || e).slice(0, 500)]
+      );
+    } catch {
+      /* ignore secondary failure */
+    }
     return NextResponse.json({ ok: false, error: e?.message || "refresh failed" }, { status: 500 });
   }
 }

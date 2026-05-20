@@ -41,9 +41,8 @@ export async function POST(req: Request) {
     );
 
     await dbQuery(
-      `INSERT INTO cron_runs (job, ok, elapsed_ms, meta)
-       VALUES ($1, true, $2, $3::jsonb)
-       ON CONFLICT DO NOTHING`,
+      `INSERT INTO cron_runs (job_name, status, duration_ms, completed_at, result)
+       VALUES ($1, 'success', $2, NOW(), $3::jsonb)`,
       [
         "strikes-decay",
         Date.now() - start,
