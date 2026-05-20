@@ -37,7 +37,9 @@ function getPopulatedCategoryNames(categories: { nameEn: string; count: number }
 }
 
 function buildCategoryPrompt(categories: { name: string; nameEn: string; count: number }[]) {
-  return categories.map((c, i) => `${i + 1}. ${c.nameEn} (${c.count.toLocaleString()} produse)`).join("\n");
+  // Limit to top 120 by count to stay under model context window (gpt-5-mini = 128k)
+  const top = [...categories].sort((a, b) => b.count - a.count).slice(0, 120);
+  return top.map((c, i) => `${i + 1}. ${c.nameEn} (${c.count.toLocaleString()} produse)`).join("\n");
 }
 
 export type ChatIntent = "search_product" | "explain_product" | "compare_products" | "find_cheaper" | "refine_search" | "add_to_cart" | "checkout" | "track_order" | "general_chat";
