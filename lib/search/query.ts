@@ -186,10 +186,15 @@ export async function searchProducts(
   let matchedSlugs: string[] = [];
   try {
     const { rows: slugRows } = await dbQuery<{ node_slug: string }>(
-      `SELECT DISTINCT node_slug
-         FROM taxonomy_translations
+      `WITH q AS (SELECT public.f_unaccent(lower($1)) AS qn)
+       SELECT DISTINCT node_slug
+         FROM taxonomy_translations, q
         WHERE locale IN ('ro','de','fr','en')
-          AND public.f_unaccent(lower(label)) LIKE public.f_unaccent(lower($1)) || '%'
+          AND (
+            public.f_unaccent(lower(label)) LIKE qn || '%'
+            OR qn LIKE public.f_unaccent(lower(label)) || '%'
+            OR similarity(public.f_unaccent(lower(label)), qn) > 0.45
+          )
         LIMIT 50`,
       [q]
     );
