@@ -574,7 +574,7 @@ export default function ChatInterface({
         </div>
       </div>
     </div>}
-    <section className={activeTab === "feed" ? "h-[100dvh]" : "min-h-[calc(100dvh-132px)] pb-36"} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <section className={activeTab === "feed" ? "h-[100dvh]" : "min-h-[calc(100dvh-132px)] pb-20"} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {activeTab === "home" && (
         <div className="px-4 pt-6">
           <div className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-6">
