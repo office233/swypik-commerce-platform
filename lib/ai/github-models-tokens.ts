@@ -115,6 +115,33 @@ export type CopilotFetchResult = {
  *
  * Rotim între token-urile ghu_* pe 401/403/429. Pe alte status-uri returnăm direct.
  */
+/**
+ * gpt-5 family quirks via Copilot API:
+ *  - max_tokens → max_completion_tokens
+ *  - temperature must be default (omit)
+ *  - response_format=json_object requires the literal word "json" in messages
+ */
+function normalizeGpt5Body(init: RequestInit & { headers?: Record<string, string> }): RequestInit & { headers?: Record<string, string> } {
+  if (!init || !init.body || typeof init.body !== "string") return init;
+  let obj: any;
+  try { obj = JSON.parse(init.body); } catch { return init; }
+  const model: string = String(obj?.model || "");
+  if (!model.startsWith("gpt-5")) return init;
+  if (typeof obj.max_tokens === "number" && obj.max_completion_tokens === undefined) {
+    obj.max_completion_tokens = obj.max_tokens;
+  }
+  delete obj.max_tokens;
+  delete obj.temperature;
+  const wantsJson = obj?.response_format?.type === "json_object";
+  if (wantsJson && Array.isArray(obj.messages)) {
+    const haveJsonWord = obj.messages.some((m: any) => typeof m?.content === "string" && /json/i.test(m.content));
+    if (!haveJsonWord) {
+      obj.messages = [{ role: "system", content: "Reply ONLY with valid JSON." }, ...obj.messages];
+    }
+  }
+  return { ...init, body: JSON.stringify(obj) };
+}
+
 export async function fetchCopilot(
   path: string,
   init: RequestInit & { headers?: Record<string, string> } = {},
@@ -140,7 +167,8 @@ export async function fetchCopilot(
     const url = session.endpoint.replace(/\/+$/, '') + (path.startsWith('/') ? path : '/' + path);
     const headers: Record<string, string> = { ...EDITOR_HEADERS, ...(init.headers || {}) };
     headers['Authorization'] = `Bearer ${session.token}`;
-    const res = await fetch(url, { ...init, headers });
+    const normalized = normalizeGpt5Body(init);
+    const res = await fetch(url, { ...normalized, headers });
     lastRes = res;
     lastIdx = i;
     lastEndpoint = url;
