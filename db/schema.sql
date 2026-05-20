@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 4OyKrczoWmzfW3L249il4h2UnZwwwYeATwfuhpNWjwKBktqH4DFCzQWtjxztsEY
+\restrict 1xP9TVX3mFDIhJSra6Tr1FnrZMrsefCWXbiqFQGD3SkgFL2gBr3SlokYvMZuh5a
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg12+1)
 -- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg12+1)
@@ -2411,6 +2411,37 @@ ALTER SEQUENCE public.oauth_accounts_id_seq OWNED BY public.oauth_accounts.id;
 
 
 --
+-- Name: ops_alert_log; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ops_alert_log (
+    id bigint NOT NULL,
+    alert_key text NOT NULL,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    alerted_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ops_alert_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.ops_alert_log_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: ops_alert_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.ops_alert_log_id_seq OWNED BY public.ops_alert_log.id;
+
+
+--
 -- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3731,6 +3762,13 @@ ALTER TABLE ONLY public.oauth_accounts ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Name: ops_alert_log id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ops_alert_log ALTER COLUMN id SET DEFAULT nextval('public.ops_alert_log_id_seq'::regclass);
+
+
+--
 -- Name: trending_now id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4509,6 +4547,14 @@ ALTER TABLE ONLY public.oauth_accounts
 
 ALTER TABLE ONLY public.oauth_accounts
     ADD CONSTRAINT oauth_accounts_provider_provider_user_id_key UNIQUE (provider, provider_user_id);
+
+
+--
+-- Name: ops_alert_log ops_alert_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ops_alert_log
+    ADD CONSTRAINT ops_alert_log_pkey PRIMARY KEY (id);
 
 
 --
@@ -6315,6 +6361,13 @@ CREATE INDEX idx_notifications_video_id ON public.notifications USING btree (vid
 --
 
 CREATE INDEX idx_oauth_user ON public.oauth_accounts USING btree (user_id);
+
+
+--
+-- Name: idx_ops_alert_log_key_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ops_alert_log_key_time ON public.ops_alert_log USING btree (alert_key, alerted_at DESC);
 
 
 --
@@ -9728,5 +9781,5 @@ ALTER TABLE ONLY public.wallet_transactions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4OyKrczoWmzfW3L249il4h2UnZwwwYeATwfuhpNWjwKBktqH4DFCzQWtjxztsEY
+\unrestrict 1xP9TVX3mFDIhJSra6Tr1FnrZMrsefCWXbiqFQGD3SkgFL2gBr3SlokYvMZuh5a
 
