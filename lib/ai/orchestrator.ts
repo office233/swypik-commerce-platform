@@ -281,8 +281,7 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
       body: JSON.stringify({ model: getModel(), messages, temperature: 0.72, max_tokens: 750, response_format: { type: "json_object" } }),
     });
     if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      console.warn("[AI Orchestrator] http", res.status, "model=", getModel(), "body=", errBody.slice(0, 500));
+      console.warn("[AI Orchestrator] http", res.status);
       return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
     }
     const completion: any = await res.json();
