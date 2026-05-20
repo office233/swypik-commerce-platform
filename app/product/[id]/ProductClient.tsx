@@ -521,8 +521,24 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               ) : null;
             })()}
 
-            {/* Store Info */}
-            {product.storeName && (
+            {/* Vânzător Swypik (link la storefront public) */}
+            {product.seller && (
+              <Link
+                href={`/sellers/${product.seller.id}`}
+                className="block rounded-2xl bg-white border border-[#E5E5E5] p-4 hover:border-[#7C3AED]/60 active:scale-[0.99] transition"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-[#6E6E80] uppercase">Vândut de</p>
+                    <p className="text-sm font-black text-[#0D0D0D]">{product.seller.name}</p>
+                  </div>
+                  <span className="text-xs font-bold text-[#7C3AED]">Vezi magazin →</span>
+                </div>
+              </Link>
+            )}
+
+            {/* Store Info (legacy AE source) */}
+            {product.storeName && !product.seller && (
               <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-[#6E6E80] uppercase">Magazin</p>

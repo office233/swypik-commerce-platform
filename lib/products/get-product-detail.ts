@@ -53,6 +53,7 @@ export type ProductDetail = {
     storeName: string | null;
     storeRating: number;
     isEstimatedSocial: boolean;
+    seller: { id: string; name: string } | null;
   };
   variants: Array<{
     id: string;
@@ -119,6 +120,9 @@ const DETAIL_SELECT = `
     ap.gender,
     ap.store_name,
     ap.store_rating,
+    s.id AS swypik_seller_id,
+    s.name AS swypik_seller_name,
+    s.status AS swypik_seller_status,
     ac.ae_category_id AS ae_category_id,
     ac.name AS ae_category_name,
     ac.name_ro AS ae_category_name_ro,
@@ -132,6 +136,7 @@ const DETAIL_SELECT = `
    AND ap.ae_product_id::text = p.supplier_product_id
   LEFT JOIN ae_categories ac ON ac.ae_category_id = ap.category_id
   LEFT JOIN ae_categories ar ON ar.ae_category_id = COALESCE(ac.parent_id, ac.ae_category_id)
+  LEFT JOIN sellers s ON s.id = p.seller_id
 `;
 
 function metadataObject(value: unknown) {
@@ -415,6 +420,10 @@ export async function getProductDetail(id: string): Promise<ProductDetail | null
       storeName: firstString(store.name, row.store_name),
       storeRating,
       isEstimatedSocial: !hasRealOrders,
+      seller:
+        row.swypik_seller_id && row.swypik_seller_status === "active"
+          ? { id: String(row.swypik_seller_id), name: String(row.swypik_seller_name || "Vânzător Swypik") }
+          : null,
     },
     variants,
     colorMap,
