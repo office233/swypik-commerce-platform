@@ -16,9 +16,10 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const KEY = process.env.GEMINI_API_KEY;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 const BATCH_SIZE = Number(process.env.BATCH_SIZE || 10);
+const INTER_BATCH_MS = Number(process.env.INTER_BATCH_MS || 0);
 const APPLY = process.argv.includes('--apply');
 const OUT_FILE = process.env.OUT_FILE || '/tmp/reclassify-unresolved.json';
-const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || 0.55);
+const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || 0.75);
 
 if (!DATABASE_URL) { console.error('DATABASE_URL missing'); process.exit(1); }
 if (!KEY) { console.error('GEMINI_API_KEY missing'); process.exit(1); }
@@ -60,13 +61,21 @@ function buildTaxonomyText(nodes) {
 
 const SYSTEM_PROMPT = (taxonomy) => `You classify e-commerce product titles into a fixed taxonomy with three levels: department > category > subcategory.
 
-Pick the MOST SPECIFIC valid slug. Prefer a subcategory; fall back to category, then department. If NOTHING fits, use "other".
+RULES (strict):
+1. The slug MUST describe what the product PRIMARILY IS — not what it is "for" (do NOT use "for iPhone" to put a cable in phone-cases; cables are NOT cases).
+2. If the title says "women/woman/female/femme/dama/femme" the product belongs to fashion-women-*, NOT toys-baby, NOT home-bathroom, NOT sports.
+3. If the title says "baby/infant/newborn/toddler/diaper/stroller/crib/pacifier" the product belongs to toys-baby.
+4. "Jeans/Denim" -> fashion-{men,women}-jeans (NEVER fashion-*-shirts).
+5. "T-shirt/Tee/Tricou" -> fashion-{men,women}-tshirts. "Shirt/Cămașă/Blouse" -> fashion-{men,women}-shirts. They are DIFFERENT.
+6. "Case/Cover/Carcasă/Husă" -> electronics-phones-cases. Cables/adapters/screen protectors/hubs are NOT cases.
+7. "SIM" -> electronics-phones-sim. HUBs, adapters and chargers are NOT SIM accessories.
+8. "Sport/Tactical/Outdoor/Cargo/Hiking/Camping" -> sports-outdoor when actual sport gear; tactical PANTS still go to fashion-{men}-pants.
+9. Bikini/Kimono/Jumpsuit/Cover-up/Sequin necklace/Choker -> fashion-women-* (NEVER toys-baby).
+10. If genuinely unsure across departments, set confidence < 0.5 and unresolved=true.
 
 OUTPUT strict JSON: {"results":[{"id":"<uuid>","slug":"<slug>","confidence":0.0-1.0,"unresolved":bool,"reasoning":"<short>"}]}.
 
-Set unresolved=true only when slug="other" or genuinely uncertain across departments.
-
-TAXONOMY:
+TAXONOMY (use slug exactly):
 ${taxonomy}`;
 
 async function classifyBatch(taxonomyText, batch) {
@@ -74,12 +83,6 @@ async function classifyBatch(taxonomyText, batch) {
     products: batch.map((p) => ({
       id: p.id,
       title: p.title,
-      hints: {
-        dep: p.taxonomy_department,
-        cat: p.taxonomy_category,
-        sub: p.taxonomy_subcategory,
-        leaf: p.taxonomy_leaf,
-      },
     })),
   });
   const body = {
@@ -93,7 +96,7 @@ async function classifyBatch(taxonomyText, batch) {
   };
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${KEY}`;
   let lastErr;
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 8; attempt++) {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,7 +109,7 @@ async function classifyBatch(taxonomyText, batch) {
     }
     lastErr = `Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`;
     if (res.status === 429 || res.status === 503) {
-      await new Promise((r) => setTimeout(r, 3000 + attempt * 3000));
+      await new Promise((r) => setTimeout(r, Math.min(60000, 2000 * Math.pow(2, attempt))));
       continue;
     }
     throw new Error(lastErr);
@@ -159,7 +162,33 @@ async function main() {
         const r = byId.get(String(p.id));
         if (!r) { proposals.push({ id: p.id, error: 'no_result' }); skipped++; continue; }
         const slugValid = validSlugs.has(r.slug);
-        const acceptable = slugValid && (r.confidence ?? 0) >= MIN_CONFIDENCE && r.slug !== 'other' && r.unresolved !== true;
+        const titleLower = String(p.title || '').toLowerCase();
+        const slugTokens = String(r.slug || '').split('-').filter((t) => t.length > 3);
+        const SLUG_KEYWORDS = {
+          'jeans': ['jeans','denim'],
+          'tshirts': ['t-shirt','t shirt','tshirt','tee','tricou','jersey'],
+          'shirts': ['shirt','blouse','cama','chemise'],
+          'shorts': ['short','bermuda'],
+          'pants': ['pant','trouser','jogger','legging'],
+          'dresses': ['dress','gown','rochie','robe','mariée','bridal','wedding'],
+          'cases': ['case','cover','carcas','husa','sleeve','pouch','skin','bumper'],
+          'sim': ['sim'],
+          'baby': ['baby','infant','toddler','newborn','diaper','stroller','crib','pacifier','bebe'],
+          'shoes': ['shoe','sneaker','boot','sandal','heel','pantofi','încălț','incalt','loafer'],
+          'bathroom': ['bath','shower','toilet','towel','sink','faucet','baie','dush'],
+          'outdoor': ['tactical','outdoor','camping','hiking','tent','backpack','fishing','hunting'],
+          'makeup': ['makeup','lipstick','foundation','mascara','eyeliner','rimel','ruj'],
+          'haircare': ['hair','shampoo','conditioner','beard','perii păr'],
+          'fragrance': ['perfume','fragrance','cologne','parfum','eau de'],
+        };
+        let keywordOk = true;
+        for (const tok of slugTokens) {
+          const kws = SLUG_KEYWORDS[tok];
+          if (!kws) continue;
+          keywordOk = kws.some((kw) => titleLower.includes(kw));
+          if (!keywordOk) break;
+        }
+        const acceptable = slugValid && (r.confidence ?? 0) >= MIN_CONFIDENCE && r.slug !== 'other' && r.unresolved !== true && keywordOk;
         proposals.push({
           id: p.id,
           title: p.title,
@@ -177,6 +206,7 @@ async function main() {
       console.log(`${tag} fail: ${e.message}`);
       for (const p of batch) { proposals.push({ id: p.id, title: p.title, error: e.message }); skipped++; }
     }
+    if (INTER_BATCH_MS > 0 && i + BATCH_SIZE < products.length) await new Promise((r) => setTimeout(r, INTER_BATCH_MS));
   }
 
   fs.writeFileSync(OUT_FILE, JSON.stringify({ total: products.length, applied, skipped, proposals }, null, 2));
