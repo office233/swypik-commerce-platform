@@ -69,7 +69,7 @@ export default async function SearchPage({
     <main className="min-h-screen overflow-x-hidden text-white" style={{ backgroundColor: BG }}>
       <div className="mx-auto max-w-5xl min-w-0 px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold mb-4">Search</h1>
+          <h1 className="text-2xl font-semibold mb-4">Căutare</h1>
           <SearchBar initialQuery={q} />
         </header>
 
