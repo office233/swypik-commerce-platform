@@ -342,7 +342,10 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         <div className="flex flex-wrap gap-3 text-sm font-medium text-[#6E6E80] mb-5">
           <span className="flex items-center gap-1">
             <Star size={14} className="text-[#F59E0B]" fill="currentColor" />
-            {product.rating?.toFixed(1)} ({product.ratingCount} review-uri)
+            {(product.rating ?? 0).toFixed(1)}
+            {product.ratingCount && product.ratingCount > 0
+              ? ` (${product.ratingCount} recenzii)`
+              : ""}
           </span>
           <span className="flex items-center gap-1">
             <ShoppingCart size={14} />
