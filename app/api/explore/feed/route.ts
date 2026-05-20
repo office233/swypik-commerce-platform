@@ -622,10 +622,10 @@ export async function GET(request: NextRequest) {
         const swypikScore = swypikScoreDetails?.score ?? null;
 
         const sourceUrl = row.source_key && publicUrl ? `${publicUrl}/${row.source_key}` : null;
-        const playbackUrl = row.playback_url || sourceUrl;
-        const rawUrl = sourceUrl || playbackUrl;
-        const url = toMediaProxyUrl(rawUrl);
-        const fallbackUrl = sourceUrl && playbackUrl && sourceUrl !== playbackUrl ? toMediaProxyUrl(playbackUrl) : null;
+        const playbackUrl = row.playback_url || null;
+        const preferredUrl = playbackUrl || sourceUrl;
+        const url = toMediaProxyUrl(preferredUrl);
+        const fallbackUrl = sourceUrl && playbackUrl && sourceUrl !== playbackUrl ? toMediaProxyUrl(sourceUrl) : null;
 
         const isHls = typeof url === 'string' && /\.m3u8(\?|$)/i.test(url);
         const rawThumbnail = row.thumbnail_url
@@ -634,7 +634,7 @@ export async function GET(request: NextRequest) {
         return {
           id: row.video_id,
           url,
-          hlsUrl: isHls && !sourceUrl ? url : null,
+          hlsUrl: isHls ? url : null,
           fallbackUrl,
           thumbnail: toMediaProxyUrl(rawThumbnail),
           duration: row.duration_ms ? Math.round(row.duration_ms / 1000) : null,

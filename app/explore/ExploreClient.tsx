@@ -51,6 +51,7 @@ interface FeedVideoProps {
   videoId: string;
   src: string | null | undefined;
   hlsUrl: string | null | undefined;
+  fallbackSrc?: string | null | undefined;
   poster: string | null | undefined;
   isCurrent: boolean;
   muted: boolean;
@@ -59,10 +60,12 @@ interface FeedVideoProps {
   onTimeUpdate: (videoId: string, ratio: number, currentTime: number) => void;
 }
 
-function FeedVideo({ videoId, src, hlsUrl, poster, isCurrent, muted, registerRef, onTap, onTimeUpdate }: FeedVideoProps) {
-  // useHlsVideo wires src only when current. Neighbors mount <video> with preload=metadata, no src.
-  const effectiveSrc = isCurrent ? (hlsUrl || src || undefined) : undefined;
-  const hlsRef = useHlsVideo(effectiveSrc);
+function FeedVideo({ videoId, src, hlsUrl, fallbackSrc, poster, isCurrent, muted, registerRef, onTap, onTimeUpdate }: FeedVideoProps) {
+  // The component is rendered only for the current slide and its nearest
+  // neighbors; give neighbors a real src too so the next swipe has metadata
+  // and the first HLS segment ready instead of starting from zero.
+  const effectiveSrc = hlsUrl || src || undefined;
+  const hlsRef = useHlsVideo(effectiveSrc, fallbackSrc || src || undefined);
 
   // bridge the hls hook ref into the parent map
   useEffect(() => {
@@ -722,6 +725,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                     videoId={video.id}
                     src={video.url}
                     hlsUrl={video.hlsUrl}
+                    fallbackSrc={video.fallbackUrl}
                     poster={video.thumbnail}
                     isCurrent={isCurrent}
                     muted={isMuted}

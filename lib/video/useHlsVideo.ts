@@ -41,6 +41,8 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
     let cancelled = false;
     let hlsInstance: HlsType | null = null;
     let fallbackTried = false;
+    let networkRecoveries = 0;
+    let mediaRecoveries = 0;
 
     const fallbackToProgressive = () => {
       if (cancelled || fallbackTried || !fallbackSrc || fallbackSrc === src) return;
@@ -53,7 +55,8 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
       void video.play().catch(() => {});
     };
 
-    video.addEventListener("error", fallbackToProgressive);
+    const onVideoError = () => fallbackToProgressive();
+    video.addEventListener("error", onVideoError);
 
     void (async () => {
       try {
@@ -71,12 +74,25 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
           lowLatencyMode: false,
           // Conservative buffer for vertical feed swiping — we don't need to
           // buffer ahead aggressively because the user may swipe away.
-          maxBufferLength: 15,
-          maxMaxBufferLength: 30,
+          startLevel: 0,
+          capLevelToPlayerSize: true,
+          maxBufferLength: 8,
+          maxMaxBufferLength: 16,
         });
         hlsInstance = hls;
         hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data?.fatal) fallbackToProgressive();
+          if (!data?.fatal) return;
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRecoveries < 2) {
+            networkRecoveries += 1;
+            hls.startLoad();
+            return;
+          }
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveries < 2) {
+            mediaRecoveries += 1;
+            hls.recoverMediaError();
+            return;
+          }
+          fallbackToProgressive();
         });
         hls.loadSource(src);
         hls.attachMedia(video);
@@ -88,7 +104,7 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
 
     return () => {
       cancelled = true;
-      video.removeEventListener("error", fallbackToProgressive);
+      video.removeEventListener("error", onVideoError);
       if (hlsInstance) {
         try {
           hlsInstance.destroy();
