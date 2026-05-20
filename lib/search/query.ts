@@ -181,6 +181,21 @@ export async function searchProducts(
   const limit = clampLimit(opts.limit);
   const offset = clampOffset(opts.offset);
 
+  // Cross-language expansion: RO/DE/FR query → matching taxonomy slugs.
+  // Product titles are predominantly EN; this lets "rochie" match slug fashion-women-dresses.
+  let matchedSlugs: string[] = [];
+  try {
+    const { rows: slugRows } = await dbQuery<{ node_slug: string }>(
+      `SELECT DISTINCT node_slug
+         FROM taxonomy_translations
+        WHERE locale IN ('ro','de','fr','en')
+          AND public.f_unaccent(lower(label)) LIKE public.f_unaccent(lower($1)) || '%'
+        LIMIT 50`,
+      [q]
+    );
+    matchedSlugs = slugRows.map((r) => r.node_slug);
+  } catch {}
+
   const ftsSql = `
     WITH query AS (
       SELECT websearch_to_tsquery('simple', public.f_unaccent($1)) AS tsq,
@@ -193,7 +208,8 @@ export async function searchProducts(
       mp.image_url    AS image_url,
       GREATEST(
         ts_rank_cd(mp.search_document, query.tsq),
-        similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn)
+        similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn),
+        CASE WHEN mp.taxonomy_node_slug = ANY($4::text[]) THEN 0.5 ELSE 0 END
       )::float AS rank
     FROM marketplace_products mp
     CROSS JOIN query
@@ -202,13 +218,14 @@ export async function searchProducts(
       AND (
         mp.search_document @@ query.tsq
         OR similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn) > 0.2
+        OR ($4::text[] <> ARRAY[]::text[] AND mp.taxonomy_node_slug = ANY($4::text[]))
       )
     ORDER BY rank DESC
     LIMIT $2 OFFSET $3
   `;
 
   try {
-    const { rows } = await dbQuery(ftsSql, [q, limit, offset]);
+    const { rows } = await dbQuery(ftsSql, [q, limit, offset, matchedSlugs]);
     return rows as ProductResult[];
   } catch {
     const pattern = `%${q}%`;

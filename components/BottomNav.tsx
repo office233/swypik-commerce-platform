@@ -22,6 +22,8 @@ export default function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/product"];
+  // Home owns its own bottom nav (ChatInterface) with richer actions; avoid double-bar.
+  if (pathname === "/") return null;
   if (hiddenPaths.some((p) => pathname.startsWith(p))) return null;
 
   return (
