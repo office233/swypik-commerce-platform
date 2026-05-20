@@ -353,13 +353,13 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         {/* Tabs */}
         <div className="flex items-center gap-2 border-b border-[#E5E5E5] mb-5 sticky top-[calc(68px+env(safe-area-inset-top))] bg-white z-40 pb-2">
           <button onClick={() => setActiveTab("clips")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "clips" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
-            Clips ({productVideos.length})
+            Videoclipuri ({productVideos.length})
           </button>
           <button onClick={() => setActiveTab("details")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "details" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
             Detalii
           </button>
           <button onClick={() => setActiveTab("reviews")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "reviews" ? "border-[#0D0D0D] text-[#0D0D0D]" : "border-transparent text-[#6E6E80]"}`}>
-            Reviews
+            Recenzii
           </button>
         </div>
 
@@ -598,7 +598,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     <div className="flex items-baseline gap-1.5 mt-1">
                       <span className="text-sm font-black text-[#0D0D0D]">{s.price} lei</span>
                       {s.oldPrice > s.price && (
-                        <span className="text-[10px] text-[#A1A1AA] line-through">{s.oldPrice}</span>
+                        <span className="text-[10px] text-[#A1A1AA] line-through">{s.oldPrice} lei</span>
                       )}
                     </div>
                     {s.ratingAvg != null && (s.ratingCount ?? 0) > 0 && (
