@@ -570,15 +570,28 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         )}
 
         {activeTab === "reviews" && (
-          <div className="animate-fadeIn">
+          <div className="animate-fadeIn space-y-4">
             <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-6 text-center">
-              <div className="text-4xl font-black text-[#0D0D0D] mb-1">{product.rating?.toFixed(1) || "-"}</div>
+              <div className="text-4xl font-black text-[#0D0D0D] mb-1">{(product.rating ?? 0).toFixed(1)}</div>
               <div className="flex items-center justify-center gap-1 text-[#F59E0B] mb-2">
-                {[1,2,3,4,5].map(i => <Star key={i} size={16} fill={i <= (product.rating||0) ? 'currentColor' : 'none'} />)}
+                {[1,2,3,4,5].map(i => <Star key={i} size={16} fill={i <= Math.round(product.rating||0) ? 'currentColor' : 'none'} />)}
               </div>
-              <p className="text-sm font-medium text-[#6E6E80]">{product.ratingCount || 0} recenzii globale</p>
+              <p className="text-sm font-medium text-[#6E6E80]">
+                {product.ratingCount && product.ratingCount > 0
+                  ? `${product.ratingCount} recenzii verificate`
+                  : product.ordersCount && product.ordersCount > 0
+                    ? `Bazat pe ${product.ordersCount}+ comenzi de la clienți`
+                    : "Produs nou — fără recenzii încă"}
+              </p>
             </div>
-            {/* Further reviews can be loaded here */}
+            <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5 text-center">
+              <p className="text-sm font-medium text-[#6E6E80]">
+                💬 Recenziile cu text vor apărea aici după ce primii clienți primesc produsul și lasă o părere.
+              </p>
+              <p className="mt-2 text-xs text-[#A1A1AA]">
+                Cumperi prin Swypik? Vei primi o notificare să lași o recenzie după livrare.
+              </p>
+            </div>
           </div>
         )}
 
@@ -588,8 +601,8 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-3">Produse similare</h2>
             <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar">
               {similar.map(s => (
-                <button type="button" key={s.id} onClick={() => router.push(`/product/${s.id}`)}
-                  className="w-36 shrink-0 cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] hover:shadow-md transition-all active:scale-95 text-left" aria-label={s.title || "Produs similar"}>
+                <Link href={`/product/${s.id}`} key={s.id}
+                  className="w-36 shrink-0 cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] hover:shadow-md transition-all active:scale-95 text-left block" aria-label={s.title || "Produs similar"}>
                   <div className="relative h-36 w-full">
                     <Image src={s.image} alt="" fill sizes="144px" className="object-cover" />
                   </div>
@@ -609,7 +622,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                       </div>
                     )}
                   </div>
-                </button>
+                </Link>
               ))}
             </div>
           </div>
