@@ -236,7 +236,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-white pb-32" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
@@ -600,7 +600,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
 
         {/* Similar Products */}
         {similar.length > 0 && (
-          <div className="mt-8">
+          <div className="mt-6">
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-3">Produse similare</h2>
             <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar">
               {similar.map(s => (

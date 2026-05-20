@@ -95,6 +95,37 @@ export default async function ProductPage({ params }: Props) {
     } catch { /* non-fatal */ }
   }
 
+  // SSR-prefetch similar products (taxonomy match) for SEO internal linking
+  let initialSimilar: Array<{ id: string; title: string; price: number; image: string; oldPrice: number; hasVideo: boolean; rating: number; ratingAvg: number | null; ratingCount: number }> = [];
+  if (data) {
+    try {
+      const { rows: sRows } = await dbQuery<any>(
+        `SELECT p.id, p.title, p.price_cents, p.image_url
+           FROM marketplace_products p
+          WHERE p.status = 'active'
+            AND p.id <> $1
+            AND p.image_url IS NOT NULL
+            AND p.price_cents IS NOT NULL
+            AND p.taxonomy_node_slug = (SELECT taxonomy_node_slug FROM marketplace_products WHERE id = $1)
+            AND COALESCE(p.is_adult, false) = false
+          ORDER BY p.view_count DESC NULLS LAST, p.created_at DESC NULLS LAST
+          LIMIT 8`,
+        [id]
+      );
+      initialSimilar = sRows.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        price: r.price_cents ? r.price_cents / 100 : 0,
+        oldPrice: 0,
+        image: r.image_url || "",
+        hasVideo: false,
+        rating: 0,
+        ratingAvg: null,
+        ratingCount: 0,
+      }));
+    } catch { /* non-fatal */ }
+  }
+
   // Reviews aggregate + capability checks
   let reviewsAgg: { average: number | null; total: number } = { average: null, total: 0 };
   let canReview = false;
@@ -158,6 +189,17 @@ export default async function ProductPage({ params }: Props) {
     };
   }
 
+  // Breadcrumb JSON-LD: Home > Explore > {product title}
+  const breadcrumbJsonLd = data ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://swypik.com/" },
+      { "@type": "ListItem", position: 2, name: "Explore", item: "https://swypik.com/explore" },
+      { "@type": "ListItem", position: 3, name: data.product.title?.slice(0, 80) || "Product", item: `https://swypik.com/product/${data.product.id}` },
+    ],
+  } : null;
+
   return (
     <>
       {jsonLd && (
@@ -166,33 +208,13 @@ export default async function ProductPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
         />
       )}
-      <ProductClient initialData={data} initialVideos={initialVideos} />
-      {data && (
-        <section className="max-w-3xl mx-auto px-4 py-6" aria-labelledby="reviews-heading">
-          <h2 id="reviews-heading" className="text-lg font-semibold mb-2">Recenzii</h2>
-          <div className="flex items-center gap-2 mb-4">
-            <StarRating value={reviewsAgg.average ?? 0} size={18} />
-            <span className="text-sm text-gray-600">
-              {reviewsAgg.average != null
-                ? `${reviewsAgg.average.toFixed(1)} / 5 (${reviewsAgg.total} recenzii)`
-                : "Niciun review încă"}
-            </span>
-          </div>
-          <ReviewList productId={data.product.id} limit={10} />
-          {session && canReview && (
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold mb-2">Lasă o recenzie</h3>
-              <ReviewForm productId={data.product.id} />
-            </div>
-          )}
-          {session && alreadyReviewed && (
-            <p className="mt-4 text-sm text-gray-500">Ai lăsat deja o recenzie pentru acest produs.</p>
-          )}
-          {session && !canReview && !alreadyReviewed && (
-            <p className="mt-4 text-sm text-gray-500">Doar cumpărătorii verificați pot lăsa recenzii.</p>
-          )}
-        </section>
+      {breadcrumbJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
+        />
       )}
+      <ProductClient initialData={{ ...data, similar: initialSimilar.length > 0 ? initialSimilar : (data?.similar || []) }} initialVideos={initialVideos} />
     </>
   );
 }
