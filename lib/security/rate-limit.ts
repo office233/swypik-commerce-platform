@@ -168,11 +168,22 @@ export async function rateLimit(
  * hop in X-Forwarded-For (the IP closest to our proxy), never the first
  * (which a remote client can prepend).
  */
+/**
+ * Extract client IP from request headers.
+ *
+ * Caddy is the only ingress; it strips client-sent X-Real-IP / X-Forwarded-For /
+ * CF-Connecting-IP / True-Client-IP at the site level, then re-sets them
+ * upstream from Caddy's own `{client_ip}` (non-spoofable).
+ *
+ * We therefore TRUST only X-Real-IP. CF-Connecting-IP is intentionally ignored
+ * because production traffic does NOT go through Cloudflare — accepting it would
+ * re-introduce the rate-limit bypass that was closed in the Caddyfile (2026-05-20).
+ * X-Forwarded-For is used only as a last-resort fallback for dev / direct calls
+ * (when running outside Caddy); we take the LAST hop, never the first.
+ */
 export function getClientIP(req: Request): string {
   const real = req.headers.get("x-real-ip");
   if (real) return real.trim();
-  const cf = req.headers.get("cf-connecting-ip");
-  if (cf) return cf.trim();
   const xff = req.headers.get("x-forwarded-for");
   if (xff) {
     const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);

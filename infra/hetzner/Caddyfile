@@ -10,10 +10,29 @@
 	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 
+# ============================================================
+# Snippets: strip client-spoofed proxy headers and re-inject
+# trusted X-Real-IP / X-Forwarded-For from Caddy's {client_ip}.
+# Prevents rate-limit bypass via CF-Connecting-IP spoofing.
+# ============================================================
+(strip_client_proxy_headers) {
+	request_header -CF-Connecting-IP
+	request_header -X-Real-IP
+	request_header -X-Forwarded-For
+	request_header -True-Client-IP
+}
+
+(set_real_ip_upstream) {
+	header_up X-Real-IP {client_ip}
+	header_up X-Forwarded-For {client_ip}
+	header_up CF-Connecting-IP {client_ip}
+}
+
 # -------------------------------------------------------
 # Main storefront — swypik.com
 # -------------------------------------------------------
 swypik.com {
+	import strip_client_proxy_headers
 	# Security headers
 	header {
 		X-Frame-Options            "DENY"
@@ -47,6 +66,7 @@ swypik.com {
 	# Next.js static assets — long cache (Cache-Control set by Next, no dup here)
 	handle /_next/static/* {
 		reverse_proxy web-next:3000 {
+			import set_real_ip_upstream
 			lb_try_duration 10s
 			lb_try_interval 250ms
 			fail_duration 5s
@@ -57,6 +77,7 @@ swypik.com {
 	# Next.js data / image optimisation routes
 	handle /_next/* {
 		reverse_proxy web-next:3000 {
+			import set_real_ip_upstream
 			lb_try_duration 10s
 			lb_try_interval 250ms
 			fail_duration 5s
@@ -67,6 +88,7 @@ swypik.com {
 	# API routes served by the Next.js backend (BFF)
 	handle /api/* {
 		reverse_proxy web-next:3000 {
+			import set_real_ip_upstream
 			lb_try_duration 10s
 			lb_try_interval 250ms
 			fail_duration 5s
@@ -89,6 +111,7 @@ swypik.com {
 	# Everything else → Next.js SSR
 	handle {
 		reverse_proxy web-next:3000 {
+			import set_real_ip_upstream
 			lb_try_duration 10s
 			lb_try_interval 250ms
 			fail_duration 5s
@@ -101,6 +124,7 @@ swypik.com {
 # Platform API — api.swypik.com  (Go service)
 # -------------------------------------------------------
 api.swypik.com {
+	import strip_client_proxy_headers
 	# Security headers
 	header {
 		X-Frame-Options            "DENY"
@@ -136,6 +160,7 @@ api.swypik.com {
 
 	# All traffic → Go API
 	reverse_proxy platform-api:8080 {
+			import set_real_ip_upstream
 		lb_try_duration 10s
 		lb_try_interval 250ms
 		fail_duration 5s
@@ -155,6 +180,7 @@ www.swypik.com {
 # by hostname in middleware.ts. Aggressively no-index.
 # -------------------------------------------------------
 18.swypik.com {
+	import strip_client_proxy_headers
         header {
                 X-Frame-Options            "DENY"
                 X-Content-Type-Options     "nosniff"
@@ -162,9 +188,6 @@ www.swypik.com {
                 Strict-Transport-Security  "max-age=63072000; includeSubDomains; preload"
                 X-XSS-Protection           "1; mode=block"
                 Permissions-Policy         "camera=(), microphone=(), geolocation=()"
-                # Adult content must never appear in search engines or shared caches.
-                X-Robots-Tag               "noindex, nofollow, noarchive, nosnippet"
-                Cache-Control              "no-store, private"
                 X-Adult-Section            "true"
                 -Server
         }
@@ -194,6 +217,7 @@ www.swypik.com {
         # Everything else → Next.js (middleware.ts enforces /adult-only paths).
         handle {
                 reverse_proxy swypik-adult-web:3000 {
+			import set_real_ip_upstream
                         lb_try_duration 10s
                         lb_try_interval 250ms
                         fail_duration 5s
