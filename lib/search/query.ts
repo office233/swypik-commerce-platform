@@ -190,10 +190,12 @@ export async function searchProducts(
        SELECT DISTINCT node_slug
          FROM taxonomy_translations, q
         WHERE locale IN ('ro','de','fr','en')
+          AND char_length(qn) >= 3
           AND (
             public.f_unaccent(lower(label)) LIKE qn || '%'
             OR qn LIKE public.f_unaccent(lower(label)) || '%'
-            OR similarity(public.f_unaccent(lower(label)), qn) > 0.45
+            OR public.f_unaccent(lower(label)) LIKE '%' || qn || '%'
+            OR similarity(public.f_unaccent(lower(label)), qn) > 0.35
           )
         LIMIT 50`,
       [q]
