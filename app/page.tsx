@@ -7,12 +7,12 @@ export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
 
 export const metadata: Metadata = {
-  title: "Swypik — Shop by Video | AI-Powered Video Marketplace",
+  title: "Swypik — Cumpără prin Video | Marketplace cu AI",
   description:
     "Discover and buy products through curated video content. Browse trending items, best-value deals and top-rated picks with AI-powered recommendations on Swypik.",
   alternates: { canonical: "https://swypik.com/" },
   openGraph: {
-    title: "Swypik — Shop by Video",
+    title: "Swypik — Cumpără prin Video",
     description:
       "AI-powered video marketplace. Trending products, best deals and top-rated picks — all through video.",
     url: "https://swypik.com/",
@@ -98,7 +98,7 @@ export default async function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
       />
       <header className="sr-only">
-        <h1>Swypik — Shop by Video. AI-Powered Video Marketplace.</h1>
+        <h1>Swypik — Cumpără prin Video. Marketplace cu AI.</h1>
         <p>
           Discover trending products, best-value deals and top-rated picks through curated
           video content. Find the right product faster with AI-powered recommendations.

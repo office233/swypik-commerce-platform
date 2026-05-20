@@ -59,9 +59,9 @@ export default async function SearchPage({
       : new Map<string, { avgRating: number; reviewCount: number }>();
 
   const tabs: Array<{ key: typeof tab; label: string; count: number }> = [
-    { key: "videos", label: "Videos", count: results.videos.length },
-    { key: "creators", label: "Creators", count: results.creators.length },
-    { key: "products", label: "Products", count: results.products.length },
+    { key: "videos", label: "Videoclipuri", count: results.videos.length },
+    { key: "creators", label: "Creatori", count: results.creators.length },
+    { key: "products", label: "Produse", count: results.products.length },
     { key: "hashtags", label: "#Hashtags", count: results.hashtags.length },
   ];
 
@@ -104,7 +104,7 @@ export default async function SearchPage({
             {tab === "videos" && (
               <section>
                 {results.videos.length === 0 ? (
-                  <EmptyState label={`No videos found for "${q}"`} />
+                  <EmptyState label={`Nu am găsit videoclipuri pentru „${q}"`} />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {results.videos.map((v) => (
@@ -120,7 +120,7 @@ export default async function SearchPage({
                           ) : null}
                         </div>
                         <div className="p-2">
-                          <div className="text-sm font-medium truncate">{v.title ?? "Untitled"}</div>
+                          <div className="text-sm font-medium truncate">{v.title ?? "Fără titlu"}</div>
                           <div className="text-xs text-neutral-400 truncate">
                             {v.creator_name ?? "—"} · {Intl.NumberFormat().format(v.like_count)} likes
                           </div>
@@ -135,7 +135,7 @@ export default async function SearchPage({
             {tab === "creators" && (
               <section>
                 {results.creators.length === 0 ? (
-                  <EmptyState label={`No creators found for "${q}"`} />
+                  <EmptyState label={`Nu am găsit creatori pentru „${q}"`} />
                 ) : (
                   <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 bg-neutral-900/40">
                     {results.creators.map((c) => (
@@ -165,7 +165,7 @@ export default async function SearchPage({
             {tab === "products" && (
               <section>
                 {results.products.length === 0 ? (
-                  <EmptyState label={`No products found for "${q}"`} />
+                  <EmptyState label={`Nu am găsit produse pentru „${q}"`} />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {results.products.map((p) => {
@@ -210,7 +210,7 @@ export default async function SearchPage({
             {tab === "hashtags" && (
               <section>
                 {results.hashtags.length === 0 ? (
-                  <EmptyState label={`No hashtags found for "${q}"`} />
+                  <EmptyState label={`Nu am găsit hashtag-uri pentru „${q}"`} />
                 ) : (
                   <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 bg-neutral-900/40">
                     {results.hashtags.map((h) => (
