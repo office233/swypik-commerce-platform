@@ -100,12 +100,12 @@ export default async function Home() {
       <header className="sr-only">
         <h1>Swypik — Cumpără prin Video. Marketplace cu AI.</h1>
         <p>
-          Discover trending products, best-value deals and top-rated picks through curated
-          video content. Find the right product faster with AI-powered recommendations.
+          Descoperă produse populare, oferte cu cel mai bun raport calitate-preț și recomandări
+          top printr-un conținut video curatat. Găsește mai repede produsul potrivit cu AI.
         </p>
-        <h2>Trending Products</h2>
-        <h2>Best Value</h2>
-        <h2>Top Rated</h2>
+        <h2>Produse populare</h2>
+        <h2>Calitate-preț excelent</h2>
+        <h2>Top apreciate</h2>
       </header>
       <ChatInterface
         initialTrending={trending.products}
