@@ -9,10 +9,14 @@ export const dynamic = "force-dynamic";
 
 const STALE_PROCESSING_MIN = Number(process.env.VIDEO_ALERT_STALE_MIN ?? 30);
 const STALE_PROCESSING_THRESHOLD = Number(process.env.VIDEO_ALERT_STALE_THRESHOLD ?? 25);
-const QUEUE_LENGTH_THRESHOLD = Number(process.env.VIDEO_ALERT_QUEUE_LEN ?? 15_000);
+// XLEN is no longer the primary signal — workers now XDEL+XTRIM after ack,
+// so a fat stream usually means the trim hasn't run yet rather than a real
+// backlog. Keep a very high ceiling as a last-resort tripwire only.
+const QUEUE_LENGTH_THRESHOLD = Number(process.env.VIDEO_ALERT_QUEUE_LEN ?? 50_000);
 const QUEUE_PENDING_THRESHOLD = Number(process.env.VIDEO_ALERT_QUEUE_PENDING ?? 200);
 const QUEUE_LAG_THRESHOLD = Number(process.env.VIDEO_ALERT_QUEUE_LAG ?? 5_000);
 const QUEUE_FAILED_THRESHOLD = Number(process.env.VIDEO_ALERT_QUEUE_FAILED ?? 50);
+const DB_QUEUED_THRESHOLD = Number(process.env.VIDEO_ALERT_DB_QUEUED ?? 500);
 const COOLDOWN_MIN = Number(process.env.VIDEO_ALERT_COOLDOWN_MIN ?? 60);
 const ALERT_TO = process.env.VIDEO_ALERT_EMAIL || process.env.ADMIN_ALERT_EMAIL || "";
 
@@ -31,6 +35,28 @@ function authorize(req: Request): boolean {
 interface StaleProcessing {
   count: number;
   oldest_minutes: number | null;
+}
+
+interface DbQueueCounts {
+  queued: number;
+  running: number;
+  failed: number;
+}
+
+async function dbQueueCounts(): Promise<DbQueueCounts> {
+  const r = await dbQuery<{ status: string; n: string }>(
+    `SELECT status, COUNT(*)::text AS n
+       FROM video_processing_jobs
+      WHERE status IN ('queued','running','failed')
+      GROUP BY status`
+  );
+  const out: DbQueueCounts = { queued: 0, running: 0, failed: 0 };
+  for (const row of r.rows) {
+    if (row.status === 'queued') out.queued = Number(row.n);
+    else if (row.status === 'running') out.running = Number(row.n);
+    else if (row.status === 'failed') out.failed = Number(row.n);
+  }
+  return out;
 }
 
 async function staleProcessing(): Promise<StaleProcessing> {
@@ -70,15 +96,25 @@ interface Breach {
   threshold: number | string;
 }
 
-function evaluateBreaches(stale: StaleProcessing, queue: Awaited<ReturnType<typeof checkQueue>>): Breach[] {
+function evaluateBreaches(
+  stale: StaleProcessing,
+  queue: Awaited<ReturnType<typeof checkQueue>>,
+  dbq: DbQueueCounts,
+): Breach[] {
   const breaches: Breach[] = [];
+  // Primary signals: DB-level work that's actually stuck or piling up.
   if (stale.count >= STALE_PROCESSING_THRESHOLD) {
     breaches.push({ metric: `videos.processing > ${STALE_PROCESSING_MIN}min`, value: stale.count, threshold: STALE_PROCESSING_THRESHOLD });
   }
-  const d = (queue.detail || {}) as Record<string, number>;
-  if ((d.length ?? 0) >= QUEUE_LENGTH_THRESHOLD) {
-    breaches.push({ metric: "redis stream length", value: d.length, threshold: QUEUE_LENGTH_THRESHOLD });
+  if (dbq.queued >= DB_QUEUED_THRESHOLD) {
+    breaches.push({ metric: "video_processing_jobs.queued", value: dbq.queued, threshold: DB_QUEUED_THRESHOLD });
   }
+  if (dbq.failed >= QUEUE_FAILED_THRESHOLD) {
+    breaches.push({ metric: "video_processing_jobs.failed", value: dbq.failed, threshold: QUEUE_FAILED_THRESHOLD });
+  }
+  // Redis-side: lag and pending are the actionable signals; XLEN is a soft
+  // tripwire only (XTRIM keeps it bounded under normal operation).
+  const d = (queue.detail || {}) as Record<string, number>;
   if ((d.pending ?? 0) >= QUEUE_PENDING_THRESHOLD) {
     breaches.push({ metric: "consumer pending", value: d.pending, threshold: QUEUE_PENDING_THRESHOLD });
   }
@@ -87,6 +123,9 @@ function evaluateBreaches(stale: StaleProcessing, queue: Awaited<ReturnType<type
   }
   if ((d.failed ?? 0) >= QUEUE_FAILED_THRESHOLD) {
     breaches.push({ metric: "failed stream length", value: d.failed, threshold: QUEUE_FAILED_THRESHOLD });
+  }
+  if ((d.length ?? 0) >= QUEUE_LENGTH_THRESHOLD) {
+    breaches.push({ metric: "redis stream length", value: d.length, threshold: QUEUE_LENGTH_THRESHOLD });
   }
   return breaches;
 }
@@ -108,11 +147,12 @@ function renderHtml(breaches: Breach[], stale: StaleProcessing, queue: Awaited<R
 }
 
 async function run() {
-  const [stale, queue] = await Promise.all([staleProcessing(), checkQueue()]);
-  const breaches = evaluateBreaches(stale, queue);
+  const [stale, queue, dbq] = await Promise.all([staleProcessing(), checkQueue(), dbQueueCounts()]);
+  const breaches = evaluateBreaches(stale, queue, dbq);
   const out: Record<string, unknown> = {
     ts: new Date().toISOString(),
     stale,
+    db_queue: dbq,
     queue,
     breaches,
     alerted: false,

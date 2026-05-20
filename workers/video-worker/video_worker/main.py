@@ -42,7 +42,16 @@ def main(argv: list[str] | None = None) -> int:
     reconnect_attempts = 0
     max_backoff_seconds = 30
 
+    iterations = 0
     while not stop.requested:
+        iterations += 1
+        # Cap stream length every ~50 iterations so XLEN doesn't grow unbounded
+        # past acked entries (XACK alone doesn't shorten the stream).
+        if iterations % 50 == 0:
+            try:
+                queue.trim(max_len=5000)
+            except Exception:
+                pass
         try:
             queued = queue.pop_message()
             reconnect_attempts = 0  # success → reset backoff

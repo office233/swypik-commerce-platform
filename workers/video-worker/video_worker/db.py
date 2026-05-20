@@ -14,6 +14,35 @@ class PostgresRepository:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
+    def try_claim(self, job: VideoJob) -> bool:
+        """Atomically claim a job: flip status queued->running only if still queued.
+
+        Returns True if THIS worker won the claim (proceed to process), False if
+        another worker / a watchdog requeue / a manual flip already moved the job
+        out of 'queued'. The False path lets main.py ack the redis message and
+        skip processing, eliminating duplicate work that was causing the
+        ~150%% CPU + GB-egress runaway in 2026-05-20.
+        """
+        if not self.settings.database_url:
+            return True
+        connection = self._connect()
+        try:
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        _format_table(
+                            "UPDATE {jobs} SET status='running', started_at=NOW(), "
+                            "attempt_count=COALESCE(attempt_count,0)+1, error_message=NULL "
+                            "WHERE id=%s AND status='queued' RETURNING id",
+                            "jobs",
+                            self.settings.jobs_table,
+                        ),
+                        (job.job_id,),
+                    )
+                    return cursor.fetchone() is not None
+        finally:
+            connection.close()
+
     def mark_processing(self, job: VideoJob) -> None:
         self._execute_job_and_asset(
             job,

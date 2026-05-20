@@ -55,6 +55,21 @@ class RedisQueue:
         if not queued.message_id or not queued.stream:
             return
         self.client.xack(queued.stream, self.settings.consumer_group, queued.message_id)
+        # Also delete the entry from the stream so XLEN stays bounded. XACK only
+        # marks the message as processed by the group but leaves it in the stream
+        # forever — XDEL physically removes it. Failures here are non-fatal.
+        try:
+            self.client.xdel(queued.stream, queued.message_id)
+        except Exception:
+            pass
+
+    def trim(self, max_len: int = 5000) -> None:
+        """Cap the main stream length so dangling/unacked entries can't grow
+        forever. Best-effort, called periodically by the worker main loop."""
+        try:
+            self.client.xtrim(self.settings.queue_name, maxlen=max_len, approximate=True)
+        except Exception:
+            pass
 
     def fail(self, queued: QueuedVideoJob, message: str) -> None:
         if queued.message_id and self.settings.failed_stream:

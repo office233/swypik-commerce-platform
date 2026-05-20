@@ -40,6 +40,18 @@ class VideoProcessor:
     def process(self, job: VideoJob) -> ProcessResult:
         source_bucket = job.source_bucket or job.bucket or self.settings.bucket
         output_bucket = job.output_bucket or job.bucket or self.settings.output_bucket or self.settings.bucket
+        # ATOMIC CLAIM: refuse duplicates. If this UPDATE doesn't flip a row
+        # from 'queued' the job is already taken / done — ack & skip.
+        try_claim = getattr(self.repository, "try_claim", None)
+        if try_claim is not None:
+            try:
+                claimed = try_claim(job)
+            except Exception:
+                logger.exception("try_claim raised for job %s; proceeding optimistically", job.job_id)
+                claimed = True
+            if not claimed:
+                logger.info("Job %s skipped (not in 'queued' state)", job.job_id)
+                return ProcessResult(ok=True, message="JOB_SKIPPED")
         try:
             self.repository.mark_processing(job)
             self._emit_status(StatusEvent(job=job, status="processing"))
