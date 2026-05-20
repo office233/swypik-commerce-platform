@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, TrendingUp, Swords } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
 
 type AccountPageClientProps = {
@@ -344,6 +344,44 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                 )}
               </p>
               <p className="mt-1 text-xs text-[#EC4899] font-bold">Vezi provocări →</p>
+            </Link>
+          </div>
+        </section>
+
+        {/* Descoperă */}
+        <section aria-label="Descoperă" className="mb-6">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="text-sm font-black uppercase tracking-wider text-white/70">Descoperă</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              href="/trends"
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#10A37F]/20 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#10A37F]/60 transition active:scale-[0.98]"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-9 h-9 rounded-xl bg-[#10A37F]/20 flex items-center justify-center">
+                  <TrendingUp size={18} className="text-[#10A37F]" aria-hidden />
+                </div>
+                <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
+              </div>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Ce e hot acum</p>
+              <p className="mt-1 text-xl font-black text-white">Trends</p>
+              <p className="mt-1 text-xs text-[#10A37F] font-bold">Vezi trending →</p>
+            </Link>
+
+            <Link
+              href="/battles"
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#F59E0B]/20 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#F59E0B]/60 transition active:scale-[0.98]"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-9 h-9 rounded-xl bg-[#F59E0B]/20 flex items-center justify-center">
+                  <Swords size={18} className="text-[#F59E0B]" aria-hidden />
+                </div>
+                <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
+              </div>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Voturi & dueluri</p>
+              <p className="mt-1 text-xl font-black text-white">Battles</p>
+              <p className="mt-1 text-xs text-[#F59E0B] font-bold">Intră în arenă →</p>
             </Link>
           </div>
         </section>
