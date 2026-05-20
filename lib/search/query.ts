@@ -195,7 +195,8 @@ export async function searchProducts(
             public.f_unaccent(lower(label)) LIKE qn || '%'
             OR qn LIKE public.f_unaccent(lower(label)) || '%'
             OR public.f_unaccent(lower(label)) LIKE '%' || qn || '%'
-            OR similarity(public.f_unaccent(lower(label)), qn) > 0.5
+            OR word_similarity(qn, public.f_unaccent(lower(label))) > 0.65
+            OR public.f_unaccent(lower(COALESCE(description,''))) LIKE '%' || qn || '%'
           )
         LIMIT 50`,
       [q]
