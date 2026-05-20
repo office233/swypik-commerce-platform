@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Home, Search, Plus, Inbox, User } from "lucide-react";
@@ -23,8 +24,15 @@ export default function BottomNav() {
   const t = useTranslations("nav");
   const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/product"];
   // Home owns its own bottom nav (ChatInterface) with richer actions; avoid double-bar.
-  if (pathname === "/") return null;
-  if (hiddenPaths.some((p) => pathname.startsWith(p))) return null;
+  const isHidden = pathname === "/" || hiddenPaths.some((p) => pathname.startsWith(p));
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.style.paddingBottom = isHidden
+      ? ""
+      : "calc(56px + env(safe-area-inset-bottom, 0px))";
+    return () => { document.body.style.paddingBottom = ""; };
+  }, [isHidden]);
+  if (isHidden) return null;
 
   return (
     <nav

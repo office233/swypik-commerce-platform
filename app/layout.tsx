@@ -77,7 +77,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <CurrencyProvider initial={currency}>
             <EmailVerifyBanner />
             <OnboardingGate />
-            <div style={{ paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))', minHeight: '100dvh' }}>
+            <div style={{ minHeight: '100dvh' }}>
               {children}
             </div>
             <BottomNav />
