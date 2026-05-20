@@ -1,0 +1,5 @@
+./postgres_repository.go
+./ranking.go
+./repository.go
+./postgres_repository_test.go
+./ranking_test.go

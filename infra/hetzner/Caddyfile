@@ -180,6 +180,24 @@ www.swypik.com {
 # by hostname in middleware.ts. Aggressively no-index.
 # -------------------------------------------------------
 18.swypik.com {
+	@yandex_verify path /yandex_aa8e52856491a6b6.html
+	handle @yandex_verify {
+		header Content-Type "text/html; charset=UTF-8"
+		header -X-Frame-Options
+		header -X-Content-Type-Options
+		header -Referrer-Policy
+		header -Strict-Transport-Security
+		header -X-XSS-Protection
+		header -Permissions-Policy
+		header -X-Adult-Section
+		respond "<html>
+    <head>
+        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">
+    </head>
+    <body>Verification: aa8e52856491a6b6</body>
+</html>" 200
+	}
+
 	import strip_client_proxy_headers
         header {
                 X-Frame-Options            "DENY"

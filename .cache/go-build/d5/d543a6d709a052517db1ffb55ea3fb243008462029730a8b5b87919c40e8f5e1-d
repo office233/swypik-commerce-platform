@@ -1,0 +1,4 @@
+./postgres_store.go
+./service.go
+./postgres_store_test.go
+./uploads_test.go
