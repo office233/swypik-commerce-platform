@@ -207,12 +207,10 @@ const ADULT_TERMS = [
   'anal beads','anal toy','cock ring','penis ring','penis pump','penis sleeve','vibrating egg',
   'love egg','g-spot','g spot','lubricant sex','sex lubricant','personal lubricant','adult only',
   'adult-only','adults only','erotic','porn','pornographic','nsfw','crotchless','pheromone','xxx','18+',
-  'sissy','chastity','open butt','anal','penis','bulge','g-string','g string','jockstrap','jock strap',
+  'sissy','chastity','open butt',
 ];
 const ADULT_COMBO_RULES = [
   { reason: 'matched jockstrap+g-string', pattern: /(?:jock\s*strap|jockstrap).*g[-\s]?strings?|g[-\s]?strings?.*(?:jock\s*strap|jockstrap)/i },
-  { reason: 'matched thong underwear', pattern: /\b(?:thongs?|g[-\s]?strings?)\b.*\b(?:underwear|underpants|panties|lingerie|pouch)\b|\b(?:underwear|underpants|panties|lingerie|pouch)\b.*\b(?:thongs?|g[-\s]?strings?)\b/i },
-  { reason: 'matched sexualized underwear', pattern: /\b(?:sexy|transparent|see[-\s]?through|hollow|backless)\b.{0,80}\b(?:lingerie|panties|panty|underwear|underpants|briefs|bras?|breasts?)\b|\b(?:lingerie|panties|panty|underwear|underpants|briefs|bras?|breasts?)\b.{0,80}\b(?:sexy|transparent|see[-\s]?through|hollow|backless)\b/i },
 ];
 function adultReason(p) {
   const t = `${p.title} ${p.description || ''}`.toLowerCase();
@@ -313,7 +311,7 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
   const totalStock = product.variants.reduce((s, v) => s + v.stock, 0);
   const activePrices = product.variants.filter(v => v.status === 'active').map(v => centsRon(v.priceRon)).filter(Number.isFinite);
   const priceCents = activePrices.length ? Math.min(...activePrices) : centsRon(product.variants[0].priceRon);
-  const productStatus = tax.unresolved || totalStock <= 0 || ar ? 'draft' : 'active';
+  const productStatus = tax.unresolved || totalStock <= 0 ? 'draft' : 'active';
   const slug = `${slugify(product.title) || 'aliexpress-product'}-${product.id}`;
 
   const metadata = {
@@ -380,12 +378,18 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
       -- supplier_cost_cents / shipping_cost_cents kept NULL until recalcPricing
       supplier_cost_cents=NULL, shipping_cost_cents=NULL,
       canonical_category=EXCLUDED.canonical_category, canonical_category_slug=EXCLUDED.canonical_category_slug,
-      taxonomy_department=EXCLUDED.taxonomy_department, taxonomy_category=EXCLUDED.taxonomy_category,
-      taxonomy_subcategory=EXCLUDED.taxonomy_subcategory, taxonomy_leaf=EXCLUDED.taxonomy_leaf,
-      taxonomy_slug=EXCLUDED.taxonomy_slug, taxonomy_node_slug=EXCLUDED.taxonomy_node_slug,
-      taxonomy_confidence=EXCLUDED.taxonomy_confidence,
-      taxonomy_reason=EXCLUDED.taxonomy_reason, is_adult=EXCLUDED.is_adult,
-      adult_reason=EXCLUDED.adult_reason, taxonomy_unresolved=EXCLUDED.taxonomy_unresolved,
+      -- Pastreaza fix-urile manuale: daca taxonomy_reason curent incepe cu 'manual_', nu rescrie campurile de clasificare
+      taxonomy_department  = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_department  ELSE EXCLUDED.taxonomy_department  END,
+      taxonomy_category    = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_category    ELSE EXCLUDED.taxonomy_category    END,
+      taxonomy_subcategory = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_subcategory ELSE EXCLUDED.taxonomy_subcategory END,
+      taxonomy_leaf        = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_leaf        ELSE EXCLUDED.taxonomy_leaf        END,
+      taxonomy_slug        = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_slug        ELSE EXCLUDED.taxonomy_slug        END,
+      taxonomy_node_slug   = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_node_slug   ELSE EXCLUDED.taxonomy_node_slug   END,
+      taxonomy_confidence  = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_confidence  ELSE EXCLUDED.taxonomy_confidence  END,
+      taxonomy_reason      = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_reason      ELSE EXCLUDED.taxonomy_reason      END,
+      is_adult             = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.is_adult             ELSE EXCLUDED.is_adult             END,
+      adult_reason         = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.adult_reason         ELSE EXCLUDED.adult_reason         END,
+      taxonomy_unresolved  = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_unresolved  ELSE EXCLUDED.taxonomy_unresolved  END,
       updated_at=now()
     RETURNING id::text AS id
   `, [
@@ -530,6 +534,14 @@ async function main() {
       await rateLimit();
       const detail = await getProductDetail(pid);
       const product = mapProduct(detail, pid);
+
+      const adultGate = adultReason(product);
+      if (adultGate) {
+        await pool.query(`UPDATE ae_import_jobs SET status='skipped', last_error=$2, fetched_at=now() WHERE product_id=$1`, [pid, `adult_blocked:${adultGate}`.slice(0, 500)]);
+        skipped++;
+        log('info', 'adult skipped', { product_id: pid, reason: adultGate });
+        continue;
+      }
 
       const client = await pool.connect();
       let productDbId = null;
