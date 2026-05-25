@@ -260,9 +260,45 @@ export const TREE = [
         labels: { en: "Accessories", ro: "Accesorii vestimentare" },
         match: [{ dep: "fashion", cat: "accessories" }],
         children: [
-          { slug: "fashion-accessories-bags", labels: { en: "Bags & wallets", ro: "Genți și portofele" }, match: [{ dep: "fashion", cat: "accessories", sub: "bags" }] },
-          { slug: "fashion-accessories-jewelry", labels: { en: "Jewelry", ro: "Bijuterii" }, match: [{ dep: "fashion", cat: "accessories", sub: "jewelry" }] },
-          { slug: "fashion-accessories-watches", labels: { en: "Watches", ro: "Ceasuri" }, match: [{ dep: "fashion", cat: "accessories", sub: "watches" }] },
+          {
+            slug: "fashion-accessories-bags",
+            labels: { en: "Bags & wallets", ro: "Genți și portofele" },
+            match: [
+              { dep: "fashion", cat: "accessories", sub: "bags" },
+              { dep: "fashion", cat: "bags" },
+              { dep: "fashion", cat: "bags", sub: "backpacks" },
+              { dep: "fashion", cat: "bags", sub: "wallets" },
+              { dep: "fashion", cat: "bags", sub: "handbags" },
+              { dep: "fashion", cat: "bags", sub: "crossbody" },
+              { dep: "fashion", cat: "bags", sub: "luggage" },
+            ],
+          },
+          {
+            slug: "fashion-accessories-jewelry",
+            labels: { en: "Jewelry", ro: "Bijuterii" },
+            match: [
+              { dep: "fashion", cat: "accessories", sub: "jewelry" },
+              { dep: "fashion", cat: "jewelry" },
+              { dep: "fashion", cat: "jewelry", sub: "rings" },
+              { dep: "fashion", cat: "jewelry", sub: "pendants" },
+              { dep: "fashion", cat: "jewelry", sub: "earrings" },
+              { dep: "fashion", cat: "jewelry", sub: "bracelets" },
+              { dep: "fashion", cat: "jewelry", sub: "necklaces" },
+              { dep: "fashion", cat: "jewelry", sub: "charms" },
+            ],
+          },
+          {
+            slug: "fashion-accessories-watches",
+            labels: { en: "Watches", ro: "Ceasuri" },
+            match: [
+              { dep: "fashion", cat: "accessories", sub: "watches" },
+              { dep: "fashion", cat: "watches" },
+              { dep: "fashion", cat: "watches", sub: "men's watches" },
+              { dep: "fashion", cat: "watches", sub: "women's watches" },
+              { dep: "fashion", cat: "watches", sub: "couple watches" },
+              { dep: "fashion", cat: "watches", sub: "kids watches" },
+            ],
+          },
           { slug: "fashion-accessories-hats", labels: { en: "Hats & caps", ro: "Pălării și șepci" }, match: [{ dep: "fashion", cat: "accessories", sub: "hats" }] },
         ],
       },
@@ -377,12 +413,31 @@ export const TREE = [
             match: [
               { dep: "electronics", cat: "phone accessories", sub: "cases" },
               { dep: "electronics", cat: "phone accessories", sub: "huse de telefon" },
-              { dep: "electronics", cat: "phone accessories", sub: "accesorii pentru telefon" },
+            ],
+          },
+          {
+            slug: "electronics-phones-screen-protectors",
+            labels: { en: "Screen protectors", ro: "Folii de protecție" },
+            match: [
               { dep: "electronics", cat: "phone accessories", sub: "folii de protecție pentru telefon" },
+              { dep: "electronics", cat: "phone accessories", sub: "screen protectors" },
+            ],
+          },
+          {
+            slug: "electronics-phones-chargers",
+            labels: { en: "Chargers & cables", ro: "Încărcătoare și cabluri" },
+            match: [
+              { dep: "electronics", cat: "phone accessories", sub: "chargers" },
+              { dep: "electronics", cat: "phone accessories", sub: "accesorii pentru telefon" },
+            ],
+          },
+          {
+            slug: "electronics-phones-camera-accessories",
+            labels: { en: "Phone camera accessories", ro: "Accesorii foto telefon" },
+            match: [
               { dep: "electronics", cat: "phone accessories", sub: "accesorii foto pentru telefon" },
             ],
           },
-          { slug: "electronics-phones-chargers", labels: { en: "Chargers & cables", ro: "Încărcătoare și cabluri" }, match: [{ dep: "electronics", cat: "phone accessories", sub: "chargers" }] },
         ],
       },
       {
@@ -470,6 +525,10 @@ export const TREE = [
           { dep: "toys", cat: "toys" },
           { dep: "toys", cat: "kids", sub: "toys" },
           { dep: "toys", cat: "kids" },
+          { dep: "toys", cat: "hobbies" },
+          { dep: "toys", cat: "hobbies", sub: "action figures" },
+          { dep: "toys", cat: "hobbies", sub: "model kits" },
+          { dep: "toys", cat: "hobbies", sub: "collectibles" },
         ],
       },
       {
@@ -478,8 +537,6 @@ export const TREE = [
         match: [
           { dep: "toys", cat: "baby" },
           { dep: "kids", cat: "general", sub: "maternity" },
-          { dep: "kids", cat: "general" },
-          { dep: "kids" },
         ],
       },
       { slug: "toys-school", kind: "category", labels: { en: "School supplies", ro: "Rechizite școlare" }, match: [{ dep: "toys", cat: "school" }] },
@@ -680,12 +737,14 @@ export function resolveSlug(matcher, dep, cat, sub) {
 }
 
 async function reclassifyProducts(client, matcher) {
+  // Skip produse cu override manual (taxonomy_reason începe cu manual_) — fix-urile umane câștigă.
   const { rows } = await client.query(
     `SELECT id, taxonomy_department AS dep, taxonomy_category AS cat, taxonomy_subcategory AS sub
        FROM marketplace_products
-      WHERE status IN ('active','draft')`
+      WHERE status IN ('active','draft')
+        AND (taxonomy_reason IS NULL OR taxonomy_reason NOT LIKE 'manual_%')`
   );
-  let exact = 0, catOnly = 0, depOnly = 0, fallback = 0;
+  let exact = 0, catOnly = 0, depOnly = 0, fallback = 0, skipped = 0;
   for (const p of rows) {
     const r = resolveSlug(matcher, p.dep, p.cat, p.sub);
     if (r.confidence === 1.0) exact++;
@@ -702,7 +761,11 @@ async function reclassifyProducts(client, matcher) {
       [p.id, r.slug, r.confidence]
     );
   }
-  return { total: rows.length, exact, catOnly, depOnly, fallback };
+  const { rows: skipRows } = await client.query(
+    `SELECT COUNT(*)::int AS n FROM marketplace_products WHERE status IN ('active','draft') AND taxonomy_reason LIKE 'manual_%'`
+  );
+  skipped = skipRows[0]?.n ?? 0;
+  return { total: rows.length, exact, catOnly, depOnly, fallback, skipped };
 }
 
 async function main() {
