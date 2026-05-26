@@ -88,14 +88,24 @@ export async function GET(req: Request) {
     return NextResponse.redirect(`${getOAuthRedirectBase()}/auth?error=oauth_no_sub`);
   }
 
-  const { userId } = await findOrCreateUserFromOAuth({
-    provider: "google",
-    providerUserId: payload.sub,
-    email: payload.email || null,
-    emailVerified: Boolean(payload.email_verified),
-    displayName: payload.name || null,
-    avatarUrl: payload.picture || null,
-  });
+  const { userId } = await findOrCreateUserFromOAuth(
+    {
+      provider: "google",
+      providerUserId: payload.sub,
+      email: payload.email || null,
+      emailVerified: Boolean(payload.email_verified),
+      displayName: payload.name || null,
+      avatarUrl: payload.picture || null,
+    },
+    {
+      ip:
+        req.headers.get("cf-connecting-ip") ||
+        (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+        null,
+      ipCountry: req.headers.get("cf-ipcountry"),
+      userAgent: req.headers.get("user-agent"),
+    },
+  );
 
   const sessionCookie = await issueOAuthSessionCookie(userId);
   const safeNext = isSafeRedirect(nextPath);

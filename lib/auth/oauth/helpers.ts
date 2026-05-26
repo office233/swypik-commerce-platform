@@ -37,9 +37,16 @@ export type OAuthProfile = {
   avatarUrl: string | null;
 };
 
+export type OAuthSignupContext = {
+  ip?: string | null;
+  ipCountry?: string | null;
+  userAgent?: string | null;
+};
+
 export async function findOrCreateUserFromOAuth(
   profile: OAuthProfile,
-): Promise<{ userId: string }> {
+  signupContext?: OAuthSignupContext,
+): Promise<{ userId: string; recreationBlocked?: boolean }> {
   // 1) already linked?
   const linked = await dbQuery<{ user_id: string }>(
     `SELECT user_id FROM oauth_accounts
@@ -51,6 +58,7 @@ export async function findOrCreateUserFromOAuth(
 
   // 2) find user by email
   let userId: string | null = null;
+  let recreationBlocked = false;
   if (profile.email) {
     const existing = await dbQuery<{ id: string }>(
       `SELECT id FROM users WHERE lower(email) = lower($1) LIMIT 1`,
@@ -90,6 +98,21 @@ export async function findOrCreateUserFromOAuth(
     } catch (err) {
       console.warn("[oauth/signup] referral attribution failed:", (err as Error).message);
     }
+    // Fraud recreation detection — best-effort, never blocks signup
+    try {
+      const { checkRecreationAndMaybeBlock } = await import("@/lib/risk/recreation-detection");
+      const r = await checkRecreationAndMaybeBlock({
+        userId,
+        email: profile.email,
+        ip: signupContext?.ip || null,
+        ipCountry: signupContext?.ipCountry || null,
+        userAgent: signupContext?.userAgent || null,
+        signupPath: "oauth",
+      });
+      recreationBlocked = r.blocked;
+    } catch (err) {
+      console.warn("[oauth/signup] recreation check failed:", (err as Error).message);
+    }
   } else if (profile.email && profile.emailVerified) {
     // backfill verification on existing email
     await dbQuery(
@@ -107,7 +130,7 @@ export async function findOrCreateUserFromOAuth(
     [userId, profile.provider, profile.providerUserId, profile.email],
   );
 
-  return { userId };
+  return { userId, recreationBlocked };
 }
 
 export async function issueOAuthSessionCookie(userId: string): Promise<string> {

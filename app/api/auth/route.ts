@@ -297,6 +297,20 @@ async function handleSendOtp(req: Request, rawEmail: unknown) {
     } catch (err) {
       console.warn("[auth/otp_signup] referral attribution failed:", (err as Error).message);
     }
+    // Fraud recreation detection — best-effort, never blocks signup
+    try {
+      const { checkRecreationAndMaybeBlock } = await import("@/lib/risk/recreation-detection");
+      await checkRecreationAndMaybeBlock({
+        userId: newRows[0].id,
+        email: normalizedEmail,
+        ip,
+        ipCountry: req.headers.get("cf-ipcountry"),
+        userAgent: req.headers.get("user-agent"),
+        signupPath: "otp_email",
+      });
+    } catch (err) {
+      console.warn("[auth/otp_signup] recreation check failed:", (err as Error).message);
+    }
   }
 
   const userId = rows[0].id;
@@ -510,6 +524,22 @@ export async function POST(req: Request) {
         await attributeOnSignup({ inviteeUserId: userId });
       } catch (err) {
         console.warn("[auth/signup_password] referral attribution failed:", (err as Error).message);
+      }
+
+      // Fraud recreation detection — best-effort, never blocks signup
+      try {
+        const { checkRecreationAndMaybeBlock } = await import("@/lib/risk/recreation-detection");
+        await checkRecreationAndMaybeBlock({
+          userId,
+          email: normalizedEmail,
+          phone: phoneTrimmed || null,
+          ip: getClientIP(req),
+          ipCountry: req.headers.get("cf-ipcountry"),
+          userAgent: req.headers.get("user-agent"),
+          signupPath: "password",
+        });
+      } catch (err) {
+        console.warn("[auth/signup_password] recreation check failed:", (err as Error).message);
       }
 
       // Trimite OTP de verificare email asincron (fire-and-forget pentru UX rapid)

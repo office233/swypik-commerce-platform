@@ -134,14 +134,24 @@ async function handle(req: Request, params: URLSearchParams, userJson?: string) 
   const emailVerified =
     payload.email_verified === true || payload.email_verified === "true";
 
-  const { userId } = await findOrCreateUserFromOAuth({
-    provider: "apple",
-    providerUserId: payload.sub,
-    email: payload.email || null,
-    emailVerified,
-    displayName,
-    avatarUrl: null,
-  });
+  const { userId } = await findOrCreateUserFromOAuth(
+    {
+      provider: "apple",
+      providerUserId: payload.sub,
+      email: payload.email || null,
+      emailVerified,
+      displayName,
+      avatarUrl: null,
+    },
+    {
+      ip:
+        req.headers.get("cf-connecting-ip") ||
+        (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+        null,
+      ipCountry: req.headers.get("cf-ipcountry"),
+      userAgent: req.headers.get("user-agent"),
+    },
+  );
 
   const sessionCookie = await issueOAuthSessionCookie(userId);
   const safeNext = isSafeRedirect(nextPath);

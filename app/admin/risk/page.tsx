@@ -55,6 +55,8 @@ type BlockedUser = {
   blocked_at: string | null;
   reason: string | null;
   blocked_by: string | null;
+  recreation_signal: string | null;
+  recreation_of: string | null;
   flagged_orders_count: number;
 };
 
@@ -64,6 +66,8 @@ async function getBlockedUsers(): Promise<BlockedUser[]> {
             u.metadata->'fraud_user_block'->>'blocked_at' AS blocked_at,
             u.metadata->'fraud_user_block'->>'reason' AS reason,
             u.metadata->'fraud_user_block'->>'blocked_by' AS blocked_by,
+            u.metadata->'fraud_user_block'->>'recreation_signal' AS recreation_signal,
+            u.metadata->'fraud_user_block'->>'recreation_of' AS recreation_of,
             (SELECT COUNT(*)::int FROM commerce_orders co
                WHERE co.buyer_user_id = u.id
                  AND COALESCE((co.metadata->>'fraud_score')::int, 0) >= 50
@@ -334,10 +338,20 @@ export default async function AdminRiskPage({
                 className="bg-white border border-red-100 rounded p-2 flex items-start justify-between gap-2"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-gray-900 truncate">
-                    {u.email || u.username || "(no email)"}{" "}
-                    <span className="text-[10px] font-normal text-gray-500">
-                      · {u.flagged_orders_count} flagged / 30d
+                  <div className="text-xs font-medium text-gray-900 truncate flex items-center gap-1.5">
+                    {u.recreation_signal && (
+                      <span
+                        title={`Recreation of ${u.recreation_of?.slice(0, 8) || "?"} via ${u.recreation_signal}`}
+                        className="shrink-0 text-[9px] font-bold uppercase bg-fuchsia-600 text-white px-1.5 py-0.5 rounded"
+                      >
+                        ↻ {u.recreation_signal}
+                      </span>
+                    )}
+                    <span className="truncate">
+                      {u.email || u.username || "(no email)"}{" "}
+                      <span className="text-[10px] font-normal text-gray-500">
+                        · {u.flagged_orders_count} flagged / 30d
+                      </span>
                     </span>
                   </div>
                   <div className="text-[11px] text-gray-600 truncate">
