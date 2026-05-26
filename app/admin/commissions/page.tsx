@@ -134,7 +134,7 @@ export default async function CommissionsAdminPage({
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center gap-3 mb-6">
         <BarChart3 className="w-7 h-7 text-[#0D0D0D]" />
         <h1 className="text-3xl font-black text-[#0D0D0D]">Comisioane</h1>

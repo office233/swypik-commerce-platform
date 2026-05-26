@@ -19,10 +19,10 @@ export default async function SellersAdminPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <h1 className="text-3xl font-black text-[#0D0D0D] mb-6">Selleri</h1>
-      <div className="bg-white rounded-2xl shadow-sm border border-[#E5E5E5] overflow-hidden">
-        <table className="w-full text-left">
+      <div className="bg-white rounded-2xl shadow-sm border border-[#E5E5E5] overflow-x-auto">
+        <table className="w-full text-left min-w-[640px]">
           <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
             <tr>
               <th className="px-6 py-4">ID</th>
@@ -54,7 +54,7 @@ export default async function SellersAdminPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  {seller.status !== "approved" && (
+                  {seller.status !== "approved" && seller.status !== "active" ? (
                     <form action={approveSeller.bind(null, seller.id)}>
                       <button
                         type="submit"
@@ -63,6 +63,8 @@ export default async function SellersAdminPage() {
                         Aprobă
                       </button>
                     </form>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
                   )}
                 </td>
               </tr>

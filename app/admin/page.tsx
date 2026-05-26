@@ -5,6 +5,7 @@
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminConfigured } from "@/lib/security/admin-auth";
 import Link from "next/link";
+import OpsAlertsBar from "./OpsAlertsBar";
 
 export const dynamic = "force-dynamic";
 
@@ -94,10 +95,14 @@ async function getStats() {
 
     const { rows: catalog } = await dbQuery(`
       SELECT COUNT(*) as total_products,
-             COUNT(*) FILTER (WHERE images IS NOT NULL AND array_length(images, 1) > 0) as with_images,
-             COUNT(*) FILTER (WHERE has_video = true) as with_video,
-             ROUND(AVG(price_ron)::numeric, 2) as avg_price
-      FROM ae_products
+             COUNT(*) FILTER (WHERE image_url IS NOT NULL AND image_url <> '') as with_images,
+             (SELECT COUNT(DISTINCT p.id)
+                FROM marketplace_products p
+                JOIN videos v ON v.product_refs ? p.id::text
+                WHERE v.status = 'published') as with_video,
+             ROUND(AVG(price_cents)::numeric / 100, 2) as avg_price
+      FROM marketplace_products
+      WHERE status NOT IN ('archived', 'disabled')
     `);
 
     return {
@@ -150,8 +155,8 @@ export default async function AdminDashboard() {
 
   if (!stats) {
     return (
-      <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center">
-        <p className="text-white">Error loading stats</p>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-[#0D0D0D]">Error loading stats</p>
       </div>
     );
   }
@@ -159,11 +164,11 @@ export default async function AdminDashboard() {
   const maxRevenue = Math.max(...stats.dailyRevenue.map((day: any) => Number(day.revenue)), 1);
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] text-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <header className="border-b border-[#1E1E1E] px-6 py-4">
+    <div className="min-h-screen bg-white text-[#0D0D0D]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <header className="border-b border-[#E5E5E7] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0D0D0D] text-sm font-black">AI</span>
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0D0D0D] text-sm font-black text-white">AI</span>
             <div>
               <h1 className="text-lg font-black">Swypik Admin</h1>
               <p className="text-xs text-[#6E6E80]">Dashboard • Live Data</p>
@@ -182,13 +187,13 @@ export default async function AdminDashboard() {
               href="/api/health"
               target="_blank"
               rel="noopener"
-              className="rounded-xl bg-[#1E1E1E] px-4 py-2 text-xs font-bold text-white border border-[#333] hover:border-[#555] transition-colors"
+              className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-[#0D0D0D] border border-[#E5E5E7] hover:border-[#0D0D0D] transition-colors"
             >
               Server Health
             </a>
             <Link
               href="/"
-              className="rounded-xl bg-[#1E1E1E] px-4 py-2 text-xs font-bold text-white border border-[#333] hover:border-[#555] transition-colors"
+              className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-[#0D0D0D] border border-[#E5E5E7] hover:border-[#0D0D0D] transition-colors"
             >
               Storefront
             </Link>
@@ -197,6 +202,7 @@ export default async function AdminDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        <OpsAlertsBar />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard label="Total orders" value={stats.totals.total_orders} icon="ORD" />
           <KPICard label="Revenue" value={`${Number(stats.totals.total_revenue).toLocaleString()} lei`} icon="REV" />
@@ -210,7 +216,7 @@ export default async function AdminDashboard() {
           <PeriodCard label="Last 30 days" orders={stats.month.count} revenue={stats.month.revenue} color="#635BFF" />
         </div>
 
-        <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6">
+        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
           <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Revenue • Last 14 days</h2>
           <div className="flex items-end gap-1 h-40">
             {stats.dailyRevenue.map((day: any, index: number) => {
@@ -240,7 +246,7 @@ export default async function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6">
+          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Order status</h2>
             <div className="space-y-2">
               {stats.byStatus.map((status: any) => (
@@ -256,7 +262,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6">
+          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Fulfillment</h2>
             <div className="space-y-2">
               {stats.byFulfillment.map((fulfillment: any) => (
@@ -269,7 +275,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6">
+          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Customer locations</h2>
             <div className="space-y-2">
               {stats.countries.map((country: any) => (
@@ -288,7 +294,7 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6">
+        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
           <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Catalog snapshot</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MiniStat label="Total products" value={Number(stats.catalog.total_products).toLocaleString()} />
@@ -301,10 +307,10 @@ export default async function AdminDashboard() {
         {/* ─── Quick nav: Video Manager ─── */}
         <Link
           href="/admin/videos"
-          className="block rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6 hover:border-[#0D0D0D]/40 hover:bg-[#1E1E1E] transition-all group"
+          className="block rounded-2xl bg-white border border-[#E5E5E7] p-6 hover:border-[#0D0D0D] hover:shadow-md transition-all group shadow-sm"
         >
           <div className="flex items-center gap-4">
-            <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#0D0D0D]/15 text-xl group-hover:bg-[#0D0D0D]/25 transition-colors">
+            <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#0D0D0D]/10 text-xl group-hover:bg-[#0D0D0D]/20 transition-colors">
               🎬
             </span>
             <div>
@@ -321,12 +327,12 @@ export default async function AdminDashboard() {
           </div>
         </Link>
 
-        <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-6 overflow-hidden">
+        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 overflow-hidden shadow-sm">
           <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Recent orders</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#2A2A2A] text-[#6E6E80] text-xs uppercase">
+                <tr className="border-b border-[#E5E5E7] text-[#6E6E80] text-xs uppercase">
                   <th className="text-left py-3 pr-3">Order</th>
                   <th className="text-left py-3 pr-3">Customer</th>
                   <th className="text-left py-3 pr-3">Items</th>
@@ -348,7 +354,7 @@ export default async function AdminDashboard() {
                   const itemCount = items?.reduce?.((sum: number, item: any) => sum + (item.quantity || 1), 0) || 0;
 
                   return (
-                    <tr key={order.id} className="border-b border-[#2A2A2A]/50 hover:bg-[#222] transition-colors">
+                    <tr key={order.id} className="border-b border-[#F0F0F2] hover:bg-[#F7F7F8] transition-colors">
                       <td className="py-3 pr-3 font-bold text-[#0D0D0D]">#{order.id}</td>
                       <td className="py-3 pr-3">
                         <p className="font-medium truncate max-w-[180px]">{order.customer_email || "-"}</p>
@@ -367,10 +373,10 @@ export default async function AdminDashboard() {
                         <span
                           className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                             order.fulfillment_status === "shipped"
-                              ? "bg-[#0D0D0D]/20 text-[#0D0D0D]"
+                              ? "bg-[#0D0D0D]/15 text-[#0D0D0D]"
                               : order.fulfillment_status === "processing"
-                                ? "bg-[#F59E0B]/20 text-[#F59E0B]"
-                                : "bg-[#333] text-[#888]"
+                                ? "bg-[#F59E0B]/15 text-[#B45309]"
+                                : "bg-[#F0F0F2] text-[#6E6E80]"
                           }`}
                         >
                           {order.fulfillment_status || "pending"}
@@ -403,7 +409,7 @@ export default async function AdminDashboard() {
         </div>
       </main>
 
-      <footer className="border-t border-[#1E1E1E] px-6 py-4 text-center text-xs text-[#6E6E80]">
+      <footer className="border-t border-[#E5E5E7] px-6 py-4 text-center text-xs text-[#6E6E80]">
         Swypik Admin • Powered by PostgreSQL + Stripe + Hetzner
       </footer>
     </div>
@@ -412,7 +418,7 @@ export default async function AdminDashboard() {
 
 function KPICard({ label, value, icon }: { label: string; value: any; icon: string }) {
   return (
-    <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-5 hover:border-[#0D0D0D]/30 transition-colors">
+    <div className="rounded-2xl bg-white border border-[#E5E5E7] p-5 hover:border-[#0D0D0D] hover:shadow-md transition-all shadow-sm">
       <p className="text-xs font-bold uppercase tracking-widest text-[#6E6E80] mb-1">
         {icon} {label}
       </p>
@@ -424,7 +430,7 @@ function KPICard({ label, value, icon }: { label: string; value: any; icon: stri
 function PeriodCard({ label, orders, revenue, color }: { label: string; orders: any; revenue: any; color: string }) {
   return (
     <div
-      className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-5"
+      className="rounded-2xl bg-white border border-[#E5E5E7] p-5 shadow-sm"
       style={{ borderLeftColor: color, borderLeftWidth: "3px" }}
     >
       <p className="text-xs font-bold uppercase tracking-widest text-[#6E6E80] mb-2">{label}</p>

@@ -71,6 +71,8 @@ export default function HealthRefresh({ initial, checkedAt, meta }: Props) {
   const [results, setResults] = useState<Record<CardKey, HealthResult>>(initial);
   const [lastCheck, setLastCheck] = useState<string>(checkedAt);
   const [refreshing, setRefreshing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   async function refresh() {
     setRefreshing(true);
@@ -107,9 +109,9 @@ export default function HealthRefresh({ initial, checkedAt, meta }: Props) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="text-xs text-[#0D0D0D]/60 inline-flex items-center gap-1.5">
+        <div className="text-xs text-[#0D0D0D]/60 inline-flex items-center gap-1.5" suppressHydrationWarning>
           <Activity className="w-3.5 h-3.5" />
-          Ultim check: {new Date(lastCheck).toLocaleTimeString("ro-RO")}
+          Ultim check: {mounted ? new Date(lastCheck).toLocaleTimeString("ro-RO") : "—"}
           {refreshing && <span className="text-amber-700">· refresh…</span>}
         </div>
         <button

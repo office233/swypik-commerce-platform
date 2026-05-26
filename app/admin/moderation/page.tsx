@@ -73,7 +73,7 @@ export default async function ModerationPage({
   const reports = await getReports(params);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-black mb-4">Moderare conținut</h1>
 
       <form method="GET" className="flex flex-wrap gap-2 mb-6">

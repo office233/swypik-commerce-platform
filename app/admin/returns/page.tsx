@@ -70,7 +70,7 @@ export default async function AdminReturnsPage({
   ];
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#0D0D0D]">Cereri de retur</h1>
@@ -89,7 +89,7 @@ export default async function AdminReturnsPage({
             <Link
               key={t.value}
               href={href}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${
+              className={`inline-flex items-center px-4 py-2.5 rounded-full text-xs font-bold border transition min-h-[40px] ${
                 active
                   ? "bg-[#0D0D0D] text-white border-[#0D0D0D]"
                   : "bg-white text-gray-700 border-[#E5E5E5] hover:border-[#0D0D0D]"
@@ -101,8 +101,8 @@ export default async function AdminReturnsPage({
         })}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-[#E5E5E5] overflow-hidden">
-        <table className="w-full text-left">
+      <div className="bg-white rounded-xl shadow-sm border border-[#E5E5E5] overflow-x-auto">
+        <table className="w-full text-left min-w-[900px]">
           <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
             <tr>
               <th className="px-4 py-3">Comandă</th>

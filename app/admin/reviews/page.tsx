@@ -67,7 +67,7 @@ async function getReviews(params: SearchParams): Promise<{ rows: Row[]; total: n
     `SELECT pr.id, pr.rating, pr.title, pr.body, pr.is_hidden, pr.is_verified_purchase,
             pr.helpful_count, pr.created_at,
             u.id AS user_id, u.username, u.display_name,
-            p.id AS product_id, p.title AS product_title, p.thumbnail_url AS product_thumb
+            p.id AS product_id, p.title AS product_title, p.image_url AS product_thumb
        FROM product_reviews pr
        LEFT JOIN users u ON u.id = pr.user_id
        LEFT JOIN marketplace_products p ON p.id = pr.product_id
@@ -121,7 +121,7 @@ export default async function AdminReviewsPage({
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-black mb-1">Recenzii produse</h1>
       <p className="text-sm text-gray-600 mb-4">
         {total.toLocaleString("ro-RO")} recenzii. Pagina {page} din {totalPages}.

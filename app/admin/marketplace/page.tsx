@@ -64,27 +64,11 @@ const SOURCE_OPTIONS = [
 /* ─── Main Page ─── */
 
 export default function MarketplaceAdminPage() {
-  /* Data loading */
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  /* Server-side state */
+  const [pageProducts, setPageProducts] = useState<Product[]>([]);
+  const [serverTotals, setServerTotals] = useState({ total: 0, active: 0, with_image: 0, with_video: 0 });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/admin/marketplace", { credentials: "same-origin" })
-      .then((res) => {
-        if (!res.ok) throw new Error("Nu am putut incarca produsele.");
-        return res.json();
-      })
-      .then((data) => {
-        setAllProducts(data.products ?? []);
-        setLoadError(null);
-      })
-      .catch((error) => {
-        setAllProducts([]);
-        setLoadError(error instanceof Error ? error.message : "Nu am putut incarca produsele.");
-      })
-      .finally(() => setLoading(false));
-  }, []);
 
   /* Search & filter state */
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,6 +81,44 @@ export default function MarketplaceAdminPage() {
 
   /* Pagination */
   const [currentPage, setCurrentPage] = useState(1);
+
+  /* Debounce search */
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  /* Fetch products from server when filters/sort/page change */
+  useEffect(() => {
+    const offset = (currentPage - 1) * PAGE_SIZE;
+    const params = new URLSearchParams({
+      limit: String(PAGE_SIZE),
+      offset: String(offset),
+      status: statusFilter,
+      source: sourceFilter,
+      sort: sortField,
+      dir: sortDir,
+    });
+    if (debouncedSearch) params.set("search", debouncedSearch);
+
+    setLoading(true);
+    fetch(`/api/admin/marketplace?${params.toString()}`, { credentials: "same-origin" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Nu am putut incarca produsele.");
+        return res.json();
+      })
+      .then((data) => {
+        setPageProducts(data.products ?? []);
+        setServerTotals(data.totals ?? { total: 0, active: 0, with_image: 0, with_video: 0 });
+        setLoadError(null);
+      })
+      .catch((error) => {
+        setPageProducts([]);
+        setLoadError(error instanceof Error ? error.message : "Nu am putut incarca produsele.");
+      })
+      .finally(() => setLoading(false));
+  }, [debouncedSearch, statusFilter, sourceFilter, sortField, sortDir, currentPage]);
 
   /* Reset to page 1 when filters/search change */
   const handleSearchChange = useCallback((v: string) => {
@@ -112,69 +134,18 @@ export default function MarketplaceAdminPage() {
     setCurrentPage(1);
   }, []);
 
-  /* Derived: filtered + sorted list */
-  const filteredProducts = useMemo(() => {
-    let list = allProducts;
-
-    /* Search */
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.title?.toLowerCase().includes(q) ||
-          p.slug?.toLowerCase().includes(q) ||
-          p.brand?.toLowerCase().includes(q) ||
-          p.category?.toLowerCase().includes(q)
-      );
-    }
-
-    /* Status filter */
-    if (statusFilter !== "all") {
-      list = list.filter((p) => (p.status || "draft") === statusFilter);
-    }
-
-    /* Source filter */
-    if (sourceFilter !== "all") {
-      list = list.filter((p) => {
-        const src = (p.source_type || "").toLowerCase();
-        if (sourceFilter === "aliexpress") return src.includes("aliexpress") || src.includes("ali");
-        if (sourceFilter === "cj") return src.includes("cj");
-        if (sourceFilter === "local_seller") return src.includes("local") || src.includes("seller");
-        return true;
-      });
-    }
-
-    /* Sort */
-    const sorted = [...list].sort((a, b) => {
-      let cmp = 0;
-      if (sortField === "title") {
-        cmp = (a.title || "").localeCompare(b.title || "", "ro");
-      } else if (sortField === "price") {
-        cmp = (a.price_cents ?? 0) - (b.price_cents ?? 0);
-      } else {
-        /* date */
-        const da = new Date(a.updated_at || a.created_at || 0).getTime();
-        const db = new Date(b.updated_at || b.created_at || 0).getTime();
-        cmp = da - db;
-      }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-
-    return sorted;
-  }, [allProducts, searchQuery, statusFilter, sourceFilter, sortField, sortDir]);
-
-  /* Derived: paginated slice */
-  const totalFiltered = filteredProducts.length;
+  /* Server totals (filtered) drive pagination + KPI cards */
+  const totalFiltered = serverTotals.total;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
   const startIdx = (safePage - 1) * PAGE_SIZE;
-  const pageProducts = filteredProducts.slice(startIdx, startIdx + PAGE_SIZE);
+  const filteredProducts = pageProducts; // alias for any downstream usage
 
-  /* Summary counters (from full dataset) */
-  const totalProducts = allProducts.length;
-  const activeProducts = allProducts.filter((p) => p.status === "active").length;
-  const withImages = allProducts.filter((p) => Boolean(p.image_url)).length;
-  const withVideo = allProducts.filter((p) => Boolean(p.has_video)).length;
+  /* Summary counters reflect filtered totals (server) */
+  const totalProducts = serverTotals.total;
+  const activeProducts = serverTotals.active;
+  const withImages = serverTotals.with_image;
+  const withVideo = serverTotals.with_video;
 
   /* Sort toggle helper */
   const toggleSort = (field: SortField) => {
@@ -197,7 +168,7 @@ export default function MarketplaceAdminPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
       {/* ─── Header ─── */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -365,7 +336,7 @@ export default function MarketplaceAdminPage() {
               ) : pageProducts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-16 text-center text-slate-500">
-                    {allProducts.length === 0
+                    {totalProducts === 0 && !debouncedSearch && statusFilter === "all" && sourceFilter === "all"
                       ? "No marketplace products found yet. Create the first record to start merchandising inventory."
                       : "Niciun produs nu corespunde filtrelor selectate."}
                   </td>
@@ -535,7 +506,7 @@ export default function MarketplaceAdminPage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum as number)}
-                      className={`min-w-[36px] rounded-lg px-2 py-1.5 text-sm font-bold transition-all ${
+                      className={`min-w-[40px] h-10 rounded-lg px-2 text-sm font-bold transition-all ${
                         pageNum === safePage
                           ? "bg-slate-900 text-white shadow-sm"
                           : "text-slate-600 hover:bg-slate-100"

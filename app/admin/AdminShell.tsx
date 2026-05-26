@@ -18,6 +18,8 @@ import {
   FileText,
   Video,
   ShieldAlert,
+  PackageX,
+  Shield,
   MessageSquare,
   Music2,
   Hash,
@@ -65,6 +67,8 @@ const sections: NavSection[] = [
       { href: "/admin/orders", label: "Comenzi", icon: ShoppingBag },
       { href: "/admin/returns", label: "Returns", icon: Undo2 },
       { href: "/admin/refunds", label: "Refunds", icon: Coins },
+      { href: "/admin/disputes", label: "Disputes", icon: Shield },
+      { href: "/admin/ae-cancel", label: "AE Cancel", icon: PackageX },
       { href: "/admin/marketplace", label: "Marketplace", icon: Store },
       { href: "/admin/reviews", label: "Reviews", icon: Star },
     ],
@@ -133,7 +137,7 @@ function SidebarContent({
             type="button"
             onClick={onLogout}
             aria-label="Log out"
-            className="p-1.5 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition"
+            className="grid h-10 w-10 place-items-center rounded-md text-white/60 hover:text-white hover:bg-white/10 transition"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -220,12 +224,12 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Mobile topbar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0D0D0D] px-4 py-3 flex items-center justify-between shadow-lg">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0D0D0D] px-2 py-2 flex items-center justify-between shadow-lg">
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
           aria-label="Deschide meniul admin"
-          className="p-1.5 rounded-md text-white hover:bg-white/10"
+          className="grid h-11 w-11 place-items-center rounded-md text-white hover:bg-white/10"
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -236,9 +240,9 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           type="button"
           onClick={handleLogout}
           aria-label="Log out"
-          className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10"
+          className="grid h-11 w-11 place-items-center rounded-md text-white/70 hover:text-white hover:bg-white/10"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-5 h-5" />
         </button>
       </div>
 
@@ -256,9 +260,9 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => setDrawerOpen(false)}
               aria-label="Închide"
-              className="absolute top-3 right-3 p-1.5 rounded-md text-white/60 hover:text-white hover:bg-white/10 z-10"
+              className="absolute top-2 right-2 grid h-11 w-11 place-items-center rounded-md text-white/60 hover:text-white hover:bg-white/10 z-10"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
             <SidebarContent
               pathname={pathname}

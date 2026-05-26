@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, Play, XCircle } from "lucide-react";
 import type { CronJob } from "./jobs";
 
@@ -32,6 +32,8 @@ function fmtAgo(iso: string): string {
 export default function CronJobRow({ job, last }: Props) {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   async function trigger() {
     setBusy(true);
@@ -62,10 +64,10 @@ export default function CronJobRow({ job, last }: Props) {
         <code className="text-[10px] text-[#0D0D0D]/40">{job.endpoint}</code>
       </td>
       <td className="px-4 py-3 text-xs text-[#0D0D0D]/70">{job.schedule}</td>
-      <td className="px-4 py-3 text-xs text-[#0D0D0D]/70">
+      <td className="px-4 py-3 text-xs text-[#0D0D0D]/70" suppressHydrationWarning>
         {last ? (
           <>
-            {fmtAgo(last.started_at)} în urmă
+            {mounted ? `${fmtAgo(last.started_at)} în urmă` : "—"}
             {last.duration_ms != null && (
               <span className="text-[#0D0D0D]/40"> · {last.duration_ms}ms</span>
             )}

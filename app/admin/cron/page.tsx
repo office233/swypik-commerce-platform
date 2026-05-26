@@ -34,7 +34,7 @@ export default async function AdminCronPage() {
   const lastRuns = await getLastRuns();
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <div className="mb-6 flex items-center gap-2">
         <Clock className="w-6 h-6 text-[#0D0D0D]" />
         <div>
@@ -45,8 +45,8 @@ export default async function AdminCronPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-[#0D0D0D]/10 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white border border-[#0D0D0D]/10 rounded-lg overflow-x-auto">
+        <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-[#F7F7F8] text-[10px] uppercase tracking-wider text-[#0D0D0D]/60">
             <tr>
               <th className="text-left px-4 py-2 font-black">Job</th>

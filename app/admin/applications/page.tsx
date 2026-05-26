@@ -91,18 +91,18 @@ export default async function AdminApplicationsPage({
   ];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-[#0D0D0D]">Aplicații creator</h1>
         <p className="text-sm text-black/60 mt-1">Cereri de la utilizatori care vor să devină creatori.</p>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-1">
+      <div className="mb-4 flex flex-wrap gap-2">
         {tabs.map((t) => (
           <Link
             key={t.value}
             href={`/admin/applications?status=${t.value}`}
-            className={`rounded-md px-3 py-1.5 text-xs font-bold border ${
+            className={`inline-flex items-center rounded-md px-4 py-2.5 text-xs font-bold border min-h-[40px] ${
               status === t.value ? "bg-black text-white border-black" : "border-black/15 text-black/70"
             }`}
           >

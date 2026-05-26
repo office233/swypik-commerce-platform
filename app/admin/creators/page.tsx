@@ -72,7 +72,7 @@ export default async function AdminCreatorsPage({
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-[#0D0D0D]">Creators</h1>
         <p className="text-sm text-black/60 mt-1">Top {rows.length} creators după {sort === "sales" ? "vânzări" : sort === "videos" ? "videoclipuri" : "urmăritori"}.</p>
@@ -88,12 +88,12 @@ export default async function AdminCreatorsPage({
         />
         <input type="hidden" name="sort" value={sort} />
         <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">Caută</button>
-        <div className="ml-auto flex gap-1">
+        <div className="ml-auto flex flex-wrap gap-2">
           {(["followers", "videos", "sales"] as const).map((s) => (
             <Link
               key={s}
               href={`/admin/creators?sort=${s}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold border ${
+              className={`inline-flex items-center rounded-md px-4 py-2.5 text-xs font-bold border min-h-[40px] ${
                 sort === s ? "bg-black text-white border-black" : "border-black/15 text-black/70"
               }`}
             >
@@ -107,8 +107,8 @@ export default async function AdminCreatorsPage({
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{loadError}</div>
       )}
 
-      <div className="bg-white rounded-2xl border border-black/10 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-2xl border border-black/10 overflow-x-auto">
+        <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-black/5 text-left text-xs uppercase tracking-wide text-black/60">
             <tr>
               <th className="px-4 py-3">Creator</th>

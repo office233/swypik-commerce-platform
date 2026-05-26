@@ -113,7 +113,7 @@ export default async function AdminUsersPage({
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <h1 className="text-3xl font-black text-[#0D0D0D] mb-6">Users</h1>
 
       <form method="get" action="/admin/users" className="mb-4 flex gap-2 max-w-xl">
@@ -135,7 +135,7 @@ export default async function AdminUsersPage({
           <Link
             key={t.id}
             href={tabHref(t.id)}
-            className={`rounded-full px-4 py-1.5 text-sm font-bold border ${
+            className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-bold border min-h-[40px] ${
               status === t.id ? "bg-[#0D0D0D] text-white border-[#0D0D0D]" : "bg-white text-[#0D0D0D] border-black/15"
             }`}
           >

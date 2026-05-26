@@ -62,22 +62,36 @@ function formatDimensions(w: number | null, h: number | null): string {
 
 /* ─── Main Page ─── */
 
+const PAGE_SIZE = 50;
+
 export default function AdminVideosPage() {
   const [videos, setVideos] = useState<VideoAsset[]>([]);
+  const [counts, setCounts] = useState({ total: 0, ready: 0, processing: 0, failed: 0, pending: 0 });
+  const [filteredTotal, setFilteredTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  /* ─── Fetch ─── */
+  /* ─── Fetch (server-side filter + pagination) ─── */
   const fetchVideos = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/admin/videos", { credentials: "same-origin" });
+      const offset = (page - 1) * PAGE_SIZE;
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+        status: statusFilter,
+      });
+      const res = await fetch(`/api/admin/videos?${params.toString()}`, { credentials: "same-origin" });
       if (!res.ok) throw new Error("Failed to load videos");
       const data = await res.json();
       setVideos(data.videos ?? []);
+      setCounts(data.totals ?? { total: 0, ready: 0, processing: 0, failed: 0, pending: 0 });
+      setFilteredTotal(Number(data.filteredTotal) || 0);
       setError(null);
     } catch (err: any) {
       setError(err.message || "Failed to load videos");
@@ -85,11 +99,16 @@ export default function AdminVideosPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, statusFilter]);
 
   useEffect(() => {
     fetchVideos();
   }, [fetchVideos]);
+
+  /* Reset to page 1 when filter changes */
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   /* ─── Actions ─── */
   const performAction = async (action: string, videoId: string, reason?: string) => {
@@ -112,23 +131,13 @@ export default function AdminVideosPage() {
     }
   };
 
-  /* ─── Filter ─── */
-  const filtered = useMemo(() => {
-    if (statusFilter === "all") return videos;
-    return videos.filter((v) => v.status === statusFilter);
-  }, [videos, statusFilter]);
-
-  /* ─── Counts ─── */
-  const counts = useMemo(() => {
-    const total = videos.length;
-    const processing = videos.filter((v) => v.status === "processing").length;
-    const ready = videos.filter((v) => v.status === "ready").length;
-    const failed = videos.filter((v) => v.status === "failed").length;
-    return { total, processing, ready, failed };
-  }, [videos]);
+  /* server returns already-filtered list */
+  const filtered = videos;
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] text-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-white text-[#0D0D0D]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {/* ─── Header ─── */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -142,7 +151,7 @@ export default function AdminVideosPage() {
           </div>
           <Link
             href="/admin"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1E1E1E] px-4 py-2.5 text-sm font-bold border border-[#333] hover:border-[#555] transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#0D0D0D] border border-[#E5E5E7] hover:border-[#0D0D0D] transition-colors"
           >
             ← Back to Dashboard
           </Link>
@@ -168,7 +177,7 @@ export default function AdminVideosPage() {
             id="video-status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl bg-[#1A1A1A] border border-[#2A2A2A] px-4 py-2.5 text-sm font-bold text-white focus:border-[#0D0D0D] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D]/20 transition-all cursor-pointer appearance-none"
+            className="rounded-xl bg-white border border-[#E5E5E7] px-4 py-2.5 text-sm font-bold text-[#0D0D0D] focus:border-[#0D0D0D] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D]/20 transition-all cursor-pointer appearance-none"
             style={{
               backgroundImage:
                 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%236E6E80\' d=\'M6 8.825a.5.5 0 01-.354-.146l-3-3a.5.5 0 11.708-.708L6 7.621l2.646-2.647a.5.5 0 11.708.708l-3 3A.5.5 0 016 8.825z\'/%3E%3C/svg%3E")',
@@ -196,11 +205,11 @@ export default function AdminVideosPage() {
         )}
 
         {/* ─── Table ─── */}
-        <div className="rounded-2xl border border-[#2A2A2A] bg-[#1A1A1A] overflow-hidden shadow-xl">
+        <div className="rounded-2xl border border-[#E5E5E7] bg-white overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-[#2A2A2A] text-[10px] font-black uppercase tracking-widest text-[#6E6E80]">
+                <tr className="border-b border-[#E5E5E7] bg-[#F7F7F8] text-[10px] font-black uppercase tracking-widest text-[#6E6E80]">
                   <th className="text-left px-5 py-4">Thumbnail</th>
                   <th className="text-left px-5 py-4">Creator</th>
                   <th className="text-left px-5 py-4">Produs</th>
@@ -241,12 +250,12 @@ export default function AdminVideosPage() {
                     return (
                       <tr
                         key={video.id}
-                        className="border-b border-[#2A2A2A]/50 hover:bg-[#222] transition-colors"
-                        style={{ backgroundColor: isEven ? "transparent" : "rgba(255,255,255,0.02)" }}
+                        className="border-b border-[#F0F0F2] hover:bg-[#F7F7F8] transition-colors"
+                        style={{ backgroundColor: isEven ? "transparent" : "rgba(0,0,0,0.015)" }}
                       >
                         {/* Thumbnail */}
                         <td className="px-5 py-3">
-                          <div className="w-16 h-10 rounded-lg overflow-hidden bg-[#0D0D0D] border border-[#333] flex items-center justify-center">
+                          <div className="w-16 h-10 rounded-lg overflow-hidden bg-[#0D0D0D] border border-[#E5E5E7] flex items-center justify-center">
                             {video.thumbnail_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -265,7 +274,7 @@ export default function AdminVideosPage() {
 
                         {/* Creator */}
                         <td className="px-5 py-3">
-                          <p className="font-semibold text-white truncate max-w-[160px]">
+                          <p className="font-semibold text-[#0D0D0D] truncate max-w-[160px]">
                             {video.creator_name || "Unknown"}
                           </p>
                           <p className="text-[10px] text-[#6E6E80] truncate max-w-[160px]">
@@ -317,12 +326,12 @@ export default function AdminVideosPage() {
                         </td>
 
                         {/* Duration */}
-                        <td className="px-5 py-3 text-center font-mono text-[#9CA3AF]">
+                        <td className="px-5 py-3 text-center font-mono text-[#6E6E80]">
                           {formatDuration(video.duration_seconds)}
                         </td>
 
                         {/* Dimensions */}
-                        <td className="px-5 py-3 text-center font-mono text-[#9CA3AF] text-xs">
+                        <td className="px-5 py-3 text-center font-mono text-[#6E6E80] text-xs">
                           {formatDimensions(video.width, video.height)}
                         </td>
 
@@ -367,7 +376,7 @@ export default function AdminVideosPage() {
                                       placeholder="Motiv..."
                                       value={rejectReason}
                                       onChange={(e) => setRejectReason(e.target.value)}
-                                      className="w-28 rounded-lg bg-[#0D0D0D] border border-[#444] px-2 py-1 text-[11px] text-white placeholder:text-[#555] focus:outline-none focus:border-red-500"
+                                      className="w-28 rounded-lg bg-white border border-[#E5E5E7] px-2 py-1 text-[11px] text-[#0D0D0D] placeholder:text-[#9CA3AF] focus:outline-none focus:border-red-500"
                                       autoFocus
                                       onKeyDown={(e) => {
                                         if (e.key === "Enter") {
@@ -380,7 +389,7 @@ export default function AdminVideosPage() {
                                     />
                                     <button
                                       onClick={() => performAction("reject", video.id, rejectReason)}
-                                      className="rounded-lg bg-red-500/15 px-2 py-1 text-[11px] font-bold text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-all"
+                                      className="rounded-lg bg-red-50 px-2 py-1 text-[11px] font-bold text-red-600 border border-red-200 hover:bg-red-100 transition-all"
                                     >
                                       OK
                                     </button>
@@ -389,7 +398,7 @@ export default function AdminVideosPage() {
                                         setRejectId(null);
                                         setRejectReason("");
                                       }}
-                                      className="text-[#6E6E80] text-[11px] hover:text-white transition-colors px-1"
+                                      className="text-[#6E6E80] text-[11px] hover:text-[#0D0D0D] transition-colors px-1"
                                     >
                                       ✕
                                     </button>
@@ -397,7 +406,7 @@ export default function AdminVideosPage() {
                                 ) : (
                                   <button
                                     onClick={() => setRejectId(video.id)}
-                                    className="rounded-lg bg-red-500/10 px-3 py-1.5 text-[11px] font-bold text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40 transition-all"
+                                    className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-bold text-red-600 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all"
                                   >
                                     ✕ Respinge
                                   </button>
@@ -423,6 +432,31 @@ export default function AdminVideosPage() {
               </tbody>
             </table>
           </div>
+          {filteredTotal > PAGE_SIZE && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-[#E5E5E7] bg-[#F7F7F8] px-5 py-4">
+              <div className="text-sm text-[#6E6E80] tabular-nums">
+                Pagina <span className="font-bold text-[#0D0D0D]">{safePage}</span> din{" "}
+                <span className="font-bold text-[#0D0D0D]">{totalPages}</span> · {filteredTotal} video
+                {filteredTotal !== 1 ? "s" : ""}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E7] bg-white px-4 py-2.5 text-sm font-bold text-[#0D0D0D] disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
+                >
+                  ← Anterior
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E7] bg-white px-4 py-2.5 text-sm font-bold text-[#0D0D0D] disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
+                >
+                  Următor →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
@@ -444,16 +478,16 @@ function StatBadge({
 }) {
   return (
     <div
-      className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] p-5 hover:border-opacity-50 transition-colors"
+      className="rounded-2xl bg-white border border-[#E5E5E7] p-5 hover:shadow-md transition-all shadow-sm"
       style={{ borderLeftColor: color, borderLeftWidth: "3px" }}
     >
       <p className="text-xs font-black uppercase tracking-widest text-[#6E6E80] mb-1">
         {label}
       </p>
       {loading ? (
-        <div className="h-8 w-12 animate-pulse rounded-lg bg-[#2A2A2A]" />
+        <div className="h-8 w-12 animate-pulse rounded-lg bg-[#E5E5E7]" />
       ) : (
-        <p className="text-2xl font-black" style={{ color }}>
+        <p className="text-2xl font-black" style={{ color: color === "#0D0D0D" ? "#0D0D0D" : color }}>
           {value}
         </p>
       )}
