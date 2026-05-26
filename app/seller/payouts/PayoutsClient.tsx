@@ -9,6 +9,11 @@ type SellerInfo = {
   email: string;
   hasStripe: boolean;
   stripeAccountId: string | null;
+  payoutsEnabled: boolean;
+  chargesEnabled: boolean;
+  detailsSubmitted: boolean;
+  requirementsCurrentlyDue: string[];
+  requirementsDisabledReason: string | null;
 };
 
 type Summary = {
@@ -114,14 +119,48 @@ export default function PayoutsClient({
     { label: "Următorul payout", value: fmtDate(nextPayoutIso), icon: CalendarClock, accent: "text-purple-700 bg-purple-100" },
   ];
 
+  const onboardingIncomplete = !seller.payoutsEnabled || !seller.detailsSubmitted;
+
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
       <header className="mb-6">
         <h1 className="text-2xl font-black text-[#0D0D0D]">Payout-uri</h1>
         <p className="text-sm text-[#6E6E80] mt-1">
-          Stripe Connect: <span className="font-mono text-xs">{seller.stripeAccountId}</span>
+          Stripe Connect: <span className="font-mono text-xs">{seller.stripeAccountId}</span>{" "}
+          {seller.payoutsEnabled ? (
+            <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-semibold">Payouts activ</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold">Onboarding nefinalizat</span>
+          )}
         </p>
       </header>
+
+      {onboardingIncomplete && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-4 md:p-5 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-700 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-yellow-900">
+              {seller.requirementsDisabledReason
+                ? `Stripe a dezactivat payout-urile: ${seller.requirementsDisabledReason}`
+                : "Nu putem trimite payout-uri până nu finalizezi onboarding-ul Stripe."}
+            </p>
+            {seller.requirementsCurrentlyDue.length > 0 && (
+              <ul className="mt-1 text-xs text-yellow-800 list-disc list-inside">
+                {seller.requirementsCurrentlyDue.slice(0, 5).map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            )}
+            <Link
+              href="/seller/settings"
+              className="inline-flex items-center gap-2 mt-3 bg-yellow-700 text-white px-4 py-2 min-h-[40px] rounded-xl text-sm font-bold hover:bg-yellow-800 transition"
+            >
+              Continuă onboarding Stripe
+              <ExternalLink className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
         {kpis.map((k) => {

@@ -128,6 +128,22 @@ export default async function VideoPage({ params }: Props) {
         }}
       />
 
+      {/* Breadcrumb JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLd({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://swypik.com/" },
+              { "@type": "ListItem", position: 2, name: "Explore", item: "https://swypik.com/explore" },
+              { "@type": "ListItem", position: 3, name: (video.title || "Video").slice(0, 80), item: `https://swypik.com/video/${id}` },
+            ],
+          }),
+        }}
+      />
+
       {/* Auto-redirect script — redirects to the real player after 1s */}
       <script
         dangerouslySetInnerHTML={{

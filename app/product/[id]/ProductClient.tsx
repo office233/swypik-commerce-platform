@@ -20,6 +20,19 @@ type Variant = {
 type ColorData = { image: string | null; sizes: { size: string; price: number; stock: number; skuId: string }[] };
 type SimilarProduct = { id: string; title: string; price: number; oldPrice: number; image: string; hasVideo: boolean; rating: number; ratingAvg?: number | null; ratingCount?: number };
 
+function dedupeSizes(sizes: ColorData["sizes"]): ColorData["sizes"] {
+  const bySize = new Map<string, ColorData["sizes"][number]>();
+  for (const item of sizes) {
+    const key = item.size.trim();
+    if (!key) continue;
+    const current = bySize.get(key);
+    if (!current || (item.stock > 0 && current.stock <= 0) || item.price < current.price) {
+      bySize.set(key, { ...item, size: key });
+    }
+  }
+  return Array.from(bySize.values());
+}
+
 type Props = { initialData?: ProductDetail | null; initialVideos?: any[] };
 
 export default function ProductClient({ initialData, initialVideos }: Props) {
@@ -154,36 +167,20 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
 
   const images = product.images || [];
   const title = product.titleRo || product.title;
-  const currentPrice = (() => {
-    if (selectedColor && selectedSize && colorMap[selectedColor]) {
-      const match = colorMap[selectedColor].sizes.find(s => s.size === selectedSize);
-      if (match) return match.price;
-    }
-    return product.price;
-  })();
+  const selectedColorSizes = selectedColor ? dedupeSizes(colorMap[selectedColor]?.sizes || []) : [];
+  const selectedSizeData = selectedColorSizes.find(s => s.size === selectedSize) || null;
+  const currentPrice = selectedSizeData?.price ?? product.price;
   const discount = product.oldPrice > currentPrice ? Math.round(((product.oldPrice - currentPrice) / product.oldPrice) * 100) : 0;
 
   // Current variant image
   const variantImage = selectedColor && colorMap[selectedColor]?.image;
   const displayImages = variantImage ? [variantImage, ...images.filter((i: string) => i !== variantImage)] : images;
 
-  const currentStock = (() => {
-    if (selectedColor && selectedSize && colorMap[selectedColor]) {
-      const match = colorMap[selectedColor].sizes.find(s => s.size === selectedSize);
-      if (match) return match.stock;
-    }
-    return product.availableStock || 0;
-  })();
+  const currentStock = selectedSizeData?.stock ?? product.availableStock ?? 0;
 
   const handleAddToCart = async () => {
     // Build the cart item matching shared Product type
-    const skuId = (() => {
-      if (selectedColor && selectedSize && colorMap[selectedColor]) {
-        const match = colorMap[selectedColor].sizes.find(s => s.size === selectedSize);
-        if (match) return match.skuId;
-      }
-      return null;
-    })();
+    const skuId = selectedSizeData?.skuId || null;
 
     const cartProduct: Partial<Product> & { id: string; title: string; price: number } = {
       id: String(product.id),
@@ -377,7 +374,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                 <button key={color} onClick={() => {
                   setSelectedColor(color);
                   setSelectedImage(0);
-                  const sizes = data.sizes;
+                  const sizes = dedupeSizes(data.sizes);
                   if (sizes.length && !sizes.find(s => s.size === selectedSize)) {
                     setSelectedSize(sizes[0].size);
                   }
@@ -396,13 +393,13 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         )}
 
         {/* Size Selector */}
-        {selectedColor && colorMap[selectedColor]?.sizes.length > 0 && (
+        {selectedColor && selectedColorSizes.length > 0 && (
           <div className="mb-5">
             <div className="text-sm font-bold text-[#0D0D0D] mb-2">
               Mărime: <span className="text-[#0D0D0D]">{selectedSize}</span>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {colorMap[selectedColor].sizes.map(s => (
+              {selectedColorSizes.map(s => (
                 <button key={s.size} onClick={() => setSelectedSize(s.size)}
                   disabled={s.stock === 0}
                   className={`rounded-xl px-5 py-2.5 text-sm font-bold border-2 transition-all active:scale-95
@@ -638,7 +635,11 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           <div className="flex-1">
             <p className="text-2xl font-black text-[#0D0D0D]">{currentPrice} lei</p>
             <p className="text-[11px] font-medium text-[#6E6E80]">
-              {selectedColor && selectedSize ? `${selectedColor} / ${selectedSize}` : "Selectează varianta"}
+              {(() => {
+                const parts = [selectedColor, selectedSize].filter(Boolean);
+                if (parts.length > 0) return parts.join(" / ");
+                return "Selectează varianta";
+              })()}
             </p>
           </div>
           {process.env.NEXT_PUBLIC_FEATURE_TRY_ON === "1" && (

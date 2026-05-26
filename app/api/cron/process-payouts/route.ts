@@ -92,7 +92,8 @@ async function handleGET(req: Request) {
        AND (coi.metadata->>'seller_payout_status' IS NULL OR coi.metadata->>'seller_payout_status' = 'pending')
        AND coi.metadata->>'seller_payout_cents' IS NOT NULL
        AND (coi.metadata->>'seller_payout_cents')::int > 0
-       AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))`,
+       AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))
+       AND s.stripe_payouts_enabled = true`,
     [String(RETURN_WINDOW_DAYS)]
   );
 
@@ -275,14 +276,19 @@ async function handleGET(req: Request) {
     }
   }
 
-  return NextResponse.json({
+  return {
     success: true,
     sellerPayouts: paidSellerCount,
     creatorPayouts: paidCreatorCount,
     skippedClaimed: skippedClaimedCount,
-  });
+  };
+}
+
+export async function GET(req: Request) {
+  const result = await runCron("process-payouts", () => handleGET(req as any));
+  // Auth failures return a NextResponse — propagate it as-is; otherwise serialize the plain result for cron observability.
+  if (result instanceof Response) return result;
+  return NextResponse.json(result);
 }
 
 export const POST = GET;
-
-export async function GET(req: Request) { return runCron("process-payouts", () => handleGET(req as any)); }

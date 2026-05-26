@@ -108,7 +108,7 @@ export default async function ProductPage({ params }: Props) {
             AND p.price_cents IS NOT NULL
             AND p.taxonomy_node_slug = (SELECT taxonomy_node_slug FROM marketplace_products WHERE id = $1)
             AND COALESCE(p.is_adult, false) = false
-          ORDER BY p.view_count DESC NULLS LAST, p.created_at DESC NULLS LAST
+          ORDER BY p.created_at DESC NULLS LAST
           LIMIT 8`,
         [id]
       );

@@ -22,6 +22,12 @@ export default async function SellerSettingsPage() {
   }
 
   const isStripeConnected = !!seller.stripe_account_id;
+  const payoutsEnabled = !!seller.stripe_payouts_enabled;
+  const detailsSubmitted = !!seller.stripe_details_submitted;
+  const requirements = seller.stripe_requirements || {};
+  const requirementsDue: string[] = Array.isArray(requirements.currently_due) ? requirements.currently_due : [];
+  const requirementsDisabledReason: string | null = requirements.disabled_reason || null;
+  const onboardingIncomplete = isStripeConnected && (!payoutsEnabled || !detailsSubmitted);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
@@ -102,18 +108,61 @@ export default async function SellerSettingsPage() {
             </p>
 
             {isStripeConnected ? (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-neutral-100/50 border border-neutral-100 rounded-lg">
-                <div className="flex items-center gap-3 min-w-0">
-                  <CheckCircle2 className="w-6 h-6 text-neutral-900 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-neutral-900 text-sm">Cont conectat cu succes</p>
-                    <p className="text-xs text-neutral-900 mt-0.5 font-mono truncate">{seller.stripe_account_id}</p>
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-neutral-100/50 border border-neutral-100 rounded-lg">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <CheckCircle2 className={`w-6 h-6 shrink-0 ${payoutsEnabled ? 'text-green-700' : 'text-yellow-700'}`} />
+                    <div className="min-w-0">
+                      <p className="font-medium text-neutral-900 text-sm">
+                        {payoutsEnabled ? 'Payouts activ' : 'Cont creat — onboarding nefinalizat'}
+                      </p>
+                      <p className="text-xs text-neutral-900 mt-0.5 font-mono truncate">{seller.stripe_account_id}</p>
+                    </div>
                   </div>
+                  {onboardingIncomplete && (
+                    <button
+                      type="button"
+                      id="stripe-resume-onboarding"
+                      className="inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg text-sm font-bold bg-yellow-700 text-white hover:bg-yellow-800 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
+                    >
+                      Continuă onboarding <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-                <button type="button" className="inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg text-sm font-bold text-neutral-600 hover:text-[#0D0D0D] hover:bg-neutral-100 transition-colors focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-                  Setări Financiare <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                {onboardingIncomplete && (
+                  <div className="mt-3 text-xs text-yellow-900 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    {requirementsDisabledReason
+                      ? <p>Stripe a dezactivat payout-urile: <span className="font-mono">{requirementsDisabledReason}</span></p>
+                      : <p>Mai sunt câmpuri de completat în Stripe înainte ca payout-urile să fie activate.</p>}
+                    {requirementsDue.length > 0 && (
+                      <ul className="mt-2 list-disc list-inside">
+                        {requirementsDue.slice(0, 6).map((r: string) => <li key={r} className="font-mono">{r}</li>)}
+                      </ul>
+                    )}
+                    <script dangerouslySetInnerHTML={{
+                      __html: `
+                        (function(){
+                          var btn = document.getElementById('stripe-resume-onboarding');
+                          if (!btn) return;
+                          btn.addEventListener('click', async function(){
+                            btn.disabled = true;
+                            var prev = btn.innerHTML;
+                            btn.innerHTML = 'Se redirecționează...';
+                            try {
+                              var res = await fetch('/api/seller/stripe-connect', { method: 'POST' });
+                              var data = await res.json();
+                              if (data.url) window.location.href = data.url;
+                              else alert('Eroare: ' + (data.error || 'Server error'));
+                            } catch (e) { alert(e); }
+                            btn.disabled = false;
+                            btn.innerHTML = prev;
+                          });
+                        })();
+                      `
+                    }} />
+                  </div>
+                )}
+              </>
             ) : (
               <form action={async () => {
                 "use server";

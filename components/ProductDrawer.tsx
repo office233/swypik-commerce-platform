@@ -1,5 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, ShoppingCart, Star, ChevronRight, ExternalLink, ThumbsUp, ThumbsDown, CheckCircle2, Loader2 } from "lucide-react";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
@@ -71,6 +72,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
   const [votePending, setVotePending] = useState<"worth_it" | "not_worth_it" | null>(null);
   const [cartPending, setCartPending] = useState(false);
   const [cartMessage, setCartMessage] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleClose = useCallback(() => {
@@ -80,6 +82,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
 
   // Body scroll lock
   useEffect(() => {
+    setMounted(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
@@ -134,7 +137,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
     return () => { cancelled = true; };
   }, [seed?.id, seed?.description]);
 
-  if (!data) return null;
+  if (!data || !mounted) return null;
 
   const productImage = data.image || data.images?.[0] || data.image_url || null;
   const productName = data.name || data.title || "Produs";
@@ -249,9 +252,12 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
     }
   };
 
-  return (
+  const drawer = (
     <>
       <div
+        className={`fixed inset-0 z-[90] bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        onClick={handleClose}
+        aria-hidden="true"
       />
 
       <div
@@ -260,7 +266,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
         aria-modal="true"
         aria-labelledby="product-drawer-title"
         tabIndex={-1}
-        className={`fixed bottom-0 left-0 right-0 h-[70vh] z-[70] bg-black/80 backdrop-blur-xl rounded-t-3xl border-t border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`fixed bottom-0 left-0 right-0 h-[70vh] z-[100] bg-black/80 backdrop-blur-xl rounded-t-3xl border-t border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
       >
         <div className="flex flex-col items-center p-4 border-b border-white/5 relative">
           <div className="w-12 h-1.5 bg-white/20 rounded-full mb-3" />
@@ -399,24 +405,26 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
           </a>
         </div>
 
-        <div className="p-4 border-t border-white/10 bg-black/50 flex gap-3 pb-safe">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-3 border-t border-white/10 bg-black/50 p-3 pb-safe sm:p-4">
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={cartPending}
-            className="flex-1 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-colors border border-white/10 active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
+            className="flex min-h-14 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-[13px] font-bold leading-none text-white transition-colors hover:bg-white/20 active:scale-95 disabled:opacity-70 sm:text-sm"
           >
-            {cartPending ? <Loader2 className="h-4 w-4 animate-spin" /> : cartMessage === "Adăugat" ? <CheckCircle2 className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-            {cartMessage || "Adaugă în coș"}
+            {cartPending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : cartMessage === "Adăugat" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <ShoppingCart className="h-4 w-4 shrink-0" />}
+            <span className="whitespace-nowrap">{cartMessage || "Adaugă în coș"}</span>
           </button>
           <button
             onClick={onBuyNow}
-            className="flex-[1.5] py-4 bg-[#10A37F] hover:bg-[#0e8f6e] text-white rounded-xl font-bold shadow-[0_0_20px_rgba(16,163,127,0.3)] transition-all active:scale-95"
+            className="min-h-14 min-w-0 rounded-xl bg-[#10A37F] px-4 py-3 text-sm font-bold leading-none text-white shadow-[0_0_20px_rgba(16,163,127,0.3)] transition-all hover:bg-[#0e8f6e] active:scale-95"
           >
-            Cumpără acum
+            <span className="whitespace-nowrap">Cumpără acum</span>
           </button>
         </div>
       </div>
     </>
   );
+
+  return createPortal(drawer, document.body);
 }

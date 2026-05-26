@@ -14,19 +14,24 @@ export async function GET(req: Request) {
     }
 
     const salesRes = await dbQuery(
-      `SELECT COALESCE(SUM(unit_amount_cents * quantity), 0) as total_sales
-       FROM commerce_order_items
-       WHERE metadata->>'seller_id' = $1`,
+      `SELECT COALESCE(SUM(coi.unit_amount_cents * coi.quantity), 0) as total_sales
+       FROM commerce_order_items coi
+       JOIN commerce_orders co ON co.id = coi.order_id
+       WHERE coi.metadata->>'seller_id' = $1
+         AND coi.source_status NOT IN ('cancelled', 'failed')
+         AND co.status NOT IN ('pending', 'cancelled', 'refunded', 'failed')`,
       [sellerId]
     );
     const totalSalesCents = salesRes.rows[0]?.total_sales || 0;
     const totalSalesLei = Math.round(Number(totalSalesCents) / 100);
 
     const pendingRes = await dbQuery(
-      `SELECT COUNT(DISTINCT order_id) as pending_count
-       FROM commerce_order_items
-       WHERE metadata->>'seller_id' = $1
-         AND source_status = 'pending_seller_action'`,
+      `SELECT COUNT(DISTINCT coi.order_id) as pending_count
+       FROM commerce_order_items coi
+       JOIN commerce_orders co ON co.id = coi.order_id
+       WHERE coi.metadata->>'seller_id' = $1
+         AND coi.source_status = 'pending_seller_action'
+         AND co.status NOT IN ('cancelled', 'refunded', 'failed')`,
       [sellerId]
     );
     const pendingOrders = parseInt(pendingRes.rows[0]?.pending_count || "0", 10);
@@ -47,13 +52,14 @@ export async function GET(req: Request) {
     const sellerMetadata = sellerRes.rows[0]?.metadata || {};
     const stripeConnected = !!(sellerRes.rows[0]?.stripe_account_id || sellerMetadata.stripe_account_id);
 
+    // Multi-seller safe: include only this seller's items in total/items
     const recentRes = await dbQuery(
       `SELECT
          co.id as order_id,
          co.status as order_status,
          co.metadata as order_meta,
          co.created_at,
-         SUM(coi.quantity * coi.unit_amount_cents) as total_cents,
+         COALESCE(SUM(coi.quantity * coi.unit_amount_cents) FILTER (WHERE coi.metadata->>'seller_id' = $1), 0) as total_cents,
          json_agg(
            json_build_object(
              'item_id', coi.id,
@@ -62,10 +68,12 @@ export async function GET(req: Request) {
              'source_status', coi.source_status
            )
            ORDER BY coi.created_at
-         ) as items
+         ) FILTER (WHERE coi.metadata->>'seller_id' = $1) as items
        FROM commerce_orders co
        JOIN commerce_order_items coi ON co.id = coi.order_id
-       WHERE coi.metadata->>'seller_id' = $1
+       WHERE co.id IN (
+         SELECT order_id FROM commerce_order_items WHERE metadata->>'seller_id' = $1
+       )
        GROUP BY co.id, co.status, co.metadata, co.created_at
        ORDER BY co.created_at DESC
        LIMIT 5`,

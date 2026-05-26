@@ -48,7 +48,7 @@ async function handle(request: NextRequest) {
     try {
       await dbQuery(
         `INSERT INTO cron_runs (job_name, started_at, completed_at, duration_ms, status, result)
-         VALUES ('refresh-rank', NOW() - ($1 || ' milliseconds')::interval, NOW(), $1, 'success', $2::jsonb)`,
+         VALUES ('refresh-rank', NOW() - ($1::text || ' milliseconds')::interval, NOW(), $1::integer, 'success', $2::jsonb)`,
         [elapsedMs, JSON.stringify(stats)]
       );
     } catch (err: any) {
@@ -61,7 +61,7 @@ async function handle(request: NextRequest) {
     try {
       await dbQuery(
         `INSERT INTO cron_runs (job_name, started_at, completed_at, duration_ms, status, error)
-         VALUES ('refresh-rank', NOW() - ($1 || ' milliseconds')::interval, NOW(), $1, 'failed', $2)`,
+         VALUES ('refresh-rank', NOW() - ($1::text || ' milliseconds')::interval, NOW(), $1::integer, 'failed', $2)`,
         [Date.now() - startedAt, String(e?.message || e).slice(0, 500)]
       );
     } catch {

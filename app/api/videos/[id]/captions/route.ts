@@ -45,10 +45,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const audioUrl = typeof body.audio_url === "string" ? body.audio_url : video.playback_url;
   if (!audioUrl) return NextResponse.json({ error: "no audio source" }, { status: 400 });
 
+  // Secure against SSRF: only allow our trusted media bucket domains
+  try {
+    const parsedUrl = new URL(audioUrl);
+    const allowedHosts = [
+      "media.swypik.com",
+      "media-adult.swypik.com",
+      "swypik.com",
+      "18.swypik.com"
+    ];
+    if (!allowedHosts.includes(parsedUrl.hostname)) {
+      return NextResponse.json({ error: "Forbidden domain" }, { status: 400 });
+    }
+  } catch (e) {
+    if (!audioUrl.startsWith("/")) {
+      return NextResponse.json({ error: "Invalid audio URL" }, { status: 400 });
+    }
+  }
+
   let buf: Buffer;
   try {
     const r = await fetch(audioUrl);
     if (!r.ok) return NextResponse.json({ error: `fetch audio ${r.status}` }, { status: 502 });
+    
+    const contentLength = r.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > 15 * 1024 * 1024) {
+      return NextResponse.json({ error: "Audio file too large (max 15MB)" }, { status: 400 });
+    }
+    
     buf = Buffer.from(await r.arrayBuffer());
   } catch (e) {
     return NextResponse.json({ error: `fetch failed: ${(e as Error).message}` }, { status: 502 });

@@ -220,10 +220,10 @@ export default function AddressesClient() {
       )}
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:items-center sm:p-4">
           <form
             onSubmit={save}
-            className="w-full max-w-md rounded-t-3xl bg-[#161616] p-5 sm:rounded-3xl"
+            className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl bg-[#161616] p-5"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-black">{editing.id ? "Editează adresa" : "Adresă nouă"}</h2>

@@ -23,6 +23,81 @@ export async function GET(req: Request) {
 
   try {
     const publicUrl = process.env.S3_PUBLIC_URL?.replace(/\/$/, "") || "";
+    const url = new URL(req.url);
+    const rawLimit = Number(url.searchParams.get("limit") || 50);
+    const rawOffset = Number(url.searchParams.get("offset") || 0);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 500) : 50;
+    const offset = Number.isFinite(rawOffset) ? Math.max(Math.trunc(rawOffset), 0) : 0;
+    const statusFilter = (url.searchParams.get("status") || "all").toLowerCase();
+    const search = (url.searchParams.get("search") || "").trim();
+
+    // Filter expression compatible with the derived status returned to the client.
+    // Status mapping: video_status='ready' OR va.status='available' → 'ready'; otherwise va.status.
+    const where: string[] = [`va.asset_type = 'source'`];
+    const params: any[] = [];
+
+    if (statusFilter !== "all") {
+      params.push(statusFilter);
+      if (statusFilter === "ready") {
+        where.push(`(v.status = 'ready' OR va.status = 'available')`);
+        params.pop(); // not used as param
+      } else if (statusFilter === "failed") {
+        where.push(`va.status = 'failed'`);
+        params.pop();
+      } else if (statusFilter === "processing") {
+        where.push(`va.status = 'processing'`);
+        params.pop();
+      } else if (statusFilter === "pending") {
+        where.push(`(va.status = 'pending' OR va.status IS NULL)`);
+        params.pop();
+      } else {
+        where.push(`va.status = $${params.length}`);
+      }
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      where.push(
+        `(v.title ILIKE $${params.length} OR u.display_name ILIKE $${params.length} OR u.email ILIKE $${params.length})`
+      );
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    // Totals — calculated independently of pagination/filter for global KPI accuracy
+    const totalsRes = await dbQuery(
+      `SELECT
+         COUNT(*) AS total,
+         COUNT(*) FILTER (WHERE v.status = 'ready' OR va.status = 'available') AS ready,
+         COUNT(*) FILTER (WHERE va.status = 'processing') AS processing,
+         COUNT(*) FILTER (WHERE va.status = 'failed') AS failed,
+         COUNT(*) FILTER (WHERE va.status = 'pending' OR va.status IS NULL) AS pending
+       FROM video_assets va
+       JOIN videos v ON va.video_id = v.id
+       WHERE va.asset_type = 'source'`
+    );
+    const totalsRow = totalsRes.rows[0] || {};
+    const totals = {
+      total: Number(totalsRow.total) || 0,
+      ready: Number(totalsRow.ready) || 0,
+      processing: Number(totalsRow.processing) || 0,
+      failed: Number(totalsRow.failed) || 0,
+      pending: Number(totalsRow.pending) || 0,
+    };
+
+    // Filtered count (for pagination)
+    const filteredCountRes = await dbQuery(
+      `SELECT COUNT(*) AS c
+         FROM video_assets va
+         JOIN videos v ON va.video_id = v.id
+         LEFT JOIN users u ON v.creator_id = u.id
+         ${whereSql}`,
+      params
+    );
+    const filteredTotal = Number(filteredCountRes.rows[0]?.c) || 0;
+
+    params.push(limit);
+    params.push(offset);
+
     const { rows } = await dbQuery(`
       SELECT 
         va.id,
@@ -55,10 +130,10 @@ export async function GET(req: Request) {
         ORDER BY created_at DESC
         LIMIT 1
       ) vpj ON true
-      WHERE va.asset_type = 'source'
+      ${whereSql}
       ORDER BY va.created_at DESC
-      LIMIT 200
-    `);
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params);
 
     // Derive product info from videos.product_refs JSONB array
     const videos = rows.map((r: any) => {
@@ -106,7 +181,14 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ videos });
+    return NextResponse.json({
+      videos,
+      totals,
+      filteredTotal,
+      limit,
+      offset,
+      hasMore: offset + videos.length < filteredTotal,
+    });
   } catch (error: any) {
     logger.error({ err: error }, "[Admin Videos] GET error:");
     return NextResponse.json(

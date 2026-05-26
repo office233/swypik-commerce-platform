@@ -12,7 +12,7 @@ type Node = {
   children?: Node[];
 };
 
-const BG = "#0D0D0D";
+const BG = "#FFFFFF";
 const ACCENT = "#7C3AED";
 
 async function fetchHierarchy(locale: string): Promise<Node[]> {
@@ -48,17 +48,17 @@ export default async function CategoriesPage() {
       : { title: "Categorii", browse: "Răsfoiește", products: "produse", empty: "Nicio categorie încă." };
 
   return (
-    <main className="min-h-screen text-white" style={{ backgroundColor: BG }}>
+    <main className="min-h-screen text-neutral-900" style={{ backgroundColor: BG }}>
       <div className="mx-auto max-w-6xl px-4 py-8">
         <header className="mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight">{labels.title}</h1>
-          <p className="mt-1 text-sm text-neutral-400">
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">{labels.title}</h1>
+          <p className="mt-1 text-sm text-neutral-500">
             {hierarchy.reduce((s, n) => s + (n.count ?? 0), 0)} {labels.products}
           </p>
         </header>
 
         {hierarchy.length === 0 ? (
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-8 text-center text-neutral-400">
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-8 text-center text-neutral-500">
             {labels.empty}
           </div>
         ) : (
@@ -66,7 +66,7 @@ export default async function CategoriesPage() {
             {hierarchy.map((dept) => (
               <section
                 key={dept.id}
-                className="group rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 transition hover:border-neutral-700"
+                className="group rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:border-neutral-300 hover:shadow-md"
               >
                 <Link href={`/categories/${dept.id}`} className="block focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded-lg">
                   <div className="flex items-baseline justify-between gap-3">
@@ -83,11 +83,11 @@ export default async function CategoriesPage() {
                       <li key={child.id}>
                         <Link
                           href={`/categories/${child.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-950 px-3 py-2.5 min-h-[44px] text-xs text-neutral-300 transition hover:border-neutral-600 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 min-h-[44px] text-xs text-neutral-700 transition hover:border-violet-400 hover:bg-violet-50 hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
                         >
                           <span>{child.name}</span>
                           {child.count != null && (
-                            <span className="text-neutral-500">({child.count})</span>
+                            <span className="text-neutral-400">({child.count})</span>
                           )}
                         </Link>
                       </li>

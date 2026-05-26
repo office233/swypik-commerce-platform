@@ -75,7 +75,15 @@ export async function persistConnectAccount(acc: Stripe.Account): Promise<Connec
   const chargesEnabled = !!acc.charges_enabled;
   const payoutsEnabled = !!acc.payouts_enabled;
   const detailsSubmitted = !!acc.details_submitted;
+  const requirements = {
+    currently_due: acc.requirements?.currently_due || [],
+    past_due: acc.requirements?.past_due || [],
+    disabled_reason: acc.requirements?.disabled_reason || null,
+  };
 
+  // The same Stripe account may belong to either a creator (users table) or a
+  // seller (sellers table). We attempt both updates so account.updated webhook
+  // works regardless of which onboarding flow created the account.
   await dbQuery(
     `UPDATE users SET
        stripe_connect_charges_enabled = $1,
@@ -87,14 +95,26 @@ export async function persistConnectAccount(acc: Stripe.Account): Promise<Connec
     [chargesEnabled, payoutsEnabled, detailsSubmitted, acc.id],
   );
 
+  await dbQuery(
+    `UPDATE sellers SET
+       stripe_charges_enabled = $1,
+       stripe_payouts_enabled = $2,
+       stripe_details_submitted = $3,
+       stripe_onboarded_at = CASE WHEN $3 AND stripe_onboarded_at IS NULL THEN now() ELSE stripe_onboarded_at END,
+       stripe_requirements = $5::jsonb,
+       updated_at = now()
+     WHERE stripe_account_id = $4`,
+    [chargesEnabled, payoutsEnabled, detailsSubmitted, acc.id, JSON.stringify(requirements)],
+  );
+
   return {
     accountId: acc.id,
     chargesEnabled,
     payoutsEnabled,
     detailsSubmitted,
     onboardedAt: detailsSubmitted ? new Date().toISOString() : null,
-    requirementsCurrentlyDue: acc.requirements?.currently_due || [],
-    requirementsPastDue: acc.requirements?.past_due || [],
-    requirementsDisabledReason: acc.requirements?.disabled_reason || null,
+    requirementsCurrentlyDue: requirements.currently_due,
+    requirementsPastDue: requirements.past_due,
+    requirementsDisabledReason: requirements.disabled_reason,
   };
 }

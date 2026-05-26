@@ -71,6 +71,55 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {process.env.GOOGLE_SITE_VERIFICATION ? (
+          <meta name="google-site-verification" content={process.env.GOOGLE_SITE_VERIFICATION} />
+        ) : null}
+        {process.env.BING_SITE_VERIFICATION ? (
+          <meta name="msvalidate.01" content={process.env.BING_SITE_VERIFICATION} />
+        ) : null}
+        {process.env.YANDEX_VERIFICATION ? (
+          <meta name="yandex-verification" content={process.env.YANDEX_VERIFICATION} />
+        ) : null}
+        {process.env.PINTEREST_SITE_VERIFICATION ? (
+          <meta name="p:domain_verify" content={process.env.PINTEREST_SITE_VERIFICATION} />
+        ) : null}
+        {process.env.FACEBOOK_DOMAIN_VERIFICATION ? (
+          <meta name="facebook-domain-verification" content={process.env.FACEBOOK_DOMAIN_VERIFICATION} />
+        ) : null}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  "@id": "https://swypik.com/#website",
+                  "url": "https://swypik.com/",
+                  "name": "Swypik",
+                  "description": "Video-first marketplace — discover products through short-form video.",
+                  "publisher": { "@id": "https://swypik.com/#organization" },
+                  "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": {
+                      "@type": "EntryPoint",
+                      "urlTemplate": "https://swypik.com/search?q={search_term_string}"
+                    },
+                    "query-input": "required name=search_term_string"
+                  }
+                },
+                {
+                  "@type": "Organization",
+                  "@id": "https://swypik.com/#organization",
+                  "name": "Swypik",
+                  "url": "https://swypik.com/",
+                  "logo": "https://swypik.com/apple-touch-icon.png",
+                  "sameAs": []
+                }
+              ]
+            })
+          }}
+        />
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>

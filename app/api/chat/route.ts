@@ -24,6 +24,18 @@ export const maxDuration = 120;
 
 const SAFE_FALLBACK = "Imi pare rau, nu pot raspunde la asta.";
 
+function cleanRequestedLabel(value: unknown): string {
+  const label = String(value || "produsul cerut")
+    .replace(/\s+/g, " ")
+    .trim();
+  return label.length > 80 ? `${label.slice(0, 77).trim()}...` : label;
+}
+
+function noProductsReply(value: unknown): string {
+  const label = cleanRequestedLabel(value);
+  return `⚠️ Momentan nu avem produse pentru „${label}” în catalog. Adăugăm produse zilnic; între timp pot căuta alternative apropiate din categoriile disponibile (haine, accesorii, beauty, gadgeturi).`;
+}
+
 async function safeReplyJson(payload: any) {
   try {
     const reply = String(payload?.reply ?? "");
@@ -129,6 +141,17 @@ export async function POST(req: Request) {
         userMessage,
       });
 
+      if (products.length === 0) {
+        return safeReplyJson({
+          intent: aiResult.intent,
+          reply: noProductsReply(userMessage || query),
+          products: [],
+          bundleProducts: [],
+          shoppingSession,
+          sessionId: sessionId || crypto.randomUUID(),
+        });
+      }
+
       const bundleProducts = await fetchBundles(products, query, aiResult.bundleQueries || [], { maxPrice, category });
       const suggestion = buildBundleSuggestionText(products, bundleProducts);
 
@@ -152,7 +175,7 @@ export async function POST(req: Request) {
 
       return safeReplyJson({
         intent: aiResult.intent || "search_product",
-        reply: aiResult.reply || "Iată ce am găsit pentru tine! 🔥",
+        reply: products.length ? (aiResult.reply || "Iată ce am găsit pentru tine! 🔥") : noProductsReply(userMessage || query),
         products,
         bundleProducts: [],
         productId: aiResult.productId,

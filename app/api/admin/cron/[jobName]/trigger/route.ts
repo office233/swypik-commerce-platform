@@ -38,8 +38,10 @@ export async function POST(
     return NextResponse.json({ error: "CRON_SECRET not configured" }, { status: 500 });
   }
 
-  const origin = new URL(req.url).origin;
-  const target = origin + "/api/cron/" + jobName;
+  // Folosim loopback intern în container (evită SSL/DNS la self-fetch prin proxy).
+  // Fallback la origin-ul cererii dacă PORT nu e definit (dev local).
+  const internalPort = process.env.PORT || "3000";
+  const target = `http://127.0.0.1:${internalPort}/api/cron/${jobName}`;
 
   let runId: string | null = null;
   try {

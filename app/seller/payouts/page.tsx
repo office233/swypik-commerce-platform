@@ -11,6 +11,10 @@ type SellerRow = {
   email: string;
   status: string;
   stripe_account_id: string | null;
+  stripe_payouts_enabled: boolean;
+  stripe_charges_enabled: boolean;
+  stripe_details_submitted: boolean;
+  stripe_requirements: any;
 };
 
 type SummaryRow = {
@@ -34,7 +38,9 @@ export default async function SellerPayoutsPage() {
   if (!sellerId) redirect("/seller/login");
 
   const { rows: sellerRows } = await dbQuery<SellerRow>(
-    `SELECT id::text, name, email, status, stripe_account_id
+    `SELECT id::text, name, email, status, stripe_account_id,
+            stripe_payouts_enabled, stripe_charges_enabled,
+            stripe_details_submitted, stripe_requirements
        FROM sellers WHERE id = $1 LIMIT 1`,
     [sellerId],
   );
@@ -93,6 +99,11 @@ export default async function SellerPayoutsPage() {
         email: seller.email,
         hasStripe: Boolean(seller.stripe_account_id),
         stripeAccountId: seller.stripe_account_id,
+        payoutsEnabled: seller.stripe_payouts_enabled,
+        chargesEnabled: seller.stripe_charges_enabled,
+        detailsSubmitted: seller.stripe_details_submitted,
+        requirementsCurrentlyDue: seller.stripe_requirements?.currently_due || [],
+        requirementsDisabledReason: seller.stripe_requirements?.disabled_reason || null,
       }}
       summary={{
         availableCents: Number(summary.available_cents) || 0,

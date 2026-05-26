@@ -11,6 +11,7 @@ import {
   DEFAULT_LOCALE,
   DEFAULT_CURRENCY,
 } from "@/lib/i18n/config";
+import type { Metadata } from "next";
 import { formatCurrency } from "@/lib/i18n/currency";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ type Product = {
   hasVideo?: boolean;
 };
 
-const BG = "#0D0D0D";
+const BG = "#FFFFFF";
 const ACCENT = "#7C3AED";
 
 async function fetchHierarchy(locale: string): Promise<Node[]> {
@@ -65,6 +66,25 @@ function findNodePath(hierarchy: Node[], slug: string, trail: Node[] = []): Node
     }
   }
   return null;
+}
+
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const hierarchy = await fetchHierarchy("ro");
+  const path = findNodePath(hierarchy, slug);
+  if (!path) return { title: "Categorie" };
+  const current = path[path.length - 1];
+  const title = `${current.name} — Swypik`;
+  const description = `Cumpără ${current.name} pe Swypik. Mii de produse cu livrare rapidă, preț minim garantat și recenzii reale.`;
+  const url = `https://swypik.com/categories/${slug}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: "website" },
+    twitter: { card: "summary_large_image", title, description },
+  };
 }
 
 export default async function CategoryPage({
@@ -104,26 +124,70 @@ export default async function CategoryPage({
     value == null ? "" : formatCurrency(Math.round(value * 100), { locale, displayCurrency, sourceCurrency: "RON" });
 
   return (
-    <main className="min-h-screen text-white" style={{ backgroundColor: BG }}>
+    <main className="min-h-screen text-neutral-900" style={{ backgroundColor: BG }}>
       <div className="mx-auto max-w-6xl px-4 py-6">
+        {(() => {
+          const breadcrumbItems = [
+            { "@type": "ListItem", position: 1, name: "Home", item: "https://swypik.com" },
+            { "@type": "ListItem", position: 2, name: labels.all, item: "https://swypik.com/categories" },
+            ...path.map((n, i) => ({
+              "@type": "ListItem",
+              position: 3 + i,
+              name: n.name,
+              item: `https://swypik.com/categories/${n.id}`,
+            })),
+          ];
+          const itemListElement = products.slice(0, 24).map((p, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            url: `https://swypik.com/product/${p.id}`,
+            name: p.title,
+          }));
+          const jsonLd = [
+            {
+              "@context": "https://schema.org",
+              "@type": "CollectionPage",
+              "@id": `https://swypik.com/categories/${slug}#collection`,
+              name: current.name,
+              url: `https://swypik.com/categories/${slug}`,
+              isPartOf: { "@id": "https://swypik.com/#website" },
+              about: { "@type": "Thing", name: current.name },
+              numberOfItems: total,
+            },
+            { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: breadcrumbItems },
+            {
+              "@context": "https://schema.org",
+              "@type": "ItemList",
+              "@id": `https://swypik.com/categories/${slug}#items`,
+              numberOfItems: products.length,
+              itemListElement,
+            },
+          ];
+          return (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+          );
+        })()}
         {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1 text-sm text-neutral-400">
-          <Link href="/categories" className="hover:text-white">{labels.all}</Link>
+        <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1 text-sm text-neutral-500">
+          <Link href="/categories" className="hover:text-violet-700">{labels.all}</Link>
           {path.map((n, i) => (
             <span key={n.id} className="flex items-center gap-1">
-              <ChevronRight className="h-3.5 w-3.5 text-neutral-600" />
+              <ChevronRight className="h-3.5 w-3.5 text-neutral-400" />
               {i === path.length - 1 ? (
-                <span className="text-white">{n.name}</span>
+                <span className="text-neutral-900 font-medium">{n.name}</span>
               ) : (
-                <Link href={`/categories/${n.id}`} className="hover:text-white">{n.name}</Link>
+                <Link href={`/categories/${n.id}`} className="hover:text-violet-700">{n.name}</Link>
               )}
             </span>
           ))}
         </nav>
 
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{current.name}</h1>
-          <p className="mt-1 text-sm text-neutral-400">
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">{current.name}</h1>
+          <p className="mt-1 text-sm text-neutral-500">
             {total} {labels.products}
           </p>
         </header>
@@ -139,11 +203,11 @@ export default async function CategoryPage({
                 <li key={child.id}>
                   <Link
                     href={`/categories/${child.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 text-sm text-neutral-300 transition hover:border-neutral-600 hover:text-white"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700 transition hover:border-violet-400 hover:bg-violet-50 hover:text-violet-700"
                   >
                     <span>{child.name}</span>
                     {child.count != null && (
-                      <span className="text-neutral-500">{child.count}</span>
+                      <span className="text-neutral-400">{child.count}</span>
                     )}
                   </Link>
                 </li>
@@ -154,7 +218,7 @@ export default async function CategoryPage({
 
         {/* Product grid */}
         {products.length === 0 ? (
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-8 text-center text-neutral-400">
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-8 text-center text-neutral-500">
             {labels.empty}
           </div>
         ) : (
@@ -171,9 +235,9 @@ export default async function CategoryPage({
                 <li key={p.id}>
                   <Link
                     href={`/product/${p.id}`}
-                    className="group block overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/60 transition hover:border-neutral-600"
+                    className="group block overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition hover:border-violet-300 hover:shadow-md"
                   >
-                    <div className="relative aspect-square w-full overflow-hidden bg-neutral-950">
+                    <div className="relative aspect-square w-full overflow-hidden bg-neutral-100">
                       {img ? (
                         <Image
                           src={img}
@@ -183,7 +247,7 @@ export default async function CategoryPage({
                           className="object-cover transition group-hover:scale-105"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-neutral-600">no image</div>
+                        <div className="flex h-full items-center justify-center text-xs text-neutral-400">no image</div>
                       )}
                       {discount > 0 && (
                         <span className="absolute left-2 top-2 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] font-semibold">
@@ -197,13 +261,13 @@ export default async function CategoryPage({
                       )}
                     </div>
                     <div className="p-2.5">
-                      <h3 className="line-clamp-2 text-xs text-neutral-200 sm:text-sm">{p.title}</h3>
+                      <h3 className="line-clamp-2 text-xs text-neutral-800 sm:text-sm">{p.title}</h3>
                       <div className="mt-1.5 flex items-baseline gap-2">
                         <span className="text-sm font-semibold" style={{ color: ACCENT }}>
                           {fmt(p.price ?? null)}
                         </span>
                         {discount > 0 && (
-                          <span className="text-[11px] text-neutral-500 line-through">
+                          <span className="text-[11px] text-neutral-400 line-through">
                             {fmt(p.oldPrice ?? null)}
                           </span>
                         )}

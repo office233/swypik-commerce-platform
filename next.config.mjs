@@ -20,7 +20,7 @@ const cspHeader = `
 `.replace(/\s{2,}/g, " ").trim();
 const cspReportOnly = `
   default-src 'self';
-  script-src 'self' 'strict-dynamic' https://js.stripe.com;
+  script-src 'self' https://js.stripe.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https://media.swypik.com https://*.aliexpress-media.com https://video.aliexpress-media.com;

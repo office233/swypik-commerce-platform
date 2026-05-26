@@ -15,13 +15,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    // Multi-seller safe: include only this seller's items in total/items
     const { rows } = await dbQuery(
       `SELECT
          co.id as order_id,
          co.status as order_status,
          co.metadata as order_meta,
          co.created_at,
-         SUM(coi.quantity * coi.unit_amount_cents) as total_cents,
+         COALESCE(SUM(coi.quantity * coi.unit_amount_cents) FILTER (WHERE coi.metadata->>'seller_id' = $1), 0) as total_cents,
          json_agg(
            json_build_object(
              'item_id', coi.id,
@@ -32,10 +33,12 @@ export async function GET(req: Request) {
              'source_status', coi.source_status
            )
            ORDER BY coi.created_at
-         ) as items
+         ) FILTER (WHERE coi.metadata->>'seller_id' = $1) as items
        FROM commerce_orders co
        JOIN commerce_order_items coi ON co.id = coi.order_id
-       WHERE coi.metadata->>'seller_id' = $1
+       WHERE co.id IN (
+         SELECT order_id FROM commerce_order_items WHERE metadata->>'seller_id' = $1
+       )
        GROUP BY co.id, co.status, co.metadata, co.created_at
        ORDER BY co.created_at DESC`,
       [sellerId]
