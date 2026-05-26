@@ -121,20 +121,20 @@ const RANK_SCORE_EXPR = `(
 // Freshness bonus: declines over 3 days. Boost in [0..5].
 const FRESHNESS_EXPR = `GREATEST(0, 5 - EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / (86400.0 * 3))`;
 
+// Cap real engagement score so a single hot video can't dominate the top.
+// We use sqrt+log compression: rank_score=38 → ~12, rank_score=200 → ~16.
+// This keeps signal direction but flattens magnitude so jitter actually rotates the top.
+const RANK_CAPPED_EXPR = `(LN(GREATEST(COALESCE(vr.rank_score, 0), 0) + 1) * 4)`;
+
 // Exploration: every row gets a random boost so the feed isn't deterministic.
-// Low-scored videos (rank<=5) get a bigger jitter so the long-tail rotates;
-// high-scored videos get a smaller jitter so the top doesn't collapse.
-// Range: roughly [0..15] for low-rank, [0..6] for high-rank.
-const EXPLORATION_EXPR = `(
-  CASE
-    WHEN COALESCE(vr.rank_score, 0) <= 5 THEN random() * 15
-    ELSE random() * 6
-  END
-)`;
+// Magnitude tuned to overlap with capped rank so even #1 rotates across requests.
+// Range: ~[0..15] regardless of rank tier.
+const EXPLORATION_EXPR = `(random() * 15)`;
 
 // Uses pre-aggregated video_rank_14d (refreshed every ~5min by /api/cron/refresh-rank).
 // Falls back to inline RANK_SCORE_EXPR subquery if mat view row missing (new video).
-const RANK_FROM_MV = `COALESCE(vr.rank_score, (${RANK_SCORE_EXPR}), 0)`;
+// Wrapped through RANK_CAPPED_EXPR so a single outlier can't pin position #1.
+const RANK_FROM_MV = `${RANK_CAPPED_EXPR}`;
 
 // Repetition penalty: -50 if viewer already saw this video in last 24h.
 // Injected only when userId or sessionId present (see buildPenaltyExpr below).
