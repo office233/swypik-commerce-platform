@@ -20,6 +20,7 @@ import {
   ShieldAlert,
   PackageX,
   Shield,
+  AlertTriangle,
   MessageSquare,
   Music2,
   Hash,
@@ -65,6 +66,7 @@ const sections: NavSection[] = [
     icon: "\u{1F6D2}",
     items: [
       { href: "/admin/orders", label: "Comenzi", icon: ShoppingBag },
+      { href: "/admin/risk", label: "Risc fraudă", icon: AlertTriangle },
       { href: "/admin/returns", label: "Returns", icon: Undo2 },
       { href: "/admin/refunds", label: "Refunds", icon: Coins },
       { href: "/admin/disputes", label: "Disputes", icon: Shield },
