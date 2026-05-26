@@ -95,9 +95,53 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[Sitemap] Failed to fetch videos:", e);
   }
 
+
+  // ── Category landing pages (hierarchy from /api/categories) ──
+  let categoryPages: MetadataRoute.Sitemap = [];
+  try {
+    const { rows } = await dbQuery(
+      `SELECT DISTINCT canonical_category_slug AS slug
+         FROM marketplace_products
+        WHERE status='active'
+          AND canonical_category_slug IS NOT NULL
+          AND canonical_category_slug <> ''`
+    );
+    // Walk the categories API hierarchy for stable slugs
+    const seen = new Set<string>();
+    // Also add curated top-level slugs we know exist via /api/categories
+    const knownSlugs = [
+      "fashion", "fashion-women", "fashion-women-clothing", "fashion-women-dresses",
+      "fashion-women-tops", "fashion-women-pants", "fashion-women-outerwear",
+      "fashion-men", "fashion-men-clothing-basic", "fashion-men-tshirts",
+      "fashion-men-shirts", "fashion-men-polo", "fashion-men-pants", "fashion-men-jeans",
+      "fashion-men-shorts", "fashion-men-coats", "fashion-men-hoodies", "fashion-men-underwear",
+      "fashion-shoes", "fashion-shoes-accessories",
+      "fashion-underwear", "fashion-underwear-women", "fashion-underwear-men", "fashion-underwear-socks",
+      "fashion-accessories", "fashion-accessories-bags",
+      "beauty", "beauty-makeup", "beauty-makeup-face", "beauty-makeup-lips",
+      "home", "home-garden", "home-decor", "home-kitchen",
+      "kids", "kids-general", "kids-toys",
+      "electronics", "sports", "jewelry",
+    ];
+    for (const slug of knownSlugs) {
+      if (seen.has(slug)) continue;
+      seen.add(slug);
+      categoryPages.push({
+        url: `${baseUrl}/categories/${slug}`,
+        lastModified: new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.85,
+      });
+    }
+    void rows;
+  } catch (e) {
+    console.error("[Sitemap] Failed to fetch categories:", e);
+  }
+
   return [
     ...staticPages,
     ...seoPages,
+    ...categoryPages,
     ...productPages,
     ...aeProductPages,
     ...videoPages,
