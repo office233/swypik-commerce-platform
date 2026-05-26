@@ -121,10 +121,16 @@ const RANK_SCORE_EXPR = `(
 // Freshness bonus: declines over 3 days. Boost in [0..5].
 const FRESHNESS_EXPR = `GREATEST(0, 5 - EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / (86400.0 * 3))`;
 
-// Exploration: ~20% of rows get a random boost so new/unscored videos can surface.
-// Boost in [0..15] applied with 20% probability per row. Deterministic per-request
-// would need a seed (we accept stochastic here — different ordering across hits is fine).
-const EXPLORATION_EXPR = `(CASE WHEN random() < 0.20 THEN random() * 2 ELSE 0 END)`;
+// Exploration: every row gets a random boost so the feed isn't deterministic.
+// Low-scored videos (rank<=5) get a bigger jitter so the long-tail rotates;
+// high-scored videos get a smaller jitter so the top doesn't collapse.
+// Range: roughly [0..15] for low-rank, [0..6] for high-rank.
+const EXPLORATION_EXPR = `(
+  CASE
+    WHEN COALESCE(vr.rank_score, 0) <= 5 THEN random() * 15
+    ELSE random() * 6
+  END
+)`;
 
 // Uses pre-aggregated video_rank_14d (refreshed every ~5min by /api/cron/refresh-rank).
 // Falls back to inline RANK_SCORE_EXPR subquery if mat view row missing (new video).
@@ -155,13 +161,15 @@ function buildOrderClause(
   const affinity = buildAffinityExpr(hasUser);
   switch (sort) {
     case "popular":
-      return `${ENGAGEMENT_EXPR} + ${penalty} DESC, v.published_at DESC NULLS LAST`;
+      return `${ENGAGEMENT_EXPR} + ${penalty} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
     case "trending":
-      return `${TRENDING_EXPR} + ${penalty} DESC, v.published_at DESC NULLS LAST`;
+      return `${TRENDING_EXPR} + ${penalty} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
     case "recent":
     default:
-      // Real engagement (mat view) + freshness + personalization - repetition penalty + 20% exploration.
-      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${penalty} + ${EXPLORATION_EXPR} DESC, v.published_at DESC NULLS LAST, v.created_at DESC`;
+      // Real engagement (mat view) + freshness + personalization - repetition penalty + exploration jitter.
+      // Final tie-breaker random() so videos with identical scores don't always
+      // appear in the same order across requests.
+      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${penalty} + ${EXPLORATION_EXPR} DESC, v.published_at DESC NULLS LAST, random()`;
   }
 }
 
