@@ -111,10 +111,19 @@ export type RateLimitConfig = {
 
 /** Default rate limits per route category */
 export const RATE_LIMITS = {
-  cart: { limit: 10, window: 60 } as RateLimitConfig,     // 10 checkouts/min
-  chat: { limit: 30, window: 60 } as RateLimitConfig,     // 30 messages/min
-  products: { limit: 60, window: 60 } as RateLimitConfig,  // 60 reads/min
-  suggest: { limit: 40, window: 60 } as RateLimitConfig,   // 40 autocomplete/min
+  cart: { limit: 10, window: 60 } as RateLimitConfig,       // 10 checkouts/min
+  chat: { limit: 30, window: 60 } as RateLimitConfig,       // 30 messages/min
+  products: { limit: 60, window: 60 } as RateLimitConfig,   // 60 reads/min
+  suggest: { limit: 40, window: 60 } as RateLimitConfig,    // 40 autocomplete/min
+  videoLike: { limit: 30, window: 60 } as RateLimitConfig,  // 30 likes/min per user (anti-spam ratings)
+  videoSave: { limit: 20, window: 60 } as RateLimitConfig,  // 20 saves/min (push notif spam guard)
+  videoComment: { limit: 10, window: 60 } as RateLimitConfig,// 10 comments/min (spam guard)
+  videoShare: { limit: 20, window: 60 } as RateLimitConfig, // 20 shares/min (counter manipulation)
+  videoView: { limit: 60, window: 60 } as RateLimitConfig,  // 60 views/min/IP (view-bombing guard)
+  commentLike: { limit: 30, window: 60 } as RateLimitConfig,// 30 comment-likes/min
+  dmMessage: { limit: 20, window: 60 } as RateLimitConfig,  // 20 DMs/min (anti-flood)
+  cartItems: { limit: 30, window: 60 } as RateLimitConfig,  // 30 cart mutations/min
+  applySeller: { limit: 3, window: 600 } as RateLimitConfig,// 3 seller applications / 10 min
 } as const;
 
 /**

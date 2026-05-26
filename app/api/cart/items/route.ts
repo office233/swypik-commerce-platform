@@ -7,11 +7,15 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { buildCartCookie, getOrCreateCart, loadCartItems } from "@/lib/cart/session";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
 export async function POST(req: Request) {
   try {
+    const rl = await rateLimit("cartItems", getClientIP(req));
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: NO_STORE });
+
     const body = await req.json();
     const productId = String(body.productId || "").trim();
     const variantId = body.variantId ? String(body.variantId).trim() : null;

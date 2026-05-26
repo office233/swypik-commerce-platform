@@ -5,6 +5,7 @@ import { moderateText } from "@/lib/moderation/moderateText";
 import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -154,6 +155,9 @@ export async function POST(
     }
 
     const session = await getOrCreateSocialUser();
+
+    const rl = await rateLimit("videoComment", session.userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     const requestedParentCommentId =
       typeof body?.parent_comment_id === "string" && body.parent_comment_id.trim()
         ? body.parent_comment_id.trim()

@@ -3,6 +3,7 @@ import { getDb, dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
 import { UUID_RE } from "@/lib/validation/uuid";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,9 @@ export async function POST(
     const userId = session.userId;
     const { id: videoId } = await params;
     if (!UUID_RE.test(videoId)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+
+    const rl = await rateLimit("videoSave", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     let body: any = {};
     try { body = await request.json(); } catch {}

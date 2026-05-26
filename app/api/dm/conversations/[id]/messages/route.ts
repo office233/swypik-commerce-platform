@@ -11,6 +11,7 @@ import {
   getPeerUserId,
 } from "@/lib/dm/repository";
 import { notifyUser } from "@/lib/notifications/dispatch";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,10 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { id: conversationId } = await params;
+
+    const rl = await rateLimit("dmMessage", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
     const body = await request.json().catch(() => ({}));
 
     const text = String(body?.body || "");

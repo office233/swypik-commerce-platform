@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { SellerApplicationSchema, parseBody } from "@/lib/validation/schemas";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
+    const rl = await rateLimit("applySeller", getClientIP(req));
+    if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
+
     const rawBody = await req.json().catch(() => null);
     const parsed = parseBody(SellerApplicationSchema, rawBody);
     if (!parsed.ok) {

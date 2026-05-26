@@ -12,6 +12,7 @@ import {
   setAnonSessionCookie,
 } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,9 @@ export async function POST(
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
     const { id: commentId } = await params;
+
+    const rl = await rateLimit("commentLike", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const pool = getDb();
     const client = await pool.connect();
