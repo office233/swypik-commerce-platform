@@ -10,9 +10,9 @@ export function SummaryCards({ summary }: { summary: Summary }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
       {cards.map((c) => (
-        <div key={c.label} className={`${c.bg} border ${c.border} rounded p-3`}>
-          <div className={`text-xs ${c.text} font-semibold uppercase tracking-wider`}>{c.label}</div>
-          <div className={`text-2xl font-bold ${c.val}`}>{c.value}</div>
+        <div key={c.label} className={`${c.bg} border ${c.border} rounded p-2.5 flex items-center justify-between gap-2`}>
+          <div className={`text-[11px] ${c.text} font-semibold uppercase tracking-wider`}>{c.label}</div>
+          <div className={`text-xl font-bold ${c.val} tabular-nums`}>{c.value}</div>
         </div>
       ))}
     </div>

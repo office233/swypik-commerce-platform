@@ -12,7 +12,7 @@ export function Metrics7dPanel({ metrics }: { metrics: Metrics7d }) {
   return (
     <div className="bg-white border border-[#E5E5E5] rounded p-3">
       <div className="text-xs font-semibold text-gray-700 mb-2">📊 Activitate ultimele 7 zile</div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-3 text-center">
         <Stat label="Comenzi flagged" value={metrics.flaggedOrders} />
         <Stat
           label="Aprobate"
