@@ -21,6 +21,7 @@ import {
   PackageX,
   Shield,
   AlertTriangle,
+  Trophy,
   MessageSquare,
   Music2,
   Hash,
@@ -67,6 +68,7 @@ const sections: NavSection[] = [
     items: [
       { href: "/admin/orders", label: "Comenzi", icon: ShoppingBag },
       { href: "/admin/risk", label: "Risc fraudă", icon: AlertTriangle },
+      { href: "/admin/strikes", label: "Strikes", icon: Shield },
       { href: "/admin/returns", label: "Returns", icon: Undo2 },
       { href: "/admin/refunds", label: "Refunds", icon: Coins },
       { href: "/admin/disputes", label: "Disputes", icon: Shield },
@@ -93,6 +95,7 @@ const sections: NavSection[] = [
     items: [
       { href: "/admin/videos", label: "Videos", icon: Video },
       { href: "/admin/moderation", label: "Moderare", icon: ShieldAlert },
+      { href: "/admin/challenges", label: "Challenges", icon: Trophy },
       { href: "/admin/comments", label: "Comments", icon: MessageSquare, comingSoon: true },
       { href: "/admin/audio", label: "Audio", icon: Music2, comingSoon: true },
       { href: "/admin/hashtags", label: "Hashtags", icon: Hash, comingSoon: true },
