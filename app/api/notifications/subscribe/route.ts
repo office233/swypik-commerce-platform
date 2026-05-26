@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ type SubscribeBody = {
 
 export async function POST(request: Request) {
   if (!isEnabled("pushNotifications")) return frozenResponse("pushNotifications");
+  const rl = await rateLimit("pushSubscribe", getClientIP(request));
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   let body: SubscribeBody;
   try {
     body = (await request.json()) as SubscribeBody;
@@ -54,6 +57,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   if (!isEnabled("pushNotifications")) return frozenResponse("pushNotifications");
+  const rl = await rateLimit("pushSubscribe", getClientIP(request));
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   let body: { endpoint?: string };
   try {
     body = (await request.json()) as { endpoint?: string };

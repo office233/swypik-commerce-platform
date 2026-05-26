@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,9 @@ export async function POST(
   try {
     const userId = await getOptionalSocialUserId();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const rl = await rateLimit("collectionItems", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id: collectionId } = await params;
     const body = await req.json().catch(() => ({}));

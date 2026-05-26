@@ -144,6 +144,21 @@ export const RATE_LIMITS = {
   orderReturnPhotos: { limit: 5, window: 60 } as RateLimitConfig,
   stripeOnboarding: { limit: 5, window: 600 } as RateLimitConfig,
   stripeLoginLink: { limit: 10, window: 60 } as RateLimitConfig,
+  // ── Added 2026-05-26: rate-limit hardening pass ────────────────────
+  oauthCallback: { limit: 10, window: 60 } as RateLimitConfig,        // OAuth code exchange (Apple/Google)
+  twoFactor: { limit: 5, window: 60 } as RateLimitConfig,             // 2FA enable/disable/regen (brute-force guard)
+  notifPrefs: { limit: 20, window: 60 } as RateLimitConfig,           // notification preferences PATCH
+  userAddresses: { limit: 20, window: 60 } as RateLimitConfig,        // CRUD on shipping addresses
+  pushSubscribe: { limit: 10, window: 60 } as RateLimitConfig,        // web-push subscribe/unsubscribe
+  productReviews: { limit: 5, window: 300 } as RateLimitConfig,       // 5 reviews / 5min (spam guard)
+  productReviewEdit: { limit: 10, window: 60 } as RateLimitConfig,    // edit/delete own review
+  feedAction: { limit: 60, window: 60 } as RateLimitConfig,           // for-you tuning signals
+  postVote: { limit: 30, window: 60 } as RateLimitConfig,             // Arena votes (reward farm guard)
+  socialEvents: { limit: 120, window: 60 } as RateLimitConfig,        // /v1/events ingest (per IP)
+  collections: { limit: 30, window: 60 } as RateLimitConfig,          // user collections CRUD
+  collectionItems: { limit: 60, window: 60 } as RateLimitConfig,      // add/remove items from collection
+  adultOptIn: { limit: 5, window: 60 } as RateLimitConfig,            // age opt-in toggle
+  livePoll: { limit: 5, window: 60 } as RateLimitConfig,              // creator publishing live polls
 } as const;
 
 /**

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { UserAddressCreateSchema, parseBody } from "@/lib/validation/schemas";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rl = await rateLimit("userAddresses", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const rawBody = await req.json().catch(() => ({}));
   const parsed = parseBody(UserAddressCreateSchema, rawBody);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });

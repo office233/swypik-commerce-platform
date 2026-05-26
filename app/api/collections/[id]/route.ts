@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +51,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const rl = await rateLimit("collections", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
     const body = await req.json();
     const { title, icon, color } = body;
 
@@ -92,6 +96,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("collections", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { rows: collRows } = await dbQuery(
       `SELECT * FROM user_collections WHERE id = $1 AND user_id = $2`,

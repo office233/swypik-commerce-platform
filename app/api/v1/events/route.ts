@@ -7,10 +7,15 @@ import {
   toGoBatchPayload,
   validationError,
 } from "./compat";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
   try {
+    const rl = await rateLimit("socialEvents", getClientIP(req));
+    if (!rl.success) {
+      return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { "content-type": "application/json" } });
+    }
     const body = await req.json().catch(() => null);
     const batch = normalizeBatchPayload(body);
 

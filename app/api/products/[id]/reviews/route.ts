@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,9 @@ export async function POST(
   try {
     const session = await getAuthSession();
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    const rl = await rateLimit("productReviews", session.userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id: productId } = await params;
     const UUID_RE2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

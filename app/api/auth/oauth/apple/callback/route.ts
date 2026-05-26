@@ -15,6 +15,7 @@ import {
   getOAuthRedirectBase,
   isSafeRedirect,
 } from "@/lib/auth/oauth/helpers";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,10 @@ async function buildAppleClientSecret(): Promise<string> {
 }
 
 async function handle(req: Request, params: URLSearchParams, userJson?: string) {
+  const rl = await rateLimit("oauthCallback", `apple:${getClientIP(req)}`);
+  if (!rl.success) {
+    return NextResponse.redirect(`${getOAuthRedirectBase()}/auth?error=rate_limited`);
+  }
   const code = params.get("code");
   const state = params.get("state");
   if (!code || !state) {

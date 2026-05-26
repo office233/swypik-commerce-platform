@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,8 @@ const ALLOWED_FIELDS = [
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rl = await rateLimit("userAddresses", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
@@ -55,6 +58,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rl = await rateLimit("userAddresses", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const { id } = await params;
   const { rows } = await dbQuery<{ is_default: boolean }>(
     `DELETE FROM user_addresses WHERE id = $1 AND user_id = $2 RETURNING is_default`,

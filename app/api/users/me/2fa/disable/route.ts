@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rl = await rateLimit("twoFactor", `disable:${session.userId}:${getClientIP(req)}`);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const body = await req.json().catch(() => ({}));
   const password = String(body.password || "");
   if (!password) return NextResponse.json({ error: "Parola este obligatorie." }, { status: 400 });

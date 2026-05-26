@@ -20,6 +20,7 @@ import { dbQuery, getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getOrCreateAnonId } from "@/lib/anon/session";
 import { tryValidateReferral } from "@/lib/referral/attribution";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,9 @@ export async function POST(
   if (!slug || slug.length > 80) {
     return NextResponse.json({ error: "invalid_slug" }, { status: 400 });
   }
+
+  const rl = await rateLimit("postVote", getClientIP(req));
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   let body: any;
   try {

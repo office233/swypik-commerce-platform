@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export async function POST(request: Request) {
   if (!userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const rl = await rateLimit("pushSubscribe", userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   let body: { endpoint?: unknown };
   try {

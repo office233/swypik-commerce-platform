@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,8 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rl = await rateLimit("notifPrefs", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   let body: Partial<Record<Key, boolean>>;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "invalid_json" }, { status: 400 }); }
 

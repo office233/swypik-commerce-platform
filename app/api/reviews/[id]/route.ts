@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export async function PATCH(
   try {
     const session = await getAuthSession();
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    const rl = await rateLimit("productReviewEdit", session.userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
@@ -72,6 +76,9 @@ export async function DELETE(
   try {
     const session = await getAuthSession();
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    const rl = await rateLimit("productReviewEdit", session.userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id } = await params;
 

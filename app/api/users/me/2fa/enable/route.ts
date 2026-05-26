@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { verifyToken, generateBackupCodes, hashBackupCodes } from "@/lib/auth/totp";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rl = await rateLimit("twoFactor", `enable:${session.userId}:${getClientIP(req)}`);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const body = await req.json().catch(() => ({}));
   const token = String(body.token || "").trim();
   if (!/^\d{6}$/.test(token)) {
