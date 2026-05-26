@@ -92,9 +92,7 @@ async function handleGET(req: Request) {
          AND (metadata->>'recovery_email_sent') IS NULL`
     );
 
-    console.log(
-      `[Abandoned Cart Cron] Found ${abandonedSessions.length} abandoned session(s)`
-    );
+    logger.info({ cron: "abandoned-cart", count: abandonedSessions.length }, "abandoned sessions found");
 
     let sent = 0;
     let skipped = 0;
@@ -161,27 +159,18 @@ async function handleGET(req: Request) {
             [JSON.stringify(true), session.id],
           );
           sent++;
-          console.log(
-            `[Abandoned Cart] ✅ Recovery email sent → ${customerEmail} (session ${session.id})`
-          );
+          logger.info({ cron: "abandoned-cart", session_id: session.id }, "recovery email sent");
         } else {
           skipped++;
-          console.warn(
-            `[Abandoned Cart] ⚠️ Email send returned false for ${customerEmail}`
-          );
+          logger.warn({ cron: "abandoned-cart", session_id: session.id }, "recovery email send returned false");
         }
       } catch (emailErr: any) {
         skipped++;
-        console.error(
-          `[Abandoned Cart] ❌ Failed to send to ${customerEmail}:`,
-          emailErr.message,
-        );
+        logger.error({ err: emailErr, cron: "abandoned-cart", session_id: session.id }, "recovery email failed");
       }
     }
 
-    console.log(
-      `[Abandoned Cart Cron] Done — sent: ${sent}, skipped: ${skipped}`
-    );
+    logger.info({ cron: "abandoned-cart", sent, skipped, total: abandonedSessions.length }, "abandoned cart cron done");
 
     return NextResponse.json({
       success: true,

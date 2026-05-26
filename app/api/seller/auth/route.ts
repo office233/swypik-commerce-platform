@@ -75,7 +75,7 @@ export async function POST(req: Request) {
           [sellerId, otpHash],
         );
 
-        if (!isProd) console.log(`[SELLER OTP] Code for ${normalizedEmail}: ${otp}`);
+        if (!isProd) logger.warn({ to: normalizedEmail.replace(/(.{2}).*@/, "$1***@"), otp }, "[SELLER OTP] dev mode code");
         sendMagicLink(normalizedEmail, otp).catch((e) =>
           logger.warn({ err: e?.message }, "[Seller Auth] email send failed"),
         );

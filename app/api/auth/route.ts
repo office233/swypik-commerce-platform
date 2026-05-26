@@ -24,6 +24,9 @@ import bcrypt from "bcryptjs";
 import { dbQuery } from "@/lib/db";
 import { sendMagicLink, sendEmail, sendWelcomeEmail } from "@/lib/email/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ route: "/api/auth" });
 import { attributeOnSignup } from "@/lib/referral/attribution";
 import {
   hashSessionToken,
@@ -441,7 +444,7 @@ export async function POST(req: Request) {
         [normalizedEmail],
       );
       if (existingEmailRows.length > 0) {
-        console.log(`[auth/signup_password] EMAIL_TAKEN user_id=${existingEmailRows[0].id} status=${existingEmailRows[0].status}`);
+        log.info({ action: "signup_password", outcome: "email_taken", user_id: existingEmailRows[0].id, user_status: existingEmailRows[0].status }, "signup blocked");
         return NextResponse.json(
           { success: false, field: "email", code: "email_taken", error: "Există deja un cont cu acest email. Încearcă să te autentifici." },
           { status: 409 },
@@ -453,7 +456,7 @@ export async function POST(req: Request) {
         [cleanUsername],
       );
       if (existingUserRows.length > 0) {
-        console.log(`[auth/signup_password] USERNAME_TAKEN`);
+        log.info({ action: "signup_password", outcome: "username_taken" }, "signup blocked");
         return NextResponse.json(
           { success: false, field: "username", code: "username_taken", error: `Username-ul "${cleanUsername}" este deja folosit. Alege altul.` },
           { status: 409 },
@@ -466,7 +469,7 @@ export async function POST(req: Request) {
           [phoneTrimmed],
         );
         if (existingPhoneRows.length > 0) {
-          console.log(`[auth/signup_password] PHONE_TAKEN`);
+          log.info({ action: "signup_password", outcome: "phone_taken" }, "signup blocked");
           return NextResponse.json(
             { success: false, field: "phone", code: "phone_taken", error: "Există deja un cont cu acest telefon." },
             { status: 409 },

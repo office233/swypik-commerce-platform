@@ -2,6 +2,9 @@ import type { ShoppingSession } from "@/lib/sales/shopping-session";
 import { buildSessionPrompt } from "@/lib/sales/shopping-session";
 import { getCategories } from "@/lib/db/product-queries";
 import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "ai-orchestrator" });
 
 function hasAIProvider(): boolean { return getCopilotGhuTokens().length > 0; }
 
@@ -19,9 +22,9 @@ async function loadCategories(forceRefresh = false) {
     const cats = await getCategories();
     cachedCategories = cats.filter((c: any) => c.count > 0).map((c: any) => ({ name: c.name, nameEn: c.nameEn, count: c.count }));
     categoryCacheTime = now;
-    console.log(`[Categories] Loaded ${cachedCategories.length} active categories from DB`);
+    log.info({ count: cachedCategories.length }, "categories loaded from DB");
   } catch (e) {
-    console.error("[Categories] Failed to load:", e);
+    log.error({ err: e }, "categories failed to load");
   }
   return cachedCategories;
 }

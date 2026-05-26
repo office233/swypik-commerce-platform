@@ -5,6 +5,9 @@
  */
 
 import { SupplierProduct } from "../types";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "aliexpress-supplier" });
 
 const API_HOST = process.env.RAPIDAPI_HOST || "aliexpress-datahub.p.rapidapi.com";
 const API_KEY = process.env.RAPIDAPI_KEY || "";
@@ -34,7 +37,7 @@ export async function aliexpressSearch(
   try {
     const url = `https://${API_HOST}/item_search_4?q=${encodeURIComponent(keyword)}&page=${page}&sort=orders&region=RO&locale=ro_RO&currency=USD&shipTo=RO`;
 
-    console.log(`[AliExpress] Searching: "${keyword}" (page ${page})`);
+    log.info({ keyword, page }, "searching");
 
     const res = await fetch(url, { headers: headers() });
     if (!res.ok) {
@@ -58,7 +61,7 @@ export async function aliexpressSearch(
       if (product) products.push(product);
     }
 
-    console.log(`[AliExpress] ✅ ${products.length} products for "${keyword}"`);
+    log.info({ keyword, count: products.length }, "search complete");
     return products;
   } catch (error: any) {
     console.error("[AliExpress] Search error:", error.message);
@@ -115,7 +118,7 @@ export async function aliexpressProductDetail(
 
     // If no shipping to RO, skip this product
     if (delivery?.shippingToCode && delivery.shippingToCode !== "RO") {
-      console.log(`[AliExpress] ⚠️ Product ${itemId} doesn't ship to RO`);
+      log.info({ item_id: itemId }, "product doesn't ship to RO");
       return null;
     }
 

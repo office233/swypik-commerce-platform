@@ -184,7 +184,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Maxim 10 produse per comandă." }, { status: 400 });
     }
 
-    console.log(`[Checkout Stripe] Processing ${rawItems.length} item(s)...`);
+    logger.info({ items_count: rawItems.length }, "[Checkout] processing items");
 
     const checkoutItems: CheckoutItem[] = [];
 
@@ -278,7 +278,7 @@ export async function POST(req: Request) {
         ...attribution,
       });
 
-      console.log(`[Checkout] ✅ ${pgProduct.title} @ ${variantPrice} RON x${qty}`);
+      logger.info({ product_id: pgProduct.id, price: variantPrice, qty }, "[Checkout] item added");
     }
 
     if (checkoutItems.length === 0) {
@@ -306,7 +306,7 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log(`[Checkout] 🎉 Stripe session ${sessionId} created`);
+    logger.info({ session_id: sessionId }, "[Checkout] stripe session created");
 
     return NextResponse.json({
       success: true,

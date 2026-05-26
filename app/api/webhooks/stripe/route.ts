@@ -287,7 +287,7 @@ export async function POST(req: Request) {
         break;
       }
       default:
-        console.log(`[Stripe Webhook] Unhandled event: ${event.type}`);
+        logger.info({ event_type: event.type, event_id: event.id }, "[Stripe Webhook] unhandled event");
     }
   } catch (err: any) {
     console.error("[Stripe Webhook] Handler failed:", err.message);
@@ -304,11 +304,11 @@ export async function POST(req: Request) {
 async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   const orderId = intent.metadata?.orderId;
   if (!orderId) {
-    console.log(`[Stripe Webhook] Payment intent ${intent.id} succeeded, but no orderId in metadata (not embedded checkout).`);
+    logger.info({ intent_id: intent.id }, "[Stripe Webhook] payment intent succeeded without orderId metadata");
     return;
   }
 
-  console.log(`[Stripe Webhook] Payment intent succeeded for order: ${orderId}`);
+  logger.info({ order_id: orderId, intent_id: intent.id }, "[Stripe Webhook] payment intent succeeded");
 
   const { rows: orderRows } = await dbQuery(
     `SELECT id, status, currency, total_cents FROM commerce_orders WHERE id = $1 LIMIT 1`,
@@ -317,7 +317,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   if (orderRows.length === 0) throw new Error(`Order ${orderId} not found for payment intent ${intent.id}`);
   const order = orderRows[0];
   if (order.status !== "pending") {
-    console.log(`[Stripe Webhook] Order ${orderId} already ${order.status}; skipping paid transition.`);
+    logger.info({ order_id: orderId, current_status: order.status }, "[Stripe Webhook] order already past pending; skipping paid transition");
     await maybeSendOrderConfirmation(orderId);
   await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
     return;
@@ -517,7 +517,7 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  console.log(`[Stripe Webhook] Checkout completed: ${session.id}`);
+  logger.info({ session_id: session.id }, "[Stripe Webhook] checkout completed");
 
   const stripe = getStripe();
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
@@ -637,12 +637,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   await maybeSendOrderConfirmation(orderId);
   await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
 
-  console.log(`[Stripe Webhook] Order saved: ${session.id} - ${totalRon} RON - ${items.length} items`);
+  logger.info({ order_id: orderId, session_id: session.id, total_ron: totalRon, items_count: items.length }, "[Stripe Webhook] order saved");
 
   // --- Fulfillment Orchestration ---
   try {
     const fulfillmentPlan = await routeOrder(orderId, items as any);
-    console.log(`[Stripe Webhook] Fulfillment Plan for Order ${orderId}:\n`, JSON.stringify(fulfillmentPlan, null, 2));
+    logger.info({ order_id: orderId, plan_summary: { groups: Array.isArray((fulfillmentPlan as any)?.groups) ? (fulfillmentPlan as any).groups.length : 0 } }, "[Stripe Webhook] fulfillment plan generated");
   } catch (err) {
     logger.error({ err: err }, `[Stripe Webhook] Fulfillment routing failed for Order ${orderId}:`);
   }

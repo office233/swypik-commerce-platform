@@ -6,6 +6,9 @@
 
 import { dbQuery } from "@/lib/db";
 import { sendShippingNotification } from "@/lib/email/service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "fulfillment" });
 
 export interface FulfillmentResult {
   success: boolean;
@@ -158,7 +161,7 @@ async function persistSupplierOrderItems(supplierOrderDbId: string, items: Enric
  * 4. Updates order status in DB
  */
 export async function fulfillOrder(orderId: string): Promise<FulfillmentResult> {
-  console.log(`[Fulfillment] Starting fulfillment for order ${orderId}`);
+  log.info({ order_id: orderId }, "starting fulfillment");
 
   // 1. Load order
   const { rows: orderRows } = await dbQuery(
@@ -410,7 +413,7 @@ export async function updateOrderTracking(
         orderId,
       ]
     );
-    console.log(`[Fulfillment] ✅ Tracking updated for ${orderId}: ${trackingNumber}`);
+    log.info({ order_id: orderId, tracking_number: trackingNumber }, "tracking updated");
 
     // Send shipping notification email (non-blocking)
     const { rows: orderRows } = await dbQuery(
@@ -474,7 +477,7 @@ export async function cancelOrder(orderId: string, reason?: string): Promise<boo
         });
         refundId = refund.id;
         refundAmountCents = refund.amount || 0;
-        console.log(`[Fulfillment] ✅ Stripe refund created: ${refundId} (${refundAmountCents} cents) for intent ${paymentIntentId}`);
+        log.info({ refund_id: refundId, amount_cents: refundAmountCents, intent_id: paymentIntentId }, "stripe refund created");
       } catch (stripeErr: any) {
         refundError = stripeErr.message;
         console.error(`[Fulfillment] ⚠️ Stripe refund failed for ${paymentIntentId}:`, stripeErr.message);

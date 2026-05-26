@@ -12,6 +12,15 @@ import { Resend } from "resend";
 import { createHmac } from "node:crypto";
 import { isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "email" });
+
+function maskEmail(e: string | null | undefined): string {
+  if (!e || typeof e !== "string" || !e.includes("@")) return "<none>";
+  const [user, domain] = e.split("@");
+  return `${user.slice(0, 2)}***@${domain}`;
+}
 
 export function unsubscribeToken(email: string): string {
   const secret = process.env.APP_ENCRYPTION_KEY || process.env.SESSION_SECRET || "swypik-unsubscribe-fallback";
@@ -96,8 +105,12 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
   </div>`;
 
   if (!getResend()) {
-    // Always log to console — auth route handles devOtp fallback
-    console.log(`\n\n=== MAGIC LINK OTP FOR ${email} ===\nTOKEN: ${token}\n===================================\n\n`);
+    // Dev fallback — auth route returns devOtp; suppress noisy console dump in prod.
+    if (process.env.NODE_ENV !== "production") {
+      log.warn({ to: maskEmail(email), token }, "MAGIC LINK OTP (dev mode — no RESEND_API_KEY)");
+    } else {
+      log.warn({ to: maskEmail(email) }, "magic link skipped — RESEND_API_KEY missing");
+    }
     return true;
   }
 
@@ -120,7 +133,7 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
  */
 export async function sendOrderConfirmation(data: OrderEmailData): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "sendOrderConfirmation", data.customerEmail);
+    log.info({ fn: "sendOrderConfirmation", to: maskEmail(data.customerEmail) }, "email skipped — marketing disabled");
     return true;
   }
   const trackingUrl = orderTrackingUrl(data);
@@ -213,7 +226,7 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
  */
 export async function sendShippingNotification(data: OrderEmailData): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "sendShippingNotification", data.customerEmail);
+    log.info({ fn: "sendShippingNotification", to: maskEmail(data.customerEmail) }, "email skipped — marketing disabled");
     return true;
   }
   const trackingUrl = orderTrackingUrl(data);
@@ -285,7 +298,7 @@ export async function sendEmail(params: { to: string; subject: string; html: str
 
   // Suppress marketing emails for unsubscribed recipients
   if (params.marketing && (await isUnsubscribed(params.to))) {
-    console.log("[email] suppressed (unsubscribed):", params.to, params.subject);
+    log.info({ to: maskEmail(params.to), subject: params.subject }, "email suppressed (unsubscribed)");
     return true;
   }
 
@@ -309,9 +322,7 @@ export async function sendEmail(params: { to: string; subject: string; html: str
   const client = getResend();
 
   if (!client) {
-    console.log(`[Email] 📧 DEV MODE — Would send to: ${params.to}`);
-    console.log(`[Email] Subject: ${params.subject}`);
-    console.log(`[Email] (Set RESEND_API_KEY in .env.local to send real emails)`);
+    log.warn({ to: maskEmail(params.to), subject: params.subject }, "email skipped — RESEND_API_KEY not configured (dev mode)");
     return true; // Don't fail in dev
   }
 
@@ -331,14 +342,14 @@ export async function sendEmail(params: { to: string; subject: string; html: str
     });
 
     if (error) {
-      console.error("[Email] ❌ Send failed:", error);
+      log.error({ err: error, to: maskEmail(params.to) }, "email send failed");
       return false;
     }
 
-    console.log(`[Email] ✅ Sent to ${params.to} — ID: ${data?.id}`);
+    log.info({ to: maskEmail(params.to), provider_id: data?.id }, "email sent");
     return true;
   } catch (e: any) {
-    console.error("[Email] ❌ Error:", e.message);
+    log.error({ err: e, to: maskEmail(params.to) }, "email send error");
     return false;
   }
 }
@@ -348,7 +359,7 @@ export async function sendEmail(params: { to: string; subject: string; html: str
  */
 export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: any[], customerName: string = 'X'): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "sendSellerNewOrderAlert", sellerEmail);
+    log.info({ fn: "sendSellerNewOrderAlert", to: maskEmail(sellerEmail) }, "email skipped — marketing disabled");
     return true;
   }
   const itemsHtml = orderItems.map(i =>
@@ -406,7 +417,7 @@ export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: a
  */
 export async function sendSellerApprovalEmail(email: string, name: string): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "sendSellerApprovalEmail", email);
+    log.info({ fn: "sendSellerApprovalEmail", to: maskEmail(email) }, "email skipped — marketing disabled");
     return true;
   }
   const html = `
@@ -447,7 +458,7 @@ export async function sendSellerApprovalEmail(email: string, name: string): Prom
  */
 export async function sendCustomerShippingAlert(email: string, trackingNumber: string): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "sendCustomerShippingAlert", email);
+    log.info({ fn: "sendCustomerShippingAlert", to: maskEmail(email) }, "email skipped — marketing disabled");
     return true;
   }
   const html = `
@@ -495,7 +506,7 @@ export async function sendAbandonedCartEmail(
   checkoutUrl: string,
 ): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "sendAbandonedCartEmail", email);
+    log.info({ fn: "sendAbandonedCartEmail", to: maskEmail(email) }, "email skipped — marketing disabled");
     return true;
   }
   const itemsHtml = cartItems

@@ -130,7 +130,7 @@ async function handleGET(req: Request) {
       }));
 
       try {
-        console.log(`[Cron] Placing dropship order on AE for order ${orderId} with ${aeItems.length} items (token=${claimToken})...`);
+        logger.info({ cron: "process-dropship", order_id: orderId, items_count: aeItems.length }, "placing dropship order on AE");
         const result = await placeDropshipOrder(orderId, shippingAddress, aeItems);
 
         const aeOrderId = result?.order_list?.[0] || result?.aliexpress_order_id || null;

@@ -118,7 +118,7 @@ export async function POST(
       ]
     );
 
-    console.log(`[Return Request] Order ${order.id} — reason: "${reason.trim()}" — photos: ${evidenceUrls.length}`);
+    logger.info({ order_id: order.id, photos_count: evidenceUrls.length }, "[Return Request] received");
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

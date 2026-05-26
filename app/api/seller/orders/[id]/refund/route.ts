@@ -277,7 +277,7 @@ export async function POST(
       ]
     );
 
-    console.log(`[Seller Refund] Order ${orderId} marked as refunded by seller ${sellerId}`);
+    logger.info({ order_id: orderId, seller_id: sellerId }, "[Seller Refund] order marked as refunded");
 
     return NextResponse.json({ success: true, refundId, refundStatus });
   } catch (error: any) {

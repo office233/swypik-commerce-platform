@@ -6,6 +6,9 @@
  */
 
 import { SupplierProduct, ProductVariant } from "../types";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "otapi-supplier" });
 
 const OTAPI_KEY = process.env.OTAPI_KEY;
 const OTAPI_JSON = "https://otapi.net/service-json";
@@ -203,7 +206,7 @@ export async function otapiSearch(
 
     const url = `${OTAPI_JSON}/BatchSearchItemsFrame?${params.toString()}&xmlParameters=${encodeURIComponent(xml)}`;
 
-    console.log(`[OTAPI] 🔍 Searching: "${keyword}" (page ${page}, size ${pageSize})`);
+    log.info({ keyword, page, page_size: pageSize }, "searching");
 
     const res = await fetch(url, { signal: AbortSignal.timeout(25000) });
     const json = await res.json();
@@ -216,7 +219,7 @@ export async function otapiSearch(
     const items = json.Result?.Items?.Items?.Content || [];
     const totalCount = json.Result?.Items?.Items?.TotalCount || 0;
 
-    console.log(`[OTAPI] 📦 ${items.length} items received (${totalCount} total available)`);
+    log.info({ items: items.length, total_available: totalCount }, "items received");
 
     // Parse & filter with AI quality score
     const products = items
@@ -224,7 +227,7 @@ export async function otapiSearch(
       .filter((p: SupplierProduct | null): p is SupplierProduct => p !== null)
       .sort((a: SupplierProduct, b: SupplierProduct) => b.orders - a.orders); // best sellers first
 
-    console.log(`[OTAPI] ✅ ${products.length} quality products after AI filter (${items.length - products.length} filtered out)`);
+    log.info({ quality: products.length, filtered_out: items.length - products.length }, "AI filter complete");
 
     return { products, totalCount, callsUsed: 1 };
   } catch (error: any) {

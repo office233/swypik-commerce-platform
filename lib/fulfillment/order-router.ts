@@ -1,5 +1,8 @@
 import { dbQuery } from "@/lib/db";
 import { sendSellerNewOrderAlert } from "@/lib/email/service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "order-router" });
 
 export type OrderItem = {
   productId: string;
@@ -124,9 +127,7 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
       const { rows } = await dbQuery(`SELECT email FROM sellers WHERE id = $1 LIMIT 1`, [sellerId]);
       if (rows.length > 0 && rows[0].email) {
         const sellerEmail = rows[0].email;
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[Order Router] 📧 [Dev] Would send new order alert to seller ${sellerEmail} for order ${orderId} (${sellerItems.length} items, client: ${customerName})`);
-        }
+        log.info({ seller_id: sellerId, order_id: orderId, items_count: sellerItems.length }, "sending new order alert to seller");
         await sendSellerNewOrderAlert(sellerEmail, sellerItems, customerName);
       } else {
         console.warn(`[Order Router] Seller ${sellerId} not found or has no email.`);

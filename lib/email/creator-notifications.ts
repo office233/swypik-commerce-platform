@@ -8,6 +8,7 @@
  * handles Resend delivery + GDPR unsubscribe footer injection.
  */
 
+import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
 import { isEnabled } from "@/lib/feature-flags";
 
@@ -88,7 +89,7 @@ export async function notifyVideoApproved(
   videoTitle: string,
 ): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "notifyVideoApproved", creatorEmail);
+    logger.info({ fn: "notifyVideoApproved" }, "email skipped — marketing disabled");
     return true;
   }
   const safeName = escapeHtml(creatorName);
@@ -125,7 +126,7 @@ export async function notifyVideoRejected(
   reason: string,
 ): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "notifyVideoRejected", creatorEmail);
+    logger.info({ fn: "notifyVideoRejected" }, "email skipped — marketing disabled");
     return true;
   }
   const safeName = escapeHtml(creatorName);
@@ -167,7 +168,7 @@ export async function notifyPayoutSent(
   amountLei: string,
 ): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
-    console.log("[email] marketing disabled, skipped:", "notifyPayoutSent", creatorEmail);
+    logger.info({ fn: "notifyPayoutSent" }, "email skipped — marketing disabled");
     return true;
   }
   const safeName = escapeHtml(creatorName);
