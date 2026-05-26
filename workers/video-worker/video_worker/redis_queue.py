@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Mapping
 
 from .config import Settings
-from .models import VideoJob
+from .models import InvalidJobPayload, VideoJob
+
+logger = logging.getLogger(__name__)
 
 
 class QueueUnavailableError(RuntimeError):
@@ -17,6 +20,24 @@ class QueuedVideoJob:
     message_id: str | None = None
     stream: str | None = None
     raw_payload: Mapping[str, Any] | bytes | str | None = None
+
+
+def _discard_poison_message(client, stream: str, group: str, message_id: str | None) -> None:
+    """ACK + XDEL a corrupted stream entry so it never replays.
+
+    Used when payload fails to decode (e.g. empty string, non-JSON).
+    Failures here are non-fatal ? we just log and move on.
+    """
+    if not message_id:
+        return
+    try:
+        client.xack(stream, group, message_id)
+    except Exception:
+        logger.warning("xack failed for poison message id=%s", message_id, exc_info=True)
+    try:
+        client.xdel(stream, message_id)
+    except Exception:
+        logger.warning("xdel failed for poison message id=%s", message_id, exc_info=True)
 
 
 class RedisQueue:
@@ -111,9 +132,19 @@ class RedisQueue:
             for message_id, fields in entries:
                 decoded_fields = _decode_mapping(fields)
                 payload = _payload_from_stream_fields(decoded_fields)
+                msg_id = _decode_value(message_id)
+                try:
+                    job = VideoJob.from_payload(payload)
+                except InvalidJobPayload as exc:
+                    logger.warning(
+                        "Discarding poison message id=%s on stream=%s: %s | raw=%r",
+                        msg_id, stream_name, exc, decoded_fields,
+                    )
+                    _discard_poison_message(self.client, stream_name, self.settings.consumer_group, msg_id)
+                    continue
                 return QueuedVideoJob(
-                    job=VideoJob.from_payload(payload),
-                    message_id=_decode_value(message_id),
+                    job=job,
+                    message_id=msg_id,
                     stream=stream_name,
                     raw_payload=decoded_fields,
                 )
@@ -171,9 +202,19 @@ class RedisQueue:
         for message_id, fields in entries:
             decoded_fields = _decode_mapping(fields)
             payload = _payload_from_stream_fields(decoded_fields)
+            msg_id = _decode_value(message_id)
+            try:
+                job = VideoJob.from_payload(payload)
+            except InvalidJobPayload as exc:
+                logger.warning(
+                    "Discarding poison stale message id=%s on stream=%s: %s | raw=%r",
+                    msg_id, self.settings.queue_name, exc, decoded_fields,
+                )
+                _discard_poison_message(self.client, self.settings.queue_name, self.settings.consumer_group, msg_id)
+                continue
             return QueuedVideoJob(
-                job=VideoJob.from_payload(payload),
-                message_id=_decode_value(message_id),
+                job=job,
+                message_id=msg_id,
                 stream=self.settings.queue_name,
                 raw_payload=decoded_fields,
             )
