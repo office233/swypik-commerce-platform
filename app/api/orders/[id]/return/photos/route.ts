@@ -22,6 +22,7 @@ import { dbQuery } from "@/lib/db";
 import { uploadFile, isStorageConfigured } from "@/lib/storage/upload";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { logger } from "@/lib/logger";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,6 +35,9 @@ export async function POST(
 ) {
   if (!isEnabled("returns")) return frozenResponse("returns");
   const { id } = await params;
+
+  const rl = await rateLimit("orderReturnPhotos", `${getClientIP(req)}:${id}`);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   if (!isStorageConfigured()) {
     return NextResponse.json(

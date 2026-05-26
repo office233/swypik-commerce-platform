@@ -6,12 +6,17 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { CART_COOKIE, mergeAnonCartToUser } from "@/lib/cart/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
 export async function POST() {
   const auth = await getAuthUser();
   if (!auth.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
+
+  const rl = await rateLimit("cartMerge", auth.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: NO_STORE });
+
   const store = await cookies();
   const token = store.get(CART_COOKIE)?.value;
   if (!token) return NextResponse.json({ success: true, merged: false }, { headers: NO_STORE });

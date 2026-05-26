@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,9 @@ function gated() {
   );
 }
 
-export async function POST() {
+export async function POST(req: Request) {
+  const rl = await rateLimit("visualSearch", getClientIP(req));
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   return gated();
 }
 

@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,9 @@ export async function GET() {
 export async function POST(req: Request) {
   const user = await getAuthUser();
   if (!user.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const rl = await rateLimit("notifications", user.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const body = (await req.json().catch(() => ({}))) as { ids?: string[]; markAll?: boolean };
 

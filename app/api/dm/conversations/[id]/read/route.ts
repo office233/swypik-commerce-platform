@@ -5,6 +5,7 @@ import {
   setAnonSessionCookie,
 } from "@/lib/social/session";
 import { markRead } from "@/lib/dm/repository";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,10 @@ export async function POST(
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("dmRead", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
     const { id: conversationId } = await params;
     const result = await markRead(conversationId, userId);
     const response = NextResponse.json({

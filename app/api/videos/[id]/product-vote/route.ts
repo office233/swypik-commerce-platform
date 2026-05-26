@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { parseBody, VideoProductVoteSchema } from "@/lib/validation/schemas";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,9 @@ export async function POST(
     if (!userId && !sessionId) {
       return NextResponse.json({ error: "sessionId required" }, { status: 400, headers: NO_STORE });
     }
+
+    const rl = await rateLimit("videoVote", userId || sessionId || getClientIP(req));
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: NO_STORE });
 
     const linked = await dbQuery<{ id: string }>(
       `SELECT mp.id

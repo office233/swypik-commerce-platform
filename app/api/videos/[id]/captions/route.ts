@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { transcribe, type CaptionSegment } from "@/lib/ai/transcribe";
 import { translateSegments, segmentsToText, type TargetLang } from "@/lib/ai/translate";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -28,6 +29,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = await rateLimit("videoCaptions", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const vid = id;
   const { rows: vrows } = await dbQuery<{ creator_id: string; playback_url: string | null }>(

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
-const rateLimits = new Map<string, number>();
 
 // Allowed event types matching the DB ENUM
 const ALLOWED_EVENTS = new Set([
@@ -41,16 +41,19 @@ export async function POST(
       return NextResponse.json({ error: "Invalid or missing event_type" }, { status: 400 });
     }
 
-    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    
-    // Rate limit: 1 event per event_type+video+IP per 5 seconds
-    const rateLimitKey = `${event_type}:${videoId}:${clientIp}`;
-    const now = Date.now();
-    const lastSeen = rateLimits.get(rateLimitKey);
-    if (lastSeen && now - lastSeen < 5000) {
-      return NextResponse.json({ ok: true }, { status: 200 }); // Silently drop, return 200
+    const clientIp = getClientIP(req);
+
+    // Per event_type+video+IP: 1 / 5s (dedupe)
+    const perCombo = await rateLimit("videoEventCombo", `${event_type}:${videoId}:${clientIp}`, { limit: 1, window: 5 });
+    if (!perCombo.success) {
+      return NextResponse.json({ ok: true }, { status: 200 }); // silently drop
     }
-    rateLimits.set(rateLimitKey, now);
+
+    // Global per-IP cap (anti analytic-spam)
+    const perIp = await rateLimit("videoEvent", clientIp);
+    if (!perIp.success) {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    }
 
     const realUserId = await getOptionalSocialUserId();
     let validSessionId = null;

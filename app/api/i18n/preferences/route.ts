@@ -5,10 +5,14 @@ import {
   isCurrency,
   isLocale,
 } from "@/lib/i18n/config";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export async function POST(req: Request) {
+  const rl = await rateLimit("i18n", getClientIP(req));
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   let body: { locale?: string; currency?: string } = {};
   try {
     body = await req.json();

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,9 @@ export async function POST(
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
     const { id: videoId } = await params;
+
+    const rl = await rateLimit("videoQuicksave", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const body = await req.json().catch(() => ({}));
     const explicitCollectionId =

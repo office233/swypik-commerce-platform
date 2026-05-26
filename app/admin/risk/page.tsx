@@ -6,6 +6,7 @@ import { RiskFilters } from "./RiskFilters";
 import { Metrics7dPanel, type Metrics7d } from "./Metrics7dPanel";
 import { BlockedUsersList, type BlockedUser } from "./BlockedUsersList";
 import { OrderRiskCard, type OrderRow } from "./OrderRiskCard";
+import { TimeSeriesChart, type TimeSeries30d, type TimeSeriesPoint } from "./TimeSeriesChart";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,79 @@ async function getMetrics7d(): Promise<Metrics7d> {
     flaggedOrders: flagged[0]?.flagged || 0,
     blockRate: totalDecisions ? Math.round((blocks / totalDecisions) * 100) : 0,
     approveRate: totalDecisions ? Math.round((approvals / totalDecisions) * 100) : 0,
+  };
+}
+
+async function getTimeSeries30d(): Promise<TimeSeries30d> {
+  const { rows: flaggedRows } = await dbQuery<{ day: string; flagged: number }>(
+    `WITH days AS (
+       SELECT generate_series(
+         (now() - interval '29 days')::date,
+         now()::date,
+         interval '1 day'
+       )::date AS day
+     )
+     SELECT d.day::text AS day,
+            COUNT(co.id) FILTER (WHERE COALESCE((co.metadata->>'fraud_score')::int, 0) >= 50)::int AS flagged
+       FROM days d
+       LEFT JOIN commerce_orders co
+         ON date_trunc('day', co.created_at)::date = d.day
+      GROUP BY d.day
+      ORDER BY d.day ASC`,
+  );
+  const { rows: decRows } = await dbQuery<{ day: string; approvals: number; blocks: number }>(
+    `WITH days AS (
+       SELECT generate_series(
+         (now() - interval '29 days')::date,
+         now()::date,
+         interval '1 day'
+       )::date AS day
+     )
+     SELECT d.day::text AS day,
+            COUNT(co.id) FILTER (WHERE (co.metadata->'fraud_last_decision'->>'action') = 'approve')::int AS approvals,
+            COUNT(co.id) FILTER (WHERE (co.metadata->'fraud_last_decision'->>'action') = 'block')::int AS blocks
+       FROM days d
+       LEFT JOIN commerce_orders co
+         ON ((co.metadata->'fraud_last_decision'->>'at')::timestamptz)::date = d.day
+      GROUP BY d.day
+      ORDER BY d.day ASC`,
+  );
+  const { rows: autoBRows } = await dbQuery<{ day: string; auto_blocks: number }>(
+    `WITH days AS (
+       SELECT generate_series(
+         (now() - interval '29 days')::date,
+         now()::date,
+         interval '1 day'
+       )::date AS day
+     )
+     SELECT d.day::text AS day,
+            COUNT(ufd.id)::int AS auto_blocks
+       FROM days d
+       LEFT JOIN user_fraud_decisions ufd
+         ON ufd.action = 'auto_block'
+        AND date_trunc('day', ufd.decided_at)::date = d.day
+      GROUP BY d.day
+      ORDER BY d.day ASC`,
+  );
+  const decByDay = new Map(decRows.map((r) => [r.day, r]));
+  const autoByDay = new Map(autoBRows.map((r) => [r.day, r]));
+  const points: TimeSeriesPoint[] = flaggedRows.map((r) => {
+    const d = decByDay.get(r.day);
+    const a = autoByDay.get(r.day);
+    return {
+      day: r.day.slice(5), // MM-DD for compact axis
+      flagged: Number(r.flagged) || 0,
+      approvals: Number(d?.approvals) || 0,
+      blocks: Number(d?.blocks) || 0,
+      autoBlocks: Number(a?.auto_blocks) || 0,
+    };
+  });
+  return {
+    points,
+    totalFlagged: points.reduce((s, p) => s + p.flagged, 0),
+    totalApprovals: points.reduce((s, p) => s + p.approvals, 0),
+    totalBlocks: points.reduce((s, p) => s + p.blocks, 0),
+    totalAutoBlocks: points.reduce((s, p) => s + p.autoBlocks, 0),
   };
 }
 
@@ -135,10 +209,11 @@ export default async function AdminRiskPage({
   const statusFilter = sp.status || "paid";
   const minScore = Number(sp.min || "0");
 
-  const [rows, metrics, blockedUsers] = await Promise.all([
+  const [rows, metrics, blockedUsers, timeSeries] = await Promise.all([
     getOrders(statusFilter === "all" ? undefined : statusFilter),
     getMetrics7d(),
     getBlockedUsers(),
+    getTimeSeries30d(),
   ]);
 
   const scored = rows
@@ -170,6 +245,7 @@ export default async function AdminRiskPage({
       <SummaryCards summary={summary} />
       <RiskFilters statusFilter={statusFilter} minScore={minScore} />
       <Metrics7dPanel metrics={metrics} />
+      <TimeSeriesChart data={timeSeries} />
       <BlockedUsersList users={blockedUsers} />
 
       {scored.length === 0 ? (

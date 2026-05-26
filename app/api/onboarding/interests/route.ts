@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { TOPICS } from "@/lib/topics";
 import { getOptionalSocialUserId, getOrCreateSocialUser } from "@/lib/social/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export async function POST(request: NextRequest) {
@@ -22,6 +23,9 @@ export async function POST(request: NextRequest) {
 
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
+
+    const rl = await rateLimit("onboarding", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     // Insert interests
     for (const topic of topics) {

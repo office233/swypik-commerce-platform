@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,10 @@ export async function DELETE(
 ) {
   const user = await getAuthUser();
   if (!user.userId) return NextResponse.json({ error: "unauth" }, { status: 401 });
+
+  const rl = await rateLimit("videoHidden", user.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   const { id } = await params;
 
   await dbQuery(

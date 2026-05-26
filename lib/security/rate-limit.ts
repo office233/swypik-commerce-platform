@@ -111,19 +111,39 @@ export type RateLimitConfig = {
 
 /** Default rate limits per route category */
 export const RATE_LIMITS = {
-  cart: { limit: 10, window: 60 } as RateLimitConfig,       // 10 checkouts/min
-  chat: { limit: 30, window: 60 } as RateLimitConfig,       // 30 messages/min
-  products: { limit: 60, window: 60 } as RateLimitConfig,   // 60 reads/min
-  suggest: { limit: 40, window: 60 } as RateLimitConfig,    // 40 autocomplete/min
-  videoLike: { limit: 30, window: 60 } as RateLimitConfig,  // 30 likes/min per user (anti-spam ratings)
-  videoSave: { limit: 20, window: 60 } as RateLimitConfig,  // 20 saves/min (push notif spam guard)
-  videoComment: { limit: 10, window: 60 } as RateLimitConfig,// 10 comments/min (spam guard)
-  videoShare: { limit: 20, window: 60 } as RateLimitConfig, // 20 shares/min (counter manipulation)
-  videoView: { limit: 60, window: 60 } as RateLimitConfig,  // 60 views/min/IP (view-bombing guard)
-  commentLike: { limit: 30, window: 60 } as RateLimitConfig,// 30 comment-likes/min
-  dmMessage: { limit: 20, window: 60 } as RateLimitConfig,  // 20 DMs/min (anti-flood)
-  cartItems: { limit: 30, window: 60 } as RateLimitConfig,  // 30 cart mutations/min
-  applySeller: { limit: 3, window: 600 } as RateLimitConfig,// 3 seller applications / 10 min
+  cart: { limit: 10, window: 60 } as RateLimitConfig,         // 10 checkouts/min
+  chat: { limit: 30, window: 60 } as RateLimitConfig,         // 30 messages/min
+  products: { limit: 60, window: 60 } as RateLimitConfig,     // 60 reads/min
+  suggest: { limit: 40, window: 60 } as RateLimitConfig,      // 40 autocomplete/min
+  videoLike: { limit: 30, window: 60 } as RateLimitConfig,    // 30 likes/min
+  videoSave: { limit: 20, window: 60 } as RateLimitConfig,    // 20 saves/min
+  videoComment: { limit: 10, window: 60 } as RateLimitConfig, // 10 comments/min
+  videoShare: { limit: 20, window: 60 } as RateLimitConfig,   // 20 shares/min
+  videoView: { limit: 60, window: 60 } as RateLimitConfig,    // 60 views/min/IP
+  videoQuicksave: { limit: 30, window: 60 } as RateLimitConfig,
+  videoFeedback: { limit: 20, window: 60 } as RateLimitConfig,
+  videoCaptions: { limit: 10, window: 60 } as RateLimitConfig,
+  videoVote: { limit: 30, window: 60 } as RateLimitConfig,    // product-vote
+  videoEvent: { limit: 60, window: 60 } as RateLimitConfig,   // analytic events
+  videoHidden: { limit: 30, window: 60 } as RateLimitConfig,
+  commentLike: { limit: 30, window: 60 } as RateLimitConfig,
+  dmMessage: { limit: 20, window: 60 } as RateLimitConfig,
+  dmConversation: { limit: 10, window: 60 } as RateLimitConfig,// new convo
+  dmRead: { limit: 30, window: 60 } as RateLimitConfig,
+  cartItems: { limit: 30, window: 60 } as RateLimitConfig,
+  cartMerge: { limit: 10, window: 60 } as RateLimitConfig,
+  applySeller: { limit: 3, window: 600 } as RateLimitConfig,
+  missionsClaim: { limit: 10, window: 60 } as RateLimitConfig, // reward farming guard
+  walletClaim: { limit: 5, window: 60 } as RateLimitConfig,
+  onboarding: { limit: 10, window: 60 } as RateLimitConfig,
+  referral: { limit: 10, window: 60 } as RateLimitConfig,
+  notifications: { limit: 30, window: 60 } as RateLimitConfig,
+  i18n: { limit: 30, window: 60 } as RateLimitConfig,
+  visualSearch: { limit: 5, window: 60 } as RateLimitConfig,   // expensive AI
+  orderReturn: { limit: 3, window: 60 } as RateLimitConfig,
+  orderReturnPhotos: { limit: 5, window: 60 } as RateLimitConfig,
+  stripeOnboarding: { limit: 5, window: 600 } as RateLimitConfig,
+  stripeLoginLink: { limit: 10, window: 60 } as RateLimitConfig,
 } as const;
 
 /**

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 /**
  * POST /api/onboarding/skip
@@ -6,7 +7,10 @@ import { NextResponse } from "next/server";
  * Marchează utilizatorul ca având onboarding-ul finalizat fără a salva interese.
  * Folosit de butonul "Sari peste" pe pagina /onboarding.
  */
-export async function POST() {
+export async function POST(req: Request) {
+  const rl = await rateLimit("onboarding", getClientIP(req));
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   const response = NextResponse.json({ ok: true });
 
   response.cookies.set("swypik_onboarded", "1", {

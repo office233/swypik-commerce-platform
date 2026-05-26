@@ -13,6 +13,7 @@ import { dbQuery } from "@/lib/db";
 import { canRequestReturn } from "@/lib/commerce/order-status";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { isSafeEvidenceUrl } from "@/lib/security/safe-url";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export async function POST(
@@ -21,6 +22,10 @@ export async function POST(
 ) {
   if (!isEnabled("returns")) return frozenResponse("returns");
   const { id } = await params;
+
+  const rl = await rateLimit("orderReturn", `${getClientIP(req)}:${id}`);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   try {
     const body = await req.json();
     const { reason, token } = body;

@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { getOrCreateConnectAccount, createOnboardingLink } from "@/lib/stripe/connect";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,9 @@ export async function POST(req: Request) {
   const auth = await requireAuth(req, ["creator", "seller", "admin"]);
   if (auth instanceof NextResponse) return auth;
   if (!auth.userId) return NextResponse.json({ error: "Cont invalid" }, { status: 400 });
+
+  const rl = await rateLimit("stripeOnboarding", auth.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   try {
     const { rows } = await dbQuery<{ email: string | null }>(

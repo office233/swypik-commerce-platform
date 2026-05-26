@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { TOPICS } from "@/lib/topics";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export async function POST(
@@ -22,6 +23,9 @@ export async function POST(
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("videoFeedback", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     // Fetch video details to determine topic
     const { rows } = await dbQuery(

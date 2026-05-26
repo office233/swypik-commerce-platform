@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getDb } from "@/lib/db";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ export async function POST() {
   if (!user.userId) {
     return NextResponse.json({ error: "unauth" }, { status: 401 });
   }
+
+  const rl = await rateLimit("walletClaim", user.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const pool = getDb();
   const client = await pool.connect();

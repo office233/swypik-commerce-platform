@@ -9,6 +9,7 @@ import {
   getOrCreateDmConversation,
   listConversations,
 } from "@/lib/dm/repository";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -42,6 +43,9 @@ export async function POST(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("dmConversation", userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const body = await request.json().catch(() => ({}));
     const peerId = String(body?.peer_user_id || "").trim();
