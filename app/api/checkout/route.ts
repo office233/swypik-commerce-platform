@@ -278,7 +278,7 @@ export async function POST(req: Request) {
         ...attribution,
       });
 
-      logger.info({ product_id: pgProduct.id, price: variantPrice, qty }, "[Checkout] item added");
+      logger.info({ product_id: pgProduct.productId, price: variantPrice, qty }, "[Checkout] item added");
     }
 
     if (checkoutItems.length === 0) {
