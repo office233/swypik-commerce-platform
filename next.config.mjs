@@ -71,6 +71,13 @@ const nextConfig = {
       { source: "/sellers", destination: "/seller", permanent: true },
       { source: "/audio", destination: "/voice", permanent: true },
       { source: "/legal", destination: "/legal/terms", permanent: true },
+      { source: "/feed", destination: "/explore", permanent: true },
+      { source: "/trending", destination: "/explore?sort=trending", permanent: true },
+      { source: "/wishlist", destination: "/account/saved", permanent: true },
+      { source: "/settings", destination: "/account/settings", permanent: true },
+      { source: "/returns", destination: "/account/returns", permanent: true },
+      { source: "/auth/register", destination: "/auth/signup", permanent: true },
+      { source: "/auth/forgot-password", destination: "/auth/forgot", permanent: true },
     ];
   },
   async headers() {
