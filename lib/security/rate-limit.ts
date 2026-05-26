@@ -169,6 +169,19 @@ export const RATE_LIMITS = {
   unsubscribe: { limit: 10, window: 60 } as RateLimitConfig,          // RFC 8058 one-click + landing
   liveStreams: { limit: 5, window: 60 } as RateLimitConfig,           // create stream
   liveStreamEdit: { limit: 30, window: 60 } as RateLimitConfig,       // stream PATCH + pin + items
+  cartClear: { limit: 10, window: 60 } as RateLimitConfig,            // DELETE /api/cart
+  oauthUnlink: { limit: 5, window: 600 } as RateLimitConfig,          // unlink OAuth provider
+  productSave: { limit: 30, window: 60 } as RateLimitConfig,          // save/unsave product
+  videoTranscribe: { limit: 5, window: 60 } as RateLimitConfig,       // expensive AI
+  userFollow: { limit: 30, window: 60 } as RateLimitConfig,           // follow/unfollow
+  stripeConnect: { limit: 5, window: 600 } as RateLimitConfig,        // Stripe Connect onboarding
+  creatorApply: { limit: 3, window: 3600 } as RateLimitConfig,        // creator application
+  notifMarkRead: { limit: 60, window: 60 } as RateLimitConfig,        // mark notifications read
+  sellerRefund: { limit: 5, window: 60 } as RateLimitConfig,          // Stripe refund (sensitive)
+  onboardingComplete: { limit: 5, window: 60 } as RateLimitConfig,    // POST onboarding/complete
+  referralGet: { limit: 30, window: 60 } as RateLimitConfig,          // referral code GET/POST
+  reviewHelpful: { limit: 30, window: 60 } as RateLimitConfig,        // toggle helpful
+  ageVerifyStart: { limit: 3, window: 600 } as RateLimitConfig,       // Stripe Identity (expensive)
 } as const;
 
 /**

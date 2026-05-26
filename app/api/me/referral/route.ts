@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getOrCreateReferralCode } from "@/lib/referral/attribution";
 import { dbQuery } from "@/lib/db";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -33,5 +34,11 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const auth = await getAuthUser();
+  if (!auth?.userId) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const rl = await rateLimit("referralGet", auth.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   return GET(req);
 }

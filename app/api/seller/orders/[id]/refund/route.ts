@@ -13,6 +13,7 @@ import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { getStripe } from "@/lib/stripe/checkout";
 import { evaluateSellerRefundRequest } from "@/lib/seller/refund-policy";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -45,6 +46,9 @@ export async function POST(
         { status: 401 }
       );
     }
+
+    const rl = await rateLimit("sellerRefund", sellerId);
+    if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
     const orderId = id;
     const { rows: orderRows } = await dbQuery(

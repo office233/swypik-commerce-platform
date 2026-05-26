@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserId } from "@/lib/creator/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -59,6 +60,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const creatorId = await getCreatorUserId();
     if (!creatorId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const rl = await rateLimit("videoTranscribe", creatorId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const videoId = id;
     const { rows } = await dbQuery<{

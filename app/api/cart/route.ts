@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { buildCartCookie, getOrCreateCart, loadCartItems } from "@/lib/cart/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
@@ -26,6 +27,8 @@ export async function GET() {
 export async function DELETE() {
   const cart = await getOrCreateCart();
   if (cart) {
+    const rl = await rateLimit("cartClear", cart.cartId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: NO_STORE });
     await dbQuery(`DELETE FROM cart_items WHERE cart_id = $1`, [cart.cartId]);
   }
   return NextResponse.json({ success: true }, { headers: NO_STORE });

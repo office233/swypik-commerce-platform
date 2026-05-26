@@ -4,6 +4,7 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { getStripe } from "@/lib/stripe/checkout";
 import { persistConnectAccount } from "@/lib/stripe/connect";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,9 @@ export async function POST() {
     if (!sellerId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("stripeConnect", sellerId);
+    if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
     const sellerRes = await dbQuery<{ email: string; name: string | null; stripe_account_id: string | null; metadata: any }>(
       `SELECT email, name, stripe_account_id, metadata FROM sellers WHERE id = $1`,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,8 @@ export async function POST(
   try {
     const session = await getOrCreateSocialUser();
     const currentUserId = session.userId;
+    const rl = await rateLimit("userFollow", currentUserId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     const { id: followingUserId } = await params;
 
     if (currentUserId === followingUserId) {

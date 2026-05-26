@@ -3,12 +3,15 @@ import QRCode from "qrcode";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { generateSecret, getOtpAuthUrl, encryptSecret } from "@/lib/auth/totp";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rl = await rateLimit("twoFactor", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const { rows } = await dbQuery<{ email: string; totp_enabled_at: string | null }>(
     `SELECT email, totp_enabled_at FROM users WHERE id = $1`,
