@@ -3,9 +3,12 @@ import { getDb } from "@/lib/db";
 import crypto from "crypto";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { VideoShareSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(
   request: Request,
@@ -15,20 +18,20 @@ export async function POST(
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
     const { id: videoId } = await params;
+    if (!UUID_RE.test(videoId)) {
+      return NextResponse.json({ error: "invalid_video_id" }, { status: 400 });
+    }
 
     const rl = await rateLimit("videoShare", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    let body: any = {};
-    try {
-      body = await request.json();
-    } catch (e) {}
+    const rawBody = await request.json().catch(() => ({}));
+    const parsed = parseBody(VideoShareSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });
+    }
+    const { channel, referrer_url: referrerUrl, destination_url: destinationUrl } = parsed.data;
 
-    const validChannels = ['copy_link', 'native_share', 'email', 'sms', 'whatsapp', 'facebook', 'instagram', 'tiktok', 'x', 'other'];
-    const channel = validChannels.includes(body.channel) ? body.channel : 'other';
-    const referrerUrl = typeof body.referrer_url === "string" ? body.referrer_url.slice(0, 500) : null;
-    const destinationUrl = typeof body.destination_url === "string" ? body.destination_url.slice(0, 500) : null;
-    
     const shareToken = crypto.randomBytes(6).toString("hex");
 
     const pool = getDb();

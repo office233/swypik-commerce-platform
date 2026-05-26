@@ -10,6 +10,7 @@ import {
   listConversations,
 } from "@/lib/dm/repository";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { DmConversationCreateSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -47,11 +48,12 @@ export async function POST(request: Request) {
     const rl = await rateLimit("dmConversation", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    const body = await request.json().catch(() => ({}));
-    const peerId = String(body?.peer_user_id || "").trim();
-    if (!peerId) {
-      return NextResponse.json({ error: "peer_user_id required" }, { status: 400 });
+    const rawBody = await request.json().catch(() => ({}));
+    const parsed = parseBody(DmConversationCreateSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });
     }
+    const peerId = parsed.data.peer_user_id;
     if (peerId === userId) {
       return NextResponse.json({ error: "Cannot DM yourself" }, { status: 400 });
     }

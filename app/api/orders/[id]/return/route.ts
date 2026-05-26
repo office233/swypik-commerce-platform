@@ -14,6 +14,7 @@ import { canRequestReturn } from "@/lib/commerce/order-status";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { isSafeEvidenceUrl } from "@/lib/security/safe-url";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { OrderReturnRequestSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export async function POST(
@@ -27,35 +28,20 @@ export async function POST(
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   try {
-    const body = await req.json();
-    const { reason, token } = body;
-    const rawEvidence = Array.isArray(body?.evidenceUrls) ? body.evidenceUrls : [];
-    const trimmedEvidence: string[] = rawEvidence
-      .filter((u: unknown): u is string => typeof u === "string")
-      .map((u: string) => u.trim())
-      .filter((u: string) => u.length > 0)
-      .slice(0, 4);
-    const unsafe = trimmedEvidence.filter((u) => !isSafeEvidenceUrl(u));
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = parseBody(OrderReturnRequestSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });
+    }
+    const { reason, token, evidenceUrls: rawEvidence } = parsed.data;
+
+    const evidenceUrls: string[] = (rawEvidence ?? []).map((u) => u.trim()).filter((u) => u.length > 0).slice(0, 4);
+    const unsafe = evidenceUrls.filter((u) => !isSafeEvidenceUrl(u));
     if (unsafe.length > 0) {
       logger.warn({ orderId: id, unsafe }, "[Return Request] rejected_unsafe_evidence_urls");
       return NextResponse.json(
         { error: "URL-uri de dovadă invalide. Folosește încărcarea de fotografii." },
         { status: 400 }
-      );
-    }
-    const evidenceUrls = trimmedEvidence;
-
-    if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
-      return NextResponse.json(
-        { error: "Motivul returului este obligatoriu (minim 5 caractere)." },
-        { status: 400 }
-      );
-    }
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Token de autentificare lipsă." },
-        { status: 401 }
       );
     }
 

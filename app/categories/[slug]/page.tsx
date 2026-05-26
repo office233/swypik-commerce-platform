@@ -73,7 +73,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const hierarchy = await fetchHierarchy("ro");
   const path = findNodePath(hierarchy, slug);
-  if (!path) return { title: "Categorie" };
+  if (!path) notFound();
   const current = path[path.length - 1];
   const title = `${current.name} — Swypik`;
   const description = `Cumpără ${current.name} pe Swypik. Mii de produse cu livrare rapidă, preț minim garantat și recenzii reale.`;
@@ -100,13 +100,15 @@ export default async function CategoryPage({
   const locale = isLocale(cLoc) ? cLoc : DEFAULT_LOCALE;
   const displayCurrency = isCurrency(cCurr) ? cCurr : DEFAULT_CURRENCY;
 
-  const [hierarchy, { products, total }] = await Promise.all([
-    fetchHierarchy(locale),
-    fetchProducts(slug, locale),
-  ]);
-
+  // Resolve hierarchy FIRST so notFound() can short-circuit before any
+  // product fetch. Doing this inside Promise.all let Next.js 15 stream
+  // the partial response and downgrade the 404 to 200 (regression observed
+  // after rebuild — see MEMORY 2026-05-26 #U).
+  const hierarchy = await fetchHierarchy(locale);
   const path = findNodePath(hierarchy, slug);
   if (!path) notFound();
+
+  const { products, total } = await fetchProducts(slug, locale);
 
   const current = path[path.length - 1];
   const children = current.children ?? [];

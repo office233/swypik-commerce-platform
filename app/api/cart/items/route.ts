@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { buildCartCookie, getOrCreateCart, loadCartItems } from "@/lib/cart/session";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { CartItemAddSchema, parseBody } from "@/lib/validation/schemas";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
@@ -16,22 +17,24 @@ export async function POST(req: Request) {
     const rl = await rateLimit("cartItems", getClientIP(req));
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: NO_STORE });
 
-    const body = await req.json();
-    const productId = String(body.productId || "").trim();
-    const variantId = body.variantId ? String(body.variantId).trim() : null;
-    const quantity = Math.max(1, Math.min(99, Number(body.quantity) || 1));
-    if (!productId) {
-      return NextResponse.json({ error: "productId required" }, { status: 400, headers: NO_STORE });
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = parseBody(CartItemAddSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400, headers: NO_STORE });
     }
+    const body = parsed.data;
+    const productId = body.productId;
+    const variantId = body.variantId ?? null;
+    const quantity = body.quantity;
 
     const cart = await getOrCreateCart({ create: true });
     if (!cart) return NextResponse.json({ error: "cart_unavailable" }, { status: 500, headers: NO_STORE });
 
     // Resolve price/title from DB if not provided.
-    let title: string = body.title ? String(body.title) : "";
-    let priceCents: number = Number.isFinite(Number(body.priceCents)) ? Number(body.priceCents) : 0;
-    let currency: string = (body.currency ? String(body.currency) : cart.currency || "RON").toUpperCase();
-    let image: string | null = body.image ? String(body.image) : null;
+    let title: string = body.title ?? "";
+    let priceCents: number = body.priceCents ?? 0;
+    let currency: string = (body.currency ?? cart.currency ?? "RON").toUpperCase();
+    let image: string | null = body.image ?? null;
     let mpId: string | null = null;
     let mpVariantId: string | null = null;
 

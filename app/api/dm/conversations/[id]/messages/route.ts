@@ -12,6 +12,7 @@ import {
 } from "@/lib/dm/repository";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { DmMessageCreateSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -63,17 +64,17 @@ export async function POST(
     const rl = await rateLimit("dmMessage", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    const body = await request.json().catch(() => ({}));
-
-    const text = String(body?.body || "");
-    if (!text.trim()) {
-      return NextResponse.json({ error: "body required" }, { status: 400 });
+    const rawBody = await request.json().catch(() => ({}));
+    const parsed = parseBody(DmMessageCreateSchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });
     }
+    const { body: text, media_url: mediaUrl, reply_to_message_id: replyToMessageId } = parsed.data;
 
     const message = await sendMessage(userId, conversationId, {
       body: text,
-      mediaUrl: body?.media_url || null,
-      replyToMessageId: body?.reply_to_message_id || null,
+      mediaUrl: mediaUrl ?? null,
+      replyToMessageId: replyToMessageId ?? null,
     });
 
     // Notify the peer (best-effort).

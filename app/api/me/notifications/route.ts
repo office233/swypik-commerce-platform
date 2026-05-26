@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { NotificationsMarkReadSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -72,23 +73,24 @@ export async function POST(req: Request) {
   const rl = await rateLimit("notifications", user.userId);
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-  const body = (await req.json().catch(() => ({}))) as { ids?: string[]; markAll?: boolean };
+  const rawBody = await req.json().catch(() => ({}));
+  const parsed = parseBody(NotificationsMarkReadSchema, rawBody);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });
+  }
 
   try {
-    if (body.markAll) {
+    if ("markAll" in parsed.data) {
       await dbQuery(
         `UPDATE notifications SET read_at = now() WHERE user_id = $1 AND read_at IS NULL`,
         [user.userId],
       );
-    } else if (Array.isArray(body.ids) && body.ids.length > 0) {
-      const ids = body.ids.filter((x) => typeof x === "string" && /^\d+$/.test(x)).map(Number);
-      if (ids.length === 0) return NextResponse.json({ error: "invalid_ids" }, { status: 400 });
+    } else {
+      const ids = parsed.data.ids.map(Number);
       await dbQuery(
         `UPDATE notifications SET read_at = now() WHERE user_id = $1 AND id = ANY($2::bigint[]) AND read_at IS NULL`,
         [user.userId, ids],
       );
-    } else {
-      return NextResponse.json({ error: "nothing_to_do" }, { status: 400 });
     }
 
     return NextResponse.json({ ok: true });

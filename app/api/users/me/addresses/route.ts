@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
+import { UserAddressCreateSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -65,18 +66,20 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await req.json().catch(() => ({}));
-  const v = validate(body);
-  if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 });
+  const rawBody = await req.json().catch(() => ({}));
+  const parsed = parseBody(UserAddressCreateSchema, rawBody);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });
+  const data = parsed.data;
+  let isDefault = Boolean(data.is_default);
 
-  if (v.data.is_default) {
+  if (isDefault) {
     await dbQuery(`UPDATE user_addresses SET is_default = false WHERE user_id = $1`, [session.userId]);
   } else {
     const { rows: existing } = await dbQuery<{ c: string }>(
       `SELECT count(*)::text c FROM user_addresses WHERE user_id = $1`,
       [session.userId],
     );
-    if (existing[0]?.c === "0") v.data.is_default = true;
+    if (existing[0]?.c === "0") isDefault = true;
   }
 
   const { rows } = await dbQuery<{ id: string }>(
@@ -86,16 +89,16 @@ export async function POST(req: Request) {
      RETURNING id`,
     [
       session.userId,
-      v.data.label,
-      v.data.recipient_name,
-      v.data.phone,
-      v.data.line1,
-      v.data.line2,
-      v.data.city,
-      v.data.region,
-      v.data.postal_code,
-      v.data.country_code,
-      v.data.is_default,
+      data.label ?? null,
+      data.recipient_name,
+      data.phone ?? null,
+      data.line1,
+      data.line2 ?? null,
+      data.city,
+      data.region ?? null,
+      data.postal_code,
+      data.country_code,
+      isDefault,
     ],
   );
   return NextResponse.json({ success: true, id: rows[0].id });

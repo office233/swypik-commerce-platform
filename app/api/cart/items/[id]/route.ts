@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOrCreateCart, loadCartItems } from "@/lib/cart/session";
+import { CartItemPatchSchema, parseBody } from "@/lib/validation/schemas";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
@@ -19,11 +20,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (!cart) return NextResponse.json({ error: "no_cart" }, { status: 404, headers: NO_STORE });
   if (!(await ownItem(cart.cartId, id))) return NextResponse.json({ error: "not_found" }, { status: 404, headers: NO_STORE });
 
-  const body = await req.json().catch(() => ({}));
-  const quantity = Number(body.quantity);
-  if (!Number.isFinite(quantity) || quantity < 0 || quantity > 99) {
-    return NextResponse.json({ error: "invalid_quantity" }, { status: 400, headers: NO_STORE });
+  const rawBody = await req.json().catch(() => ({}));
+  const parsed = parseBody(CartItemPatchSchema, rawBody);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400, headers: NO_STORE });
   }
+  const quantity = parsed.data.quantity;
   if (quantity === 0) {
     await dbQuery(`DELETE FROM cart_items WHERE id = $1`, [id]);
   } else {
