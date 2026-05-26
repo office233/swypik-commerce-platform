@@ -25,6 +25,7 @@ import {
   CreatorUploadSessionCreateSchema,
   parseBody,
 } from "@/lib/validation/schemas";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,9 @@ export async function POST(req: Request) {
     if (!creatorId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("uploadSession", creatorId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const rawBody = await req.json().catch(() => null);
     const parsed = parseBody(CreatorUploadSessionCreateSchema, rawBody);
@@ -103,6 +107,9 @@ export async function PATCH(req: Request) {
     if (!creatorId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("uploadSession", creatorId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { searchParams } = new URL(req.url);
     const rawBody = await req.json().catch(() => ({}));

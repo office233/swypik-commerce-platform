@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOrCreateCart, loadCartItems } from "@/lib/cart/session";
 import { CartItemPatchSchema, parseBody } from "@/lib/validation/schemas";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
@@ -18,6 +19,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const { id } = await ctx.params;
   const cart = await getOrCreateCart();
   if (!cart) return NextResponse.json({ error: "no_cart" }, { status: 404, headers: NO_STORE });
+  const rl = await rateLimit("cartItems", cart.cartId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: NO_STORE });
   if (!(await ownItem(cart.cartId, id))) return NextResponse.json({ error: "not_found" }, { status: 404, headers: NO_STORE });
 
   const rawBody = await req.json().catch(() => ({}));
@@ -40,6 +43,8 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   const { id } = await ctx.params;
   const cart = await getOrCreateCart();
   if (!cart) return NextResponse.json({ error: "no_cart" }, { status: 404, headers: NO_STORE });
+  const rl = await rateLimit("cartItems", cart.cartId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: NO_STORE });
   if (!(await ownItem(cart.cartId, id))) return NextResponse.json({ error: "not_found" }, { status: 404, headers: NO_STORE });
   await dbQuery(`DELETE FROM cart_items WHERE id = $1`, [id]);
   const items = await loadCartItems(cart.cartId);

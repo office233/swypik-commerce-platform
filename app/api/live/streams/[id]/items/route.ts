@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
 import { isUuid } from "@/lib/validation/uuid";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!isUuid(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const rl = await rateLimit("liveStreamEdit", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   if (!(await isOwner(id, session.userId)) && session.role !== "admin") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }

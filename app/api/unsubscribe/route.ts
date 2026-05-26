@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { unsubscribeToken } from "@/lib/email/service";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 async function handle(req: Request): Promise<Response> {
+  const rl = await rateLimit("unsubscribe", getClientIP(req));
+  if (!rl.success) return new NextResponse("Too many requests", { status: 429 });
   const url = new URL(req.url);
   let email = url.searchParams.get("email");
   let token = url.searchParams.get("t");

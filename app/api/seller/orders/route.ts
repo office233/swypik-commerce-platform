@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { deriveOrderStatus } from "@/lib/commerce/order-status";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { sendCustomerShippingAlert } from "@/lib/email/service";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 import { SellerOrderTrackingSchema, parseBody } from "@/lib/validation/schemas";
@@ -90,6 +91,9 @@ export async function POST(req: Request) {
     if (!sellerId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("sellerOrders", sellerId);
+    if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
     const rawBody = await req.json().catch(() => null);
     const parsed = parseBody(SellerOrderTrackingSchema, rawBody);

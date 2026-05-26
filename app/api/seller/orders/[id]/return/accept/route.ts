@@ -12,6 +12,7 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,9 @@ export async function POST(
         { status: 401 }
       );
     }
+
+    const rl = await rateLimit("sellerReturns", sellerId);
+    if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
     let body: any = {};
     try {

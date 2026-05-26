@@ -25,6 +25,7 @@ import { dbQuery, getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { moderateText } from "@/lib/moderation/moderateText";
 import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -278,6 +279,9 @@ export async function POST(req: Request) {
   }
   const block = await suspensionGuard(auth.userId);
   if (block) return NextResponse.json(block.body, { status: block.status });
+
+  const rl = await rateLimit("postsCreate", auth.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {

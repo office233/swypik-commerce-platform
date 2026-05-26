@@ -159,6 +159,16 @@ export const RATE_LIMITS = {
   collectionItems: { limit: 60, window: 60 } as RateLimitConfig,      // add/remove items from collection
   adultOptIn: { limit: 5, window: 60 } as RateLimitConfig,            // age opt-in toggle
   livePoll: { limit: 5, window: 60 } as RateLimitConfig,              // creator publishing live polls
+  creatorVideoEdit: { limit: 30, window: 60 } as RateLimitConfig,     // creator PATCH/DELETE own videos
+  uploadSession: { limit: 10, window: 60 } as RateLimitConfig,        // upload session create/complete
+  challengeEnter: { limit: 5, window: 60 } as RateLimitConfig,        // challenge entries
+  sellerOrders: { limit: 30, window: 60 } as RateLimitConfig,         // seller orders mutate (tracking, refund, etc.)
+  sellerReturns: { limit: 10, window: 60 } as RateLimitConfig,        // accept/reject return
+  sellerProducts: { limit: 20, window: 60 } as RateLimitConfig,       // seller create products
+  postsCreate: { limit: 5, window: 60 } as RateLimitConfig,           // Arena post create
+  unsubscribe: { limit: 10, window: 60 } as RateLimitConfig,          // RFC 8058 one-click + landing
+  liveStreams: { limit: 5, window: 60 } as RateLimitConfig,           // create stream
+  liveStreamEdit: { limit: 30, window: 60 } as RateLimitConfig,       // stream PATCH + pin + items
 } as const;
 
 /**

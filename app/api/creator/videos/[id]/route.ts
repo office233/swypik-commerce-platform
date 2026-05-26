@@ -3,6 +3,7 @@ import { autoEmbedVideo } from "@/lib/ai/auto-embed";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserIdWithRoleCheck } from "@/lib/creator/session";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,9 @@ export async function PATCH(
     if (!session) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    const rl = await rateLimit("creatorVideoEdit", session.userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id: videoId } = await ctx.params;
     if (!videoId || !UUID_RE.test(videoId)) {
@@ -277,6 +281,9 @@ export async function DELETE(
   try {
     const session = await getCreatorUserIdWithRoleCheck();
     if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const rl = await rateLimit("creatorVideoEdit", session.userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id: videoId } = await ctx.params;
     if (!videoId || !UUID_RE.test(videoId)) {

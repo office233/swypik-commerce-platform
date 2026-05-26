@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { labelProduct } from "@/lib/moderation/labelProduct";
 import { autoEmbedProduct } from "@/lib/ai/auto-embed";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -48,6 +49,9 @@ export async function POST(req: Request) {
     if (!sellerId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await rateLimit("sellerProducts", sellerId);
+    if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
     const body = await req.json();
     const { title, price, stock, category } = body;

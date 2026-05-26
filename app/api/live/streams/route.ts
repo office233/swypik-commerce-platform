@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,9 @@ export async function POST(req: NextRequest) {
   if (session.role !== "creator" && session.role !== "admin" && session.role !== "seller") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+
+  const rl = await rateLimit("liveStreams", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const body = await req.json().catch(() => ({}));
   const title = String(body.title || "").trim();
