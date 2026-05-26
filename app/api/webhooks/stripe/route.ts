@@ -5,6 +5,8 @@ import { sendOrderConfirmation, sendRefundEmail } from "@/lib/email/service";
 import { routeOrder } from "@/lib/fulfillment/order-router";
 import { awardOrderSwyp } from "@/lib/swyp/order-rewards";
 import { logCheckoutEvent } from "@/lib/security/audit-log";
+import { scoreOrderRisk } from "@/lib/risk/order-fraud-score";
+import { notifyOps } from "@/lib/ops/alerts";
 import type Stripe from "stripe";
 import { persistConnectAccount } from "@/lib/stripe/connect";
 import crypto from "crypto";
@@ -108,9 +110,49 @@ export async function POST(req: Request) {
         const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
         if (pi) {
           await dbQuery(
-            "UPDATE commerce_orders SET status = 'refunded' WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1",
+            "UPDATE commerce_orders SET status = 'refunded' WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
             [pi]
           );
+
+          // STOP cron from placing AE orders for items still pending,
+          // and flag items already placed at AE so admin can cancel them manually
+          // (AE Open Platform does not expose a cancel endpoint in our scope).
+          const { rows: cancelledItems } = await dbQuery<{
+            id: string;
+            source_status: string;
+            ae_order_id: string | null;
+          }>(
+            `UPDATE commerce_order_items coi
+             SET
+               source_status = CASE
+                 WHEN coi.source_status IN ('pending', 'pending_dropship', 'pending_seller_action')
+                   THEN 'cancelled'
+                 ELSE coi.source_status
+               END,
+               metadata = coi.metadata || jsonb_build_object(
+                 'refund_event_id', $2::text,
+                 'refunded_at', now()::text,
+                 'refund_amount_cents', $3::int,
+                 'ae_cancel_required',
+                   (coi.source_status = 'processing_dropship' AND coi.metadata ? 'ae_order_id')
+               )
+             FROM commerce_orders co
+             WHERE coi.order_id = co.id
+               AND (co.metadata->>'paymentIntentId' = $1
+                    OR co.metadata->>'payment_intent_id' = $1
+                    OR co.metadata->>'stripe_payment_intent' = $1)
+             RETURNING coi.id, coi.source_status, coi.metadata->>'ae_order_id' AS ae_order_id`,
+            [pi, event.id, charge.amount_refunded || 0]
+          );
+
+          const needsManualAeCancel = cancelledItems.filter(i => i.ae_order_id && i.source_status === 'processing_dropship');
+          if (needsManualAeCancel.length > 0) {
+            logger.error(
+              { items: needsManualAeCancel },
+              `[Stripe Webhook] Refund received but ${needsManualAeCancel.length} item(s) already placed at AE. Manual cancel required.`
+            );
+          }
+
           try {
             const { rows: oRows } = await dbQuery<{ id: string; currency: string; total_cents: number; customer_email: string | null; user_email: string | null }>(
               `SELECT co.id, co.currency, co.total_cents,
@@ -120,6 +162,7 @@ export async function POST(req: Request) {
                  LEFT JOIN users u ON u.id = co.buyer_user_id
                 WHERE co.metadata->>'paymentIntentId' = $1
                    OR co.metadata->>'payment_intent_id' = $1
+                   OR co.metadata->>'stripe_payment_intent' = $1
                 LIMIT 1`,
               [pi]
             );
@@ -149,17 +192,98 @@ export async function POST(req: Request) {
           "UPDATE commerce_orders SET status='cancelled', metadata = metadata || jsonb_build_object('cancelled_at', NOW()::text, 'cancelled_event', $2::text) WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'sessionId' = $1 OR metadata->>'stripe_session_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
           [objId, event.type]
         );
+        // Stop the dropship cron from picking up items belonging to a cancelled order.
+        await dbQuery(
+          `UPDATE commerce_order_items coi
+           SET source_status = 'cancelled',
+               metadata = coi.metadata || jsonb_build_object('cancelled_event', $2::text, 'cancelled_at', NOW()::text)
+           FROM commerce_orders co
+           WHERE coi.order_id = co.id
+             AND coi.source_status IN ('pending', 'pending_dropship', 'pending_seller_action')
+             AND (co.metadata->>'paymentIntentId' = $1
+                  OR co.metadata->>'payment_intent_id' = $1
+                  OR co.metadata->>'sessionId' = $1
+                  OR co.metadata->>'stripe_session_id' = $1
+                  OR co.metadata->>'stripe_payment_intent' = $1)`,
+          [objId, event.type]
+        );
         break;
       }
-      case "charge.dispute.created": {
+      case "charge.dispute.created":
+      case "charge.dispute.updated":
+      case "charge.dispute.closed":
+      case "charge.dispute.funds_withdrawn":
+      case "charge.dispute.funds_reinstated": {
         const dispute = event.data.object as Stripe.Dispute;
         const chargeId = typeof dispute.charge === "string" ? dispute.charge : dispute.charge?.id;
-        if (chargeId) {
-          await dbQuery(
-            "UPDATE commerce_orders SET status='disputed' WHERE metadata->>'chargeId' = $1 OR metadata->>'charge_id' = $1",
-            [chargeId]
+        const piId = typeof dispute.payment_intent === "string"
+          ? dispute.payment_intent
+          : dispute.payment_intent?.id;
+
+        let orderId: string | null = null;
+        if (chargeId || piId) {
+          const { rows } = await dbQuery<{ id: string }>(
+            `SELECT id FROM commerce_orders
+              WHERE metadata->>'chargeId' = $1
+                 OR metadata->>'charge_id' = $1
+                 OR metadata->>'paymentIntentId' = $2
+                 OR metadata->>'payment_intent_id' = $2
+              LIMIT 1`,
+            [chargeId || "", piId || ""],
           );
+          orderId = rows[0]?.id || null;
         }
+
+        const evidenceDueBy = dispute.evidence_details?.due_by
+          ? new Date(dispute.evidence_details.due_by * 1000).toISOString()
+          : null;
+
+        await dbQuery(
+          `INSERT INTO stripe_disputes
+             (dispute_id, charge_id, payment_intent_id, order_id, amount_cents, currency,
+              reason, status, evidence_due_by, is_charge_refundable, metadata)
+           VALUES ($1,$2,$3,$4::uuid,$5,$6,$7,$8,$9::timestamptz,$10,$11::jsonb)
+           ON CONFLICT (dispute_id) DO UPDATE SET
+             status              = EXCLUDED.status,
+             reason              = EXCLUDED.reason,
+             evidence_due_by     = EXCLUDED.evidence_due_by,
+             is_charge_refundable= EXCLUDED.is_charge_refundable,
+             amount_cents        = EXCLUDED.amount_cents,
+             metadata            = EXCLUDED.metadata,
+             updated_at          = now()`,
+          [
+            dispute.id,
+            chargeId || "",
+            piId || null,
+            orderId,
+            dispute.amount,
+            dispute.currency,
+            dispute.reason || null,
+            dispute.status,
+            evidenceDueBy,
+            dispute.is_charge_refundable ?? true,
+            JSON.stringify({ event_type: event.type, dispute }),
+          ],
+        );
+
+        if (orderId) {
+          let orderStatus: string | null = null;
+          if (dispute.status === "lost") orderStatus = "disputed_lost";
+          else if (dispute.status === "won") orderStatus = "disputed_won";
+          else if (event.type === "charge.dispute.created") orderStatus = "disputed";
+
+          if (orderStatus) {
+            await dbQuery(
+              `UPDATE commerce_orders SET status = $2 WHERE id = $1::uuid`,
+              [orderId, orderStatus],
+            );
+          }
+        }
+
+        logger.warn(
+          { disputeId: dispute.id, status: dispute.status, amount: dispute.amount, orderId, eventType: event.type },
+          "[Stripe Webhook] Dispute event",
+        );
         break;
       }
       default:
@@ -243,6 +367,9 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   // non-webhook path that may have already flipped the order out of 'pending'.
   if (transitionRows.length > 0) {
     await decrementOrderStock(orderId);
+    await evaluateFraudRisk(orderId).catch((e) =>
+      logger.error({ err: e, orderId }, "[fraud-risk] evaluation failed"),
+    );
   }
 
   // Record payment transaction
@@ -264,6 +391,129 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
 
   await maybeSendOrderConfirmation(orderId);
   await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
+}
+
+/**
+ * Evaluează scorul de fraudă imediat după transition pending→paid.
+ * Dacă score ≥50: marchează metadata.fraud_review + ops alert.
+ * Dacă score ≥70 (critical): adaugă fraud_block=true (fulfillment cron-ul îl va skip).
+ */
+async function evaluateFraudRisk(orderId: string): Promise<void> {
+  const { rows } = await dbQuery<{
+    id: string;
+    status: string;
+    buyer_user_id: string | null;
+    currency: string;
+    total_cents: number;
+    metadata: any;
+    buyer_email: string | null;
+    buyer_phone: string | null;
+    buyer_email_verified_at: string | null;
+    buyer_phone_verified_at: string | null;
+    buyer_created_at: string | null;
+    prior_paid: number;
+    prior_disputes: number;
+    prior_chargebacks_lost: number;
+  }>(
+    `SELECT co.id::text, co.status, co.buyer_user_id::text,
+            co.currency, co.total_cents, co.metadata,
+            u.email AS buyer_email,
+            u.phone AS buyer_phone,
+            u.email_verified_at::text AS buyer_email_verified_at,
+            u.phone_verified_at::text AS buyer_phone_verified_at,
+            u.created_at::text AS buyer_created_at,
+            (SELECT COUNT(*)::int FROM commerce_orders co2
+              WHERE co2.buyer_user_id = co.buyer_user_id
+                AND co2.status IN ('paid','fulfilled','delivered')
+                AND co2.id <> co.id) AS prior_paid,
+            (SELECT COUNT(*)::int FROM stripe_disputes d
+              JOIN commerce_orders co3 ON co3.id = d.order_id
+              WHERE co3.buyer_user_id = co.buyer_user_id) AS prior_disputes,
+            (SELECT COUNT(*)::int FROM stripe_disputes d
+              JOIN commerce_orders co3 ON co3.id = d.order_id
+              WHERE co3.buyer_user_id = co.buyer_user_id
+                AND d.status IN ('lost','dispute_lost')) AS prior_chargebacks_lost
+       FROM commerce_orders co
+       LEFT JOIN users u ON u.id = co.buyer_user_id
+      WHERE co.id = $1 LIMIT 1`,
+    [orderId],
+  );
+  const o = rows[0];
+  if (!o) return;
+
+  const md = o.metadata || {};
+  const ship = md.shipping_address || {};
+  const bill = md.billing_address || {};
+  const items = Array.isArray(md.items) ? md.items : [];
+  const itemCount = Number(md.item_count) || items.length || 1;
+  const accountAgeDays = o.buyer_created_at
+    ? Math.floor((Date.now() - new Date(o.buyer_created_at).getTime()) / 86_400_000)
+    : null;
+
+  const risk = scoreOrderRisk({
+    totalCents: o.total_cents,
+    currency: o.currency,
+    itemCount,
+    hasShippingAddress: Boolean(ship.line1 || ship.address_line_1),
+    shippingCountry: ship.country || null,
+    billingCountry: bill.country || null,
+    ipCountry: md.checkout_ip_country || null,
+    email: o.buyer_email,
+    phone: o.buyer_phone,
+    buyerAccountAgeDays: o.buyer_user_id ? accountAgeDays : null,
+    emailVerified: Boolean(o.buyer_email_verified_at),
+    phoneVerified: Boolean(o.buyer_phone_verified_at),
+    priorPaidOrders: o.prior_paid,
+    priorDisputes: o.prior_disputes,
+    priorChargebacksLost: o.prior_chargebacks_lost,
+  });
+
+  // Always persist score for audit + later calibration vs real outcome.
+  const patch: Record<string, unknown> = {
+    fraud_score: risk.score,
+    fraud_level: risk.level,
+    fraud_evaluated_at: new Date().toISOString(),
+    fraud_factors: risk.factors.map((f) => f.tag),
+  };
+  if (risk.score >= 50) patch.fraud_review = true;
+  if (risk.score >= 70) patch.fraud_block = true;
+
+  await dbQuery(
+    `UPDATE commerce_orders SET metadata = metadata || $1::jsonb WHERE id = $2`,
+    [JSON.stringify(patch), orderId],
+  );
+
+  if (risk.score >= 50) {
+    const severity = risk.score >= 70 ? "critical" : "warning";
+    const positives = risk.factors.filter((f) => f.delta > 0);
+    await notifyOps({
+      key: `fraud_block:${orderId}`,
+      severity,
+      title: `Fraud risk ${risk.score}/100 — ${risk.level.toUpperCase()} — ${(o.total_cents / 100).toFixed(2)} ${o.currency.toUpperCase()}`,
+      detail:
+        `${o.buyer_email || "(guest)"} · ship=${ship.country || "?"} · items=${itemCount}\n` +
+        risk.recommendation +
+        "\n\nSemnale: " +
+        positives.map((f) => `${f.tag}+${f.delta}`).join(", "),
+      link: `https://swypik.com/admin/risk?status=paid&min=50`,
+      payload: { orderId, score: risk.score, level: risk.level, factors: risk.factors },
+      cooldownMin: 5, // o singură comandă, e ok să alertăm rapid
+    });
+  }
+
+  // User-level auto-block check (only for authenticated buyers, only on review+ scores)
+  if (o.buyer_user_id && risk.score >= 50) {
+    try {
+      const { maybeAutoBlockUser } = await import("@/lib/risk/user-block");
+      await maybeAutoBlockUser({
+        userId: o.buyer_user_id,
+        triggeringOrderId: orderId,
+        currentScore: risk.score,
+      });
+    } catch (e) {
+      logger.error({ err: e, userId: o.buyer_user_id }, "[fraud-user-block] check failed");
+    }
+  }
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {

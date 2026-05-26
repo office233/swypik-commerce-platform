@@ -36,6 +36,18 @@ export async function POST(req: Request) {
       );
     }
 
+    // User-level fraud block — refuse checkout entirely
+    if (uid) {
+      const { isUserFraudBlocked } = await import("@/lib/risk/user-block");
+      if (await isUserFraudBlocked(uid)) {
+        logger.warn({ uid }, "[checkout] fraud-blocked user attempted checkout");
+        return NextResponse.json(
+          { success: false, error: "Contul nu poate plasa comenzi momentan. Te rugăm contactează support@swypik.com." },
+          { status: 403 }
+        );
+      }
+    }
+
     // Idempotency: return cached response if present
     if (idempotencyKey) {
       const cached = await idempotencyGet<any>(`checkout:${idempotencyKey}`);
@@ -100,13 +112,24 @@ export async function POST(req: Request) {
     const totalCents = Math.round(totalRon * 100);
     const orderLookupToken = crypto.randomBytes(24).toString("hex");
 
+    // Cloudflare signals — only trusted because Caddy strips CF-* from origin traffic.
+    const ipCountry = (req.headers.get("cf-ipcountry") || "").trim().toUpperCase() || null;
+    const userAgent = (req.headers.get("user-agent") || "").slice(0, 200) || null;
+
     // Create a pending order in our database
     const { rows: orderRows } = await dbQuery(
       `INSERT INTO commerce_orders (
         status, currency, subtotal_cents, total_cents, metadata
       ) VALUES ('pending', 'RON', $1, $1, $2::jsonb)
       RETURNING id`,
-      [totalCents, JSON.stringify({ source: "embedded_checkout", items: checkoutItems, order_lookup_token: orderLookupToken })]
+      [totalCents, JSON.stringify({
+        source: "embedded_checkout",
+        items: checkoutItems,
+        order_lookup_token: orderLookupToken,
+        checkout_ip_country: ipCountry,
+        checkout_user_agent: userAgent,
+        checkout_at: new Date().toISOString(),
+      })]
     );
     const orderId = orderRows[0].id;
 

@@ -22,27 +22,60 @@ async function handleGET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const MAX_ATTEMPTS = 3;
+  const CLAIM_TTL_MINUTES = 10;
+  const BATCH_SIZE = 20;
+
   try {
+    // ATOMIC CLAIM: mark pending items as "in-flight" with a lock token.
+    // SKIP LOCKED prevents two concurrent crons from claiming the same row.
+    // The claim is bounded by attempts < MAX_ATTEMPTS to avoid infinite retries.
+    const claimToken = `cron_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const claimedAt = new Date().toISOString();
+
     const { rows: pendingItems } = await dbQuery(
-      `SELECT
+      `WITH claimed AS (
+         SELECT coi.id
+         FROM commerce_order_items coi
+         JOIN commerce_orders co ON co.id = coi.order_id
+         WHERE coi.source_status = 'pending_dropship'
+           AND COALESCE((co.metadata->>'fraud_block')::boolean, false) = false
+           AND NOT EXISTS (
+             SELECT 1 FROM users u
+              WHERE u.id = co.buyer_user_id
+                AND (u.metadata->'fraud_user_block'->>'blocked')::boolean = true
+           )
+           AND COALESCE((coi.metadata->>'dropship_attempts')::int, 0) < $3
+           AND (
+             coi.metadata->>'dropship_claim_at' IS NULL
+             OR (coi.metadata->>'dropship_claim_at')::timestamptz < now() - ($4 || ' minutes')::interval
+           )
+         ORDER BY coi.created_at
+         LIMIT $5
+         FOR UPDATE SKIP LOCKED
+       )
+       UPDATE commerce_order_items coi
+       SET metadata = coi.metadata
+         || jsonb_build_object('dropship_claim_token', $1::text, 'dropship_claim_at', $2::text)
+       FROM claimed
+       WHERE coi.id = claimed.id
+       RETURNING
          coi.id AS item_id,
          coi.order_id,
          coi.title,
          coi.quantity,
          coi.metadata AS item_metadata,
-         co.metadata AS order_metadata,
-         mp.supplier_product_id AS ae_product_id,
-         mpv.sku AS ae_sku_id
-       FROM commerce_order_items coi
-       JOIN commerce_orders co ON co.id = coi.order_id
-       LEFT JOIN marketplace_products mp ON mp.id::text = coi.metadata->>'pg_id'
-       LEFT JOIN marketplace_product_variants mpv ON mpv.sku = coi.metadata->>'sku_id'
-       WHERE coi.source_status = 'pending_dropship'`
+         (SELECT co.metadata FROM commerce_orders co WHERE co.id = coi.order_id) AS order_metadata,
+         (SELECT mp.supplier_product_id FROM marketplace_products mp WHERE mp.id::text = coi.metadata->>'pg_id') AS ae_product_id,
+         (SELECT mpv.sku FROM marketplace_product_variants mpv WHERE mpv.sku = coi.metadata->>'sku_id') AS ae_sku_id`,
+      [claimToken, claimedAt, MAX_ATTEMPTS, CLAIM_TTL_MINUTES, BATCH_SIZE]
     );
 
     if (pendingItems.length === 0) {
       return NextResponse.json({ success: true, processedCount: 0 });
     }
+
+    logger.info(`[Cron] Claimed ${pendingItems.length} items with token ${claimToken}`);
 
     const itemsByOrder: Record<string, typeof pendingItems> = {};
     for (const item of pendingItems) {
@@ -51,44 +84,84 @@ async function handleGET(req: Request) {
     }
 
     let processedCount = 0;
+    let failedCount = 0;
 
     for (const [orderId, items] of Object.entries(itemsByOrder)) {
+      const claimedItemIds = items.map(i => i.item_id);
       const orderMetadata = items[0].order_metadata || {};
       const shippingAddress = orderMetadata.shipping_address;
 
+      // IDEMPOTENCY GUARD: if any item already has ae_order_id, skip this order entirely.
+      // This catches the case where a previous run succeeded at AE but failed before DB commit.
+      const alreadyPlaced = items.find(i => (i.item_metadata as any)?.ae_order_id);
+      if (alreadyPlaced) {
+        logger.warn(`[Cron] Order ${orderId} already has ae_order_id=${(alreadyPlaced.item_metadata as any).ae_order_id}, finalizing without re-placing.`);
+        await dbQuery(
+          `UPDATE commerce_order_items
+           SET source_status = 'processing_dropship',
+               metadata = metadata - 'dropship_claim_token' - 'dropship_claim_at'
+           WHERE id = ANY($1::uuid[]) AND metadata->>'dropship_claim_token' = $2`,
+          [claimedItemIds, claimToken]
+        );
+        processedCount += items.length;
+        continue;
+      }
+
       if (!shippingAddress) {
         logger.error(`[Cron] Order ${orderId} has no shipping address.`);
+        await releaseClaimWithError(claimedItemIds, claimToken, "missing_shipping_address");
+        failedCount += items.length;
+        continue;
+      }
+
+      // Sanity: every item must have an AE product id
+      const missingProductId = items.find(i => !i.ae_product_id);
+      if (missingProductId) {
+        logger.error(`[Cron] Order ${orderId} item ${missingProductId.item_id} missing ae_product_id.`);
+        await releaseClaimWithError(claimedItemIds, claimToken, `missing_ae_product_id:${missingProductId.item_id}`);
+        failedCount += items.length;
         continue;
       }
 
       const aeItems = items.map(item => ({
         ae_product_id: item.ae_product_id,
-        ae_sku_attr: item.ae_sku_id, 
+        ae_sku_attr: item.ae_sku_id,
         quantity: item.quantity,
       }));
 
       try {
-        console.log(`[Cron] Placing dropship order on AE for order ${orderId} with ${aeItems.length} items...`);
+        console.log(`[Cron] Placing dropship order on AE for order ${orderId} with ${aeItems.length} items (token=${claimToken})...`);
         const result = await placeDropshipOrder(orderId, shippingAddress, aeItems);
-        
+
         const aeOrderId = result?.order_list?.[0] || result?.aliexpress_order_id || null;
-        
+
+        // FINAL UPDATE: only touch items we claimed (by token), not all order items.
+        // This prevents wiping items added later or claimed by another worker.
         await dbQuery(
           `UPDATE commerce_order_items
            SET source_status = 'processing_dropship',
-               metadata = metadata || jsonb_build_object('ae_order_id', $2::text)
-           WHERE order_id = $1 AND source_status = 'pending_dropship'`,
-          [orderId, aeOrderId]
+               metadata = (metadata - 'dropship_claim_token' - 'dropship_claim_at')
+                 || jsonb_build_object(
+                      'ae_order_id', $2::text,
+                      'ae_placed_at', now()::text
+                    )
+           WHERE id = ANY($1::uuid[]) AND metadata->>'dropship_claim_token' = $3`,
+          [claimedItemIds, aeOrderId, claimToken]
         );
         processedCount += items.length;
       } catch (aeError: any) {
         logger.error({ err: aeError }, `[Cron] AE auto-ordering failed for order ${orderId}:`);
+        await releaseClaimWithError(claimedItemIds, claimToken, String(aeError?.message || aeError).slice(0, 500));
+        failedCount += items.length;
       }
     }
 
     return NextResponse.json({
       success: true,
-      processedCount
+      processedCount,
+      failedCount,
+      claimedCount: pendingItems.length,
+      claimToken,
     });
   } catch (error: any) {
     logger.error({ err: error }, "[Process Dropship Cron Error]:");
@@ -97,6 +170,29 @@ async function handleGET(req: Request) {
       { status: 500 }
     );
   }
+}
+
+// Release a claim and record the error. After MAX_ATTEMPTS the item is marked as 'failed'
+// so it stops being retried automatically and requires manual intervention.
+async function releaseClaimWithError(itemIds: string[], claimToken: string, errorMessage: string) {
+  const MAX_ATTEMPTS = 3;
+  await dbQuery(
+    `UPDATE commerce_order_items
+     SET
+       metadata = (metadata - 'dropship_claim_token' - 'dropship_claim_at')
+         || jsonb_build_object(
+              'dropship_attempts', COALESCE((metadata->>'dropship_attempts')::int, 0) + 1,
+              'last_dropship_error', $3::text,
+              'last_dropship_error_at', now()::text
+            ),
+       source_status = CASE
+         WHEN COALESCE((metadata->>'dropship_attempts')::int, 0) + 1 >= $4
+           THEN 'failed'
+         ELSE 'pending_dropship'
+       END
+     WHERE id = ANY($1::uuid[]) AND metadata->>'dropship_claim_token' = $2`,
+    [itemIds, claimToken, errorMessage, MAX_ATTEMPTS]
+  );
 }
 
 export const POST = GET;
