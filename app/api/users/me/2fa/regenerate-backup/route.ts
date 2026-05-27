@@ -4,6 +4,7 @@ import { dbQuery } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { generateBackupCodes, hashBackupCodes } from "@/lib/auth/totp";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { TwoFactorPasswordSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +13,10 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const rl = await rateLimit("twoFactor", `regen:${session.userId}:${getClientIP(req)}`);
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
-  const body = await req.json().catch(() => ({}));
-  const password = String(body.password || "");
-  if (!password) return NextResponse.json({ error: "Parola necesară." }, { status: 400 });
+  const rawBody = await req.json().catch(() => null);
+  const parsed = parseBody(TwoFactorPasswordSchema, rawBody);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  const { password } = parsed.data;
 
   const { rows } = await dbQuery<{ password_hash: string | null; totp_enabled_at: string | null }>(
     `SELECT password_hash, totp_enabled_at FROM users WHERE id = $1`,

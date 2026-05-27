@@ -24,6 +24,73 @@ export const CheckoutCreateIntentSchema = z.object({
 
 export type CheckoutCreateIntentInput = z.infer<typeof CheckoutCreateIntentSchema>;
 
+// Permissive Checkout shape used by /api/checkout/route.ts (legacy clients
+// send `items`/`products`/`product` with mixed fields). Server enforces price
+// from DB regardless, so we only validate types + caps here.
+export const CheckoutRawItemSchema = z.object({
+  productId: z.union([z.string(), z.number()]).optional(),
+  pgId: z.union([z.string(), z.number()]).optional(),
+  quantity: z.union([z.number(), z.string()]).optional(),
+  skuId: z.union([z.string(), z.number()]).optional(),
+  variantId: z.union([z.string(), z.number()]).optional(),
+  videoId: z.union([z.string(), z.number()]).optional(),
+}).passthrough();
+
+export const CheckoutPostBodySchema = z.object({
+  items: z.array(CheckoutRawItemSchema).max(50).optional(),
+  products: z.array(CheckoutRawItemSchema).max(50).optional(),
+  product: CheckoutRawItemSchema.optional(),
+  customer: z.object({
+    email: z.string().email().max(254).optional(),
+  }).passthrough().optional(),
+}).passthrough();
+
+// Seller auth: action-based body (login/request_otp/verify_otp).
+export const SellerAuthBodySchema = z.object({
+  action: z.enum(["login", "request_otp", "verify_otp"]),
+  email: z.string().trim().toLowerCase().email().max(254).optional(),
+  token: z.string().trim().regex(/^\d{6}$/, "Cod invalid").optional(),
+});
+export type SellerAuthBody = z.infer<typeof SellerAuthBodySchema>;
+
+// User profile PATCH.
+export const UserProfilePatchSchema = z.object({
+  display_name: z.string().trim().min(1).max(50).optional(),
+  bio: z.string().trim().max(300).nullable().optional(),
+  username: z.string().trim().toLowerCase().min(3).max(30).regex(/^[a-z0-9_]+$/, "username invalid").optional(),
+}).refine((b) => b.display_name !== undefined || b.bio !== undefined || b.username !== undefined, {
+  message: "Nimic de actualizat",
+});
+
+// 2FA disable / regenerate-backup: password only.
+export const TwoFactorPasswordSchema = z.object({
+  password: z.string().min(1, "Parola este obligatorie.").max(256),
+});
+
+// 2FA enable: 6-digit token.
+export const TwoFactorTokenSchema = z.object({
+  token: z.string().trim().regex(/^\d{6}$/, "Codul trebuie să aibă 6 cifre."),
+});
+
+// Address PATCH (all fields optional, length-capped).
+export const AddressPatchSchema = z.object({
+  label: z.string().trim().max(60).nullable().optional(),
+  recipient_name: z.string().trim().max(120).nullable().optional(),
+  phone: z.string().trim().max(40).nullable().optional(),
+  line1: z.string().trim().max(200).nullable().optional(),
+  line2: z.string().trim().max(200).nullable().optional(),
+  city: z.string().trim().max(120).nullable().optional(),
+  region: z.string().trim().max(120).nullable().optional(),
+  postal_code: z.string().trim().max(20).nullable().optional(),
+  country_code: z.string().trim().length(2).regex(/^[A-Za-z]{2}$/, "country_code must be ISO-3166-1 alpha-2").nullable().optional(),
+  set_default: z.boolean().optional(),
+}).strict();
+
+// Adult content opt-in toggle.
+export const AdultOptInSchema = z.object({
+  optIn: z.boolean(),
+});
+
 /**
  * Helper: parse a request body with a zod schema. Returns either the parsed
  * data or a NextResponse-friendly error payload (use it as { error, status: 400 }).

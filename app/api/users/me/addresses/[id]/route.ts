@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { AddressPatchSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const rl = await rateLimit("userAddresses", session.userId);
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const { id } = await params;
-  const body = await req.json().catch(() => ({}));
+  const rawBody = await req.json().catch(() => null);
+  const parsed = parseBody(AddressPatchSchema, rawBody);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  const body = parsed.data;
 
   // Ownership check
   const { rows: owner } = await dbQuery<{ id: string }>(
@@ -42,7 +46,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const values: unknown[] = [];
   for (const field of ALLOWED_FIELDS) {
     if (field in body) {
-      values.push(body[field] === "" ? null : body[field]);
+      const v = (body as Record<string, unknown>)[field];
+      values.push(v === "" ? null : v);
       setClauses.push(`${field} = $${values.length}`);
     }
   }

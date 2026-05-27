@@ -15,6 +15,7 @@ import { resolveCheckoutAttribution } from "@/lib/checkout/attribution";
 import { createCheckoutSession, type CheckoutItem } from "@/lib/stripe/checkout";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { logCheckoutEvent } from "@/lib/security/audit-log";
+import { CheckoutPostBodySchema, parseBody } from "@/lib/validation/schemas";
 import crypto from "crypto";
 
 
@@ -164,15 +165,17 @@ export async function POST(req: Request) {
     }
 
     const userAgent = req.headers.get("user-agent") || undefined;
-    let body: any;
+    let rawBody: unknown;
     try {
-      body = await req.json();
+      rawBody = await req.json();
     } catch {
       return NextResponse.json({ success: false, error: "invalid_json" }, { status: 400 });
     }
-    if (!body || typeof body !== "object") {
-      return NextResponse.json({ success: false, error: "invalid_body" }, { status: 400 });
+    const parsed = parseBody(CheckoutPostBodySchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
+    const body = parsed.data;
     const rawItems = body.items || body.products || (body.product ? [body.product] : []);
     const customer = body.customer;
 

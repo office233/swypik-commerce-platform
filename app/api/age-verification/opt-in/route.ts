@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { AdultOptInSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,10 @@ export async function PATCH(req: Request) {
     const rl = await rateLimit("adultOptIn", session.userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    const body = await req.json().catch(() => ({}));
-    const optIn = Boolean(body?.optIn);
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseBody(AdultOptInSchema, rawBody);
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const { optIn } = parsed.data;
 
     const { rows } = await dbQuery<{ approved: boolean }>(
       `SELECT (age_verification_status = 'approved') AS approved

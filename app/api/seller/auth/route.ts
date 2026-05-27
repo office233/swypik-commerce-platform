@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { sendMagicLink } from "@/lib/email/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { getRedis } from "@/lib/redis";
+import { SellerAuthBodySchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -31,15 +32,19 @@ const GENERIC_REQUEST_OK = {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { action, email, token } = body;
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseBody(SellerAuthBodySchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+    }
+    const { action, email, token } = parsed.data;
 
     if (action === "login" || action === "request_otp") {
-      if (!email || !String(email).includes("@")) {
+      if (!email) {
         return NextResponse.json(GENERIC_REQUEST_OK);
       }
 
-      const normalizedEmail = String(email).trim().toLowerCase();
+      const normalizedEmail = email;
       const ip = getClientIP(req);
 
       const ipLimit = await rateLimit("seller-otp-ip", ip, { limit: 3, window: 60 });
@@ -93,12 +98,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Email și codul sunt obligatorii." }, { status: 400 });
       }
 
-      const normalizedEmail = String(email).trim().toLowerCase();
-      const codeRaw = String(token).trim();
-      if (!/^\d{6}$/.test(codeRaw)) {
-        return NextResponse.json({ success: false, error: "Cod invalid sau expirat." }, { status: 400 });
-      }
-      const otpToken = `otp:${codeRaw}`;
+      const normalizedEmail = email;
+      const otpToken = `otp:${token}`;
       const otpHash = hashToken(otpToken);
 
       const ip = getClientIP(req);

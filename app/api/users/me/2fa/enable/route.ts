@@ -3,6 +3,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { verifyToken, generateBackupCodes, hashBackupCodes } from "@/lib/auth/totp";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { TwoFactorTokenSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +12,10 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const rl = await rateLimit("twoFactor", `enable:${session.userId}:${getClientIP(req)}`);
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
-  const body = await req.json().catch(() => ({}));
-  const token = String(body.token || "").trim();
-  if (!/^\d{6}$/.test(token)) {
-    return NextResponse.json({ error: "Codul trebuie să aibă 6 cifre." }, { status: 400 });
-  }
+  const rawBody = await req.json().catch(() => null);
+  const parsed = parseBody(TwoFactorTokenSchema, rawBody);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  const { token } = parsed.data;
 
   const { rows } = await dbQuery<{ totp_secret: string | null; totp_enabled_at: string | null }>(
     `SELECT totp_secret, totp_enabled_at FROM users WHERE id = $1`,

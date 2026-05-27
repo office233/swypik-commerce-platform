@@ -13,16 +13,9 @@ import { recordStrike } from "@/lib/moderation/strikes";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { UserProfilePatchSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
-
-const USERNAME_RE = /^[a-z0-9_]+$/;
-
-type Body = {
-  display_name?: unknown;
-  bio?: unknown;
-  username?: unknown;
-};
 
 type UserRow = {
   id: string;
@@ -50,59 +43,37 @@ export async function PATCH(request: Request) {
     );
   }
 
-  let body: Body;
-  try {
-    body = (await request.json()) as Body;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  const rawBody = await request.json().catch(() => null);
+  const parsed = parseBody(UserProfilePatchSchema, rawBody);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
+  const body = parsed.data;
 
   const updates: { col: string; val: string | null }[] = [];
 
   if (body.display_name !== undefined) {
-    if (typeof body.display_name !== "string") {
-      return NextResponse.json({ error: "display_name trebuie să fie text" }, { status: 400 });
-    }
-    const v = body.display_name.trim();
-    if (v.length < 1 || v.length > 50) {
+    const v = body.display_name;
+    const mDn = moderateText(v, "display_name");
+    if (mDn.action !== "allow") {
+      void recordStrike({
+        userId: session.userId,
+        label: mDn.label === "blocked" ? "blocked" : mDn.label === "adult" ? "adult" : "sensitive",
+        context: "display_name",
+        reason: mDn.message,
+        reasons: mDn.reasons,
+        signals: mDn.signals as Record<string, unknown>,
+      });
       return NextResponse.json(
-        { error: "display_name trebuie să aibă între 1 și 50 de caractere" },
-        { status: 400 }
+        { error: mDn.message ?? "Nume respins de moderare.", reasons: mDn.reasons },
+        { status: 422 },
       );
-    }
-    const dnText = typeof v === "string" ? v : "";
-    if (dnText.length > 0) {
-      const mDn = moderateText(dnText, "display_name");
-      if (mDn.action !== "allow") {
-        void recordStrike({
-          userId: session.userId,
-          label: mDn.label === "blocked" ? "blocked" : mDn.label === "adult" ? "adult" : "sensitive",
-          context: "display_name",
-          reason: mDn.message,
-          reasons: mDn.reasons,
-          signals: mDn.signals as Record<string, unknown>,
-        });
-        return NextResponse.json(
-          { error: mDn.message ?? "Nume respins de moderare.", reasons: mDn.reasons },
-          { status: 422 },
-        );
-      }
     }
     updates.push({ col: "display_name", val: v });
   }
 
   if (body.bio !== undefined) {
-    if (body.bio !== null && typeof body.bio !== "string") {
-      return NextResponse.json({ error: "bio trebuie să fie text" }, { status: 400 });
-    }
-    const raw = (body.bio as string | null) ?? "";
-    const v = typeof raw === "string" ? raw : "";
-    if (v.length > 300) {
-      return NextResponse.json(
-        { error: "bio nu poate depăși 300 de caractere" },
-        { status: 400 }
-      );
-    }
+    const v = body.bio ?? "";
     if (v.length > 0) {
       const m = moderateText(v, "bio");
       if (m.action !== "allow") {
@@ -124,23 +95,7 @@ export async function PATCH(request: Request) {
   }
 
   if (body.username !== undefined) {
-    if (typeof body.username !== "string") {
-      return NextResponse.json({ error: "username trebuie să fie text" }, { status: 400 });
-    }
-    const v = body.username.trim().toLowerCase();
-    if (v.length < 3 || v.length > 30) {
-      return NextResponse.json(
-        { error: "username trebuie să aibă între 3 și 30 de caractere" },
-        { status: 400 }
-      );
-    }
-    if (!USERNAME_RE.test(v)) {
-      return NextResponse.json(
-        { error: "username poate conține doar litere mici, cifre și underscore" },
-        { status: 400 }
-      );
-    }
-
+    const v = body.username;
     // Uniqueness check (case-insensitive), excluding self.
     const { rows: clash } = await dbQuery<{ id: string }>(
       `SELECT id FROM users WHERE lower(username) = lower($1) AND id <> $2 LIMIT 1`,
@@ -152,7 +107,6 @@ export async function PATCH(request: Request) {
         { status: 409 }
       );
     }
-
     updates.push({ col: "username", val: v });
   }
 
