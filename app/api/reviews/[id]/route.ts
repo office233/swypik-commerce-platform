@@ -3,6 +3,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { ProductReviewPatchSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,10 @@ export async function PATCH(
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id } = await params;
-    const body = await req.json().catch(() => ({}));
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parseBody(ProductReviewPatchSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const body = parsedBody.data;
 
     const { rows } = await dbQuery<{ user_id: string }>(
       `SELECT user_id FROM product_reviews WHERE id = $1 LIMIT 1`,
@@ -34,21 +38,17 @@ export async function PATCH(
     const values: unknown[] = [];
     let i = 1;
 
-    if (body?.rating !== undefined) {
-      const r = Number(body.rating);
-      if (!Number.isInteger(r) || r < 1 || r > 5) {
-        return NextResponse.json({ error: "invalid_rating" }, { status: 400 });
-      }
+    if (body.rating !== undefined) {
       updates.push(`rating = $${i++}`);
-      values.push(r);
+      values.push(body.rating);
     }
-    if (typeof body?.title === "string") {
+    if (body.title !== undefined) {
       updates.push(`title = $${i++}`);
-      values.push(body.title.slice(0, 200));
+      values.push(body.title);
     }
-    if (typeof body?.body === "string") {
+    if (body.body !== undefined) {
       updates.push(`body = $${i++}`);
-      values.push(body.body.slice(0, 4000));
+      values.push(body.body);
     }
 
     if (updates.length === 0) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { CollectionCreateSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export async function GET() {
@@ -61,12 +62,10 @@ export async function POST(req: NextRequest) {
     const rl = await rateLimit("collections", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    const body = await req.json();
-    const { title, icon, color } = body;
-
-    if (!title) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parseBody(CollectionCreateSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const { title, icon, color } = parsedBody.data;
 
     const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 40);
 

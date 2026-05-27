@@ -147,6 +147,61 @@ export const VideoFeedbackSchema = z.object({
   action: z.enum(["more_like_this", "not_interested"]),
 });
 
+// Tier 3a — Challenge enter.
+export const ChallengeEnterSchema = z.object({
+  video_id: z.string().trim().max(64).nullable().optional(),
+}).passthrough();
+
+// Tier 3a — Collection create.
+export const CollectionCreateSchema = z.object({
+  title: z.string().trim().min(1, "Titlu obligatoriu").max(80),
+  icon: z.string().trim().max(8).optional(),
+  color: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Culoare invalidă (#RRGGBB)").optional(),
+}).passthrough();
+
+// Tier 3a — Collection patch.
+export const CollectionPatchSchema = z.object({
+  title: z.string().trim().min(1).max(80).optional(),
+  icon: z.string().trim().max(8).optional(),
+  color: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+}).passthrough();
+
+// Tier 3a — Collection items add.
+export const CollectionItemAddSchema = z.object({
+  video_id: z.string().trim().min(1).max(64),
+  note: z.string().trim().max(500).optional(),
+}).passthrough();
+
+// Tier 3a — Product review create.
+export const ProductReviewCreateSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  title: z.string().trim().max(200).optional(),
+  body: z.string().trim().max(4000).optional(),
+}).passthrough();
+
+// Tier 3a — Product review patch.
+export const ProductReviewPatchSchema = z.object({
+  rating: z.number().int().min(1).max(5).optional(),
+  title: z.string().trim().max(200).optional(),
+  body: z.string().trim().max(4000).optional(),
+}).passthrough();
+
+// Tier 3a — Video event tracking.
+const VIDEO_EVENT_TYPES = [
+  "impression", "view_start", "view_end", "skip_fast", "watch_complete",
+  "rewatch", "pause", "resume", "seek", "like", "unlike", "save", "unsave",
+  "share", "comment", "follow", "unfollow", "product_click", "add_to_cart",
+  "purchase", "more_like_this", "not_interested", "report",
+] as const;
+export const VideoEventTrackSchema = z.object({
+  event_type: z.enum(VIDEO_EVENT_TYPES),
+  watch_duration_ms: z.number().int().nonnegative().max(86_400_000).optional(),
+  video_duration_ms: z.number().int().nonnegative().max(86_400_000).optional(),
+  completion_pct: z.number().min(0).max(100).optional(),
+  session_id: z.string().trim().max(64).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+}).passthrough();
+
 /**
  * Helper: parse a request body with a zod schema. Returns either the parsed
  * data or a NextResponse-friendly error payload (use it as { error, status: 400 }).

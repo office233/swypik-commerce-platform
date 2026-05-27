@@ -2,16 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { VideoEventTrackSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
-
-// Allowed event types matching the DB ENUM
-const ALLOWED_EVENTS = new Set([
-  'impression', 'view_start', 'view_end', 'skip_fast', 'watch_complete',
-  'rewatch', 'pause', 'resume', 'seek', 'like', 'unlike', 'save', 'unsave',
-  'share', 'comment', 'follow', 'unfollow', 'product_click', 'add_to_cart',
-  'purchase', 'more_like_this', 'not_interested', 'report'
-]);
 
 export async function POST(
   req: NextRequest,
@@ -20,26 +13,17 @@ export async function POST(
   try {
     const { id: videoId } = await params;
     
-    // Check if the body is valid JSON
-    let body;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-    }
-
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parseBody(VideoEventTrackSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     const {
       event_type,
       watch_duration_ms,
       video_duration_ms,
       completion_pct,
       session_id,
-      metadata = {}
-    } = body;
-
-    if (!event_type || !ALLOWED_EVENTS.has(event_type)) {
-      return NextResponse.json({ error: "Invalid or missing event_type" }, { status: 400 });
-    }
+      metadata = {},
+    } = parsedBody.data;
 
     const clientIp = getClientIP(req);
 

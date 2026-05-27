@@ -212,9 +212,9 @@ export async function POST(req: Request) {
       }
 
       const baseStock = pgProduct.metadata?.available_stock ?? pgProduct.stock;
-      if (baseStock !== undefined && baseStock !== null && item.quantity > Number(baseStock)) {
+      if (baseStock !== undefined && baseStock !== null && qty > Number(baseStock)) {
         return NextResponse.json(
-          { success: false, error: `Stoc insuficient pentru "${pgProduct.title}". Ai cerut ${item.quantity}, dar avem doar ${baseStock} disponibile.` },
+          { success: false, error: `Stoc insuficient pentru "${pgProduct.title}". Ai cerut ${qty}, dar avem doar ${baseStock} disponibile.` },
           { status: 400 }
         );
       }
@@ -243,9 +243,9 @@ export async function POST(req: Request) {
           if (v.price_cents && Number(v.price_cents) > 0) variantPrice = Number(v.price_cents) / 100;
           if (v.color) variantColor = v.color;
           if (v.size) variantSize = v.size;
-          if (v.stock !== null && item.quantity > v.stock) {
+          if (v.stock !== null && qty > v.stock) {
             return NextResponse.json(
-              { success: false, error: `Stoc insuficient pentru "${pgProduct.title}". Ai cerut ${item.quantity}, dar avem doar ${v.stock} disponibile.` },
+              { success: false, error: `Stoc insuficient pentru "${pgProduct.title}". Ai cerut ${qty}, dar avem doar ${v.stock} disponibile.` },
               { status: 400 }
             );
           }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { CollectionPatchSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -54,8 +55,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const rl = await rateLimit("collections", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    const body = await req.json();
-    const { title, icon, color } = body;
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parseBody(CollectionPatchSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const { title, icon, color } = parsedBody.data;
 
     const { rows: collRows } = await dbQuery(
       `SELECT * FROM user_collections WHERE id = $1 AND user_id = $2`,

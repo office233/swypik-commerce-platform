@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { CollectionItemAddSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -25,12 +26,11 @@ export async function POST(
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id: collectionId } = await params;
-    const body = await req.json().catch(() => ({}));
-    const videoId = typeof body.video_id === "string" ? body.video_id : null;
-    const note = typeof body.note === "string" ? body.note.slice(0, 500) : null;
-    if (!videoId) {
-      return NextResponse.json({ error: "video_id is required" }, { status: 400 });
-    }
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parseBody(CollectionItemAddSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const videoId = parsedBody.data.video_id;
+    const note = parsedBody.data.note ?? null;
 
     // Verify ownership of the target collection
     const { rows: owned } = await dbQuery<{ id: string; slug: string | null }>(

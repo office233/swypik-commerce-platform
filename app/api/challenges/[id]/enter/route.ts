@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { awardPoints } from "@/lib/rewards/engine";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { ChallengeEnterSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -25,8 +26,10 @@ export async function POST(
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const { id: challengeId } = await params;
-    const body = await request.json();
-    const videoId = body.video_id || null;
+    const rawBody = await request.json().catch(() => null);
+    const parsedBody = parseBody(ChallengeEnterSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const videoId = parsedBody.data.video_id || null;
 
     // Check challenge
     const { rows: challenges } = await dbQuery(`

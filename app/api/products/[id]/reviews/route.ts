@@ -3,6 +3,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { ProductReviewCreateSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -111,10 +112,12 @@ export async function POST(
     if (!productId || !UUID_RE2.test(productId)) {
       return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
     }
-    const body = await req.json().catch(() => ({}));
-    const rating = Number(body?.rating);
-    const title: string | null = typeof body?.title === "string" ? body.title.slice(0, 200) : null;
-    const text: string | null = typeof body?.body === "string" ? body.body.slice(0, 4000) : null;
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parseBody(ProductReviewCreateSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const rating = parsedBody.data.rating;
+    const title: string | null = parsedBody.data.title ?? null;
+    const text: string | null = parsedBody.data.body ?? null;
 
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: "invalid_rating" }, { status: 400 });
