@@ -104,8 +104,8 @@ export const VideoCommentPostSchema = z.object({
   parent_comment_id: z.string().trim().max(64).nullable().optional(),
 }).passthrough();
 
-// Video report.
-export const VideoReportSchema = z.object({
+// Video report (UI-facing endpoint /api/videos/[id]/report).
+export const VideoReportPostSchema = z.object({
   category: z.string().trim().toLowerCase().min(1).max(40),
   details: z.string().trim().max(1000).nullable().optional(),
 });

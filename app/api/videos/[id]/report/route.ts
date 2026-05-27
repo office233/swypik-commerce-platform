@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/rate-limit";
-import { VideoReportSchema, parseBody } from "@/lib/validation/schemas";
+import { VideoReportPostSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +58,7 @@ export async function POST(
   }
 
   const rawBody = await req.json().catch(() => null);
-  const parsedBody = parseBody(VideoReportSchema, rawBody);
+  const parsedBody = parseBody(VideoReportPostSchema, rawBody);
   if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
   const body = parsedBody.data;
 
