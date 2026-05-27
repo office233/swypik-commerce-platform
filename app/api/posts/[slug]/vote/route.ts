@@ -21,6 +21,7 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getOrCreateAnonId } from "@/lib/anon/session";
 import { tryValidateReferral } from "@/lib/referral/attribution";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { PostVoteSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -44,16 +45,10 @@ export async function POST(
   const rl = await rateLimit("postVote", getClientIP(req));
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
-  }
-  const optionKey = typeof body?.optionKey === "string" ? body.optionKey.trim() : "";
-  if (!optionKey || optionKey.length > 64) {
-    return NextResponse.json({ error: "invalid_option_key" }, { status: 400 });
-  }
+  const rawBody = await req.json().catch(() => null);
+  const parsed = parseBody(PostVoteSchema, rawBody);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  const { optionKey } = parsed.data;
 
   // Resolve post by slug
   const { rows: postRows } = await dbQuery<PostRow>(

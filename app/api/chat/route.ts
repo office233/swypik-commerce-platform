@@ -18,6 +18,7 @@ import { searchPG, searchWithFallback, fetchBundles, buildBundleSuggestionText, 
 import { inferBundleQueries, buildSalesSuggestion } from "@/lib/sales/bundle-engine";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { moderateOutput } from "@/lib/ai/moderation";
+import { ChatPostSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const maxDuration = 120;
@@ -55,7 +56,10 @@ async function safeReplyJson(payload: any) {
 export async function POST(req: Request) {
   if (!isEnabled("aiChatFull")) return frozenResponse("aiChatFull");
   try {
-    const { message, sessionId, directCjQuery, chatHistory = [], productContext = [], shoppingSession: incomingSession = {} } = await req.json();
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parseBody(ChatPostSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const { message, sessionId, directCjQuery, chatHistory = [], productContext = [], shoppingSession: incomingSession = {} } = parsedBody.data as any;
     const userMessage = String(message || "").trim();
     if (!userMessage) return NextResponse.json({ error: "Mesajul nu poate fi gol" }, { status: 400 });
 

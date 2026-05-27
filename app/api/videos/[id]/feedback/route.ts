@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { TOPICS } from "@/lib/topics";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { VideoFeedbackSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export async function POST(
@@ -11,12 +12,10 @@ export async function POST(
 ) {
   try {
     const { id: videoId } = await params;
-    const body = await request.json();
-    const { action } = body;
-
-    if (action !== "more_like_this" && action !== "not_interested") {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-    }
+    const rawBody = await request.json().catch(() => null);
+    const parsedBody = parseBody(VideoFeedbackSchema, rawBody);
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    const { action } = parsedBody.data;
 
     const userId = await getOptionalSocialUserId();
 

@@ -7,6 +7,7 @@ import {
   normalizeFeedEvent,
   type NormalizedFeedEvent,
 } from "@/lib/feed/events";
+import { FeedEventsBatchSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,11 @@ export async function POST(req: Request) {
   if (!body || typeof body !== "object") {
     return new NextResponse(null, { status: 204 });
   }
+
+  // Envelope-only validation (caps array length & top-level type).
+  // Individual events are normalized below by normalizeFeedEvent().
+  const env = parseBody(FeedEventsBatchSchema, body);
+  if (!env.ok) return NextResponse.json({ error: env.error }, { status: 400 });
 
   let rawEvents: unknown[];
   if (Array.isArray((body as any).events)) {

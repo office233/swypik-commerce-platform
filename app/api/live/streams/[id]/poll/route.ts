@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { isUuid } from "@/lib/validation/uuid";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { LivePollCreateSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (own[0].creator_id !== session.userId && session.role !== "admin") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  const body = await req.json().catch(() => ({}));
-  const question = String(body.question || "").trim();
-  const options = Array.isArray(body.options) ? body.options.map((o: any) => String(o)) : [];
-  if (!question || options.length < 2) return NextResponse.json({ error: "invalid" }, { status: 400 });
+  const rawBody = await req.json().catch(() => null);
+  const parsedBody = parseBody(LivePollCreateSchema, rawBody);
+  if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  const { question, options } = parsedBody.data;
   const { rows } = await dbQuery<{ id: number }>(
     `INSERT INTO live_polls (stream_id, question, options) VALUES ($1,$2,$3::jsonb) RETURNING id`,
     [id, question, JSON.stringify(options.map((label: string) => ({ label, votes: 0 })))],

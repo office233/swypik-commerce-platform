@@ -6,6 +6,7 @@ import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { VideoCommentPostSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -147,7 +148,12 @@ export async function POST(
 
   try {
     const { id: videoId } = await params;
-    const body = await request.json().catch(() => null);
+    const rawBody = await request.json().catch(() => null);
+    const parsedBody = parseBody(VideoCommentPostSchema, rawBody);
+    if (!parsedBody.ok) {
+      return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    }
+    const body = parsedBody.data;
     const textResult = validateCommentText(body?.text ?? body?.body ?? body?.comment);
 
     if (!textResult.ok) {

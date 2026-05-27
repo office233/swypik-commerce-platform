@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { applyFeedAction, recordFeedEvent, recordWatchEvent } from "@/lib/db/feed-prefs";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { FeedActionSchema, parseBody } from "@/lib/validation/schemas";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -43,16 +44,13 @@ export async function POST(req: NextRequest) {
     const rl = await rateLimit("feedAction", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    const body = await req.json().catch(() => ({}));
-    const videoId = typeof body.video_id === "string" ? body.video_id : null;
-    const action = body.action as FeedAction | undefined;
-
-    if (!videoId || !action || !ALLOWED.has(action)) {
-      return NextResponse.json(
-        { error: "Bad Request: video_id and action required" },
-        { status: 400 },
-      );
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parseBody(FeedActionSchema, rawBody);
+    if (!parsedBody.ok) {
+      return NextResponse.json({ error: parsedBody.error }, { status: 400 });
     }
+    const { video_id: videoId, action } = parsedBody.data;
+    void ALLOWED;
 
     if (action === "more_like_this" || action === "not_interested") {
       await applyFeedAction({ userId, videoId, action });

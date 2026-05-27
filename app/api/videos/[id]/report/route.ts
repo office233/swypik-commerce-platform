@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/rate-limit";
+import { VideoReportSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -56,19 +57,17 @@ export async function POST(
     );
   }
 
-  let body: any = {};
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Body invalid" }, { status: 400 });
-  }
+  const rawBody = await req.json().catch(() => null);
+  const parsedBody = parseBody(VideoReportSchema, rawBody);
+  if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  const body = parsedBody.data;
 
-  const rawCategory = String(body?.category || "").toLowerCase();
+  const rawCategory = body.category;
   const reason = UI_TO_REASON[rawCategory] || rawCategory;
   if (!ALLOWED.has(reason)) {
     return NextResponse.json({ error: "Categorie invalidă" }, { status: 400 });
   }
-  const details = typeof body?.details === "string" ? body.details.slice(0, 1000) : null;
+  const details = body.details ?? null;
 
   try {
     const v = await dbQuery(`SELECT id FROM videos WHERE id = $1 LIMIT 1`, [videoId]);

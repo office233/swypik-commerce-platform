@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/rate-limit";
 import { isUuid } from "@/lib/validation/uuid";
+import { LiveChatMessageSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,9 +23,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  const body = await req.json().catch(() => ({}));
-  const message = String(body.message || "").trim().slice(0, 500);
-  if (!message) return NextResponse.json({ error: "empty" }, { status: 400 });
+  const rawBody = await req.json().catch(() => null);
+  const parsedBody = parseBody(LiveChatMessageSchema, rawBody);
+  if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  const message = parsedBody.data.message;
   const { rows } = await dbQuery<{ id: number; created_at: string }>(
     `INSERT INTO live_chat_messages (stream_id, user_id, message) VALUES ($1,$2,$3)
      RETURNING id, created_at`,

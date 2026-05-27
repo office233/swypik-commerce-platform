@@ -91,6 +91,62 @@ export const AdultOptInSchema = z.object({
   optIn: z.boolean(),
 });
 
+// Arena post vote.
+export const PostVoteSchema = z.object({
+  optionKey: z.string().trim().min(1).max(64),
+});
+
+// Video comment POST.
+export const VideoCommentPostSchema = z.object({
+  text: z.string().trim().max(2000).optional(),
+  body: z.string().trim().max(2000).optional(),
+  comment: z.string().trim().max(2000).optional(),
+  parent_comment_id: z.string().trim().max(64).nullable().optional(),
+}).passthrough();
+
+// Video report.
+export const VideoReportSchema = z.object({
+  category: z.string().trim().toLowerCase().min(1).max(40),
+  details: z.string().trim().max(1000).nullable().optional(),
+});
+
+// Chat POST.
+export const ChatPostSchema = z.object({
+  message: z.string().max(4000).optional(),
+  sessionId: z.string().max(128).optional(),
+  directCjQuery: z.string().max(500).optional(),
+  chatHistory: z.array(z.unknown()).max(50).optional(),
+  productContext: z.array(z.unknown()).max(50).optional(),
+  shoppingSession: z.record(z.string(), z.unknown()).optional(),
+}).passthrough();
+
+// Live stream chat message.
+export const LiveChatMessageSchema = z.object({
+  message: z.string().trim().min(1, "Mesaj gol").max(500),
+});
+
+// Live stream poll create.
+export const LivePollCreateSchema = z.object({
+  question: z.string().trim().min(1).max(280),
+  options: z.array(z.string().trim().min(1).max(120)).min(2).max(10),
+});
+
+// Feed action.
+export const FeedActionSchema = z.object({
+  video_id: z.string().trim().min(1).max(64),
+  action: z.enum(["more_like_this", "not_interested", "follow_creator", "unfollow"]),
+});
+
+// Feed events batch (envelope only — items validated downstream).
+export const FeedEventsBatchSchema = z.object({
+  events: z.array(z.unknown()).max(50).optional(),
+}).passthrough();
+
+// Video feedback.
+export const VideoFeedbackSchema = z.object({
+  action: z.enum(["more_like_this", "not_interested"]),
+});
+
 /**
  * Helper: parse a request body with a zod schema. Returns either the parsed
  * data or a NextResponse-friendly error payload (use it as { error, status: 400 }).
