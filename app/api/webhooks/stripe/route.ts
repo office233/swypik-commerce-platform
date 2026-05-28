@@ -391,6 +391,33 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
 
   await maybeSendOrderConfirmation(orderId);
   await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
+
+  if (transitionRows.length > 0) {
+    try {
+      const { rows: itemRows } = await dbQuery<{
+        product_id: string | null;
+        title: string;
+        quantity: number;
+        unit_amount_cents: number;
+        metadata: any;
+      }>(
+        `SELECT product_id::text AS product_id, title, quantity, unit_amount_cents, metadata
+           FROM commerce_order_items WHERE order_id = $1`,
+        [orderId]
+      );
+      const items = itemRows.map((r) => ({
+        productId: r.product_id || (r.metadata?.pg_id ?? r.metadata?.product_id ?? ""),
+        skuId: r.metadata?.sku_id || r.metadata?.skuId,
+        title: r.title,
+        quantity: Number(r.quantity) || 1,
+        price: Number(r.unit_amount_cents || 0) / 100,
+        metadata: r.metadata || {},
+      }));
+      await routeOrder(orderId, items as any);
+    } catch (err) {
+      logger.error({ err, orderId }, "[Stripe Webhook] routeOrder failed after payment_intent.succeeded");
+    }
+  }
 }
 
 /**
