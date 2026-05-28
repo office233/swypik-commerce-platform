@@ -12,6 +12,7 @@ import { parseHashtags } from "@/lib/text/parseHashtags";
 import { dbQuery } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { safeJsonLd } from "@/lib/seo/json-ld";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -54,10 +55,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : `Vizionează ${video.title} pe Swypik — social video commerce.`;
 
   const canonical = `https://swypik.com/video/${id}`;
+  const languages = languagesForMetadata(`/video/${id}`);
   return {
     title,
     description,
-    alternates: { canonical },
+    alternates: { canonical, languages },
     openGraph: {
       title: video.title,
       description,

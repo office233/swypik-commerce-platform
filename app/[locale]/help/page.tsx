@@ -1,10 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 
 export const metadata: Metadata = {
   title: "Ajutor — Swypik",
   description: "Întrebări frecvente și sprijin pentru cumpărători și creatori Swypik.",
-  alternates: { canonical: "https://swypik.com/help" },
+  alternates: {
+    canonical: "https://swypik.com/help",
+    languages: languagesForMetadata("/help"),
+  },
 };
 
 const FAQ = [

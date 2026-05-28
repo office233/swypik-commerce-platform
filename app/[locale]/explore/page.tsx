@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import ExploreClient from "./ExploreClient";
 import LiveBadge from "@/components/live/LiveBadge";
 import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: meta.title,
     description: meta.description,
-    alternates: { canonical },
+    alternates: { canonical, languages: languagesForMetadata("/explore") },
     openGraph: {
       title: meta.title,
       description: meta.description,

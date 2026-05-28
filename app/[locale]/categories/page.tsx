@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import type { Metadata } from "next";
 import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: meta.title,
     description: meta.description,
-    alternates: { canonical },
+    alternates: { canonical, languages: languagesForMetadata("/categories") },
     openGraph: {
       title: meta.title,
       description: meta.description,

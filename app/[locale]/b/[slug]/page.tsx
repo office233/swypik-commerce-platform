@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { dbQuery } from "@/lib/db";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 
 type PostMeta = {
   id: string;
@@ -99,7 +100,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: { canonical: url, languages: languagesForMetadata(`/b/${post.slug}`) },
     openGraph: {
       title,
       description,

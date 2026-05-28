@@ -1,10 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 
 export const metadata: Metadata = {
   title: "Despre Swypik — Cumpără prin video",
   description: "Swypik este marketplace-ul românesc unde descoperi produse prin clipuri scurte, cu recomandări AI și creatori locali.",
-  alternates: { canonical: "https://swypik.com/about" },
+  alternates: {
+    canonical: "https://swypik.com/about",
+    languages: languagesForMetadata("/about"),
+  },
 };
 
 export default function AboutPage() {

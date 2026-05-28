@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { ChevronRight } from "lucide-react";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 import {
   LOCALE_COOKIE,
   CURRENCY_COOKIE,
@@ -81,7 +82,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: { canonical: url, languages: languagesForMetadata(`/categories/${slug}`) },
     openGraph: { title, description, url, type: "website" },
     twitter: { card: "summary_large_image", title, description },
   };

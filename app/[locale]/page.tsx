@@ -2,6 +2,7 @@ import ChatInterface from "@/components/ChatInterface";
 import { searchProducts } from "@/lib/db/product-queries";
 import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
+import { languagesForMetadata } from "@/lib/seo/hreflang";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
   title: "Swypik — Cumpără prin Video | Marketplace cu AI",
   description:
     "Discover and buy products through curated video content. Browse trending items, best-value deals and top-rated picks with AI-powered recommendations on Swypik.",
-  alternates: { canonical: "https://swypik.com/" },
+  alternates: {
+    canonical: "https://swypik.com/",
+    languages: languagesForMetadata("/"),
+  },
   openGraph: {
     title: "Swypik — Cumpără prin Video",
     description:
