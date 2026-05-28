@@ -130,6 +130,12 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const sessionIdRef = useRef<string>("");
   const deepLinkHandledRef = useRef(false);
 
+  // Infinite scroll state
+  const pageRef = useRef<number>(1);
+  const hasMoreRef = useRef<boolean>(true);
+  const loadingMoreRef = useRef<boolean>(false);
+  const seenIdsRef = useRef<Set<string>>(new Set());
+
   const registerVideoRef = useCallback((id: string, el: HTMLVideoElement | null) => {
     if (el) videoRefs.current.set(id, el);
     else videoRefs.current.delete(id);
@@ -179,17 +185,26 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       sessionIdRef.current = getSessionId();
     }
 
+    // Reset pagination on feed/category change.
+    pageRef.current = 1;
+    hasMoreRef.current = true;
+    loadingMoreRef.current = false;
+    seenIdsRef.current = new Set();
+
     async function fetchVideos() {
       try {
         const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
         const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
         const url = feedSource === "following"
-          ? `/api/explore/feed?limit=30&source=following${catQs}${sessionQs}`
-          : `/api/explore/feed?limit=30${catQs}${sessionQs}`;
+          ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}`
+          : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          const nextVideos = data.videos || [];
+          const nextVideos = (data.videos || []) as any[];
+          for (const v of nextVideos) seenIdsRef.current.add(v.id);
+          hasMoreRef.current = Boolean(data.hasMore);
+          pageRef.current = 1;
           setVideos(nextVideos);
           setLikedVideos(new Set(nextVideos.filter((video: any) => video.viewer?.liked).map((video: any) => video.id)));
           setSavedVideos(new Set(nextVideos.filter((video: any) => video.viewer?.saved).map((video: any) => video.id)));
@@ -204,6 +219,9 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     if (initialVideos && initialVideos.length >= 20 && feedSource === 'foryou') {
       // skip initial fetch only when the server provided a full first batch
       const seeded = initialVideos;
+      for (const v of seeded) seenIdsRef.current.add(v.id);
+      pageRef.current = 1;
+      hasMoreRef.current = true; // server seed always assumed to have more
       setLikedVideos(new Set(seeded.filter((v: any) => v.viewer?.liked).map((v: any) => v.id)));
       setSavedVideos(new Set(seeded.filter((v: any) => v.viewer?.saved).map((v: any) => v.id)));
       setFollowingCreators(new Set(seeded.filter((v: any) => v.viewer?.following).map((v: any) => v.creator?.id).filter(Boolean)));
@@ -212,6 +230,59 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     }
     fetchVideos();
   }, [feedSource, initialCategory, initialVideos]);
+
+  // Load next page of videos (infinite scroll).
+  const loadMoreVideos = useCallback(async () => {
+    if (loadingMoreRef.current || !hasMoreRef.current) return;
+    loadingMoreRef.current = true;
+    try {
+      const nextPage = pageRef.current + 1;
+      const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
+      const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
+      const sourceQs = feedSource === "following" ? "&source=following" : "";
+      const url = `/api/explore/feed?limit=30&page=${nextPage}${sourceQs}${catQs}${sessionQs}`;
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      const incoming: any[] = data.videos || [];
+      // Dedup against previously seen ids (server uses OFFSET so dups are rare,
+      // but ranking jitter can return same video on adjacent pages).
+      const fresh = incoming.filter((v) => v?.id && !seenIdsRef.current.has(v.id));
+      for (const v of fresh) seenIdsRef.current.add(v.id);
+      hasMoreRef.current = Boolean(data.hasMore);
+      pageRef.current = nextPage;
+      if (fresh.length > 0) {
+        setVideos((current) => [...current, ...fresh]);
+        setLikedVideos((current) => {
+          const next = new Set(current);
+          for (const v of fresh) if (v.viewer?.liked) next.add(v.id);
+          return next;
+        });
+        setSavedVideos((current) => {
+          const next = new Set(current);
+          for (const v of fresh) if (v.viewer?.saved) next.add(v.id);
+          return next;
+        });
+        setFollowingCreators((current) => {
+          const next = new Set(current);
+          for (const v of fresh) if (v.viewer?.following && v.creator?.id) next.add(v.creator.id);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error("loadMoreVideos error:", err);
+    } finally {
+      loadingMoreRef.current = false;
+    }
+  }, [feedSource, initialCategory]);
+
+  // Trigger loadMore when user reaches the last ~3 videos.
+  useEffect(() => {
+    if (videos.length === 0) return;
+    if (currentIndex >= videos.length - 3 && hasMoreRef.current) {
+      loadMoreVideos();
+    }
+  }, [currentIndex, videos.length, loadMoreVideos]);
 
   // Intersection Observer — snap play/pause + currentIndex tracking
   useEffect(() => {
@@ -763,7 +834,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                 )}
 
                 {nearActive && video.product?.id && (
-                  <section className="product-cockpit" aria-label="Product cockpit">
+                  <section className="product-cockpit" aria-label={`Acțiuni produs ${video.product?.title || video.product?.id || video.id}`}>
                     <div className="cockpit-meta">
                       <Link
                         href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}

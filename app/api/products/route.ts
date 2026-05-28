@@ -36,7 +36,9 @@ const RO_TO_EN: Record<string, string> = {
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const locale = url.searchParams.get("locale") || "ro";
+    const cookieStore = await cookies();
+    const localeCookie = cookieStore.get("swypik_locale")?.value;
+    const locale = (url.searchParams.get("locale") || localeCookie || "ro").toLowerCase();
     const search = url.searchParams.get("search") || url.searchParams.get("q") || "";
     const rawLimit = parseInt(url.searchParams.get("limit") || "50", 10);
     const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(rawLimit, 200)) : 50;
@@ -118,7 +120,6 @@ export async function GET(req: Request) {
     const cacheSeconds = mode === "video" ? 300 : 60;
 
     // Currency conversion (aligned with /api/products/[id]): listing stores price in RON.
-    const cookieStore = await cookies();
     const targetCurrency = (cookieStore.get("swypik_currency")?.value || "RON").toUpperCase();
     let fxRate = 1;
     if (targetCurrency !== "RON") {

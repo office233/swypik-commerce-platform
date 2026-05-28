@@ -47,7 +47,7 @@ export async function GET(
            WHERE creator_id = u.id
              AND status     = 'ready'
              AND visibility = 'public'
-               AND EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = videos.id AND ves.effective_label = 'safe')) AS video_count,
+               AND videos.effective_label = 'safe') AS video_count,
          (SELECT COALESCE(SUM(view_count), 0)
             FROM videos
            WHERE creator_id = u.id

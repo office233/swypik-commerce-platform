@@ -12,13 +12,18 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const detail = await getProductDetail(id);
+    const cookieStore = await cookies();
+    const url = new URL(req.url);
+    const localeParam = url.searchParams.get("locale");
+    const localeCookie = cookieStore.get("swypik_locale")?.value;
+    const locale = (localeParam || localeCookie || "ro").toLowerCase();
+
+    const detail = await getProductDetail(id, locale);
 
     if (!detail) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const cookieStore = await cookies();
     const targetCurrency = (cookieStore.get("swypik_currency")?.value || "RON").toUpperCase();
 
     const d: any = detail;
@@ -38,7 +43,7 @@ export async function GET(
     if (d.product) {
       return NextResponse.json({
         ...d,
-        product: { ...prod, price: converted, priceRon: priceRonCents },
+        product: { ...prod, price: converted, priceRon },
         currency: targetCurrency,
       });
     }
@@ -46,7 +51,7 @@ export async function GET(
       ...d,
       currency: targetCurrency,
       price: converted,
-      priceRon: priceRonCents,
+      priceRon,
     });
   } catch (error: any) {
     logger.error({ err: error }, "[Product Detail API]");

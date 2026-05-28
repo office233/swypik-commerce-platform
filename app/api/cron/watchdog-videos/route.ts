@@ -91,13 +91,19 @@ async function runWatchdog() {
     }
   }
 
-  // 4) Legacy behavior: mark hung `videos` rows as failed.
+  // 4) Mark `videos` rows failed only when their job is also definitively failed
+  //    (max attempts exceeded or hard error). Without this guard a healthy backlog
+  //    of `processing` videos waiting on workers gets falsely flipped to failed
+  //    while their jobs are still legitimately `queued`/`running`.
   const recovered = await dbQuery<{ id: string }>(
-    `UPDATE videos
+    `UPDATE videos v
         SET status='failed', updated_at=NOW()
-      WHERE status IN ('processing','uploading')
-        AND updated_at < NOW() - INTERVAL '60 minutes'
-      RETURNING id`
+       FROM video_processing_jobs j
+      WHERE j.video_id = v.id
+        AND v.status IN ('processing','uploading')
+        AND v.updated_at < NOW() - INTERVAL '60 minutes'
+        AND j.status = 'failed'
+      RETURNING v.id`
   );
 
   return {

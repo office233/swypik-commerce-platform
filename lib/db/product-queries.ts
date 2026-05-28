@@ -21,12 +21,6 @@ export type ProductFilters = {
 
 const BASE_PRODUCT_SELECT = `
   FROM marketplace_products p
-  LEFT JOIN ae_products ap
-    ON p.source_type = 'aliexpress'
-   AND p.supplier_product_id IS NOT NULL
-   AND ap.ae_product_id::text = p.supplier_product_id
-  LEFT JOIN ae_categories ac ON ac.ae_category_id = ap.category_id
-  LEFT JOIN ae_categories ar ON ar.ae_category_id = COALESCE(ac.parent_id, ac.ae_category_id)
   LEFT JOIN LATERAL (
     SELECT
       v.id AS linked_video_id,
@@ -67,37 +61,37 @@ const BASE_PRODUCT_COLUMNS = `
     p.external_product_id,
     p.created_at,
     p.updated_at,
-    ap.id AS ae_internal_id,
-    ap.ae_product_id AS ae_product_id,
-    ap.title AS ae_title,
-    ap.title_ro AS ae_title_ro,
-    ap.product_type AS ae_product_type,
-    ap.product_type_ro AS ae_product_type_ro,
-    ap.orders_count AS ae_orders_count,
-    ap.rating AS ae_rating,
-    ap.ship_days_min AS ae_ship_days_min,
-    ap.ship_days_max AS ae_ship_days_max,
-    ap.ship_cost_usd AS ae_ship_cost_usd,
-    ap.ship_free AS ae_ship_free,
-    ap.video_url AS ae_video_url,
-    ap.has_video AS ae_has_video,
-    ap.store_name AS ae_store_name,
+    NULL::int AS ae_internal_id,
+    NULL::text AS ae_product_id,
+    NULL::text AS ae_title,
+    NULL::text AS ae_title_ro,
+    NULL::text AS ae_product_type,
+    NULL::text AS ae_product_type_ro,
+    NULL::int AS ae_orders_count,
+    NULL::numeric AS ae_rating,
+    NULL::int AS ae_ship_days_min,
+    NULL::int AS ae_ship_days_max,
+    NULL::numeric AS ae_ship_cost_usd,
+    NULL::boolean AS ae_ship_free,
+    NULL::text AS ae_video_url,
+    NULL::boolean AS ae_has_video,
+    NULL::text AS ae_store_name,
     linked_video.linked_video_id AS linked_video_id,
     linked_video.linked_video_playback_url AS linked_video_playback_url,
     linked_video.linked_video_thumbnail_url AS linked_video_thumbnail_url,
     linked_video.linked_video_source_key AS linked_video_source_key,
-    ac.ae_category_id AS ae_category_id,
-    ac.name AS ae_category_name,
-    ac.name_ro AS ae_category_name_ro,
-    ar.ae_category_id AS ae_root_id,
-    ar.name AS ae_root_name,
-    ar.name_ro AS ae_root_name_ro
+    NULL::text AS ae_category_id,
+    NULL::text AS ae_category_name,
+    NULL::text AS ae_category_name_ro,
+    NULL::text AS ae_root_id,
+    NULL::text AS ae_root_name,
+    NULL::text AS ae_root_name_ro
 `;
 
-const ORDERS_SQL = `COALESCE(NULLIF(p.metadata->>'orders_count', '')::int, ap.orders_count, 0)`;
-const RATING_SQL = `COALESCE(NULLIF(p.metadata->>'rating', '')::numeric, ap.rating, 0)`;
+const ORDERS_SQL = `COALESCE(p.orders_count_int, 0)`;
+const RATING_SQL = `COALESCE(p.rating_numeric, 0)`;
 const VIDEO_SQL = `(
-  COALESCE((p.metadata->>'has_video')::boolean, ap.has_video, false)
+  COALESCE((p.metadata->>'has_video')::boolean, false)
   OR NULLIF(p.metadata->>'ae_video_url', '') IS NOT NULL
   OR CASE
     WHEN jsonb_typeof(p.metadata->'videos') = 'array' THEN jsonb_array_length(p.metadata->'videos') > 0
@@ -114,9 +108,9 @@ const VIDEO_SQL = `(
   )
 )`;
 const DISCOUNT_SQL = `GREATEST(COALESCE(p.compare_at_price_cents, 0) - COALESCE(p.price_cents, 0), 0)`;
-const ROOT_CATEGORY_ID_SQL = `COALESCE(NULLIF(p.metadata->>'ae_root_category_id', ''), ar.ae_category_id::text, NULLIF(p.metadata->>'ae_category_id', ''), ac.ae_category_id::text, '')`;
-const ACTUAL_ROOT_CATEGORY_ID_SQL = `COALESCE(NULLIF(p.metadata->>'ae_root_category_id', ''), ar.ae_category_id::text, '')`;
-const PRODUCT_TYPE_SQL = `COALESCE(NULLIF(p.metadata->>'product_type', ''), ap.product_type)`;
+const ROOT_CATEGORY_ID_SQL = `COALESCE(NULLIF(p.metadata->>'ae_root_category_id', ''), NULLIF(p.metadata->>'ae_category_id', ''), '')`;
+const ACTUAL_ROOT_CATEGORY_ID_SQL = `COALESCE(NULLIF(p.metadata->>'ae_root_category_id', ''), '')`;
+const PRODUCT_TYPE_SQL = `NULLIF(p.metadata->>'product_type', '')`;
 
 function cleanCategoryLabel(value: unknown, fallback = "General") {
   const label = String(value ?? "").replace(/\s+/g, " ").trim();
@@ -302,7 +296,55 @@ function chooseLocalizedLabel(
   return cleanCategoryLabel(selected, fallback);
 }
 
-function transformProduct(row: any, locale = "ro", taxonomyMap?: Map<string, TaxonomyLabels>) {
+export type ProductTranslation = {
+  title: string;
+  description: string | null;
+  slug: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+};
+
+// Bulk-load product_translations for a set of ids and a locale.
+// Falls back to 'en' row when the requested locale row is missing.
+export async function loadProductTranslations(
+  ids: string[],
+  locale: string,
+): Promise<Map<string, ProductTranslation>> {
+  const out = new Map<string, ProductTranslation>();
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  if (unique.length === 0) return out;
+  const { rows } = await dbQuery<any>(
+    `SELECT product_id, locale, title, description, slug, seo_title, seo_description
+       FROM product_translations
+      WHERE product_id = ANY($1::uuid[]) AND locale = ANY($2::text[])`,
+    [unique, [locale, "en"]],
+  );
+  const preferred = new Map<string, any>();
+  const fallback = new Map<string, any>();
+  for (const r of rows) {
+    if (r.locale === locale) preferred.set(String(r.product_id), r);
+    else fallback.set(String(r.product_id), r);
+  }
+  for (const id of unique) {
+    const r = preferred.get(id) ?? fallback.get(id);
+    if (!r) continue;
+    out.set(id, {
+      title: String(r.title || ""),
+      description: r.description ?? null,
+      slug: r.slug ?? null,
+      seo_title: r.seo_title ?? null,
+      seo_description: r.seo_description ?? null,
+    });
+  }
+  return out;
+}
+
+function transformProduct(
+  row: any,
+  locale = "ro",
+  taxonomyMap?: Map<string, TaxonomyLabels>,
+  translationsMap?: Map<string, ProductTranslation>,
+) {
   const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
   const rawPriceCents = Number(row.price_cents);
   const hasValidPrice = Number.isFinite(rawPriceCents) && rawPriceCents > 0;
@@ -312,9 +354,12 @@ function transformProduct(row: any, locale = "ro", taxonomyMap?: Map<string, Tax
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
   const seed = hashCode(`mp_${row.id}`);
 
-  const title = locale === "ro"
-    ? String(firstNonEmpty(row.ae_title_ro, metadata.title_ro, row.title) || row.title)
-    : String(firstNonEmpty(row.ae_title, metadata.title_en, row.title) || row.title);
+  const tr = translationsMap?.get(String(row.id));
+  const title = tr?.title
+    ? tr.title
+    : (locale === "ro"
+      ? String(firstNonEmpty(row.ae_title_ro, metadata.title_ro, row.title) || row.title)
+      : String(firstNonEmpty(row.ae_title, metadata.title_en, row.title) || row.title));
 
   // Prefer taxonomy_nodes labels (curated, localized) over AliExpress raw text
   // which often contains the product title in category fields.
@@ -445,17 +490,11 @@ const CATEGORY_TEXT_EXPRESSIONS = [
   "p.canonical_category_slug",
   "p.metadata->>'product_type'",
   "p.metadata->>'product_type_ro'",
-  "ap.product_type",
-  "ap.product_type_ro",
   "p.category",
   "p.metadata->>'ae_category_name'",
   "p.metadata->>'ae_category_name_ro'",
-  "ac.name",
-  "ac.name_ro",
   "p.metadata->>'ae_root_category_name'",
   "p.metadata->>'ae_root_category_name_ro'",
-  "ar.name",
-  "ar.name_ro",
 ];
 
 function buildCategoryTextCondition(paramRef: string) {
@@ -565,28 +604,34 @@ function buildSearchFilters(filters: ProductFilters) {
     maxPrice,
     mode,
     excludeIds,
+    locale,
   } = filters;
 
-  const where = ["p.status = 'active'", "COALESCE(p.is_adult, false) = false", "EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')"];
+  const where = ["p.status = 'active'", "COALESCE(p.is_adult, false) = false", "p.effective_label = 'safe'"];
   const params: unknown[] = [];
   let paramIndex = 1;
 
   if (search) {
+    const effLocale = (locale || "ro").toLowerCase();
     where.push(`
       (
         p.search_document @@ websearch_to_tsquery('simple', $${paramIndex})
+        OR EXISTS (
+          SELECT 1 FROM product_translations pt_s
+           WHERE pt_s.product_id = p.id
+             AND pt_s.locale = $${paramIndex + 2}
+             AND pt_s.search_document @@ websearch_to_tsquery('simple', $${paramIndex})
+        )
         OR p.title ILIKE $${paramIndex + 1}
-        OR COALESCE(ap.title, '') ILIKE $${paramIndex + 1}
-        OR COALESCE(ap.title_ro, '') ILIKE $${paramIndex + 1}
         OR COALESCE(p.category, '') ILIKE $${paramIndex + 1}
-        OR COALESCE(ac.name, '') ILIKE $${paramIndex + 1}
-        OR COALESCE(ac.name_ro, '') ILIKE $${paramIndex + 1}
-        OR COALESCE(ap.product_type, '') ILIKE $${paramIndex + 1}
-        OR COALESCE(ap.product_type_ro, '') ILIKE $${paramIndex + 1}
+        OR COALESCE(p.metadata->>'ae_category_name', '') ILIKE $${paramIndex + 1}
+        OR COALESCE(p.metadata->>'ae_category_name_ro', '') ILIKE $${paramIndex + 1}
+        OR COALESCE(p.metadata->>'product_type', '') ILIKE $${paramIndex + 1}
+        OR COALESCE(p.metadata->>'product_type_ro', '') ILIKE $${paramIndex + 1}
       )
     `);
-    params.push(search, `%${search}%`);
-    paramIndex += 2;
+    params.push(search, `%${search}%`, effLocale);
+    paramIndex += 3;
   }
 
   if (category) {
@@ -615,8 +660,6 @@ function buildSearchFilters(filters: ProductFilters) {
           OR COALESCE(p.metadata->>'ae_category_id', '') = $${paramIndex}
           OR COALESCE(p.metadata->>'ae_parent_category_id', '') = $${paramIndex}
           OR COALESCE(p.metadata->>'ae_root_category_id', '') = $${paramIndex}
-          OR COALESCE(ac.ae_category_id::text, '') = $${paramIndex}
-          OR COALESCE(ar.ae_category_id::text, '') = $${paramIndex}
           OR p.taxonomy_node_slug IN (
             WITH RECURSIVE descendants AS (
               SELECT slug FROM taxonomy_nodes WHERE slug = $${paramIndex}::text
@@ -736,7 +779,9 @@ export async function searchProducts(filters: ProductFilters = {}) {
     .map((r: any) => (typeof r.taxonomy_node_slug === "string" ? r.taxonomy_node_slug : ""))
     .filter((s: string) => s);
   const taxonomyMap = slugList.length > 0 ? await resolveTaxonomyLabels(slugList, locale) : undefined;
-  const products = sliced.map((row: any) => transformProduct(row, locale, taxonomyMap));
+  const idList = sliced.map((r: any) => String(r.id)).filter(Boolean);
+  const translationsMap = idList.length > 0 ? await loadProductTranslations(idList, locale) : undefined;
+  const products = sliced.map((row: any) => transformProduct(row, locale, taxonomyMap, translationsMap));
   return { products, total, offset, limit: cappedLimit, hasMore };
 }
 
@@ -759,7 +804,8 @@ export async function getProductById(id: string, locale = "ro") {
   if (rows.length === 0) return null;
   const slug = typeof rows[0].taxonomy_node_slug === "string" ? rows[0].taxonomy_node_slug : "";
   const taxonomyMap = slug ? await resolveTaxonomyLabels([slug], locale) : undefined;
-  return transformProduct(rows[0], locale, taxonomyMap);
+  const translationsMap = await loadProductTranslations([String(rows[0].id)], locale);
+  return transformProduct(rows[0], locale, taxonomyMap, translationsMap);
 }
 
 export async function getCheckoutProductById(id: string) {
@@ -767,7 +813,7 @@ export async function getCheckoutProductById(id: string) {
     `
       SELECT p.*
       FROM marketplace_products p
-      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')
+      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND p.effective_label = 'safe'
         AND (p.id::text = $1 OR p.supplier_product_id = $1 OR p.external_product_id = $1)
       ORDER BY
         CASE
@@ -824,25 +870,19 @@ export async function getCategories(locale = "ro") {
           NULLIF(p.metadata->>'product_type', ''),
           NULLIF(p.category, ''),
           NULLIF(p.metadata->>'ae_category_name', ''),
-          NULLIF(ac.name, ''),
           NULLIF(p.metadata->>'ae_root_category_name', ''),
-          NULLIF(ar.name, ''),
           'General'
         ) AS name_en,
         COALESCE(
           NULLIF(p.metadata->>'product_type_ro', ''),
           NULLIF(p.category, ''),
           NULLIF(p.metadata->>'ae_category_name_ro', ''),
-          NULLIF(ac.name_ro, ''),
           NULLIF(p.metadata->>'ae_root_category_name_ro', ''),
-          NULLIF(ar.name_ro, ''),
           COALESCE(
             NULLIF(p.metadata->>'product_type', ''),
             NULLIF(p.category, ''),
             NULLIF(p.metadata->>'ae_category_name', ''),
-            NULLIF(ac.name, ''),
             NULLIF(p.metadata->>'ae_root_category_name', ''),
-            NULLIF(ar.name, ''),
             'General'
           )
         ) AS name_ro,
@@ -854,7 +894,7 @@ export async function getCategories(locale = "ro") {
         ) AS category_id,
         COUNT(*)::int AS count
       ${BASE_PRODUCT_SELECT}
-      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')
+      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND p.effective_label = 'safe'
       GROUP BY 1, 2, 3
       ORDER BY COUNT(*) DESC, 1 ASC
     `,
@@ -917,7 +957,7 @@ export async function getCategoryHierarchy(locale = "ro") {
         SELECT taxonomy_node_slug AS slug, COUNT(*)::int AS direct_count
         FROM marketplace_products
         WHERE status = 'active'
-          AND COALESCE(is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = id AND pes.effective_label = 'safe')
+          AND COALESCE(is_adult, false) = false AND effective_label = 'safe'
           AND taxonomy_node_slug IS NOT NULL
         GROUP BY taxonomy_node_slug
       ),
@@ -964,7 +1004,7 @@ export async function getCategoryHierarchy(locale = "ro") {
           COALESCE(NULLIF(p.taxonomy_slug, ''), NULLIF(p.canonical_category_slug, ''), md5(COALESCE(p.category, 'general'))) AS slug,
           COUNT(*)::int AS count
         FROM marketplace_products p
-        WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = p.id AND pes.effective_label = 'safe')
+        WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND p.effective_label = 'safe'
         GROUP BY 1,2,3,4,5
         HAVING COUNT(*) > 0
       `,
@@ -997,6 +1037,8 @@ function buildTaxonomyNodeTree(rows: any[]) {
       roots.push(node);
     }
   }
+  // Hide "Altele" bucket and noisy thin top-level nodes (<5 products) from nav.
+  const filtered = roots.filter((r) => r.id !== 'other' && r.count >= 5);
   const sortRec = (list: any[]) => {
     list.sort((a, b) => (a._sort - b._sort) || (b.count - a.count) || a.name.localeCompare(b.name));
     for (const n of list) {
@@ -1005,8 +1047,8 @@ function buildTaxonomyNodeTree(rows: any[]) {
       delete n._sort;
     }
   };
-  sortRec(roots);
-  return roots;
+  sortRec(filtered);
+  return filtered;
 }
 
 function buildCategoryHierarchy(rows: any[], locale = "ro") {

@@ -67,6 +67,8 @@ const nextConfig = {
       { source: "/login", destination: "/auth/login", permanent: true },
       { source: "/register", destination: "/auth/signup", permanent: true },
       { source: "/signup", destination: "/auth/signup", permanent: true },
+      { source: "/categorii", destination: "/categories", permanent: true },
+      { source: "/categorii/:slug*", destination: "/categories/:slug*", permanent: true },
       { source: "/reels", destination: "/explore", permanent: true },
       { source: "/sellers", destination: "/seller", permanent: true },
       { source: "/audio", destination: "/voice", permanent: true },
@@ -78,6 +80,10 @@ const nextConfig = {
       { source: "/returns", destination: "/account/returns", permanent: true },
       { source: "/auth/register", destination: "/auth/signup", permanent: true },
       { source: "/auth/forgot-password", destination: "/auth/forgot", permanent: true },
+      { source: "/sell", destination: "/seller", permanent: true },
+      { source: "/contact", destination: "/help", permanent: true },
+      { source: "/favorites", destination: "/account/saved", permanent: true },
+      { source: "/manifest.webmanifest", destination: "/manifest.json", permanent: true },
     ];
   },
   async headers() {

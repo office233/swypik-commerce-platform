@@ -2,6 +2,13 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /_next/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /creator/
 
 Sitemap: https://swypik.com/sitemap.xml
 Sitemap: https://swypik.com/feed.xml

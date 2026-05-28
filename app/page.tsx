@@ -18,11 +18,14 @@ export const metadata: Metadata = {
     url: "https://swypik.com/",
     siteName: "Swypik",
     type: "website",
+    locale: "ro_RO",
+    images: [{ url: "/og-preview.webp", width: 1200, height: 630, alt: "Swypik — Cumpără prin Video" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Swypik — Shop by Video",
     description: "AI-powered video marketplace.",
+    images: ["/og-preview.webp"],
   },
 };
 

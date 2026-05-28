@@ -129,12 +129,17 @@ async function ensureSystemCreator(client) {
 
 async function getCandidates(client) {
   const { rows } = await client.query(
-    `SELECT id AS product_id, title, metadata->>'ae_video_url' AS source_url,
-            metadata->>'ae_video_poster' AS poster
-       FROM marketplace_products
-      WHERE metadata->>'ae_video_url' IS NOT NULL
-        AND metadata->>'ae_video_url' LIKE 'http%'
-      ORDER BY created_at ASC
+    `SELECT mp.id AS product_id, mp.title, mp.metadata->>'ae_video_url' AS source_url,
+            mp.metadata->>'ae_video_poster' AS poster
+       FROM marketplace_products mp
+      WHERE mp.metadata->>'ae_video_url' IS NOT NULL
+        AND mp.metadata->>'ae_video_url' LIKE 'http%'
+        AND mp.status = 'active'
+        AND NOT EXISTS (
+          SELECT 1 FROM videos v
+          WHERE v.metadata->>'source_url' = mp.metadata->>'ae_video_url'
+        )
+      ORDER BY mp.created_at ASC
       LIMIT $1`,
     [LIMIT]
   );

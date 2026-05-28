@@ -26,17 +26,9 @@ async function collectUrls(limit: number): Promise<string[]> {
 
   try {
     const { rows } = await dbQuery(
-      `SELECT id FROM marketplace_products WHERE status='active'
-       ORDER BY updated_at DESC NULLS LAST LIMIT 2000`,
-    );
-    for (const r of rows as Array<{ id: string }>) urls.push(`${BASE_URL}/product/${r.id}`);
-  } catch { /* ignore */ }
-
-  try {
-    const { rows } = await dbQuery(
-      `SELECT id FROM ae_products
-       WHERE main_image IS NOT NULL AND min_price_usd > 0.1
-       ORDER BY orders_count DESC NULLS LAST LIMIT 3000`,
+      `SELECT id FROM marketplace_products
+        WHERE status='active' AND effective_label='safe' AND is_adult=false
+        ORDER BY updated_at DESC NULLS LAST LIMIT 5000`,
     );
     for (const r of rows as Array<{ id: string }>) urls.push(`${BASE_URL}/product/${r.id}`);
   } catch { /* ignore */ }

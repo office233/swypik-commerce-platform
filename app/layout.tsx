@@ -122,11 +122,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="antialiased" suppressHydrationWarning>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-[#0D0D0D] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+        >
+          Sări la conținut
+        </a>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CurrencyProvider initial={currency}>
             <EmailVerifyBanner />
             <OnboardingGate />
-            <div style={{ minHeight: '100dvh' }}>
+            <div id="main-content" style={{ minHeight: '100dvh' }}>
               {children}
             </div>
             <BottomNav />

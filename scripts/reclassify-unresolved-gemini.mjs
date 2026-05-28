@@ -16,7 +16,6 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const KEY = process.env.GEMINI_API_KEY;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 const BATCH_SIZE = Number(process.env.BATCH_SIZE || 10);
-const INTER_BATCH_MS = Number(process.env.INTER_BATCH_MS || 0);
 const APPLY = process.argv.includes('--apply');
 const OUT_FILE = process.env.OUT_FILE || '/tmp/reclassify-unresolved.json';
 const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || 0.75);
@@ -96,7 +95,7 @@ async function classifyBatch(taxonomyText, batch) {
   };
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${KEY}`;
   let lastErr;
-  for (let attempt = 0; attempt < 8; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -109,7 +108,7 @@ async function classifyBatch(taxonomyText, batch) {
     }
     lastErr = `Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`;
     if (res.status === 429 || res.status === 503) {
-      await new Promise((r) => setTimeout(r, Math.min(60000, 2000 * Math.pow(2, attempt))));
+      await new Promise((r) => setTimeout(r, 3000 + attempt * 3000));
       continue;
     }
     throw new Error(lastErr);
@@ -206,7 +205,6 @@ async function main() {
       console.log(`${tag} fail: ${e.message}`);
       for (const p of batch) { proposals.push({ id: p.id, title: p.title, error: e.message }); skipped++; }
     }
-    if (INTER_BATCH_MS > 0 && i + BATCH_SIZE < products.length) await new Promise((r) => setTimeout(r, INTER_BATCH_MS));
   }
 
   fs.writeFileSync(OUT_FILE, JSON.stringify({ total: products.length, applied, skipped, proposals }, null, 2));

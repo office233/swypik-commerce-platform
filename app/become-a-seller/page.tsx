@@ -146,6 +146,7 @@ function SellerForm() {
           id="companyName"
           name="companyName"
           required
+          autoComplete="organization"
           className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
           placeholder="ex. SC Swypik SRL"
         />
@@ -175,6 +176,8 @@ function SellerForm() {
             id="email"
             name="email"
             required
+            autoComplete="email"
+            inputMode="email"
             className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
             placeholder="contact@companie.ro"
           />
@@ -188,6 +191,8 @@ function SellerForm() {
             id="phone"
             name="phone"
             required
+            autoComplete="tel"
+            inputMode="tel"
             className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
             placeholder="07xx xxx xxx"
           />

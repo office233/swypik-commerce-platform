@@ -92,11 +92,21 @@ export default function PushPrompt() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!visible) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [visible, dismiss]);
+
   if (!visible) return null;
 
   return (
     <div
       role="dialog"
+      aria-modal="false"
       aria-labelledby="push-prompt-title"
       className="fixed left-3 right-3 z-[60] sm:left-auto sm:right-4 sm:max-w-sm"
       style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}

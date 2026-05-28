@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Apply previously-generated reclassification proposals from JSON
- * (avoids re-calling the LLM). Use after running reclassify-unresolved-gemini.mjs (DRY).
+ * (avoids re-calling the LLM). Use after running reclassify-unresolved-studiai.mjs (DRY).
  *
  * Usage: node scripts/apply-reclassify-json.mjs [--file=/tmp/reclassify-unresolved.json]
  */
@@ -11,7 +11,7 @@ const { Pool } = pg;
 
 const FILE = (process.argv.find((a) => a.startsWith('--file=')) || '').split('=')[1] || '/tmp/reclassify-unresolved.json';
 const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || 0.55);
-const MODEL_TAG = process.env.MODEL_TAG || 'gemini-2.5-flash-lite';
+const MODEL_TAG = process.env.MODEL_TAG || 'claude-opus-4-7';
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) { console.error('DATABASE_URL missing'); process.exit(1); }
 

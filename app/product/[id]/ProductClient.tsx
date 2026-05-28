@@ -169,7 +169,10 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   const title = product.titleRo || product.title;
   const selectedColorSizes = selectedColor ? dedupeSizes(colorMap[selectedColor]?.sizes || []) : [];
   const selectedSizeData = selectedColorSizes.find(s => s.size === selectedSize) || null;
-  const currentPrice = selectedSizeData?.price ?? product.price;
+  // Variant prices are raw cost (no markup); product.price has markup applied.
+  // Ignore variant price when it's significantly below product price (>20% gap).
+  const variantPrice = selectedSizeData?.price ?? 0;
+  const currentPrice = variantPrice > 0 && variantPrice >= product.price * 0.8 ? variantPrice : product.price;
   const discount = product.oldPrice > currentPrice ? Math.round(((product.oldPrice - currentPrice) / product.oldPrice) * 100) : 0;
 
   // Current variant image
@@ -233,7 +236,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-32" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <main className="min-h-screen bg-white pb-32" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} aria-label={`Pagină produs: ${product.title}`}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
@@ -279,7 +282,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               </div>
             )}
             {discount > 0 && (
-              <span className="absolute top-3 right-3 rounded-full bg-[#EF4444] px-3 py-1.5 text-xs font-black text-white shadow-lg">
+              <span className="absolute top-3 right-3 rounded-full bg-[#DC2626] px-3 py-1.5 text-xs font-black text-white shadow-lg">
                 -{discount}%
               </span>
             )}
@@ -296,7 +299,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             {displayImages.length > 1 && (
               <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
                 {displayImages.slice(0, 8).map((_: string, i: number) => (
-                  <button key={i} type="button" onClick={() => setSelectedImage(i)} aria-label={`Imaginea ${i+1}`} className="p-3 -m-2 grid place-items-center"><span className={`rounded-full transition-all block ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} /></button>
+                  <button key={i} type="button" onClick={() => setSelectedImage(i)} aria-label={`Imaginea ${i+1}`} className="hit-target-44 -m-2.5"><span className={`rounded-full transition-all block ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} /></button>
                 ))}
               </div>
             )}
@@ -310,7 +313,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         <div className="flex items-baseline gap-3 mb-2">
           <span className="text-3xl font-black text-[#0D0D0D]">{currentPrice} lei</span>
           {product.oldPrice > currentPrice && (
-            <span className="text-base text-[#A1A1AA] line-through">{product.oldPrice} lei</span>
+            <span className="text-base text-[#52525B] line-through">{product.oldPrice} lei</span>
           )}
         </div>
 
@@ -338,7 +341,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         {/* Rating & Orders */}
         <div className="flex flex-wrap gap-3 text-sm font-medium text-[#6E6E80] mb-5">
           <span className="flex items-center gap-1">
-            <Star size={14} className="text-[#F59E0B]" fill="currentColor" />
+            <Star size={14} className="text-[#B45309]" fill="currentColor" />
             {(product.rating ?? 0).toFixed(1)}
             {product.ratingCount && product.ratingCount > 0
               ? ` (${product.ratingCount} recenzii)`
@@ -379,6 +382,8 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     setSelectedSize(sizes[0].size);
                   }
                 }}
+                  aria-label={`Selectează culoarea ${color}`}
+                  aria-pressed={selectedColor === color}
                   className={`rounded-xl border-2 transition-all active:scale-95 ${selectedColor === color ? 'border-[#0D0D0D] shadow-[0_0_0_1px_#0D0D0D]' : 'border-[#E5E5E5] hover:border-[#D1D1D6]'}`}
                 >
                   {data.image ? (
@@ -545,9 +550,9 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                   <p className="text-sm font-black text-[#0D0D0D]">{product.storeName}</p>
                 </div>
                 {product.storeRating > 0 && (
-                  <div className="flex items-center gap-1 bg-[#F59E0B]/10 px-3 py-1.5 rounded-full">
-                    <Star size={13} className="text-[#F59E0B]" fill="currentColor" />
-                    <span className="text-sm font-black text-[#F59E0B]">{product.storeRating.toFixed(1)}</span>
+                  <div className="flex items-center gap-1 bg-[#B45309]/10 px-3 py-1.5 rounded-full">
+                    <Star size={13} className="text-[#B45309]" fill="currentColor" />
+                    <span className="text-sm font-black text-[#B45309]">{product.storeRating.toFixed(1)}</span>
                   </div>
                 )}
               </div>
@@ -573,7 +578,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           <div className="animate-fadeIn space-y-4">
             <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-6 text-center">
               <div className="text-4xl font-black text-[#0D0D0D] mb-1">{(product.rating ?? 0).toFixed(1)}</div>
-              <div className="flex items-center justify-center gap-1 text-[#F59E0B] mb-2">
+              <div className="flex items-center justify-center gap-1 text-[#B45309] mb-2">
                 {[1,2,3,4,5].map(i => <Star key={i} size={16} fill={i <= Math.round(product.rating||0) ? 'currentColor' : 'none'} />)}
               </div>
               <p className="text-sm font-medium text-[#6E6E80]">
@@ -603,14 +608,14 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     <div className="flex items-baseline gap-1.5 mt-1">
                       <span className="text-sm font-black text-[#0D0D0D]">{s.price} lei</span>
                       {s.oldPrice > s.price && (
-                        <span className="text-[10px] text-[#A1A1AA] line-through">{s.oldPrice} lei</span>
+                        <span className="text-[10px] text-[#52525B] line-through">{s.oldPrice} lei</span>
                       )}
                     </div>
                     {s.ratingAvg != null && (s.ratingCount ?? 0) > 0 && (
                       <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-[#6E6E80]">
-                        <Star size={11} className="text-[#F59E0B]" fill="currentColor" />
+                        <Star size={11} className="text-[#B45309]" fill="currentColor" />
                         {s.ratingAvg.toFixed(1)}
-                        <span className="text-[#A1A1AA]">({s.ratingCount})</span>
+                        <span className="text-[#52525B]">({s.ratingCount})</span>
                       </div>
                     )}
                   </div>
@@ -665,6 +670,6 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           Adăugat în coș!
         </div>
       )}
-    </div>
+    </main>
   );
 }

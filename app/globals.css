@@ -16,6 +16,28 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* ─── Global keyboard focus indicators (a11y WCAG 2.4.7) ─── */
+:focus-visible {
+  outline: 2px solid #7C3AED;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid #7C3AED;
+  outline-offset: 2px;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #7C3AED;
+  outline-offset: 1px;
+}
+/* Mouse clicks shouldn't show ring (focus-visible default does this) */
+:focus:not(:focus-visible) { outline: none; }
+
 body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: #FFFFFF;
@@ -213,3 +235,6 @@ button, nav, a {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+
+/* a11y: cockpit-btn primary background — fix color-contrast pe video gradient */
+.cockpit-btn.primary { background-color: rgba(0,0,0,0.75) !important; }

@@ -6,6 +6,9 @@ import {
   isLocale,
 } from "@/lib/i18n/config";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -42,6 +45,23 @@ export async function POST(req: Request) {
       path: "/",
       sameSite: "lax",
     });
+  }
+
+  try {
+    const auth = await getAuthUser();
+    if (auth.userId) {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let i = 1;
+      if (body.locale !== undefined) { sets.push(`locale = $${i++}`); params.push(body.locale); }
+      if (body.currency !== undefined) { sets.push(`preferred_currency = $${i++}`); params.push(body.currency); }
+      if (sets.length > 0) {
+        params.push(auth.userId);
+        await dbQuery(`UPDATE users SET ${sets.join(", ")} WHERE id = $${i}`, params);
+      }
+    }
+  } catch (e: any) {
+    logger.warn({ err: e?.message }, "[i18n/preferences] user-profile persist failed");
   }
 
   return res;

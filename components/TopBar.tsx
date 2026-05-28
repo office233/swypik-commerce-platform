@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Inbox, LayoutGrid, ShoppingBag } from "lucide-react";
 import Logo from "@/components/Logo";
+import LocaleQuickPicker from "@/components/i18n/LocaleQuickPicker";
 
 /**
  * TopBar — thin sticky chrome for user-facing pages.
@@ -108,6 +109,7 @@ export default function TopBar() {
         >
           <LayoutGrid className="h-5 w-5" />
         </Link>
+        <LocaleQuickPicker />
         <Link
           href="/cart"
           aria-label="Coș"

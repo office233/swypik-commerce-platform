@@ -82,11 +82,21 @@ export default function InstallPrompt() {
     }
   }, [evt, dismiss]);
 
+  useEffect(() => {
+    if (!visible) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [visible, dismiss]);
+
   if (!visible || !evt) return null;
 
   return (
     <div
       role="dialog"
+      aria-modal="false"
       aria-labelledby="pwa-install-title"
       className="fixed left-3 right-3 z-[60] sm:left-4 sm:right-auto sm:max-w-sm"
       style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}

@@ -173,29 +173,60 @@ if (!DATABASE_URL) {
 
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry-run");
+const INCREMENTAL = args.includes("--incremental");
 const BATCH = parseInt((args.find((x) => x.startsWith("--batch=")) || "--batch=500").split("=")[1], 10);
 const LIMIT = parseInt((args.find((x) => x.startsWith("--limit=")) || "--limit=0").split("=")[1], 10);
+const DRIFT_HOURS = parseInt((args.find((x) => x.startsWith("--drift-hours=")) || "--drift-hours=24").split("=")[1], 10);
 
 const pool = new Pool({ connectionString: DATABASE_URL });
 
 async function main() {
-  console.log(`[backfill] mode=${DRY ? "DRY-RUN" : "WRITE"} batch=${BATCH} limit=${LIMIT || "ALL"}`);
+  console.log(`[backfill] mode=${DRY ? "DRY-RUN" : "WRITE"} incremental=${INCREMENTAL} batch=${BATCH} limit=${LIMIT || "ALL"} drift_hours=${DRIFT_HOURS}`);
 
-  const { rows: totalRow } = await pool.query("SELECT count(*)::int AS n FROM marketplace_products");
+  const baseFilter = INCREMENTAL
+    ? `WHERE EXISTS (
+         SELECT 1 FROM product_safety_labels psl
+          WHERE psl.product_id = mp.id
+            AND psl.reviewed_by_human IS NOT TRUE
+            AND mp.updated_at > psl.classified_at + interval '${DRIFT_HOURS} hours'
+       ) OR NOT EXISTS (
+         SELECT 1 FROM product_safety_labels psl WHERE psl.product_id = mp.id
+       )`
+    : "";
+
+  const { rows: totalRow } = await pool.query(
+    `SELECT count(*)::int AS n FROM marketplace_products mp ${baseFilter}`
+  );
   const total = LIMIT > 0 ? Math.min(LIMIT, totalRow[0].n) : totalRow[0].n;
   console.log(`[backfill] total to process: ${total}`);
 
-  let offset = 0;
+  let processed = 0;
+  let lastId = "00000000-0000-0000-0000-000000000000";
   const stats = { safe: 0, sensitive: 0, adult: 0, blocked: 0 };
 
-  while (offset < total) {
-    const take = Math.min(BATCH, total - offset);
+  // Cursor-based pagination — required when WHERE filter changes after each UPDATE.
+  const cursorFilter = INCREMENTAL
+    ? `WHERE mp.id > $2 AND (
+         EXISTS (
+           SELECT 1 FROM product_safety_labels psl
+            WHERE psl.product_id = mp.id
+              AND psl.reviewed_by_human IS NOT TRUE
+              AND mp.updated_at > psl.classified_at + interval '${DRIFT_HOURS} hours'
+         ) OR NOT EXISTS (
+           SELECT 1 FROM product_safety_labels psl WHERE psl.product_id = mp.id
+         )
+       )`
+    : "WHERE mp.id > $2";
+
+  while (processed < total) {
+    const take = Math.min(BATCH, total - processed);
     const { rows } = await pool.query(
-      `SELECT id, title, description, category, canonical_category
-       FROM marketplace_products
-       ORDER BY id
-       LIMIT $1 OFFSET $2`,
-      [take, offset]
+      `SELECT mp.id, mp.title, mp.description, mp.category, mp.canonical_category
+       FROM marketplace_products mp
+       ${cursorFilter}
+       ORDER BY mp.id
+       LIMIT $1`,
+      [take, lastId]
     );
     if (rows.length === 0) break;
 
@@ -223,9 +254,10 @@ async function main() {
       );
     }
 
-    offset += rows.length;
-    if (offset % 2000 === 0 || offset >= total) {
-      console.log(`[backfill] ${offset}/${total} — ${JSON.stringify(stats)}`);
+    processed += rows.length;
+    lastId = rows[rows.length - 1].id;
+    if (processed % 2000 < BATCH || processed >= total) {
+      console.log(`[backfill] ${processed}/${total} — ${JSON.stringify(stats)}`);
     }
   }
 

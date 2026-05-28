@@ -43,6 +43,14 @@ COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 log "deploy start commit=$COMMIT deployer=$DEPLOYER service=$SERVICE"
 
+# Fail-fast: dacă git rev-parse nu poate determina commit-ul, refuzăm să facem build
+# (bug observat 2026-05-28: empty BUILD_COMMIT a ajuns în BuildKit cache layers
+# și a făcut /api/health să răspundă commit=unknown → rollback bucle).
+if [ -z "$COMMIT_LONG" ] || [ "$COMMIT_LONG" = "unknown" ]; then
+  log "ABORT: BUILD_COMMIT is empty/unknown (git rev-parse failed). Refusing build."
+  exit 1
+fi
+
 if docker image inspect "$IMAGE" >/dev/null 2>&1; then
   docker tag "$IMAGE" "$ROLLBACK_IMAGE"
   log "tagged previous image as $ROLLBACK_IMAGE"
@@ -54,8 +62,15 @@ export DEPLOYED_AT="$BUILD_TIME"
 
 COMPOSE=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
 
+# BUILD_NO_CACHE=1 force-rebuild fără cache (recovery dacă cache layers au ENV-uri stale)
+BUILD_ARGS=()
+if [ "${BUILD_NO_CACHE:-0}" = "1" ]; then
+  BUILD_ARGS+=(--no-cache)
+  log "BUILD_NO_CACHE=1 → forcing full rebuild without cache"
+fi
+
 log "building new image (BUILD_COMMIT=$COMMIT BUILD_TIME=$BUILD_TIME)"
-"${COMPOSE[@]}" build "$SERVICE" >>"$LOG_FILE" 2>&1
+"${COMPOSE[@]}" build "${BUILD_ARGS[@]}" "$SERVICE" >>"$LOG_FILE" 2>&1
 
 log "recreating $SERVICE"
 "${COMPOSE[@]}" up -d --no-deps "$SERVICE" >>"$LOG_FILE" 2>&1
@@ -112,6 +127,41 @@ if [ "${SKIP_POST_E2E:-0}" != "1" ] && [ -d "$APP_DIR/tests/e2e" ] && command -v
   else
     log "post-deploy e2e FAIL (kept container running — investigate)"
     post_ok=0
+  fi
+
+  # A11y regression smoke (non-blocking by default — opt-in to fail via A11Y_BLOCKING=1).
+  if [ -f "$APP_DIR/tests/e2e/a11y.spec.ts" ]; then
+    log "running post-deploy a11y smoke (a11y.spec.ts)"
+    if ( cd "$APP_DIR" && BASE_URL="https://swypik.com" npx -y playwright test tests/e2e/a11y.spec.ts --reporter=line >>"$LOG_FILE" 2>&1 ); then
+      log "post-deploy a11y PASS"
+    else
+      if [ "${A11Y_BLOCKING:-0}" = "1" ]; then
+        log "post-deploy a11y FAIL (A11Y_BLOCKING=1 — marking deploy bad)"
+        post_ok=0
+      else
+        log "post-deploy a11y FAIL (warning only — set A11Y_BLOCKING=1 to enforce)"
+      fi
+    fi
+  fi
+
+  # Forms autocomplete regression (non-blocking; cheap & fast — ~5s)
+  if [ -f "$APP_DIR/tests/e2e/forms-autocomplete.spec.ts" ]; then
+    log "running post-deploy forms-autocomplete smoke"
+    if ( cd "$APP_DIR" && BASE_URL="https://swypik.com" npx -y playwright test tests/e2e/forms-autocomplete.spec.ts --reporter=line >>"$LOG_FILE" 2>&1 ); then
+      log "post-deploy forms-autocomplete PASS"
+    else
+      log "post-deploy forms-autocomplete FAIL (warning only)"
+    fi
+  fi
+
+  # Perf budget regression (non-blocking; tolerează variance rețea via retries)
+  if [ -f "$APP_DIR/tests/e2e/perf.spec.ts" ]; then
+    log "running post-deploy perf budget"
+    if ( cd "$APP_DIR" && BASE_URL="https://swypik.com" npx -y playwright test tests/e2e/perf.spec.ts --reporter=line >>"$LOG_FILE" 2>&1 ); then
+      log "post-deploy perf PASS"
+    else
+      log "post-deploy perf FAIL (warning only — check budget vs network variance)"
+    fi
   fi
 fi
 

@@ -14,10 +14,10 @@ export const THEME = {
     accent: "#0D0D0D",
     cart: "#0D0D0D",
     cartDark: "#0E8F6F",
-    discount: "#EF4444",
+    discount: "#DC2626",
     premium: "#8E44AD",
     trust: "#2563EB",
-    warning: "#F59E0B",
+    warning: "#B45309",
     gold: "#FACC15",
   },
   classes: {
@@ -28,7 +28,7 @@ export const THEME = {
     heroCard: "bg-[#F7F7F8] border border-[#E5E5E5] rounded-2xl",
     primaryButton: "bg-[#0D0D0D] text-white hover:bg-[#0E8F6F] active:scale-[0.98] transition-all",
     cartButton: "bg-[#0D0D0D] text-white hover:bg-[#2D2D2D] active:scale-[0.98] transition-all",
-    discountBadge: "bg-[#EF4444] text-white",
+    discountBadge: "bg-[#DC2626] text-white",
     premiumBadge: "bg-[#8E44AD] text-white",
     trustBadge: "bg-[#2563EB] text-white",
     softInput: "bg-[#F7F7F8] border border-[#E5E5E5] focus-within:border-[#0D0D0D] focus-within:shadow-[0_0_0_1px_#0D0D0D] transition-all",
@@ -126,6 +126,6 @@ export function commerceBadgeClass(label?: string) {
   if (label.includes("Bundle") || label.includes("Premium")) return "bg-[#8E44AD] text-white";
   if (label.includes("sigur") || label.includes("Alegere")) return "bg-[#2563EB] text-white";
   if (label.includes("coș") || label.includes("adăugat")) return "bg-[#0D0D0D] text-white";
-  if (label.includes("vinde") || label.includes("popular")) return "bg-[#EF4444] text-white";
+  if (label.includes("vinde") || label.includes("popular")) return "bg-[#DC2626] text-white";
   return "bg-[#F7F7F8] text-[#0D0D0D]";
 }

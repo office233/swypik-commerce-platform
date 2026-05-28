@@ -202,6 +202,39 @@ export const VideoEventTrackSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 }).passthrough();
 
+const SellerVariantSchema = z.object({
+  sku: z.string().trim().max(64).optional(),
+  title: z.string().trim().max(120).optional(),
+  attributes: z.record(z.string(), z.string().max(80)).optional(),
+  price_cents: z.number().int().nonnegative().max(100_000_000).optional(),
+  inventory_quantity: z.number().int().nonnegative().max(1_000_000).optional(),
+});
+
+export const SellerProductCreateSchema = z.object({
+  title: z.string().trim().min(3, "Titlu prea scurt (min 3)").max(200),
+  description: z.string().trim().max(5000).optional(),
+  brand: z.string().trim().max(120).optional(),
+  sku: z.string().trim().max(64).optional(),
+  price: z.coerce.number().finite().positive("Preț invalid").max(1_000_000),
+  compare_at_price: z.coerce.number().finite().nonnegative().max(1_000_000).optional(),
+  supplier_cost: z.coerce.number().finite().nonnegative().max(1_000_000).optional(),
+  currency: z.enum(["RON", "EUR", "USD"]).default("RON"),
+  stock: z.coerce.number().int().nonnegative().max(1_000_000),
+  category: z.string().trim().max(200).optional(),
+  taxonomy_node_slug: z.string().trim().max(120).optional(),
+  image_urls: z.array(z.string().url().max(2048)).max(8).optional(),
+  shipping_cost: z.coerce.number().finite().nonnegative().max(10_000).optional(),
+  shipping_days_min: z.coerce.number().int().nonnegative().max(180).optional(),
+  shipping_days_max: z.coerce.number().int().nonnegative().max(180).optional(),
+  courier: z.enum(["dpd", "fan_courier", "sameday", "cargus", "posta_romana", "gls", "other"]).optional(),
+  variants: z.array(SellerVariantSchema).max(50).optional(),
+});
+
+export const SellerProductClassifySchema = z.object({
+  title: z.string().trim().min(3).max(200),
+  description: z.string().trim().max(2000).optional(),
+});
+
 /**
  * Helper: parse a request body with a zod schema. Returns either the parsed
  * data or a NextResponse-friendly error payload (use it as { error, status: 400 }).

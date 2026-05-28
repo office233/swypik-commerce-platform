@@ -1,8 +1,58 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
+import type { Metadata } from "next";
 import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+
+const CATEGORIES_META_BY_LOCALE: Record<string, { title: string; description: string }> = {
+  ro: {
+    title: "Categorii — Modă, Beauty, Home, Electronice | Swypik",
+    description: "Răsfoiește toate categoriile de pe Swypik. Mii de produse cu prețuri minime, livrare rapidă și recenzii reale.",
+  },
+  en: {
+    title: "Categories — Fashion, Beauty, Home, Electronics | Swypik",
+    description: "Browse all Swypik categories. Thousands of products with lowest prices, fast delivery and real reviews.",
+  },
+  de: {
+    title: "Kategorien — Mode, Beauty, Haus, Elektronik | Swypik",
+    description: "Stöbere durch alle Swypik-Kategorien. Tausende Produkte zu Bestpreisen, schneller Versand.",
+  },
+  fr: {
+    title: "Catégories — Mode, Beauté, Maison, Électronique | Swypik",
+    description: "Parcourez toutes les catégories Swypik. Des milliers de produits aux meilleurs prix.",
+  },
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const c = await cookies();
+  const v = c.get(LOCALE_COOKIE)?.value;
+  const locale = isLocale(v) ? v : DEFAULT_LOCALE;
+  const meta = CATEGORIES_META_BY_LOCALE[locale] ?? CATEGORIES_META_BY_LOCALE.ro;
+  const canonical = `${BASE_URL}/categories`;
+  return {
+    title: meta.title,
+    description: meta.description,
+    alternates: { canonical },
+    openGraph: {
+      title: meta.title,
+      description: meta.description,
+      url: canonical,
+      siteName: "Swypik",
+      type: "website",
+      images: [{ url: "/og-preview.webp", width: 1200, height: 630, alt: "Swypik Categories" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: meta.title,
+      description: meta.description,
+      images: ["/og-preview.webp"],
+    },
+  };
+}
+
 
 type Node = {
   id: string;
@@ -49,6 +99,22 @@ export default async function CategoriesPage() {
 
   return (
     <main className="min-h-screen text-neutral-900" style={{ backgroundColor: BG }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: labels.title,
+        url: `${BASE_URL}/categories`,
+        description: (CATEGORIES_META_BY_LOCALE[locale] ?? CATEGORIES_META_BY_LOCALE.ro).description,
+        hasPart: hierarchy.slice(0, 20).map((n) => ({ "@type": "Thing", name: n.name, url: `${BASE_URL}/categories/${n.id}` })),
+      }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Swypik", item: BASE_URL },
+          { "@type": "ListItem", position: 2, name: labels.title, item: `${BASE_URL}/categories` },
+        ],
+      }) }} />
       <div className="mx-auto max-w-6xl px-4 py-8">
         <header className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">{labels.title}</h1>
@@ -87,7 +153,7 @@ export default async function CategoriesPage() {
                         >
                           <span>{child.name}</span>
                           {child.count != null && (
-                            <span className="text-neutral-400">({child.count})</span>
+                            <span className="text-neutral-600">({child.count})</span>
                           )}
                         </Link>
                       </li>

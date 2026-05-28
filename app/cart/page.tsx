@@ -127,7 +127,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <main className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} aria-label="Coș de cumpărături">
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Înapoi">
           <ArrowLeft size={16} />
@@ -225,6 +225,6 @@ export default function CartPage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

@@ -177,7 +177,7 @@ export default async function CategoryPage({
           <Link href="/categories" className="hover:text-violet-700">{labels.all}</Link>
           {path.map((n, i) => (
             <span key={n.id} className="flex items-center gap-1">
-              <ChevronRight className="h-3.5 w-3.5 text-neutral-400" />
+              <ChevronRight className="h-3.5 w-3.5 text-neutral-600" />
               {i === path.length - 1 ? (
                 <span className="text-neutral-900 font-medium">{n.name}</span>
               ) : (
@@ -209,7 +209,7 @@ export default async function CategoryPage({
                   >
                     <span>{child.name}</span>
                     {child.count != null && (
-                      <span className="text-neutral-400">{child.count}</span>
+                      <span className="text-neutral-600">{child.count}</span>
                     )}
                   </Link>
                 </li>
@@ -249,7 +249,7 @@ export default async function CategoryPage({
                           className="object-cover transition group-hover:scale-105"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-neutral-400">no image</div>
+                        <div className="flex h-full items-center justify-center text-xs text-neutral-600">no image</div>
                       )}
                       {discount > 0 && (
                         <span className="absolute left-2 top-2 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] font-semibold">
@@ -269,7 +269,7 @@ export default async function CategoryPage({
                           {fmt(p.price ?? null)}
                         </span>
                         {discount > 0 && (
-                          <span className="text-[11px] text-neutral-400 line-through">
+                          <span className="text-[11px] text-neutral-600 line-through">
                             {fmt(p.oldPrice ?? null)}
                           </span>
                         )}

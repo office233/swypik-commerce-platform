@@ -45,19 +45,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Video negăsit — Swypik" };
   }
 
-  const creatorLabel = video.creator_name || "Creator";
-  const title = `${video.title} de ${creatorLabel} — Swypik`;
+  const rawCreator = (video.creator_name || "").trim();
+  const isGenericCreator = !rawCreator || /^(swypik|swypik\s*system|system|bot|admin)$/i.test(rawCreator);
+  const creatorSuffix = isGenericCreator ? "" : ` de ${rawCreator}`;
+  const title = `${video.title}${creatorSuffix} — Swypik`;
   const description = video.description
     ? video.description.replace(/<[^>]*>/g, " ").trim().slice(0, 155)
     : `Vizionează ${video.title} pe Swypik — social video commerce.`;
 
+  const canonical = `https://swypik.com/video/${id}`;
   return {
     title,
     description,
+    alternates: { canonical },
     openGraph: {
       title: video.title,
       description,
       type: "video.other",
+      url: canonical,
       siteName: "Swypik",
       locale: "ro_RO",
       ...(video.playback_url

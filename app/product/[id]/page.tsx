@@ -8,9 +8,17 @@
 
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { cache } from "react";
 import { getProductDetail as _getProductDetail } from "@/lib/products/get-product-detail";
+import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 const getProductDetail = cache(_getProductDetail);
+
+async function resolveLocale(): Promise<string> {
+  const c = await cookies();
+  const v = c.get(LOCALE_COOKIE)?.value;
+  return isLocale(v) ? v : DEFAULT_LOCALE;
+}
 import ProductClient from "./ProductClient";
 import ReviewList from "@/components/reviews/ReviewList";
 import ReviewForm from "@/components/reviews/ReviewForm";
@@ -25,27 +33,72 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const data = await getProductDetail(id);
+  const locale = await resolveLocale();
+  const data = await getProductDetail(id, locale);
   if (!data) return { title: "Produs negăsit — Swypik" };
 
-  const { product } = data;
-  const title = `${product.title} — ${product.price} lei — Swypik`;
-  const description = product.description
-    ? `${product.description.replace(/<[^>]*>/g, " ").trim().slice(0, 150)}... Cumpără acum de pe Swypik cu livrare în România.`
-    : `${product.title} — livrare rapidă în România. Cumpără de pe Swypik.`;
+  const { product } = data as any;
+  const seoTitle = product.seoTitle as string | null;
+  const seoDescription = product.seoDescription as string | null;
+
+  const title = seoTitle
+    ? `${seoTitle} | Swypik`
+    : `${product.title} — ${product.price} lei — Swypik`;
+  const description = seoDescription
+    ? seoDescription
+    : (product.description
+      ? `${String(product.description).replace(/<[^>]*>/g, " ").trim().slice(0, 150)}...`
+      : `${product.title} — livrare rapidă. Cumpără de pe Swypik.`);
+
+  // hreflang alternates from product_translations — uses localized slug per locale when present
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+  const productUuid = (product?.id ?? id) as string;
+  let languages: Record<string, string> | undefined;
+  let canonicalUrl = `${baseUrl}/product/${productUuid}`;
+  try {
+    const { LOCALES } = await import("@/lib/i18n/config");
+    const { dbQuery } = await import("@/lib/db");
+    const { rows } = await dbQuery<{ locale: string; slug: string | null }>(
+      `SELECT locale, NULLIF(slug,'') AS slug FROM product_translations WHERE product_id = $1`,
+      [productUuid],
+    );
+    const slugByLocale = new Map<string, string | null>();
+    for (const r of rows) slugByLocale.set(r.locale, r.slug);
+    if (rows.length > 0) {
+      languages = { "x-default": `${baseUrl}/product/${productUuid}` };
+      for (const l of LOCALES) {
+        if (slugByLocale.has(l)) {
+          const slug = slugByLocale.get(l);
+          languages[l] = slug
+            ? `${baseUrl}/product/${slug}`
+            : `${baseUrl}/product/${productUuid}?locale=${l}`;
+        }
+      }
+    }
+    // Canonical follows the slug for the active locale when available
+    const activeSlug = slugByLocale.get(locale) ?? null;
+    if (activeSlug) canonicalUrl = `${baseUrl}/product/${activeSlug}`;
+  } catch {
+    /* non-fatal */
+  }
 
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalUrl,
+      ...(languages ? { languages } : {}),
+    },
     openGraph: {
-      title: product.title,
+      title: seoTitle ?? product.title,
       description,
       images: product.images?.[0] ? [{ url: product.images[0], width: 800, height: 800 }] : [],
       type: "website",
+      locale,
     },
     twitter: {
       card: "summary_large_image",
-      title: product.title,
+      title: seoTitle ?? product.title,
       description,
       images: product.images?.[0] ? [product.images[0]] : [],
     },
@@ -54,9 +107,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
-  const data = await getProductDetail(id);
+  const locale = await resolveLocale();
+  const data = await getProductDetail(id, locale);
   if (!data) notFound();
   const session = await getAuthSession();
+
+  // The URL segment may be a UUID, slug, or external id. Resolve the real UUID here.
+  const productUuid = (data?.product?.id as string) ?? id;
 
   // SSR-prefetch clips for this product (so "Clips (N)" is correct on first paint)
   let initialVideos: Array<{ id: string; title: string; playbackUrl: string; thumbnailUrl: string; durationSeconds: number; viewCount: number; likeCount: number; publishedAt: string; creatorName: string; creatorId: string; description: string }> = [];
@@ -77,7 +134,7 @@ export default async function ProductPage({ params }: Props) {
             )
           ORDER BY v.view_count DESC NULLS LAST, v.published_at DESC NULLS LAST
           LIMIT 12`,
-        [id]
+        [productUuid]
       );
       initialVideos = vRows.map((r: any) => ({
         id: r.id,
@@ -110,7 +167,7 @@ export default async function ProductPage({ params }: Props) {
             AND COALESCE(p.is_adult, false) = false
           ORDER BY p.created_at DESC NULLS LAST
           LIMIT 8`,
-        [id]
+        [productUuid]
       );
       initialSimilar = sRows.map((r: any) => ({
         id: r.id,
@@ -133,7 +190,7 @@ export default async function ProductPage({ params }: Props) {
   if (data) {
     const { rows: aggRows } = await dbQuery<{ avg_rating: string | null; total: string }>(
       "SELECT AVG(rating)::numeric(3,2) AS avg_rating, COUNT(*)::text AS total FROM product_reviews WHERE product_id = $1 AND is_hidden = false",
-      [id]
+      [productUuid]
     );
     const a = aggRows[0];
     reviewsAgg = {
@@ -143,40 +200,46 @@ export default async function ProductPage({ params }: Props) {
     if (session) {
       const { rows: ownRows } = await dbQuery<{ id: string }>(
         "SELECT id FROM product_reviews WHERE product_id = $1 AND user_id = $2 LIMIT 1",
-        [id, session.userId]
+        [productUuid, session.userId]
       );
       alreadyReviewed = ownRows.length > 0;
       if (!alreadyReviewed) {
         const { rows: orderRows } = await dbQuery<{ order_id: string }>(
           "SELECT oi.order_id FROM commerce_order_items oi JOIN commerce_orders o ON o.id = oi.order_id WHERE oi.product_id = $1 AND o.buyer_user_id = $2 AND o.status IN ('paid','fulfilled') LIMIT 1",
-          [id, session.userId]
+          [productUuid, session.userId]
         );
         canReview = orderRows.length > 0;
       }
     }
   }
 
-  // JSON-LD — only include aggregateRating when data is REAL
+  // JSON-LD — localized via `locale` (data.product fields already come translated)
   let jsonLd = null;
   if (data) {
-    const { product } = data;
+    const { product } = data as any;
+    const productUrl = `https://swypik.com/product/${product.id}`;
     jsonLd = {
       "@context": "https://schema.org",
       "@type": "Product",
       name: product.title,
       description: (product.description || product.title).replace(/<[^>]*>/g, " ").trim().slice(0, 300),
       image: product.images?.[0],
+      url: productUrl,
+      inLanguage: locale,
+      sku: product.id,
+      ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
       offers: {
         "@type": "Offer",
+        url: productUrl,
         price: product.price,
-        priceCurrency: "RON",
+        priceCurrency: locale === "ro" ? "RON" : "EUR",
         availability: "https://schema.org/InStock",
+        itemCondition: "https://schema.org/NewCondition",
         seller: {
           "@type": "Organization",
           name: "Swypik",
         },
       },
-      // Only include rating when NOT estimated
       ...(product.rating && !product.isEstimatedSocial && {
         aggregateRating: {
           "@type": "AggregateRating",
@@ -189,13 +252,23 @@ export default async function ProductPage({ params }: Props) {
     };
   }
 
-  // Breadcrumb JSON-LD: Home > Explore > {product title}
+  // Breadcrumb JSON-LD: Home > Explore > {product title} — localized labels
+  const breadcrumbLabels: Record<string, { home: string; explore: string }> = {
+    ro: { home: "Acasă", explore: "Explorează" },
+    en: { home: "Home", explore: "Explore" },
+    es: { home: "Inicio", explore: "Explorar" },
+    fr: { home: "Accueil", explore: "Explorer" },
+    de: { home: "Startseite", explore: "Entdecken" },
+    pt: { home: "Início", explore: "Explorar" },
+    it: { home: "Home", explore: "Esplora" },
+  };
+  const bcLabels = breadcrumbLabels[locale] ?? breadcrumbLabels.en;
   const breadcrumbJsonLd = data ? {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://swypik.com/" },
-      { "@type": "ListItem", position: 2, name: "Explore", item: "https://swypik.com/explore" },
+      { "@type": "ListItem", position: 1, name: bcLabels.home, item: "https://swypik.com/" },
+      { "@type": "ListItem", position: 2, name: bcLabels.explore, item: "https://swypik.com/explore" },
       { "@type": "ListItem", position: 3, name: data.product.title?.slice(0, 80) || "Product", item: `https://swypik.com/product/${data.product.id}` },
     ],
   } : null;

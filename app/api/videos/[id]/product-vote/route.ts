@@ -70,7 +70,7 @@ export async function POST(
          AND v.status = 'ready'
          AND v.is_hidden = false
          AND v.visibility = 'public'
-         AND EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = v.id AND ves.effective_label = 'safe')
+         AND v.effective_label = 'safe'
          AND mp.status = 'active'
          AND COALESCE(mp.is_adult, false) = false
          AND (

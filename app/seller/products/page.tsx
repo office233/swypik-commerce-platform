@@ -1,18 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import AddProductWizard from "./AddProductWizard";
 
 export default function SellerProductsPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Form state
-  const [title, setTitle] = useState("");
-  const [price, setPrice] = useState("");
-  const [stock, setStock] = useState("");
-  const [category, setCategory] = useState("General");
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -30,33 +24,6 @@ export default function SellerProductsPage() {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleAddProduct(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const res = await fetch("/api/seller/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, price, stock, category }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsAdding(false);
-        setTitle("");
-        setPrice("");
-        setStock("");
-        loadProducts();
-      } else {
-        alert(data.error);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Eroare de rețea.");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -105,15 +72,23 @@ export default function SellerProductsPage() {
               ) : (
                 products.map((p) => (
                   <tr key={p.id} className="hover:bg-[#F7F7F8] transition">
-                    <td className="px-6 py-4 font-bold text-[#0D0D0D]">{p.title}</td>
+                    <td className="px-6 py-4 font-bold text-[#0D0D0D]">
+                      <div className="flex items-center gap-3">
+                        {p.image_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-[#E5E5E5]" />
+                        )}
+                        <span className="line-clamp-2">{p.title}</span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-[#6E6E80]">{p.category || "General"}</td>
                     <td className="px-6 py-4">
                       <span className="inline-block px-2.5 py-1 bg-neutral-100 text-neutral-900 text-[10px] font-bold rounded-full uppercase tracking-wider">
                         {p.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-medium text-[#0D0D0D]">{p.metadata?.available_stock || 0}</td>
-                    <td className="px-6 py-4 text-right font-black text-[#0D0D0D]">{Number(p.price_cents / 100).toFixed(2)} lei</td>
+                    <td className="px-6 py-4 font-medium text-[#0D0D0D]">{p.metadata?.available_stock ?? 0}</td>
+                    <td className="px-6 py-4 text-right font-black text-[#0D0D0D]">{Number(p.price_cents / 100).toFixed(2)} {p.currency || "lei"}</td>
                   </tr>
                 ))
               )}
@@ -123,39 +98,10 @@ export default function SellerProductsPage() {
       </div>
 
       {isAdding && (
-        <div role="dialog" aria-modal="true" aria-labelledby="add-product-title" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0D0D0D]/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-[#E5E5E5] flex items-center justify-between">
-              <h3 id="add-product-title" className="font-black text-[#0D0D0D] text-lg">Adaugă Produs Nou</h3>
-              <button type="button" aria-label="Închide" onClick={() => setIsAdding(false)} className="w-11 h-11 inline-flex items-center justify-center rounded-lg text-[#6E6E80] hover:text-[#0D0D0D] hover:bg-[#F7F7F8] text-xl focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">✕</button>
-            </div>
-            <form onSubmit={handleAddProduct} className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Titlu Produs</label>
-                  <input required value={title} onChange={e => setTitle(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] outline-none" placeholder="ex: Tricou Bumbac Organic" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Categorie</label>
-                  <input required value={category} onChange={e => setCategory(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] outline-none" placeholder="ex: Haine" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Preț (Lei)</label>
-                    <input required min="1" step="0.01" value={price} onChange={e => setPrice(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: 99.90" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Stoc Initial</label>
-                    <input required min="1" value={stock} onChange={e => setStock(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: 50" />
-                  </div>
-                </div>
-              </div>
-              <button disabled={saving} type="submit" className="w-full bg-[#0D0D0D] text-white font-bold py-3.5 min-h-[48px] rounded-xl mt-6 hover:bg-[#0E906F] transition active:scale-95 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-                {saving ? "Se salvează..." : "Salvează Produsul"}
-              </button>
-            </form>
-          </div>
-        </div>
+        <AddProductWizard
+          onClose={() => setIsAdding(false)}
+          onSaved={() => { setIsAdding(false); loadProducts(); }}
+        />
       )}
     </div>
   );

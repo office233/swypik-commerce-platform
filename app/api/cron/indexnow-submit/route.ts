@@ -14,22 +14,18 @@ function authOk(t: string | null | undefined) {
 }
 
 async function collectUrls(limit: number): Promise<string[]> {
-  const urls: string[] = [`${BASE}/`, `${BASE}/feed`, `${BASE}/explore`, `${BASE}/best`, `${BASE}/shop`];
+  const urls: string[] = [`${BASE}/`, `${BASE}/explore`, `${BASE}/best`, `${BASE}/shop`];
   try {
-    const { rows } = await dbQuery<{ slug: string }>(`SELECT slug FROM marketplace_products WHERE status='active' ORDER BY updated_at DESC NULLS LAST LIMIT 2000`);
-    for (const r of rows) urls.push(`${BASE}/p/${r.slug}`);
+    const { rows } = await dbQuery<{ id: string }>(`SELECT id::text FROM marketplace_products WHERE status='active' ORDER BY updated_at DESC NULLS LAST LIMIT 2000`);
+    for (const r of rows) urls.push(`${BASE}/product/${r.id}`);
   } catch {}
   try {
-    const { rows } = await dbQuery<{ id: string }>(`SELECT id::text FROM ae_products WHERE status='active' ORDER BY updated_at DESC NULLS LAST LIMIT 3000`);
-    for (const r of rows) urls.push(`${BASE}/ae/${r.id}`);
-  } catch {}
-  try {
-    const { rows } = await dbQuery<{ id: string }>(`SELECT id::text FROM videos WHERE status='active' ORDER BY published_at DESC NULLS LAST LIMIT 1000`);
+    const { rows } = await dbQuery<{ id: string }>(`SELECT id::text FROM videos WHERE status='ready' ORDER BY published_at DESC NULLS LAST LIMIT 1000`);
     for (const r of rows) urls.push(`${BASE}/video/${r.id}`);
   } catch {}
   try {
     const { rows } = await dbQuery<{ slug: string }>(`SELECT slug FROM taxonomy_nodes WHERE slug IS NOT NULL LIMIT 500`);
-    for (const r of rows) urls.push(`${BASE}/c/${r.slug}`);
+    for (const r of rows) urls.push(`${BASE}/categories/${r.slug}`);
   } catch {}
   return Array.from(new Set(urls)).slice(0, limit);
 }

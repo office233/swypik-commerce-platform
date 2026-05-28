@@ -586,7 +586,7 @@ export async function GET(request: NextRequest) {
       ) uca ON mp.id IS NOT NULL` : ``}
       WHERE v.status = 'ready' AND v.is_hidden = false
         AND v.visibility = 'public'
-        AND EXISTS (SELECT 1 FROM video_effective_safety ves WHERE ves.video_id = v.id AND ves.effective_label = 'safe')
+        AND v.effective_label = 'safe'
           AND CASE
             WHEN vpl.product_id IS NOT NULL
               OR CASE
@@ -595,7 +595,7 @@ export async function GET(request: NextRequest) {
               END THEN
               mp.id IS NOT NULL
               AND mp.status = 'active'
-              AND COALESCE(mp.is_adult, false) = false AND EXISTS (SELECT 1 FROM product_effective_safety pes WHERE pes.product_id = mp.id AND pes.effective_label = 'safe')
+              AND COALESCE(mp.is_adult, false) = false AND mp.effective_label = 'safe'
               AND COALESCE(mp.price_cents, 0) > 0
               AND NULLIF(BTRIM(mp.image_url), '') IS NOT NULL
               AND NULLIF(BTRIM(mp.taxonomy_node_slug), '') IS NOT NULL

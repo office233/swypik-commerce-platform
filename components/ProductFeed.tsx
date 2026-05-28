@@ -534,11 +534,11 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
               <div className="mb-3">
                 <div className="mb-1 flex flex-wrap items-center gap-1.5">
                   <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">{aiOverlay(product)}</span>
-                  {product.discountPercent > 0 && <span className="rounded-full bg-[#EF4444] px-2.5 py-0.5 text-[10px] font-black text-white">-{product.discountPercent}%</span>}
+                  {product.discountPercent > 0 && <span className="rounded-full bg-[#DC2626] px-2.5 py-0.5 text-[10px] font-black text-white">-{product.discountPercent}%</span>}
                 </div>
                 <h2 className="line-clamp-2 text-[15px] font-black leading-snug text-white drop-shadow-lg">{product.title}</h2>
                 <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
-                  <span><Star size={11} className="mr-0.5 inline text-[#F59E0B]" fill="currentColor" />{product.rating.toFixed(1)}</span>
+                  <span><Star size={11} className="mr-0.5 inline text-[#B45309]" fill="currentColor" />{product.rating.toFixed(1)}</span>
                   <span>{product.isEstimatedSocial ? "Popular" : `${product.orders.toLocaleString()}+ vândute`}</span>
                   <span><Truck size={11} className="mr-0.5 inline" />{product.deliveryDays}z</span>
                 </div>

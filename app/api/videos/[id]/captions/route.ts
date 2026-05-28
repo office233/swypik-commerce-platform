@@ -54,9 +54,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const parsedUrl = new URL(audioUrl);
     const allowedHosts = [
       "media.swypik.com",
-      "media-adult.swypik.com",
-      "swypik.com",
-      "18.swypik.com"
+      "swypik.com"
     ];
     if (!allowedHosts.includes(parsedUrl.hostname)) {
       return NextResponse.json({ error: "Forbidden domain" }, { status: 400 });

@@ -94,8 +94,12 @@ const ADULT_KEYWORDS_RO = [
 ];
 
 // ----- SENSITIVE (suggestive but not explicit) -----
+// NOTE: "sexy", "seductive", "sensual" intentionally NOT in this list —
+// AliExpress marketing uses these words on regular fashion (tops, dresses,
+// lipstick, casual bodysuits). Category match + explicit terms below catch
+// real lingerie. Removing those keywords downgrades ~4800 false positives.
 const SENSITIVE_KEYWORDS_EN = [
-  "sexy", "seductive", "sensual", "intimate wear", "lingerie set",
+  "intimate wear", "lingerie set",
   "thong", "g-string", "crotchless", "fishnet", "babydoll",
   "garter belt", "suspender belt", "bustier", "corset lingerie",
   "see through", "see-through", "sheer lace", "transparent lingerie",
@@ -105,7 +109,7 @@ const SENSITIVE_KEYWORDS_EN = [
   "bulge", "sissy", "lolita dress",
 ];
 const SENSITIVE_KEYWORDS_RU = [
-  "сексуальн", "соблазнительн", "эротичн", "нижнее белье женское сексуальн",
+  "эротичн", "нижнее белье женское сексуальн",
   "интимн", "пеньюар", "стринги",
 ];
 const SENSITIVE_KEYWORDS_RO = [
