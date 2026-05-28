@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bot, Bookmark, ChevronDown, ChevronRight, ClipboardList, Compass, Flame, Grid3x3, Home, LogOut, Menu, MessageCircle, Package, Plus, Search, Send, Shield, ShoppingCart, SlidersHorizontal, Sparkles, Star, Tag, Trophy, Truck, Upload, User, X, Zap } from "lucide-react";
 import ProductFeed from "./ProductFeed";
 import { THEME, commerceBadgeClass, translateCategory } from "@/lib/ui/theme";
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 
 import Image from "next/image";
 

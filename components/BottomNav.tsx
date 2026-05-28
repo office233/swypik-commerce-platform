@@ -1,8 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import Link from "next/link";
+import { Link, usePathname } from "@/lib/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Home, Search, Plus, Inbox, User } from "lucide-react";
 import { isEnabledClient } from "@/lib/feature-flags-client";

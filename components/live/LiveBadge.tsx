@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { Radio } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";

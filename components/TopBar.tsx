@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { useEffect, useState } from "react";
 import { Inbox, LayoutGrid, ShoppingBag } from "lucide-react";
 import Logo from "@/components/Logo";
