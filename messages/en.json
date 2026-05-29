@@ -76,5 +76,28 @@
     "preferences": "Preferences",
     "selectLanguage": "Select language",
     "selectCurrency": "Select currency"
+  },
+  "cookies": {
+    "title": "Cookies & Privacy",
+    "description": "We use essential cookies to run Swypik. With your permission, we'll also enable analytics and marketing cookies to improve your experience.",
+    "gdprNote": "Under GDPR, you need to opt in explicitly.",
+    "acceptAll": "Accept all",
+    "essentialOnly": "Essential only",
+    "savePreferences": "Save preferences",
+    "detailedSettings": "Detailed settings",
+    "learnMore": "Learn more",
+    "essential": "Essential",
+    "essentialDesc": "Authentication, session, security. Can't be disabled.",
+    "analytics": "Analytics",
+    "analyticsDesc": "Anonymous usage statistics.",
+    "marketing": "Marketing",
+    "marketingDesc": "Content personalization and campaign measurement."
+  },
+  "banners": {
+    "emailVerify": "Verify your email to unlock your account.",
+    "emailVerifyResent": "New code sent to <b>{email}</b>. Check your inbox.",
+    "emailVerifyResend": "Resend code",
+    "emailVerifyResendSent": "Sent ✓",
+    "emailVerifyGrace": "Verify your email in {count, plural, one {# day} other {# days}} or you'll lose access."
   }
 }

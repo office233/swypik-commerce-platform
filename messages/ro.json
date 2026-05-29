@@ -76,5 +76,28 @@
     "preferences": "Preferințe",
     "selectLanguage": "Alege limba",
     "selectCurrency": "Alege moneda"
+  },
+  "cookies": {
+    "title": "Cookie-uri & confidențialitate",
+    "description": "Folosim cookie-uri necesare pentru funcționarea Swypik. Cu acordul tău activăm și cookies analitice și de marketing pentru a îmbunătăți experiența.",
+    "gdprNote": "Conform GDPR, ai nevoie să optezi explicit.",
+    "acceptAll": "Acceptă toate",
+    "essentialOnly": "Doar necesare",
+    "savePreferences": "Salvează preferințele",
+    "detailedSettings": "Setări detaliate",
+    "learnMore": "Află mai multe",
+    "essential": "Necesare",
+    "essentialDesc": "Autentificare, sesiune, securitate. Nu pot fi dezactivate.",
+    "analytics": "Analitice",
+    "analyticsDesc": "Statistici de utilizare anonimizate.",
+    "marketing": "Marketing",
+    "marketingDesc": "Personalizare conținut și măsurare campanii."
+  },
+  "banners": {
+    "emailVerify": "Confirmă emailul ca să activezi tot contul.",
+    "emailVerifyResent": "Cod nou trimis pe <b>{email}</b>. Verifică inbox-ul.",
+    "emailVerifyResend": "Retrimite",
+    "emailVerifyResendSent": "Trimis ✓",
+    "emailVerifyGrace": "Verifică emailul în {count, plural, one {# zi} other {# zile}} ca să nu pierzi accesul."
   }
 }

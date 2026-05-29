@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 
 type Consent = {
@@ -39,6 +40,7 @@ function writeConsent(consent: Consent) {
 }
 
 export default function CookieBanner() {
+  const t = useTranslations("cookies");
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -97,31 +99,30 @@ export default function CookieBanner() {
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <h2 id="cookie-banner-title" className="font-semibold text-base mb-1">
-              Cookie-uri & confidențialitate
+              {t("title")}
             </h2>
             <p className="text-neutral-300 leading-snug">
-              Folosim cookie-uri necesare pentru funcționarea Swypik. Cu acordul tău activăm și
-              cookies analitice și de marketing pentru a îmbunătăți experiența.
-              {isEU ? " Conform GDPR, ai nevoie să optezi explicit." : ""}
+              {t("description")}
+              {isEU ? ` ${t("gdprNote")}` : ""}
             </p>
 
             {showDetails && (
               <div className="mt-3 space-y-2">
                 <ToggleRow
-                  label="Necesare"
-                  description="Autentificare, sesiune, securitate. Nu pot fi dezactivate."
+                  label={t("essential")}
+                  description={t("essentialDesc")}
                   checked
                   locked
                 />
                 <ToggleRow
-                  label="Analitice"
-                  description="Statistici de utilizare anonimizate."
+                  label={t("analytics")}
+                  description={t("analyticsDesc")}
                   checked={analytics}
                   onChange={setAnalytics}
                 />
                 <ToggleRow
-                  label="Marketing"
-                  description="Personalizare conținut și măsurare campanii."
+                  label={t("marketing")}
+                  description={t("marketingDesc")}
                   checked={marketing}
                   onChange={setMarketing}
                 />
@@ -134,14 +135,14 @@ export default function CookieBanner() {
                 onClick={acceptAll}
                 className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium"
               >
-                Acceptă toate
+                {t("acceptAll")}
               </button>
               <button
                 type="button"
                 onClick={onlyEssential}
                 className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-medium"
               >
-                Doar necesare
+                {t("essentialOnly")}
               </button>
               {showDetails ? (
                 <button
@@ -149,7 +150,7 @@ export default function CookieBanner() {
                   onClick={saveCustom}
                   className="px-3 py-1.5 rounded-lg border border-neutral-700 hover:bg-neutral-800 text-neutral-100"
                 >
-                  Salvează preferințele
+                  {t("savePreferences")}
                 </button>
               ) : (
                 <button
@@ -157,14 +158,14 @@ export default function CookieBanner() {
                   onClick={() => setShowDetails(true)}
                   className="px-3 py-1.5 rounded-lg border border-neutral-700 hover:bg-neutral-800 text-neutral-100"
                 >
-                  Setări detaliate
+                  {t("detailedSettings")}
                 </button>
               )}
               <Link
                 href="/legal/cookies"
                 className="px-3 py-1.5 text-neutral-400 hover:text-neutral-200 underline-offset-2 hover:underline"
               >
-                Află mai multe
+                {t("learnMore")}
               </Link>
             </div>
           </div>

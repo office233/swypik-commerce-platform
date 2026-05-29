@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Mail, X, Loader2 } from "lucide-react";
 
 type AuthInfo = {
@@ -13,6 +14,8 @@ type AuthInfo = {
 };
 
 export default function EmailVerifyBanner() {
+  const t = useTranslations("banners");
+  const tCommon = useTranslations("common");
   const [info, setInfo] = useState<AuthInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [sending, setSending] = useState(false);
@@ -68,15 +71,14 @@ export default function EmailVerifyBanner() {
       <div className="mx-auto flex max-w-lg items-center gap-3 px-3 py-2 text-xs text-yellow-100">
         <Mail className="h-4 w-4 flex-shrink-0 text-yellow-300" />
         <p className="flex-1 leading-snug">
-          {sent ? (
-            <>Cod nou trimis pe <b>{info.customer.email}</b>. Verifică inbox-ul.</>
-          ) : daysLeft !== null && daysLeft <= 7 ? (
-            <>
-              Verifică emailul în <b>{daysLeft} {daysLeft === 1 ? "zi" : "zile"}</b> ca să nu pierzi accesul.
-            </>
-          ) : (
-            <>Confirmă emailul ca să activezi tot contul.</>
-          )}
+          {sent
+            ? t.rich("emailVerifyResent", {
+                email: info.customer.email ?? "",
+                b: (chunks) => <b>{chunks}</b>,
+              })
+            : daysLeft !== null && daysLeft <= 7
+            ? t("emailVerifyGrace", { count: daysLeft })
+            : t("emailVerify")}
         </p>
         <button
           type="button"
@@ -84,12 +86,12 @@ export default function EmailVerifyBanner() {
           disabled={sending || sent}
           className="rounded-lg bg-yellow-500/20 px-2 py-1 font-bold text-yellow-100 hover:bg-yellow-500/30 disabled:opacity-50"
         >
-          {sending ? <Loader2 className="h-3 w-3 animate-spin" /> : sent ? "Trimis ✓" : "Retrimite"}
+          {sending ? <Loader2 className="h-3 w-3 animate-spin" /> : sent ? t("emailVerifyResendSent") : t("emailVerifyResend")}
         </button>
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Închide"
+          aria-label={tCommon("close")}
           className="rounded-lg p-1 text-yellow-100/70 hover:bg-yellow-500/20 hover:text-yellow-100"
         >
           <X className="h-4 w-4" />
