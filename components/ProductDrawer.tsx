@@ -6,6 +6,7 @@ import { X, ShoppingCart, Star, ChevronRight, ExternalLink, ThumbsUp, ThumbsDown
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { getSessionId, trackEvent as trackFeedEvent } from "@/lib/feed/track";
 import { isCurrency, type Currency } from "@/lib/i18n/config";
+import { useTranslations } from "next-intl";
 
 export interface ProductData {
   id: string | number;
@@ -64,6 +65,7 @@ function cleanProductDescription(value: unknown): string | null {
 }
 
 export default function ProductDrawer({ product, initialProduct, onClose, onBuyNow, onVoteChange }: ProductDrawerProps) {
+  const t = useTranslations("productDrawer");
   const formatPrice = useFormatPrice();
   const seed = product ?? initialProduct ?? null;
   const [data, setData] = useState<ProductData | null>(seed);
@@ -277,7 +279,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
             <button
               onClick={handleClose}
               className="p-2 bg-white/10 rounded-full hover:bg-white/20 text-white transition-colors"
-              aria-label="Închide"
+              aria-label={t("inchide")}
             >
               <X className="w-5 h-5" />
             </button>
@@ -312,7 +314,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
 
           <div className="flex justify-between items-start mb-4">
             <div>
-              <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Preț</p>
+              <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">{t("pret")}</p>
               <h2 className="text-3xl font-bold text-[#10A37F]">{productPriceDisplay}</h2>
             </div>
             {score != null && (
@@ -325,7 +327,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
               </div>
             )}
             {enriching && (
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Se încarcă detalii…</span>
+              <span className="text-[10px] uppercase tracking-wider text-white/40">{t("seIncarcaDetalii")}</span>
             )}
           </div>
 
@@ -357,7 +359,8 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
                 className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition active:scale-95 disabled:opacity-70 ${viewerVote === "worth_it" ? "border-[#10A37F] bg-[#10A37F] text-white" : "border-white/10 bg-white/10 text-white hover:bg-white/15"}`}
               >
                 {votePending === "worth_it" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="h-4 w-4" />}
-                Merită
+                
+                {t("merita")}
                 <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{worthIt}</span>
               </button>
               <button
@@ -368,7 +371,8 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
                 className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition active:scale-95 disabled:opacity-70 ${viewerVote === "not_worth_it" ? "border-red-400 bg-red-500 text-white" : "border-white/10 bg-white/10 text-white hover:bg-white/15"}`}
               >
                 {votePending === "not_worth_it" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="h-4 w-4" />}
-                Nu merită
+                
+                {t("nuMerita")}
                 <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{notWorthIt}</span>
               </button>
             </div>
@@ -419,7 +423,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
             onClick={onBuyNow}
             className="min-h-14 min-w-0 rounded-xl bg-[#10A37F] px-4 py-3 text-sm font-bold leading-none text-white shadow-[0_0_20px_rgba(16,163,127,0.3)] transition-all hover:bg-[#0e8f6e] active:scale-95"
           >
-            <span className="whitespace-nowrap">Cumpără acum</span>
+            <span className="whitespace-nowrap">{t("cumparaAcum")}</span>
           </button>
         </div>
       </div>

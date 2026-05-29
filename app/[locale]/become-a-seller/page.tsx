@@ -3,8 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function BecomeASellerPage() {
+  const t = useTranslations("becomeaseller");
   return (
     <div className="min-h-screen bg-white text-black font-sans">
       {/* Navigation */}
@@ -18,20 +20,22 @@ export default function BecomeASellerPage() {
       {/* Hero Section */}
       <section className="px-6 py-20 md:py-32 max-w-4xl mx-auto text-center">
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
-          Zero bătăi de cap.
+          
+          {t("zeroBataiDeCap")}
           <br className="hidden md:block" />
-          <span className="text-gray-400"> Expui produsele la mii de clienți.</span>
+          <span className="text-gray-400">  {t("expuiProduseleLaMii")}</span>
         </h1>
         <p className="text-lg md:text-xl text-gray-500 mb-10 max-w-2xl mx-auto">
-          Transformă-ți stocul în vânzări rapide. Alătură-te rețelei Swypik și ai acces
-          instantaneu la o audiență uriașă, fără efort de marketing din partea ta.
+          
+          {t("transformatiStoculInVanzari")}
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
             href="#apply"
             className="px-8 py-4 bg-black text-white text-sm font-semibold rounded-full hover:bg-gray-800 transition-colors flex items-center gap-2"
           >
-            Aplică acum <ArrowRight className="w-4 h-4" />
+            
+            {t("aplicaAcum")} <ArrowRight className="w-4 h-4" />
           </a>
         </div>
       </section>
@@ -43,27 +47,30 @@ export default function BecomeASellerPage() {
             <div className="w-12 h-12 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center mb-4">
               <CheckCircle2 className="w-6 h-6 text-black" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Vânzări Accelerate</h3>
+            <h3 className="font-semibold text-lg mb-2">{t("vanzariAccelerate")}</h3>
             <p className="text-sm text-gray-500">
-              Produsele tale sunt promovate direct către audiența noastră activă.
+              
+              {t("produseleTaleSuntPromovate")}
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
             <div className="w-12 h-12 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center mb-4">
               <CheckCircle2 className="w-6 h-6 text-black" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Platformă Autonomă</h3>
+            <h3 className="font-semibold text-lg mb-2">{t("platformaAutonoma")}</h3>
             <p className="text-sm text-gray-500">
-              Totul este automatizat. Preiei comanda, trimiți pachetul. Noi facem restul.
+              
+              {t("totulEsteAutomatizatPreiei")}
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
             <div className="w-12 h-12 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center mb-4">
               <CheckCircle2 className="w-6 h-6 text-black" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Fără Costuri Ascunse</h3>
+            <h3 className="font-semibold text-lg mb-2">{t("faraCosturiAscunse")}</h3>
             <p className="text-sm text-gray-500">
-              Transparență totală asupra comisioanelor și a volumelor tranzacționate.
+              
+              {t("transparentaTotalaAsupraComisioanelor")}
             </p>
           </div>
         </div>
@@ -74,7 +81,8 @@ export default function BecomeASellerPage() {
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold tracking-tight mb-3">Devino Seller Swypik</h2>
           <p className="text-gray-500">
-            Completează detaliile companiei tale, iar echipa noastră te va contacta.
+            
+            {t("completeazaDetaliileCompanieiTale")}
           </p>
         </div>
         
@@ -85,6 +93,7 @@ export default function BecomeASellerPage() {
 }
 
 function SellerForm() {
+  const t = useTranslations("becomeaseller");
   const [status, setStatus] = React.useState<"idle" | "loading" | "success" | "error">("idle");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -123,8 +132,8 @@ function SellerForm() {
         <div className="w-16 h-16 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 className="w-8 h-8" />
         </div>
-        <h3 className="text-2xl font-bold mb-2">Aplicația ta a fost primită!</h3>
-        <p className="text-gray-500">O vom analiza în 24h și te vom contacta.</p>
+        <h3 className="text-2xl font-bold mb-2">{t("aplicatiaTaAFost")}</h3>
+        <p className="text-gray-500">{t("oVomAnalizaIn")}</p>
       </div>
     );
   }
@@ -133,7 +142,8 @@ function SellerForm() {
     <form onSubmit={handleSubmit} className="space-y-5 border border-[#E5E5E5] p-6 md:p-8 rounded-2xl bg-white">
       {status === "error" && (
         <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg">
-          A apărut o eroare. Te rugăm să încerci din nou.
+          
+          {t("aAparutOEroare")}
         </div>
       )}
       
@@ -201,7 +211,8 @@ function SellerForm() {
 
       <div className="space-y-1.5">
         <label htmlFor="productType" className="text-sm font-medium text-black block">
-          Ce tip de produse vinzi?
+          
+          {t("ceTipDeProduse")}
         </label>
         <textarea
           id="productType"
@@ -209,7 +220,7 @@ function SellerForm() {
           required
           rows={3}
           className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all resize-none"
-          placeholder="Haine, electronice, decorațiuni, etc..."
+          placeholder={t("haineElectroniceDecoratiuniEtc")}
         />
       </div>
 

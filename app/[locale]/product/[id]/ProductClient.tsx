@@ -10,6 +10,7 @@ import type { Product } from "@/types/product";
 
 import type { ProductDetail } from "@/lib/products/get-product-detail";
 import VideoSection from "./VideoSection";
+import { useTranslations } from "next-intl";
 
 /* Types */
 type Variant = {
@@ -36,6 +37,7 @@ function dedupeSizes(sizes: ColorData["sizes"]): ColorData["sizes"] {
 type Props = { initialData?: ProductDetail | null; initialVideos?: any[] };
 
 export default function ProductClient({ initialData, initialVideos }: Props) {
+  const t = useTranslations("product");
   const { id } = useParams();
   const router = useRouter();
   const [product, setProduct] = useState<any>(initialData?.product || null);
@@ -149,7 +151,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="text-center">
         <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#0D0D0D]" />
-        <p className="mt-4 text-sm font-bold text-[#6E6E80]">Se încarcă produsul...</p>
+        <p className="mt-4 text-sm font-bold text-[#6E6E80]">{t("seIncarcaProdusul")}</p>
       </div>
     </div>
   );
@@ -158,9 +160,10 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   if (!product) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 px-6">
       <Package size={56} className="text-[#E5E5E5]" />
-      <p className="text-lg font-black text-[#0D0D0D]">Produsul nu a fost găsit</p>
+      <p className="text-lg font-black text-[#0D0D0D]">{t("produsulNuAFost")}</p>
       <button onClick={() => router.push('/')} className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">
-        ← Înapoi la magazin
+        
+        {t("inapoiLaMagazin")}
       </button>
     </div>
   );
@@ -239,16 +242,16 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
     <main className="min-h-screen bg-white pb-32" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} aria-label={`Pagină produs: ${product.title}`}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
+        <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label={t("inapoi")}>
           <ArrowLeft size={16} />
         </button>
         <span className="flex-1 text-sm font-semibold text-[#6E6E80] truncate">
           {product.category || 'Produs'}
         </span>
-        <button onClick={toggleSave} disabled={savePending} className={`grid h-11 w-11 place-items-center rounded-xl border transition-all active:scale-90 disabled:opacity-60 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`} aria-label="Salvează" aria-pressed={liked}>
+        <button onClick={toggleSave} disabled={savePending} className={`grid h-11 w-11 place-items-center rounded-xl border transition-all active:scale-90 disabled:opacity-60 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`} aria-label={t("salveaza")} aria-pressed={liked}>
           <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
         </button>
-        <button onClick={() => router.push('/')} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Acasă">
+        <button onClick={() => router.push('/')} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label={t("acasa")}>
           <Home size={16} />
         </button>
       </header>
@@ -287,12 +290,12 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               </span>
             )}
             {displayImages.length > 1 && selectedImage > 0 && (
-              <button onClick={() => setSelectedImage(selectedImage - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înapoi">
+              <button onClick={() => setSelectedImage(selectedImage - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label={t("inapoi2")}>
                 <ChevronLeft size={18} />
               </button>
             )}
             {displayImages.length > 1 && selectedImage < displayImages.length - 1 && (
-              <button onClick={() => setSelectedImage(selectedImage + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label="Înainte">
+              <button onClick={() => setSelectedImage(selectedImage + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-white/90 shadow-lg border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label={t("inainte")}>
                 <ChevronRight size={18} />
               </button>
             )}
@@ -349,7 +352,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           </span>
           <span className="flex items-center gap-1">
             <ShoppingCart size={14} />
-            {product.ordersCount} vândute
+            {product.ordersCount}  {t("vandute")}
           </span>
         </div>
 
@@ -401,7 +404,8 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         {selectedColor && selectedColorSizes.length > 0 && (
           <div className="mb-5">
             <div className="text-sm font-bold text-[#0D0D0D] mb-2">
-              Mărime: <span className="text-[#0D0D0D]">{selectedSize}</span>
+              
+              {t("marime")} <span className="text-[#0D0D0D]">{selectedSize}</span>
             </div>
             <div className="flex gap-2 flex-wrap">
               {selectedColorSizes.map(s => (
@@ -435,7 +439,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             </button>
           </div>
           {currentStock > 0 && (
-            <span className="text-xs font-semibold text-[#0D0D0D] bg-[#0D0D0D]/10 px-3 py-1.5 rounded-full">{currentStock} în stoc</span>
+            <span className="text-xs font-semibold text-[#0D0D0D] bg-[#0D0D0D]/10 px-3 py-1.5 rounded-full">{currentStock}  {t("inStoc")}</span>
           )}
         </div>
 
@@ -443,7 +447,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         {activeTab === "clips" && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {productVideos.map((video) => (
-              <button type="button" key={video.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-black cursor-pointer group text-left w-full" onClick={() => setPlayingVideo(video.playbackUrl)} aria-label="Redă clip">
+              <button type="button" key={video.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-black cursor-pointer group text-left w-full" onClick={() => setPlayingVideo(video.playbackUrl)} aria-label={t("redaClip")}>
                 {video.thumbnailUrl ? (
                   <Image
                     src={video.thumbnailUrl}
@@ -466,7 +470,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               </button>
             ))}
             {productVideos.length === 0 && (
-              <p className="text-sm font-medium text-[#6E6E80] col-span-2 text-center py-10">Nu există clipuri pentru acest produs.</p>
+              <p className="text-sm font-medium text-[#6E6E80] col-span-2 text-center py-10">{t("nuExistaClipuriPentru")}</p>
             )}
           </div>
         )}
@@ -490,7 +494,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               {product.shipTracking && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-[#6E6E80]">Tracking</span>
-                  <span className="text-sm font-bold text-[#0D0D0D]">Cu urmărire</span>
+                  <span className="text-sm font-bold text-[#0D0D0D]">{t("cuUrmarire")}</span>
                 </div>
               )}
             </div>
@@ -513,7 +517,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
 
               return details.length > 0 ? (
                 <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-4">
-                  <h3 className="text-sm font-black text-[#0D0D0D] mb-3">Detalii produs</h3>
+                  <h3 className="text-sm font-black text-[#0D0D0D] mb-3">{t("detaliiProdus")}</h3>
                   <div className="space-y-2">
                     {details.map(([label, value]) => (
                       <div key={label as string} className="flex justify-between text-sm border-b border-[#E5E5E5]/50 pb-2 last:border-0 last:pb-0">
@@ -534,7 +538,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-[#6E6E80] uppercase">Vândut de</p>
+                    <p className="text-xs font-bold text-[#6E6E80] uppercase">{t("vandutDe")}</p>
                     <p className="text-sm font-black text-[#0D0D0D]">{product.seller.name}</p>
                   </div>
                   <span className="text-xs font-bold text-[#7C3AED]">Vezi magazin →</span>
@@ -629,7 +633,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       {/* Lightbox Modal */}
       {playingVideo && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fadeIn" onClick={() => setPlayingVideo(null)}>
-          <button className="absolute top-4 right-4 grid h-11 w-11 place-items-center text-white rounded-full bg-white/10 backdrop-blur hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Închide" onClick={() => setPlayingVideo(null)}>✕</button>
+          <button className="absolute top-4 right-4 grid h-11 w-11 place-items-center text-white rounded-full bg-white/10 backdrop-blur hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("inchide")} onClick={() => setPlayingVideo(null)}>✕</button>
           <video src={playingVideo} autoPlay controls playsInline className="w-full max-w-sm max-h-[80vh] rounded-2xl object-contain shadow-2xl" onClick={e => e.stopPropagation()} />
         </div>
       )}
@@ -650,7 +654,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           {process.env.NEXT_PUBLIC_FEATURE_TRY_ON === "1" && (
             <Link
               href={`/try-on/${product.id}`}
-              aria-label="Probează virtual"
+              aria-label={t("probeazaVirtual")}
               className="flex items-center justify-center rounded-2xl bg-[#7C3AED] px-4 py-3.5 text-lg shadow-xl active:scale-95 transition-transform"
             >
               🪞
@@ -667,7 +671,8 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       {/* Toast */}
       {addedToCart && (
         <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#0D0D0D] px-5 py-2.5 text-sm font-black text-white shadow-xl animate-slideUp">
-          Adăugat în coș!
+          
+          {t("adaugatInCos")}
         </div>
       )}
     </main>

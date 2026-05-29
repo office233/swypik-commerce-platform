@@ -127,9 +127,9 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} aria-label="Coș de cumpărături">
+    <main className="min-h-screen bg-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} aria-label={t("cosDeCumparaturi")}>
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Înapoi">
+        <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("inapoi")}>
           <ArrowLeft size={16} />
         </button>
         <div className="flex-1">
@@ -140,7 +140,8 @@ export default function CartPage() {
         </div>
         {items.length > 0 && (
           <button onClick={() => { if (confirm("Ești sigur că vrei să golești coșul?")) clearCart(); }} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-2 rounded-lg bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none min-h-[36px]">
-            Golește coșul
+            
+            {t("golesteCosul")}
           </button>
         )}
       </header>
@@ -151,9 +152,9 @@ export default function CartPage() {
             <ShoppingCart size={36} className="text-[#D1D1D6]" />
           </div>
           <h2 className="text-xl font-black text-[#0D0D0D] mb-2">{t("empty")}</h2>
-          <p className="text-sm text-[#6E6E80] mb-6 max-w-xs">Explorează feed-ul sau magazinul pentru a descoperi produse noi.</p>
+          <p className="text-sm text-[#6E6E80] mb-6 max-w-xs">{t("exploreazaFeedulSauMagazinul")}</p>
           <div className="flex gap-3">
-            <Link href="/explore" className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">Explorează Feed</Link>
+            <Link href="/explore" className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">{t("exploreazaFeed")}</Link>
             <Link href="/" className="rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] px-6 py-3 text-sm font-bold text-[#0D0D0D] active:scale-95 transition-transform">Magazin</Link>
           </div>
         </div>
@@ -181,7 +182,7 @@ export default function CartPage() {
                           <Minus size={14} />
                         </button>
                         <span className="min-w-[44px] h-11 flex items-center justify-center text-sm font-black text-[#0D0D0D] border-x border-[#E5E5E5]" aria-live="polite">{item.quantity}</span>
-                        <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= 99} className="w-11 h-11 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Adaugă">
+                        <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= 99} className="w-11 h-11 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("adauga")}>
                           <Plus size={14} />
                         </button>
                       </div>
@@ -193,7 +194,7 @@ export default function CartPage() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => { if (confirm("Ești sigur că vrei să ștergi acest produs din coș?")) removeItem(item); }} className="self-start grid h-11 w-11 place-items-center rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none" aria-label="Șterge">
+                  <button onClick={() => { if (confirm("Ești sigur că vrei să ștergi acest produs din coș?")) removeItem(item); }} className="self-start grid h-11 w-11 place-items-center rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none" aria-label={t("sterge")}>
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -201,8 +202,8 @@ export default function CartPage() {
             })}
           </div>
           <div className="mt-6 p-4 rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5]">
-            <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-wider mb-2">💡 Livrare gratuită</p>
-            <p className="text-sm text-[#0D0D0D] font-semibold">Toate comenzile au livrare gratuită pe Swypik.</p>
+            <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-wider mb-2">{t("livrareGratuita")}</p>
+            <p className="text-sm text-[#0D0D0D] font-semibold">{t("toateComenzileAuLivrare")}</p>
           </div>
         </div>
       )}
@@ -219,9 +220,10 @@ export default function CartPage() {
               <span className="text-xs text-[#A1A1AA]">{t("taxCalculatedAtCheckout")}</span>
             </div>
             <Link href="/checkout" className="block w-full rounded-2xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white active:scale-[0.98] transition-transform shadow-xl">
-              🔒 Finalizează comanda — {formatPrice(subtotalCents, { sourceCurrency: currency as any })}
+              
+              {t("finalizeazaComanda")} {formatPrice(subtotalCents, { sourceCurrency: currency as any })}
             </Link>
-            <p className="text-center text-xs text-[#A1A1AA] mt-2">Plata securizată prin Stripe • Livrare gratuită</p>
+            <p className="text-center text-xs text-[#A1A1AA] mt-2">{t("plataSecurizataPrinStripe")}</p>
           </div>
         </div>
       )}

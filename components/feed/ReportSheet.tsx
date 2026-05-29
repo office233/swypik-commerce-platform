@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X, Flag, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Category = "spam" | "explicit" | "harassment" | "misinformation" | "copyright" | "other";
 
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export default function ReportSheet({ videoId, onClose, onSubmitted }: Props) {
+  const t = useTranslations("reportSheet");
   const [category, setCategory] = useState<Category>("spam");
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -78,19 +80,19 @@ export default function ReportSheet({ videoId, onClose, onSubmitted }: Props) {
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 id="report-sheet-title" className="flex items-center gap-2 text-base font-black text-[#0D0D0D]">
-            <Flag className="h-5 w-5 text-rose-500" /> Raportează videoclip
+            <Flag className="h-5 w-5 text-rose-500" />  {t("raporteazaVideoclip")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Închide"
+            aria-label={t("inchide")}
             className="rounded-full p-1 hover:bg-[#F7F7F8]"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="mb-3 text-xs text-[#6E6E80]">Selectează motivul raportării:</p>
+        <p className="mb-3 text-xs text-[#6E6E80]">{t("selecteazaMotivulRaportarii")}</p>
 
         <fieldset className="mb-4 space-y-1.5">
           <legend className="sr-only">Categorie raport</legend>
@@ -113,7 +115,8 @@ export default function ReportSheet({ videoId, onClose, onSubmitted }: Props) {
         </fieldset>
 
         <label htmlFor="report-details" className="mb-1.5 block text-sm font-bold text-[#0D0D0D]">
-          Detalii (opțional)
+          
+          {t("detaliiOptional")}
         </label>
         <textarea
           id="report-details"
@@ -121,7 +124,7 @@ export default function ReportSheet({ videoId, onClose, onSubmitted }: Props) {
           value={details}
           onChange={(e) => setDetails(e.target.value)}
           maxLength={1000}
-          placeholder="Adaugă context..."
+          placeholder={t("adaugaContext")}
           className="w-full resize-none rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-3 py-2.5 text-sm text-[#0D0D0D] placeholder-[#A1A1AA] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#0D0D0D]"
         />
 

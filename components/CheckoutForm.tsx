@@ -5,6 +5,7 @@ import { Link } from "@/lib/i18n/navigation";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements, AddressElement } from "@stripe/react-stripe-js";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { useTranslations } from "next-intl";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -44,6 +45,7 @@ type SavedAddress = {
 };
 
 function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: number; orderId: string; orderLookupToken: string }) {
+  const t = useTranslations("checkoutForm");
   const formatPrice = useFormatPrice();
   const stripe = useStripe();
   const elements = useElements();
@@ -119,11 +121,12 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
     <form onSubmit={handleSubmit}>
       {/* Shipping Address */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold mb-3 text-[#0D0D0D]">📍 Adresa de livrare</h2>
+        <h2 className="text-lg font-bold mb-3 text-[#0D0D0D]">{t("adresaDeLivrare")}</h2>
         {savedAddresses.length > 0 && (
           <div className="mb-3 rounded-xl border border-[#E5E5E5] bg-white p-3">
             <label className="block text-xs font-bold text-[#6E6E80] mb-2 uppercase tracking-wider">
-              Folosește o adresă salvată
+              
+              {t("folosesteOAdresaSalvata")}
             </label>
             <select
               value={selectedAddrId}
@@ -137,13 +140,14 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
                   {a.recipient_name}, {a.line1}, {a.city}
                 </option>
               ))}
-              <option value="new">+ Adaugă adresă nouă</option>
+              <option value="new">{t("adaugaAdresaNoua")}</option>
             </select>
             <Link
               href="/account/addresses"
               className="mt-2 inline-block text-[11px] font-medium text-[#10A37F] hover:underline"
             >
-              Gestionează adresele
+              
+              {t("gestioneazaAdresele")}
             </Link>
           </div>
         )}
@@ -187,10 +191,11 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
         {isProcessing ? (
           <span className="flex items-center justify-center gap-2">
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Se procesează plata...
+            
+            {t("seProceseazaPlata")}
           </span>
         ) : (
-          <>🔒 Plătește {formatPrice(Math.round(totalRon * 100), { sourceCurrency: "RON" })}</>
+          <>{t("plateste")} {formatPrice(Math.round(totalRon * 100), { sourceCurrency: "RON" })}</>
         )}
       </button>
 
@@ -198,11 +203,12 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
-        Plata este procesată securizat prin Stripe
+        
+        {t("plataEsteProcesataSecurizat")}
       </div>
 
       <div className="mt-4 flex items-center justify-center gap-3 opacity-60">
-        <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider">Acceptăm</span>
+        <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider">{t("acceptam")}</span>
         <span className="text-lg">💳</span>
         <span className="text-[10px] font-bold text-[#0D0D0D]">Visa</span>
         <span className="text-[10px] font-bold text-[#0D0D0D]">Mastercard</span>
@@ -215,6 +221,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
    Main Checkout Form component
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export default function CheckoutForm() {
+  const t = useTranslations("checkoutForm");
   const formatPrice = useFormatPrice();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [email, setEmail] = useState("");
@@ -353,7 +360,7 @@ export default function CheckoutForm() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-sm font-medium text-[#6E6E80]">Se încarcă checkout-ul securizat...</p>
+          <p className="mt-4 text-sm font-medium text-[#6E6E80]">{t("seIncarcaCheckoutulSecurizat")}</p>
         </div>
       </div>
     );
@@ -364,10 +371,11 @@ export default function CheckoutForm() {
       <div className="min-h-[60vh] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <div className="text-6xl mb-4">🛒</div>
-          <h2 className="text-xl font-black text-[#0D0D0D] mb-2">Coș gol</h2>
+          <h2 className="text-xl font-black text-[#0D0D0D] mb-2">{t("cosGol")}</h2>
           <p className="text-sm text-[#6E6E80] mb-6">{error}</p>
           <Link href="/" className="inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]">
-            Înapoi la magazin
+            
+            {t("inapoiLaMagazin")}
           </Link>
         </div>
       </div>
@@ -430,7 +438,8 @@ export default function CheckoutForm() {
           {/* Cart Items Summary */}
           <section>
             <h2 className="text-xl font-bold mb-4 text-[#0D0D0D]">
-              Produsele tale ({cartItems.reduce((s, i) => s + i.qty, 0)})
+              
+              {t("produseleTale")}{cartItems.reduce((s, i) => s + i.qty, 0)})
             </h2>
             <div className="space-y-3">
               {cartItems.map((item, idx) => (
@@ -451,7 +460,7 @@ export default function CheckoutForm() {
                         <span className="w-7 h-7 flex items-center justify-center text-xs font-bold text-[#0D0D0D] border-x border-[#E5E5E5]">{item.qty}</span>
                         <button onClick={() => updateQuantity(idx, item.qty + 1)} disabled={item.qty >= 10} className="w-7 h-7 flex items-center justify-center text-[#6E6E80] hover:bg-[#F7F7F8] disabled:opacity-30 transition text-xs">+</button>
                       </div>
-                      <button onClick={() => removeItem(idx)} className="text-xs text-red-500 hover:text-red-700 font-medium transition">Șterge</button>
+                      <button onClick={() => removeItem(idx)} className="text-xs text-red-500 hover:text-red-700 font-medium transition">{t("sterge")}</button>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -471,7 +480,7 @@ export default function CheckoutForm() {
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="w-10 h-10 border-3 border-[#E5E5E5] border-t-[#10A37F] rounded-full animate-spin mx-auto" />
-                <p className="mt-4 text-sm font-medium text-[#6E6E80]">Se pregătește formularul de plată...</p>
+                <p className="mt-4 text-sm font-medium text-[#6E6E80]">{t("sePregatesteFormularulDe")}</p>
               </div>
             </div>
           ) : error ? (
@@ -484,7 +493,7 @@ export default function CheckoutForm() {
         {/* Right Col — Order Summary */}
         <div className="w-full lg:w-[360px]">
           <div className="max-h-[55vh] overflow-y-auto rounded-2xl bg-[#F7F7F8] p-4 border border-[#E5E5E5] sm:p-6 lg:sticky lg:top-8 lg:max-h-none">
-            <h2 className="text-lg font-bold mb-6 text-[#0D0D0D]">Sumar comandă</h2>
+            <h2 className="text-lg font-bold mb-6 text-[#0D0D0D]">{t("sumarComanda")}</h2>
             <div className="space-y-3 mb-6 max-h-[30vh] overflow-y-auto pr-2">
               {cartItems.map((item, idx) => (
                 <div key={idx} className="flex gap-3">

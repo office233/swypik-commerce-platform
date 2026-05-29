@@ -6,12 +6,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, TrendingUp, Swords } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
+import { useTranslations } from "next-intl";
 
 type AccountPageClientProps = {
   redirectTo: string;
 };
 
 export default function AccountPageClient({ redirectTo }: AccountPageClientProps) {
+  const t = useTranslations("account");
   const [view, setView] = useState<"loading" | "login" | "verify" | "account">("loading");
   const [customer, setCustomer] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -168,7 +170,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         <div className="max-w-sm mx-auto px-6 pt-24">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-black mb-2">Autentificare</h1>
-            <p className="text-white/60">Introdu emailul pentru a intra în contul tău Swypik.</p>
+            <p className="text-white/60">{t("introduEmailulPentruA")}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -176,7 +178,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Emailul tău"
+              placeholder={t("emailulTau")}
               autoFocus
               required
               className="w-full rounded-2xl bg-white/5 border border-white/10 px-5 py-4 text-white placeholder-white/40 outline-none focus:border-[#7C3AED] transition"
@@ -202,12 +204,12 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         <div className="max-w-sm mx-auto px-6 pt-24">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-black mb-2">Verificare</h1>
-            <p className="text-white/60">Codul a fost trimis la <br/><b className="text-white">{email}</b></p>
+            <p className="text-white/60">{t("codulAFostTrimis")} <br/><b className="text-white">{email}</b></p>
           </div>
 
           {devOtp && (
             <div className="mb-8 rounded-2xl border border-[#0D0D0D]/30 bg-[#0D0D0D]/10 p-6 text-center">
-              <p className="text-xs font-bold text-[#0D0D0D] uppercase tracking-widest mb-2">🔧 Cod de Test</p>
+              <p className="text-xs font-bold text-[#0D0D0D] uppercase tracking-widest mb-2">{t("codDeTest")}</p>
               <p className="text-4xl font-black text-white tracking-[0.3em] font-mono">{devOtp}</p>
             </div>
           )}
@@ -248,7 +250,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         <Link
           href="/account/settings"
           className="grid h-11 w-11 place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
-          aria-label="Setări"
+          aria-label={t("setari")}
         >
           <Settings size={22} />
         </Link>
@@ -273,11 +275,11 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           <div className="flex items-center justify-center gap-8 w-full px-8 mb-6">
             <div className="text-center">
               <p className="text-lg font-black">0</p>
-              <p className="text-xs text-white/60">Urmăriri</p>
+              <p className="text-xs text-white/60">{t("urmariri")}</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-black">0</p>
-              <p className="text-xs text-white/60">Urmăritori</p>
+              <p className="text-xs text-white/60">{t("urmaritori")}</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-black">0</p>
@@ -290,10 +292,11 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               href="/upload" 
               className="flex-1 bg-[#7C3AED] hover:bg-[#E0264A] text-white py-3 min-h-[44px] rounded-lg font-bold flex items-center justify-center gap-2 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
             >
-              <Plus size={18} /> Publică
+              <Plus size={18} />  {t("publica")}
             </Link>
             <Link href="/account/edit" className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 min-h-[44px] flex items-center justify-center rounded-lg font-bold text-center transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-              Editează
+              
+              {t("editeaza")}
             </Link>
           </div>
         </div>
@@ -301,7 +304,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         {/* Coins & Provocari */}
         <section aria-label="Coins si provocari" className="mb-6">
           <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-sm font-black uppercase tracking-wider text-white/70">Coins & Provocări</h3>
+            <h3 className="text-sm font-black uppercase tracking-wider text-white/70">{t("coinsProvocari")}</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Link
@@ -317,7 +320,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Portofel SWYP</p>
               <p className="mt-1 text-xl font-black text-white">
                 {walletBalance === null ? (
-                  <span className="inline-block h-5 w-16 rounded bg-white/10 animate-pulse align-middle" aria-label="se încarcă" />
+                  <span className="inline-block h-5 w-16 rounded bg-white/10 animate-pulse align-middle" aria-label={t("seIncarca")} />
                 ) : (
                   <>{walletBalance.toLocaleString("ro-RO")} <span className="text-xs text-white/50 font-bold">coins</span></>
                 )}
@@ -335,23 +338,23 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                 </div>
                 <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
               </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Provocări active</p>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">{t("provocariActive")}</p>
               <p className="mt-1 text-xl font-black text-white">
                 {challengesCount === null ? (
-                  <span className="inline-block h-5 w-10 rounded bg-white/10 animate-pulse align-middle" aria-label="se încarcă" />
+                  <span className="inline-block h-5 w-10 rounded bg-white/10 animate-pulse align-middle" aria-label={t("seIncarca2")} />
                 ) : (
                   <>{challengesCount} <span className="text-xs text-white/50 font-bold">{challengesCount === 1 ? "activă" : "active"}</span></>
                 )}
               </p>
-              <p className="mt-1 text-xs text-[#EC4899] font-bold">Vezi provocări →</p>
+              <p className="mt-1 text-xs text-[#EC4899] font-bold">{t("veziProvocari")}</p>
             </Link>
           </div>
         </section>
 
         {/* Descoperă */}
-        <section aria-label="Descoperă" className="mb-6">
+        <section aria-label={t("descopera")} className="mb-6">
           <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-sm font-black uppercase tracking-wider text-white/70">Descoperă</h3>
+            <h3 className="text-sm font-black uppercase tracking-wider text-white/70">{t("descopera2")}</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Link
@@ -381,7 +384,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               </div>
               <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Voturi & dueluri</p>
               <p className="mt-1 text-xl font-black text-white">Battles</p>
-              <p className="mt-1 text-xs text-[#F59E0B] font-bold">Intră în arenă →</p>
+              <p className="mt-1 text-xs text-[#F59E0B] font-bold">{t("intraInArena")}</p>
             </Link>
           </div>
         </section>
@@ -418,7 +421,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               {videos.length === 0 ? (
                 <div className="col-span-3 py-20 text-center text-white/40">
                   <Video size={32} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nu ai publicat încă niciun clip.</p>
+                  <p className="text-sm">{t("nuAiPublicatInca")}</p>
                 </div>
               ) : (
                 videos.map((vid, i) => (
@@ -438,7 +441,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           {activeTab === "saved" && (
             <div className="py-20 text-center text-white/40">
               <Bookmark size={32} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Clipuri salvate vor apărea aici.</p>
+              <p className="text-sm">{t("clipuriSalvateVorAparea")}</p>
             </div>
           )}
 
@@ -447,13 +450,13 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               {orders.length === 0 ? (
                 <div className="text-center py-10 text-white/40">
                   <Package size={32} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nu ai nicio comandă.</p>
+                  <p className="text-sm">{t("nuAiNicioComanda")}</p>
                 </div>
               ) : (
                 orders.map((order, i) => (
                   <div key={i} className="bg-white/5 rounded-xl p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-sm">Comanda #{order.id.split("-")[0]}</p>
+                      <p className="font-bold text-sm">{t("comanda")}{order.id.split("-")[0]}</p>
                       <p className="text-xs text-white/50">{order.status}</p>
                     </div>
                     <p className="font-black text-[#0D0D0D]">{order.totalRon} lei</p>

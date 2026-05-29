@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, BadgeCheck, ShoppingBag, Video, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export type SuggestedCreator = {
   id: string;
@@ -25,6 +26,7 @@ function formatCount(n: number): string {
 }
 
 export default function OnboardingModal({ initialCreators }: Props) {
+  const t = useTranslations("onboardingModal");
   const router = useRouter();
   const [open, setOpen] = useState(true);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -103,7 +105,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
         <button
           type="button"
           onClick={() => void handleClose()}
-          aria-label="Închide"
+          aria-label={t("inchide")}
           className="absolute top-3 right-3 p-2 rounded-full hover:bg-black/5 transition"
         >
           <X className="w-5 h-5" />
@@ -122,10 +124,12 @@ export default function OnboardingModal({ initialCreators }: Props) {
           {step === 1 && (
             <div className="space-y-5 text-center">
               <h2 id="onboarding-title" className="text-2xl font-bold">
-                Bun venit pe Swypik!
+                
+                {t("bunVenitPeSwypik")}
               </h2>
               <p className="text-sm text-black/70">
-                Descoperă produse prin clipuri scurte, urmărește creatori și câștigă SWYP.
+                
+                {t("descoperaProdusePrinClipuri")}
               </p>
               <div className="grid grid-cols-3 gap-3 mt-6">
                 <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-black/5">
@@ -154,15 +158,18 @@ export default function OnboardingModal({ initialCreators }: Props) {
           {step === 2 && (
             <div className="space-y-4">
               <h2 id="onboarding-title" className="text-xl font-bold">
-                Urmărește creatori
+                
+                {t("urmaresteCreatori")}
               </h2>
               <p className="text-sm text-black/60">
-                Alege câțiva creatori ca să-ți personalizăm feedul.
+                
+                {t("alegeCativaCreatoriCa")}
               </p>
 
               {creators.length === 0 ? (
                 <p className="text-sm text-black/50 py-6 text-center">
-                  Nu sunt sugestii disponibile momentan.
+                  
+                  {t("nuSuntSugestiiDisponibile")}
                 </p>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
@@ -194,7 +201,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
                           </span>
                         )}
                         <span className="text-[10px] text-black/40 mb-2">
-                          {formatCount(c.followerCount)} urmăritori
+                          {formatCount(c.followerCount)}  {t("urmaritori")}
                         </span>
                         <button
                           type="button"
@@ -214,14 +221,16 @@ export default function OnboardingModal({ initialCreators }: Props) {
 
               <div className="flex items-center justify-between gap-3 pt-2">
                 <span className="text-xs text-black/60">
-                  Ai urmărit {following.size} {following.size === 1 ? "creator" : "creatori"}
+                  
+                  {t("aiUrmarit")} {following.size} {following.size === 1 ? "creator" : "creatori"}
                 </span>
                 <button
                   type="button"
                   onClick={() => setStep(3)}
                   className="px-5 py-2.5 rounded-full bg-black text-white text-sm font-semibold hover:bg-black/85 transition"
                 >
-                  Continuă
+                  
+                  {t("continua")}
                 </button>
               </div>
             </div>
@@ -230,10 +239,12 @@ export default function OnboardingModal({ initialCreators }: Props) {
           {step === 3 && (
             <div className="space-y-5 text-center">
               <h2 id="onboarding-title" className="text-2xl font-bold">
-                Începe să descoperi
+                
+                {t("incepeSaDescoperi")}
               </h2>
               <p className="text-sm text-black/70">
-                Feedul tău e gata. Glisează în sus ca să vezi clipuri noi.
+                
+                {t("feedulTauEGata")}
               </p>
               <div className="py-6">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-black text-white">
@@ -245,7 +256,8 @@ export default function OnboardingModal({ initialCreators }: Props) {
                 onClick={() => void goToFeed()}
                 className="w-full py-3 rounded-full bg-black text-white font-semibold hover:bg-black/85 transition"
               >
-                Mergi la feed
+                
+                {t("mergiLaFeed")}
               </button>
             </div>
           )}

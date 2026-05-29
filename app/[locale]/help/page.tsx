@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
+import { useTranslations } from "next-intl";
 
 export const metadata: Metadata = {
   title: "Ajutor — Swypik",
@@ -35,10 +36,11 @@ const FAQ = [
 ];
 
 export default function HelpPage() {
+  const t = useTranslations("help");
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-bold mb-2">Ajutor & Întrebări frecvente</h1>
-      <p className="text-zinc-600 mb-8">Nu găsești ce ai nevoie? Scrie-ne la <a className="underline" href="mailto:suport@swypik.com">suport@swypik.com</a>.</p>
+      <h1 className="text-3xl font-bold mb-2">{t("ajutorIntrebariFrecvente")}</h1>
+      <p className="text-zinc-600 mb-8">{t("nuGasestiCeAi")} <a className="underline" href="mailto:suport@swypik.com">suport@swypik.com</a>.</p>
       <div className="space-y-4">
         {FAQ.map((item) => (
           <details key={item.q} className="rounded-lg border border-zinc-200 bg-white p-4">
@@ -49,7 +51,7 @@ export default function HelpPage() {
       </div>
       <div className="mt-10 flex flex-wrap gap-4 text-sm">
         <Link href="/terms" className="underline">Termeni</Link>
-        <Link href="/privacy" className="underline">Confidențialitate</Link>
+        <Link href="/privacy" className="underline">{t("confidentialitate")}</Link>
         <Link href="/account/returns" className="underline">Retururi</Link>
         <Link href="/about" className="underline">Despre Swypik</Link>
       </div>

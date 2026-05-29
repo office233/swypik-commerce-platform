@@ -4,6 +4,7 @@ import PurchaseTracker from "@/components/PurchaseTracker";
 import { getStripe } from "@/lib/stripe/checkout";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import crypto from "crypto";
+import { getTranslations } from "next-intl/server";
 
 function tokensMatch(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
@@ -26,6 +27,7 @@ export default async function CheckoutSuccess({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const t = await getTranslations("success");
   const sp = await searchParams;
   let order: any = null;
   let lookupError = false;
@@ -292,7 +294,7 @@ export default async function CheckoutSuccess({
                     <div className="mt-4 border-t border-[#E5E5E5] pt-4 text-sm">
                       {shipping && (
                         <>
-                          <p className="mb-1 text-xs font-bold uppercase text-[#6E6E80]">Livrare către</p>
+                          <p className="mb-1 text-xs font-bold uppercase text-[#6E6E80]">{t("livrareCatre")}</p>
                           <p className="font-medium text-[#0D0D0D]">{shipping.name}</p>
                           <p className="text-[#6E6E80]">
                             {[shipping.line1, shipping.city].filter(Boolean).join(", ")}
@@ -303,11 +305,12 @@ export default async function CheckoutSuccess({
                     </div>
                   )}
 
-                  {isPaid && <p className="mt-4 text-xs font-medium text-[#6E6E80]">Coșul local a fost golit pe acest dispozitiv.</p>}
+                  {isPaid && <p className="mt-4 text-xs font-medium text-[#6E6E80]">{t("cosulLocalAFost")}</p>}
                 </>
               ) : (
                 <div className="rounded-xl bg-white px-4 py-3 text-sm text-[#4B5563]">
-                  Nu am putut afișa încă sumarul comenzii. Confirmarea finală poate apărea după câteva momente.
+                  
+                  {t("nuAmPututAfisa")}
                 </div>
               )}
             </div>
@@ -319,20 +322,23 @@ export default async function CheckoutSuccess({
                 href={`/orders/${encodeURIComponent(sp.order_token || order.order_lookup_token || order.id)}`}
                 className="inline-block w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-transform active:scale-[0.98]"
               >
-                📦 Urmărește comanda
+                
+                {t("urmaresteComanda")}
               </Link>
             )}
             <Link
               href="/account"
               className="inline-block w-full rounded-xl border border-[#E5E5E5] bg-white py-4 text-center text-sm font-bold text-[#0D0D0D] transition-transform active:scale-[0.98]"
             >
-              Vezi contul meu
+              
+              {t("veziContulMeu")}
             </Link>
             <Link
               href="/"
               className="inline-block w-full rounded-xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white transition-transform active:scale-[0.98]"
             >
-              Înapoi la magazin
+              
+              {t("inapoiLaMagazin")}
             </Link>
           </div>
         </div>
