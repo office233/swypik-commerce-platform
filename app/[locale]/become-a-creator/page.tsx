@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Video, DollarSign, Users, TrendingUp, ArrowRight } from "lucide-react";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import BecomeCreatorButton from "./BecomeCreatorButton";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ const BENEFITS: Benefit[] = [
 ];
 
 export default async function BecomeACreatorPage() {
+  const t = await getTranslations("becomeacreator");
   const auth = await getAuthUser();
 
   if (auth.role === "creator" || auth.role === "admin") {
@@ -55,11 +57,12 @@ export default async function BecomeACreatorPage() {
     <div className="min-h-screen bg-black text-white">
       <section className="px-6 pt-16 pb-10 max-w-2xl mx-auto text-center">
         <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-4">
-          Devino creator pe Swypik
+          
+          {t("devinoCreatorPeSwypik")}
         </h1>
         <p className="text-base sm:text-lg text-white/70 max-w-xl mx-auto">
-          Transformă-ți pasiunea pentru shopping într-o sursă de venit. Postezi clipuri,
-          recomanzi produse, primești comisioane.
+          
+          {t("transformatiPasiuneaPentruShopping")}
         </p>
       </section>
 
@@ -90,11 +93,13 @@ export default async function BecomeACreatorPage() {
             href="/auth/login?next=/become-a-creator"
             className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#FF6B47] text-white font-bold text-base shadow-lg active:scale-[0.98] transition"
           >
-            Loghează-te ca să continui <ArrowRight size={18} />
+            
+            {t("logheazateCaSaContinui")} <ArrowRight size={18} />
           </Link>
         )}
         <p className="mt-4 text-center text-xs text-white/40">
-          Te poți întoarce oricând la rolul de cumpărător din contul tău.
+          
+          {t("tePotiIntoarceOricand")}
         </p>
       </section>
     </div>

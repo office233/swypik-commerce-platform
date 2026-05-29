@@ -397,5 +397,131 @@
     "nuAiCereriDe": "No tienes solicitudes de devolución.",
     "potiSolicitaUnRetur": "Puedes solicitar una devolución desde la página de detalle de un pedido entregado (en 30 días).",
     "comanda": "Pedido #"
+  },
+  "becomeacreator": {
+    "devinoCreatorPeSwypik": "Conviértete en creator en Swypik",
+    "transformatiPasiuneaPentruShopping": "Convierte tu pasión por las compras en ingresos. Sube vídeos, recomienda productos, gana comisiones.",
+    "logheazateCaSaContinui": "Inicia sesión para continuar",
+    "tePotiIntoarceOricand": "Puedes volver al rol de comprador desde tu cuenta cuando quieras."
+  },
+  "challenges": {
+    "provocariActive": "Retos activos",
+    "provocari": "Retos",
+    "participaLaProvocariZilnice": "Participa en retos diarios, gana",
+    "siUrcaInClasament": "y sube en el ranking.",
+    "nuExistaProvocariActive": "No hay retos activos ahora. Vuelve más tarde.",
+    "inscris": "Inscrito",
+    "niciunCastigatorIncaFii": "Sin ganador aún. Sé el primero.",
+    "reguliSiIntrebariFrecvente": "Normas y preguntas frecuentes",
+    "apasaButonulParticipaPe": "Pulsa el botón Participar en un reto activo. Necesitas cuenta en Swypik.",
+    "recompensaSeAcordaAutomat": "La recompensa se acredita automáticamente en tu cartera cuando cumplas los criterios.",
+    "conturileCuEngagementFals": "Las cuentas con engagement falso, spam o contenido prohibido se descalifican sin aviso.",
+    "reflectaTotalulDeSwyp": "refleja el total de Swyp Coins ganadas (histórico). Se actualiza en tiempo real."
+  },
+  "addresses": {
+    "adreseDeLivrare": "Direcciones de entrega",
+    "gestioneazaAdreseleUndePrimesti": "Gestiona dónde recibes tus pedidos.",
+    "adaugaAdresaNoua": "Añadir dirección",
+    "nuAiNicioAdresa": "No tienes ninguna dirección guardada.",
+    "seteazaCaImplicit": "Establecer como predeterminada",
+    "apreciaza": "Me gusta",
+    "editeaza": "Editar",
+    "editeaza2": "Editar",
+    "sterge": "Eliminar",
+    "sterge2": "Eliminar",
+    "inchide": "Cerrar",
+    "acasaBirou": "Casa, Oficina...",
+    "tara": "País *",
+    "seteazaCaAdresaImplicita": "Establecer como dirección predeterminada"
+  },
+  "wallet": {
+    "inapoi": "Atrás",
+    "seIncarca": "Cargando...",
+    "balantaSwypCoins": "Saldo Swyp Coins",
+    "laRand": "en cola",
+    "recompensaZilnica": "Recompensa diaria",
+    "10CoinsZiua1": "+10 coins día 1, +5 cada día consecutivo (máx 50)",
+    "provocariActive": "Retos activos",
+    "nicioProvocareActivaMomentan": "Sin retos activos ahora.",
+    "seIncheie": "Finaliza:",
+    "tranzactiiRecente": "Transacciones recientes",
+    "nicioTranzactieInca": "Sin transacciones aún.",
+    "conversieInRon": "Conversión a EUR",
+    "inCurandVeiPutea": "Pronto podrás canjear Swyp Coins por dinero real.",
+    "curand": "Pronto"
+  },
+  "inbox": {
+    "notificari": "Notificaciones",
+    "seIncarca": "Cargando...",
+    "mesajeleVorFiDisponibile": "Los mensajes estarán disponibles pronto",
+    "functionalitateaEsteTemporarDezactivata": "Esta función está temporalmente desactivada.",
+    "nicioConversatieInca": "Sin conversaciones aún",
+    "incepeOConversatieDe": "Inicia una conversación desde el perfil de alguien.",
+    "seIncarca2": "Cargando...",
+    "marcheazaToateCitite": "Marcar todo como leído",
+    "nicioNotificareInca": "Sin notificaciones aún",
+    "aiciVeiVedeaAprecieri": "Aquí verás likes, comentarios y nuevos seguidores."
+  },
+  "collections": {
+    "inapoiLaColectii": "Volver a colecciones",
+    "editeaza": "Editar",
+    "sterge": "Eliminar",
+    "aceastaColectieEsteGoala": "Esta colección está vacía.",
+    "exploreazaClipuri": "Explorar vídeos",
+    "editeazaColectia": "Editar colección",
+    "inchide": "Cerrar",
+    "salveazaModificarile": "Guardar cambios",
+    "colectiileMele": "Mis colecciones",
+    "noua": "Nueva",
+    "nuAiNicioColectie": "Aún no tienes colecciones.",
+    "creeazaPrimaTaColectie": "Crea tu primera colección",
+    "colectieNoua": "Colección nueva",
+    "exRetete": "Ej: Recetas",
+    "creeazaColectia": "Crear colección"
+  },
+  "sellers": {
+    "vanzatorVerificat": "✓ Vendedor verificado",
+    "vanzari": "Ventas",
+    "produseleAcestuiVanzatorVor": "Los productos de este vendedor aparecerán aquí pronto."
+  },
+  "page": {
+    "swypikCumparaPrinVideo": "Swypik — Compra por Vídeo. Marketplace con IA.",
+    "descoperaProdusePopulareOferte": "Descubre productos populares, ofertas con la mejor relación calidad-precio y recomendaciones top a través de vídeos curados. Encuentra el producto perfecto más rápido con IA.",
+    "calitatepretExcelent": "Excelente relación calidad-precio"
+  },
+  "b": {
+    "panaAcum": "hasta ahora",
+    "peSwypik": "en Swypik",
+    "swypikSocialShoppingUnde": "Swypik · compra social donde la comunidad decide qué merece la pena."
+  },
+  "ageverificationAgeVerification": {
+    "verificareVarsta": "Verificación de edad",
+    "necesarPentruAAccesa": "Necesario para acceder a contenido 18+ en Swypik.",
+    "verificatLa": "Verificado el:",
+    "dataNasterii": "Fecha de nacimiento:",
+    "expiraLa": "Expira el:",
+    "folosimStripeIdentityPentru": "Usamos Stripe Identity para verificar tu documento. Los datos se procesan según GDPR. Solo almacenamos tu fecha de nacimiento y país del documento.",
+    "afiseazaContinut18": "Mostrar contenido 18+",
+    "activeazaPentruAVedea": "Activa para ver vídeos y productos para adultos en tu feed."
+  },
+  "ordersOrderReturnButton": {
+    "cerereaDeReturA": "Tu solicitud de devolución ha sido registrada. Nos pondremos en contacto pronto.",
+    "solicitaRetur": "Solicitar devolución",
+    "descrieProblemaDefectMarime": "Describe el problema (defecto, talla incorrecta, etc.)...",
+    "fotografiiOptionalMax": "Fotos (opcional, máx",
+    "stergeFotografia": "Eliminar foto",
+    "adaugaFotografie": "Añadir foto",
+    "seIncarca": "Cargando...",
+    "renunta": "Cancelar"
+  },
+  "stripeConnectCard": {
+    "seVerificaStatusulStripe": "Verificando estado de Stripe..."
+  },
+  "audioPicker": {
+    "inchide": "Cerrar",
+    "cautaTitluArtistTag": "Busca título, artista, etiqueta...",
+    "cautaPiesa": "Buscar canción",
+    "seIncarca": "Cargando...",
+    "nicioPiesaGasita": "No se encontró ninguna canción."
   }
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   Coins,
@@ -82,6 +83,7 @@ function formatCountdown(targetIso: string, nowMs: number): string {
 }
 
 export default function WalletClient() {
+  const t = useTranslations("wallet");
   const [data, setData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
@@ -139,7 +141,7 @@ export default function WalletClient() {
   return (
     <main className="min-h-screen bg-black text-white pb-24">
       <header className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur border-b border-white/10">
-        <Link href="/account" className="p-1 -ml-1" aria-label="Înapoi">
+        <Link href="/account" className="p-1 -ml-1" aria-label={t("inapoi")}>
           <ArrowLeft size={22} />
         </Link>
         <h1 className="text-lg font-black">Portofel SWYP</h1>
@@ -147,14 +149,15 @@ export default function WalletClient() {
 
       <div className="px-4 pt-5 max-w-2xl mx-auto">
         {loading || !data ? (
-          <div className="text-white/50 text-sm">Se încarcă...</div>
+          <div className="text-white/50 text-sm">{t("seIncarca")}</div>
         ) : (
           <>
             {/* Hero balance */}
             <section className="rounded-3xl bg-gradient-to-br from-yellow-500/20 via-orange-500/10 to-pink-500/10 border border-yellow-500/30 p-6">
               <div className="flex items-center gap-2 text-yellow-300/90 text-xs uppercase tracking-wider font-bold">
                 <Coins size={14} />
-                Balanță Swyp Coins
+                
+                {t("balantaSwypCoins")}
               </div>
               <div className="mt-2 text-5xl font-black tabular-nums flex items-baseline gap-2">
                 <Coins size={36} className="text-yellow-400" />
@@ -164,7 +167,7 @@ export default function WalletClient() {
               <div className="mt-4 flex items-center gap-2 text-sm">
                 <Flame size={16} className="text-orange-400" />
                 <span className="font-semibold">
-                  {data.dailyStreak} {data.dailyStreak === 1 ? "zi" : "zile"} la rând
+                  {data.dailyStreak} {data.dailyStreak === 1 ? "zi" : "zile"}  {t("laRand")}
                 </span>
               </div>
               <div className="mt-3 flex gap-4 text-xs text-white/60">
@@ -184,9 +187,10 @@ export default function WalletClient() {
               <div className="flex items-center gap-3">
                 <Gift size={20} className="text-pink-400" />
                 <div className="flex-1">
-                  <h2 className="text-sm md:text-base font-bold">Recompensă zilnică</h2>
+                  <h2 className="text-sm md:text-base font-bold">{t("recompensaZilnica")}</h2>
                   <p className="text-xs text-white/60 mt-0.5">
-                    +10 coins ziua 1, +5 fiecare zi consecutivă (max 50)
+                    
+                    {t("10CoinsZiua1")}
                   </p>
                 </div>
               </div>
@@ -211,7 +215,8 @@ export default function WalletClient() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-bold text-white/80 flex items-center gap-2">
                   <Trophy size={16} className="text-yellow-400" />
-                  Provocări active
+                  
+                  {t("provocariActive")}
                 </h2>
                 <Link
                   href="/challenges"
@@ -222,7 +227,8 @@ export default function WalletClient() {
               </div>
               {data.challenges.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/50">
-                  Nicio provocare activă momentan.
+                  
+                  {t("nicioProvocareActivaMomentan")}
                 </div>
               ) : (
                 <ul className="space-y-2">
@@ -240,7 +246,8 @@ export default function WalletClient() {
                             </div>
                           )}
                           <div className="text-[11px] text-white/40 mt-1">
-                            Se încheie: {formatDate(c.endsAt)}
+                            
+                            {t("seIncheie")} {formatDate(c.endsAt)}
                           </div>
                         </div>
                         <div className="flex items-center gap-1 text-yellow-300 font-bold text-sm shrink-0">
@@ -257,10 +264,11 @@ export default function WalletClient() {
             <section className="mt-6">
               <h2 className="text-sm font-bold text-white/80 mb-3 flex items-center gap-2">
                 <History size={16} />
-                Tranzacții recente
+                
+                {t("tranzactiiRecente")}
               </h2>
               {data.transactions.length === 0 ? (
-                <p className="text-sm text-white/50">Nicio tranzacție încă.</p>
+                <p className="text-sm text-white/50">{t("nicioTranzactieInca")}</p>
               ) : (
                 <ul className="rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
                   {data.transactions.map((t) => {
@@ -307,14 +315,17 @@ export default function WalletClient() {
                 <Repeat size={20} className="text-white/30" />
                 <div className="flex-1">
                   <h2 className="text-sm font-bold text-white/60">
-                    Conversie în RON
+                    
+                    {t("conversieInRon")}
                   </h2>
                   <p className="text-xs text-white/40 mt-0.5">
-                    În curând vei putea schimba Swyp Coins în lei reali.
+                    
+                    {t("inCurandVeiPutea")}
                   </p>
                 </div>
                 <span className="text-[10px] uppercase tracking-wider font-bold bg-white/5 text-white/40 px-2 py-1 rounded-full">
-                  Curând
+                  
+                  {t("curand")}
                 </span>
               </div>
             </section>

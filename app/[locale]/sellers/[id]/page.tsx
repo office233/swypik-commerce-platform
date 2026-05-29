@@ -13,6 +13,7 @@ import { Star } from "lucide-react";
 import { getProductRatingMap } from "@/lib/reviews/aggregate";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -116,6 +117,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function SellerStorefrontPage({ params }: Props) {
+  const t = await getTranslations("sellers");
   const { id } = await params;
   const seller = await getSeller(id);
   if (!seller) notFound();
@@ -160,7 +162,8 @@ export default async function SellerStorefrontPage({ params }: Props) {
               </h1>
               {isVerified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#10A37F]/10 px-2.5 py-1 text-xs font-bold text-[#10A37F]">
-                  ✓ Vânzător verificat
+                  
+                  {t("vanzatorVerificat")}
                 </span>
               )}
             </div>
@@ -188,7 +191,8 @@ export default async function SellerStorefrontPage({ params }: Props) {
           </div>
           <div className="rounded-xl border border-[#E5E5E5] bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#6E6E80]">
-              Vânzări
+              
+              {t("vanzari")}
             </p>
             <p className="mt-1 text-xl font-black md:text-2xl">—</p>
           </div>
@@ -208,7 +212,8 @@ export default async function SellerStorefrontPage({ params }: Props) {
           {products.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#E5E5E5] bg-[#F7F7F8] p-10 text-center">
               <p className="text-sm text-[#6E6E80]">
-                Produsele acestui vânzător vor apărea aici în curând.
+                
+                {t("produseleAcestuiVanzatorVor")}
               </p>
             </div>
           ) : (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { isEnabledClient } from "@/lib/feature-flags-client";
+import { useTranslations } from "next-intl";
 
 type Status = {
   accountId: string | null;
@@ -12,6 +13,7 @@ type Status = {
 };
 
 export default function StripeConnectCard({ variant = "creator" }: { variant?: "creator" | "seller" }) {
+  const t = useTranslations("stripeConnectCard");
   const enabled = isEnabledClient("stripeConnect");
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function StripeConnectCard({ variant = "creator" }: { variant?: "
   if (loading) {
     return (
       <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5 dark:border-white/10 dark:bg-white/[0.04]">
-        <p className="text-sm text-[#6E6E80] dark:text-white/60">Se verifică statusul Stripe...</p>
+        <p className="text-sm text-[#6E6E80] dark:text-white/60">{t("seVerificaStatusulStripe")}</p>
       </div>
     );
   }

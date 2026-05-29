@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { X, Camera } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const MAX_PHOTOS = 4;
 
@@ -14,6 +15,7 @@ export default function OrderReturnButton({
   orderId: string;
   lookupToken: string;
 }) {
+  const t = useTranslations("ordersOrderReturnButton");
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
@@ -92,7 +94,8 @@ export default function OrderReturnButton({
   if (done) {
     return (
       <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-300">
-        Cererea de retur a fost înregistrată. Te vom contacta în curând.
+        
+        {t("cerereaDeReturA")}
       </div>
     );
   }
@@ -103,7 +106,8 @@ export default function OrderReturnButton({
         onClick={() => setOpen(true)}
         className="w-full rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] py-3 text-sm font-semibold"
       >
-        Solicită retur
+        
+        {t("solicitaRetur")}
       </button>
     );
   }
@@ -115,14 +119,15 @@ export default function OrderReturnButton({
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         rows={4}
-        placeholder="Descrie problema (defect, mărime greșită etc.)..."
+        placeholder={t("descrieProblemaDefectMarime")}
         className="mt-2 w-full rounded-lg bg-black/40 border border-white/15 p-3 text-sm"
       />
 
       <div className="mt-4">
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">
-            Fotografii (opțional, max {MAX_PHOTOS})
+            
+            {t("fotografiiOptionalMax")} {MAX_PHOTOS})
           </span>
           <span className="text-xs text-white/40">{photos.length}/{MAX_PHOTOS}</span>
         </div>
@@ -135,7 +140,7 @@ export default function OrderReturnButton({
                 type="button"
                 onClick={() => removePhoto(i)}
                 className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white hover:bg-black"
-                aria-label="Șterge fotografia"
+                aria-label={t("stergeFotografia")}
               >
                 <X size={12} />
               </button>
@@ -147,7 +152,7 @@ export default function OrderReturnButton({
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
               className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-white/20 bg-white/[0.02] text-white/50 hover:bg-white/[0.06] disabled:opacity-50"
-              aria-label="Adaugă fotografie"
+              aria-label={t("adaugaFotografie")}
             >
               <Camera size={20} />
             </button>
@@ -161,7 +166,7 @@ export default function OrderReturnButton({
           onChange={(e) => handleFiles(e.target.files)}
           className="hidden"
         />
-        {uploading && <p className="mt-2 text-xs text-white/50">Se încarcă...</p>}
+        {uploading && <p className="mt-2 text-xs text-white/50">{t("seIncarca")}</p>}
       </div>
 
       {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
@@ -170,7 +175,8 @@ export default function OrderReturnButton({
           onClick={() => setOpen(false)}
           className="flex-1 rounded-lg border border-white/15 py-2 text-sm"
         >
-          Renunță
+          
+          {t("renunta")}
         </button>
         <button
           onClick={submit}

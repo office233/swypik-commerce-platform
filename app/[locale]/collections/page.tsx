@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Collection = {
   id: string;
@@ -15,6 +16,7 @@ type Collection = {
 };
 
 export default function CollectionsPage() {
+  const t = useTranslations("collections");
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -72,23 +74,24 @@ export default function CollectionsPage() {
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white p-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Colecțiile mele</h1>
+        <h1 className="text-3xl font-bold">{t("colectiileMele")}</h1>
         <button 
           onClick={() => setShowNewModal(true)}
           className="bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-colors"
         >
-          <Plus size={20} /> Nouă
+          <Plus size={20} />  {t("noua")}
         </button>
       </div>
 
       {collections.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
-          <p className="text-xl mb-4">Nu ai nicio colecție încă.</p>
+          <p className="text-xl mb-4">{t("nuAiNicioColectie")}</p>
           <button 
             onClick={() => setShowNewModal(true)}
             className="text-[#0D0D0D] hover:underline"
           >
-            Creează prima ta colecție
+            
+            {t("creeazaPrimaTaColectie")}
           </button>
         </div>
       ) : (
@@ -116,8 +119,8 @@ export default function CollectionsPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#1A1A1A] border border-gray-800 rounded-2xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Colecție nouă</h2>
-              <button onClick={() => setShowNewModal(false)} className="text-gray-400 hover:text-white" aria-label="Închide">
+              <h2 className="text-xl font-bold">{t("colectieNoua")}</h2>
+              <button onClick={() => setShowNewModal(false)} className="text-gray-400 hover:text-white" aria-label={t("inchide")}>
                 <X size={24} />
               </button>
             </div>
@@ -130,7 +133,7 @@ export default function CollectionsPage() {
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   className="w-full bg-[#0D0D0D] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#0D0D0D]"
-                  placeholder="Ex: Rețete"
+                  placeholder={t("exRetete")}
                   autoFocus
                 />
               </div>
@@ -169,7 +172,8 @@ export default function CollectionsPage() {
                 disabled={!newTitle.trim()}
                 className="w-full bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white py-3 rounded-xl font-medium mt-4 disabled:opacity-50 transition-colors"
               >
-                Creează colecția
+                
+                {t("creeazaColectia")}
               </button>
             </div>
           </div>

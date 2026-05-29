@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { Search, X, Play, Pause, Check, Music } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export interface AudioTrackDTO {
   id: number;
@@ -35,6 +36,7 @@ function formatDur(s: number): string {
 }
 
 export default function AudioPicker({ open, onClose, selectedId, onSelect }: AudioPickerProps) {
+  const t = useTranslations("audioPicker");
   const [q, setQ] = useState("");
   const [genre, setGenre] = useState<string>("");
   const [tracks, setTracks] = useState<AudioTrackDTO[]>([]);
@@ -160,7 +162,7 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
         <div className="flex items-center justify-between px-4 h-14 border-b border-white/10">
           <button
             onClick={onClose}
-            aria-label="Închide"
+            aria-label={t("inchide")}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 active:scale-95"
           >
             <X size={18} />
@@ -183,8 +185,8 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Caută titlu, artist, tag..."
-              aria-label="Caută piesă"
+              placeholder={t("cautaTitluArtistTag")}
+              aria-label={t("cautaPiesa")}
               className="w-full bg-white/5 border border-white/10 rounded-full pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-white/30"
             />
           </div>
@@ -218,13 +220,13 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
         {/* List */}
         <div className="flex-1 overflow-y-auto px-2 pb-4">
           {loading && (
-            <div className="text-center text-xs text-white/40 py-8">Se încarcă...</div>
+            <div className="text-center text-xs text-white/40 py-8">{t("seIncarca")}</div>
           )}
           {error && (
             <div className="text-center text-xs text-red-400 py-8">{error}</div>
           )}
           {!loading && !error && tracks.length === 0 && (
-            <div className="text-center text-xs text-white/40 py-8">Nicio piesă găsită.</div>
+            <div className="text-center text-xs text-white/40 py-8">{t("nicioPiesaGasita")}</div>
           )}
           {tracks.map((t) => {
             const isPlaying = playingId === t.id;

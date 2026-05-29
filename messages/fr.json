@@ -397,5 +397,131 @@
     "nuAiCereriDe": "Tu n'as pas de demandes de retour.",
     "potiSolicitaUnRetur": "Tu peux demander un retour depuis la page détaillée d'une commande livrée (dans les 30 jours).",
     "comanda": "Commande n°"
+  },
+  "becomeacreator": {
+    "devinoCreatorPeSwypik": "Deviens créateur sur Swypik",
+    "transformatiPasiuneaPentruShopping": "Transforme ta passion du shopping en revenus. Poste des vidéos, recommande des produits, gagne des commissions.",
+    "logheazateCaSaContinui": "Connecte-toi pour continuer",
+    "tePotiIntoarceOricand": "Tu peux revenir au rôle d'acheteur depuis ton compte à tout moment."
+  },
+  "challenges": {
+    "provocariActive": "Défis actifs",
+    "provocari": "Défis",
+    "participaLaProvocariZilnice": "Participe aux défis quotidiens, gagne",
+    "siUrcaInClasament": "et grimpe au classement.",
+    "nuExistaProvocariActive": "Aucun défi actif pour le moment. Reviens plus tard.",
+    "inscris": "Inscrit",
+    "niciunCastigatorIncaFii": "Aucun gagnant encore. Sois le premier.",
+    "reguliSiIntrebariFrecvente": "Règles et FAQ",
+    "apasaButonulParticipaPe": "Appuie sur Participer sur un défi actif. Tu dois avoir un compte Swypik.",
+    "recompensaSeAcordaAutomat": "La récompense est versée automatiquement dans ton portefeuille quand tu remplis les critères.",
+    "conturileCuEngagementFals": "Les comptes avec engagement artificiel, spam ou contenu interdit sont disqualifiés sans avertissement.",
+    "reflectaTotalulDeSwyp": "reflète le total de Swyp Coins gagnés (lifetime). Mise à jour en temps réel."
+  },
+  "addresses": {
+    "adreseDeLivrare": "Adresses de livraison",
+    "gestioneazaAdreseleUndePrimesti": "Gère tes adresses de livraison.",
+    "adaugaAdresaNoua": "Ajouter une adresse",
+    "nuAiNicioAdresa": "Aucune adresse enregistrée.",
+    "seteazaCaImplicit": "Définir par défaut",
+    "apreciaza": "J'aime",
+    "editeaza": "Modifier",
+    "editeaza2": "Modifier",
+    "sterge": "Supprimer",
+    "sterge2": "Supprimer",
+    "inchide": "Fermer",
+    "acasaBirou": "Maison, Bureau...",
+    "tara": "Pays *",
+    "seteazaCaAdresaImplicita": "Définir comme adresse par défaut"
+  },
+  "wallet": {
+    "inapoi": "Retour",
+    "seIncarca": "Chargement...",
+    "balantaSwypCoins": "Solde Swyp Coins",
+    "laRand": "en attente",
+    "recompensaZilnica": "Bonus quotidien",
+    "10CoinsZiua1": "+10 coins jour 1, +5 chaque jour consécutif (max 50)",
+    "provocariActive": "Défis actifs",
+    "nicioProvocareActivaMomentan": "Aucun défi actif pour le moment.",
+    "seIncheie": "Se termine :",
+    "tranzactiiRecente": "Transactions récentes",
+    "nicioTranzactieInca": "Aucune transaction pour le moment.",
+    "conversieInRon": "Conversion en EUR",
+    "inCurandVeiPutea": "Bientôt tu pourras convertir tes Swyp Coins en euros.",
+    "curand": "Bientôt"
+  },
+  "inbox": {
+    "notificari": "Notifications",
+    "seIncarca": "Chargement...",
+    "mesajeleVorFiDisponibile": "Les messages seront disponibles bientôt",
+    "functionalitateaEsteTemporarDezactivata": "Cette fonctionnalité est temporairement désactivée.",
+    "nicioConversatieInca": "Aucune conversation pour le moment",
+    "incepeOConversatieDe": "Commence une conversation depuis le profil de quelqu'un.",
+    "seIncarca2": "Chargement...",
+    "marcheazaToateCitite": "Marquer tout comme lu",
+    "nicioNotificareInca": "Aucune notification pour le moment",
+    "aiciVeiVedeaAprecieri": "Tu verras ici tes j'aime, commentaires et nouveaux abonnés."
+  },
+  "collections": {
+    "inapoiLaColectii": "Retour aux collections",
+    "editeaza": "Modifier",
+    "sterge": "Supprimer",
+    "aceastaColectieEsteGoala": "Cette collection est vide.",
+    "exploreazaClipuri": "Explorer les vidéos",
+    "editeazaColectia": "Modifier la collection",
+    "inchide": "Fermer",
+    "salveazaModificarile": "Enregistrer les modifications",
+    "colectiileMele": "Mes collections",
+    "noua": "Nouvelle",
+    "nuAiNicioColectie": "Aucune collection pour le moment.",
+    "creeazaPrimaTaColectie": "Crée ta première collection",
+    "colectieNoua": "Nouvelle collection",
+    "exRetete": "Ex : Recettes",
+    "creeazaColectia": "Créer la collection"
+  },
+  "sellers": {
+    "vanzatorVerificat": "✓ Vendeur vérifié",
+    "vanzari": "Ventes",
+    "produseleAcestuiVanzatorVor": "Les produits de ce vendeur apparaîtront ici bientôt."
+  },
+  "page": {
+    "swypikCumparaPrinVideo": "Swypik — Achète par Vidéo. Marketplace avec IA.",
+    "descoperaProdusePopulareOferte": "Découvre les produits populaires, les meilleures affaires et les recommandations top via du contenu vidéo curé. Trouve plus vite le bon produit avec l'IA.",
+    "calitatepretExcelent": "Excellent rapport qualité-prix"
+  },
+  "b": {
+    "panaAcum": "jusqu'à présent",
+    "peSwypik": "sur Swypik",
+    "swypikSocialShoppingUnde": "Swypik · social shopping où la communauté décide ce qui vaut le coup."
+  },
+  "ageverificationAgeVerification": {
+    "verificareVarsta": "Vérification d'âge",
+    "necesarPentruAAccesa": "Nécessaire pour accéder au contenu 18+ sur Swypik.",
+    "verificatLa": "Vérifié le :",
+    "dataNasterii": "Date de naissance :",
+    "expiraLa": "Expire le :",
+    "folosimStripeIdentityPentru": "Nous utilisons Stripe Identity pour vérifier ton document. Les données sont traitées par Stripe conformément au RGPD. Nous stockons uniquement ta date de naissance et le pays du document.",
+    "afiseazaContinut18": "Afficher le contenu 18+",
+    "activeazaPentruAVedea": "Active pour voir les vidéos et produits pour adultes dans ton fil."
+  },
+  "ordersOrderReturnButton": {
+    "cerereaDeReturA": "Demande de retour enregistrée. Nous te contacterons bientôt.",
+    "solicitaRetur": "Demander un retour",
+    "descrieProblemaDefectMarime": "Décris le problème (défaut, mauvaise taille, etc.)...",
+    "fotografiiOptionalMax": "Photos (optionnel, max",
+    "stergeFotografia": "Supprimer la photo",
+    "adaugaFotografie": "Ajouter une photo",
+    "seIncarca": "Chargement...",
+    "renunta": "Annuler"
+  },
+  "stripeConnectCard": {
+    "seVerificaStatusulStripe": "Vérification du statut Stripe..."
+  },
+  "audioPicker": {
+    "inchide": "Fermer",
+    "cautaTitluArtistTag": "Cherche titre, artiste, tag...",
+    "cautaPiesa": "Chercher une piste",
+    "seIncarca": "Chargement...",
+    "nicioPiesaGasita": "Aucune piste trouvée."
   }
 }

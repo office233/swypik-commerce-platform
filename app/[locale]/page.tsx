@@ -3,6 +3,7 @@ import { searchProducts } from "@/lib/db/product-queries";
 import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
@@ -67,6 +68,7 @@ const getHomeProductSections = unstable_cache(
 );
 
 export default async function Home() {
+  const t = await getTranslations("page");
   const { trending, bestValue, topRated } = await getHomeProductSections();
 
   const websiteJsonLd = {
@@ -105,13 +107,13 @@ export default async function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
       />
       <header className="sr-only">
-        <h1>Swypik — Cumpără prin Video. Marketplace cu AI.</h1>
+        <h1>{t("swypikCumparaPrinVideo")}</h1>
         <p>
-          Descoperă produse populare, oferte cu cel mai bun raport calitate-preț și recomandări
-          top printr-un conținut video curatat. Găsește mai repede produsul potrivit cu AI.
+          
+          {t("descoperaProdusePopulareOferte")}
         </p>
         <h2>Produse populare</h2>
-        <h2>Calitate-preț excelent</h2>
+        <h2>{t("calitatepretExcelent")}</h2>
         <h2>Top apreciate</h2>
       </header>
       <ChatInterface

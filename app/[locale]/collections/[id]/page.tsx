@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Edit2, Trash2, X, Play } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Collection = {
   id: string;
@@ -24,6 +25,7 @@ type CollectionItem = {
 };
 
 export default function CollectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("collections");
   const resolvedParams = use(params);
   const collectionId = resolvedParams.id;
   
@@ -103,7 +105,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white p-6 max-w-6xl mx-auto">
       <Link href="/collections" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors">
-        <ArrowLeft size={20} /> Înapoi la colecții
+        <ArrowLeft size={20} />  {t("inapoiLaColectii")}
       </Link>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 bg-[#1A1A1A] p-6 rounded-3xl border border-gray-800">
@@ -125,14 +127,14 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             onClick={() => setShowEdit(true)}
             className="bg-[#222] hover:bg-[#333] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors border border-gray-700"
           >
-            <Edit2 size={16} /> Editează
+            <Edit2 size={16} />  {t("editeaza")}
           </button>
           {!collection.is_default && (
             <button 
               onClick={handleDelete}
               className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-xl flex items-center gap-2 transition-colors border border-red-500/20"
             >
-              <Trash2 size={16} /> Șterge
+              <Trash2 size={16} />  {t("sterge")}
             </button>
           )}
         </div>
@@ -141,9 +143,10 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       {items.length === 0 ? (
         <div className="text-center py-20 text-gray-500 bg-[#141414] rounded-3xl border border-gray-800/50">
           <div className="text-5xl mb-4 opacity-50">📭</div>
-          <p className="text-xl">Această colecție este goală.</p>
+          <p className="text-xl">{t("aceastaColectieEsteGoala")}</p>
           <Link href="/explore" className="text-[#0D0D0D] hover:underline mt-2 inline-block">
-            Explorează clipuri
+            
+            {t("exploreazaClipuri")}
           </Link>
         </div>
       ) : (
@@ -179,8 +182,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#1A1A1A] border border-gray-800 rounded-2xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Editează colecția</h2>
-              <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-white" aria-label="Închide">
+              <h2 className="text-xl font-bold">{t("editeazaColectia")}</h2>
+              <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-white" aria-label={t("inchide")}>
                 <X size={24} />
               </button>
             </div>
@@ -230,7 +233,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
                 disabled={!editTitle.trim()}
                 className="w-full bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white py-3 rounded-xl font-medium mt-4 disabled:opacity-50 transition-colors"
               >
-                Salvează modificările
+                
+                {t("salveazaModificarile")}
               </button>
             </div>
           </div>

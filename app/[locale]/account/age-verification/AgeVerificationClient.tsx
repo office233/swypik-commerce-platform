@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Status = "none" | "pending" | "approved" | "rejected" | "expired";
 
@@ -32,6 +33,7 @@ const STATUS_COLOR: Record<Status, string> = {
 };
 
 export default function AgeVerificationClient({ initialState }: Props) {
+  const t = useTranslations("ageverificationAgeVerification");
   const [state, setState] = useState(initialState);
   const [loading, setLoading] = useState(false);
   const [optInLoading, setOptInLoading] = useState(false);
@@ -86,9 +88,10 @@ export default function AgeVerificationClient({ initialState }: Props) {
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white pb-24">
       <header className="sticky top-0 z-30 bg-[#0D0D0D]/90 backdrop-blur-md border-b border-white/10 px-4 py-4">
-        <h1 className="text-lg font-bold">Verificare vârstă</h1>
+        <h1 className="text-lg font-bold">{t("verificareVarsta")}</h1>
         <p className="text-sm text-white/60 mt-0.5">
-          Necesar pentru a accesa conținutul 18+ pe Swypik.
+          
+          {t("necesarPentruAAccesa")}
         </p>
       </header>
 
@@ -103,17 +106,20 @@ export default function AgeVerificationClient({ initialState }: Props) {
 
           {state.verifiedAt && (
             <p className="text-sm text-white/70 mb-2">
-              Verificat la: <span className="text-white">{new Date(state.verifiedAt).toLocaleDateString("ro-RO")}</span>
+              
+              {t("verificatLa")} <span className="text-white">{new Date(state.verifiedAt).toLocaleDateString("ro-RO")}</span>
             </p>
           )}
           {state.birthDate && (
             <p className="text-sm text-white/70 mb-2">
-              Data nașterii: <span className="text-white">{new Date(state.birthDate).toLocaleDateString("ro-RO")}</span>
+              
+              {t("dataNasterii")} <span className="text-white">{new Date(state.birthDate).toLocaleDateString("ro-RO")}</span>
             </p>
           )}
           {state.expiresAt && (
             <p className="text-sm text-white/70 mb-2">
-              Expiră la: <span className="text-white">{new Date(state.expiresAt).toLocaleDateString("ro-RO")}</span>
+              
+              {t("expiraLa")} <span className="text-white">{new Date(state.expiresAt).toLocaleDateString("ro-RO")}</span>
             </p>
           )}
           {state.rejectionReason && state.status === "rejected" && (
@@ -131,8 +137,8 @@ export default function AgeVerificationClient({ initialState }: Props) {
           </button>
 
           <p className="text-xs text-white/50 mt-3 leading-relaxed">
-            Folosim Stripe Identity pentru a verifica documentul tău. Datele sunt procesate de Stripe
-            conform GDPR. Stocăm doar data nașterii și țara documentului.
+            
+            {t("folosimStripeIdentityPentru")}
           </p>
         </section>
 
@@ -140,9 +146,10 @@ export default function AgeVerificationClient({ initialState }: Props) {
           <section className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="font-bold mb-1">Afișează conținut 18+</h2>
+                <h2 className="font-bold mb-1">{t("afiseazaContinut18")}</h2>
                 <p className="text-sm text-white/60">
-                  Activează pentru a vedea videoclipuri și produse pentru adulți în feed.
+                  
+                  {t("activeazaPentruAVedea")}
                 </p>
               </div>
               <button

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Coins, Trophy, Clock, Check, Sparkles, Info } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Challenge = {
   id: string;
@@ -66,6 +67,7 @@ export default function ChallengesClient({
   leaderboard: Leader[];
   isLoggedIn: boolean;
 }) {
+  const t = useTranslations("challenges");
   const [entered, setEntered] = useState<Record<string, Entry>>(() => {
     const m: Record<string, Entry> = {};
     for (const e of entries) m[e.challenge_id] = e;
@@ -127,13 +129,15 @@ export default function ChallengesClient({
         <header className="mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600/20 to-fuchsia-500/20 border border-purple-500/30 mb-4">
             <Sparkles className="w-4 h-4 text-purple-300" />
-            <span className="text-xs font-medium text-purple-200">Provocări active</span>
+            <span className="text-xs font-medium text-purple-200">{t("provocariActive")}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-            Provocări <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-fuchsia-400">Swypik</span>
+            
+            {t("provocari")} <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-fuchsia-400">Swypik</span>
           </h1>
           <p className="text-neutral-400 mt-3 max-w-2xl">
-            Participă la provocări zilnice, câștigă <span className="text-yellow-400 font-medium">Swyp Coins</span> și urcă în clasament.
+            
+            {t("participaLaProvocariZilnice")} <span className="text-yellow-400 font-medium">Swyp Coins</span>  {t("siUrcaInClasament")}
           </p>
         </header>
 
@@ -146,7 +150,8 @@ export default function ChallengesClient({
         <section className="mb-14">
           {sortedChallenges.length === 0 ? (
             <div className="text-center py-16 text-neutral-500 border border-neutral-800 rounded-2xl">
-              Nu există provocări active acum. Revino mai târziu.
+              
+              {t("nuExistaProvocariActive")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -234,7 +239,7 @@ export default function ChallengesClient({
                           disabled
                           className="w-full py-2.5 rounded-xl bg-purple-500/15 border border-purple-500/40 text-purple-200 text-sm font-medium inline-flex items-center justify-center gap-1.5"
                         >
-                          <Check className="w-4 h-4" /> Înscris
+                          <Check className="w-4 h-4" />  {t("inscris")}
                         </button>
                       ) : (
                         <button
@@ -261,7 +266,8 @@ export default function ChallengesClient({
           <div className="rounded-2xl border border-neutral-800 bg-neutral-950 overflow-hidden">
             {leaderboard.length === 0 ? (
               <div className="px-4 py-10 text-center text-neutral-500 text-sm">
-                Niciun câștigător încă. Fii primul.
+                
+                {t("niciunCastigatorIncaFii")}
               </div>
             ) : (
               <ul>
@@ -315,20 +321,20 @@ export default function ChallengesClient({
         <section>
           <div className="flex items-center gap-2 mb-4">
             <Info className="w-5 h-5 text-neutral-400" />
-            <h2 className="text-xl font-semibold">Reguli și întrebări frecvente</h2>
+            <h2 className="text-xl font-semibold">{t("reguliSiIntrebariFrecvente")}</h2>
           </div>
           <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5 text-sm text-neutral-300 space-y-3">
             <p>
-              <strong className="text-white">Cum particip?</strong> Apasă butonul Participă pe o provocare activă. Trebuie să ai cont Swypik.
+              <strong className="text-white">Cum particip?</strong>  {t("apasaButonulParticipaPe")}
             </p>
             <p>
-              <strong className="text-white">Cum primesc coin-urile?</strong> Recompensa se acordă automat în portofel când îndeplinești criteriile provocării.
+              <strong className="text-white">Cum primesc coin-urile?</strong>  {t("recompensaSeAcordaAutomat")}
             </p>
             <p>
-              <strong className="text-white">Fair-play.</strong> Conturile cu engagement fals, spam sau conținut interzis sunt descalificate fără preaviz.
+              <strong className="text-white">Fair-play.</strong>  {t("conturileCuEngagementFals")}
             </p>
             <p>
-              <strong className="text-white">Clasamentul</strong> reflectă totalul de Swyp Coins câștigate (lifetime). Se actualizează în timp real.
+              <strong className="text-white">Clasamentul</strong>  {t("reflectaTotalulDeSwyp")}
             </p>
           </div>
         </section>

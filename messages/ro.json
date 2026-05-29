@@ -397,5 +397,131 @@
     "nuAiCereriDe": "Nu ai cereri de retur.",
     "potiSolicitaUnRetur": "Poți solicita un retur din pagina detaliată a unei comenzi livrate (în 30 zile).",
     "comanda": "Comandă #"
+  },
+  "becomeacreator": {
+    "devinoCreatorPeSwypik": "Devino creator pe Swypik",
+    "transformatiPasiuneaPentruShopping": "Transformă-ți pasiunea pentru shopping într-o sursă de venit. Postezi clipuri,\n          recomanzi produse, primești comisioane.",
+    "logheazateCaSaContinui": "Loghează-te ca să continui",
+    "tePotiIntoarceOricand": "Te poți întoarce oricând la rolul de cumpărător din contul tău."
+  },
+  "challenges": {
+    "provocariActive": "Provocări active",
+    "provocari": "Provocări",
+    "participaLaProvocariZilnice": "Participă la provocări zilnice, câștigă",
+    "siUrcaInClasament": "și urcă în clasament.",
+    "nuExistaProvocariActive": "Nu există provocări active acum. Revino mai târziu.",
+    "inscris": "Înscris",
+    "niciunCastigatorIncaFii": "Niciun câștigător încă. Fii primul.",
+    "reguliSiIntrebariFrecvente": "Reguli și întrebări frecvente",
+    "apasaButonulParticipaPe": "Apasă butonul Participă pe o provocare activă. Trebuie să ai cont Swypik.",
+    "recompensaSeAcordaAutomat": "Recompensa se acordă automat în portofel când îndeplinești criteriile provocării.",
+    "conturileCuEngagementFals": "Conturile cu engagement fals, spam sau conținut interzis sunt descalificate fără preaviz.",
+    "reflectaTotalulDeSwyp": "reflectă totalul de Swyp Coins câștigate (lifetime). Se actualizează în timp real."
+  },
+  "addresses": {
+    "adreseDeLivrare": "Adrese de livrare",
+    "gestioneazaAdreseleUndePrimesti": "Gestionează adresele unde primești comenzile.",
+    "adaugaAdresaNoua": "Adaugă adresă nouă",
+    "nuAiNicioAdresa": "Nu ai nicio adresă salvată.",
+    "seteazaCaImplicit": "Setează ca implicit",
+    "apreciaza": "Apreciază",
+    "editeaza": "Editează",
+    "editeaza2": "Editează",
+    "sterge": "Șterge",
+    "sterge2": "Șterge",
+    "inchide": "Închide",
+    "acasaBirou": "Acasă, Birou...",
+    "tara": "Țară *",
+    "seteazaCaAdresaImplicita": "Setează ca adresă implicită"
+  },
+  "wallet": {
+    "inapoi": "Înapoi",
+    "seIncarca": "Se încarcă...",
+    "balantaSwypCoins": "Balanță Swyp Coins",
+    "laRand": "la rând",
+    "recompensaZilnica": "Recompensă zilnică",
+    "10CoinsZiua1": "+10 coins ziua 1, +5 fiecare zi consecutivă (max 50)",
+    "provocariActive": "Provocări active",
+    "nicioProvocareActivaMomentan": "Nicio provocare activă momentan.",
+    "seIncheie": "Se încheie:",
+    "tranzactiiRecente": "Tranzacții recente",
+    "nicioTranzactieInca": "Nicio tranzacție încă.",
+    "conversieInRon": "Conversie în RON",
+    "inCurandVeiPutea": "În curând vei putea schimba Swyp Coins în lei reali.",
+    "curand": "Curând"
+  },
+  "inbox": {
+    "notificari": "Notificări",
+    "seIncarca": "Se încarcă...",
+    "mesajeleVorFiDisponibile": "Mesajele vor fi disponibile curând",
+    "functionalitateaEsteTemporarDezactivata": "Funcționalitatea este temporar dezactivată.",
+    "nicioConversatieInca": "Nicio conversație încă",
+    "incepeOConversatieDe": "Începe o conversație de pe profilul cuiva.",
+    "seIncarca2": "Se încarcă...",
+    "marcheazaToateCitite": "Marchează toate citite",
+    "nicioNotificareInca": "Nicio notificare încă",
+    "aiciVeiVedeaAprecieri": "Aici vei vedea aprecieri, comentarii și follow-uri noi."
+  },
+  "collections": {
+    "inapoiLaColectii": "Înapoi la colecții",
+    "editeaza": "Editează",
+    "sterge": "Șterge",
+    "aceastaColectieEsteGoala": "Această colecție este goală.",
+    "exploreazaClipuri": "Explorează clipuri",
+    "editeazaColectia": "Editează colecția",
+    "inchide": "Închide",
+    "salveazaModificarile": "Salvează modificările",
+    "colectiileMele": "Colecțiile mele",
+    "noua": "Nouă",
+    "nuAiNicioColectie": "Nu ai nicio colecție încă.",
+    "creeazaPrimaTaColectie": "Creează prima ta colecție",
+    "colectieNoua": "Colecție nouă",
+    "exRetete": "Ex: Rețete",
+    "creeazaColectia": "Creează colecția"
+  },
+  "sellers": {
+    "vanzatorVerificat": "✓ Vânzător verificat",
+    "vanzari": "Vânzări",
+    "produseleAcestuiVanzatorVor": "Produsele acestui vânzător vor apărea aici în curând."
+  },
+  "page": {
+    "swypikCumparaPrinVideo": "Swypik — Cumpără prin Video. Marketplace cu AI.",
+    "descoperaProdusePopulareOferte": "Descoperă produse populare, oferte cu cel mai bun raport calitate-preț și recomandări\n          top printr-un conținut video curatat. Găsește mai repede produsul potrivit cu AI.",
+    "calitatepretExcelent": "Calitate-preț excelent"
+  },
+  "b": {
+    "panaAcum": "până acum",
+    "peSwypik": "pe Swypik",
+    "swypikSocialShoppingUnde": "Swypik · social shopping unde comunitatea decide ce merită."
+  },
+  "ageverificationAgeVerification": {
+    "verificareVarsta": "Verificare vârstă",
+    "necesarPentruAAccesa": "Necesar pentru a accesa conținutul 18+ pe Swypik.",
+    "verificatLa": "Verificat la:",
+    "dataNasterii": "Data nașterii:",
+    "expiraLa": "Expiră la:",
+    "folosimStripeIdentityPentru": "Folosim Stripe Identity pentru a verifica documentul tău. Datele sunt procesate de Stripe\n            conform GDPR. Stocăm doar data nașterii și țara documentului.",
+    "afiseazaContinut18": "Afișează conținut 18+",
+    "activeazaPentruAVedea": "Activează pentru a vedea videoclipuri și produse pentru adulți în feed."
+  },
+  "ordersOrderReturnButton": {
+    "cerereaDeReturA": "Cererea de retur a fost înregistrată. Te vom contacta în curând.",
+    "solicitaRetur": "Solicită retur",
+    "descrieProblemaDefectMarime": "Descrie problema (defect, mărime greșită etc.)...",
+    "fotografiiOptionalMax": "Fotografii (opțional, max",
+    "stergeFotografia": "Șterge fotografia",
+    "adaugaFotografie": "Adaugă fotografie",
+    "seIncarca": "Se încarcă...",
+    "renunta": "Renunță"
+  },
+  "stripeConnectCard": {
+    "seVerificaStatusulStripe": "Se verifică statusul Stripe..."
+  },
+  "audioPicker": {
+    "inchide": "Închide",
+    "cautaTitluArtistTag": "Caută titlu, artist, tag...",
+    "cautaPiesa": "Caută piesă",
+    "seIncarca": "Se încarcă...",
+    "nicioPiesaGasita": "Nicio piesă găsită."
   }
 }

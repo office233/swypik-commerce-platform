@@ -89,7 +89,7 @@ Output JSON (${lang} translations, same keys):`;
     model: MODEL,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.2,
-    max_tokens: 4000,
+    max_tokens: 8000,
   };
 
   const res = await fetch(API_URL, {
@@ -148,7 +148,33 @@ async function processLocale(locale, roFlat) {
   }
   console.log(`[${locale}] translating ${missingCount}/${total} missing keys...`);
 
-  const translated = await translateBatch(missing, locale);
+  // Chunk to keep response JSON under ~7K tokens
+  const CHUNK = (locale === 'de' || locale === 'fr') ? 5 : 60;
+  const entries = Object.entries(missing);
+  let translated = {};
+  for (let i = 0; i < entries.length; i += CHUNK) {
+    const chunk = Object.fromEntries(entries.slice(i, i + CHUNK));
+    const chunkNum = Math.floor(i / CHUNK) + 1;
+    const totalChunks = Math.ceil(entries.length / CHUNK);
+    let attempt = 0;
+    let success = false;
+    while (attempt < 3 && !success) {
+      attempt++;
+      try {
+        const part = await translateBatch(chunk, locale);
+        Object.assign(translated, part);
+        console.log(`  [${locale}] chunk ${chunkNum}/${totalChunks} ok (${Object.keys(part).length}/${Object.keys(chunk).length})`);
+        success = true;
+      } catch (e) {
+        console.warn(`  [${locale}] chunk ${chunkNum}/${totalChunks} attempt ${attempt} failed: ${e.message.slice(0, 100)}`);
+        if (attempt >= 3) {
+          console.warn(`  [${locale}] giving up on chunk ${chunkNum}, will use RO fallback for ${Object.keys(chunk).length} keys`);
+        } else {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+  }
 
   const merged = { ...existingFlat, ...translated };
   // Asigură că toate cheile RO sunt prezente (chiar dacă modelul a omis ceva)

@@ -9,6 +9,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { dbQuery } from "@/lib/db";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
+import { getTranslations } from "next-intl/server";
 
 type PostMeta = {
   id: string;
@@ -122,6 +123,7 @@ export default async function PublicPostPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const t = await getTranslations("b");
   const { slug } = await params;
   const loaded = await loadPost(slug);
   if (!loaded) notFound();
@@ -204,18 +206,19 @@ export default async function PublicPostPage({
 
         <div className="mt-8 rounded-2xl bg-violet-600 px-5 py-4 text-center">
           <p className="text-sm opacity-90">
-            {totalVotes} vot{totalVotes === 1 ? "" : "uri"} până acum
+            {totalVotes} vot{totalVotes === 1 ? "" : "uri"}  {t("panaAcum")}
           </p>
           <Link
             href={`/auth/signup?next=/b/${post.slug}`}
             className="mt-2 inline-block rounded-full bg-white px-6 py-2 font-semibold text-violet-700"
           >
-            {cta} pe Swypik
+            {cta}  {t("peSwypik")}
           </Link>
         </div>
 
         <p className="mt-6 text-center text-xs text-zinc-500">
-          Swypik · social shopping unde comunitatea decide ce merită.
+          
+          {t("swypikSocialShoppingUnde")}
         </p>
       </div>
     </main>

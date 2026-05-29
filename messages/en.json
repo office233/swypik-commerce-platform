@@ -397,5 +397,131 @@
     "nuAiCereriDe": "No return requests.",
     "potiSolicitaUnRetur": "You can request a return from an order's details page (within 30 days of delivery).",
     "comanda": "Order #"
+  },
+  "becomeacreator": {
+    "devinoCreatorPeSwypik": "Become a Swypik Creator",
+    "transformatiPasiuneaPentruShopping": "Turn your shopping passion into income. Post clips, recommend products, earn commissions.",
+    "logheazateCaSaContinui": "Sign in to continue",
+    "tePotiIntoarceOricand": "You can switch back to shopping anytime in your account."
+  },
+  "challenges": {
+    "provocariActive": "Active Challenges",
+    "provocari": "Challenges",
+    "participaLaProvocariZilnice": "Join daily challenges, earn",
+    "siUrcaInClasament": "and climb the leaderboard.",
+    "nuExistaProvocariActive": "No active challenges right now. Check back soon.",
+    "inscris": "Joined",
+    "niciunCastigatorIncaFii": "No winners yet. Be first.",
+    "reguliSiIntrebariFrecvente": "Rules & FAQ",
+    "apasaButonulParticipaPe": "Tap Join on an active challenge. You'll need a Swypik account.",
+    "recompensaSeAcordaAutomat": "Rewards go straight to your wallet when you meet the challenge criteria.",
+    "conturileCuEngagementFals": "Accounts with fake engagement, spam, or banned content are disqualified without notice.",
+    "reflectaTotalulDeSwyp": "shows your total Swyp Coins earned (lifetime). Updates in real time."
+  },
+  "addresses": {
+    "adreseDeLivrare": "Delivery Addresses",
+    "gestioneazaAdreseleUndePrimesti": "Manage where your orders are delivered.",
+    "adaugaAdresaNoua": "Add new address",
+    "nuAiNicioAdresa": "No saved addresses yet.",
+    "seteazaCaImplicit": "Set as default",
+    "apreciaza": "Like",
+    "editeaza": "Edit",
+    "editeaza2": "Edit",
+    "sterge": "Delete",
+    "sterge2": "Delete",
+    "inchide": "Close",
+    "acasaBirou": "Home, Work...",
+    "tara": "Country *",
+    "seteazaCaAdresaImplicita": "Set as default address"
+  },
+  "wallet": {
+    "inapoi": "Back",
+    "seIncarca": "Loading...",
+    "balantaSwypCoins": "Swyp Coins Balance",
+    "laRand": "pending",
+    "recompensaZilnica": "Daily Reward",
+    "10CoinsZiua1": "+10 coins day 1, +5 each consecutive day (max 50)",
+    "provocariActive": "Active Challenges",
+    "nicioProvocareActivaMomentan": "No active challenges right now.",
+    "seIncheie": "Ends:",
+    "tranzactiiRecente": "Recent Transactions",
+    "nicioTranzactieInca": "No transactions yet.",
+    "conversieInRon": "Convert to RON",
+    "inCurandVeiPutea": "Soon you'll be able to convert Swyp Coins to real money.",
+    "curand": "Coming soon"
+  },
+  "inbox": {
+    "notificari": "Notifications",
+    "seIncarca": "Loading...",
+    "mesajeleVorFiDisponibile": "Messages coming soon",
+    "functionalitateaEsteTemporarDezactivata": "This feature is temporarily unavailable.",
+    "nicioConversatieInca": "No conversations yet",
+    "incepeOConversatieDe": "Start a chat from someone's profile.",
+    "seIncarca2": "Loading...",
+    "marcheazaToateCitite": "Mark all as read",
+    "nicioNotificareInca": "No notifications yet",
+    "aiciVeiVedeaAprecieri": "You'll see likes, comments, and new followers here."
+  },
+  "collections": {
+    "inapoiLaColectii": "Back to Collections",
+    "editeaza": "Edit",
+    "sterge": "Delete",
+    "aceastaColectieEsteGoala": "This collection is empty.",
+    "exploreazaClipuri": "Explore clips",
+    "editeazaColectia": "Edit collection",
+    "inchide": "Close",
+    "salveazaModificarile": "Save changes",
+    "colectiileMele": "My Collections",
+    "noua": "New",
+    "nuAiNicioColectie": "No collections yet.",
+    "creeazaPrimaTaColectie": "Create your first collection",
+    "colectieNoua": "New collection",
+    "exRetete": "Ex: Recipes",
+    "creeazaColectia": "Create collection"
+  },
+  "sellers": {
+    "vanzatorVerificat": "✓ Verified Seller",
+    "vanzari": "Sales",
+    "produseleAcestuiVanzatorVor": "This seller's products will appear here soon."
+  },
+  "page": {
+    "swypikCumparaPrinVideo": "Swypik — Shop by Video. AI Marketplace.",
+    "descoperaProdusePopulareOferte": "Discover trending products, best value deals, and top picks through curated video content. Find what you need faster with AI.",
+    "calitatepretExcelent": "Excellent value"
+  },
+  "b": {
+    "panaAcum": "so far",
+    "peSwypik": "on Swypik",
+    "swypikSocialShoppingUnde": "Swypik · social shopping where the community decides what's worth it."
+  },
+  "ageverificationAgeVerification": {
+    "verificareVarsta": "Age Verification",
+    "necesarPentruAAccesa": "Required to access 18+ content on Swypik.",
+    "verificatLa": "Verified:",
+    "dataNasterii": "Date of birth:",
+    "expiraLa": "Expires:",
+    "folosimStripeIdentityPentru": "We use Stripe Identity to verify your document. Data is processed by Stripe under GDPR. We only store your birth date and document country.",
+    "afiseazaContinut18": "Show 18+ content",
+    "activeazaPentruAVedea": "Turn on to see adult videos and products in your feed."
+  },
+  "ordersOrderReturnButton": {
+    "cerereaDeReturA": "Return request submitted. We'll be in touch soon.",
+    "solicitaRetur": "Request return",
+    "descrieProblemaDefectMarime": "Describe the issue (defect, wrong size, etc.)...",
+    "fotografiiOptionalMax": "Photos (optional, max",
+    "stergeFotografia": "Delete photo",
+    "adaugaFotografie": "Add photo",
+    "seIncarca": "Loading...",
+    "renunta": "Cancel"
+  },
+  "stripeConnectCard": {
+    "seVerificaStatusulStripe": "Checking Stripe status..."
+  },
+  "audioPicker": {
+    "inchide": "Close",
+    "cautaTitluArtistTag": "Search title, artist, tag...",
+    "cautaPiesa": "Search track",
+    "seIncarca": "Loading...",
+    "nicioPiesaGasita": "No tracks found."
   }
 }

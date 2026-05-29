@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, MessageCircle, CheckCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Notification = {
   id: string;
@@ -44,6 +45,7 @@ function timeAgo(iso?: string | null): string {
 type Tab = "messages" | "notifications";
 
 export default function InboxClient() {
+  const t = useTranslations("inbox");
   const [tab, setTab] = useState<Tab>("messages");
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [convs, setConvs] = useState<Conversation[]>([]);
@@ -159,7 +161,8 @@ export default function InboxClient() {
           }`}
         >
           <Bell className="h-4 w-4" />
-          Notificări
+          
+          {t("notificari")}
           {unreadN > 0 && (
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#7C3AED] px-1 text-[10px] font-semibold text-white">
               {unreadN > 99 ? "99+" : unreadN}
@@ -198,8 +201,9 @@ function MessagesTab({
   loading: boolean;
   dmFrozen: boolean;
 }) {
+  const t = useTranslations("inbox");
   if (loading) {
-    return <div className="py-20 text-center text-sm text-[#6E6E80]">Se încarcă...</div>;
+    return <div className="py-20 text-center text-sm text-[#6E6E80]">{t("seIncarca")}</div>;
   }
   if (dmFrozen) {
     return (
@@ -207,8 +211,8 @@ function MessagesTab({
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#0D0D0D]/10 text-[#0D0D0D]">
           <MessageCircle className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 text-base font-black">Mesajele vor fi disponibile curând</h2>
-        <p className="mt-1 text-sm text-[#6E6E80]">Funcționalitatea este temporar dezactivată.</p>
+        <h2 className="mt-4 text-base font-black">{t("mesajeleVorFiDisponibile")}</h2>
+        <p className="mt-1 text-sm text-[#6E6E80]">{t("functionalitateaEsteTemporarDezactivata")}</p>
       </div>
     );
   }
@@ -218,8 +222,8 @@ function MessagesTab({
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#0D0D0D]/10 text-[#0D0D0D]">
           <MessageCircle className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 text-base font-black">Nicio conversație încă</h2>
-        <p className="mt-1 text-sm text-[#6E6E80]">Începe o conversație de pe profilul cuiva.</p>
+        <h2 className="mt-4 text-base font-black">{t("nicioConversatieInca")}</h2>
+        <p className="mt-1 text-sm text-[#6E6E80]">{t("incepeOConversatieDe")}</p>
       </div>
     );
   }
@@ -286,8 +290,9 @@ function NotificationsTab({
   markAll: () => void;
   markOne: (id: string) => void;
 }) {
+  const t = useTranslations("inbox");
   if (loading) {
-    return <div className="py-20 text-center text-sm text-[#6E6E80]">Se încarcă...</div>;
+    return <div className="py-20 text-center text-sm text-[#6E6E80]">{t("seIncarca2")}</div>;
   }
   return (
     <>
@@ -299,7 +304,8 @@ function NotificationsTab({
           className="inline-flex items-center gap-1.5 rounded-full bg-[#0D0D0D] px-4 py-2.5 min-h-[40px] text-xs font-bold text-white transition hover:bg-[#1a1a1a] disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
         >
           <CheckCheck className="h-3.5 w-3.5" />
-          Marchează toate citite
+          
+          {t("marcheazaToateCitite")}
         </button>
       </div>
 
@@ -308,9 +314,10 @@ function NotificationsTab({
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#0D0D0D]/10 text-[#0D0D0D]">
             <Bell className="h-6 w-6" />
           </div>
-          <h2 className="mt-4 text-base font-black">Nicio notificare încă</h2>
+          <h2 className="mt-4 text-base font-black">{t("nicioNotificareInca")}</h2>
           <p className="mt-1 text-sm text-[#6E6E80]">
-            Aici vei vedea aprecieri, comentarii și follow-uri noi.
+            
+            {t("aiciVeiVedeaAprecieri")}
           </p>
         </div>
       ) : (

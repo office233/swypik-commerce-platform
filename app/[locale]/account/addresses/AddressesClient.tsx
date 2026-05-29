@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MapPin, Plus, Pencil, Trash2, Star, Loader2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Address = {
   id: string;
@@ -57,6 +58,7 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function AddressesClient() {
+  const t = useTranslations("addresses");
   const [items, setItems] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<FormState | null>(null);
@@ -146,14 +148,14 @@ export default function AddressesClient() {
 
   return (
     <main className="mx-auto max-w-2xl p-5 text-white">
-      <h1 className="mb-1 text-2xl font-black">Adrese de livrare</h1>
-      <p className="mb-6 text-sm text-white/60">Gestionează adresele unde primești comenzile.</p>
+      <h1 className="mb-1 text-2xl font-black">{t("adreseDeLivrare")}</h1>
+      <p className="mb-6 text-sm text-white/60">{t("gestioneazaAdreseleUndePrimesti")}</p>
 
       <button
         onClick={startCreate}
         className="mb-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] py-3 text-sm font-black text-white hover:bg-[#E0264A]"
       >
-        <Plus size={16} /> Adaugă adresă nouă
+        <Plus size={16} />  {t("adaugaAdresaNoua")}
       </button>
 
       {loading ? (
@@ -162,7 +164,8 @@ export default function AddressesClient() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/50">
-          Nu ai nicio adresă salvată.
+          
+          {t("nuAiNicioAdresa")}
         </div>
       ) : (
         <ul className="space-y-3">
@@ -182,24 +185,24 @@ export default function AddressesClient() {
                   {!a.is_default && (
                     <button
                       onClick={() => setDefault(a.id)}
-                      title="Setează ca implicit"
+                      title={t("seteazaCaImplicit")}
                       className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-                     aria-label="Apreciază">
+                     aria-label={t("apreciaza")}>
                       <Star size={14} />
                     </button>
                   )}
                   <button
                     onClick={() => startEdit(a)}
-                    title="Editează"
+                    title={t("editeaza")}
                     className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-                   aria-label="Editează">
+                   aria-label={t("editeaza2")}>
                     <Pencil size={14} />
                   </button>
                   <button
                     onClick={() => remove(a.id)}
-                    title="Șterge"
+                    title={t("sterge")}
                     className="rounded-lg p-1.5 text-white/60 hover:bg-[#7C3AED]/20 hover:text-[#7C3AED]"
-                   aria-label="Șterge">
+                   aria-label={t("sterge2")}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -231,12 +234,12 @@ export default function AddressesClient() {
                 type="button"
                 onClick={() => setEditing(null)}
                 className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-               aria-label="Închide">
+               aria-label={t("inchide")}>
                 <X size={18} />
               </button>
             </div>
             <div className="space-y-3">
-              <Input label="Etichetă (opțional)" value={editing.label} onChange={(v) => setEditing({ ...editing, label: v })} placeholder="Acasă, Birou..." />
+              <Input label="Etichetă (opțional)" value={editing.label} onChange={(v) => setEditing({ ...editing, label: v })} placeholder={t("acasaBirou")} />
               <Input label="Destinatar *" value={editing.recipient_name} onChange={(v) => setEditing({ ...editing, recipient_name: v })} required />
               <Input label="Telefon" value={editing.phone} onChange={(v) => setEditing({ ...editing, phone: v })} placeholder="+40..." />
               <Input label="Adresă (linia 1) *" value={editing.line1} onChange={(v) => setEditing({ ...editing, line1: v })} required />
@@ -248,7 +251,7 @@ export default function AddressesClient() {
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Cod poștal *" value={editing.postal_code} onChange={(v) => setEditing({ ...editing, postal_code: v })} required />
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-white/60">Țară *</label>
+                  <label className="mb-1 block text-xs font-bold text-white/60">{t("tara")}</label>
                   <select
                     value={editing.country_code}
                     onChange={(e) => setEditing({ ...editing, country_code: e.target.value })}
@@ -267,7 +270,7 @@ export default function AddressesClient() {
                   onChange={(e) => setEditing({ ...editing, is_default: e.target.checked })}
                   className="accent-[#7C3AED]"
                 />
-                <span className="text-white/80">Setează ca adresă implicită</span>
+                <span className="text-white/80">{t("seteazaCaAdresaImplicita")}</span>
               </label>
             </div>
             <button
@@ -291,6 +294,7 @@ export default function AddressesClient() {
 }
 
 function Input(props: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; required?: boolean }) {
+  const t = useTranslations("addresses");
   return (
     <div>
       <label className="mb-1 block text-xs font-bold text-white/60">{props.label}</label>
