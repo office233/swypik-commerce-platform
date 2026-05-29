@@ -16,6 +16,7 @@ import { loadBlob, deleteBlob } from "@/lib/reels/blob-store";
 import { FILTER_PRESETS, getFilter, type FilterId } from "@/lib/reels/filters";
 import { createFilteredStream } from "@/lib/reels/canvas-pipeline";
 import AudioPicker, { type AudioTrackDTO } from "@/components/reels/AudioPicker";
+import { useTranslations } from "next-intl";
 
 const MAX_DURATION_MS = 60_000; // 60s pentru MVP
 const COUNTDOWN_OPTIONS = [0, 3, 10] as const;
@@ -31,6 +32,7 @@ function formatTime(ms: number): string {
 }
 
 export default function Recorder() {
+  const t = useTranslations("recorder");
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -296,7 +298,7 @@ export default function Recorder() {
       <div className="fixed inset-0 z-[60] bg-black text-white flex flex-col items-center justify-center px-6 text-center">
         <button
           onClick={handleClose}
-          aria-label="Închide"
+          aria-label={t("inchide")}
           className="absolute top-3 right-3 w-11 h-11 flex items-center justify-center rounded-full bg-white/10"
         >
           <X size={22} />
@@ -317,7 +319,8 @@ export default function Recorder() {
             onClick={() => window.location.reload()}
             className="w-full bg-white text-black font-bold py-3 rounded-2xl"
           >
-            Reîncearcă
+            
+            {t("reincearca")}
           </button>
         </div>
       </div>
@@ -331,7 +334,7 @@ export default function Recorder() {
         <div className="sticky top-0 h-12 px-3 flex items-center justify-between bg-black/80 backdrop-blur-xl border-b border-white/10">
           <button
             onClick={() => setPhase("capture")}
-            aria-label="Înapoi"
+            aria-label={t("inapoi")}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-white/10"
           >
             <X size={20} />
@@ -369,7 +372,7 @@ export default function Recorder() {
               onChange={(e) => setDescription(e.target.value.slice(0, 280))}
               rows={3}
               maxLength={280}
-              placeholder="Spune ceva despre clipul tău..."
+              placeholder={t("spuneCevaDespreClipul")}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white/30 resize-none"
             />
             <div className="text-right text-[11px] text-white/40 mt-1">
@@ -379,7 +382,8 @@ export default function Recorder() {
 
           <div>
             <label className="text-xs font-bold text-white/60 mb-1.5 block uppercase tracking-wider">
-              Link produs (opțional)
+              
+              {t("linkProdusOptional")}
             </label>
             <input
               type="url"
@@ -393,7 +397,8 @@ export default function Recorder() {
 
           <div>
             <label className="text-xs font-bold text-white/60 mb-1.5 block uppercase tracking-wider">
-              Piesă (opțional)
+              
+              {t("piesaOptional")}
             </label>
             <button
               type="button"
@@ -415,7 +420,7 @@ export default function Recorder() {
                     <div className="text-[11px] text-white/50 truncate">{audioTrack.artist}</div>
                   </>
                 ) : (
-                  <div className="text-sm text-white/60">Adaugă o piesă</div>
+                  <div className="text-sm text-white/60">{t("adaugaOPiesa")}</div>
                 )}
               </div>
               <span className="text-[11px] font-bold text-white/40">
@@ -424,7 +429,8 @@ export default function Recorder() {
             </button>
             {audioTrack?.attributionUrl && (
               <div className="text-[10px] text-white/30 mt-1.5">
-                Sursă:{" "}
+                
+                {t("sursa")}{" "}
                 <a
                   href={audioTrack.attributionUrl}
                   target="_blank"
@@ -442,13 +448,15 @@ export default function Recorder() {
               onClick={handleRetake}
               className="flex-1 border border-white/30 text-white font-bold py-3.5 rounded-2xl active:scale-95 transition"
             >
-              Refilmează
+              
+              {t("refilmeaza")}
             </button>
             <button
               onClick={handlePublish}
               className="flex-1 bg-white text-black font-bold py-3.5 rounded-2xl active:scale-95 transition"
             >
-              Publică
+              
+              {t("publica")}
             </button>
           </div>
         </div>
@@ -542,7 +550,8 @@ export default function Recorder() {
               onClick={() => void handleCancelPending(pendingUploads[0].sessionId)}
               className="flex-1 border border-white/40 text-white font-bold py-2 rounded-xl text-xs active:scale-95"
             >
-              Anulează
+              
+              {t("anuleaza")}
             </button>
           </div>
         </div>
@@ -554,7 +563,7 @@ export default function Recorder() {
       >
         <button
           onClick={handleClose}
-          aria-label="Închide"
+          aria-label={t("inchide2")}
           className="w-11 h-11 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md"
         >
           <X size={22} />
@@ -588,7 +597,7 @@ export default function Recorder() {
             </button>
             <button
               onClick={() => void camera.switchFacing()}
-              aria-label="Schimbă camera"
+              aria-label={t("schimbaCamera")}
               className="w-11 h-11 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md"
             >
               <SwitchCamera size={22} />
@@ -645,7 +654,7 @@ export default function Recorder() {
               {hasContent ? (
                 <button
                   onClick={handleFinalize}
-                  aria-label="Finalizează"
+                  aria-label={t("finalizeaza")}
                   className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs active:scale-95"
                 >
                   Gata
@@ -653,7 +662,7 @@ export default function Recorder() {
               ) : isIdle ? (
                 <button
                   onClick={handlePickFromGallery}
-                  aria-label="Încarcă din galerie"
+                  aria-label={t("incarcaDinGalerie")}
                   className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex flex-col items-center justify-center text-white active:scale-95"
                 >
                   <ImagePlus size={20} />
@@ -705,13 +714,15 @@ export default function Recorder() {
               onClick={handleRetake}
               className="flex-1 border border-white text-white font-bold py-3.5 rounded-2xl active:scale-95 transition"
             >
-              Refilmează
+              
+              {t("refilmeaza2")}
             </button>
             <button
               onClick={handleUseClip}
               className="flex-1 bg-white text-black font-bold py-3.5 rounded-2xl active:scale-95 transition"
             >
-              Folosește
+              
+              {t("foloseste")}
             </button>
           </div>
         </div>

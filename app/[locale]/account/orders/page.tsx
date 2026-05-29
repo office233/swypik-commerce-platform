@@ -6,6 +6,7 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { formatCurrency } from "@/lib/i18n/currency";
 import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, type Currency } from "@/lib/i18n/config";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,7 @@ function fmtDate(iso: string) {
 }
 
 export default async function OrdersPage() {
+  const t = await getTranslations("accountOrders");
   const user = await getAuthUser();
   if (!user.userId) redirect("/account?redirect=/account/orders");
 
@@ -70,7 +72,7 @@ export default async function OrdersPage() {
       </header>
       <div className="px-4 pt-4 max-w-2xl mx-auto">
         {rows.length === 0 ? (
-          <p className="text-white/50 text-sm mt-8 text-center">Nu ai comenzi încă.</p>
+          <p className="text-white/50 text-sm mt-8 text-center">{t("nuAiComenziInca")}</p>
         ) : (
           <ul className="space-y-3">
             {rows.map((r) => (
@@ -84,7 +86,8 @@ export default async function OrdersPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm md:text-base font-semibold">
-                      Comandă #{r.id.slice(0, 8)}
+                      
+                      {t("comanda")}{r.id.slice(0, 8)}
                     </div>
                     <div className="text-xs text-white/60">
                       {fmtDate(r.created_at)} · {r.item_count} produs

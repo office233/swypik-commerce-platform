@@ -10,6 +10,7 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
 import { trackEvent as trackFeedEvent, trackWatchTime, flushWatchTime, resetWatchTime, getSessionId } from "@/lib/feed/track";
+import { useTranslations } from "next-intl";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
@@ -91,6 +92,7 @@ function FeedVideo({ videoId, src, hlsUrl, fallbackSrc, poster, isCurrent, muted
 }
 
 function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: any[]; initialCategory?: string }) {
+  const t = useTranslations("explore");
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialVideoId = searchParams.get("v");
@@ -638,7 +640,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
 
   return (
     <main className="explore-root" aria-label="Discover videos">
-      <h1 className="sr-only">Descoperă videoclipuri Swypik</h1>
+      <h1 className="sr-only">{t("descoperaVideoclipuriSwypik")}</h1>
       <style dangerouslySetInnerHTML={{__html: `
         :root { --feed-bottom-nav: 64px; --feed-safe-bottom: env(safe-area-inset-bottom, 0px); --feed-action-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 16px); --feed-content-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 12px); }
         .explore-root { position: fixed; inset: env(safe-area-inset-top, 0px) 0 0 0; background: #000; color: #fff; overflow: hidden; min-height: 100dvh; }
@@ -738,12 +740,12 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
           <input
             value={aiPrompt}
             onChange={(event) => setAiPrompt(event.target.value)}
-            placeholder="Ce vrei să găsești azi?"
-            aria-label="Caută cu AI în feed"
+            placeholder={t("ceVreiSaGasesti")}
+            aria-label={t("cautaCuAiIn")}
           />
           <Sparkles size={15} color="#FDE047" />
         </form>
-        <div className="format-tabs" role="tablist" aria-label="Formate de shopping show">
+        <div className="format-tabs" role="tablist" aria-label={t("formateDeShoppingShow")}>
           {FEED_FORMATS.map((format) => (
             <button
               key={format}
@@ -777,8 +779,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
             <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,45,85,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <ShoppingCart size={36} color="#ff2d55" />
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Nu există videoclipuri</h2>
-            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Fii primul care adaugă un clip!</p>
+            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>{t("nuExistaVideoclipuri")}</h2>
+            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>{t("fiiPrimulCareAdauga")}</p>
           </div>
         ) : (
           videos.map((video, idx) => {
@@ -883,7 +885,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                         disabled={voteBusyKey === `${video.id}:worth_it`}
                         aria-pressed={video.product.votes?.viewerVote === 'worth_it'}
                       >
-                        <ThumbsUp />Merită
+                        <ThumbsUp />{t("merita")}
                       </button>
                       <button
                         type="button"
@@ -892,7 +894,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                         disabled={voteBusyKey === `${video.id}:not_worth_it`}
                         aria-pressed={video.product.votes?.viewerVote === 'not_worth_it'}
                       >
-                        <ThumbsDown />Nu merită
+                        <ThumbsDown />{t("nuMerita")}
                       </button>
                       <button
                         type="button"
@@ -900,7 +902,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                         onClick={() => handleSave(video.id)}
                         aria-pressed={savedVideos.has(video.id)}
                       >
-                        <Bookmark />Salvează
+                        <Bookmark />{t("salveaza")}
                       </button>
                       <button
                         type="button"
@@ -915,20 +917,21 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                         onClick={() => handleAddProductToCart(video)}
                         disabled={cartBusyProductId === String(video.product.id)}
                       >
-                        <ShoppingCart />Coș
+                        <ShoppingCart />{t("cos")}
                       </button>
                     </div>
 
                     <div className="cockpit-actions cockpit-secondary">
                       <button type="button" className="cockpit-btn" onClick={() => { haptic("tap"); setActiveCommentsVideo(video); }}>
-                        <MessageCircle />Discuții {formatCount(video.comments)}
+                        <MessageCircle />{t("discutii")} {formatCount(video.comments)}
                       </button>
                       <button type="button" className="cockpit-btn" onClick={() => handleShare(video.id)}>
                         Share {formatCount(video.shares)}
                       </button>
                       {video.creator?.id && !followingCreators.has(video.creator.id) ? (
                         <button type="button" className="cockpit-btn" onClick={() => handleFollow(video.creator?.id)}>
-                          Urmărește
+                          
+                          {t("urmareste")}
                         </button>
                       ) : (
                         <button type="button" className="cockpit-btn" onClick={() => openProduct(video)}>
@@ -982,6 +985,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
 }
 
 export default function ExploreClient({ initialVideos = [], initialCategory = "" }: { initialVideos?: any[]; initialCategory?: string }) {
+  const t = useTranslations("explore");
   return (
     <Suspense fallback={<div style={{ background: '#000', height: '100dvh' }} />}>
       <ExplorePageInner initialVideos={initialVideos} initialCategory={initialCategory} />

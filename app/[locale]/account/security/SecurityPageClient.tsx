@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Loader2, Lock, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Copy, Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function SecurityPageClient({
   hasPassword,
@@ -13,6 +14,7 @@ export default function SecurityPageClient({
   totpEnabled: boolean;
   connectedAccounts: { provider: string; email: string | null; createdAt: string }[];
 }) {
+  const t = useTranslations("security");
   const [accounts, setAccounts] = useState(connectedAccounts);
   const [accLoading, setAccLoading] = useState<string | null>(null);
   const [accError, setAccError] = useState<string | null>(null);
@@ -247,16 +249,18 @@ export default function SecurityPageClient({
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck size={18} className={twoFaEnabled ? "text-[#10A37F]" : "text-white/60"} />
-            <h2 className="text-base font-black">Autentificare în doi pași (2FA)</h2>
+            <h2 className="text-base font-black">{t("autentificareInDoiPasi")}</h2>
           </div>
           {twoFaEnabled && (
             <span className="rounded-full bg-[#10A37F]/20 px-2 py-0.5 text-[10px] font-bold text-[#10A37F]">
-              ACTIVĂ
+              
+              {t("activa")}
             </span>
           )}
         </div>
         <p className="mb-4 text-xs text-white/60">
-          Folosește o aplicație ca Google Authenticator, Authy sau 1Password pentru a genera coduri.
+          
+          {t("folosesteOAplicatieCa")}
         </p>
 
         {twoFaError && (
@@ -271,7 +275,7 @@ export default function SecurityPageClient({
             disabled={twoFaLoading}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 py-3 text-sm font-black hover:bg-white/15 disabled:opacity-50"
           >
-            {twoFaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Activează 2FA</>}
+            {twoFaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("activeaza2fa")}</>}
           </button>
         )}
 
@@ -281,26 +285,28 @@ export default function SecurityPageClient({
               onClick={() => setTwoFaStep("disable")}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#7C3AED]/10 py-3 text-sm font-black text-[#7C3AED] hover:bg-[#7C3AED]/20"
             >
-              <ShieldOff size={14} /> Dezactivează 2FA
+              <ShieldOff size={14} />  {t("dezactiveaza2fa")}
             </button>
             {!showRegen ? (
               <button
                 onClick={() => setShowRegen(true)}
                 className="w-full rounded-xl bg-white/5 py-2.5 text-xs font-bold text-white/70 hover:bg-white/10"
               >
-                Regenerează codurile de rezervă
+                
+                {t("regenereazaCodurileDeRezerva")}
               </button>
             ) : (
               <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.04] p-3">
                 <p className="text-xs text-white/70">
-                  Vechile coduri vor fi invalidate. Confirmă parola:
+                  
+                  {t("vechileCoduriVorFi")}
                 </p>
                 <input
                   type="password"
                   autoComplete="current-password"
                   value={regenPw}
                   onChange={(e) => setRegenPw(e.target.value)}
-                  placeholder="Parola contului"
+                  placeholder={t("parolaContului")}
                   className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED]"
                 />
                 <div className="flex gap-2">
@@ -308,7 +314,8 @@ export default function SecurityPageClient({
                     onClick={() => { setShowRegen(false); setRegenPw(""); }}
                     className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-bold hover:bg-white/15"
                   >
-                    Anulează
+                    
+                    {t("anuleaza")}
                   </button>
                   <button
                     onClick={regenerateBackupCodes}
@@ -325,13 +332,13 @@ export default function SecurityPageClient({
 
         {twoFaStep === "setup" && qrUrl && (
           <div className="space-y-3">
-            <p className="text-xs text-white/70">Scanează QR-ul cu aplicația ta:</p>
+            <p className="text-xs text-white/70">{t("scaneazaQrulCuAplicatia")}</p>
             <div className="flex justify-center rounded-xl bg-white p-3">
               <Image src={qrUrl} alt="QR Code 2FA" width={192} height={192} className="h-48 w-48" unoptimized />
             </div>
             {otpAuthUrl && (
               <details className="rounded-lg bg-white/5 p-3 text-xs">
-                <summary className="cursor-pointer font-bold text-white/70">Nu poți scana? Introdu manual</summary>
+                <summary className="cursor-pointer font-bold text-white/70">{t("nuPotiScanaIntrodu")}</summary>
                 <p className="mt-2 break-all text-white/50">{otpAuthUrl}</p>
               </details>
             )}
@@ -357,7 +364,8 @@ export default function SecurityPageClient({
               onClick={() => setTwoFaStep("idle")}
               className="w-full text-xs text-white/50 hover:text-white"
             >
-              Anulează
+              
+              {t("anuleaza2")}
             </button>
           </div>
         )}
@@ -365,9 +373,10 @@ export default function SecurityPageClient({
         {twoFaStep === "codes" && (
           <div className="space-y-3">
             <div className="rounded-xl border border-[#10A37F]/30 bg-[#10A37F]/10 p-3">
-              <p className="mb-1 text-sm font-black text-[#10A37F]">2FA activă!</p>
+              <p className="mb-1 text-sm font-black text-[#10A37F]">{t("2faActiva")}</p>
               <p className="text-xs text-white/70">
-                Salvează aceste coduri de rezervă într-un loc sigur. Le poți folosi dacă pierzi accesul la aplicație. Nu le vei mai vedea niciodată.
+                
+                {t("salveazaAcesteCoduriDe")}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/40 p-3 font-mono text-sm">
@@ -380,13 +389,13 @@ export default function SecurityPageClient({
                 onClick={() => navigator.clipboard?.writeText(backupCodes.join("\n"))}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white/10 py-2 text-xs font-bold hover:bg-white/15"
               >
-                <Copy size={12} /> Copiază
+                <Copy size={12} />  {t("copiaza")}
               </button>
               <button
                 onClick={downloadCodes}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white/10 py-2 text-xs font-bold hover:bg-white/15"
               >
-                <Download size={12} /> Descarcă .txt
+                <Download size={12} />  {t("descarcaTxt")}
               </button>
             </div>
             <button
@@ -400,13 +409,13 @@ export default function SecurityPageClient({
 
         {twoFaStep === "disable" && (
           <div className="space-y-3">
-            <p className="text-xs text-white/70">Confirmă parola pentru a dezactiva 2FA:</p>
+            <p className="text-xs text-white/70">{t("confirmaParolaPentruA")}</p>
             <input
               type="password"
               autoComplete="current-password"
               value={disablePw}
               onChange={(e) => setDisablePw(e.target.value)}
-              placeholder="Parola contului"
+              placeholder={t("parolaContului2")}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm focus:outline-none focus:border-[#7C3AED]"
             />
             <div className="flex gap-2">
@@ -414,7 +423,8 @@ export default function SecurityPageClient({
                 onClick={() => setTwoFaStep("idle")}
                 className="flex-1 rounded-xl bg-white/10 py-3 text-sm font-bold hover:bg-white/15"
               >
-                Anulează
+                
+                {t("anuleaza3")}
               </button>
               <button
                 onClick={disable2fa}
@@ -430,12 +440,12 @@ export default function SecurityPageClient({
 
       <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <h2 className="text-lg font-black">Conturi conectate</h2>
-        <p className="mt-1 text-sm text-white/60">Login social activ pentru contul tău.</p>
+        <p className="mt-1 text-sm text-white/60">{t("loginSocialActivPentru")}</p>
         {accError && (
           <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{accError}</div>
         )}
         {accounts.length === 0 ? (
-          <p className="mt-4 text-sm text-white/50">Nu ai conturi sociale conectate.</p>
+          <p className="mt-4 text-sm text-white/50">{t("nuAiConturiSociale")}</p>
         ) : (
           <ul className="mt-4 space-y-2">
             {accounts.map((a) => (
@@ -474,6 +484,7 @@ function PasswordField({
   show: boolean;
   toggle: () => void;
 }) {
+  const t = useTranslations("security");
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-white/60">

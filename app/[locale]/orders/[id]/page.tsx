@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 const STATUS_MAP: Record<string, { label: string; color: string; icon: string; step: number }> = {
   pending: { label: "În așteptare", color: "bg-yellow-100 text-yellow-800", icon: "⏳", step: 1 },
@@ -21,6 +22,7 @@ const STEPS = [
 ];
 
 export default function OrderTrackingPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("orders");
   const { id } = use(params);
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-sm font-medium text-[#6E6E80]">Se încarcă comanda...</p>
+          <p className="mt-4 text-sm font-medium text-[#6E6E80]">{t("seIncarcaComanda")}</p>
         </div>
       </div>
     );
@@ -62,10 +64,11 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">📭</div>
-          <h1 className="text-2xl font-black text-[#0D0D0D]">Comanda nu a fost găsită</h1>
+          <h1 className="text-2xl font-black text-[#0D0D0D]">{t("comandaNuAFost")}</h1>
           <p className="mt-2 text-sm text-[#6E6E80]">{error || "Verifică link-ul sau contactează suportul."}</p>
           <Link href="/" className="mt-6 inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white">
-            Înapoi la magazin
+            
+            {t("inapoiLaMagazin")}
           </Link>
         </div>
       </div>
@@ -117,7 +120,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
       <header className="bg-white border-b border-[#E5E5E5] px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-lg font-black text-[#0D0D0D]">Swypik</Link>
-          <span className="text-xs font-bold text-[#6E6E80] uppercase tracking-widest">Urmărire comandă</span>
+          <span className="text-xs font-bold text-[#6E6E80] uppercase tracking-widest">{t("urmarireComanda")}</span>
         </div>
       </header>
 
@@ -130,7 +133,8 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
             {statusInfo.icon} {statusInfo.label}
           </span>
           <p className="mt-2 text-xs text-[#6E6E80]">
-            Plasată pe {new Date(order.createdAt).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            
+            {t("plasataPe")} {new Date(order.createdAt).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
 
@@ -169,11 +173,11 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         {/* Tracking Number */}
         {order.trackingNumber && (
           <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
-            <h2 className="text-base font-black text-[#0D0D0D] mb-3">🚚 Cod de urmărire</h2>
+            <h2 className="text-base font-black text-[#0D0D0D] mb-3">{t("codDeUrmarire")}</h2>
             <div className="flex items-center gap-3 bg-[#F7F7F8] rounded-xl p-4">
               <div className="flex-1">
                 <p className="text-lg font-black font-mono text-[#0D0D0D]">{order.trackingNumber}</p>
-                <p className="text-xs text-[#6E6E80] mt-0.5">Folosește acest cod pe site-ul curierului</p>
+                <p className="text-xs text-[#6E6E80] mt-0.5">{t("folosesteAcestCodPe")}</p>
               </div>
               {order.trackingUrl && (
                 <a
@@ -182,7 +186,8 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                   rel="noopener noreferrer"
                   className="shrink-0 rounded-lg bg-[#0D0D0D] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0E906F] transition"
                 >
-                  Urmărește →
+                  
+                  {t("urmareste")}
                 </a>
               )}
             </div>
@@ -214,7 +219,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         {/* Shipping Address */}
         {order.shipping && (
           <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
-            <h2 className="text-base font-black text-[#0D0D0D] mb-3">📍 Adresa de livrare</h2>
+            <h2 className="text-base font-black text-[#0D0D0D] mb-3">{t("adresaDeLivrare")}</h2>
             <div className="text-sm text-[#0D0D0D]">
               <p className="font-bold">{order.shipping.name}</p>
               <p>{order.shipping.line1}</p>
@@ -233,7 +238,8 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
               <div>
                 <h2 className="text-base font-black text-orange-800">Retur solicitat</h2>
                 <p className="text-sm text-orange-700 mt-0.5">
-                  Cererea ta de retur a fost înregistrată. Vei fi contactat în curând de echipa noastră.
+                  
+                  {t("cerereaTaDeRetur")}
                 </p>
               </div>
             </div>
@@ -245,9 +251,10 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
             <div className="flex items-center gap-3">
               <span className="text-3xl">✅</span>
               <div>
-                <h2 className="text-base font-black text-neutral-900">Cerere trimisă cu succes!</h2>
+                <h2 className="text-base font-black text-neutral-900">{t("cerereTrimisaCuSucces")}</h2>
                 <p className="text-sm text-neutral-900 mt-0.5">
-                  Vom analiza cererea ta și te vom contacta în cel mai scurt timp.
+                  
+                  {t("vomAnalizaCerereaTa")}
                 </p>
               </div>
             </div>
@@ -262,17 +269,18 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                 onClick={() => setShowReturnForm(true)}
                 className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-6 py-3.5 text-sm font-bold text-red-700 hover:bg-red-100 hover:border-red-300 transition-all active:scale-[0.98]"
               >
-                <span>↩️</span> Solicită Retur
+                <span>↩️</span>  {t("solicitaRetur")}
               </button>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-black text-[#0D0D0D]">Solicită retur</h2>
+                  <h2 className="text-base font-black text-[#0D0D0D]">{t("solicitaRetur2")}</h2>
                   <button
                     onClick={() => { setShowReturnForm(false); setReturnError(null); }}
                     className="text-xs font-bold text-[#6E6E80] hover:text-[#0D0D0D] transition"
                   >
-                    ✕ Anulează
+                    
+                    {t("anuleaza")}
                   </button>
                 </div>
                 <div>
@@ -284,7 +292,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                     rows={3}
                     value={returnReason}
                     onChange={(e) => setReturnReason(e.target.value)}
-                    placeholder="Descrie motivul pentru care dorești să returnezi comanda..."
+                    placeholder={t("descrieMotivulPentruCare")}
                     className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm text-[#0D0D0D] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D] focus:border-transparent resize-none transition"
                   />
                 </div>
@@ -319,7 +327,8 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
             href="/"
             className="inline-block rounded-xl bg-[#0D0D0D] px-8 py-4 text-sm font-bold text-white transition-transform active:scale-[0.98]"
           >
-            Înapoi la magazin
+            
+            {t("inapoiLaMagazin2")}
           </Link>
         </div>
       </div>

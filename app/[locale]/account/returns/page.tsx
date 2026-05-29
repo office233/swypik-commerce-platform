@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, PackageSearch } from "lucide-react";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ const RETURN_STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function ReturnsPage() {
+  const t = await getTranslations("accountReturns");
   const user = await getAuthUser();
   if (!user.userId) redirect("/auth?next=/account/returns");
 
@@ -54,9 +56,10 @@ export default async function ReturnsPage() {
         {rows.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
             <PackageSearch className="mx-auto mb-3 text-white/40" size={40} />
-            <p className="text-sm font-semibold">Nu ai cereri de retur.</p>
+            <p className="text-sm font-semibold">{t("nuAiCereriDe")}</p>
             <p className="mt-1 text-xs text-white/50">
-              Poți solicita un retur din pagina detaliată a unei comenzi livrate (în 30 zile).
+              
+              {t("potiSolicitaUnRetur")}
             </p>
             <Link
               href="/account/orders"
@@ -77,7 +80,8 @@ export default async function ReturnsPage() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <Link href={`/account/orders/${r.id}`} className="text-sm font-bold hover:underline">
-                      Comandă #{r.id.slice(0, 8)}
+                      
+                      {t("comanda")}{r.id.slice(0, 8)}
                     </Link>
                     <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
                       {label}

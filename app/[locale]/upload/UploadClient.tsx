@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AudioPicker, { type AudioTrackDTO } from "@/components/reels/AudioPicker";
+import { useTranslations } from "next-intl";
 
 type Step = 1 | 2 | 3;
 type TranscodeStatus = "pending" | "processing" | "ready" | "failed" | "uploading";
@@ -32,6 +33,7 @@ function extractHashtags(text: string): string[] {
 }
 
 export default function UploadClient() {
+  const t = useTranslations("upload");
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get("draft");
@@ -276,7 +278,7 @@ export default function UploadClient() {
               type="button"
               onClick={() => setStep((s) => (s - 1) as Step)}
               className="p-2 -ml-2 rounded-full hover:bg-white/10"
-              aria-label="Înapoi"
+              aria-label={t("inapoi")}
             >
               <ArrowLeft size={20} />
             </button>
@@ -296,14 +298,15 @@ export default function UploadClient() {
           ))}
         </div>
         <Link href="/creator" className="text-xs font-bold text-white/50 hover:text-white">
-          Anulează
+          
+          {t("anuleaza")}
         </Link>
       </header>
 
       {errorMsg && (
         <div className="mx-4 mt-4 bg-red-500/10 border border-red-500/30 text-red-300 text-sm font-bold p-3 rounded-xl flex items-start justify-between gap-2">
           <span>{errorMsg}</span>
-          <button type="button" onClick={() => setErrorMsg("")} aria-label="Închide">
+          <button type="button" onClick={() => setErrorMsg("")} aria-label={t("inchide")}>
             <X size={16} />
           </button>
         </div>
@@ -407,6 +410,7 @@ function Step1(props: {
   onContinue: () => void;
   onChangeFile: () => void;
 }) {
+  const t = useTranslations("upload");
   const { previewUrl, file, dragActive, setDragActive, fileInputRef, onPick, onDrop, onContinue, onChangeFile } = props;
 
   return (
@@ -422,15 +426,15 @@ function Step1(props: {
               <Camera size={26} className="text-white" />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-base font-black text-white">Filmează cu camera</p>
-              <p className="text-xs font-medium text-white/60 mt-0.5">Înregistrează direct din browser, ca pe TikTok</p>
+              <p className="text-base font-black text-white">{t("filmeazaCuCamera")}</p>
+              <p className="text-xs font-medium text-white/60 mt-0.5">{t("inregistreazaDirectDinBrowser")}</p>
             </div>
             <span className="text-white/40 text-xl">›</span>
           </div>
         </Link>
         <div className="flex items-center gap-3 py-1">
           <div className="flex-1 h-px bg-white/10"></div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">sau încarcă</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{t("sauIncarca")}</span>
           <div className="flex-1 h-px bg-white/10"></div>
         </div>
         <div
@@ -453,9 +457,9 @@ function Step1(props: {
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#A855F7] flex items-center justify-center mb-5 shadow-lg shadow-[#7C3AED]/40">
             <UploadCloud size={36} className="text-white" />
           </div>
-          <h2 className="text-xl font-black mb-2">Trage videoul aici</h2>
-          <p className="text-sm text-white/60 mb-1">sau apasă pentru a selecta din galerie</p>
-          <p className="text-xs text-white/40">MP4, MOV sau WEBM • max 200MB</p>
+          <h2 className="text-xl font-black mb-2">{t("trageVideoulAici")}</h2>
+          <p className="text-sm text-white/60 mb-1">{t("sauApasaPentruA")}</p>
+          <p className="text-xs text-white/40">{t("mp4MovSauWebm")}</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -477,7 +481,8 @@ function Step1(props: {
               onClick={onChangeFile}
               className="absolute top-4 right-4 bg-black/60 backdrop-blur rounded-full px-4 py-2 text-xs font-bold hover:bg-white/20"
             >
-              Schimbă
+              
+              {t("schimba")}
             </button>
             <div className="absolute bottom-4 left-4 right-4 flex items-center gap-2 text-white/80">
               <VideoIcon size={14} />
@@ -493,7 +498,8 @@ function Step1(props: {
         onClick={onContinue}
         className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-[#7C3AED]/30 active:scale-[0.98] transition-transform"
       >
-        Continuă <ArrowRight size={18} />
+        
+        {t("continua")} <ArrowRight size={18} />
       </button>
     </div>
   );
@@ -508,6 +514,7 @@ function Step2(props: {
   onBack: () => void;
   onNext: () => void;
 }) {
+  const t = useTranslations("upload");
   const { previewUrl, uploadProgress, transcodeStatus, onBack, onNext } = props;
 
   const pct =
@@ -578,7 +585,7 @@ function Step2(props: {
             disabled={transcodeStatus === "uploading"}
             className="flex-1 h-12 rounded-2xl border border-white/15 text-sm font-bold flex items-center justify-center gap-2 hover:bg-white/5 disabled:opacity-30"
           >
-            <ArrowLeft size={16} /> Înapoi
+            <ArrowLeft size={16} />  {t("inapoi2")}
           </button>
           <button
             type="button"
@@ -586,7 +593,8 @@ function Step2(props: {
             disabled={transcodeStatus !== "ready"}
             className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-30 active:scale-[0.98] transition-transform"
           >
-            Continuă la detalii <ArrowRight size={16} />
+            
+            {t("continuaLaDetalii")} <ArrowRight size={16} />
           </button>
         </div>
       </div>
@@ -628,6 +636,7 @@ function Step3(props: {
   onSchedule: () => void;
   onPublish: () => void;
 }) {
+  const t = useTranslations("upload");
   const {
     previewUrl,
     title,
@@ -685,7 +694,7 @@ function Step3(props: {
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value.slice(0, 100))}
-          placeholder="Adaugă un titlu captivant"
+          placeholder={t("adaugaUnTitluCaptivant")}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#A855F7]"
         />
       </div>
@@ -695,7 +704,7 @@ function Step3(props: {
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
-          placeholder="Spune-ne despre clip... folosește #hashtag-uri"
+          placeholder={t("spuneneDespreClipFoloseste")}
           rows={4}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#A855F7] resize-none"
         />
@@ -727,7 +736,7 @@ function Step3(props: {
               <p className="text-xs text-white/50 truncate">{audioTrack.artist}</p>
             </>
           ) : (
-            <p className="text-sm font-bold text-white/70">Adaugă sunet</p>
+            <p className="text-sm font-bold text-white/70">{t("adaugaSunet")}</p>
           )}
         </div>
         {audioTrack && (
@@ -738,7 +747,7 @@ function Step3(props: {
               clearAudio();
             }}
             className="p-1.5 rounded-full hover:bg-white/10"
-            aria-label="Elimină sunet"
+            aria-label={t("eliminaSunet")}
           >
             <X size={14} />
           </button>
@@ -746,7 +755,7 @@ function Step3(props: {
       </button>
 
       <div>
-        <label className="text-sm font-bold text-white/70 mb-2 block">Tag produs (opțional)</label>
+        <label className="text-sm font-bold text-white/70 mb-2 block">{t("tagProdusOptional")}</label>
         {productId ? (
           <div className="bg-white/5 border border-[#A855F7]/40 rounded-xl px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-bold truncate">{productTitle}</span>
@@ -754,7 +763,7 @@ function Step3(props: {
               type="button"
               onClick={clearProduct}
               className="p-1.5 rounded-full hover:bg-white/10"
-              aria-label="Elimină produs"
+              aria-label={t("eliminaProdus")}
             >
               <X size={14} />
             </button>
@@ -764,7 +773,7 @@ function Step3(props: {
             <input
               value={productQuery}
               onChange={(e) => setProductQuery(e.target.value)}
-              placeholder="Caută produs din marketplace..."
+              placeholder={t("cautaProdusDinMarketplace")}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#A855F7]"
             />
             {productResults.length > 0 && (
@@ -794,7 +803,7 @@ function Step3(props: {
       {scheduleOpen && (
         <div className="bg-white/[0.03] border border-[#A855F7]/30 rounded-xl p-4 space-y-3">
           <label className="text-sm font-bold text-white/80 flex items-center gap-2">
-            <Calendar size={16} /> Programează publicarea
+            <Calendar size={16} />  {t("programeazaPublicarea")}
           </label>
           <input
             type="datetime-local"
@@ -812,7 +821,8 @@ function Step3(props: {
               }}
               className="flex-1 h-11 rounded-xl border border-white/15 text-sm font-bold hover:bg-white/5"
             >
-              Anulează
+              
+              {t("anuleaza2")}
             </button>
             <button
               type="button"
@@ -833,7 +843,7 @@ function Step3(props: {
           disabled={submitting}
           className="h-12 rounded-xl border border-white/15 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-white/5 disabled:opacity-30"
         >
-          <Save size={14} /> Schiță
+          <Save size={14} />  {t("schita")}
         </button>
         <button
           type="button"
@@ -841,7 +851,7 @@ function Step3(props: {
           disabled={submitting}
           className="h-12 rounded-xl border border-white/15 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-white/5 disabled:opacity-30"
         >
-          <Calendar size={14} /> Programează
+          <Calendar size={14} />  {t("programeaza")}
         </button>
         <button
           type="button"
@@ -849,7 +859,7 @@ function Step3(props: {
           disabled={submitting}
           className="h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 active:scale-[0.98] transition-transform shadow-lg shadow-[#7C3AED]/30"
         >
-          <Sparkles size={14} /> Publică
+          <Sparkles size={14} />  {t("publica")}
         </button>
       </div>
     </div>
