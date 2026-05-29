@@ -628,6 +628,25 @@ function buildSearchFilters(filters: ProductFilters) {
         OR COALESCE(p.metadata->>'ae_category_name_ro', '') ILIKE $${paramIndex + 1}
         OR COALESCE(p.metadata->>'product_type', '') ILIKE $${paramIndex + 1}
         OR COALESCE(p.metadata->>'product_type_ro', '') ILIKE $${paramIndex + 1}
+        OR p.taxonomy_node_slug IN (
+          WITH RECURSIVE matched AS (
+            SELECT DISTINCT tt.node_slug AS slug
+              FROM taxonomy_translations tt
+             WHERE tt.locale IN ('ro','de','fr','en')
+               AND char_length(public.f_unaccent(lower($${paramIndex}))) >= 3
+               AND (
+                 public.f_unaccent(lower(tt.label)) LIKE public.f_unaccent(lower($${paramIndex})) || '%'
+                 OR public.f_unaccent(lower($${paramIndex})) LIKE public.f_unaccent(lower(tt.label)) || '%'
+                 OR word_similarity(public.f_unaccent(lower($${paramIndex})), public.f_unaccent(lower(tt.label))) > 0.7
+               )
+          ), descendants AS (
+            SELECT slug FROM matched
+            UNION ALL
+            SELECT n.slug FROM taxonomy_nodes n
+            JOIN descendants d ON n.parent_slug = d.slug
+          )
+          SELECT slug FROM descendants
+        )
       )
     `);
     params.push(search, `%${search}%`, effLocale);
@@ -721,24 +740,47 @@ function buildSearchFilters(filters: ProductFilters) {
   return { where, params, paramIndex };
 }
 
-function buildOrderBy(sort?: ProductFilters["sort"], mode?: ProductFilters["mode"]) {
-  if (sort === "price_asc") return "p.price_cents ASC NULLS LAST, p.updated_at DESC";
-  if (sort === "price_desc") return "p.price_cents DESC NULLS LAST, p.updated_at DESC";
-  if (sort === "discount") return `${DISCOUNT_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
-  if (sort === "popular" || mode === "trending") return `${ORDERS_SQL} DESC, ${RATING_SQL} DESC, p.updated_at DESC`;
-  if (mode === "deals") return `${DISCOUNT_SQL} DESC, p.price_cents ASC NULLS LAST, ${ORDERS_SQL} DESC`;
-  if (mode === "feed") return `${VIDEO_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
-  if (mode === "bestvalue") return `CASE WHEN COALESCE(p.price_cents, 0) > 0 THEN (${ORDERS_SQL}::numeric / p.price_cents) ELSE 0 END DESC, ${RATING_SQL} DESC, p.updated_at DESC`;
-  if (mode === "toprated") return `${RATING_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
-  if (sort === "newest") return "p.created_at DESC";
-  return "p.created_at DESC";
+function buildOrderBy(sort?: ProductFilters["sort"], mode?: ProductFilters["mode"], search?: string) {
+  // When user searches with a free-text query, prefix the ORDER BY with a
+  // taxonomy-slug-match priority so products in a category that matches the
+  // query label come first. This avoids "rochii" returning slimming devices
+  // (matched only by description text).
+  const slugBoost = search
+    ? `CASE WHEN p.taxonomy_node_slug IN (
+        WITH RECURSIVE matched AS (
+          SELECT DISTINCT tt.node_slug AS slug FROM taxonomy_translations tt
+           WHERE tt.locale IN ('ro','de','fr','en')
+             AND char_length(public.f_unaccent(lower($1))) >= 3
+             AND (
+               public.f_unaccent(lower(tt.label)) LIKE public.f_unaccent(lower($1)) || '%'
+               OR public.f_unaccent(lower($1)) LIKE public.f_unaccent(lower(tt.label)) || '%'
+               OR word_similarity(public.f_unaccent(lower($1)), public.f_unaccent(lower(tt.label))) > 0.7
+             )
+        ), descendants AS (
+          SELECT slug FROM matched
+          UNION ALL
+          SELECT n.slug FROM taxonomy_nodes n JOIN descendants d ON n.parent_slug = d.slug
+        )
+        SELECT slug FROM descendants
+      ) THEN 0 ELSE 1 END, `
+    : "";
+  if (sort === "price_asc") return `${slugBoost}p.price_cents ASC NULLS LAST, p.updated_at DESC`;
+  if (sort === "price_desc") return `${slugBoost}p.price_cents DESC NULLS LAST, p.updated_at DESC`;
+  if (sort === "discount") return `${slugBoost}${DISCOUNT_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
+  if (sort === "popular" || mode === "trending") return `${slugBoost}${ORDERS_SQL} DESC, ${RATING_SQL} DESC, p.updated_at DESC`;
+  if (mode === "deals") return `${slugBoost}${DISCOUNT_SQL} DESC, p.price_cents ASC NULLS LAST, ${ORDERS_SQL} DESC`;
+  if (mode === "feed") return `${slugBoost}${VIDEO_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
+  if (mode === "bestvalue") return `${slugBoost}CASE WHEN COALESCE(p.price_cents, 0) > 0 THEN (${ORDERS_SQL}::numeric / p.price_cents) ELSE 0 END DESC, ${RATING_SQL} DESC, p.updated_at DESC`;
+  if (mode === "toprated") return `${slugBoost}${RATING_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
+  if (sort === "newest") return `${slugBoost}p.created_at DESC`;
+  return `${slugBoost}p.created_at DESC`;
 }
 
 export async function searchProducts(filters: ProductFilters = {}) {
-  const { limit = 50, offset = 0, locale = "ro", sort, mode } = filters;
+  const { limit = 50, offset = 0, locale = "ro", sort, mode, search } = filters;
   const includeCount = (filters as any).includeCount === true;
   const { where, params, paramIndex } = buildSearchFilters(filters);
-  const orderBy = buildOrderBy(sort, mode);
+  const orderBy = buildOrderBy(sort, mode, search);
   const cappedLimit = Math.min(limit, 200);
 
   // Skip COUNT(*) by default — use LIMIT+1 for hasMore. Caller may opt in

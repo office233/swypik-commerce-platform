@@ -149,7 +149,7 @@ async function processLocale(locale, roFlat) {
   console.log(`[${locale}] translating ${missingCount}/${total} missing keys...`);
 
   // Chunk to keep response JSON under ~7K tokens
-  const CHUNK = (locale === 'de' || locale === 'fr') ? 5 : 60;
+  const CHUNK = (locale === 'de' || locale === 'fr') ? 1 : 60;
   const entries = Object.entries(missing);
   let translated = {};
   for (let i = 0; i < entries.length; i += CHUNK) {
