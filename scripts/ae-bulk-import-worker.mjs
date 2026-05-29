@@ -295,7 +295,7 @@ function mapProduct(result, fallbackId) {
 }
 
 // ─── INSERT PRODUCT ──────────────────────────────────────────────────────────
-async function upsertProduct(client, product, categoryHint, sourceFiles, aeCategories, chainCache, nodesBySlug) {
+async function upsertProduct(client, product, categoryHint, sourceFiles, aeCategories, chainCache, nodesBySlug, slugByAeLeafId) {
   const ar = adultReason(product);
   const tax = resolveTaxonomyV2({
     displayName: product.title,
@@ -306,7 +306,16 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
   }, aeCategories, chainCache);
   const uiTax = resolveSlug(uiTaxonomyMatcher, tax.department, tax.category, tax.subcategory);
   const taxonomySlug = tax.slug;
-  const taxonomyNodeSlug = uiTax.slug;
+  // Shortcut: daca avem mapping direct ae_category_id -> slug (din statistici prior), foloseste-l (confidence 0.95).
+  // Altfel cad pe resolverul uiTaxonomyMatcher (chain-based, mai zgomotos).
+  const aeIdStr = product.categoryId != null ? String(product.categoryId) : null;
+  const directSlug = aeIdStr ? slugByAeLeafId?.get(aeIdStr) : null;
+  const taxonomyNodeSlug = directSlug || uiTax.slug;
+  if (directSlug) {
+    tax.reason = `${tax.reason}_ae_leaf_direct`;
+    tax.confidence = Math.max(tax.confidence, 0.95);
+    tax.unresolved = false;  // mapare directa AE id -> slug, certitudine din statistici
+  }
   // canonical_category text = display_name_ro din taxonomy_nodes (sursa unica de adevar),
   // NU tax.canonical (care e 'Fashion > Men > Suits & Sets > <titlul produsului>' din resolver-ul AE).
   const canonicalCategory = nodesBySlug?.get(taxonomyNodeSlug) || tax.canonical;
@@ -503,12 +512,17 @@ async function main() {
   const aeCategories = await loadCategories(pool);
   const chainCache = await loadFullChainCache(pool);
   // Cache UI taxonomy nodes -> display_name_ro pentru canonical_category text consistent.
+  // + cache reverse ae_leaf_id -> slug pentru shortcut la resolver (skip chain walk daca avem mapping).
   const nodesBySlug = new Map();
+  const slugByAeLeafId = new Map();
   {
-    const { rows } = await pool.query(`SELECT slug, metadata->>'display_name_ro' AS ro, metadata->>'display_name' AS en FROM taxonomy_nodes WHERE is_active = true`);
-    for (const r of rows) nodesBySlug.set(r.slug, r.ro || r.en || r.slug);
+    const { rows } = await pool.query(`SELECT slug, ae_leaf_ids, metadata->>'display_name_ro' AS ro, metadata->>'display_name' AS en FROM taxonomy_nodes WHERE is_active = true`);
+    for (const r of rows) {
+      nodesBySlug.set(r.slug, r.ro || r.en || r.slug);
+      for (const ae of (r.ae_leaf_ids || [])) slugByAeLeafId.set(String(ae), r.slug);
+    }
   }
-  log('info', 'taxonomy caches loaded', { ae_categories: aeCategories.size, ui_nodes: nodesBySlug.size });
+  log('info', 'taxonomy caches loaded', { ae_categories: aeCategories.size, ui_nodes: nodesBySlug.size, ae_leaf_mappings: slugByAeLeafId.size });
 
   let processed = 0, succeeded = 0, failed = 0, skipped = 0;
   const startedAt = Date.now();
@@ -559,7 +573,7 @@ async function main() {
       let productDbId = null;
       try {
         await client.query('BEGIN');
-        productDbId = await upsertProduct(client, product, plan.category_hint, plan.source_files, aeCategories, chainCache, nodesBySlug);
+        productDbId = await upsertProduct(client, product, plan.category_hint, plan.source_files, aeCategories, chainCache, nodesBySlug, slugByAeLeafId);
         await client.query('COMMIT');
       } catch (e) {
         await client.query('ROLLBACK');
