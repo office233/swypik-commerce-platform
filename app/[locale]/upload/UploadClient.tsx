@@ -122,11 +122,11 @@ export default function UploadClient() {
 
   function pickFile(f: File) {
     if (!ACCEPTED.includes(f.type) && !f.type.startsWith("video/")) {
-      setErrorMsg("Format invalid. Folosește MP4, MOV sau WEBM.");
+      setErrorMsg(t("formatInvalid"));
       return;
     }
     if (f.size > MAX_BYTES) {
-      setErrorMsg("Fișierul depășește 200MB.");
+      setErrorMsg(t("fisierulDepaseste200mb"));
       return;
     }
     setErrorMsg("");
@@ -219,11 +219,11 @@ export default function UploadClient() {
 
   async function submit(mode: "draft" | "schedule" | "publish") {
     if (!videoId) {
-      setErrorMsg("Video încă nu e procesat.");
+      setErrorMsg(t("videoIncaNuEProcesat"));
       return;
     }
     if (mode === "schedule" && !scheduledAt) {
-      setErrorMsg("Alege data și ora.");
+      setErrorMsg(t("alegeDataSiOra"));
       return;
     }
     setSubmitting(true);
@@ -284,7 +284,7 @@ export default function UploadClient() {
             </button>
           ) : null}
           <h1 className="text-base font-bold">
-            {step === 1 ? "Încarcă clip" : step === 2 ? "Procesare" : "Detalii"}
+            {step === 1 ? t("incarcaClip") : step === 2 ? t("procesare") : t("detalii")}
           </h1>
         </div>
         <div className="flex items-center gap-1.5" aria-label={`Pas ${step} din 3`}>
@@ -537,7 +537,7 @@ function Step2(props: {
       ? "Gata!"
       : transcodeStatus === "failed"
       ? "Eroare la procesare"
-      : "Inițializare...";
+      : t("initializare");
 
   return (
     <div className="grid md:grid-cols-2 gap-6">
@@ -571,10 +571,10 @@ function Step2(props: {
             />
           </div>
           <p className="mt-2 text-xs text-white/50">
-            {transcodeStatus === "uploading" && "Se trimite fișierul..."}
-            {transcodeStatus === "processing" && "Convertim videoul în HLS pentru playback rapid."}
-            {transcodeStatus === "ready" && "Procesarea s-a încheiat. Treci la detalii."}
-            {transcodeStatus === "failed" && "A apărut o problemă. Încearcă din nou."}
+            {transcodeStatus === "uploading" && t("seTrimiteFisierul")}
+            {transcodeStatus === "processing" && t("convertimVideoulHls")}
+            {transcodeStatus === "ready" && t("procesareaIncheiata")}
+            {transcodeStatus === "failed" && t("aAparutOProblema")}
           </p>
         </div>
 
@@ -830,7 +830,7 @@ function Step3(props: {
               disabled={submitting || !scheduledAt}
               className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-sm font-bold disabled:opacity-30"
             >
-              {submitting ? "Se programează..." : "Confirmă"}
+              {submitting ? t("seProgrameaza") : t("confirmaUpl")}
             </button>
           </div>
         </div>

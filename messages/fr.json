@@ -237,7 +237,32 @@
   "help": {
     "ajutorIntrebariFrecvente": "Aide & FAQ",
     "nuGasestiCeAi": "Tu ne trouves pas ce qu'il te faut ? Écris-nous à",
-    "confidentialitate": "Confidentialité"
+    "confidentialitate": "Confidentialité",
+    "termeni": "Conditions",
+    "retururi": "Retours",
+    "despreSwypik": "À propos de Swypik",
+    "faq": {
+      "cumpar": {
+        "q": "Comment acheter un produit ?",
+        "a": "Ouvre une vidéo, appuie sur le produit recommandé et finalise le paiement. Transactions sécurisées via Stripe."
+      },
+      "livrare": {
+        "q": "Quels sont les délais de livraison ?",
+        "a": "Entre 5 et 14 jours ouvrés en Roumanie, selon le fournisseur. Détails sur la page du produit."
+      },
+      "retur": {
+        "q": "Puis-je retourner le produit ?",
+        "a": "Oui, sous 14 jours après réception. Va dans Mon compte → Commandes → sélectionne la commande et appuie sur « Demander un retour »."
+      },
+      "creator": {
+        "q": "Comment devenir créateur/vendeur ?",
+        "a": "Rends-toi sur la page Devenir Créateur ou Devenir Vendeur et remplis le formulaire. Notre équipe te répond sous 48 h."
+      },
+      "plati": {
+        "q": "Les paiements sont-ils sécurisés ?",
+        "a": "Tous les paiements passent par Stripe (PCI-DSS Level 1). Swypik ne stocke pas les données de ta carte."
+      }
+    }
   },
   "about": {
     "swypikEstePlatformaRomaneasca": "Swypik est la plateforme roumaine où tu achètes par vidéo. Découvre des produits en vidéo courte de vrais créateurs, obtiens des scores de qualité générés par IA et paie en toute sécurité en quelques secondes.",
@@ -409,7 +434,21 @@
     "anuleaza2": "Annuler",
     "schita": "Brouillon",
     "programeaza": "Programmer",
-    "publica": "Publier"
+    "publica": "Publier",
+    "formatInvalid": "Format invalide. Utilise MP4, MOV ou WEBM.",
+    "fisierulDepaseste200mb": "Le fichier dépasse 200 Mo.",
+    "videoIncaNuEProcesat": "Vidéo en cours de traitement.",
+    "alegeDataSiOra": "Choisis la date et l'heure.",
+    "incarcaClip": "Importer un clip",
+    "procesare": "Traitement",
+    "detalii": "Détails",
+    "initializare": "Initialisation…",
+    "seTrimiteFisierul": "Envoi du fichier…",
+    "convertimVideoulHls": "Conversion de la vidéo en HLS pour une lecture rapide.",
+    "procesareaIncheiata": "Traitement terminé. Passez aux détails.",
+    "aAparutOProblema": "Une erreur est survenue. Réessaie.",
+    "seProgrameaza": "Programmation...",
+    "confirmaUpl": "Confirmer"
   },
   "security": {
     "autentificareInDoiPasi": "Authentification à deux facteurs (2FA)",
@@ -516,7 +555,28 @@
     "salveaza": "Sauvegarder",
     "cos": "Panier",
     "discutii": "Discussions",
-    "urmareste": "Suivre"
+    "urmareste": "Suivre",
+    "verdictPretBun": "Bon prix",
+    "verdictVerificaLivrarea": "Vérifier la livraison",
+    "verdictSub50": "Moins de 50 €",
+    "verdictTrending": "Tendances du jour",
+    "verdictRiscVerificat": "Risque à vérifier",
+    "verdictAiRapid": "Verdict IA rapide",
+    "formatMerita": "Ça vaut le coup ?",
+    "formatSub50": "Moins de 50",
+    "formatTestate": "Testés",
+    "formatSwypikFinds": "Swypik Finds",
+    "formatSelleriLocali": "Vendeurs locaux",
+    "formatBattles": "Battles",
+    "formatLiveDeals": "Live Deals",
+    "linkCopiat": "Lien copié dans le presse-papiers",
+    "adaugatInCos": "Ajouté au panier",
+    "cosPlus10Xp": "Panier +10 XP",
+    "cosulNuSAActualizat": "Panier non mis à jour",
+    "activeazaSunetul": "Activer le son",
+    "opresteSunetul": "Couper le son",
+    "actiuniProdus": "Actions produit {name}",
+    "veziPret": "Voir le prix"
   },
   "accountOrders": {
     "nuAiComenziInca": "Tu n'as pas encore de commandes.",
@@ -808,5 +868,68 @@
     "section8BodySuffix": ". Nous traiterons votre demande dans un délai maximum de 30 jours calendaires à compter de sa réception, conformément au GDPR.",
     "section9Title": "9. Modifications de cette politique",
     "section9Body": "Swypik se réserve le droit de mettre à jour régulièrement cette Politique de confidentialité pour refléter les changements législatifs, technologiques ou nos pratiques de traitement. Tout changement significatif sera annoncé clairement sur la plateforme ou par e-mail avant son entrée en vigueur. La version mise à jour inclura la date de la dernière modification, et l'utilisation continue de la plateforme après cette date constitue l'acceptation des nouveaux termes. Nous vous recommandons de consulter régulièrement cette page pour rester informé de la façon dont nous protégeons vos données."
+  },
+  "authClient": {
+    "emailSauParolaIncorecta": "E-mail ou mot de passe incorrect.",
+    "eroareDeConexiuneReincearca": "Erreur de connexion. Réessaie.",
+    "eroareDeConexiune": "Erreur de connexion.",
+    "codInvalid": "Code invalide.",
+    "codInvalidSauExpirat": "Code invalide ou expiré.",
+    "nuAmPututTrimiteCodul": "Impossible d'envoyer le code.",
+    "nuAmPututContactaServerul": "Impossible de contacter le serveur.",
+    "amTrimisUnCodNou": "Nouveau code envoyé. Vérifie tes e-mails (et les spams).",
+    "nuAmPututCreaContul": "Impossible de créer le compte.",
+    "verificareInDoiPasi": "Validation en deux étapes",
+    "introduCodulDinAplicatie": "Saisis le code de ton app d'authentification ou un code de secours.",
+    "placeholder2faCod": "123456 ou code de secours",
+    "verificam": "Vérification...",
+    "confirma": "Confirmer",
+    "inapoiLaLogin": "Retour à la connexion",
+    "verificaEmailul": "Vérifier l'e-mail",
+    "bineAiRevenit": "Bon retour",
+    "codulAFostTrimisPe": "Le code a été envoyé à <b>{email}</b>.",
+    "intraInCont": "Connecte-toi avec ton mot de passe ou reçois un code par e-mail.",
+    "parolaTab": "Mot de passe",
+    "codEmail": "Code e-mail",
+    "intraInContBtn": "Se connecter",
+    "aiUitatParola": "Mot de passe oublié ?",
+    "trimiteCod": "Envoyer le code",
+    "schimbaEmailul": "Changer l'e-mail",
+    "retrimiteIn": "Renvoyer dans {s} s",
+    "retrimiteCodul": "Renvoyer le code",
+    "continuandAccepti": "En continuant, tu acceptes les <termeni>Conditions</termeni> et la <privacy>Politique de confidentialité</privacy>.",
+    "pasDin": "Étape {step} sur {total}",
+    "emailParola": "E-mail + mot de passe",
+    "cumTeCheama": "Comment tu t'appelles ?",
+    "alegeUnUsername": "Choisis un nom d'utilisateur",
+    "aproapeGata": "Presque fini",
+    "folosimEmailulRecuperare": "E-mail utilisé pour la récupération et la vérification du compte.",
+    "apareProfilulPublic": "Visible sur ton profil public.",
+    "numeleUnicPrieteni": "Nom d'utilisateur — c'est comme ça que tes amis te trouveront sur Swypik.",
+    "telefonAvatarOptionale": "Téléphone et avatar sont facultatifs. Tu peux les ajouter à tout moment.",
+    "minim8Caractere": "8 caractères minimum",
+    "prenume": "Prénom",
+    "nume": "Nom",
+    "username": "Nom d'utilisateur",
+    "telefonOptional": "Téléphone (facultatif)",
+    "avatarDinCont": "Tu pourras ajouter ton avatar depuis ton compte après l'inscription.",
+    "inapoi": "Retour",
+    "continua": "Continuer",
+    "creeazaContul": "Créer un compte",
+    "codDev": "Code dev (visible localement uniquement)",
+    "emailLabel": "E-mail",
+    "parolaLabel": "Mot de passe",
+    "ascundeParola": "Masquer le mot de passe",
+    "arataParola": "Afficher le mot de passe",
+    "ascunde": "Masquer",
+    "arata": "Afficher",
+    "codDe6Cifre": "Code à 6 chiffres",
+    "verificamDisponibilitatea": "Vérification de la disponibilité...",
+    "usernameInvalidRules": "3 à 20 caractères, minuscules, chiffres, _ ou . uniquement",
+    "usernameDisponibil": "@{value} est disponible",
+    "usernameDejaFolosit": "@{value} est déjà pris",
+    "continuaCuGoogle": "Continuer avec Google",
+    "continuaCuApple": "Continuer avec Apple",
+    "sau": "ou"
   }
 }

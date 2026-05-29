@@ -12,28 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-const FAQ = [
-  {
-    q: "Cum cumpăr un produs?",
-    a: "Deschide un clip, apasă pe produsul recomandat și parcurge checkout-ul. Plata se face securizat prin Stripe.",
-  },
-  {
-    q: "Cât durează livrarea?",
-    a: "Între 5 și 14 zile lucrătoare în România, în funcție de furnizor. Detaliile apar pe pagina produsului.",
-  },
-  {
-    q: "Pot returna produsul?",
-    a: "Da, în 14 zile de la primire. Mergi în Contul tău → Comenzi → alege comanda și apasă „Cere retur”.",
-  },
-  {
-    q: "Cum devin creator/seller?",
-    a: "Mergi pe pagina Devino Creator sau Devino Seller și completează formularul. Echipa noastră răspunde în 48h.",
-  },
-  {
-    q: "Plățile sunt sigure?",
-    a: "Toate plățile trec prin Stripe (PCI-DSS Level 1). Swypik nu stochează datele cardului tău.",
-  },
-];
+const FAQ_KEYS = ["cumpar", "livrare", "retur", "creator", "plati"] as const;
 
 export default function HelpPage() {
   const t = useTranslations("help");
@@ -42,18 +21,18 @@ export default function HelpPage() {
       <h1 className="text-3xl font-bold mb-2">{t("ajutorIntrebariFrecvente")}</h1>
       <p className="text-zinc-600 mb-8">{t("nuGasestiCeAi")} <a className="underline" href="mailto:suport@swypik.com">suport@swypik.com</a>.</p>
       <div className="space-y-4">
-        {FAQ.map((item) => (
-          <details key={item.q} className="rounded-lg border border-zinc-200 bg-white p-4">
-            <summary className="cursor-pointer font-medium">{item.q}</summary>
-            <p className="mt-2 text-zinc-700">{item.a}</p>
+        {FAQ_KEYS.map((k) => (
+          <details key={k} className="rounded-lg border border-zinc-200 bg-white p-4">
+            <summary className="cursor-pointer font-medium">{t(`faq.${k}.q` as any)}</summary>
+            <p className="mt-2 text-zinc-700">{t(`faq.${k}.a` as any)}</p>
           </details>
         ))}
       </div>
       <div className="mt-10 flex flex-wrap gap-4 text-sm">
-        <Link href="/terms" className="underline">Termeni</Link>
+        <Link href="/terms" className="underline">{t("termeni")}</Link>
         <Link href="/privacy" className="underline">{t("confidentialitate")}</Link>
-        <Link href="/account/returns" className="underline">Retururi</Link>
-        <Link href="/about" className="underline">Despre Swypik</Link>
+        <Link href="/account/returns" className="underline">{t("retururi")}</Link>
+        <Link href="/about" className="underline">{t("despreSwypik")}</Link>
       </div>
     </main>
   );

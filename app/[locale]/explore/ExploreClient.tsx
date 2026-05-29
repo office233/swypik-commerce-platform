@@ -18,19 +18,19 @@ const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"),
 const MUTE_STORAGE_KEY = "swypik.feed.muted";
 // Mount range: only render real <video src> for slides within ±MOUNT_RADIUS of currentIndex
 const MOUNT_RADIUS = 1;
-const FEED_FORMATS = ["Merită?", "Sub 50", "Testate", "Swypik Finds", "Selleri locali", "Battles", "Live Deals"];
+const FEED_FORMATS = ["formatMerita", "formatSub50", "formatTestate", "formatSwypikFinds", "formatSelleriLocali", "formatBattles", "formatLiveDeals"] as const;
 
-function getProductVerdict(product: any): string {
+function getProductVerdictKey(product: any): "verdictPretBun" | "verdictVerificaLivrarea" | "verdictSub50" | "verdictTrending" | "verdictRiscVerificat" | "verdictAiRapid" {
   const score = Number(product?.swypikScore || 0);
   const price = Number(product?.priceCents || 0);
   const delivery = String(product?.deliveryLabel || "").toLowerCase();
   const title = String(product?.name || product?.title || "").toLowerCase();
-  if (score >= 86) return "Preț bun";
-  if (delivery.includes("livrare") && /[5-9][0-9]\.|[1-9][0-9]{2}/.test(delivery)) return "Verifică livrarea";
-  if (price > 0 && price <= 5000) return "Sub 50 lei";
-  if (title.includes("viral") || title.includes("trending")) return "Trending azi";
-  if (score < 55) return "Risc de verificat";
-  return "AI verdict rapid";
+  if (score >= 86) return "verdictPretBun";
+  if (delivery.includes("livrare") && /[5-9][0-9]\.|[1-9][0-9]{2}/.test(delivery)) return "verdictVerificaLivrarea";
+  if (price > 0 && price <= 5000) return "verdictSub50";
+  if (title.includes("viral") || title.includes("trending")) return "verdictTrending";
+  if (score < 55) return "verdictRiscVerificat";
+  return "verdictAiRapid";
 }
 
 function withOptimisticVote(product: any, vote: "worth_it" | "not_worth_it") {
@@ -106,7 +106,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const [activeCommentsVideo, setActiveCommentsVideo] = useState<any | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [shareToast, setShareToast] = useState<string | null>(null);
-  const [activeFormat, setActiveFormat] = useState(FEED_FORMATS[0]);
+  const [activeFormat, setActiveFormat] = useState<typeof FEED_FORMATS[number]>(FEED_FORMATS[0]);
   const [aiPrompt, setAiPrompt] = useState("");
   const [voteBusyKey, setVoteBusyKey] = useState<string | null>(null);
   const [coinBurst, setCoinBurst] = useState<{ videoId: string; nonce: number } | null>(null);
@@ -491,7 +491,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         await navigator.share({ title: 'Swypik Video', url: shareUrl }).catch(() => {});
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl).catch(() => {});
-        setShareToast("Link copiat în clipboard");
+        setShareToast(t("linkCopiat"));
         setTimeout(() => setShareToast(null), 1800);
       }
       const res = await fetch(`/api/videos/${videoId}/share`, {
@@ -615,10 +615,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       });
       if (!res.ok) throw new Error("cart_failed");
       trackEvent(video.id, "add_to_cart", { product_id: product.id, surface: "feed_cockpit" });
-      setShareToast("Adăugat în coș");
-      window.dispatchEvent(new CustomEvent("reward", { detail: { points: 10, msg: "Coș +10 XP" } }));
+      setShareToast(t("adaugatInCos"));
+      window.dispatchEvent(new CustomEvent("reward", { detail: { points: 10, msg: t("cosPlus10Xp") } }));
     } catch {
-      setShareToast("Coșul nu s-a actualizat");
+      setShareToast(t("cosulNuSAActualizat"));
     } finally {
       setCartBusyProductId(null);
       setTimeout(() => setShareToast(null), 1600);
@@ -755,13 +755,13 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
               role="tab"
               aria-selected={activeFormat === format}
             >
-              {format}
+              {t(format)}
             </button>
           ))}
         </div>
       </div>
 
-      <button className="mute-btn" onClick={toggleMute} aria-label={isMuted ? "Activează sunetul" : "Oprește sunetul"} aria-pressed={!isMuted}>
+      <button className="mute-btn" onClick={toggleMute} aria-label={isMuted ? t("activeazaSunetul") : t("opresteSunetul")} aria-pressed={!isMuted}>
         {isMuted ? <VolumeX size={18} color="#fff" /> : <Volume2 size={18} color="#fff" />}
       </button>
 
@@ -836,7 +836,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                 )}
 
                 {nearActive && video.product?.id && (
-                  <section className="product-cockpit" aria-label={`Acțiuni produs ${video.product?.title || video.product?.id || video.id}`}>
+                  <section className="product-cockpit" aria-label={t("actiuniProdus", { name: video.product?.title || video.product?.id || video.id })}>
                     <div className="cockpit-meta">
                       <Link
                         href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
@@ -845,7 +845,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                         @{(video.creator as any)?.username || video.creator?.name || 'Swypik'}
                         {(video.creator as any)?.verified && <VerifiedBadge size={13} className="ml-1 align-middle" />}
                       </Link>
-                      <span className="verdict-pill"><Sparkles size={12} />{getProductVerdict(video.product)}</span>
+                      <span className="verdict-pill"><Sparkles size={12} />{t(getProductVerdictKey(video.product))}</span>
                     </div>
 
                     {coinBurst?.videoId === video.id && (
@@ -867,7 +867,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                       <span style={{ minWidth: 0, textAlign: 'left' }}>
                         <span className="cockpit-title">{video.product.name || 'Produs Swypik'}</span>
                         <span className="cockpit-sub">
-                          <span className="cockpit-price">{video.product.priceDisplay || video.product.price || 'Vezi preț'}</span>
+                          <span className="cockpit-price">{video.product.priceDisplay || video.product.price || t("veziPret")}</span>
                           <span>{video.product.deliveryLabel || 'Livrare la checkout'}</span>
                         </span>
                       </span>

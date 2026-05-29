@@ -237,7 +237,32 @@
   "help": {
     "ajutorIntrebariFrecvente": "Help & FAQ",
     "nuGasestiCeAi": "Can't find what you need? Email us at",
-    "confidentialitate": "Privacy"
+    "confidentialitate": "Privacy",
+    "termeni": "Terms",
+    "retururi": "Returns",
+    "despreSwypik": "About Swypik",
+    "faq": {
+      "cumpar": {
+        "q": "How do I buy a product?",
+        "a": "Open a clip, tap the featured product, and complete checkout. Payments are secured by Stripe."
+      },
+      "livrare": {
+        "q": "How long does shipping take?",
+        "a": "5–14 business days in Romania, depending on the seller. Details are shown on the product page."
+      },
+      "retur": {
+        "q": "Can I return a product?",
+        "a": "Yes, within 14 days of delivery. Go to Your Account → Orders → pick the order and tap \"Request return\"."
+      },
+      "creator": {
+        "q": "How do I become a creator/seller?",
+        "a": "Visit the Become a Creator or Become a Seller page and fill out the form. Our team replies within 48h."
+      },
+      "plati": {
+        "q": "Are payments safe?",
+        "a": "All payments go through Stripe (PCI-DSS Level 1). Swypik never stores your card details."
+      }
+    }
   },
   "about": {
     "swypikEstePlatformaRomaneasca": "Swypik is Romania's video shopping platform. Discover products in short videos from real creators, get AI-powered quality scores, and pay securely in seconds.",
@@ -409,7 +434,21 @@
     "anuleaza2": "Cancel",
     "schita": "Draft",
     "programeaza": "Schedule",
-    "publica": "Publish"
+    "publica": "Publish",
+    "formatInvalid": "Invalid format. Use MP4, MOV, or WEBM.",
+    "fisierulDepaseste200mb": "File exceeds 200MB.",
+    "videoIncaNuEProcesat": "Video isn't ready yet.",
+    "alegeDataSiOra": "Pick a date and time.",
+    "incarcaClip": "Upload clip",
+    "procesare": "Processing",
+    "detalii": "Details",
+    "initializare": "Starting…",
+    "seTrimiteFisierul": "Uploading file…",
+    "convertimVideoulHls": "Converting your video to HLS for smooth playback.",
+    "procesareaIncheiata": "Processing done. Move on to details.",
+    "aAparutOProblema": "Something went wrong. Try again.",
+    "seProgrameaza": "Scheduling…",
+    "confirmaUpl": "Confirm"
   },
   "security": {
     "autentificareInDoiPasi": "Two-factor authentication (2FA)",
@@ -516,7 +555,28 @@
     "salveaza": "Save",
     "cos": "Cart",
     "discutii": "Discussions",
-    "urmareste": "Follow"
+    "urmareste": "Follow",
+    "verdictPretBun": "Good price",
+    "verdictVerificaLivrarea": "Check shipping",
+    "verdictSub50": "Under 50 lei",
+    "verdictTrending": "Trending today",
+    "verdictRiscVerificat": "Risk to check",
+    "verdictAiRapid": "Quick AI verdict",
+    "formatMerita": "Worth it?",
+    "formatSub50": "Under 50",
+    "formatTestate": "Tested",
+    "formatSwypikFinds": "Swypik Finds",
+    "formatSelleriLocali": "Local sellers",
+    "formatBattles": "Battles",
+    "formatLiveDeals": "Live Deals",
+    "linkCopiat": "Link copied",
+    "adaugatInCos": "Added to cart",
+    "cosPlus10Xp": "Cart +10 XP",
+    "cosulNuSAActualizat": "Couldn't update cart",
+    "activeazaSunetul": "Unmute",
+    "opresteSunetul": "Mute",
+    "actiuniProdus": "Actions for {name}",
+    "veziPret": "See price"
   },
   "accountOrders": {
     "nuAiComenziInca": "No orders yet.",
@@ -808,5 +868,68 @@
     "section8BodySuffix": ". We'll respond within 30 calendar days of receipt, per GDPR.",
     "section9Title": "9. Policy Changes",
     "section9Body": "Swypik may update this Privacy Policy periodically to reflect legal, technological, or practice changes. Significant changes will be announced visibly on the platform or by email before taking effect. Updated versions include the last modification date; continued platform use after that date means you accept the new terms. We recommend reviewing this page regularly to stay informed about how we protect your data."
+  },
+  "authClient": {
+    "emailSauParolaIncorecta": "Wrong email or password.",
+    "eroareDeConexiuneReincearca": "Connection error. Try again.",
+    "eroareDeConexiune": "Connection error.",
+    "codInvalid": "Invalid code.",
+    "codInvalidSauExpirat": "Invalid or expired code.",
+    "nuAmPututTrimiteCodul": "Couldn't send the code.",
+    "nuAmPututContactaServerul": "Couldn't reach the server.",
+    "amTrimisUnCodNou": "New code sent. Check your inbox and spam.",
+    "nuAmPututCreaContul": "Couldn't create your account.",
+    "verificareInDoiPasi": "Two-factor verification",
+    "introduCodulDinAplicatie": "Enter the code from your authenticator app or a backup code.",
+    "placeholder2faCod": "123456 or backup code",
+    "verificam": "Checking...",
+    "confirma": "Confirm",
+    "inapoiLaLogin": "Back to login",
+    "verificaEmailul": "Check your email",
+    "bineAiRevenit": "Welcome back",
+    "codulAFostTrimisPe": "Code sent to <b>{email}</b>.",
+    "intraInCont": "Sign in with your password or get a code by email.",
+    "parolaTab": "Password",
+    "codEmail": "Email code",
+    "intraInContBtn": "Sign in",
+    "aiUitatParola": "Forgot password?",
+    "trimiteCod": "Send code",
+    "schimbaEmailul": "Change email",
+    "retrimiteIn": "Resend in {s}s",
+    "retrimiteCodul": "Resend code",
+    "continuandAccepti": "By continuing, you agree to our <termeni>Terms</termeni> and <privacy>Privacy Policy</privacy>.",
+    "pasDin": "Step {step} of {total}",
+    "emailParola": "Email + password",
+    "cumTeCheama": "What's your name?",
+    "alegeUnUsername": "Pick a username",
+    "aproapeGata": "Almost done",
+    "folosimEmailulRecuperare": "We use your email for account recovery and verification.",
+    "apareProfilulPublic": "This shows on your public profile.",
+    "numeleUnicPrieteni": "Your unique handle — how friends find you on Swypik.",
+    "telefonAvatarOptionale": "Phone and avatar are optional. Add them anytime.",
+    "minim8Caractere": "At least 8 characters",
+    "prenume": "First name",
+    "nume": "Last name",
+    "username": "Username",
+    "telefonOptional": "Phone (optional)",
+    "avatarDinCont": "You can add an avatar from your account after sign-up.",
+    "inapoi": "Back",
+    "continua": "Continue",
+    "creeazaContul": "Create account",
+    "codDev": "Dev code (local only)",
+    "emailLabel": "Email",
+    "parolaLabel": "Password",
+    "ascundeParola": "Hide password",
+    "arataParola": "Show password",
+    "ascunde": "Hide",
+    "arata": "Show",
+    "codDe6Cifre": "6-digit code",
+    "verificamDisponibilitatea": "Checking availability...",
+    "usernameInvalidRules": "3-20 characters: lowercase letters, numbers, _ or .",
+    "usernameDisponibil": "@{value} is available",
+    "usernameDejaFolosit": "@{value} is already taken",
+    "continuaCuGoogle": "Continue with Google",
+    "continuaCuApple": "Continue with Apple",
+    "sau": "or"
   }
 }
