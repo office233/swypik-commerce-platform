@@ -295,7 +295,7 @@ function mapProduct(result, fallbackId) {
 }
 
 // ─── INSERT PRODUCT ──────────────────────────────────────────────────────────
-async function upsertProduct(client, product, categoryHint, sourceFiles, aeCategories, chainCache) {
+async function upsertProduct(client, product, categoryHint, sourceFiles, aeCategories, chainCache, nodesBySlug) {
   const ar = adultReason(product);
   const tax = resolveTaxonomyV2({
     displayName: product.title,
@@ -305,9 +305,11 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
     aeCategoryId: product.categoryId || null,
   }, aeCategories, chainCache);
   const uiTax = resolveSlug(uiTaxonomyMatcher, tax.department, tax.category, tax.subcategory);
-  const canonicalCategory = tax.canonical;
   const taxonomySlug = tax.slug;
   const taxonomyNodeSlug = uiTax.slug;
+  // canonical_category text = display_name_ro din taxonomy_nodes (sursa unica de adevar),
+  // NU tax.canonical (care e 'Fashion > Men > Suits & Sets > <titlul produsului>' din resolver-ul AE).
+  const canonicalCategory = nodesBySlug?.get(taxonomyNodeSlug) || tax.canonical;
   const totalStock = product.variants.reduce((s, v) => s + v.stock, 0);
   const activePrices = product.variants.filter(v => v.status === 'active').map(v => centsRon(v.priceRon)).filter(Number.isFinite);
   const priceCents = activePrices.length ? Math.min(...activePrices) : centsRon(product.variants[0].priceRon);
@@ -500,7 +502,13 @@ async function main() {
   // Preload taxonomy resolver caches once.
   const aeCategories = await loadCategories(pool);
   const chainCache = await loadFullChainCache(pool);
-  log('info', 'taxonomy caches loaded', { ae_categories: aeCategories.size });
+  // Cache UI taxonomy nodes -> display_name_ro pentru canonical_category text consistent.
+  const nodesBySlug = new Map();
+  {
+    const { rows } = await pool.query(`SELECT slug, metadata->>'display_name_ro' AS ro, metadata->>'display_name' AS en FROM taxonomy_nodes WHERE is_active = true`);
+    for (const r of rows) nodesBySlug.set(r.slug, r.ro || r.en || r.slug);
+  }
+  log('info', 'taxonomy caches loaded', { ae_categories: aeCategories.size, ui_nodes: nodesBySlug.size });
 
   let processed = 0, succeeded = 0, failed = 0, skipped = 0;
   const startedAt = Date.now();
@@ -551,7 +559,7 @@ async function main() {
       let productDbId = null;
       try {
         await client.query('BEGIN');
-        productDbId = await upsertProduct(client, product, plan.category_hint, plan.source_files, aeCategories, chainCache);
+        productDbId = await upsertProduct(client, product, plan.category_hint, plan.source_files, aeCategories, chainCache, nodesBySlug);
         await client.query('COMMIT');
       } catch (e) {
         await client.query('ROLLBACK');
