@@ -377,7 +377,10 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
       inventory_status=EXCLUDED.inventory_status, metadata=EXCLUDED.metadata,
       -- supplier_cost_cents / shipping_cost_cents kept NULL until recalcPricing
       supplier_cost_cents=NULL, shipping_cost_cents=NULL,
-      canonical_category=EXCLUDED.canonical_category, canonical_category_slug=EXCLUDED.canonical_category_slug,
+      -- canonical_* derivă din taxonomy_node_slug: dacă slug-ul e protejat (manual_*),
+      -- păstrăm și canonical_* ca să nu introducem mismatch între ele.
+      canonical_category      = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.canonical_category      ELSE EXCLUDED.canonical_category      END,
+      canonical_category_slug = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.canonical_category_slug ELSE EXCLUDED.canonical_category_slug END,
       -- Pastreaza fix-urile manuale: daca taxonomy_reason curent incepe cu 'manual_', nu rescrie campurile de clasificare
       taxonomy_department  = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_department  ELSE EXCLUDED.taxonomy_department  END,
       taxonomy_category    = CASE WHEN marketplace_products.taxonomy_reason LIKE 'manual_%' THEN marketplace_products.taxonomy_category    ELSE EXCLUDED.taxonomy_category    END,
@@ -395,7 +398,8 @@ async function upsertProduct(client, product, categoryHint, sourceFiles, aeCateg
   `, [
     product.id, slug, product.title, product.description, canonicalCategory, product.sourceUrl,
     product.images[0] || null, priceCents, totalStock > 0 ? 'in_stock' : 'out_of_stock',
-    JSON.stringify(metadata), canonicalCategory, taxonomySlug, tax.confidence,
+    // $11=canonical_category (RO label din taxonomia AE), $12=canonical_category_slug (sursa de adevar = taxonomyNodeSlug, nu AE-derived taxonomySlug)
+    JSON.stringify(metadata), canonicalCategory, taxonomyNodeSlug, tax.confidence,
     `ae_resolver_${tax.reason}${ar ? '_adult_checked' : ''}`,
     tax.department, tax.category, tax.subcategory, tax.leaf,
     Boolean(ar), ar, productStatus, Boolean(tax.unresolved), taxonomyNodeSlug,
