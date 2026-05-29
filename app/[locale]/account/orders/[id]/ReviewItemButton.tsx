@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Star } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const MAX_BODY = 1000;
 
@@ -12,6 +13,7 @@ export default function ReviewItemButton({
   productId: string;
   alreadyReviewed: boolean;
 }) {
+  const t = useTranslations("ordersReviewItemButton");
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
@@ -23,7 +25,7 @@ export default function ReviewItemButton({
   if (done) {
     return (
       <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
-        <Star size={12} className="fill-emerald-400" /> Recenzie trimisă
+        <Star size={12} className="fill-emerald-400" />  {t("recenzieTrimisa")}
       </div>
     );
   }
@@ -66,7 +68,7 @@ export default function ReviewItemButton({
         onClick={() => setOpen(true)}
         className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-bold text-white hover:bg-white/10 transition"
       >
-        <Star size={12} /> Lasă o recenzie
+        <Star size={12} />  {t("lasaORecenzie")}
       </button>
     );
   }
@@ -99,7 +101,7 @@ export default function ReviewItemButton({
         rows={3}
         value={body}
         onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-        placeholder="Spune-ne cum ți s-a părut produsul (opțional)"
+        placeholder={t("spuneneCumTiSa")}
         className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/30 resize-none"
       />
       <div className="mt-1 text-[10px] text-white/40 text-right">
@@ -125,7 +127,8 @@ export default function ReviewItemButton({
           }}
           className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
         >
-          Anulează
+          
+          {t("anuleaza")}
         </button>
       </div>
     </div>

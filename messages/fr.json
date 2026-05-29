@@ -391,12 +391,18 @@
   },
   "accountOrders": {
     "nuAiComenziInca": "Tu n'as pas encore de commandes.",
-    "comanda": "Commande n°"
+    "comanda": "Commande n°",
+    "data": "Date",
+    "pentruReturContacteazaSuportul": "Pour un retour, contacte le support (token de commande manquant)."
   },
   "accountReturns": {
     "nuAiCereriDe": "Tu n'as pas de demandes de retour.",
     "potiSolicitaUnRetur": "Tu peux demander un retour depuis la page détaillée d'une commande livrée (dans les 30 jours).",
-    "comanda": "Commande n°"
+    "comanda": "Commande n°",
+    "cerereRespinsa": "Demande refusée",
+    "motivulTau": "Ton motif",
+    "nuExistaEvenimente": "Aucun événement.",
+    "veziComanda": "Voir la commande"
   },
   "becomeacreator": {
     "devinoCreatorPeSwypik": "Deviens créateur sur Swypik",
@@ -523,5 +529,50 @@
     "cautaPiesa": "Chercher une piste",
     "seIncarca": "Chargement...",
     "nicioPiesaGasita": "Aucune piste trouvée."
+  },
+  "ordersReturn": {
+    "inapoi": "Retour",
+    "inapoiLaComanda": "Retour à la commande",
+    "inapoi2": "Retour"
+  },
+  "accountEdit": {
+    "inapoi": "Retour",
+    "editeazaProfilul": "Modifier le profil",
+    "schimbaAvatarul": "Changer l'avatar",
+    "schimbaFotografia": "Changer la photo",
+    "numeleTau": "Ton nom",
+    "anuleaza": "Annuler",
+    "salveaza": "Enregistrer"
+  },
+  "returnForm": {
+    "produsePentruRetur": "Produits à retourner",
+    "bifeazaProduseleSiAlege": "Cochez les produits et indiquez la quantité.",
+    "cresteCantitate": "Augmenter la quantité",
+    "descriePeScurtMotivul": "Décrivez brièvement le motif (minimum 10 caractères)...",
+    "fotografiiOptionalMax": "Photos (optionnel, max",
+    "adaugaFotografie": "Ajouter une photo",
+    "tokenComandaLipsaFotografiile": "Token de commande manquant — impossible de charger les photos."
+  },
+  "ordersReviewItemButton": {
+    "recenzieTrimisa": "Avis envoyé",
+    "lasaORecenzie": "Donner un avis",
+    "spuneneCumTiSa": "Dites-nous ce que vous avez pensé du produit (facultatif)",
+    "anuleaza": "Annuler"
+  },
+  "notificationsSettings": {
+    "notificari": "Notifications",
+    "pushPeAcestDevice": "Notifications push sur cet appareil",
+    "activeazaSauDezactiveazaNotificarile": "Activez ou désactivez les notifications sur ce navigateur."
+  },
+  "pushDeviceToggle": {
+    "seVerifica": "Vérification en cours…",
+    "browserulNuSuportaNotificari": "Votre navigateur ne supporte pas les notifications push.",
+    "permisiuneRefuzataActiveazaDin": "Permission refusée. Active les notifications dans les paramètres de ton navigateur."
+  },
+  "pushPrompt": {
+    "activeazaNotificarile": "Activer les notifications",
+    "primesteAlerteDespreNoi": "Reçois des alertes sur les nouveaux vidéos, commandes et messages.",
+    "maiTarziu": "Plus tard",
+    "inchide": "Fermer"
   }
 }

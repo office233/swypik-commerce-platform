@@ -11,6 +11,7 @@ import { redirect, notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Circle, Truck, PackageCheck, RotateCcw, XCircle, DollarSign } from "lucide-react";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default async function ReturnDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("accountReturns");
   const { id } = await params;
   const user = await getAuthUser();
   if (!user.userId) redirect(`/auth?next=/account/returns/${id}`);
@@ -111,7 +113,7 @@ export default async function ReturnDetailPage({
           <h2 className="text-sm font-bold text-white/80">Status</h2>
           {rejected ? (
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300">
-              <XCircle size={16} /> Cerere respinsă
+              <XCircle size={16} />  {t("cerereRespinsa")}
             </div>
           ) : (
             <ol className="mt-4 space-y-3">
@@ -142,7 +144,7 @@ export default async function ReturnDetailPage({
         {/* Reason */}
         {reason && (
           <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="text-sm font-bold text-white/80">Motivul tău</h2>
+            <h2 className="text-sm font-bold text-white/80">{t("motivulTau")}</h2>
             <p className="mt-2 text-sm text-white/70 whitespace-pre-line">{reason}</p>
           </section>
         )}
@@ -172,7 +174,7 @@ export default async function ReturnDetailPage({
         <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <h2 className="text-sm font-bold text-white/80">Istoric</h2>
           {events.length === 0 ? (
-            <p className="mt-3 text-xs text-white/50">Nu există evenimente.</p>
+            <p className="mt-3 text-xs text-white/50">{t("nuExistaEvenimente")}</p>
           ) : (
             <ol className="relative mt-4 space-y-4 border-l border-white/10 pl-5">
               {[...events].reverse().map((ev, i) => (
@@ -193,7 +195,8 @@ export default async function ReturnDetailPage({
           href={`/account/orders/${order.id}`}
           className="block rounded-xl border border-white/15 bg-white/[0.04] py-3 text-center text-sm font-semibold hover:bg-white/[0.08]"
         >
-          Vezi comanda
+          
+          {t("veziComanda")}
         </Link>
       </div>
     </main>

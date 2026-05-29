@@ -391,12 +391,18 @@
   },
   "accountOrders": {
     "nuAiComenziInca": "Du hast noch keine Bestellungen.",
-    "comanda": "Bestellung #"
+    "comanda": "Bestellung #",
+    "data": "Datum",
+    "pentruReturContacteazaSuportul": "Für Rückgaben kontaktiere den Support (Bestelltoken fehlt)."
   },
   "accountReturns": {
     "nuAiCereriDe": "Du hast keine Rücksendeanfragen.",
     "potiSolicitaUnRetur": "Du kannst eine Rücksendung auf der Detailseite einer gelieferten Bestellung anfordern (innerhalb von 30 Tagen).",
-    "comanda": "Bestellung #"
+    "comanda": "Bestellung #",
+    "cerereRespinsa": "Anfrage abgelehnt",
+    "motivulTau": "Dein Grund",
+    "nuExistaEvenimente": "Keine Ereignisse.",
+    "veziComanda": "Bestellung ansehen"
   },
   "becomeacreator": {
     "devinoCreatorPeSwypik": "Devino creator pe Swypik",
@@ -523,5 +529,50 @@
     "cautaPiesa": "Song suchen",
     "seIncarca": "Wird geladen...",
     "nicioPiesaGasita": "Kein Song gefunden."
+  },
+  "ordersReturn": {
+    "inapoi": "Zurück",
+    "inapoiLaComanda": "Zur Bestellung zurück",
+    "inapoi2": "Zurück"
+  },
+  "accountEdit": {
+    "inapoi": "Zurück",
+    "editeazaProfilul": "Profil bearbeiten",
+    "schimbaAvatarul": "Avatar ändern",
+    "schimbaFotografia": "Foto ändern",
+    "numeleTau": "Dein Name",
+    "anuleaza": "Abbrechen",
+    "salveaza": "Speichern"
+  },
+  "returnForm": {
+    "produsePentruRetur": "Rückgabeprodukte",
+    "bifeazaProduseleSiAlege": "Produkte auswählen und Menge festlegen.",
+    "cresteCantitate": "Menge erhöhen",
+    "descriePeScurtMotivul": "Grund kurz beschreiben (mind. 10 Zeichen)...",
+    "fotografiiOptionalMax": "Fotos (optional, max",
+    "adaugaFotografie": "Foto hinzufügen",
+    "tokenComandaLipsaFotografiile": "Bestelltoken fehlt — Fotos können nicht hochgeladen werden."
+  },
+  "ordersReviewItemButton": {
+    "recenzieTrimisa": "Bewertung gesendet",
+    "lasaORecenzie": "Bewertung schreiben",
+    "spuneneCumTiSa": "Sag uns deine Meinung zum Produkt (optional)",
+    "anuleaza": "Abbrechen"
+  },
+  "notificationsSettings": {
+    "notificari": "Benachrichtigungen",
+    "pushPeAcestDevice": "Push-Benachrichtigungen auf diesem Gerät",
+    "activeazaSauDezactiveazaNotificarile": "Benachrichtigungen in diesem Browser aktivieren oder deaktivieren."
+  },
+  "pushDeviceToggle": {
+    "seVerifica": "Wird überprüft…",
+    "browserulNuSuportaNotificari": "Dein Browser unterstützt keine Push-Benachrichtigungen.",
+    "permisiuneRefuzataActiveazaDin": "Berechtigung verweigert. Aktiviere Benachrichtigungen in deinen Browser-Einstellungen."
+  },
+  "pushPrompt": {
+    "activeazaNotificarile": "Benachrichtigungen aktivieren",
+    "primesteAlerteDespreNoi": "Erhalte Benachrichtigungen über neue Videos, Bestellungen und Nachrichten.",
+    "maiTarziu": "Später",
+    "inchide": "Schließen"
   }
 }

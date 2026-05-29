@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Mail, Bell } from "lucide-react";
 import PushDeviceToggle from "@/components/notifications/PushDeviceToggle";
+import { useTranslations } from "next-intl";
 
 type Prefs = {
   email_likes: boolean; email_comments: boolean; email_follows: boolean; email_messages: boolean; email_sales: boolean; email_marketing: boolean;
@@ -27,6 +28,7 @@ const PUSH_ROWS: { key: keyof Prefs; label: string }[] = [
 ];
 
 export default function NotificationsSettingsClient() {
+  const t = useTranslations("notificationsSettings");
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -57,13 +59,13 @@ export default function NotificationsSettingsClient() {
     <div className="min-h-screen bg-black text-white">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
         <Link href="/account" className="text-white/70 hover:text-white"><ChevronLeft size={22} /></Link>
-        <h1 className="text-base font-black">Notificări</h1>
+        <h1 className="text-base font-black">{t("notificari")}</h1>
       </header>
 
       <div className="mx-auto max-w-md px-4 py-6 space-y-6">
         <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-          <h2 className="flex items-center gap-2 text-sm font-black"><Bell size={16} /> Push pe acest device</h2>
-          <p className="mt-1 text-xs text-white/60">Activează sau dezactivează notificările pe acest browser.</p>
+          <h2 className="flex items-center gap-2 text-sm font-black"><Bell size={16} />  {t("pushPeAcestDevice")}</h2>
+          <p className="mt-1 text-xs text-white/60">{t("activeazaSauDezactiveazaNotificarile")}</p>
           <div className="mt-3"><PushDeviceToggle /></div>
         </section>
 

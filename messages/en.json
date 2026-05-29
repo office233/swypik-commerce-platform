@@ -391,12 +391,18 @@
   },
   "accountOrders": {
     "nuAiComenziInca": "No orders yet.",
-    "comanda": "Order #"
+    "comanda": "Order #",
+    "data": "Date",
+    "pentruReturContacteazaSuportul": "For returns, contact support (missing order token)."
   },
   "accountReturns": {
     "nuAiCereriDe": "No return requests.",
     "potiSolicitaUnRetur": "You can request a return from an order's details page (within 30 days of delivery).",
-    "comanda": "Order #"
+    "comanda": "Order #",
+    "cerereRespinsa": "Return denied",
+    "motivulTau": "Your reason",
+    "nuExistaEvenimente": "No activity yet.",
+    "veziComanda": "View order"
   },
   "becomeacreator": {
     "devinoCreatorPeSwypik": "Become a Swypik Creator",
@@ -523,5 +529,50 @@
     "cautaPiesa": "Search track",
     "seIncarca": "Loading...",
     "nicioPiesaGasita": "No tracks found."
+  },
+  "ordersReturn": {
+    "inapoi": "Back",
+    "inapoiLaComanda": "Back to order",
+    "inapoi2": "Back"
+  },
+  "accountEdit": {
+    "inapoi": "Back",
+    "editeazaProfilul": "Edit profile",
+    "schimbaAvatarul": "Change avatar",
+    "schimbaFotografia": "Change photo",
+    "numeleTau": "Your name",
+    "anuleaza": "Cancel",
+    "salveaza": "Save"
+  },
+  "returnForm": {
+    "produsePentruRetur": "Items to return",
+    "bifeazaProduseleSiAlege": "Select items and choose quantity.",
+    "cresteCantitate": "Increase quantity",
+    "descriePeScurtMotivul": "Briefly explain why (min 10 characters)…",
+    "fotografiiOptionalMax": "Photos (optional, max",
+    "adaugaFotografie": "Add photo",
+    "tokenComandaLipsaFotografiile": "Missing order token — photos can't upload."
+  },
+  "ordersReviewItemButton": {
+    "recenzieTrimisa": "Review sent",
+    "lasaORecenzie": "Leave a review",
+    "spuneneCumTiSa": "Tell us what you think (optional)",
+    "anuleaza": "Cancel"
+  },
+  "notificationsSettings": {
+    "notificari": "Notifications",
+    "pushPeAcestDevice": "Push on this device",
+    "activeazaSauDezactiveazaNotificarile": "Turn notifications on or off in this browser."
+  },
+  "pushDeviceToggle": {
+    "seVerifica": "Checking…",
+    "browserulNuSuportaNotificari": "Your browser doesn't support push notifications.",
+    "permisiuneRefuzataActiveazaDin": "Permission denied. Enable in browser settings to receive notifications."
+  },
+  "pushPrompt": {
+    "activeazaNotificarile": "Turn on notifications",
+    "primesteAlerteDespreNoi": "Get alerts about new videos, orders, and messages.",
+    "maiTarziu": "Later",
+    "inchide": "Close"
   }
 }

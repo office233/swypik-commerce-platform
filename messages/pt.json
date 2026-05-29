@@ -391,12 +391,18 @@
   },
   "accountOrders": {
     "nuAiComenziInca": "Ainda não tens encomendas.",
-    "comanda": "Encomenda #"
+    "comanda": "Encomenda #",
+    "data": "Data",
+    "pentruReturContacteazaSuportul": "Para devoluções, contacta o suporte (token de encomenda em falta)."
   },
   "accountReturns": {
     "nuAiCereriDe": "Ainda não tens devoluções.",
     "potiSolicitaUnRetur": "Podes solicitar uma devolução na página de detalhes de uma encomenda entregue (em 30 dias).",
-    "comanda": "Encomenda #"
+    "comanda": "Encomenda #",
+    "cerereRespinsa": "Pedido rejeitado",
+    "motivulTau": "O teu motivo",
+    "nuExistaEvenimente": "Sem eventos.",
+    "veziComanda": "Ver encomenda"
   },
   "becomeacreator": {
     "devinoCreatorPeSwypik": "Torna-te criador na Swypik",
@@ -523,5 +529,50 @@
     "cautaPiesa": "Procurar música",
     "seIncarca": "A carregar...",
     "nicioPiesaGasita": "Nenhuma música encontrada."
+  },
+  "ordersReturn": {
+    "inapoi": "Voltar",
+    "inapoiLaComanda": "Voltar à encomenda",
+    "inapoi2": "Voltar"
+  },
+  "accountEdit": {
+    "inapoi": "Voltar",
+    "editeazaProfilul": "Editar perfil",
+    "schimbaAvatarul": "Mudar avatar",
+    "schimbaFotografia": "Mudar foto",
+    "numeleTau": "O teu nome",
+    "anuleaza": "Cancelar",
+    "salveaza": "Guardar"
+  },
+  "returnForm": {
+    "produsePentruRetur": "Produtos para devolver",
+    "bifeazaProduseleSiAlege": "Marca os produtos e escolhe a quantidade.",
+    "cresteCantitate": "Aumentar quantidade",
+    "descriePeScurtMotivul": "Descreve brevemente o motivo (mín. 10 caracteres)...",
+    "fotografiiOptionalMax": "Fotos (opcional, máx.",
+    "adaugaFotografie": "Adicionar foto",
+    "tokenComandaLipsaFotografiile": "Token de encomenda em falta — não é possível carregar fotos."
+  },
+  "ordersReviewItemButton": {
+    "recenzieTrimisa": "Avaliação enviada",
+    "lasaORecenzie": "Deixa uma avaliação",
+    "spuneneCumTiSa": "Diz-nos o que achaste do produto (opcional)",
+    "anuleaza": "Cancelar"
+  },
+  "notificationsSettings": {
+    "notificari": "Notificações",
+    "pushPeAcestDevice": "Push neste dispositivo",
+    "activeazaSauDezactiveazaNotificarile": "Ativa ou desativa notificações neste navegador."
+  },
+  "pushDeviceToggle": {
+    "seVerifica": "A verificar…",
+    "browserulNuSuportaNotificari": "Este navegador não suporta notificações push.",
+    "permisiuneRefuzataActiveazaDin": "Permissão recusada. Ativa nas definições do navegador para receber notificações."
+  },
+  "pushPrompt": {
+    "activeazaNotificarile": "Ativa notificações",
+    "primesteAlerteDespreNoi": "Recebe alertas sobre novos vídeos, encomendas e mensagens.",
+    "maiTarziu": "Mais tarde",
+    "inchide": "Fechar"
   }
 }

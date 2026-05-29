@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   getPushSubscriptionState,
   isPushSupported,
@@ -16,6 +17,7 @@ type State =
   | { kind: "ready"; subscribed: boolean };
 
 export default function PushDeviceToggle() {
+  const t = useTranslations("pushDeviceToggle");
   const [state, setState] = useState<State>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -55,17 +57,18 @@ export default function PushDeviceToggle() {
   if (state.kind === "loading") {
     return (
       <span className="inline-flex items-center gap-2 text-xs text-white/60">
-        <Loader2 size={14} className="animate-spin" /> Se verifică…
+        <Loader2 size={14} className="animate-spin" />  {t("seVerifica")}
       </span>
     );
   }
   if (state.kind === "unsupported") {
-    return <p className="text-xs text-white/50">Browserul nu suportă notificări push.</p>;
+    return <p className="text-xs text-white/50">{t("browserulNuSuportaNotificari")}</p>;
   }
   if (state.kind === "denied") {
     return (
       <p className="text-xs text-white/60">
-        Permisiune refuzată. Activează din setările browserului pentru a primi notificări.
+        
+        {t("permisiuneRefuzataActiveazaDin")}
       </p>
     );
   }

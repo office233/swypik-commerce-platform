@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Camera, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const MAX_PHOTOS = 4;
 
@@ -26,6 +27,7 @@ export default function ReturnFormClient({
   lookupToken: string | null;
   items: Item[];
 }) {
+  const t = useTranslations("returnForm");
   const router = useRouter();
   const [selection, setSelection] = useState<Record<string, Selected>>({});
   const [reason, setReason] = useState("");
@@ -135,9 +137,10 @@ export default function ReturnFormClient({
     <div className="space-y-5">
       <section className="rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
         <div className="px-4 py-3 bg-white/[0.02]">
-          <h2 className="text-sm font-bold">Produse pentru retur</h2>
+          <h2 className="text-sm font-bold">{t("produsePentruRetur")}</h2>
           <p className="text-xs text-white/50 mt-0.5">
-            Bifează produsele și alege cantitatea.
+            
+            {t("bifeazaProduseleSiAlege")}
           </p>
         </div>
         {items.map((it) => {
@@ -204,7 +207,7 @@ export default function ReturnFormClient({
                           setQty(it.id, (sel?.qty || 1) + 1, it.quantity);
                         }}
                         className="px-2 py-1 text-sm hover:bg-white/10"
-                        aria-label="Crește cantitate"
+                        aria-label={t("cresteCantitate")}
                       >
                         +
                       </button>
@@ -227,13 +230,13 @@ export default function ReturnFormClient({
           rows={4}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Descrie pe scurt motivul (minim 10 caractere)..."
+          placeholder={t("descriePeScurtMotivul")}
           className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 resize-none"
         />
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-        <h3 className="text-sm font-bold mb-2">Fotografii (opțional, max {MAX_PHOTOS})</h3>
+        <h3 className="text-sm font-bold mb-2">{t("fotografiiOptionalMax")} {MAX_PHOTOS})</h3>
         <div className="grid grid-cols-4 gap-2">
           {photos.map((p, i) => (
             <div key={p.key} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
@@ -255,7 +258,7 @@ export default function ReturnFormClient({
               onClick={() => fileRef.current?.click()}
               disabled={uploading || !lookupToken}
               className="aspect-square rounded-lg border border-dashed border-white/20 flex flex-col items-center justify-center text-white/50 hover:bg-white/5 disabled:opacity-50"
-              aria-label="Adauga fotografie"
+              aria-label={t("adaugaFotografie")}
             >
               <Camera size={20} />
               <span className="text-[10px] mt-1">{uploading ? "..." : "Adauga"}</span>
@@ -272,7 +275,8 @@ export default function ReturnFormClient({
         />
         {!lookupToken && (
           <p className="mt-2 text-xs text-white/40">
-            Token comanda lipsa — fotografiile nu pot fi incarcate.
+            
+            {t("tokenComandaLipsaFotografiile")}
           </p>
         )}
       </section>

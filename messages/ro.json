@@ -391,12 +391,18 @@
   },
   "accountOrders": {
     "nuAiComenziInca": "Nu ai comenzi încă.",
-    "comanda": "Comandă #"
+    "comanda": "Comandă #",
+    "data": "Dată",
+    "pentruReturContacteazaSuportul": "Pentru retur, contactează suportul (token comandă lipsă)."
   },
   "accountReturns": {
     "nuAiCereriDe": "Nu ai cereri de retur.",
     "potiSolicitaUnRetur": "Poți solicita un retur din pagina detaliată a unei comenzi livrate (în 30 zile).",
-    "comanda": "Comandă #"
+    "comanda": "Comandă #",
+    "cerereRespinsa": "Cerere respinsă",
+    "motivulTau": "Motivul tău",
+    "nuExistaEvenimente": "Nu există evenimente.",
+    "veziComanda": "Vezi comanda"
   },
   "becomeacreator": {
     "devinoCreatorPeSwypik": "Devino creator pe Swypik",
@@ -523,5 +529,50 @@
     "cautaPiesa": "Caută piesă",
     "seIncarca": "Se încarcă...",
     "nicioPiesaGasita": "Nicio piesă găsită."
+  },
+  "ordersReturn": {
+    "inapoi": "Înapoi",
+    "inapoiLaComanda": "Înapoi la comandă",
+    "inapoi2": "Înapoi"
+  },
+  "accountEdit": {
+    "inapoi": "Înapoi",
+    "editeazaProfilul": "Editează profilul",
+    "schimbaAvatarul": "Schimbă avatarul",
+    "schimbaFotografia": "Schimbă fotografia",
+    "numeleTau": "Numele tău",
+    "anuleaza": "Anulează",
+    "salveaza": "Salvează"
+  },
+  "returnForm": {
+    "produsePentruRetur": "Produse pentru retur",
+    "bifeazaProduseleSiAlege": "Bifează produsele și alege cantitatea.",
+    "cresteCantitate": "Crește cantitate",
+    "descriePeScurtMotivul": "Descrie pe scurt motivul (minim 10 caractere)...",
+    "fotografiiOptionalMax": "Fotografii (opțional, max",
+    "adaugaFotografie": "Adauga fotografie",
+    "tokenComandaLipsaFotografiile": "Token comanda lipsa — fotografiile nu pot fi incarcate."
+  },
+  "ordersReviewItemButton": {
+    "recenzieTrimisa": "Recenzie trimisă",
+    "lasaORecenzie": "Lasă o recenzie",
+    "spuneneCumTiSa": "Spune-ne cum ți s-a părut produsul (opțional)",
+    "anuleaza": "Anulează"
+  },
+  "notificationsSettings": {
+    "notificari": "Notificări",
+    "pushPeAcestDevice": "Push pe acest device",
+    "activeazaSauDezactiveazaNotificarile": "Activează sau dezactivează notificările pe acest browser."
+  },
+  "pushDeviceToggle": {
+    "seVerifica": "Se verifică…",
+    "browserulNuSuportaNotificari": "Browserul nu suportă notificări push.",
+    "permisiuneRefuzataActiveazaDin": "Permisiune refuzată. Activează din setările browserului pentru a primi notificări."
+  },
+  "pushPrompt": {
+    "activeazaNotificarile": "Activează notificările",
+    "primesteAlerteDespreNoi": "Primește alerte despre noi videoclipuri, comenzi și mesaje.",
+    "maiTarziu": "Mai târziu",
+    "inchide": "Închide"
   }
 }

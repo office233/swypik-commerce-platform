@@ -12,6 +12,7 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { canRequestReturn } from "@/lib/commerce/order-status";
 import ReturnFormClient from "./ReturnFormClient";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function OrderReturnPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("ordersReturn");
   const { id } = await params;
   const user = await getAuthUser();
   if (!user.userId) {
@@ -65,7 +67,7 @@ export default async function OrderReturnPage({
     return (
       <main className="min-h-screen bg-black text-white pb-20">
         <header className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur border-b border-white/10">
-          <Link href={`/account/orders/${id}`} className="p-1 -ml-1" aria-label="Înapoi">
+          <Link href={`/account/orders/${id}`} className="p-1 -ml-1" aria-label={t("inapoi")}>
             <ArrowLeft size={22} />
           </Link>
           <h1 className="text-lg font-black">Cerere retur</h1>
@@ -84,7 +86,8 @@ export default async function OrderReturnPage({
             href={`/account/orders/${id}`}
             className="mt-6 inline-block rounded-xl bg-white px-6 py-3 text-sm font-bold text-black"
           >
-            Înapoi la comandă
+            
+            {t("inapoiLaComanda")}
           </Link>
         </div>
       </main>
@@ -102,7 +105,7 @@ export default async function OrderReturnPage({
   return (
     <main className="min-h-screen bg-black text-white pb-24">
       <header className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur border-b border-white/10">
-        <Link href={`/account/orders/${id}`} className="p-1 -ml-1" aria-label="Înapoi">
+        <Link href={`/account/orders/${id}`} className="p-1 -ml-1" aria-label={t("inapoi2")}>
           <ArrowLeft size={22} />
         </Link>
         <h1 className="text-lg font-black">Cerere retur</h1>

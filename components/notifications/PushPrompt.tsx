@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Bell, X } from "lucide-react";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import { isPushSupported, subscribeToPush } from "@/lib/push/subscribe";
+import { useTranslations } from "next-intl";
 
 const DISMISS_KEY = "swypik_push_dismissed";
 const DISMISS_AT_KEY = "swypik_push_dismissed_at";
@@ -24,6 +25,7 @@ const HIDE_PREFIXES = ["/auth", "/admin", "/onboarding", "/seller/login"];
  *  - on auth/admin/onboarding pages
  */
 export default function PushPrompt() {
+  const t = useTranslations("pushPrompt");
   const pathname = usePathname() || "/";
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -117,10 +119,12 @@ export default function PushPrompt() {
         </span>
         <div className="min-w-0 flex-1">
           <p id="push-prompt-title" className="text-sm font-black text-white">
-            Activează notificările
+            
+            {t("activeazaNotificarile")}
           </p>
           <p className="mt-0.5 text-xs text-white/70">
-            Primește alerte despre noi videoclipuri, comenzi și mesaje.
+            
+            {t("primesteAlerteDespreNoi")}
           </p>
           <div className="mt-3 flex items-center gap-2">
             <button
@@ -137,7 +141,8 @@ export default function PushPrompt() {
               onClick={dismiss}
               className="rounded-lg px-3 py-1.5 text-xs font-bold text-white/70 hover:bg-white/5 hover:text-white"
             >
-              Mai târziu
+              
+              {t("maiTarziu")}
             </button>
             {toast && <span className="ml-1 text-xs text-white/80">{toast}</span>}
           </div>
@@ -145,7 +150,7 @@ export default function PushPrompt() {
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Închide"
+          aria-label={t("inchide")}
           className="absolute right-2 top-2 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
         >
           <X size={14} />

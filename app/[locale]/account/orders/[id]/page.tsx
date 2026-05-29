@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/i18n/currency";
 import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, type Currency } from "@/lib/i18n/config";
 import OrderReturnButton from "./OrderReturnButton";
 import ReviewItemButton from "./ReviewItemButton";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function OrderDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("accountOrders");
   const { id } = await params;
   const user = await getAuthUser();
   if (!user.userId) redirect(`/account?redirect=/account/orders/${id}`);
@@ -105,7 +107,7 @@ export default async function OrderDetailPage({
         <Link href="/account/orders" className="p-1 -ml-1">
           <ArrowLeft size={22} />
         </Link>
-        <h1 className="text-lg font-black">Comandă #{order.id.slice(0, 8)}</h1>
+        <h1 className="text-lg font-black">{t("comanda")}{order.id.slice(0, 8)}</h1>
       </header>
 
       <div className="px-4 pt-4 max-w-2xl mx-auto space-y-4">
@@ -115,7 +117,7 @@ export default async function OrderDetailPage({
             <span className="text-sm font-bold">{STATUS_LABELS[order.status] || order.status}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-white/50">Dată</span>
+            <span className="text-xs text-white/50">{t("data")}</span>
             <span className="text-sm">
               {new Date(order.created_at).toLocaleString("ro-RO")}
             </span>
@@ -176,7 +178,8 @@ export default async function OrderDetailPage({
         )}
         {canReturn && !lookupToken && (
           <p className="text-xs text-white/40 text-center">
-            Pentru retur, contactează suportul (token comandă lipsă).
+            
+            {t("pentruReturContacteazaSuportul")}
           </p>
         )}
       </div>
