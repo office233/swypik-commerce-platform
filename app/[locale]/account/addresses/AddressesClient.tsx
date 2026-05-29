@@ -115,14 +115,14 @@ export default function AddressesClient() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        showToast(j.error || "Eroare la salvare.");
+        showToast(j.error || t("eroareLaSalvare"));
         return;
       }
       if (!editing.id && editing.is_default) {
         // is_default set via POST already
       }
       setEditing(null);
-      showToast("Adresă salvată.");
+      showToast(t("adresaSalvata"));
       await load();
     } finally {
       setSaving(false);
@@ -135,14 +135,14 @@ export default function AddressesClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ set_default: true }),
     });
-    showToast("Adresă implicită actualizată.");
+    showToast(t("adresaImplicitaActualizata"));
     await load();
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Ștergi această adresă?")) return;
+    if (!confirm(t("confirmStergeAdresa"))) return;
     await fetch(`/api/users/me/addresses/${id}`, { method: "DELETE" });
-    showToast("Adresă ștearsă.");
+    showToast(t("adresaStearsa"));
     await load();
   };
 
@@ -229,7 +229,7 @@ export default function AddressesClient() {
             className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl bg-[#161616] p-5"
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-black">{editing.id ? "Editează adresa" : "Adresă nouă"}</h2>
+              <h2 className="text-lg font-black">{editing.id ? t("editeazaAdresa") : t("adresaNoua")}</h2>
               <button
                 type="button"
                 onClick={() => setEditing(null)}
@@ -239,17 +239,17 @@ export default function AddressesClient() {
               </button>
             </div>
             <div className="space-y-3">
-              <Input label="Etichetă (opțional)" value={editing.label} onChange={(v) => setEditing({ ...editing, label: v })} placeholder={t("acasaBirou")} />
-              <Input label="Destinatar *" value={editing.recipient_name} onChange={(v) => setEditing({ ...editing, recipient_name: v })} required />
-              <Input label="Telefon" value={editing.phone} onChange={(v) => setEditing({ ...editing, phone: v })} placeholder="+40..." />
-              <Input label="Adresă (linia 1) *" value={editing.line1} onChange={(v) => setEditing({ ...editing, line1: v })} required />
-              <Input label="Adresă (linia 2)" value={editing.line2} onChange={(v) => setEditing({ ...editing, line2: v })} />
+              <Input label={t("etichetaOptional")} value={editing.label} onChange={(v) => setEditing({ ...editing, label: v })} placeholder={t("acasaBirou")} />
+              <Input label={t("destinatar")} value={editing.recipient_name} onChange={(v) => setEditing({ ...editing, recipient_name: v })} required />
+              <Input label={t("telefon")} value={editing.phone} onChange={(v) => setEditing({ ...editing, phone: v })} placeholder="+40..." />
+              <Input label={t("adresaLinia1")} value={editing.line1} onChange={(v) => setEditing({ ...editing, line1: v })} required />
+              <Input label={t("adresaLinia2")} value={editing.line2} onChange={(v) => setEditing({ ...editing, line2: v })} />
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Oraș *" value={editing.city} onChange={(v) => setEditing({ ...editing, city: v })} required />
-                <Input label="Județ" value={editing.region} onChange={(v) => setEditing({ ...editing, region: v })} />
+                <Input label={t("oras")} value={editing.city} onChange={(v) => setEditing({ ...editing, city: v })} required />
+                <Input label={t("judet")} value={editing.region} onChange={(v) => setEditing({ ...editing, region: v })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Cod poștal *" value={editing.postal_code} onChange={(v) => setEditing({ ...editing, postal_code: v })} required />
+                <Input label={t("codPostal")} value={editing.postal_code} onChange={(v) => setEditing({ ...editing, postal_code: v })} required />
                 <div>
                   <label className="mb-1 block text-xs font-bold text-white/60">{t("tara")}</label>
                   <select
@@ -278,7 +278,7 @@ export default function AddressesClient() {
               disabled={saving}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7C3AED] py-3 text-sm font-black text-white hover:bg-[#E0264A] disabled:opacity-50"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvează"}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("salveaza")}
             </button>
           </form>
         </div>

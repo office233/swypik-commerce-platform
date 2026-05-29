@@ -4,22 +4,26 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
-const STATUS_MAP: Record<string, { label: string; color: string; icon: string; step: number }> = {
-  pending: { label: "În așteptare", color: "bg-yellow-100 text-yellow-800", icon: "⏳", step: 1 },
-  paid: { label: "Plătită", color: "bg-neutral-100 text-neutral-900", icon: "💳", step: 2 },
-  fulfilled: { label: "Expediată", color: "bg-blue-100 text-blue-800", icon: "📦", step: 3 },
-  shipped: { label: "În tranzit", color: "bg-purple-100 text-purple-800", icon: "🚚", step: 3 },
-  delivered: { label: "Livrată", color: "bg-neutral-100 text-neutral-900", icon: "✅", step: 4 },
-  return_requested: { label: "Retur solicitat", color: "bg-orange-100 text-orange-800", icon: "🔄", step: 4 },
-  cancelled: { label: "Anulată", color: "bg-red-100 text-red-800", icon: "❌", step: 0 },
-};
+function buildStatusMap(t: (k: string) => string): Record<string, { label: string; color: string; icon: string; step: number }> {
+  return {
+    pending: { label: t("statusPending"), color: "bg-yellow-100 text-yellow-800", icon: "⏳", step: 1 },
+    paid: { label: t("statusPaid"), color: "bg-neutral-100 text-neutral-900", icon: "💳", step: 2 },
+    fulfilled: { label: t("statusFulfilled"), color: "bg-blue-100 text-blue-800", icon: "📦", step: 3 },
+    shipped: { label: t("statusShipped"), color: "bg-purple-100 text-purple-800", icon: "🚚", step: 3 },
+    delivered: { label: t("statusDelivered"), color: "bg-neutral-100 text-neutral-900", icon: "✅", step: 4 },
+    return_requested: { label: t("statusReturnRequested"), color: "bg-orange-100 text-orange-800", icon: "🔄", step: 4 },
+    cancelled: { label: t("statusCancelled"), color: "bg-red-100 text-red-800", icon: "❌", step: 0 },
+  };
+}
 
-const STEPS = [
-  { label: "Comandă plasată", icon: "🛒" },
-  { label: "Plată confirmată", icon: "💳" },
-  { label: "Expediată", icon: "📦" },
-  { label: "Livrată", icon: "🏠" },
-];
+function buildSteps(t: (k: string) => string) {
+  return [
+    { label: t("stepComandaPlasata"), icon: "🛋" },
+    { label: t("stepPlataConfirmata"), icon: "💳" },
+    { label: t("stepExpediata"), icon: "📦" },
+    { label: t("stepLivrata"), icon: "🏠" },
+  ];
+}
 
 export default function OrderTrackingPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations("orders");
@@ -44,7 +48,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           setOrder(data);
         }
       })
-      .catch(() => setError("Nu am putut încărca comanda."))
+      .catch(() => setError(t("nuAmPututIncarca")))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -65,7 +69,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">📭</div>
           <h1 className="text-2xl font-black text-[#0D0D0D]">{t("comandaNuAFost")}</h1>
-          <p className="mt-2 text-sm text-[#6E6E80]">{error || "Verifică link-ul sau contactează suportul."}</p>
+          <p className="mt-2 text-sm text-[#6E6E80]">{error || t("verificaLinkulSauContacteazaSuportul")}</p>
           <Link href="/" className="mt-6 inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white">
             
             {t("inapoiLaMagazin")}
@@ -75,6 +79,8 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
     );
   }
 
+  const STATUS_MAP = buildStatusMap(t);
+  const STEPS = buildSteps(t);
   const statusInfo = STATUS_MAP[order.status] || STATUS_MAP[order.fulfillmentStatus] || STATUS_MAP.pending;
   const currentStep = statusInfo.step;
   const isCancelled = order.status === "cancelled";
@@ -86,7 +92,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
 
   const handleReturnSubmit = async () => {
     if (returnReason.trim().length < 5) {
-      setReturnError("Motivul trebuie să aibă minim 5 caractere.");
+      setReturnError(t("motivulMinim5Caractere"));
       return;
     }
     setReturnSubmitting(true);
@@ -105,10 +111,10 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         // Update local order state to reflect the new status
         setOrder((prev: any) => ({ ...prev, status: "return_requested" }));
       } else {
-        setReturnError(data.error || "Eroare la trimiterea cererii.");
+        setReturnError(data.error || t("eroareLaTrimiterea"));
       }
     } catch {
-      setReturnError("Eroare de rețea. Încearcă din nou.");
+      setReturnError(t("eroareDeReteaIncearcaDinNou"));
     } finally {
       setReturnSubmitting(false);
     }
@@ -127,7 +133,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Order ID + Status */}
         <div className="text-center mb-8">
-          <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1">Comanda</p>
+          <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1">{t("comanda")}</p>
           <h1 className="text-2xl font-black text-[#0D0D0D]">#{order.id.split("-")[0]}</h1>
           <span className={`mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold ${statusInfo.color}`}>
             {statusInfo.icon} {statusInfo.label}
@@ -196,13 +202,13 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
 
         {/* Items */}
         <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
-          <h2 className="text-base font-black text-[#0D0D0D] mb-4">Produse comandate</h2>
+          <h2 className="text-base font-black text-[#0D0D0D] mb-4">{t("produseComandate")}</h2>
           <div className="space-y-3">
             {(order.items || []).map((item: any, i: number) => (
               <div key={i} className="flex justify-between items-center py-2 border-b border-[#F7F7F8] last:border-0">
                 <div className="flex-1">
                   <p className="text-sm font-bold text-[#0D0D0D] line-clamp-1">{item.title}</p>
-                  <p className="text-xs text-[#6E6E80]">Cantitate: {item.quantity}</p>
+                  <p className="text-xs text-[#6E6E80]">{t("cantitate")}: {item.quantity}</p>
                 </div>
                 <p className="text-sm font-black text-[#0D0D0D] shrink-0 ml-4">
                   {Number(item.unit_price * item.quantity).toFixed(2)} lei
@@ -211,7 +217,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
             ))}
           </div>
           <div className="mt-4 pt-4 border-t border-[#E5E5E5] flex justify-between items-center">
-            <span className="text-base font-black text-[#0D0D0D]">Total</span>
+            <span className="text-base font-black text-[#0D0D0D]">{t("total")}</span>
             <span className="text-xl font-black text-[#0D0D0D]">{Number(order.totalRon).toFixed(2)} lei</span>
           </div>
         </div>
@@ -236,7 +242,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
             <div className="flex items-center gap-3">
               <span className="text-3xl">🔄</span>
               <div>
-                <h2 className="text-base font-black text-orange-800">Retur solicitat</h2>
+                <h2 className="text-base font-black text-orange-800">{t("returSolicitat")}</h2>
                 <p className="text-sm text-orange-700 mt-0.5">
                   
                   {t("cerereaTaDeRetur")}
@@ -285,7 +291,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div>
                   <label htmlFor="return-reason" className="block text-sm font-bold text-[#0D0D0D] mb-1.5">
-                    Motivul returului
+                    {t("motivulReturului")}
                   </label>
                   <textarea
                     id="return-reason"
@@ -310,10 +316,10 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                   {returnSubmitting ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Se trimite...
+                      {t("seTrimite")}
                     </span>
                   ) : (
-                    "Trimite cererea de retur"
+                    t("trimiteCerereaDeRetur")
                   )}
                 </button>
               </div>

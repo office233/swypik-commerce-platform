@@ -46,17 +46,19 @@ type WalletData = {
   challenges: Challenge[];
 };
 
-const REASON_LABELS: Record<string, string> = {
-  daily_claim: "Recompensă zilnică",
-  view_milestone: "Bonus vizualizări",
-  purchase: "Cumpărătură",
-  spend: "Cheltuit",
-  earn: "Câștigat",
-  admin_grant: "Acordat de admin",
-  admin_deduct: "Reținut de admin",
-  challenge_reward: "Provocare câștigată",
-  referral: "Recomandare",
-};
+function buildReasonLabels(tr: (k: string) => string): Record<string, string> {
+  return {
+    daily_claim: tr("reasonDailyClaim"),
+    view_milestone: tr("reasonViewMilestone"),
+    purchase: tr("reasonPurchase"),
+    spend: tr("reasonSpend"),
+    earn: tr("reasonEarn"),
+    admin_grant: tr("reasonAdminGrant"),
+    admin_deduct: tr("reasonAdminDeduct"),
+    challenge_reward: tr("reasonChallengeReward"),
+    referral: tr("reasonReferral"),
+  };
+}
 
 function formatDate(iso: string): string {
   try {
@@ -84,6 +86,7 @@ function formatCountdown(targetIso: string, nowMs: number): string {
 
 export default function WalletClient() {
   const t = useTranslations("wallet");
+  const REASON_LABELS = buildReasonLabels(t);
   const [data, setData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
@@ -119,14 +122,14 @@ export default function WalletClient() {
         setToast(`+${json.amount} SWYP! Streak: ${json.streak} 🔥`);
         await load();
       } else if (json.error === "already_claimed") {
-        setToast("Ai revendicat deja recompensa azi.");
+        setToast(t("aiRevendicatDejaAzi"));
       } else if (json.error === "unauth") {
-        setToast("Trebuie să fii autentificat.");
+        setToast(t("trebuieSaFiiAutentificat"));
       } else {
-        setToast("Eroare la revendicare.");
+        setToast(t("eroareLaRevendicare"));
       }
     } catch {
-      setToast("Eroare de rețea.");
+      setToast(t("eroareDeRetea"));
     } finally {
       setClaiming(false);
       setTimeout(() => setToast(null), 3000);
@@ -144,7 +147,7 @@ export default function WalletClient() {
         <Link href="/account" className="p-1 -ml-1" aria-label={t("inapoi")}>
           <ArrowLeft size={22} />
         </Link>
-        <h1 className="text-lg font-black">Portofel SWYP</h1>
+        <h1 className="text-lg font-black">{t("portofelSwyp")}</h1>
       </header>
 
       <div className="px-4 pt-5 max-w-2xl mx-auto">
@@ -167,17 +170,17 @@ export default function WalletClient() {
               <div className="mt-4 flex items-center gap-2 text-sm">
                 <Flame size={16} className="text-orange-400" />
                 <span className="font-semibold">
-                  {data.dailyStreak} {data.dailyStreak === 1 ? "zi" : "zile"}  {t("laRand")}
+                  {t("zileStreak", { count: data.dailyStreak })}  {t("laRand")}
                 </span>
               </div>
               <div className="mt-3 flex gap-4 text-xs text-white/60">
                 <span className="flex items-center gap-1">
                   <ArrowUpCircle size={12} className="text-green-400" />
-                  Total: {data.lifetimeEarned.toLocaleString("ro-RO")}
+                  {t("totalLabel")}: {data.lifetimeEarned.toLocaleString("ro-RO")}
                 </span>
                 <span className="flex items-center gap-1">
                   <ArrowDownCircle size={12} className="text-red-400" />
-                  Cheltuit: {data.lifetimeSpent.toLocaleString("ro-RO")}
+                  {t("cheltuitLabel")}: {data.lifetimeSpent.toLocaleString("ro-RO")}
                 </span>
               </div>
             </section>
@@ -201,12 +204,12 @@ export default function WalletClient() {
                 className="mt-4 w-full rounded-xl bg-gradient-to-r from-pink-500 to-orange-500 disabled:from-white/10 disabled:to-white/10 disabled:text-white/40 text-white font-bold py-3 text-sm md:text-base transition"
               >
                 {claiming
-                  ? "Se revendică..."
+                  ? t("seRevendica")
                   : data.canClaim
-                  ? "Revendică recompensa zilnică (+10 coins)"
+                  ? t("revendicaRecompensa")
                   : countdown
-                  ? `Disponibil în ${countdown}`
-                  : "Revendicat"}
+                  ? t("disponibilIn", { countdown })
+                  : t("revendicat")}
               </button>
             </section>
 
@@ -222,7 +225,7 @@ export default function WalletClient() {
                   href="/challenges"
                   className="text-xs text-pink-400 font-semibold flex items-center gap-0.5 hover:text-pink-300"
                 >
-                  Toate <ChevronRight size={14} />
+                  {t("toate")} <ChevronRight size={14} />
                 </Link>
               </div>
               {data.challenges.length === 0 ? (
@@ -271,10 +274,10 @@ export default function WalletClient() {
                 <p className="text-sm text-white/50">{t("nicioTranzactieInca")}</p>
               ) : (
                 <ul className="rounded-2xl border border-white/10 bg-white/[0.04] divide-y divide-white/5 overflow-hidden">
-                  {data.transactions.map((t) => {
-                    const isEarn = t.type === "earn" || t.type === "admin_grant";
+                  {data.transactions.map((tx) => {
+                    const isEarn = tx.type === "earn" || tx.type === "admin_grant";
                     return (
-                      <li key={t.id} className="flex items-center gap-3 px-4 py-3">
+                      <li key={tx.id} className="flex items-center gap-3 px-4 py-3">
                         <div
                           className={`shrink-0 ${
                             isEarn ? "text-green-400" : "text-red-400"
@@ -288,10 +291,10 @@ export default function WalletClient() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold truncate">
-                            {REASON_LABELS[t.reason] || REASON_LABELS[t.type] || t.reason}
+                            {REASON_LABELS[tx.reason] || REASON_LABELS[tx.type] || tx.reason}
                           </div>
                           <div className="text-xs text-white/40">
-                            {formatDate(t.createdAt)}
+                            {formatDate(tx.createdAt)}
                           </div>
                         </div>
                         <div
@@ -300,7 +303,7 @@ export default function WalletClient() {
                           }`}
                         >
                           {isEarn ? "+" : "−"}
-                          {t.amount.toLocaleString("ro-RO")} SWYP
+                          {tx.amount.toLocaleString("ro-RO")} SWYP
                         </div>
                       </li>
                     );

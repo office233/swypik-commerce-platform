@@ -30,13 +30,15 @@ type TimelineEvent = {
   by?: string;
 };
 
-const STAGES: Array<{ key: string; label: string; icon: typeof Circle }> = [
-  { key: "requested", label: "Solicitat", icon: RotateCcw },
-  { key: "accepted", label: "Acceptat", icon: CheckCircle2 },
-  { key: "shipped_back", label: "Expediat înapoi", icon: Truck },
-  { key: "received", label: "Primit", icon: PackageCheck },
-  { key: "refunded", label: "Restituit", icon: DollarSign },
-];
+function buildStages(t: (k: string) => string): Array<{ key: string; label: string; icon: typeof Circle }> {
+  return [
+    { key: "requested", label: t("stageRequested"), icon: RotateCcw },
+    { key: "accepted", label: t("stageAccepted"), icon: CheckCircle2 },
+    { key: "shipped_back", label: t("stageShippedBack"), icon: Truck },
+    { key: "received", label: t("stageReceived"), icon: PackageCheck },
+    { key: "refunded", label: t("stageRefunded"), icon: DollarSign },
+  ];
+}
 
 const STAGE_INDEX: Record<string, number> = {
   requested: 0,
@@ -47,15 +49,17 @@ const STAGE_INDEX: Record<string, number> = {
   refunded: 4,
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  requested: "Cerere de retur trimisă",
-  accepted: "Vânzătorul a acceptat returul",
-  approved: "Vânzătorul a acceptat returul",
-  rejected: "Cererea a fost respinsă",
-  shipped_back: "Coletul a fost expediat înapoi",
-  received: "Vânzătorul a primit coletul",
-  refunded: "Banii au fost restituiți",
-};
+function buildTypeLabel(t: (k: string) => string): Record<string, string> {
+  return {
+    requested: t("typeRequested"),
+    accepted: t("typeAccepted"),
+    approved: t("typeAccepted"),
+    rejected: t("typeRejected"),
+    shipped_back: t("typeShippedBack"),
+    received: t("typeReceived"),
+    refunded: t("typeRefunded"),
+  };
+}
 
 export default async function ReturnDetailPage({
   params,
@@ -95,6 +99,8 @@ export default async function ReturnDetailPage({
       ? [{ type: "requested", at: meta.return_requested_at || order.created_at, reason }]
       : [];
 
+  const STAGES = buildStages(t);
+  const TYPE_LABEL = buildTypeLabel(t);
   const rejected = status === "rejected" || events.some((e) => e.type === "rejected");
   const currentStage = rejected ? -1 : (STAGE_INDEX[status] ?? 0);
 
@@ -104,13 +110,13 @@ export default async function ReturnDetailPage({
         <Link href="/account/returns" className="-ml-1 p-1 text-white/70 hover:text-white">
           <ArrowLeft size={22} />
         </Link>
-        <h1 className="text-base font-black">Retur #{order.id.slice(0, 8)}</h1>
+        <h1 className="text-base font-black">{t("returTitle", { id: order.id.slice(0, 8) })}</h1>
       </header>
 
       <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
         {/* Stage progress */}
         <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-          <h2 className="text-sm font-bold text-white/80">Status</h2>
+          <h2 className="text-sm font-bold text-white/80">{t("status")}</h2>
           {rejected ? (
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300">
               <XCircle size={16} />  {t("cerereRespinsa")}
@@ -152,7 +158,7 @@ export default async function ReturnDetailPage({
         {/* Evidence photos */}
         {evidenceUrls.length > 0 && (
           <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="text-sm font-bold text-white/80">Fotografii</h2>
+            <h2 className="text-sm font-bold text-white/80">{t("fotografii")}</h2>
             <div className="mt-3 grid grid-cols-4 gap-2">
               {evidenceUrls.map((url, i) => (
                 <a
@@ -163,7 +169,7 @@ export default async function ReturnDetailPage({
                   className="block aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/40"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt={`Evidență ${i + 1}`} className="h-full w-full object-cover" />
+                  <img src={url} alt={t("evidenta", { i: i + 1 })} className="h-full w-full object-cover" />
                 </a>
               ))}
             </div>
@@ -172,7 +178,7 @@ export default async function ReturnDetailPage({
 
         {/* Event timeline */}
         <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-          <h2 className="text-sm font-bold text-white/80">Istoric</h2>
+          <h2 className="text-sm font-bold text-white/80">{t("istoric")}</h2>
           {events.length === 0 ? (
             <p className="mt-3 text-xs text-white/50">{t("nuExistaEvenimente")}</p>
           ) : (

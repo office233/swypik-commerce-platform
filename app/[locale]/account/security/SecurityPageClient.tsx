@@ -88,11 +88,11 @@ export default function SecurityPageClient({
     setError(null);
     setInfo(null);
     if (password.length < 8) {
-      setError("Parola trebuie să aibă cel puțin 8 caractere.");
+      setError(t("parolaMinim8"));
       return;
     }
     if (password !== confirm) {
-      setError("Parolele nu se potrivesc.");
+      setError(t("paroleleNuSePotrivesc"));
       return;
     }
     setLoading(true);
@@ -104,14 +104,14 @@ export default function SecurityPageClient({
       });
       const j = await res.json();
       if (!res.ok || !j.success) {
-        setError(j.error || "Nu am putut salva parola.");
+        setError(j.error || t("nuAmPututSalvaParola"));
         return;
       }
-      setInfo("Parola a fost salvată.");
+      setInfo(t("parolaSalvata"));
       setPassword("");
       setConfirm("");
     } catch {
-      setError("Eroare de conexiune.");
+      setError(t("eroareDeConexiune"));
     } finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ export default function SecurityPageClient({
       const r = await fetch("/api/users/me/2fa/init", { method: "POST" });
       const j = await r.json();
       if (!r.ok) {
-        setTwoFaError(j.error || "Nu am putut inițializa 2FA.");
+        setTwoFaError(j.error || t("nuAmPututInitializa2fa"));
         return;
       }
       setQrUrl(j.qrCodeDataUrl);
@@ -138,7 +138,7 @@ export default function SecurityPageClient({
   async function enable2fa() {
     setTwoFaError(null);
     if (!/^\d{6}$/.test(setupToken)) {
-      setTwoFaError("Introdu codul de 6 cifre din aplicația de autentificare.");
+      setTwoFaError(t("introduCodul6Cifre"));
       return;
     }
     setTwoFaLoading(true);
@@ -150,7 +150,7 @@ export default function SecurityPageClient({
       });
       const j = await r.json();
       if (!r.ok) {
-        setTwoFaError(j.error || "Cod invalid.");
+        setTwoFaError(j.error || t("codInvalid"));
         return;
       }
       setBackupCodes(j.backup_codes || []);
@@ -165,7 +165,7 @@ export default function SecurityPageClient({
   async function disable2fa() {
     setTwoFaError(null);
     if (!disablePw) {
-      setTwoFaError("Introdu parola.");
+      setTwoFaError(t("introduParola"));
       return;
     }
     setTwoFaLoading(true);
@@ -177,7 +177,7 @@ export default function SecurityPageClient({
       });
       const j = await r.json();
       if (!r.ok) {
-        setTwoFaError(j.error || "Eroare la dezactivare.");
+        setTwoFaError(j.error || t("eroareLaDezactivare"));
         return;
       }
       setTwoFaEnabled(false);
@@ -189,7 +189,7 @@ export default function SecurityPageClient({
   }
 
   function downloadCodes() {
-    const blob = new Blob([`Swypik – Coduri de rezervă 2FA\n\n${backupCodes.join("\n")}\n`], { type: "text/plain" });
+    const blob = new Blob([`${t("backupCodesFileHeader")}\n\n${backupCodes.join("\n")}\n`], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -200,11 +200,11 @@ export default function SecurityPageClient({
 
   return (
     <main className="mx-auto max-w-md p-5 text-white">
-      <h1 className="mb-2 text-2xl font-black">Securitate</h1>
+      <h1 className="mb-2 text-2xl font-black">{t("securitate")}</h1>
       <p className="mb-6 text-sm text-white/60">
         {hasPassword
-          ? "Schimbă parola contului tău."
-          : "Setează o parolă ca să te poți autentifica fără cod email."}
+          ? t("schimbaParolaContului")
+          : t("seteazaOParolaCaSa")}
       </p>
 
       {error && (
@@ -222,14 +222,14 @@ export default function SecurityPageClient({
 
       <form onSubmit={submit} className="space-y-4">
         <PasswordField
-          label={hasPassword ? "Parolă nouă" : "Parolă"}
+          label={hasPassword ? t("parolaNoua") : t("parola")}
           value={password}
           onChange={setPassword}
           show={show}
           toggle={() => setShow((s) => !s)}
         />
         <PasswordField
-          label="Confirmă parola"
+          label={t("confirmaParola")}
           value={confirm}
           onChange={setConfirm}
           show={show}
@@ -240,7 +240,7 @@ export default function SecurityPageClient({
           disabled={loading || !password || !confirm}
           className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#7C3AED] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
         >
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Salvează parola"}
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("salveazaParola")}
         </button>
       </form>
 
@@ -322,7 +322,7 @@ export default function SecurityPageClient({
                     disabled={twoFaLoading}
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#7C3AED] py-2 text-xs font-bold disabled:opacity-50"
                   >
-                    {twoFaLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Generează"}
+                    {twoFaLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : t("genereaza")}
                   </button>
                 </div>
               </div>
@@ -350,7 +350,7 @@ export default function SecurityPageClient({
               maxLength={6}
               value={setupToken}
               onChange={(e) => setSetupToken(e.target.value.replace(/\D/g, ""))}
-              placeholder="Cod 6 cifre"
+              placeholder={t("cod6Cifre")}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-xl tracking-[0.4em] font-bold focus:outline-none focus:border-[#7C3AED]"
             />
             <button
@@ -358,7 +358,7 @@ export default function SecurityPageClient({
               disabled={twoFaLoading || setupToken.length !== 6}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#7C3AED] py-3 text-sm font-black hover:bg-[#E0264A] disabled:opacity-50"
             >
-              {twoFaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmă și activează"}
+              {twoFaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("confirmaSiActiveaza")}
             </button>
             <button
               onClick={() => setTwoFaStep("idle")}
@@ -402,7 +402,7 @@ export default function SecurityPageClient({
               onClick={() => setTwoFaStep("idle")}
               className="w-full rounded-xl bg-[#10A37F] py-3 text-sm font-black hover:bg-[#0E906F]"
             >
-              Le-am salvat
+              {t("leAmSalvat")}
             </button>
           </div>
         )}
@@ -431,7 +431,7 @@ export default function SecurityPageClient({
                 disabled={twoFaLoading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#7C3AED] py-3 text-sm font-black hover:bg-[#E0264A] disabled:opacity-50"
               >
-                {twoFaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Dezactivează"}
+                {twoFaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("dezactiveaza")}
               </button>
             </div>
           </div>
@@ -439,7 +439,7 @@ export default function SecurityPageClient({
       </section>
 
       <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <h2 className="text-lg font-black">Conturi conectate</h2>
+        <h2 className="text-lg font-black">{t("conturiConectate")}</h2>
         <p className="mt-1 text-sm text-white/60">{t("loginSocialActivPentru")}</p>
         {accError && (
           <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{accError}</div>
@@ -460,7 +460,7 @@ export default function SecurityPageClient({
                   disabled={accLoading === a.provider}
                   className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-bold text-white/80 hover:border-rose-500/40 hover:text-rose-200 disabled:opacity-50"
                 >
-                  {accLoading === a.provider ? "…" : "Deconectează"}
+                  {accLoading === a.provider ? "…" : t("deconecteaza")}
                 </button>
               </li>
             ))}
@@ -506,7 +506,7 @@ function PasswordField({
           onClick={toggle}
           className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-white/60 hover:text-white"
         >
-          {show ? "Ascunde" : "Arată"}
+          {show ? t("ascunde") : t("arata")}
         </button>
       </span>
     </label>
