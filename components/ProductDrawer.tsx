@@ -239,15 +239,15 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
         }),
       });
       if (!res.ok) throw new Error("cart_failed");
-      setCartMessage("Adăugat");
+      setCartMessage(t("adaugat"));
       trackFeedEvent("add_to_cart", {
         video_id: data.videoId ? String(data.videoId) : undefined,
         metadata: { product_id: String(data.id), surface: "product_drawer" },
       });
-      window.dispatchEvent(new CustomEvent("reward", { detail: { points: 10, msg: "Coș +10 XP" } }));
+      window.dispatchEvent(new CustomEvent("reward", { detail: { points: 10, msg: t("cosPlusXp") } }));
       setTimeout(() => setCartMessage(null), 1800);
     } catch {
-      setCartMessage("Încearcă din nou");
+      setCartMessage(t("incearcaDinNou"));
       setTimeout(() => setCartMessage(null), 1800);
     } finally {
       setCartPending(false);
@@ -343,12 +343,12 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
           <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-white/45">Vot comunitate</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/45">{t("votComunitate")}</p>
                 <p className="text-sm font-semibold text-white">
-                  {positivePct == null ? "Spune primul dacă merită" : `${positivePct}% spun că merită`}
+                  {positivePct == null ? t("spuneprimulMerita") : t("procentSpunMerita", { pct: positivePct })}
                 </p>
               </div>
-              <span className="text-xs text-white/45">{totalVotes} voturi</span>
+              <span className="text-xs text-white/45">{t("voturi", { count: totalVotes })}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -379,7 +379,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
           </div>
 
           <p className="text-gray-300 text-sm mb-6 leading-relaxed line-clamp-3">
-            {productDescription || "Verdict rapid, voturi comunitate și checkout direct din feed."}
+            {productDescription || t("descriereFallback")}
           </p>
 
           <a
@@ -390,7 +390,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
               <div className="w-10 h-10 rounded-full bg-[#10A37F]/20 flex items-center justify-center text-[#10A37F]">
                 <ExternalLink className="w-5 h-5" />
               </div>
-              <span className="text-white font-medium">Vezi pagina produsului</span>
+              <span className="text-white font-medium">{t("veziPaginaProdusului")}</span>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
           </a>
@@ -403,7 +403,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
               <div className="w-10 h-10 rounded-full bg-yellow-300/20 flex items-center justify-center text-yellow-300">
                 <ChevronRight className="w-5 h-5" />
               </div>
-              <span className="text-white font-medium">Alternative mai bune</span>
+              <span className="text-white font-medium">{t("alternativeMaiBune")}</span>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
           </a>
@@ -416,8 +416,8 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
             disabled={cartPending}
             className="flex min-h-14 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-[13px] font-bold leading-none text-white transition-colors hover:bg-white/20 active:scale-95 disabled:opacity-70 sm:text-sm"
           >
-            {cartPending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : cartMessage === "Adăugat" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <ShoppingCart className="h-4 w-4 shrink-0" />}
-            <span className="whitespace-nowrap">{cartMessage || "Adaugă în coș"}</span>
+            {cartPending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : cartMessage === t("adaugat") ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <ShoppingCart className="h-4 w-4 shrink-0" />}
+            <span className="whitespace-nowrap">{cartMessage || t("adaugaInCos")}</span>
           </button>
           <button
             onClick={onBuyNow}

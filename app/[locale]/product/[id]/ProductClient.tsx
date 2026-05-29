@@ -239,14 +239,14 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   };
 
   return (
-    <main className="min-h-screen bg-white pb-32" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} aria-label={`Pagină produs: ${product.title}`}>
+    <main className="min-h-screen bg-white pb-32" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} aria-label={t("ariaPagina", { title: product.title })}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] border border-[#E5E5E5] text-[#0D0D0D] active:scale-90 transition-transform" aria-label={t("inapoi")}>
           <ArrowLeft size={16} />
         </button>
         <span className="flex-1 text-sm font-semibold text-[#6E6E80] truncate">
-          {product.category || 'Produs'}
+          {product.category || t("produsFallback")}
         </span>
         <button onClick={toggleSave} disabled={savePending} className={`grid h-11 w-11 place-items-center rounded-xl border transition-all active:scale-90 disabled:opacity-60 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] border-[#E5E5E5] text-[#6E6E80]'}`} aria-label={t("salveaza")} aria-pressed={liked}>
           <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
@@ -385,7 +385,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     setSelectedSize(sizes[0].size);
                   }
                 }}
-                  aria-label={`Selectează culoarea ${color}`}
+                  aria-label={t("ariaSelectColor", { color })}
                   aria-pressed={selectedColor === color}
                   className={`rounded-xl border-2 transition-all active:scale-95 ${selectedColor === color ? 'border-[#0D0D0D] shadow-[0_0_0_1px_#0D0D0D]' : 'border-[#E5E5E5] hover:border-[#D1D1D6]'}`}
                 >
@@ -480,20 +480,20 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             {/* Shipping Info */}
             <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-medium text-[#6E6E80]"><Truck size={16} /> Livrare</span>
+                <span className="flex items-center gap-2 text-sm font-medium text-[#6E6E80]"><Truck size={16} /> {t("shipping")}</span>
                 <span className={`text-sm font-bold ${product.shipFree ? 'text-[#0D0D0D]' : 'text-[#0D0D0D]'}`}>
-                  {product.shipFree ? "GRATUITĂ" : "Inclusă în preț"}
+                  {product.shipFree ? t("livrareGratuita") : t("livrareInclusa")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-[#6E6E80]">Estimare</span>
+                <span className="text-sm font-medium text-[#6E6E80]">{t("estimare")}</span>
                 <span className="text-sm font-semibold text-[#0D0D0D]">
                   {product.deliveryDate || `${product.shipDaysMin || 7}-${product.shipDaysMax || 15} zile`}
                 </span>
               </div>
               {product.shipTracking && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[#6E6E80]">Tracking</span>
+                  <span className="text-sm font-medium text-[#6E6E80]">{t("tracking")}</span>
                   <span className="text-sm font-bold text-[#0D0D0D]">{t("cuUrmarire")}</span>
                 </div>
               )}
@@ -502,17 +502,17 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             {/* Product Details */}
             {(() => {
               const details = [
-                ['Material', product.material],
-                ['Fabric', product.fabricType],
-                ['Stil', product.style],
-                ['Guler', product.neckline],
-                ["Mânecă", product.sleeveStyle],
-                ["Siluetă", product.silhouette],
-                ['Talie', product.waistline],
-                ['Pattern', product.patternType],
-                ['Sezon', product.season],
-                ["Decorații", product.decoration?.join?.(", ")],
-                ['Brand', product.brand && product.brand !== 'NONE' ? product.brand : null],
+                [t("attrMaterial"), product.material],
+                [t("attrFabric"), product.fabricType],
+                [t("attrStil"), product.style],
+                [t("attrGuler"), product.neckline],
+                [t("attrManeca"), product.sleeveStyle],
+                [t("attrSilueta"), product.silhouette],
+                [t("attrTalie"), product.waistline],
+                [t("attrPattern"), product.patternType],
+                [t("attrSezon"), product.season],
+                [t("attrDecoratii"), product.decoration?.join?.(", ")],
+                [t("attrBrand"), product.brand && product.brand !== 'NONE' ? product.brand : null],
               ].filter(([, v]) => v);
 
               return details.length > 0 ? (
@@ -541,7 +541,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     <p className="text-xs font-bold text-[#6E6E80] uppercase">{t("vandutDe")}</p>
                     <p className="text-sm font-black text-[#0D0D0D]">{product.seller.name}</p>
                   </div>
-                  <span className="text-xs font-bold text-[#7C3AED]">Vezi magazin →</span>
+                  <span className="text-xs font-bold text-[#7C3AED]">{t("vezimagazin")}</span>
                 </div>
               </Link>
             )}
@@ -587,10 +587,10 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               </div>
               <p className="text-sm font-medium text-[#6E6E80]">
                 {product.ratingCount && product.ratingCount > 0
-                  ? `${product.ratingCount} recenzii verificate`
+                  ? t("recenziiVerificate", { count: product.ratingCount })
                   : product.ordersCount && product.ordersCount > 0
-                    ? `Bazat pe ${product.ordersCount}+ comenzi de la clienți`
-                    : "Produs nou — fără recenzii încă"}
+                    ? t("bazatPeComenzi", { count: product.ordersCount })
+                    : t("produsNouFaraRecenzii")}
               </p>
             </div>
           </div>
@@ -599,11 +599,11 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         {/* Similar Products */}
         {similar.length > 0 && (
           <div className="mt-6">
-            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-3">Produse similare</h2>
+            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-3">{t("produseSimilare")}</h2>
             <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar">
               {similar.map(s => (
                 <Link href={`/product/${s.id}`} key={s.id}
-                  className="w-36 shrink-0 cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] hover:shadow-md transition-all active:scale-95 text-left block" aria-label={s.title || "Produs similar"}>
+                  className="w-36 shrink-0 cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] hover:shadow-md transition-all active:scale-95 text-left block" aria-label={s.title || t("produsSimilarFallback")}>
                   <div className="relative h-36 w-full">
                     <Image src={s.image} alt="" fill sizes="144px" className="object-cover" />
                   </div>
@@ -647,7 +647,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
               {(() => {
                 const parts = [selectedColor, selectedSize].filter(Boolean);
                 if (parts.length > 0) return parts.join(" / ");
-                return "Selectează varianta";
+                return t("selecteazaVarianta");
               })()}
             </p>
           </div>
@@ -663,7 +663,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           <button onClick={handleAddToCart}
             className="flex items-center gap-2 rounded-2xl bg-[#0D0D0D] px-6 py-3.5 text-sm font-black text-white shadow-xl active:scale-95 transition-transform">
             <ShoppingCart size={17} />
-            {addedToCart ? "Adăugat" : "Adaugă în coș"}
+            {addedToCart ? t("adaugatInCos") : t("addToCart")}
           </button>
         </div>
       </div>

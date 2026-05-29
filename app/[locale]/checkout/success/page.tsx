@@ -198,28 +198,28 @@ export default async function CheckoutSuccess({
   const isPending = Boolean(order) && !isPaid;
 
   const title = isPaid
-    ? "Mulțumim pentru comandă!"
+    ? t("headingPaid")
     : isPending
-      ? "Comanda ta este în curs de confirmare"
+      ? t("headingProcessing")
       : hasLookup
-        ? "Verificăm plata și comanda"
-        : "Nu am găsit detaliile comenzii";
+        ? t("headingPending")
+        : t("headingMissing");
 
   const description = isPaid
-    ? "Plata a fost procesată cu succes. Vei primi în scurt timp emailul de confirmare."
+    ? t("subPaid")
     : isPending
-      ? "Plata pare inițiată, iar confirmarea finală poate dura puțin. Poți urmări comanda din cont sau din linkul dedicat."
+      ? t("subProcessing")
       : hasLookup
         ? lookupError
-          ? "Nu am putut încărca sumarul comenzii din această pagină. Dacă plata a fost finalizată, confirmarea va apărea în email și în contul tău."
-          : "Așteptăm confirmarea finală a plății. Reîncarcă pagina peste câteva momente sau verifică emailul de confirmare."
-        : "Linkul de confirmare nu mai conține suficiente informații. Poți continua din contul tău sau reveni în magazin.";
+          ? t("subFetchFailed")
+          : t("subPending")
+        : t("subMissing");
 
   const statusBadge = isPaid
-    ? { label: "✅ Plătită", classes: "bg-[#0D0D0D]/10 text-[#0D0D0D]" }
+    ? { label: t("statusPaid"), classes: "bg-[#0D0D0D]/10 text-[#0D0D0D]" }
     : isPending
-      ? { label: "⏳ În procesare", classes: "bg-yellow-100 text-yellow-800" }
-      : { label: "ℹ️ Verificare necesară", classes: "bg-[#F3F4F6] text-[#4B5563]" };
+      ? { label: t("statusProcessing"), classes: "bg-yellow-100 text-yellow-800" }
+      : { label: t("statusVerifying"), classes: "bg-[#F3F4F6] text-[#4B5563]" };
 
   return (
     <div className="min-h-screen bg-white px-4 py-10">
@@ -285,7 +285,7 @@ export default async function CheckoutSuccess({
 
                   <div className="border-t border-[#E5E5E5] pt-4">
                     <div className="flex items-center justify-between font-black">
-                      <span className="text-[#0D0D0D]">{isPaid ? "Total plătit" : "Total comandă"}</span>
+                      <span className="text-[#0D0D0D]">{isPaid ? t("totalPaid") : t("totalOrder")}</span>
                       <span className="text-xl text-[#0D0D0D]">{Number(order.total_ron).toFixed(2)} lei</span>
                     </div>
                   </div>
