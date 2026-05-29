@@ -160,9 +160,7 @@ export default function Recorder() {
       savedBlob = null;
     }
     if (!savedBlob) {
-      setErrorMsg(
-        "Fișierul original nu mai este disponibil. Te rugăm să anulezi acest upload.",
-      );
+      setErrorMsg(t("fisierulOriginalLipsa"));
       return;
     }
     setPhase("uploading");
@@ -175,7 +173,7 @@ export default function Recorder() {
       setTimeout(() => router.push("/creator"), 800);
     } catch (e: unknown) {
       const err = e as { message?: string };
-      setErrorMsg(err?.message || "Reluarea a eșuat.");
+      setErrorMsg(err?.message || t("reluareaAEsuat"));
       setPhase("capture");
     }
   }, [router]);
@@ -203,13 +201,13 @@ export default function Recorder() {
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith('video/')) {
-      setErrorMsg('Fișierul selectat nu este un video.');
+      setErrorMsg(t("fisierulNuEsteVideo"));
       e.target.value = '';
       return;
     }
     // max 100MB la upload din galerie (limita backend)
     if (f.size > 100 * 1024 * 1024) {
-      setErrorMsg('Fișier prea mare (max 100MB).');
+      setErrorMsg(t("fisierPreaMare"));
       e.target.value = '';
       return;
     }
@@ -287,7 +285,7 @@ export default function Recorder() {
         }
       }
       activeUploadSessionRef.current = null;
-      setErrorMsg(err?.message || "Eroare la încărcare.");
+      setErrorMsg(err?.message || t("eroareLaIncarcare"));
       setPhase("meta");
     }
   }, [blob, description, productUrl, audioTrack, router]);
@@ -306,14 +304,14 @@ export default function Recorder() {
         <div className="max-w-sm space-y-4">
           <h1 className="text-xl font-bold">
             {camera.status === "denied"
-              ? "Acces cameră refuzat"
-              : "Camera indisponibilă"}
+              ? t("accesCameraRefuzat")
+              : t("cameraIndisponibila")}
           </h1>
           <p className="text-white/70 text-sm">
             {camera.status === "denied"
-              ? "Activează permisiunea pentru cameră și microfon din setările browserului, apoi reîncearcă."
+              ? t("activeazaPermisiuneaCamera")
               : camera.error ||
-                "Nu am putut accesa o cameră compatibilă pe acest dispozitiv."}
+                t("nuAmPututAccesaCamera")}
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -339,7 +337,7 @@ export default function Recorder() {
           >
             <X size={20} />
           </button>
-          <span className="text-sm font-bold">Detalii Reel</span>
+          <span className="text-sm font-bold">{t("detaliiReel")}</span>
           <span className="w-11" />
         </div>
 
@@ -365,7 +363,7 @@ export default function Recorder() {
 
           <div>
             <label className="text-xs font-bold text-white/60 mb-1.5 block uppercase tracking-wider">
-              Descriere
+              {t("descriere")}
             </label>
             <textarea
               value={description}
@@ -424,7 +422,7 @@ export default function Recorder() {
                 )}
               </div>
               <span className="text-[11px] font-bold text-white/40">
-                {audioTrack ? "Schimbă" : "Alege"}
+                {audioTrack ? t("schimba") : t("alege")}
               </span>
             </button>
             {audioTrack?.attributionUrl && (
@@ -531,11 +529,11 @@ export default function Recorder() {
       {/* banner upload neterminat */}
       {pendingUploads.length > 0 && isIdle && !isRecording && !isCountdown && !isPreview && (
         <div className="absolute top-14 inset-x-3 z-20 bg-yellow-500/15 border border-yellow-500/40 backdrop-blur-md rounded-2xl p-3 text-white text-sm">
-          <div className="font-bold mb-1">Ai un upload neterminat</div>
+          <div className="font-bold mb-1">{t("uploadNeterminat")}</div>
           <div className="text-white/80 text-xs mb-2">
             {pendingUploads.length === 1
-              ? "Un clip nu a fost finalizat. Vrei să reiei sau să anulezi?"
-              : `${pendingUploads.length} clipuri nu au fost finalizate.`}
+              ? t("unClipNeterminatIntreabare")
+              : t("clipuriNeterminate", { count: pendingUploads.length })}
           </div>
           <div className="flex gap-2">
             {pendingUploads[0].blobInIdb !== false && (
@@ -543,7 +541,7 @@ export default function Recorder() {
                 onClick={() => void handleResumeUpload(pendingUploads[0].sessionId)}
                 className="flex-1 bg-white text-black font-bold py-2 rounded-xl text-xs active:scale-95"
               >
-                Reia
+                {t("reia")}
               </button>
             )}
             <button
@@ -577,15 +575,15 @@ export default function Recorder() {
                 const next = COUNTDOWN_OPTIONS[(idx + 1) % COUNTDOWN_OPTIONS.length];
                 setCountdownSec(next);
               }}
-              aria-label={`Timer ${countdownSec}s`}
+              aria-label={t("timerSec", { sec: countdownSec })}
               className="h-11 px-3 flex items-center gap-1.5 rounded-full bg-black/50 backdrop-blur-md text-xs font-bold"
             >
               <Timer size={18} />
-              {countdownSec === 0 ? "Off" : `${countdownSec}s`}
+              {countdownSec === 0 ? t("off") : `${countdownSec}s`}
             </button>
             <button
               onClick={() => setShowFilters((v) => !v)}
-              aria-label="Filtre"
+              aria-label={t("filtre")}
               aria-pressed={showFilters}
               className={`w-11 h-11 flex items-center justify-center rounded-full backdrop-blur-md ${
                 showFilters || filterId !== "none"
@@ -657,7 +655,7 @@ export default function Recorder() {
                   aria-label={t("finalizeaza")}
                   className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs active:scale-95"
                 >
-                  Gata
+                  {t("gata")}
                 </button>
               ) : isIdle ? (
                 <button
@@ -666,7 +664,7 @@ export default function Recorder() {
                   className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex flex-col items-center justify-center text-white active:scale-95"
                 >
                   <ImagePlus size={20} />
-                  <span className="text-[9px] font-bold mt-0.5">Clip</span>
+                  <span className="text-[9px] font-bold mt-0.5">{t("clip")}</span>
                 </button>
               ) : null}
             </div>
@@ -679,6 +677,9 @@ export default function Recorder() {
               maxMs={MAX_DURATION_MS}
               disabled={camera.status !== "ready"}
               onClick={handleRecordButton}
+              ariaPauseLabel={t("punePauza")}
+              ariaResumeLabel={t("continuaInregistrarea")}
+              ariaStartLabel={t("pornesteInregistrarea")}
             />
 
             {/* spacer simetric */}
@@ -688,8 +689,8 @@ export default function Recorder() {
           {isIdle && camera.status !== "ready" && (
             <div className="mt-3 text-xs text-white/60">
               {camera.status === "requesting"
-                ? "Se pregătește camera..."
-                : "Cameră indisponibilă"}
+                ? t("sePregatesteCamera")
+                : t("cameraIndisponibila")}
             </div>
           )}
         </div>
@@ -741,6 +742,9 @@ function RecordButton(props: {
   maxMs: number;
   disabled: boolean;
   onClick: () => void;
+  ariaPauseLabel: string;
+  ariaResumeLabel: string;
+  ariaStartLabel: string;
 }) {
   const { state, countdownValue, progressPct, segments, maxMs, disabled, onClick } = props;
   const size = 80;
@@ -754,10 +758,10 @@ function RecordButton(props: {
   const showRing = isRec || isPaused;
 
   const ariaLabel = isRec
-    ? "Pune pauză"
+    ? props.ariaPauseLabel
     : isPaused
-    ? "Continuă înregistrarea"
-    : "Pornește înregistrarea";
+    ? props.ariaResumeLabel
+    : props.ariaStartLabel;
 
   return (
     <button
@@ -835,6 +839,7 @@ function RecordButton(props: {
 
 function UploadingOverlay(props: { pct: number; done: boolean }) {
   const { pct, done } = props;
+  const t = useTranslations("recorder");
   const size = 120;
   const r = 52;
   const c = 2 * Math.PI * r;
@@ -874,7 +879,7 @@ function UploadingOverlay(props: { pct: number; done: boolean }) {
       </div>
       <div className="mt-5 text-sm font-bold flex items-center gap-2">
         {!done && <Loader2 size={16} className="animate-spin" />}
-        {done ? "Gata! Te ducem la dashboard..." : `Se încarcă... ${pct}%`}
+        {done ? t("gataDashboard") : t("seIncarcaPct", { pct })}
       </div>
     </div>
   );
