@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserId } from "@/lib/creator/session";
 import StripeConnectCard from "@/components/stripe/StripeConnectCard";
@@ -188,12 +189,12 @@ async function loadFunnel(creatorId: string) {
   }
 }
 
-function Sparkline({ data }: { data: DailyPoint[] }) {
+function Sparkline({ data, ariaLabel }: { data: DailyPoint[]; ariaLabel: string }) {
   const W = 600, H = 120, pad = 4;
   const max = Math.max(1, ...data.map((d) => d.cents));
   const bw = (W - pad * 2) / Math.max(1, data.length);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-32" role="img" aria-label="Vânzări 30 zile">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-32" role="img" aria-label={ariaLabel}>
       <defs>
         <linearGradient id="barGrad" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#7C3AED" />
@@ -235,6 +236,7 @@ function KpiCard({ label, value, hint }: { label: string; value: string; hint?: 
 export default async function CreatorDashboard() {
   const creatorId = await getCreatorUserId();
   if (!creatorId) redirect("/");
+  const t = await getTranslations("creatorDashboard");
 
   const [kpis, series, topProducts, topVideos, payout, funnel] = await Promise.all([
     loadKpis(creatorId).catch(() => ({ salesCents: 0, orders: 0, commissionCents: 0, views: 0, newFollowers: 0 })),
@@ -248,39 +250,39 @@ export default async function CreatorDashboard() {
   return (
     <div className="space-y-6 animate-fadeIn mobile-page-bottom max-w-7xl mx-auto pb-[max(24px,env(safe-area-inset-bottom))]">
       <div>
-        <h1 className="text-3xl font-black text-[#0D0D0D]">Dashboard Creator</h1>
-        <p className="text-[#6E6E80] mt-2">Bine ai venit! Aici poți urmări performanța clipurilor tale în ultimele 30 de zile.</p>
+        <h1 className="text-3xl font-black text-[#0D0D0D]">{t("titlu")}</h1>
+        <p className="text-[#6E6E80] mt-2">{t("intro")}</p>
       </div>
 
       <StripeConnectCard variant="creator" />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard label="Vânzări totale (30z)" value={formatCents(kpis.salesCents)} hint={`${fmtNum.format(kpis.orders)} comenzi`} />
-        <KpiCard label="Comision încasat" value={formatCents(kpis.commissionCents)} hint="ultimele 30 zile" />
-        <KpiCard label="Vizualizări video (30z)" value={fmtNum.format(kpis.views)} hint="clipuri publicate recent" />
-        <KpiCard label="Followeri noi (30z)" value={fmtNum.format(kpis.newFollowers)} />
+        <KpiCard label={t("kpiVanzari")} value={formatCents(kpis.salesCents)} hint={t("kpiComenzi", { n: fmtNum.format(kpis.orders) })} />
+        <KpiCard label={t("kpiComision")} value={formatCents(kpis.commissionCents)} hint={t("kpiUltimele30")} />
+        <KpiCard label={t("kpiVizualizari")} value={fmtNum.format(kpis.views)} hint={t("kpiClipuriPublicate")} />
+        <KpiCard label={t("kpiFolloweri")} value={fmtNum.format(kpis.newFollowers)} />
       </div>
 
       {/* Sales chart */}
       <section className="bg-white rounded-2xl border border-[#E5E5E5] p-5">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-[#0D0D0D]">Vânzări — ultimele 30 zile</h2>
-          <span className="text-xs text-[#6E6E80]">Total: {formatCents(kpis.salesCents)}</span>
+          <h2 className="text-lg font-bold text-[#0D0D0D]">{t("sectVanzari30z")}</h2>
+          <span className="text-xs text-[#6E6E80]">{t("total")}: {formatCents(kpis.salesCents)}</span>
         </div>
         {series.length > 0 ? (
-          <Sparkline data={series} />
+          <Sparkline data={series} ariaLabel={t("sectVanzari30z")} />
         ) : (
-          <p className="text-sm text-[#6E6E80]">Nu există date încă.</p>
+          <p className="text-sm text-[#6E6E80]">{t("nuExistaDate")}</p>
         )}
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top products */}
         <section className="bg-white rounded-2xl border border-[#E5E5E5] p-5">
-          <h2 className="text-lg font-bold text-[#0D0D0D] mb-3">Top 5 produse vândute</h2>
+          <h2 className="text-lg font-bold text-[#0D0D0D] mb-3">{t("top5Produse")}</h2>
           {topProducts.length === 0 ? (
-            <p className="text-sm text-[#6E6E80]">Niciun produs vândut în ultimele 30 de zile.</p>
+            <p className="text-sm text-[#6E6E80]">{t("niciunProdusVandut")}</p>
           ) : (
             <ul className="space-y-3">
               {topProducts.map((p, i) => (
@@ -292,8 +294,8 @@ export default async function CreatorDashboard() {
                     <div className="w-12 h-12 rounded-lg bg-[#F4F4F5]" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#0D0D0D] truncate">{p.title || "Produs"}</p>
-                    <p className="text-xs text-[#6E6E80]">{fmtNum.format(Number(p.qty))} vândute</p>
+                    <p className="text-sm font-semibold text-[#0D0D0D] truncate">{p.title || t("produs")}</p>
+                    <p className="text-xs text-[#6E6E80]">{t("vandute", { n: fmtNum.format(Number(p.qty)) })}</p>
                   </div>
                 </li>
               ))}
@@ -303,9 +305,9 @@ export default async function CreatorDashboard() {
 
         {/* Top videos */}
         <section className="bg-white rounded-2xl border border-[#E5E5E5] p-5">
-          <h2 className="text-lg font-bold text-[#0D0D0D] mb-3">Top 5 clipuri după engagement</h2>
+          <h2 className="text-lg font-bold text-[#0D0D0D] mb-3">{t("top5Clipuri")}</h2>
           {topVideos.length === 0 ? (
-            <p className="text-sm text-[#6E6E80]">Nu ai clipuri publicate încă.</p>
+            <p className="text-sm text-[#6E6E80]">{t("nuAiClipuri")}</p>
           ) : (
             <ul className="space-y-3">
               {topVideos.map((v, i) => (
@@ -318,10 +320,10 @@ export default async function CreatorDashboard() {
                   )}
                   <div className="flex-1 min-w-0">
                     <Link href={`/video/${v.id}`} className="text-sm font-semibold text-[#0D0D0D] truncate hover:underline block">
-                      {v.title || "Clip"}
+                      {v.title || t("clip")}
                     </Link>
                     <p className="text-xs text-[#6E6E80]">
-                      {fmtNum.format(Number(v.view_count))} vizualizări · {fmtNum.format(Number(v.like_count))} aprecieri · {fmtNum.format(Number(v.comment_count))} comentarii
+                      {t("statClip", { views: fmtNum.format(Number(v.view_count)), likes: fmtNum.format(Number(v.like_count)), comments: fmtNum.format(Number(v.comment_count)) })}
                     </p>
                   </div>
                 </li>
@@ -333,40 +335,40 @@ export default async function CreatorDashboard() {
 
       {/* Payout pending */}
       <section className="bg-white rounded-2xl border border-[#E5E5E5] p-5">
-        <h2 className="text-lg font-bold text-[#0D0D0D] mb-3">Câștiguri & plăți</h2>
+        <h2 className="text-lg font-bold text-[#0D0D0D] mb-3">{t("castigSiPlati")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <p className="text-xs text-[#6E6E80] uppercase font-bold tracking-wider">Comision (30z)</p>
+            <p className="text-xs text-[#6E6E80] uppercase font-bold tracking-wider">{t("comision30z")}</p>
             <p className="text-xl font-black text-[#0D0D0D] mt-1">{formatCents(kpis.commissionCents)}</p>
           </div>
           <div>
-            <p className="text-xs text-[#6E6E80] uppercase font-bold tracking-wider">Plată în așteptare</p>
+            <p className="text-xs text-[#6E6E80] uppercase font-bold tracking-wider">{t("plataAsteptare")}</p>
             <p className="text-xl font-black text-[#0D0D0D] mt-1">{formatCents(payout.pendingCents)}</p>
           </div>
           <div>
             <p className="text-xs text-[#6E6E80] uppercase font-bold tracking-wider">Stripe Connect</p>
             <p className="text-sm font-semibold text-[#0D0D0D] mt-1">
-              {!payout.hasAccount ? "Neconfigurat" : payout.payoutsEnabled ? "Activ" : `În verificare (${payout.accountStatus || "în curs"})`}
+              {!payout.hasAccount ? t("neconfigurat") : payout.payoutsEnabled ? t("activ") : t("inVerificare", { status: payout.accountStatus || t("inCurs") })}
             </p>
           </div>
         </div>
         <Link href="/creator/earnings" className="inline-flex items-center mt-4 min-h-[44px] px-3 -mx-3 rounded-lg text-sm font-bold text-[#7C3AED] hover:underline focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-          Vezi detalii câștiguri →
+          {t("veziDetaliiCastiguri")} →
         </Link>
       </section>
 
       {/* Funnel */}
       <section className="bg-white rounded-2xl border border-[#E5E5E5] p-5">
-        <h2 className="text-lg font-bold text-[#0D0D0D] mb-3">Funnel conversie (30z)</h2>
+        <h2 className="text-lg font-bold text-[#0D0D0D] mb-3">{t("funnelTitle")}</h2>
         {!funnel ? (
-          <p className="text-sm text-[#6E6E80]">Date insuficiente — în curând.</p>
+          <p className="text-sm text-[#6E6E80]">{t("funnelInsuficiente")}</p>
         ) : (
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: "Vizualizări", value: funnel.views },
-              { label: "Click produs", value: funnel.clicks },
-              { label: "Adăugat coș", value: funnel.carts },
-              { label: "Cumpărare", value: funnel.purchases },
+              { label: t("funnelVizualizari"), value: funnel.views },
+              { label: t("funnelClickProdus"), value: funnel.clicks },
+              { label: t("funnelAdaugatCos"), value: funnel.carts },
+              { label: t("funnelCumparare"), value: funnel.purchases },
             ].map((step) => (
               <div key={step.label} className="bg-gradient-to-br from-[#7C3AED]/5 to-[#A855F7]/5 rounded-xl p-3">
                 <p className="text-[11px] text-[#6E6E80] uppercase font-bold tracking-wider">{step.label}</p>

@@ -1,24 +1,19 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useTranslations } from "next-intl";
 
 type Suggestion = { slug: string; confidence: number; label: string };
 type Variant = { sku: string; title: string; price: string; stock: string; color: string; size: string };
 type UploadedImage = { url: string; key: string };
 
-const COURIERS = [
-  { value: "dpd", label: "DPD" },
-  { value: "fan_courier", label: "FAN Courier" },
-  { value: "sameday", label: "Sameday" },
-  { value: "cargus", label: "Cargus" },
-  { value: "posta_romana", label: "Poșta Română" },
-  { value: "gls", label: "GLS" },
-  { value: "other", label: "Alt curier" },
-];
-
-const STEPS = ["Detalii", "Imagini", "Preț & Stoc", "Livrare"] as const;
+const COURIER_VALUES = ["dpd", "fan_courier", "sameday", "cargus", "posta_romana", "gls", "other"] as const;
+const STEP_KEYS = ["stepDetalii", "stepImagini", "stepPretStoc", "stepLivrare"] as const;
 
 export default function AddProductWizard({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const t = useTranslations("sellerAddProduct");
+  const COURIERS = COURIER_VALUES.map((v) => ({ value: v, label: t(`courier_${v}` as const) }));
+  const STEPS = STEP_KEYS.map((k) => t(k));
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +50,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
 
   async function classifyNow() {
     if (title.trim().length < 3) {
-      setError("Introdu un titlu (min 3 caractere) înainte de detectare.");
+      setError(t("errIntroduTitlu"));
       return;
     }
     setError(null);
@@ -67,7 +62,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         body: JSON.stringify({ title, description: description || undefined }),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Eroare clasificare");
+      if (!data.success) throw new Error(data.error || t("errClasificare"));
       const list: Suggestion[] = data.suggestions || [];
       setSuggestions(list);
       if (list[0]) {
@@ -94,7 +89,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         fd.append("filename", f.name);
         const res = await fetch("/api/seller/products/upload-image", { method: "POST", body: fd });
         const data = await res.json();
-        if (!data.success) throw new Error(data.error || "Upload eșuat");
+        if (!data.success) throw new Error(data.error || t("errUpload"));
         setImages((arr) => [...arr, { url: data.url, key: data.key }]);
       } catch (e: any) {
         setError(`${f.name}: ${e.message}`);
@@ -167,7 +162,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Eroare la salvare");
+      if (!data.success) throw new Error(data.error || t("errSalvare"));
       onSaved();
     } catch (e: any) {
       setError(e.message);
@@ -181,10 +176,10 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
       <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
         <div className="px-6 py-4 border-b border-[#E5E5E5] flex items-center justify-between">
           <div>
-            <h3 id="add-product-title" className="font-black text-[#0D0D0D] text-lg">Adaugă Produs Nou</h3>
-            <p className="text-xs text-[#6E6E80] mt-0.5">Pasul {step + 1} din {STEPS.length}: {STEPS[step]}</p>
+            <h3 id="add-product-title" className="font-black text-[#0D0D0D] text-lg">{t("titluModal")}</h3>
+            <p className="text-xs text-[#6E6E80] mt-0.5">{t("pasulXdinY", { x: step + 1, y: STEPS.length, name: STEPS[step] })}</p>
           </div>
-          <button type="button" aria-label="Închide" onClick={onClose} className="w-11 h-11 inline-flex items-center justify-center rounded-lg text-[#6E6E80] hover:text-[#0D0D0D] hover:bg-[#F7F7F8] text-xl focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">✕</button>
+          <button type="button" aria-label={t("inchide")} onClick={onClose} className="w-11 h-11 inline-flex items-center justify-center rounded-lg text-[#6E6E80] hover:text-[#0D0D0D] hover:bg-[#F7F7F8] text-xl focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">✕</button>
         </div>
 
         <div className="px-6 pt-3">
@@ -205,20 +200,20 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
           {step === 0 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Titlu Produs *</label>
-                <input required value={title} onChange={(e) => setTitle(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] outline-none" placeholder="ex: Tricou Bumbac Organic Bărbătesc Negru M" />
+                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("titluProdusRequired")}</label>
+                <input required value={title} onChange={(e) => setTitle(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] outline-none" placeholder={t("placeholderTitlu")} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Descriere</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] outline-none resize-y" placeholder="Detalii despre material, dimensiuni, instrucțiuni de îngrijire..." />
+                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("descriere")}</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] outline-none resize-y" placeholder={t("placeholderDescriere")} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Marcă</label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("marca")}</label>
                   <input value={brand} onChange={(e) => setBrand(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: Nike" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">SKU / Cod produs</label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("skuLabel")}</label>
                   <input value={sku} onChange={(e) => setSku(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: TRC-BLK-M-001" />
                 </div>
               </div>
@@ -226,11 +221,11 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
               <div className="border border-[#E5E5E5] rounded-xl p-4 bg-[#F7F7F8]">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="font-bold text-sm text-[#0D0D0D]">Categorie</p>
-                    <p className="text-xs text-[#6E6E80] mt-0.5">Detectează automat sau alege manual.</p>
+                    <p className="font-bold text-sm text-[#0D0D0D]">{t("categorie")}</p>
+                    <p className="text-xs text-[#6E6E80] mt-0.5">{t("detecteazaAutomat")}</p>
                   </div>
                   <button type="button" onClick={classifyNow} disabled={classifying || title.trim().length < 3} className="px-4 py-2 min-h-[40px] bg-[#0D0D0D] text-white text-xs font-bold rounded-lg hover:bg-[#0D0D0D]/80 disabled:opacity-40 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-                    {classifying ? "Se detectează..." : "✨ Detectează"}
+                    {classifying ? t("seDetecteaza") : t("detecteaza")}
                   </button>
                 </div>
                 {suggestions.length > 0 && (
@@ -243,7 +238,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                     ))}
                   </div>
                 )}
-                <input value={categoryText} onChange={(e) => { setCategoryText(e.target.value); setTaxonomySlug(""); }} type="text" className="w-full border border-[#E5E5E5] rounded-lg px-3 py-2 text-xs focus:border-[#0D0D0D] outline-none bg-white" placeholder="sau introdu manual ex: Fashion > Men > Tricouri" />
+                <input value={categoryText} onChange={(e) => { setCategoryText(e.target.value); setTaxonomySlug(""); }} type="text" className="w-full border border-[#E5E5E5] rounded-lg px-3 py-2 text-xs focus:border-[#0D0D0D] outline-none bg-white" placeholder={t("placeholderCategorieManual")} />
               </div>
             </div>
           )}
@@ -251,21 +246,21 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-[#6E6E80]">Adaugă până la 8 imagini. Prima imagine va fi cea principală. Format: JPG, PNG, WebP (max 5MB).</p>
+                <p className="text-sm text-[#6E6E80]">{t("imaginiHelp")}</p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {images.map((img, idx) => (
                   <div key={img.key} className="relative aspect-square rounded-xl overflow-hidden border border-[#E5E5E5] group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img.url} alt={`Imagine ${idx + 1}`} className="w-full h-full object-cover" />
-                    {idx === 0 && <span className="absolute top-1 left-1 px-2 py-0.5 bg-[#0D0D0D] text-white text-[10px] font-bold rounded-full">PRINCIPAL</span>}
-                    <button type="button" onClick={() => removeImage(idx)} aria-label="Șterge imaginea" className="absolute top-1 right-1 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition">✕</button>
+                    <img src={img.url} alt={t("imagineNr", { n: idx + 1 })} className="w-full h-full object-cover" />
+                    {idx === 0 && <span className="absolute top-1 left-1 px-2 py-0.5 bg-[#0D0D0D] text-white text-[10px] font-bold rounded-full">{t("badgePrincipal")}</span>}
+                    <button type="button" onClick={() => removeImage(idx)} aria-label={t("stergeImaginea")} className="absolute top-1 right-1 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition">✕</button>
                   </div>
                 ))}
                 {images.length < 8 && (
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-[#E5E5E5] hover:border-[#0D0D0D] flex flex-col items-center justify-center text-[#6E6E80] hover:text-[#0D0D0D] transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
                     <span className="text-2xl mb-1">{uploadingCount > 0 ? "⏳" : "📷"}</span>
-                    <span className="text-xs font-bold">{uploadingCount > 0 ? `Se urcă ${uploadingCount}...` : "Adaugă"}</span>
+                    <span className="text-xs font-bold">{uploadingCount > 0 ? t("seUrca", { n: uploadingCount }) : t("adaugaImg")}</span>
                   </button>
                 )}
               </div>
@@ -284,11 +279,11 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Preț Vânzare *</label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("pretVanzareRequired")}</label>
                   <input required min="0.01" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="99.90" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Monedă</label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("moneda")}</label>
                   <select value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="w-full border border-[#E5E5E5] rounded-xl px-3 py-3 text-sm focus:border-[#0D0D0D] outline-none bg-white">
                     <option value="RON">RON</option>
                     <option value="EUR">EUR</option>
@@ -298,39 +293,39 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Preț Comparativ <span className="text-[#6E6E80] normal-case font-normal">(opțional)</span></label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("pretComparativ")} <span className="text-[#6E6E80] normal-case font-normal">{t("optional")}</span></label>
                   <input min="0" step="0.01" value={compareAt} onChange={(e) => setCompareAt(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="149.90" />
-                  <p className="text-[10px] text-[#6E6E80] mt-1">Arătat ca tăiat — sugerează reducere.</p>
+                  <p className="text-[10px] text-[#6E6E80] mt-1">{t("helpComparativ")}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Cost Furnizor <span className="text-[#6E6E80] normal-case font-normal">(opțional)</span></label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("costFurnizor")} <span className="text-[#6E6E80] normal-case font-normal">{t("optional")}</span></label>
                   <input min="0" step="0.01" value={supplierCost} onChange={(e) => setSupplierCost(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="40.00" />
-                  <p className="text-[10px] text-[#6E6E80] mt-1">Doar pentru calcul margine, ascuns clienților.</p>
+                  <p className="text-[10px] text-[#6E6E80] mt-1">{t("helpCostFurnizor")}</p>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Stoc *</label>
+                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("stocRequired")}</label>
                 <input required min="0" value={stock} onChange={(e) => setStock(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="50" />
               </div>
 
               <div className="border-t border-[#E5E5E5] pt-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={variantsEnabled} onChange={(e) => setVariantsEnabled(e.target.checked)} className="w-4 h-4" />
-                  <span className="text-sm font-bold text-[#0D0D0D]">Acest produs are variante (mărime / culoare)</span>
+                  <span className="text-sm font-bold text-[#0D0D0D]">{t("areVariante")}</span>
                 </label>
                 {variantsEnabled && (
                   <div className="mt-3 space-y-2">
                     {variants.map((v, idx) => (
                       <div key={idx} className="border border-[#E5E5E5] rounded-lg p-3 grid grid-cols-12 gap-2 items-start">
-                        <input value={v.color} onChange={(e) => updateVariant(idx, { color: e.target.value })} placeholder="Culoare" className="col-span-3 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
-                        <input value={v.size} onChange={(e) => updateVariant(idx, { size: e.target.value })} placeholder="Mărime" className="col-span-2 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
+                        <input value={v.color} onChange={(e) => updateVariant(idx, { color: e.target.value })} placeholder={t("culoare")} className="col-span-3 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
+                        <input value={v.size} onChange={(e) => updateVariant(idx, { size: e.target.value })} placeholder={t("marime")} className="col-span-2 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
                         <input value={v.sku} onChange={(e) => updateVariant(idx, { sku: e.target.value })} placeholder="SKU" className="col-span-3 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
-                        <input value={v.price} onChange={(e) => updateVariant(idx, { price: e.target.value })} placeholder="Preț" type="number" min="0" step="0.01" className="col-span-2 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
-                        <input value={v.stock} onChange={(e) => updateVariant(idx, { stock: e.target.value })} placeholder="Stoc" type="number" min="0" className="col-span-1 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
-                        <button type="button" onClick={() => removeVariant(idx)} aria-label="Șterge variantă" className="col-span-1 h-8 text-[#6E6E80] hover:text-red-600 text-sm">✕</button>
+                        <input value={v.price} onChange={(e) => updateVariant(idx, { price: e.target.value })} placeholder={t("pret")} type="number" min="0" step="0.01" className="col-span-2 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
+                        <input value={v.stock} onChange={(e) => updateVariant(idx, { stock: e.target.value })} placeholder={t("stoc")} type="number" min="0" className="col-span-1 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
+                        <button type="button" onClick={() => removeVariant(idx)} aria-label={t("stergeVarianta")} className="col-span-1 h-8 text-[#6E6E80] hover:text-red-600 text-sm">✕</button>
                       </div>
                     ))}
-                    <button type="button" onClick={addVariantRow} className="w-full py-2 text-xs font-bold text-[#0D0D0D] border border-dashed border-[#E5E5E5] hover:border-[#0D0D0D] rounded-lg transition">+ Adaugă variantă</button>
+                    <button type="button" onClick={addVariantRow} className="w-full py-2 text-xs font-bold text-[#0D0D0D] border border-dashed border-[#E5E5E5] hover:border-[#0D0D0D] rounded-lg transition">+ {t("adaugaVarianta")}</button>
                   </div>
                 )}
               </div>
@@ -340,21 +335,21 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Cost Livrare ({currency})</label>
-                <input min="0" step="0.01" value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: 19.90 (0 = livrare gratuită)" />
+                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("costLivrare", { currency })}</label>
+                <input min="0" step="0.01" value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder={t("placeholderLivrare")} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Zile livrare (min)</label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("zileLivrareMin")}</label>
                   <input min="0" value={shippingDaysMin} onChange={(e) => setShippingDaysMin(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: 2" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Zile livrare (max)</label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("zileLivrareMax")}</label>
                   <input min="0" value={shippingDaysMax} onChange={(e) => setShippingDaysMax(e.target.value)} type="number" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: 5" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Curier preferat</label>
+                <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("curierPreferat")}</label>
                 <select value={courier} onChange={(e) => setCourier(e.target.value)} className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none bg-white">
                   {COURIERS.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -362,10 +357,10 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                 </select>
               </div>
               <div className="bg-[#F7F7F8] rounded-xl p-4 text-xs text-[#6E6E80]">
-                <p className="font-bold text-[#0D0D0D] mb-1">📦 Recapitulare</p>
-                <p>{title || "(titlu lipsă)"} · {price ? `${price} ${currency}` : "preț lipsă"} · stoc {stock || 0}</p>
-                <p className="mt-1">Categorie: {categoryText || "(nedetectată)"}</p>
-                <p>Imagini: {images.length} · Variante: {variantsEnabled ? variants.length : 0}</p>
+                <p className="font-bold text-[#0D0D0D] mb-1">📦 {t("recapitulare")}</p>
+                <p>{title || t("titluLipsa")} · {price ? `${price} ${currency}` : t("pretLipsa")} · {t("stoc").toLowerCase()} {stock || 0}</p>
+                <p className="mt-1">{t("categorie")}: {categoryText || t("nedetectata")}</p>
+                <p>{t("imagini")}: {images.length} · {t("variante")}: {variantsEnabled ? variants.length : 0}</p>
               </div>
             </div>
           )}
@@ -373,15 +368,15 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
 
         <div className="px-6 py-4 border-t border-[#E5E5E5] flex items-center justify-between gap-3">
           <button type="button" onClick={() => (step === 0 ? onClose() : setStep((s) => s - 1))} className="px-5 py-2.5 min-h-[44px] text-sm font-bold text-[#6E6E80] hover:text-[#0D0D0D] transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded-lg">
-            {step === 0 ? "Anulează" : "← Înapoi"}
+            {step === 0 ? t("anuleaza") : `← ${t("inapoiBtn")}`}
           </button>
           {step < STEPS.length - 1 ? (
             <button type="button" onClick={() => setStep((s) => s + 1)} disabled={!canGoNext()} className="px-6 py-2.5 min-h-[44px] bg-[#0D0D0D] text-white text-sm font-bold rounded-xl hover:bg-[#0D0D0D]/80 disabled:opacity-40 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-              Continuă →
+              {t("continuaBtn")} →
             </button>
           ) : (
             <button type="button" onClick={submit} disabled={saving || !price || !stock} className="px-6 py-2.5 min-h-[44px] bg-[#0E906F] text-white text-sm font-bold rounded-xl hover:bg-[#0E906F]/80 disabled:opacity-40 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-              {saving ? "Se salvează..." : "✓ Publică Produsul"}
+              {saving ? t("seSalveaza") : `✓ ${t("publicaProdusul")}`}
             </button>
           )}
         </div>

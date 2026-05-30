@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Banknote, ExternalLink, CheckCircle2, AlertTriangle, Loader2, ArrowRightLeft } from "lucide-react";
 
 type ConnectStatus = {
@@ -50,15 +51,6 @@ function formatMoney(cents: number, currency: string): string {
   }
 }
 
-const TRANSFER_STATUS_LABEL: Record<string, string> = {
-  pending: "În așteptare",
-  submitted: "Trimis",
-  succeeded: "Finalizat",
-  failed: "Eșuat",
-  reversed: "Anulat",
-  cancelled: "Anulat",
-};
-
 const TRANSFER_STATUS_CLASS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
   submitted: "bg-blue-100 text-blue-800",
@@ -75,12 +67,21 @@ export default function PayoutsClient({
   recentPayouts: PayoutRow[];
   recentTransfers?: TransferRow[];
 }) {
+  const tr = useTranslations("creatorPayouts");
   const router = useRouter();
   const search = useSearchParams();
   const [status, setStatus] = useState<ConnectStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const TRANSFER_STATUS_LABEL = useMemo<Record<string, string>>(() => ({
+    pending: tr("trAsteptare"),
+    submitted: tr("trTrimis"),
+    succeeded: tr("trFinalizat"),
+    failed: tr("trEsuat"),
+    reversed: tr("trAnulat"),
+    cancelled: tr("trAnulat"),
+  }), [tr]);
 
   const loadStatus = useCallback(async () => {
     setLoading(true);
@@ -102,9 +103,9 @@ export default function PayoutsClient({
         window.location.href = data.url;
         return;
       }
-      setToast(data.error || "Eroare la pornirea verificării");
+      setToast(data.error || tr("errPornireVerif"));
     } catch (e: any) {
-      setToast(e?.message || "Eroare de rețea");
+      setToast(e?.message || tr("errRetea"));
     } finally {
       setBusy(false);
     }
@@ -118,7 +119,7 @@ export default function PayoutsClient({
       if (res.ok && data.url) {
         window.open(data.url, "_blank", "noopener");
       } else {
-        setToast(data.error || "Eroare la deschiderea dashboard-ului");
+        setToast(data.error || tr("errDashboard"));
       }
     } finally {
       setBusy(false);
@@ -127,7 +128,7 @@ export default function PayoutsClient({
 
   useEffect(() => {
     if (search.get("success") === "1") {
-      setToast("Felicitări, contul tău Stripe e activ!");
+      setToast(tr("toastSuccess"));
       router.replace("/creator/payouts");
     } else if (search.get("refresh") === "1") {
       router.replace("/creator/payouts");
@@ -138,8 +139,8 @@ export default function PayoutsClient({
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4500);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => setToast(null), 4500);
+    return () => clearTimeout(tm);
   }, [toast]);
 
   return (
@@ -147,8 +148,8 @@ export default function PayoutsClient({
       <header className="mb-6 flex items-center gap-3">
         <Banknote size={28} className="text-[#0D0D0D]" />
         <div>
-          <h1 className="text-3xl font-black">Plăți</h1>
-          <p className="text-sm text-[#6E6E80]">Configurează contul Stripe Connect pentru a primi încasările din vânzări și comisioane.</p>
+          <h1 className="text-3xl font-black">{tr("titlu")}</h1>
+          <p className="text-sm text-[#6E6E80]">{tr("intro")}</p>
         </div>
       </header>
 
@@ -157,13 +158,13 @@ export default function PayoutsClient({
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 text-[#6E6E80]"><Loader2 className="animate-spin" size={18} /> Se încarcă...</div>
+        <div className="flex items-center gap-2 text-[#6E6E80]"><Loader2 className="animate-spin" size={18} /> {tr("seIncarca")}</div>
       ) : !status?.accountId ? (
         <section className="rounded-2xl border border-[#E5E5E5] bg-white p-6">
-          <h2 className="text-lg font-black mb-2">Activează plățile</h2>
-          <p className="text-sm text-[#6E6E80] mb-4">Vei fi redirecționat către Stripe pentru a-ți completa datele de identitate și contul bancar. Procesul durează 3-5 minute.</p>
+          <h2 className="text-lg font-black mb-2">{tr("activeazaPlatile")}</h2>
+          <p className="text-sm text-[#6E6E80] mb-4">{tr("explicaOnboarding")}</p>
           <button type="button" onClick={startOnboarding} disabled={busy} className="inline-flex items-center justify-center px-5 py-3 min-h-[44px] rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none hover:bg-black">
-            {busy ? "Se inițializează..." : "Activează plățile"}
+            {busy ? tr("seInitializeaza") : tr("activeazaPlatile")}
           </button>
         </section>
       ) : !status.detailsSubmitted ? (
@@ -171,8 +172,8 @@ export default function PayoutsClient({
           <div className="flex items-start gap-3 mb-3">
             <AlertTriangle className="text-yellow-600 mt-1" size={20} />
             <div>
-              <h2 className="text-lg font-black">Verificare incompletă</h2>
-              <p className="text-sm text-[#6E6E80]">Continuă procesul Stripe pentru a-ți activa contul.</p>
+              <h2 className="text-lg font-black">{tr("verifIncompleta")}</h2>
+              <p className="text-sm text-[#6E6E80]">{tr("continuaProcesul")}</p>
             </div>
           </div>
           {status.requirementsCurrentlyDue.length > 0 && (
@@ -181,7 +182,7 @@ export default function PayoutsClient({
             </ul>
           )}
           <button type="button" onClick={startOnboarding} disabled={busy} className="inline-flex items-center justify-center px-5 py-3 min-h-[44px] rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none hover:bg-black">
-            {busy ? "..." : "Continuă verificarea"}
+            {busy ? "..." : tr("continuaVerif")}
           </button>
         </section>
       ) : (
@@ -189,32 +190,32 @@ export default function PayoutsClient({
           <div className="flex items-start gap-3 mb-3">
             <CheckCircle2 className="text-green-600 mt-1" size={20} />
             <div>
-              <h2 className="text-lg font-black text-green-900">Plățile sunt active</h2>
+              <h2 className="text-lg font-black text-green-900">{tr("platileActive")}</h2>
               <p className="text-sm text-[#6E6E80]">
                 Charges: {status.chargesEnabled ? "✓" : "✗"} · Payouts: {status.payoutsEnabled ? "✓" : "✗"}
               </p>
             </div>
           </div>
           <button type="button" onClick={openDashboard} disabled={busy} className="inline-flex items-center gap-2 px-5 py-3 min-h-[44px] rounded-xl bg-[#0D0D0D] text-white font-bold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none hover:bg-black">
-            Deschide dashboard Stripe <ExternalLink size={16} />
+            {tr("deschideDashStripe")} <ExternalLink size={16} />
           </button>
         </section>
       )}
 
       <section className="mt-8">
-        <h3 className="text-lg font-black mb-3 flex items-center gap-2"><ArrowRightLeft size={18} /> Istoric transferuri Stripe</h3>
+        <h3 className="text-lg font-black mb-3 flex items-center gap-2"><ArrowRightLeft size={18} /> {tr("istoricTransferuri")}</h3>
         {recentTransfers.length === 0 ? (
-          <p className="text-sm text-[#6E6E80]">Nu există transferuri Stripe încă.</p>
+          <p className="text-sm text-[#6E6E80]">{tr("nuTransferuri")}</p>
         ) : (
           <div className="rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden">
             <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[480px]">
               <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
                 <tr>
-                  <th className="px-4 py-2">Data</th>
-                  <th className="px-4 py-2">Sumă</th>
-                  <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Ref</th>
+                  <th className="px-4 py-2">{tr("thData")}</th>
+                  <th className="px-4 py-2">{tr("thSuma")}</th>
+                  <th className="px-4 py-2">{tr("thStatus")}</th>
+                  <th className="px-4 py-2">{tr("thRef")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5E5]">
@@ -241,19 +242,19 @@ export default function PayoutsClient({
       </section>
 
       <section className="mt-8">
-        <h3 className="text-lg font-black mb-3">Ultimele plăți (comisioane)</h3>
+        <h3 className="text-lg font-black mb-3">{tr("ultimelePlati")}</h3>
         {recentPayouts.length === 0 ? (
-          <p className="text-sm text-[#6E6E80]">Nu există plăți încă.</p>
+          <p className="text-sm text-[#6E6E80]">{tr("nuPlati")}</p>
         ) : (
           <div className="rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden">
             <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[480px]">
               <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
                 <tr>
-                  <th className="px-4 py-2">Data</th>
-                  <th className="px-4 py-2">Perioadă</th>
-                  <th className="px-4 py-2">Net</th>
-                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">{tr("thData")}</th>
+                  <th className="px-4 py-2">{tr("thPerioada")}</th>
+                  <th className="px-4 py-2">{tr("thNet")}</th>
+                  <th className="px-4 py-2">{tr("thStatus")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5E5]">

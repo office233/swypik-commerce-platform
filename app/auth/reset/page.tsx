@@ -3,8 +3,10 @@
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 function ResetInner() {
+  const t = useTranslations("authReset");
   const params = useSearchParams();
   const router = useRouter();
   const token = params.get("token") || "";
@@ -18,19 +20,19 @@ function ResetInner() {
     e.preventDefault();
     setError(null);
     if (!token) {
-      setError("Token lipsă în URL.");
+      setError(t("tokenLipsa"));
       return;
     }
     if (pw.length < 8) {
-      setError("Parola trebuie să aibă minim 8 caractere.");
+      setError(t("minim8"));
       return;
     }
     if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) {
-      setError("Parola trebuie să conțină litere și cifre.");
+      setError(t("litereSiCifre"));
       return;
     }
     if (pw !== pw2) {
-      setError("Parolele nu coincid.");
+      setError(t("parolaNoCoincid"));
       return;
     }
     setLoading(true);
@@ -42,13 +44,13 @@ function ResetInner() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.success) {
-        setError(data?.error || "Token invalid sau expirat.");
+        setError(data?.error || t("tokenInvalid"));
       } else {
         setDone(true);
         setTimeout(() => router.push("/auth"), 2500);
       }
     } catch {
-      setError("Eroare de rețea.");
+      setError(t("eroareRetea"));
     } finally {
       setLoading(false);
     }
@@ -57,23 +59,23 @@ function ResetInner() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black text-white px-4">
       <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold mb-2">Setează o parolă nouă</h1>
+        <h1 className="text-2xl font-semibold mb-2">{t("titlu")}</h1>
         <p className="text-white/60 text-sm mb-6">
-          Alege o parolă de minim 8 caractere, cu litere și cifre.
+          {t("descriere")}
         </p>
         {done ? (
           <div className="space-y-4">
             <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 text-sm">
-              Parola a fost actualizată. Te redirecționăm către autentificare...
+              {t("parolaActualizata")}
             </div>
             <Link href="/auth" className="block text-center text-violet-400 hover:underline text-sm">
-              Mergi la autentificare
+              {t("mergiAuth")}
             </Link>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4" noValidate>
             <label className="block">
-              <span className="block text-sm mb-1">Parolă nouă</span>
+              <span className="block text-sm mb-1">{t("parolaNouaLabel")}</span>
               <input
                 type="password"
                 value={pw}
@@ -85,7 +87,7 @@ function ResetInner() {
               />
             </label>
             <label className="block">
-              <span className="block text-sm mb-1">Confirmă parola</span>
+              <span className="block text-sm mb-1">{t("confirmaParola")}</span>
               <input
                 type="password"
                 value={pw2}
@@ -102,10 +104,10 @@ function ResetInner() {
               disabled={loading || !pw || !pw2}
               className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-lg py-2 font-medium"
             >
-              {loading ? "Se salvează..." : "Resetează parola"}
+              {loading ? t("seSalveaza") : t("reseteazaParola")}
             </button>
             <Link href="/auth" className="block text-center text-white/60 hover:underline text-sm">
-              Înapoi la autentificare
+              {t("inapoiAuth")}
             </Link>
           </form>
         )}
