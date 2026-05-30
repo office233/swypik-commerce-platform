@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { useTranslations } from "next-intl";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -27,6 +28,7 @@ function statusBadge(status: string) {
 }
 
 export default function SellerOrdersPage() {
+  const t = useTranslations("sellerOrders");
   const { data, error, mutate } = useSWR("/api/seller/orders", fetcher);
   const [loadingAwb, setLoadingAwb] = useState<string | null>(null);
   const [loadingRefund, setLoadingRefund] = useState<string | null>(null);
