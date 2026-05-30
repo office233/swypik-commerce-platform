@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import {
   Video,
   Upload,
@@ -28,6 +29,7 @@ interface CreatorVideo {
 }
 
 function StatusBadge({ status, className }: { status: string; className?: string }) {
+  const t = useTranslations("creatorVideos");
   const base =
     "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide select-none";
 
@@ -39,14 +41,14 @@ function StatusBadge({ status, className }: { status: string; className?: string
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
           </span>
-          Se procesează...
+          {t("badgeProcessing")}
         </span>
       );
     case "ready":
       return (
         <span className={`${base} bg-[#0D0D0D]/15 text-[#0D0D0D] ${className ?? ""}`}>
           <CheckCircle2 className="w-3.5 h-3.5" />
-          Gata
+          {t("badgeGata")}
         </span>
       );
     case "failed":
@@ -54,17 +56,17 @@ function StatusBadge({ status, className }: { status: string; className?: string
       return (
         <span
           className={`${base} bg-red-500/15 text-red-600 ${className ?? ""}`}
-          title={status === "failed" ? "Procesarea a eșuat" : "Videoclipul a fost respins"}
+          title={status === "failed" ? t("titleProcesareEsuat") : t("titleRespins")}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
-          {status === "failed" ? "Eroare" : "Respins"}
+          {status === "failed" ? t("badgeEroare") : t("badgeRespins")}
         </span>
       );
     default:
       return (
         <span className={`${base} bg-gray-200 text-gray-500 ${className ?? ""}`}>
           <Clock className="w-3.5 h-3.5" />
-          Așteptare
+          {t("badgeAsteptare")}
         </span>
       );
   }
@@ -80,6 +82,7 @@ function formatDate(dateString: string) {
 }
 
 function VideoCard({ video }: { video: CreatorVideo }) {
+  const t = useTranslations("creatorVideos");
   return (
     <div className="group relative bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
       {/* Thumbnail / Placeholder */}
@@ -87,7 +90,7 @@ function VideoCard({ video }: { video: CreatorVideo }) {
         {video.product_image ? (
           <Image
             src={video.product_image}
-            alt={video.product_title ?? "Video"}
+            alt={video.product_title ?? t("altVideo")}
             fill
             sizes="(max-width: 768px) 50vw, 240px"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -95,7 +98,7 @@ function VideoCard({ video }: { video: CreatorVideo }) {
         ) : (
           <div className="flex flex-col items-center gap-2 text-gray-600">
             <Video className="w-12 h-12" />
-            <span className="text-xs font-medium">Fără previzualizare</span>
+            <span className="text-xs font-medium">{t("faraPreviz")}</span>
           </div>
         )}
 
@@ -142,7 +145,7 @@ function VideoCard({ video }: { video: CreatorVideo }) {
             <span className="text-[11px] font-semibold">{formatDate(video.created_at)}</span>
           </div>
           {video.status === "ready" && (
-            <span className="text-[11px] font-bold text-[#0D0D0D]">● Live</span>
+            <span className="text-[11px] font-bold text-[#0D0D0D]">{t("live")}</span>
           )}
         </div>
       </div>
@@ -151,6 +154,7 @@ function VideoCard({ video }: { video: CreatorVideo }) {
 }
 
 export default function CreatorVideosPage() {
+  const t = useTranslations("creatorVideos");
   const [videos, setVideos] = useState<CreatorVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -162,7 +166,7 @@ export default function CreatorVideosPage() {
     async function fetchVideos(initial: boolean) {
       try {
         const res = await fetch("/api/creator/videos", { cache: "no-store" });
-        if (!res.ok) throw new Error("Eroare la încărcarea videoclipurilor.");
+        if (!res.ok) throw new Error(t("errIncarcare"));
         const data = await res.json();
         if (cancelled) return;
         const list: CreatorVideo[] = data.videos || [];
@@ -186,7 +190,7 @@ export default function CreatorVideosPage() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [t]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -194,10 +198,10 @@ export default function CreatorVideosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-[#0D0D0D] tracking-tight">
-            Clipurile Mele
+            {t("titlu")}
           </h1>
           <p className="text-[#6E6E80] mt-1 text-sm font-medium">
-            Toate videoclipurile tale încărcate, într-un singur loc.
+            {t("subtitle")}
           </p>
         </div>
         <Link
@@ -205,7 +209,7 @@ export default function CreatorVideosPage() {
           className="inline-flex items-center gap-2 px-6 py-3 bg-[#0D0D0D] hover:bg-[#0D8F6F] text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.97] text-sm whitespace-nowrap"
         >
           <Upload className="w-4 h-4" />
-          Încarcă clip nou
+          {t("incarcaClipNou")}
         </Link>
       </div>
 
@@ -216,7 +220,7 @@ export default function CreatorVideosPage() {
             <div className="w-16 h-16 rounded-full border-4 border-[#0D0D0D]/20" />
             <Loader2 className="w-16 h-16 text-[#0D0D0D] animate-spin absolute inset-0" />
           </div>
-          <p className="text-sm font-bold text-[#6E6E80]">Se încarcă videoclipurile...</p>
+          <p className="text-sm font-bold text-[#6E6E80]">{t("seIncarca")}</p>
         </div>
       )}
 
@@ -229,7 +233,7 @@ export default function CreatorVideosPage() {
             onClick={() => window.location.reload()}
             className="mt-4 px-5 py-2 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors text-sm"
           >
-            Reîncearcă
+            {t("reincearca")}
           </button>
         </div>
       )}
@@ -242,17 +246,17 @@ export default function CreatorVideosPage() {
           </div>
           <div className="text-center max-w-sm">
             <h2 className="text-xl font-black text-[#0D0D0D] mb-2">
-              Nu ai niciun clip încărcat
+              {t("emptyTitle")}
             </h2>
             <p className="text-sm text-[#6E6E80] leading-relaxed">
-              Începe să promovezi produse încărcând primul tău videoclip. Este rapid și simplu!
+              {t("emptyHint")}
             </p>
           </div>
           <Link
             href="/upload"
             className="inline-flex items-center gap-2 px-8 py-4 bg-[#0D0D0D] hover:bg-[#2A2A2A] text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.97]"
           >
-            Mergi la Upload
+            {t("mergiUpload")}
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
@@ -264,17 +268,17 @@ export default function CreatorVideosPage() {
           {/* Stats bar */}
           <div className="flex items-center gap-6 text-sm">
             <span className="font-black text-[#0D0D0D]">
-              {videos.length} {videos.length === 1 ? "clip" : "clipuri"}
+              {videos.length} {videos.length === 1 ? t("clip") : t("clipuri")}
             </span>
             <span className="text-[#6E6E80]">•</span>
             <span className="text-[#0D0D0D] font-bold">
-              {videos.filter((v) => v.status === "ready").length} live
+              {videos.filter((v) => v.status === "ready").length} {t("liveLow")}
             </span>
             {videos.filter((v) => v.status === "processing").length > 0 && (
               <>
                 <span className="text-[#6E6E80]">•</span>
                 <span className="text-amber-600 font-bold">
-                  {videos.filter((v) => v.status === "processing").length} în procesare
+                  {videos.filter((v) => v.status === "processing").length} {t("inProcesare")}
                 </span>
               </>
             )}

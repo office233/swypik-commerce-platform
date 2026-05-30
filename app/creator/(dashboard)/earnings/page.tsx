@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -137,6 +138,7 @@ function MetricCardSkeleton() {
 // ─── Main Page Component ────────────────────────────────────────────────────
 
 export default function CreatorEarningsPage() {
+  const t = useTranslations("creatorEarnings");
   const [data, setData] = useState<EarningsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,21 +155,21 @@ export default function CreatorEarningsPage() {
         setData(json);
       } catch (err: any) {
         console.error("Failed to load earnings:", err);
-        setError(err.message || "Eroare la încărcarea datelor.");
+        setError(err.message || t("errIncarcare"));
       } finally {
         setLoading(false);
       }
     }
     fetchEarnings();
-  }, []);
+  }, [t]);
 
   // ── Loading state ──
   if (loading) {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-black text-[#0D0D0D]">Câștiguri</h1>
-          <p className="text-[#6E6E80] mt-2">Se încarcă datele...</p>
+          <h1 className="text-3xl font-black text-[#0D0D0D]">{t("titlu")}</h1>
+          <p className="text-[#6E6E80] mt-2">{t("seIncarca")}</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {[1, 2, 3, 4].map((i) => (
@@ -183,7 +185,7 @@ export default function CreatorEarningsPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-black text-[#0D0D0D]">Câștiguri</h1>
+          <h1 className="text-3xl font-black text-[#0D0D0D]">{t("titlu")}</h1>
         </div>
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <p className="text-red-600 font-bold text-sm">{error}</p>
@@ -191,7 +193,7 @@ export default function CreatorEarningsPage() {
             onClick={() => window.location.reload()}
             className="mt-4 px-5 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition"
           >
-            Reîncearcă
+            {t("reincearca")}
           </button>
         </div>
       </div>
@@ -232,9 +234,9 @@ export default function CreatorEarningsPage() {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#0D0D0D]">Câștiguri</h1>
+          <h1 className="text-3xl font-black text-[#0D0D0D]">{t("titlu")}</h1>
           <p className="text-[#6E6E80] mt-1">
-            Urmărește veniturile generate din clipurile tale.
+            {t("intro")}
           </p>
         </div>
         <div className="flex gap-3">
@@ -242,13 +244,13 @@ export default function CreatorEarningsPage() {
             href="/creator/videos"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F7F7F8] border border-[#E5E5E5] rounded-xl text-sm font-bold text-[#0D0D0D] hover:bg-[#EFEFEF] transition-all"
           >
-            Clipurile mele →
+            {t("linkClipuri")} →
           </Link>
           <Link
             href="/upload"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D0D0D] text-white rounded-xl text-sm font-bold hover:bg-[#0E9272] transition-all shadow-sm hover:shadow-md"
           >
-            Upload →
+            {t("linkUpload")} →
           </Link>
         </div>
       </div>
@@ -273,11 +275,10 @@ export default function CreatorEarningsPage() {
             </svg>
           </div>
           <h2 className="text-xl font-black text-[#0D0D0D] mb-2">
-            Încarcă primul tău clip pentru a începe să câștigi!
+            {t("emptyTitle")}
           </h2>
           <p className="text-[#6E6E80] text-sm max-w-md mx-auto mb-6">
-            Creează clipuri video cu produsele preferate și câștigă 5% comision
-            din fiecare vânzare generată.
+            {t("emptyHint")}
           </p>
           <Link
             href="/upload"
@@ -298,7 +299,7 @@ export default function CreatorEarningsPage() {
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
-            Încarcă un Clip
+            {t("incarcaClip")}
           </Link>
         </div>
       )}
@@ -313,11 +314,11 @@ export default function CreatorEarningsPage() {
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/15 transition">
                 <VideoIcon />
               </div>
-              <p className="text-sm font-bold text-white/60">Clipuri Active</p>
+              <p className="text-sm font-bold text-white/60">{t("cardClipuriActive")}</p>
             </div>
             <p className="text-3xl font-black">{totalVideos}</p>
             <p className="text-xs text-white/40 mt-1">
-              {totalVideos === 1 ? "clip publicat" : "clipuri publicate"}
+              {totalVideos === 1 ? t("clipPublicat") : t("clipuriPublicate")}
             </p>
           </div>
         </div>
@@ -330,11 +331,11 @@ export default function CreatorEarningsPage() {
               <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition">
                 <ShoppingCartIcon />
               </div>
-              <p className="text-sm font-bold text-white/70">Vânzări Generate</p>
+              <p className="text-sm font-bold text-white/70">{t("cardVanzari")}</p>
             </div>
             <p className="text-3xl font-black">{formatLei(totalSalesCents)}</p>
             <p className="text-xs text-white/50 mt-1">
-              {totalOrders} {totalOrders === 1 ? "comandă" : "comenzi"}
+              {totalOrders} {totalOrders === 1 ? t("comanda") : t("comenzi")}
             </p>
           </div>
         </div>
@@ -345,12 +346,12 @@ export default function CreatorEarningsPage() {
             <div className="w-10 h-10 rounded-xl bg-[#0D0D0D]/10 flex items-center justify-center text-[#0D0D0D] group-hover:bg-[#0D0D0D]/15 transition">
               <TrendingUpIcon />
             </div>
-            <p className="text-sm font-bold text-[#6E6E80]">Comision Câștigat</p>
+            <p className="text-sm font-bold text-[#6E6E80]">{t("cardComision")}</p>
           </div>
           <p className="text-3xl font-black text-[#0D0D0D]">
             {formatLei(earningsCents)}
           </p>
-          <p className="text-xs text-[#6E6E80] mt-1">5% din vânzări</p>
+          <p className="text-xs text-[#6E6E80] mt-1">{t("comisionInfo")}</p>
         </div>
 
         {/* Card 4 — Plătit / De încasat */}
@@ -359,7 +360,7 @@ export default function CreatorEarningsPage() {
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 group-hover:bg-amber-500/15 transition">
               <WalletIcon />
             </div>
-            <p className="text-sm font-bold text-[#6E6E80]">Plătit / De încasat</p>
+            <p className="text-sm font-bold text-[#6E6E80]">{t("cardPlatitIncasat")}</p>
           </div>
           <div className="flex items-baseline gap-3">
             <div>
@@ -367,7 +368,7 @@ export default function CreatorEarningsPage() {
                 {formatLei(paidOutCents)}
               </p>
               <p className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wide">
-                Plătit
+                {t("platit")}
               </p>
             </div>
             <span className="text-[#E5E5E5] text-lg font-light">/</span>
@@ -376,7 +377,7 @@ export default function CreatorEarningsPage() {
                 {formatLei(pendingCents)}
               </p>
               <p className="text-[10px] font-bold text-amber-600/60 uppercase tracking-wide">
-                De încasat
+                {t("deIncasat")}
               </p>
             </div>
           </div>
@@ -387,44 +388,44 @@ export default function CreatorEarningsPage() {
       {!isEmpty && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div className="bg-white border border-[#E5E5E5] rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-black text-[#0D0D0D] mb-4">Status payout</h2>
+            <h2 className="text-lg font-black text-[#0D0D0D] mb-4">{t("statusPayout")}</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-xl bg-neutral-100 p-4">
-                <p className="text-xs font-bold text-neutral-900 uppercase tracking-wide">Platit</p>
+                <p className="text-xs font-bold text-neutral-900 uppercase tracking-wide">{t("platit")}</p>
                 <p className="mt-1 text-xl font-black text-neutral-900">{formatLei(payout.paidCents)}</p>
-                <p className="text-xs text-neutral-900/70">{payout.paidItems} itemuri</p>
+                <p className="text-xs text-neutral-900/70">{t("itemuri", { n: payout.paidItems })}</p>
               </div>
               <div className="rounded-xl bg-amber-50 p-4">
-                <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">In asteptare</p>
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">{t("inAsteptare")}</p>
                 <p className="mt-1 text-xl font-black text-amber-700">{formatLei(payout.pendingCents)}</p>
-                <p className="text-xs text-amber-700/70">{payout.pendingItems} itemuri</p>
+                <p className="text-xs text-amber-700/70">{t("itemuri", { n: payout.pendingItems })}</p>
               </div>
               <div className="rounded-xl bg-red-50 p-4">
-                <p className="text-xs font-bold text-red-700 uppercase tracking-wide">Esuat</p>
+                <p className="text-xs font-bold text-red-700 uppercase tracking-wide">{t("esuat")}</p>
                 <p className="mt-1 text-xl font-black text-red-700">{formatLei(payout.failedCents)}</p>
-                <p className="text-xs text-red-700/70">{payout.failedItems} itemuri</p>
+                <p className="text-xs text-red-700/70">{t("itemuri", { n: payout.failedItems })}</p>
               </div>
               <div className="rounded-xl bg-[#F7F7F8] p-4">
-                <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-wide">Blocat</p>
+                <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-wide">{t("blocat")}</p>
                 <p className="mt-1 text-xl font-black text-[#0D0D0D]">{formatLei(payout.blockedCents)}</p>
-                <p className="text-xs text-[#6E6E80]">{payout.blockedItems} itemuri</p>
+                <p className="text-xs text-[#6E6E80]">{t("itemuri", { n: payout.blockedItems })}</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white border border-[#E5E5E5] rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-black text-[#0D0D0D] mb-4">Analytics vanzari</h2>
+            <h2 className="text-lg font-black text-[#0D0D0D] mb-4">{t("analyticsVanzari")}</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-[#F7F7F8] pb-3">
-                <span className="text-sm font-bold text-[#6E6E80]">Valoare medie comanda</span>
+                <span className="text-sm font-bold text-[#6E6E80]">{t("valoareMedie")}</span>
                 <span className="text-base font-black text-[#0D0D0D]">{formatLei(stats.averageOrderCents)}</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#F7F7F8] pb-3">
-                <span className="text-sm font-bold text-[#6E6E80]">Vanzari luna curenta</span>
+                <span className="text-sm font-bold text-[#6E6E80]">{t("vanzariLuna")}</span>
                 <span className="text-base font-black text-[#0D0D0D]">{formatLei(stats.thisMonthSalesCents)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-[#6E6E80]">Comision luna curenta</span>
+                <span className="text-sm font-bold text-[#6E6E80]">{t("comisionLuna")}</span>
                 <span className="text-base font-black text-[#0D0D0D]">{formatLei(stats.thisMonthEarningsCents)}</span>
               </div>
             </div>
@@ -434,7 +435,7 @@ export default function CreatorEarningsPage() {
 
       <div className="bg-white border border-[#E5E5E5] rounded-2xl p-8 shadow-sm">
         <h2 className="text-xl font-black text-[#0D0D0D] mb-6">
-          Cum funcționează
+          {t("cumFunctioneaza")}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Step 1 */}
@@ -444,11 +445,10 @@ export default function CreatorEarningsPage() {
             </div>
             <div>
               <h3 className="font-bold text-[#0D0D0D] text-sm">
-                Încarcă un clip
+                {t("step1Title")}
               </h3>
               <p className="text-xs text-[#6E6E80] mt-1 leading-relaxed">
-                Filmează și încarcă clipuri video creative cu produsele din
-                catalog.
+                {t("step1Body")}
               </p>
             </div>
           </div>
@@ -460,11 +460,10 @@ export default function CreatorEarningsPage() {
             </div>
             <div>
               <h3 className="font-bold text-[#0D0D0D] text-sm">
-                Asociază un produs
+                {t("step2Title")}
               </h3>
               <p className="text-xs text-[#6E6E80] mt-1 leading-relaxed">
-                Conectează clipul la un produs din marketplace pentru a genera
-                link-uri de tracking.
+                {t("step2Body")}
               </p>
             </div>
           </div>
@@ -476,11 +475,10 @@ export default function CreatorEarningsPage() {
             </div>
             <div>
               <h3 className="font-bold text-[#0D0D0D] text-sm">
-                Primești 5% comision
+                {t("step3Title")}
               </h3>
               <p className="text-xs text-[#6E6E80] mt-1 leading-relaxed">
-                Din fiecare vânzare generată prin clipurile tale, câștigi
-                automat 5% comision.
+                {t("step3Body")}
               </p>
             </div>
           </div>

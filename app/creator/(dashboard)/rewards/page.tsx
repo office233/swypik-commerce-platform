@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 
 interface Wallet {
   balance_points: number;
@@ -17,15 +18,20 @@ interface RewardEvent {
   transaction_id?: string;
 }
 
-const rewardRules = [
-  { action: "daily_login", points: 10, description: "Logare zilnică" },
-  { action: "first_video_upload", points: 100, description: "Primul video uploadat" },
-  { action: "video_approved", points: 50, description: "Video aprobat" },
-  { action: "reach_1000_views", points: 200, description: "Atinge 1000 de vizualizări la un video" },
-  { action: "first_sale", points: 500, description: "Prima vânzare afiliată" },
-];
+const REWARD_RULE_KEYS = [
+  { action: "daily_login", points: 10, key: "ruleDailyLogin" },
+  { action: "first_video_upload", points: 100, key: "ruleFirstVideo" },
+  { action: "video_approved", points: 50, key: "ruleVideoApproved" },
+  { action: "reach_1000_views", points: 200, key: "rule1000Views" },
+  { action: "first_sale", points: 500, key: "ruleFirstSale" },
+] as const;
 
 export default function RewardsPage() {
+  const t = useTranslations("creatorRewards");
+  const rewardRules = useMemo(
+    () => REWARD_RULE_KEYS.map((r) => ({ action: r.action, points: r.points, description: t(r.key) })),
+    [t],
+  );
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [history, setHistory] = useState<RewardEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,14 +74,14 @@ export default function RewardsPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-black text-[#0D0D0D]">SWYP Points</h1>
-        <p className="text-[#6E6E80] mt-2">Câștigă puncte pentru activitatea ta și deblochează recompense exclusive.</p>
+        <h1 className="text-3xl font-black text-[#0D0D0D]">{t("titlu")}</h1>
+        <p className="text-[#6E6E80] mt-2">{t("intro")}</p>
       </div>
 
       {/* Hero Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl p-6 border border-[#E5E5E5] shadow-sm flex flex-col justify-center">
-          <p className="text-sm font-bold text-[#6E6E80] mb-2">Balanță SWYP</p>
+          <p className="text-sm font-bold text-[#6E6E80] mb-2">{t("balantaSwyp")}</p>
           <div className="text-4xl font-black text-[#0D0D0D] flex items-center gap-2">
             <span>🏆</span>
             <span>{wallet?.balance_points || 0}</span>
@@ -85,10 +91,10 @@ export default function RewardsPage() {
         <div className="bg-white rounded-2xl p-6 border border-[#E5E5E5] shadow-sm flex flex-col justify-center relative group">
           <div className="flex justify-between items-start">
             <p className="text-sm font-bold text-[#6E6E80] mb-2 flex items-center gap-1">
-              <span>🔒</span> Puncte Blocate
+              <span>🔒</span> {t("puncteBlocate")}
             </p>
             <div className="hidden group-hover:block absolute top-10 left-0 bg-[#0D0D0D] text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10 w-48 text-center">
-              Deblocare după perioada de verificare
+              {t("deblocareInfo")}
             </div>
           </div>
           <div className="text-3xl font-black text-[#F59E0B]">
@@ -97,7 +103,7 @@ export default function RewardsPage() {
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-[#E5E5E5] shadow-sm flex flex-col justify-center">
-          <p className="text-sm font-bold text-[#6E6E80] mb-2">Lifetime (Câștigate)</p>
+          <p className="text-sm font-bold text-[#6E6E80] mb-2">{t("lifetime")}</p>
           <div className="text-3xl font-black text-[#0D0D0D]">
             {wallet?.lifetime_earned || 0}
           </div>
@@ -108,17 +114,17 @@ export default function RewardsPage() {
         {/* History Table */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-[#E5E5E5] shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-[#E5E5E5]">
-            <h2 className="text-xl font-bold text-[#0D0D0D]">Istoric Recompense</h2>
+            <h2 className="text-xl font-bold text-[#0D0D0D]">{t("istoricTitlu")}</h2>
           </div>
           <div className="overflow-x-auto">
             {history.length > 0 ? (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[#F7F7F8] border-b border-[#E5E5E5]">
-                    <th className="p-4 text-xs font-bold text-[#6E6E80] uppercase tracking-wider">Data</th>
-                    <th className="p-4 text-xs font-bold text-[#6E6E80] uppercase tracking-wider">Acțiune</th>
-                    <th className="p-4 text-xs font-bold text-[#6E6E80] uppercase tracking-wider">Puncte</th>
-                    <th className="p-4 text-xs font-bold text-[#6E6E80] uppercase tracking-wider">Motiv</th>
+                    <th className="p-4 text-xs font-bold text-[#6E6E80] uppercase tracking-wider">{t("thData")}</th>
+                    <th className="p-4 text-xs font-bold text-[#6E6E80] uppercase tracking-wider">{t("thActiune")}</th>
+                    <th className="p-4 text-xs font-bold text-[#6E6E80] uppercase tracking-wider">{t("thPuncte")}</th>
+                    <th className="p-4 text-xs font-bold text-[#6E6E80] uppercase tracking-wider">{t("thMotiv")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E5E5]">
@@ -158,7 +164,7 @@ export default function RewardsPage() {
               </table>
             ) : (
               <div className="p-8 text-center text-[#6E6E80]">
-                Nu ai primit nicio recompensă încă. Începe să fii activ!
+                {t("emptyIstoric")}
               </div>
             )}
           </div>
@@ -167,7 +173,7 @@ export default function RewardsPage() {
         {/* Info Card */}
         <div className="bg-white rounded-2xl border border-[#E5E5E5] shadow-sm flex flex-col h-fit">
           <div className="p-6 border-b border-[#E5E5E5] bg-[#F7F7F8] rounded-t-2xl">
-            <h2 className="text-lg font-bold text-[#0D0D0D]">Cum câștigi SWYP Points?</h2>
+            <h2 className="text-lg font-bold text-[#0D0D0D]">{t("cumCastigi")}</h2>
           </div>
           <div className="p-6 space-y-4">
             {rewardRules.map((rule, idx) => (

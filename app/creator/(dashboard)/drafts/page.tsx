@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserId } from "@/lib/creator/session";
 import { Pencil, Trash2, Clock, X } from "lucide-react";
@@ -7,7 +8,10 @@ import DraftActions from "./DraftActions";
 import Countdown from "./Countdown";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Schițe & Programate | Swypik Creators" };
+export async function generateMetadata() {
+  const t = await getTranslations("creatorDrafts");
+  return { title: t("metaTitle") };
+}
 
 type Tab = "drafts" | "scheduled";
 
@@ -16,6 +20,7 @@ export default async function DraftsPage(
 ) {
   const creatorId = await getCreatorUserId();
   if (!creatorId) redirect("/auth?next=/creator/drafts");
+  const t = await getTranslations("creatorDrafts");
 
   const sp = await searchParams;
   const tab: Tab = sp.tab === "scheduled" ? "scheduled" : "drafts";
@@ -64,7 +69,7 @@ export default async function DraftsPage(
 
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-6">
-      <h1 className="text-2xl font-black text-[#0D0D0D] mb-6">Schițe & Programate</h1>
+      <h1 className="text-2xl font-black text-[#0D0D0D] mb-6">{t("titlu")}</h1>
 
       <div className="flex gap-2 mb-6 border-b border-[#E5E5E5] overflow-x-auto">
         <Link
@@ -73,7 +78,7 @@ export default async function DraftsPage(
             tab === "drafts" ? "border-[#7C3AED] text-[#7C3AED]" : "border-transparent text-[#6E6E80] hover:text-[#0D0D0D]"
           }`}
         >
-          Schițe ({tab === "drafts" ? drafts.length : "·"})
+          {t("tabSchite")} ({tab === "drafts" ? drafts.length : "·"})
         </Link>
         <Link
           href="/creator/drafts?tab=scheduled"
@@ -81,15 +86,16 @@ export default async function DraftsPage(
             tab === "scheduled" ? "border-[#7C3AED] text-[#7C3AED]" : "border-transparent text-[#6E6E80] hover:text-[#0D0D0D]"
           }`}
         >
-          Programate ({tab === "scheduled" ? scheduled.length : "·"})
+          {t("tabProgramate")} ({tab === "scheduled" ? scheduled.length : "·"})
         </Link>
       </div>
 
       {tab === "drafts" ? (
         drafts.length === 0 ? (
           <EmptyState
-            title="Nicio schiță încă"
-            hint="Salvează un clip ca schiță din ecranul de upload pentru a-l finaliza mai târziu."
+            title={t("emptyDraftsTitle")}
+            hint={t("emptyDraftsHint")}
+            uploadLabel={t("incarcaClip")}
           />
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -104,37 +110,37 @@ export default async function DraftsPage(
                     <img src={d.thumbnail_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-[#A1A1AA] text-xs">
-                      Fără preview
+                      {t("faraPreview")}
                     </div>
                   )}
                 </div>
                 <div className="p-3 flex-1 flex flex-col">
                   <p className="text-sm font-bold text-[#0D0D0D] line-clamp-2 mb-1">
-                    {d.title || "Fără titlu"}
+                    {d.title || t("faraTitlu")}
                   </p>
                   <p className="text-[11px] text-[#6E6E80] mb-3">
-                    Ultima editare: {new Date(d.updated_at).toLocaleDateString("ro-RO")}
+                    {t("ultimaEditare", { date: new Date(d.updated_at).toLocaleDateString("ro-RO") })}
                   </p>
                   <div className="mt-auto flex gap-2">
                     <Link
                       href={`/upload?draft=${d.id}`}
                       className="flex-1 h-11 rounded-lg bg-[#7C3AED] text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-[#6D28D9] focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
                     >
-                      <Pencil size={14} /> Editează
+                      <Pencil size={14} /> {t("editeaza")}
                     </Link>
                     <DraftActions
                       videoId={d.id}
                       action="publish-now"
-                      label="Publică"
+                      label={t("publica")}
                       icon="send"
-                      confirm="Publici acest draft acum?"
+                      confirm={t("confirmPublica")}
                     />
                     <DraftActions
                       videoId={d.id}
                       action="delete"
-                      label="Șterge"
+                      label={t("sterge")}
                       icon="trash"
-                      confirm="Ștergi această schiță?"
+                      confirm={t("confirmSterge")}
                     />
                   </div>
                 </div>
@@ -144,8 +150,9 @@ export default async function DraftsPage(
         )
       ) : scheduled.length === 0 ? (
         <EmptyState
-          title="Nimic programat"
-          hint="Folosește butonul Programează din ecranul de detalii ca să planifici un clip."
+          title={t("emptySchedTitle")}
+          hint={t("emptySchedHint")}
+          uploadLabel={t("incarcaClip")}
         />
       ) : (
         <ul className="space-y-3">
@@ -161,7 +168,7 @@ export default async function DraftsPage(
                 ) : null}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[#0D0D0D] truncate">{s.title || "Fără titlu"}</p>
+                <p className="text-sm font-bold text-[#0D0D0D] truncate">{s.title || t("faraTitlu")}</p>
                 <p className="text-xs text-[#6E6E80] flex items-center gap-1.5 mt-1">
                   <Clock size={12} />
                   <Countdown target={s.scheduled_publish_at} />
@@ -170,9 +177,9 @@ export default async function DraftsPage(
               <DraftActions
                 videoId={s.id}
                 action="cancel-schedule"
-                label="Anulează"
+                label={t("anuleaza")}
                 icon="x"
-                confirm="Anulezi programarea? Clipul rămâne ca schiță."
+                confirm={t("confirmAnuleaza")}
               />
             </li>
           ))}
@@ -182,7 +189,7 @@ export default async function DraftsPage(
   );
 }
 
-function EmptyState({ title, hint }: { title: string; hint: string }) {
+function EmptyState({ title, hint, uploadLabel }: { title: string; hint: string; uploadLabel: string }) {
   return (
     <div className="text-center py-16 px-6 bg-white border border-dashed border-[#E5E5E5] rounded-2xl">
       <p className="text-base font-bold text-[#0D0D0D] mb-2">{title}</p>
@@ -191,7 +198,7 @@ function EmptyState({ title, hint }: { title: string; hint: string }) {
         href="/upload"
         className="inline-flex mt-4 h-11 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold items-center focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none hover:bg-[#6D28D9]"
       >
-        Încarcă clip nou
+        {uploadLabel}
       </Link>
     </div>
   );

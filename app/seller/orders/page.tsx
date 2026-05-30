@@ -91,8 +91,8 @@ export default function SellerOrdersPage() {
     <div className="max-w-5xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-black text-[#0D0D0D]">Comenzi primite</h1>
-          <p className="text-sm text-[#6E6E80] mt-1">Gestionează comenzile și procesează expedierile (AWB).</p>
+          <h1 className="text-2xl font-black text-[#0D0D0D]">{t("titlu")}</h1>
+          <p className="text-sm text-[#6E6E80] mt-1">{t("subtitle")}</p>
         </div>
       </div>
 
@@ -101,31 +101,31 @@ export default function SellerOrdersPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5]">
               <tr>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">ID Comandă</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Detalii Produse</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Status</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">Total</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">Acțiuni</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thIdComanda")}</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thDetalii")}</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thStatus")}</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">{t("thTotal")}</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">{t("thActiuni")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-[#6E6E80]">
-                    Se încarcă comenzile...
+                    {t("seIncarca")}
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
-                    <p className="font-bold text-red-700">Nu am putut incarca comenzile.</p>
-                    <p className="text-sm text-[#6E6E80] mt-1">{error.message || "Eroare necunoscuta."}</p>
+                    <p className="font-bold text-red-700">{t("errIncarcare")}</p>
+                    <p className="text-sm text-[#6E6E80] mt-1">{error.message || t("errNecunoscuta")}</p>
                     <button
                       type="button"
                       onClick={() => mutate()}
                       className="mt-4 inline-flex items-center min-h-[44px] rounded-lg bg-[#0D0D0D] px-4 py-2.5 text-xs font-bold text-white focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none hover:bg-black"
                     >
-                      Reincearca
+                      {t("reincearca")}
                     </button>
                   </td>
                 </tr>
@@ -133,8 +133,8 @@ export default function SellerOrdersPage() {
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <p className="text-3xl mb-3">🛍️</p>
-                    <p className="font-bold text-[#0D0D0D]">Nicio comandă deocamdată.</p>
-                    <p className="text-sm text-[#6E6E80] mt-1">Comenzile din produsele tale vor apărea aici.</p>
+                    <p className="font-bold text-[#0D0D0D]">{t("emptyTitle")}</p>
+                    <p className="text-sm text-[#6E6E80] mt-1">{t("emptyHint")}</p>
                   </td>
                 </tr>
               ) : (
@@ -176,7 +176,7 @@ export default function SellerOrdersPage() {
                         {/* AWB info */}
                         {order.order_metadata?.tracking_number && (
                           <div className="mt-2 text-xs text-[#6E6E80]">
-                            AWB: <span className="font-mono text-[#0D0D0D] font-medium">{order.order_metadata.tracking_number}</span>
+                            {t("awbLabel")}: <span className="font-mono text-[#0D0D0D] font-medium">{order.order_metadata.tracking_number}</span>
                             {order.order_metadata.tracking_url && (
                               <a
                                 href={order.order_metadata.tracking_url}
@@ -184,7 +184,7 @@ export default function SellerOrdersPage() {
                                 rel="noopener noreferrer"
                                 className="ml-2 font-bold text-[#0D0D0D] hover:underline"
                               >
-                                Urmareste
+                                {t("urmareste")}
                               </a>
                             )}
                           </div>
@@ -194,7 +194,7 @@ export default function SellerOrdersPage() {
                         {isReturnRequested && returnReason && (
                           <div className="mt-3 rounded-lg bg-orange-100/80 border border-orange-200 p-3">
                             <p className="text-[10px] uppercase tracking-widest font-bold text-orange-600 mb-1">
-                              Motivul returului
+                              {t("motivRetur")}
                             </p>
                             <p className="text-xs text-orange-900 leading-relaxed">
                               &ldquo;{returnReason}&rdquo;
@@ -215,10 +215,10 @@ export default function SellerOrdersPage() {
                                 type="button"
                                 onClick={() => handleAddAwb(order.order_id)}
                                 disabled={loadingAwb === order.order_id}
-                                aria-label={`Adaugă AWB pentru comanda ${order.order_id.split("-")[0]}`}
+                                aria-label={t("ariaAwb", { id: order.order_id.split("-")[0] })}
                                 className="px-3 py-2 min-h-[40px] bg-[#0D0D0D] text-white text-xs font-semibold rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                               >
-                                {loadingAwb === order.order_id ? "Se salvează..." : "Adaugă AWB"}
+                                {loadingAwb === order.order_id ? t("seSalveaza") : t("adaugaAwb")}
                               </button>
                             )}
 
@@ -228,19 +228,19 @@ export default function SellerOrdersPage() {
                               type="button"
                               onClick={() => handleRefund(order.order_id)}
                               disabled={loadingRefund === order.order_id}
-                              aria-label="Aprobă retur și restituie banii"
+                              aria-label={t("ariaRefund")}
                               className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-lg hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                             >
                               {loadingRefund === order.order_id
-                                ? "Se procesează..."
-                                : "Aprobă Retur & Restituie Banii"}
+                                ? t("seProceseaza")
+                                : t("btnAprobaRefund")}
                             </button>
                           )}
 
                           {/* Refunded label */}
                           {isRefunded && (
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-600">
-                              ✅ Bani restituiți
+                              {t("baniRestituiti")}
                             </span>
                           )}
                         </div>
