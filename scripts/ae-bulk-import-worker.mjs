@@ -602,8 +602,10 @@ async function main() {
         }));
       }
       const errMsg = String(err?.message || err);
-      // Erori permanente (produs sters / nu mai exista la AE) -> skip definitiv, fara retry-uri viitoare.
-      const isPermanent = /missing result|product not found|product[_ ]?id.*not.*exist|invalid product/i.test(errMsg);
+      // Erori permanente -> skip definitiv, fara retry-uri viitoare:
+      //  - produs sters/inactiv pe AliExpress
+      //  - integer overflow (cents > int32 max, valori absurde din supplier data corupt)
+      const isPermanent = /missing result|product not found|product[_ ]?id.*not.*exist|invalid product|out of range for type integer/i.test(errMsg);
       const finalStatus = isPermanent ? 'skipped' : 'failed';
       const reasonTag = isPermanent ? `permanent:${errMsg}`.slice(0, 500) : errMsg.slice(0, 500);
       await pool.query(`UPDATE ae_import_jobs SET status=$3, last_error=$2 WHERE product_id=$1`, [pid, reasonTag, finalStatus]);
