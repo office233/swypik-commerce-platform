@@ -594,7 +594,6 @@ async function main() {
         log('info', 'progress', { processed, succeeded, failed, skipped, qps_real: rate.toFixed(2) });
       }
     } catch (err) {
-      failed++;
       if (process.env.DEBUG_INSERT) {
         console.error('FULL_ERR', JSON.stringify({
           message: err?.message, code: err?.code, detail: err?.detail, hint: err?.hint,
@@ -602,8 +601,14 @@ async function main() {
           column: err?.column, table: err?.table, constraint: err?.constraint, schema: err?.schema,
         }));
       }
-      await pool.query(`UPDATE ae_import_jobs SET status='failed', last_error=$2 WHERE product_id=$1`, [pid, String(err?.message || err).slice(0, 500)]);
-      log('error', 'import failed', { product_id: pid, error: String(err?.message || err).slice(0, 200) });
+      const errMsg = String(err?.message || err);
+      // Erori permanente (produs sters / nu mai exista la AE) -> skip definitiv, fara retry-uri viitoare.
+      const isPermanent = /missing result|product not found|product[_ ]?id.*not.*exist|invalid product/i.test(errMsg);
+      const finalStatus = isPermanent ? 'skipped' : 'failed';
+      const reasonTag = isPermanent ? `permanent:${errMsg}`.slice(0, 500) : errMsg.slice(0, 500);
+      await pool.query(`UPDATE ae_import_jobs SET status=$3, last_error=$2 WHERE product_id=$1`, [pid, reasonTag, finalStatus]);
+      if (isPermanent) skipped++; else failed++;
+      log(isPermanent ? 'info' : 'error', isPermanent ? 'import skipped (permanent)' : 'import failed', { product_id: pid, error: errMsg.slice(0, 200) });
     }
   }
 
