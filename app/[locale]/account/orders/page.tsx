@@ -19,17 +19,6 @@ type Row = {
   item_count: string;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "În așteptare",
-  paid: "Plătită",
-  processing: "În procesare",
-  fulfilled: "Expediată",
-  delivered: "Livrată",
-  cancelled: "Anulată",
-  refunded: "Rambursată",
-  return_requested: "Retur solicitat",
-};
-
 function fmtDate(iso: string) {
   try {
     return new Date(iso).toLocaleDateString("ro-RO", {
@@ -46,6 +35,17 @@ export default async function OrdersPage() {
   const t = await getTranslations("accountOrders");
   const user = await getAuthUser();
   if (!user.userId) redirect("/account?redirect=/account/orders");
+
+  const STATUS_LABELS: Record<string, string> = {
+    pending: t("statusPending"),
+    paid: t("statusPaid"),
+    processing: t("statusProcessing"),
+    fulfilled: t("statusFulfilled"),
+    delivered: t("statusDelivered"),
+    cancelled: t("statusCancelled"),
+    refunded: t("statusRefunded"),
+    return_requested: t("statusReturnRequested"),
+  };
 
   const cookieStore = await cookies();
   const cookieCurrency = cookieStore.get(CURRENCY_COOKIE)?.value;
@@ -68,7 +68,7 @@ export default async function OrdersPage() {
         <Link href="/account" className="p-1 -ml-1">
           <ArrowLeft size={22} />
         </Link>
-        <h1 className="text-lg font-black">Comenzile mele</h1>
+        <h1 className="text-lg font-black">{t("headerComenzi")}</h1>
       </header>
       <div className="px-4 pt-4 max-w-2xl mx-auto">
         {rows.length === 0 ? (
@@ -90,8 +90,7 @@ export default async function OrdersPage() {
                       {t("comanda")}{r.id.slice(0, 8)}
                     </div>
                     <div className="text-xs text-white/60">
-                      {fmtDate(r.created_at)} · {r.item_count} produs
-                      {Number(r.item_count) === 1 ? "" : "e"}
+                      {fmtDate(r.created_at)} · {r.item_count} {Number(r.item_count) === 1 ? t("produs") : t("produse")}
                     </div>
                   </div>
                   <div className="text-right">

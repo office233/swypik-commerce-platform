@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Star } from "lucide-react";
 
 export type ReviewFormProps = {
@@ -10,6 +11,7 @@ export type ReviewFormProps = {
 
 export default function ReviewForm({ productId }: ReviewFormProps) {
   const router = useRouter();
+  const t = useTranslations("reviewForm");
   const [rating, setRating] = useState<number>(0);
   const [hover, setHover] = useState<number>(0);
   const [title, setTitle] = useState("");
@@ -21,7 +23,7 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
     e.preventDefault();
     setError(null);
     if (rating < 1 || rating > 5) {
-      setError("Selectează un rating între 1 și 5 stele.");
+      setError(t("errRating"));
       return;
     }
     setSubmitting(true);
@@ -32,12 +34,12 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
         body: JSON.stringify({ rating, title: title || null, body: body || null }),
       });
       if (res.status === 401) {
-        setError("Trebuie să fii autentificat.");
+        setError(t("errAuth"));
       } else if (res.status === 409) {
-        setError("Ai lăsat deja un review pentru acest produs.");
+        setError(t("errDeja"));
       } else if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error || "A apărut o eroare.");
+        setError(data?.error || t("errGenerica"));
       } else {
         setTitle("");
         setBody("");
@@ -45,7 +47,7 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
         router.refresh();
       }
     } catch (err) {
-      setError("A apărut o eroare de rețea.");
+      setError(t("errRetea"));
     } finally {
       setSubmitting(false);
     }
@@ -54,8 +56,8 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-3 border rounded-lg p-4">
       <div>
-        <label className="block text-sm font-medium mb-1">Rating</label>
-        <div className="flex gap-1" role="radiogroup" aria-label="Rating stele">
+        <label className="block text-sm font-medium mb-1">{t("labelRating")}</label>
+        <div className="flex gap-1" role="radiogroup" aria-label={t("ariaRating")}>
           {[1, 2, 3, 4, 5].map((n) => {
             const active = (hover || rating) >= n;
             return (
@@ -64,7 +66,7 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
                 type="button"
                 role="radio"
                 aria-checked={rating === n}
-                aria-label={`${n} stele`}
+                aria-label={t("ariaStele", { n })}
                 onMouseEnter={() => setHover(n)}
                 onMouseLeave={() => setHover(0)}
                 onClick={() => setRating(n)}
@@ -78,7 +80,7 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
       </div>
       <div>
         <label htmlFor="review-title" className="block text-sm font-medium mb-1">
-          Titlu (opțional)
+          {t("labelTitlu")}
         </label>
         <input
           id="review-title"
@@ -91,7 +93,7 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
       </div>
       <div>
         <label htmlFor="review-body" className="block text-sm font-medium mb-1">
-          Părerea ta
+          {t("labelParere")}
         </label>
         <textarea
           id="review-body"
@@ -108,7 +110,7 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
         disabled={submitting || rating < 1}
         className="bg-violet-600 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
       >
-        {submitting ? "Se trimite…" : "Trimite review"}
+        {submitting ? t("btnSeTrimite") : t("btnTrimite")}
       </button>
     </form>
   );

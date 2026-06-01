@@ -16,14 +16,6 @@ type Props = {
   };
 };
 
-const STATUS_LABEL: Record<Status, string> = {
-  none: "Neverificat",
-  pending: "În curs de verificare",
-  approved: "Verificat",
-  rejected: "Respins",
-  expired: "Expirat",
-};
-
 const STATUS_COLOR: Record<Status, string> = {
   none: "bg-white/10 text-white",
   pending: "bg-yellow-500/20 text-yellow-300",
@@ -39,20 +31,28 @@ export default function AgeVerificationClient({ initialState }: Props) {
   const [optInLoading, setOptInLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const STATUS_LABEL: Record<Status, string> = {
+    none: t("statusNeverificat"),
+    pending: t("statusPending"),
+    approved: t("statusVerificat"),
+    rejected: t("statusRespins"),
+    expired: t("statusExpirat"),
+  };
+
   async function startVerification() {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/age-verification/start", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Nu am putut porni verificarea.");
+      if (!res.ok) throw new Error(data?.error || t("errStart"));
       if (data.url) {
         window.location.href = data.url;
         return;
       }
       setState((s) => ({ ...s, status: "pending" }));
     } catch (err: any) {
-      setError(err?.message || "Eroare necunoscută.");
+      setError(err?.message || t("errNecunoscuta"));
     } finally {
       setLoading(false);
     }
@@ -68,10 +68,10 @@ export default function AgeVerificationClient({ initialState }: Props) {
         body: JSON.stringify({ optIn: next }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Nu am putut salva preferinta.");
+      if (!res.ok) throw new Error(data?.error || t("errOptIn"));
       setState((s) => ({ ...s, optIn: data.optIn }));
     } catch (err: any) {
-      setError(err?.message || "Eroare necunoscută.");
+      setError(err?.message || t("errNecunoscuta"));
     } finally {
       setOptInLoading(false);
     }
@@ -80,10 +80,10 @@ export default function AgeVerificationClient({ initialState }: Props) {
   const isApproved = state.status === "approved";
   const ctaLabel =
     state.status === "approved"
-      ? "Reverifică (înlocuiește documentul)"
+      ? t("ctaReverifica")
       : state.status === "pending"
-        ? "Reia verificarea"
-        : "Verifică-mi vârsta";
+        ? t("ctaReia")
+        : t("ctaVerifica");
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white pb-24">
@@ -98,7 +98,7 @@ export default function AgeVerificationClient({ initialState }: Props) {
       <main className="px-4 pt-6 max-w-xl mx-auto space-y-6">
         <section className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-white/60">Status curent</span>
+            <span className="text-sm text-white/60">{t("statusCurent")}</span>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[state.status]}`}>
               {STATUS_LABEL[state.status]}
             </span>
@@ -124,7 +124,7 @@ export default function AgeVerificationClient({ initialState }: Props) {
           )}
           {state.rejectionReason && state.status === "rejected" && (
             <p className="text-sm text-red-300 mb-2">
-              Motiv respingere: {state.rejectionReason}
+              {t("motivRespingere", { reason: state.rejectionReason })}
             </p>
           )}
 
@@ -133,7 +133,7 @@ export default function AgeVerificationClient({ initialState }: Props) {
             disabled={loading}
             className="w-full mt-2 bg-[#7C3AED] hover:bg-[#E0264A] disabled:opacity-50 text-white py-3 rounded-lg font-bold transition"
           >
-            {loading ? "Se pregătește..." : ctaLabel}
+            {loading ? t("btnSePregateste") : ctaLabel}
           </button>
 
           <p className="text-xs text-white/50 mt-3 leading-relaxed">

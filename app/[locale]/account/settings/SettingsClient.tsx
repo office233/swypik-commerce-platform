@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Store,
   ArrowLeft,
@@ -28,6 +29,7 @@ type Item = {
 
 export default function SettingsClient({ isAdmin = false, sellerStatus = null }: { isAdmin?: boolean; sellerStatus?: string | null }) {
   const router = useRouter();
+  const t = useTranslations("settingsClient");
   const [busy, setBusy] = useState(false);
 
   async function handleLogout() {
@@ -43,20 +45,20 @@ export default function SettingsClient({ isAdmin = false, sellerStatus = null }:
   }
 
   const items: Item[] = [
-    ...(isAdmin ? [{ href: "/admin", icon: ShieldAlert, label: "Admin Dashboard" }] : []),
+    ...(isAdmin ? [{ href: "/admin", icon: ShieldAlert, label: t("itemAdmin") }] : []),
     ...(sellerStatus === "active" || sellerStatus === "approved"
-      ? [{ href: "/seller", icon: Store, label: "Seller Dashboard" }]
+      ? [{ href: "/seller", icon: Store, label: t("itemSeller") }]
       : sellerStatus === "pending"
-      ? [{ href: "/become-a-seller", icon: Store, label: "Aplicație seller în review" }]
-      : [{ href: "/become-a-seller", icon: Store, label: "Devino seller" }]),
-    { href: "/account/edit", icon: UserCircle2, label: "Editează profil" },
-    { href: "/wallet", icon: Wallet, label: "Portofel SWYP" },
-    { href: "/account/orders", icon: ShoppingBag, label: "Comenzile mele" },
-    { href: "/account/addresses", icon: MapPin, label: "Adrese de livrare" },
-    { href: "/account/security", icon: ShieldCheck, label: "Securitate & parolă" },
-    { href: "/account/preferences", icon: Globe, label: "Limbă & monedă" },
-    { href: "/account/notifications", icon: Bell, label: "Notificări" },
-    { icon: LogOut, label: busy ? "Se deconectează…" : "Deconectează-te", onClick: handleLogout, danger: true },
+      ? [{ href: "/become-a-seller", icon: Store, label: t("itemSellerPending") }]
+      : [{ href: "/become-a-seller", icon: Store, label: t("itemDevinoSeller") }]),
+    { href: "/account/edit", icon: UserCircle2, label: t("itemEditeaza") },
+    { href: "/wallet", icon: Wallet, label: t("itemWallet") },
+    { href: "/account/orders", icon: ShoppingBag, label: t("itemComenzi") },
+    { href: "/account/addresses", icon: MapPin, label: t("itemAdrese") },
+    { href: "/account/security", icon: ShieldCheck, label: t("itemSecuritate") },
+    { href: "/account/preferences", icon: Globe, label: t("itemLimba") },
+    { href: "/account/notifications", icon: Bell, label: t("itemNotificari") },
+    { icon: LogOut, label: busy ? t("itemSeDeconnect") : t("itemDeconnect"), onClick: handleLogout, danger: true },
   ];
 
   return (
@@ -65,11 +67,11 @@ export default function SettingsClient({ isAdmin = false, sellerStatus = null }:
         <Link
           href="/account"
           className="grid h-11 w-11 place-items-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition"
-          aria-label="Înapoi la profil"
+          aria-label={t("ariaInapoi")}
         >
           <ArrowLeft size={22} />
         </Link>
-        <h1 className="text-lg font-black">Setări</h1>
+        <h1 className="text-lg font-black">{t("headerTitle")}</h1>
         <div className="w-11" aria-hidden="true" />
       </header>
 

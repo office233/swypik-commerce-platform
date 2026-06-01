@@ -582,7 +582,25 @@
     "nuAiComenziInca": "Nu ai comenzi încă.",
     "comanda": "Comandă #",
     "data": "Dată",
-    "pentruReturContacteazaSuportul": "Pentru retur, contactează suportul (token comandă lipsă)."
+    "pentruReturContacteazaSuportul": "Pentru retur, contactează suportul (token comandă lipsă).",
+    "headerComenzi": "Comenzile mele",
+    "statusPending": "În așteptare",
+    "statusPaid": "Plătită",
+    "statusProcessing": "În procesare",
+    "statusFulfilled": "Expediată",
+    "statusDelivered": "Livrată",
+    "statusCancelled": "Anulată",
+    "statusRefunded": "Rambursată",
+    "statusReturnRequested": "Retur solicitat",
+    "produs": "produs",
+    "produse": "produse",
+    "status": "Status",
+    "cantitate": "Cant: {qty} × {unit}",
+    "subtotal": "Subtotal",
+    "reducere": "Reducere",
+    "transport": "Transport",
+    "tva": "TVA",
+    "total": "Total"
   },
   "accountReturns": {
     "nuAiCereriDe": "Nu ai cereri de retur.",
@@ -613,7 +631,17 @@
     "devinoCreatorPeSwypik": "Devino creator pe Swypik",
     "transformatiPasiuneaPentruShopping": "Transformă-ți pasiunea pentru shopping într-o sursă de venit. Postezi clipuri,\n          recomanzi produse, primești comisioane.",
     "logheazateCaSaContinui": "Loghează-te ca să continui",
-    "tePotiIntoarceOricand": "Te poți întoarce oricând la rolul de cumpărător din contul tău."
+    "tePotiIntoarceOricand": "Te poți întoarce oricând la rolul de cumpărător din contul tău.",
+    "metaTitle": "Devino creator pe Swypik",
+    "metaDescription": "Postează clipuri, câștigă comisioane la vânzări și recompense SWYP. Alătură-te rețelei de creatori Swypik.",
+    "benefit1Title": "Postează clipuri TikTok-style",
+    "benefit1Body": "Filmează direct din aplicație și ajunge la o audiență verticală cu intent de cumpărare.",
+    "benefit2Title": "Comision la fiecare vânzare",
+    "benefit2Body": "Primești un procent automat din comenzile generate prin clipurile tale.",
+    "benefit3Title": "Recompense SWYP",
+    "benefit3Body": "Câștigă puncte SWYP pentru engagement și convertește-le în beneficii reale.",
+    "benefit4Title": "Audiență dedicată shopping",
+    "benefit4Body": "Utilizatorii Swypik vin să descopere produse — conținutul tău are impact direct."
   },
   "challenges": {
     "provocariActive": "Provocări active",
@@ -751,7 +779,21 @@
     "expiraLa": "Expiră la:",
     "folosimStripeIdentityPentru": "Folosim Stripe Identity pentru a verifica documentul tău. Datele sunt procesate de Stripe\n            conform GDPR. Stocăm doar data nașterii și țara documentului.",
     "afiseazaContinut18": "Afișează conținut 18+",
-    "activeazaPentruAVedea": "Activează pentru a vedea videoclipuri și produse pentru adulți în feed."
+    "activeazaPentruAVedea": "Activează pentru a vedea videoclipuri și produse pentru adulți în feed.",
+    "errStart": "Nu am putut porni verificarea.",
+    "errNecunoscuta": "Eroare necunoscută.",
+    "errOptIn": "Nu am putut salva preferința.",
+    "ctaReverifica": "Reverifică (înlocuiește documentul)",
+    "ctaReia": "Reia verificarea",
+    "ctaVerifica": "Verifică-mi vârsta",
+    "statusCurent": "Status curent",
+    "statusNeverificat": "Neverificat",
+    "statusPending": "În curs de verificare",
+    "statusVerificat": "Verificat",
+    "statusRespins": "Respins",
+    "statusExpirat": "Expirat",
+    "motivRespingere": "Motiv respingere: {reason}",
+    "btnSePregateste": "Se pregătește..."
   },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Cererea de retur a fost înregistrată. Te vom contacta în curând.",
@@ -764,7 +806,23 @@
     "renunta": "Renunță"
   },
   "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Se verifică statusul Stripe..."
+    "seVerificaStatusulStripe": "Se verifică statusul Stripe...",
+    "errVerificare": "Eroare la verificarea statusului.",
+    "errConectare": "Eroare la conectare.",
+    "errRetea": "Eroare de rețea.",
+    "titluActiv": "Stripe Connect activ",
+    "titluPending": "Stripe — finalizează verificarea",
+    "titluNeconectat": "Conectează Stripe pentru a primi plăți",
+    "descActiv": "Plățile și payout-urile sunt active. Poți primi comisioane.",
+    "descPending": "Stripe are nevoie de informații suplimentare pentru a activa payout-urile.",
+    "descNeconectatSeller": "Conectează un cont Stripe pentru a primi banii din vânzări.",
+    "descNeconectatCreator": "Conectează un cont Stripe pentru a primi banii din comisioane creator.",
+    "badgeVerificat": "VERIFICAT",
+    "badgePending": "ÎN AȘTEPTARE",
+    "badgeNeconectat": "NECONECTAT",
+    "btnRedirect": "Se redirecționează...",
+    "btnContinua": "Continuă verificarea",
+    "btnConecteaza": "Conectează Stripe"
   },
   "audioPicker": {
     "inchide": "Închide",
@@ -1277,5 +1335,36 @@
     "step2Body": "Conectează clipul la un produs din marketplace pentru a genera link-uri de tracking.",
     "step3Title": "Primești 5% comision",
     "step3Body": "Din fiecare vânzare generată prin clipurile tale, câștigi automat 5% comision."
+  },
+  "reviewForm": {
+    "errRating": "Selectează un rating între 1 și 5 stele.",
+    "errAuth": "Trebuie să fii autentificat.",
+    "errDeja": "Ai lăsat deja un review pentru acest produs.",
+    "errGenerica": "A apărut o eroare.",
+    "errRetea": "A apărut o eroare de rețea.",
+    "labelRating": "Rating",
+    "ariaRating": "Rating stele",
+    "ariaStele": "{n} stele",
+    "labelTitlu": "Titlu (opțional)",
+    "labelParere": "Părerea ta",
+    "btnSeTrimite": "Se trimite…",
+    "btnTrimite": "Trimite review"
+  },
+  "settingsClient": {
+    "headerTitle": "Setări",
+    "ariaInapoi": "Înapoi la profil",
+    "itemAdmin": "Admin Dashboard",
+    "itemSeller": "Seller Dashboard",
+    "itemSellerPending": "Aplicație seller în review",
+    "itemDevinoSeller": "Devino seller",
+    "itemEditeaza": "Editează profil",
+    "itemWallet": "Portofel SWYP",
+    "itemComenzi": "Comenzile mele",
+    "itemAdrese": "Adrese de livrare",
+    "itemSecuritate": "Securitate & parolă",
+    "itemLimba": "Limbă & monedă",
+    "itemNotificari": "Notificări",
+    "itemSeDeconnect": "Se deconectează…",
+    "itemDeconnect": "Deconectează-te"
   }
 }

@@ -582,7 +582,25 @@
     "nuAiComenziInca": "Tu n'as pas encore de commandes.",
     "comanda": "Commande n°",
     "data": "Date",
-    "pentruReturContacteazaSuportul": "Pour un retour, contacte le support (token de commande manquant)."
+    "pentruReturContacteazaSuportul": "Pour un retour, contacte le support (token de commande manquant).",
+    "headerComenzi": "Mes commandes",
+    "statusPending": "En attente",
+    "statusPaid": "Payée",
+    "statusProcessing": "En cours de traitement",
+    "statusFulfilled": "Expédiée",
+    "statusDelivered": "Livrée",
+    "statusCancelled": "Annulée",
+    "statusRefunded": "Remboursée",
+    "statusReturnRequested": "Retour demandé",
+    "produs": "produit",
+    "produse": "articles",
+    "status": "Statut",
+    "cantitate": "Qté : {qty} × {unit}",
+    "subtotal": "Sous-total",
+    "reducere": "Réduction",
+    "transport": "Livraison",
+    "tva": "TVA",
+    "total": "Total"
   },
   "accountReturns": {
     "nuAiCereriDe": "Tu n'as pas de demandes de retour.",
@@ -613,7 +631,17 @@
     "devinoCreatorPeSwypik": "Deviens créateur sur Swypik",
     "transformatiPasiuneaPentruShopping": "Transforme ta passion du shopping en revenus. Poste des vidéos, recommande des produits, gagne des commissions.",
     "logheazateCaSaContinui": "Connecte-toi pour continuer",
-    "tePotiIntoarceOricand": "Tu peux revenir au rôle d'acheteur depuis ton compte à tout moment."
+    "tePotiIntoarceOricand": "Tu peux revenir au rôle d'acheteur depuis ton compte à tout moment.",
+    "metaTitle": "Deviens créateur sur Swypik",
+    "metaDescription": "Publie des vidéos, gagne des commissions sur les ventes et des récompenses SWYP. Rejoins le réseau de créateurs Swypik.",
+    "benefit1Title": "Publie des vidéos à la TikTok",
+    "benefit1Body": "Filmez directement depuis l'app et touchez une audience verticale prête à acheter.",
+    "benefit2Title": "Commission sur chaque vente",
+    "benefit2Body": "Reçois automatiquement un pourcentage sur les commandes générées par tes vidéos.",
+    "benefit3Title": "Récompenses SWYP",
+    "benefit3Body": "Gagne des points SWYP en engageant ton audience et convertis-les en vrais avantages.",
+    "benefit4Title": "Une audience prête à acheter",
+    "benefit4Body": "Les utilisateurs Swypik viennent découvrir des produits — ton contenu a un impact direct."
   },
   "challenges": {
     "provocariActive": "Défis actifs",
@@ -751,7 +779,21 @@
     "expiraLa": "Expire le :",
     "folosimStripeIdentityPentru": "Nous utilisons Stripe Identity pour vérifier ton document. Les données sont traitées par Stripe conformément au RGPD. Nous stockons uniquement ta date de naissance et le pays du document.",
     "afiseazaContinut18": "Afficher le contenu 18+",
-    "activeazaPentruAVedea": "Active pour voir les vidéos et produits pour adultes dans ton fil."
+    "activeazaPentruAVedea": "Active pour voir les vidéos et produits pour adultes dans ton fil.",
+    "errStart": "Impossible de démarrer la vérification.",
+    "errNecunoscuta": "Erreur inconnue.",
+    "errOptIn": "Impossible d'enregistrer votre préférence.",
+    "ctaReverifica": "Reverifier (remplacer le document)",
+    "ctaReia": "Réessayer la vérification",
+    "ctaVerifica": "Vérifier mon âge",
+    "statusCurent": "Statut actuel",
+    "statusNeverificat": "Non vérifié",
+    "statusPending": "Vérification en cours",
+    "statusVerificat": "Vérifié",
+    "statusRespins": "Rejeté",
+    "statusExpirat": "Expiré",
+    "motivRespingere": "Motif du refus : {reason}",
+    "btnSePregateste": "Préparation en cours..."
   },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Demande de retour enregistrée. Nous te contacterons bientôt.",
@@ -764,7 +806,23 @@
     "renunta": "Annuler"
   },
   "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Vérification du statut Stripe..."
+    "seVerificaStatusulStripe": "Vérification du statut Stripe...",
+    "errVerificare": "Erreur lors de la vérification du statut.",
+    "errConectare": "Erreur de connexion.",
+    "errRetea": "Erreur réseau.",
+    "titluActiv": "Stripe Connect activé",
+    "titluPending": "Stripe — finalisez la vérification",
+    "titluNeconectat": "Connecte Stripe pour recevoir tes paiements",
+    "descActiv": "Paiements et virements actifs. Tu peux recevoir des commissions.",
+    "descPending": "Stripe a besoin d'infos supplémentaires pour activer les virements.",
+    "descNeconectatSeller": "Connecte un compte Stripe pour recevoir tes gains.",
+    "descNeconectatCreator": "Connecte un compte Stripe pour recevoir tes commissions créateur.",
+    "badgeVerificat": "VÉRIFIÉ",
+    "badgePending": "EN ATTENTE",
+    "badgeNeconectat": "NON CONNECTÉ",
+    "btnRedirect": "Redirection en cours...",
+    "btnContinua": "Continuer la vérification",
+    "btnConecteaza": "Connecter Stripe"
   },
   "audioPicker": {
     "inchide": "Fermer",
@@ -1277,5 +1335,36 @@
     "step2Body": "Associe ta vidéo à un produit pour générer des liens de suivi.",
     "step3Title": "Tu touches 5% de commission",
     "step3Body": "Tu touches automatiquement 5% de commission sur chaque vente générée par tes vidéos."
+  },
+  "reviewForm": {
+    "errRating": "Choisis une note entre 1 et 5 étoiles.",
+    "errAuth": "Connecte-toi pour continuer.",
+    "errDeja": "Tu as déjà laissé un avis sur ce produit.",
+    "errGenerica": "Une erreur s'est produite.",
+    "errRetea": "Erreur réseau. Réessaye.",
+    "labelRating": "Note",
+    "ariaRating": "Note en étoiles",
+    "ariaStele": "{n} étoiles",
+    "labelTitlu": "Titre (optionnel)",
+    "labelParere": "Ton avis",
+    "btnSeTrimite": "Envoi en cours…",
+    "btnTrimite": "Envoyer l'avis"
+  },
+  "settingsClient": {
+    "headerTitle": "Paramètres",
+    "ariaInapoi": "Retour au profil",
+    "itemAdmin": "Tableau de bord Admin",
+    "itemSeller": "Tableau de bord vendeur",
+    "itemSellerPending": "Candidature vendeur en cours d'examen",
+    "itemDevinoSeller": "Devenir vendeur",
+    "itemEditeaza": "Modifier le profil",
+    "itemWallet": "Portefeuille SWYP",
+    "itemComenzi": "Mes commandes",
+    "itemAdrese": "Adresses de livraison",
+    "itemSecuritate": "Sécurité & mot de passe",
+    "itemLimba": "Langue & devise",
+    "itemNotificari": "Notifications",
+    "itemSeDeconnect": "Déconnexion en cours…",
+    "itemDeconnect": "Se déconnecter"
   }
 }

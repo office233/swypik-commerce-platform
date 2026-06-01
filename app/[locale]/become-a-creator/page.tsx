@@ -8,11 +8,13 @@ import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Devino creator pe Swypik",
-  description:
-    "Postează clipuri, câștigă comisioane la vânzări și recompense SWYP. Alătură-te rețelei de creatori Swypik.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("becomeacreator");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 type Benefit = {
   icon: typeof Video;
@@ -20,31 +22,14 @@ type Benefit = {
   body: string;
 };
 
-const BENEFITS: Benefit[] = [
-  {
-    icon: Video,
-    title: "Postează clipuri TikTok-style",
-    body: "Filmează direct din aplicație și ajunge la o audiență verticală cu intent de cumpărare.",
-  },
-  {
-    icon: DollarSign,
-    title: "Comision la fiecare vânzare",
-    body: "Primești un procent automat din comenzile generate prin clipurile tale.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Recompense SWYP",
-    body: "Câștigă puncte SWYP pentru engagement și convertește-le în beneficii reale.",
-  },
-  {
-    icon: Users,
-    title: "Audiență dedicată shopping",
-    body: "Utilizatorii Swypik vin să descopere produse — conținutul tău are impact direct.",
-  },
-];
-
 export default async function BecomeACreatorPage() {
   const t = await getTranslations("becomeacreator");
+  const BENEFITS: Benefit[] = [
+    { icon: Video, title: t("benefit1Title"), body: t("benefit1Body") },
+    { icon: DollarSign, title: t("benefit2Title"), body: t("benefit2Body") },
+    { icon: TrendingUp, title: t("benefit3Title"), body: t("benefit3Body") },
+    { icon: Users, title: t("benefit4Title"), body: t("benefit4Body") },
+  ];
   const auth = await getAuthUser();
 
   if (auth.role === "creator" || auth.role === "admin") {

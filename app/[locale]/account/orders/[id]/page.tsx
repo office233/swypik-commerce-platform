@@ -35,17 +35,6 @@ type ItemRow = {
   currency: string;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "În așteptare",
-  paid: "Plătită",
-  processing: "În procesare",
-  fulfilled: "Expediată",
-  delivered: "Livrată",
-  cancelled: "Anulată",
-  refunded: "Rambursată",
-  return_requested: "Retur solicitat",
-};
-
 const RETURNABLE_STATUSES = new Set(["delivered", "fulfilled"]);
 
 export default async function OrderDetailPage({
@@ -57,6 +46,17 @@ export default async function OrderDetailPage({
   const { id } = await params;
   const user = await getAuthUser();
   if (!user.userId) redirect(`/account?redirect=/account/orders/${id}`);
+
+  const STATUS_LABELS: Record<string, string> = {
+    pending: t("statusPending"),
+    paid: t("statusPaid"),
+    processing: t("statusProcessing"),
+    fulfilled: t("statusFulfilled"),
+    delivered: t("statusDelivered"),
+    cancelled: t("statusCancelled"),
+    refunded: t("statusRefunded"),
+    return_requested: t("statusReturnRequested"),
+  };
 
   const cookieStore = await cookies();
   const cookieCurrency = cookieStore.get(CURRENCY_COOKIE)?.value;
@@ -113,7 +113,7 @@ export default async function OrderDetailPage({
       <div className="px-4 pt-4 max-w-2xl mx-auto space-y-4">
         <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-white/50">Status</span>
+            <span className="text-xs text-white/50">{t("status")}</span>
             <span className="text-sm font-bold">{STATUS_LABELS[order.status] || order.status}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
@@ -131,7 +131,7 @@ export default async function OrderDetailPage({
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold line-clamp-2">{it.title}</div>
                   <div className="text-xs text-white/50">
-                    Cant: {it.quantity} × {fmt(it.unit_amount_cents)}
+                    {t("cantitate", { qty: it.quantity, unit: fmt(it.unit_amount_cents) })}
                   </div>
                 </div>
                 <div className="text-sm font-bold">{fmt(it.gross_amount_cents)}</div>
@@ -148,27 +148,27 @@ export default async function OrderDetailPage({
 
         <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 space-y-1.5 text-sm">
           <div className="flex justify-between text-white/70">
-            <span>Subtotal</span>
+            <span>{t("subtotal")}</span>
             <span>{fmt(order.subtotal_cents)}</span>
           </div>
           {order.discount_cents > 0 && (
             <div className="flex justify-between text-green-400">
-              <span>Reducere</span>
+              <span>{t("reducere")}</span>
               <span>−{fmt(order.discount_cents)}</span>
             </div>
           )}
           <div className="flex justify-between text-white/70">
-            <span>Transport</span>
+            <span>{t("transport")}</span>
             <span>{fmt(order.shipping_cents)}</span>
           </div>
           {order.tax_cents > 0 && (
             <div className="flex justify-between text-white/70">
-              <span>TVA</span>
+              <span>{t("tva")}</span>
               <span>{fmt(order.tax_cents)}</span>
             </div>
           )}
           <div className="flex justify-between text-base font-bold pt-2 border-t border-white/10 mt-2">
-            <span>Total</span>
+            <span>{t("total")}</span>
             <span>{fmt(order.total_cents)}</span>
           </div>
         </section>

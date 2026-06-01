@@ -582,7 +582,25 @@
     "nuAiComenziInca": "Non hai ancora ordini.",
     "comanda": "Ordine #",
     "data": "Data",
-    "pentruReturContacteazaSuportul": "Per i resi, contatta il supporto (token ordine mancante)."
+    "pentruReturContacteazaSuportul": "Per i resi, contatta il supporto (token ordine mancante).",
+    "headerComenzi": "I miei ordini",
+    "statusPending": "In sospeso",
+    "statusPaid": "Pagato",
+    "statusProcessing": "In elaborazione",
+    "statusFulfilled": "Spedito",
+    "statusDelivered": "Consegnato",
+    "statusCancelled": "Annullato",
+    "statusRefunded": "Rimborsato",
+    "statusReturnRequested": "Reso richiesto",
+    "produs": "prodotto",
+    "produse": "prodotti",
+    "status": "Stato",
+    "cantitate": "Qtà: {qty} × {unit}",
+    "subtotal": "Subtotale",
+    "reducere": "Sconto",
+    "transport": "Spedizione",
+    "tva": "IVA",
+    "total": "Totale"
   },
   "accountReturns": {
     "nuAiCereriDe": "Non hai richieste di reso.",
@@ -613,7 +631,17 @@
     "devinoCreatorPeSwypik": "Diventa creator su Swypik",
     "transformatiPasiuneaPentruShopping": "Trasforma la tua passione per lo shopping in guadagni. Posta video, consiglia prodotti, guadagna commissioni.",
     "logheazateCaSaContinui": "Accedi per continuare",
-    "tePotiIntoarceOricand": "Puoi tornare al ruolo di acquirente dal tuo account quando vuoi."
+    "tePotiIntoarceOricand": "Puoi tornare al ruolo di acquirente dal tuo account quando vuoi.",
+    "metaTitle": "Diventa creator su Swypik",
+    "metaDescription": "Pubblica video, guadagna commissioni e premi SWYP. Unisciti alla community di creator Swypik.",
+    "benefit1Title": "Pubblica video in stile TikTok",
+    "benefit1Body": "Registra direttamente dall'app e raggiungi un pubblico verticale con intenzione di acquisto.",
+    "benefit2Title": "Commissione su ogni vendita",
+    "benefit2Body": "Ricevi automaticamente una percentuale dagli ordini generati dai tuoi video.",
+    "benefit3Title": "Premi SWYP",
+    "benefit3Body": "Guadagna punti SWYP per l'engagement e convertili in vantaggi reali.",
+    "benefit4Title": "Pubblico dedicato allo shopping",
+    "benefit4Body": "Gli utenti Swypik vengono per scoprire prodotti — il tuo contenuto ha un impatto diretto."
   },
   "challenges": {
     "provocariActive": "Sfide attive",
@@ -751,7 +779,21 @@
     "expiraLa": "Scade il:",
     "folosimStripeIdentityPentru": "Usiamo Stripe Identity per verificare il tuo documento. I dati vengono elaborati da Stripe secondo il GDPR. Conserviamo solo la data di nascita e il paese del documento.",
     "afiseazaContinut18": "Mostra contenuti 18+",
-    "activeazaPentruAVedea": "Attiva per vedere video e prodotti per adulti nel feed."
+    "activeazaPentruAVedea": "Attiva per vedere video e prodotti per adulti nel feed.",
+    "errStart": "Non ho potuto avviare la verifica.",
+    "errNecunoscuta": "Errore sconosciuto.",
+    "errOptIn": "Non ho potuto salvare la preferenza.",
+    "ctaReverifica": "Riverifica (sostituisci documento)",
+    "ctaReia": "Riprova la verifica",
+    "ctaVerifica": "Verifica la mia età",
+    "statusCurent": "Stato attuale",
+    "statusNeverificat": "Non verificato",
+    "statusPending": "In corso di verifica",
+    "statusVerificat": "Verificato",
+    "statusRespins": "Rifiutato",
+    "statusExpirat": "Scaduto",
+    "motivRespingere": "Motivo del rifiuto: {reason}",
+    "btnSePregateste": "Preparazione in corso..."
   },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "La richiesta di reso è stata registrata. Ti contatteremo presto.",
@@ -764,7 +806,23 @@
     "renunta": "Annulla"
   },
   "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Verifica dello stato Stripe..."
+    "seVerificaStatusulStripe": "Verifica dello stato Stripe...",
+    "errVerificare": "Errore nella verifica dello stato.",
+    "errConectare": "Errore di connessione.",
+    "errRetea": "Errore di rete.",
+    "titluActiv": "Stripe Connect attivo",
+    "titluPending": "Stripe — completa la verifica",
+    "titluNeconectat": "Connetti Stripe per ricevere pagamenti",
+    "descActiv": "Pagamenti e prelievi sono attivi. Puoi ricevere commissioni.",
+    "descPending": "Stripe ha bisogno di informazioni aggiuntive per attivare i prelievi.",
+    "descNeconectatSeller": "Connetti un account Stripe per ricevere i soldi dalle vendite.",
+    "descNeconectatCreator": "Connetti un account Stripe per ricevere i soldi dalle commissioni creator.",
+    "badgeVerificat": "VERIFICATO",
+    "badgePending": "IN SOSPESO",
+    "badgeNeconectat": "NON CONNESSO",
+    "btnRedirect": "Reindirizzamento in corso...",
+    "btnContinua": "Continua la verifica",
+    "btnConecteaza": "Connetti Stripe"
   },
   "audioPicker": {
     "inchide": "Chiudi",
@@ -1277,5 +1335,36 @@
     "step2Body": "Connetti il video a un prodotto per generare link di tracciamento.",
     "step3Title": "Guadagna il 5% di commissione",
     "step3Body": "Ricevi automaticamente il 5% di commissione da ogni vendita generata dai tuoi video."
+  },
+  "reviewForm": {
+    "errRating": "Seleziona una valutazione da 1 a 5 stelle.",
+    "errAuth": "Devi essere autenticato.",
+    "errDeja": "Hai già lasciato una recensione per questo prodotto.",
+    "errGenerica": "Si è verificato un errore.",
+    "errRetea": "Errore di connessione.",
+    "labelRating": "Valutazione",
+    "ariaRating": "Valutazione stelle",
+    "ariaStele": "{n} stelle",
+    "labelTitlu": "Titolo (facoltativo)",
+    "labelParere": "La tua opinione",
+    "btnSeTrimite": "Invio in corso…",
+    "btnTrimite": "Invia recensione"
+  },
+  "settingsClient": {
+    "headerTitle": "Impostazioni",
+    "ariaInapoi": "Torna al profilo",
+    "itemAdmin": "Admin Dashboard",
+    "itemSeller": "Seller Dashboard",
+    "itemSellerPending": "Richiesta seller in revisione",
+    "itemDevinoSeller": "Diventa seller",
+    "itemEditeaza": "Modifica profilo",
+    "itemWallet": "Portafoglio SWYP",
+    "itemComenzi": "I miei ordini",
+    "itemAdrese": "Indirizzi di consegna",
+    "itemSecuritate": "Sicurezza e password",
+    "itemLimba": "Lingua e valuta",
+    "itemNotificari": "Notifiche",
+    "itemSeDeconnect": "Disconnessione in corso…",
+    "itemDeconnect": "Esci"
   }
 }

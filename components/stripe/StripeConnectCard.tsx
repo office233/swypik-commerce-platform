@@ -25,9 +25,9 @@ export default function StripeConnectCard({ variant = "creator" }: { variant?: "
     fetch("/api/stripe-connect/status", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setStatus(d))
-      .catch(() => setError("Eroare la verificarea statusului."))
+      .catch(() => setError(t("errVerificare")))
       .finally(() => setLoading(false));
-  }, [enabled]);
+  }, [enabled, t]);
 
   if (!enabled) return null;
 
@@ -41,9 +41,9 @@ export default function StripeConnectCard({ variant = "creator" }: { variant?: "
         window.location.href = j.url;
         return;
       }
-      setError(j.error || "Eroare la conectare.");
+      setError(j.error || t("errConectare"));
     } catch {
-      setError("Eroare de rețea.");
+      setError(t("errRetea"));
     } finally {
       setConnecting(false);
     }
@@ -68,14 +68,16 @@ export default function StripeConnectCard({ variant = "creator" }: { variant?: "
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-black text-[#0D0D0D] dark:text-white">
-            {verified ? "Stripe Connect activ" : pending ? "Stripe — finalizează verificarea" : "Conectează Stripe pentru a primi plăți"}
+            {verified ? t("titluActiv") : pending ? t("titluPending") : t("titluNeconectat")}
           </h3>
           <p className="mt-1 text-sm text-[#6E6E80] dark:text-white/60">
             {verified
-              ? "Plățile și payout-urile sunt active. Poți primi comisioane."
+              ? t("descActiv")
               : pending
-              ? "Stripe are nevoie de informații suplimentare pentru a activa payout-urile."
-              : `Conectează un cont Stripe pentru a primi banii din ${variant === "seller" ? "vânzări" : "comisioane creator"}.`}
+              ? t("descPending")
+              : variant === "seller"
+              ? t("descNeconectatSeller")
+              : t("descNeconectatCreator")}
           </p>
           {pending && status.requirementsCurrentlyDue && status.requirementsCurrentlyDue.length > 0 && (
             <ul className="mt-2 list-disc pl-5 text-xs text-[#7C3AED]">
@@ -94,7 +96,7 @@ export default function StripeConnectCard({ variant = "creator" }: { variant?: "
               : "bg-[#7C3AED]/15 text-[#7C3AED]"
           }`}
         >
-          {verified ? "VERIFICAT" : pending ? "ÎN AȘTEPTARE" : "NECONECTAT"}
+          {verified ? t("badgeVerificat") : pending ? t("badgePending") : t("badgeNeconectat")}
         </span>
       </div>
 
@@ -107,7 +109,7 @@ export default function StripeConnectCard({ variant = "creator" }: { variant?: "
           disabled={connecting}
           className="mt-4 w-full rounded-xl bg-[#635BFF] py-3 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-50 hover:bg-[#5048E5] sm:w-auto sm:px-6"
         >
-          {connecting ? "Se redirecționează..." : connected ? "Continuă verificarea" : "Conectează Stripe"}
+          {connecting ? t("btnRedirect") : connected ? t("btnContinua") : t("btnConecteaza")}
         </button>
       )}
     </div>
