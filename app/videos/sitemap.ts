@@ -17,6 +17,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const { rows } = await dbQuery<{ id: string; published_at: Date | null; thumbnail_url: string | null }>(
       `SELECT id, published_at, thumbnail_url FROM videos
         WHERE status='ready' AND visibility='public'
+          AND COALESCE(is_hidden, false)=false
+          AND effective_label='safe'
         ORDER BY published_at DESC NULLS LAST
         LIMIT $1`,
       [MAX_VIDEOS],

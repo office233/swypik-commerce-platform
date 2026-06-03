@@ -47,11 +47,15 @@ export async function GET(
            WHERE creator_id = u.id
              AND status     = 'ready'
              AND visibility = 'public'
+               AND COALESCE(is_hidden, false) = false
                AND videos.effective_label = 'safe') AS video_count,
          (SELECT COALESCE(SUM(view_count), 0)
             FROM videos
            WHERE creator_id = u.id
-             AND status     = 'ready') AS total_views
+               AND status     = 'ready'
+               AND visibility = 'public'
+               AND COALESCE(is_hidden, false) = false
+               AND videos.effective_label = 'safe') AS total_views
        FROM users u
        LEFT JOIN creator_profiles cp ON cp.user_id = u.id
        WHERE u.id = $1`,
@@ -82,6 +86,8 @@ export async function GET(
        WHERE creator_id = $1
          AND status     = 'ready'
          AND visibility = 'public'
+         AND COALESCE(is_hidden, false) = false
+         AND effective_label = 'safe'
        ORDER BY published_at DESC
        LIMIT 30`,
       [creatorId],

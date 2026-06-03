@@ -97,7 +97,10 @@ async function runWatchdog() {
   //    while their jobs are still legitimately `queued`/`running`.
   const recovered = await dbQuery<{ id: string }>(
     `UPDATE videos v
-        SET status='failed', updated_at=NOW()
+        SET status='failed',
+            visibility='private',
+            is_hidden=true,
+            updated_at=NOW()
        FROM video_processing_jobs j
       WHERE j.video_id = v.id
         AND v.status IN ('processing','uploading')

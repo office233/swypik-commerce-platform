@@ -42,6 +42,7 @@ export async function GET(req: Request, { params }: RouteContext) {
       WHERE v.creator_id = $1
         AND v.status = 'ready'
         AND v.visibility = 'public'
+        AND COALESCE(v.is_hidden, false) = false
         AND v.effective_label = 'safe'
       ORDER BY v.published_at DESC NULLS LAST, v.created_at DESC
       LIMIT $2 OFFSET $3`,

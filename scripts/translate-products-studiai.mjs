@@ -95,6 +95,8 @@ const LOCALE_LABELS = {
   it: 'Italian (italiano)',
 };
 
+const SLUG_MAX_LENGTH = 90;
+
 // Fallback phrases per locale for padding short seo_descriptions to >= SEO_MIN.
 // Used when LLM (esp. haiku) returns sd_len < 140; append non-repeating phrases until in range.
 const SEO_MIN = 140;
@@ -137,7 +139,46 @@ function slugify(text) {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 90);
+    .slice(0, SLUG_MAX_LENGTH);
+}
+
+function productIdSuffix(productId, length = 12) {
+  const compact = String(productId || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (compact) return compact.slice(0, length);
+  return createHash('sha1').update(String(productId || '')).digest('hex').slice(0, length);
+}
+
+function slugWithSuffix(baseSlug, suffix) {
+  const cleanSuffix = String(suffix || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'item';
+  const base = slugify(baseSlug) || 'product';
+  const maxBaseLength = Math.max(1, SLUG_MAX_LENGTH - cleanSuffix.length - 1);
+  const trimmedBase = base.slice(0, maxBaseLength).replace(/-+$/g, '') || 'product';
+  return `${trimmedBase}-${cleanSuffix}`;
+}
+
+function buildSlugCandidates(productId, translation) {
+  const shortSuffix = productIdSuffix(productId, 12);
+  const longSuffix = productIdSuffix(productId, 32);
+  const baseSlug = slugify(translation.slug || translation.title || '') || slugWithSuffix('product', shortSuffix);
+  return [...new Set([
+    baseSlug,
+    slugWithSuffix(baseSlug, shortSuffix),
+    slugWithSuffix(baseSlug, longSuffix),
+    slugWithSuffix('product', longSuffix),
+  ])];
+}
+
+async function slugConflictExists(productId, locale, slug) {
+  const { rowCount } = await pool.query(
+    `SELECT 1
+       FROM product_translations
+      WHERE locale = $1
+        AND slug = $2
+        AND product_id <> $3
+      LIMIT 1`,
+    [locale, slug, productId],
+  );
+  return rowCount > 0;
 }
 
 function parseJsonLoose(text) {
@@ -195,6 +236,11 @@ if (TIER_ENABLED) {
 function validateResult(r) {
   if (!r || typeof r !== 'object') return false;
   if (typeof r.id !== 'string' || !r.id) return false;
+  return validateTranslationFields(r);
+}
+
+function validateTranslationFields(result) {
+  const r = result || {};
   if (typeof r.title !== 'string' || r.title.length < 10 || r.title.length > 250) return false;
   if (r.description != null && (typeof r.description !== 'string' || r.description.length > 2000)) return false;
   if (r.seo_title != null && (typeof r.seo_title !== 'string' || r.seo_title.length > 80)) return false;
@@ -252,15 +298,13 @@ async function callLLM(batch, modelOverride, systemOverride) {
   throw new Error(lastErr || 'all attempts failed');
 }
 
-async function writeOne(productId, r, sourceTitle, sourceDescription, modelTagOverride) {
-  const baseSlug = r.slug ? slugify(r.slug) : slugify(r.title || '');
-  const suffix = String(productId).replace(/-/g, '').slice(-6);
-  // Try base slug, then base-<suffix6>, then base-<suffix6>-<rand>
-  const slugCandidates = [baseSlug, `${baseSlug}-${suffix}`.slice(0, 90)];
+async function writeOne(productId, translation, sourceTitle, sourceDescription, modelTagOverride) {
+  const slugCandidates = buildSlugCandidates(productId, translation);
   // Pad seo_description if under 140 chars (esp. for haiku which often undershoots)
-  const sdPadded = r.seo_description ? padSeoDescription(String(r.seo_description).slice(0, 220), TARGET_LOCALE) : null;
+  const sdPadded = translation.seo_description ? padSeoDescription(String(translation.seo_description).slice(0, 220), TARGET_LOCALE) : null;
   let lastErr;
   for (const slug of slugCandidates) {
+    if (await slugConflictExists(productId, TARGET_LOCALE, slug)) continue;
     try {
       await pool.query(
         `INSERT INTO product_translations
@@ -278,10 +322,10 @@ async function writeOne(productId, r, sourceTitle, sourceDescription, modelTagOv
         [
           productId,
           TARGET_LOCALE,
-          String(r.title || '').slice(0, 250),
-          r.description ? String(r.description).slice(0, 2000) : null,
+          String(translation.title || '').slice(0, 250),
+          translation.description ? String(translation.description).slice(0, 2000) : null,
           slug,
-          r.seo_title ? String(r.seo_title).slice(0, 80) : null,
+          translation.seo_title ? String(translation.seo_title).slice(0, 80) : null,
           sdPadded,
           modelTagOverride || MODEL_TAG,
           contentHash(sourceTitle, sourceDescription),
@@ -293,7 +337,7 @@ async function writeOne(productId, r, sourceTitle, sourceDescription, modelTagOv
       if (e?.code !== '23505' || !String(e.constraint || '').includes('slug')) throw e;
     }
   }
-  throw lastErr;
+  throw lastErr || new Error(`unable to allocate unique slug for product ${productId}`);
 }
 
 async function loadCandidates() {
@@ -364,10 +408,16 @@ async function processBatches(batches) {
           const batchModelTag = TIER_ENABLED ? `${batchModel}-prompt-${batchPrompt}` : MODEL_TAG;
           try {
             const results = await callLLM(myBatch, batchModel, batchSystem);
-            const byId = new Map(results.map((r) => [String(r.id), r]));
+            const byId = new Map(results.map((result) => [String(result.id), result]));
+            const canFallbackByIndex = results.length === myBatch.length;
             let ok = 0;
-            for (const p of myBatch) {
-              const r = byId.get(String(p.id));
+            for (let batchIndex = 0; batchIndex < myBatch.length; batchIndex++) {
+              const p = myBatch[batchIndex];
+              let r = byId.get(String(p.id));
+              if (!validateResult(r) && canFallbackByIndex && validateTranslationFields(results[batchIndex])) {
+                r = { ...results[batchIndex], id: String(p.id) };
+                console.log(`${tag} fallback by index for ${p.id} (model=${batchModel})`);
+              }
               if (!validateResult(r)) {
                 failed++;
                 if (r) console.log(`${tag} schema reject ${p.id}: title_len=${r.title?.length || 0} st_len=${r.seo_title?.length || 0}`);

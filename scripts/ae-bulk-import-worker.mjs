@@ -126,10 +126,26 @@ function parseBanSeconds(msg) {
   return Number.isFinite(seconds) && seconds > 0 ? Math.min(24 * 60 * 60, seconds + 10) : 0;
 }
 
-async function retrySleep(ms) {
+let stopRequested = false;
+let currentJobProductId = null;
+
+async function heartbeatCurrentJob(note) {
+  if (!currentJobProductId || !note) return;
+  try {
+    await pool.query(
+      `UPDATE ae_import_jobs SET last_error=$2 WHERE product_id=$1 AND status='running'`,
+      [currentJobProductId, String(note).slice(0, 500)]
+    );
+  } catch (err) {
+    log('warn', 'failed to heartbeat current AE import job', { product_id: currentJobProductId, error: String(err?.message || err) });
+  }
+}
+
+async function retrySleep(ms, heartbeatNote = null) {
   const endAt = Date.now() + ms;
   while (Date.now() < endAt) {
     if (stopRequested) throw new Error('AE worker stopping');
+    await heartbeatCurrentJob(heartbeatNote);
     await new Promise(r => setTimeout(r, Math.min(60_000, endAt - Date.now())));
   }
 }
@@ -168,8 +184,10 @@ async function callAE(method, params = {}, { retries = 5, baseDelayMs = 3000 } =
       if (attempt < retries && isRetryable(msg)) {
         const ban = parseBanSeconds(msg);
         const wait = ban > 0 ? ban * 1000 : baseDelayMs * Math.pow(2, attempt);
-        if (ban >= 300) log('warn', 'AE API ban backoff', { method, ban_seconds: ban, wait_until: new Date(Date.now() + wait).toISOString() });
-        await retrySleep(wait);
+        const waitUntil = new Date(Date.now() + wait).toISOString();
+        const heartbeatNote = ban >= 300 ? `AE API ban backoff until ${waitUntil}` : null;
+        if (ban >= 300) log('warn', 'AE API ban backoff', { method, ban_seconds: ban, wait_until: waitUntil });
+        await retrySleep(wait, heartbeatNote);
         attempt++; continue;
       }
       throw new Error(msg);
@@ -493,7 +511,6 @@ async function recalcPricing(client, productDbId) {
 }
 
 // ─── MAIN LOOP ───────────────────────────────────────────────────────────────
-let stopRequested = false;
 process.on('SIGTERM', () => { log('warn', 'SIGTERM, will exit after current product'); stopRequested = true; });
 process.on('SIGINT',  () => { log('warn', 'SIGINT, will exit after current product');  stopRequested = true; });
 
@@ -541,10 +558,22 @@ async function main() {
     processed++;
 
     // Skip if done/skipped
-    const existing = await pool.query(`SELECT status, attempts FROM ae_import_jobs WHERE product_id=$1`, [pid]);
-    if (existing.rows[0]?.status === 'done' || existing.rows[0]?.status === 'skipped') { skipped++; continue; }
-    const attempts = (existing.rows[0]?.attempts || 0) + 1;
-    if (attempts > 5) { skipped++; continue; }  // give up
+    const existing = await pool.query(`SELECT status, attempts, last_error FROM ae_import_jobs WHERE product_id=$1`, [pid]);
+    const existingJob = existing.rows[0];
+    if (existingJob?.status === 'done' || existingJob?.status === 'skipped') { skipped++; continue; }
+    const attempts = (existingJob?.attempts || 0) + 1;
+    if (attempts > 5) {
+      if (existingJob?.status === 'pending' || existingJob?.status === 'running') {
+        const lastError = String(existingJob?.last_error || 'max_attempts_exceeded');
+        const isPermanent = /missing result|product not found|product[_ ]?id.*not.*exist|invalid product|out of range for type integer/i.test(lastError);
+        await pool.query(
+          `UPDATE ae_import_jobs SET status=$2, last_error=$3 WHERE product_id=$1`,
+          [pid, isPermanent ? 'skipped' : 'failed', (isPermanent ? `permanent:${lastError}` : lastError).slice(0, 500)]
+        );
+      }
+      skipped++;
+      continue;
+    }  // give up
 
     // Upsert job row as running
     await pool.query(`
@@ -556,6 +585,7 @@ async function main() {
           source_files=$3
     `, [pid, plan.category_hint || null, plan.source_files || [], attempts]);
 
+    currentJobProductId = pid;
     try {
       await rateLimit();
       const detail = await getProductDetail(pid);
@@ -611,6 +641,8 @@ async function main() {
       await pool.query(`UPDATE ae_import_jobs SET status=$3, last_error=$2 WHERE product_id=$1`, [pid, reasonTag, finalStatus]);
       if (isPermanent) skipped++; else failed++;
       log(isPermanent ? 'info' : 'error', isPermanent ? 'import skipped (permanent)' : 'import failed', { product_id: pid, error: errMsg.slice(0, 200) });
+    } finally {
+      currentJobProductId = null;
     }
   }
 

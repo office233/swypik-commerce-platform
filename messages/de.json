@@ -196,7 +196,22 @@
     "produseleTale": "Deine Produkte (",
     "sterge": "Löschen",
     "sePregatesteFormularulDe": "Zahlungsformular wird vorbereitet...",
-    "sumarComanda": "Bestellübersicht"
+    "sumarComanda": "Bestellübersicht",
+    "plata": "💳 Zahlung",
+    "checkoutSecurizat": "Sicherer Checkout",
+    "produseleTaleCount": "Deine Produkte ({count})",
+    "produsFallback": "Produkt",
+    "subtotal": "Zwischensumme",
+    "livrareStandard": "Standardversand",
+    "gratuit": "Kostenlos",
+    "total": "Gesamt",
+    "errValidare": "Die Zahlungsdaten konnten nicht validiert werden.",
+    "errPlata": "Die Zahlung konnte nicht verarbeitet werden.",
+    "errCosGol": "Dein Warenkorb ist leer. Füge vor dem Bezahlen Produkte hinzu.",
+    "errIncarcareCos": "Der Warenkorb konnte nicht geladen werden. Versuche es erneut.",
+    "errInitiereCheckout": "Der Checkout konnte nicht gestartet werden.",
+    "errRetea": "Netzwerkfehler. Prüfe deine Verbindung.",
+    "cosGolScurt": "Dein Warenkorb ist leer."
   },
   "onboardingModal": {
     "inchide": "Schließen",
@@ -582,25 +597,7 @@
     "nuAiComenziInca": "Du hast noch keine Bestellungen.",
     "comanda": "Bestellung #",
     "data": "Datum",
-    "pentruReturContacteazaSuportul": "Für Rückgaben kontaktiere den Support (Bestelltoken fehlt).",
-    "headerComenzi": "Meine Bestellungen",
-    "statusPending": "Ausstehend",
-    "statusPaid": "Bezahlt",
-    "statusProcessing": "Wird bearbeitet",
-    "statusFulfilled": "Versendet",
-    "statusDelivered": "Zugestellt",
-    "statusCancelled": "Storniert",
-    "statusRefunded": "Erstattet",
-    "statusReturnRequested": "Rückgabe angefordert",
-    "produs": "Produkt",
-    "produse": "Produkte",
-    "status": "Status",
-    "cantitate": "Menge: {qty} × {unit}",
-    "subtotal": "Zwischensumme",
-    "reducere": "Rabatt",
-    "transport": "Versand",
-    "tva": "MwSt.",
-    "total": "Gesamt"
+    "pentruReturContacteazaSuportul": "Für Rückgaben kontaktiere den Support (Bestelltoken fehlt)."
   },
   "accountReturns": {
     "nuAiCereriDe": "Du hast keine Rücksendeanfragen.",
@@ -628,20 +625,10 @@
     "istoric": "Verlauf"
   },
   "becomeacreator": {
-    "devinoCreatorPeSwypik": "Werde Creator auf Swypik",
+    "devinoCreatorPeSwypik": "Devino creator pe Swypik",
     "transformatiPasiuneaPentruShopping": "Verwandle deine Leidenschaft fürs Shopping in Einnahmen. Poste Videos, empfehle Produkte, verdiene Provisionen.",
     "logheazateCaSaContinui": "Melde dich an, um fortzufahren",
-    "tePotiIntoarceOricand": "Du kannst jederzeit in deinem Konto zur Käufer-Rolle zurückwechseln.",
-    "metaTitle": "Werde Creator auf Swypik",
-    "metaDescription": "Poste Videos, verdiene Provisionen und SWYP-Rewards. Werde Teil des Swypik Creator-Netzwerks.",
-    "benefit1Title": "Poste TikTok-Style Videos",
-    "benefit1Body": "Filme direkt in der App und erreiche eine kaufbereite Zielgruppe.",
-    "benefit2Title": "Provision pro Verkauf",
-    "benefit2Body": "Du erhältst automatisch einen Prozentsatz aus Bestellungen, die durch deine Videos generiert werden.",
-    "benefit3Title": "SWYP-Belohnungen",
-    "benefit3Body": "Verdiene SWYP-Punkte für Engagement und tausche sie gegen echte Vorteile ein.",
-    "benefit4Title": "Dediziertes Shopping-Publikum",
-    "benefit4Body": "Swypik-Nutzer entdecken Produkte — dein Content wirkt direkt."
+    "tePotiIntoarceOricand": "Du kannst jederzeit in deinem Konto zur Käufer-Rolle zurückwechseln."
   },
   "challenges": {
     "provocariActive": "Aktive Challenges",
@@ -779,21 +766,7 @@
     "expiraLa": "Verfällt am:",
     "folosimStripeIdentityPentru": "Wir verwenden Stripe Identity zur Dokumentenverifikation. Die Daten werden von Stripe gemäß GDPR verarbeitet. Wir speichern nur das Geburtsdatum und das Land des Dokuments.",
     "afiseazaContinut18": "18+-Inhalte anzeigen",
-    "activeazaPentruAVedea": "Aktivieren, um Videos und Produkte für Erwachsene im Feed zu sehen.",
-    "errStart": "Verifizierung konnte nicht gestartet werden.",
-    "errNecunoscuta": "Unbekannter Fehler.",
-    "errOptIn": "Einstellung konnte nicht gespeichert werden.",
-    "ctaReverifica": "Erneut verifizieren (Dokument austauschen)",
-    "ctaReia": "Erneut versuchen",
-    "ctaVerifica": "Alter bestätigen",
-    "statusCurent": "Aktueller Status",
-    "statusNeverificat": "Nicht verifiziert",
-    "statusPending": "Wird überprüft",
-    "statusVerificat": "Bestätigt",
-    "statusRespins": "Abgelehnt",
-    "statusExpirat": "Abgelaufen",
-    "motivRespingere": "Ablehnungsgrund: {reason}",
-    "btnSePregateste": "Wird vorbereitet..."
+    "activeazaPentruAVedea": "Aktivieren, um Videos und Produkte für Erwachsene im Feed zu sehen."
   },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Rückgabeanfrage eingegangen. Wir kontaktieren dich bald.",
@@ -806,23 +779,7 @@
     "renunta": "Abbrechen"
   },
   "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Stripe-Status wird überprüft...",
-    "errVerificare": "Fehler beim Überprüfen des Status.",
-    "errConectare": "Verbindung fehlgeschlagen.",
-    "errRetea": "Netzwerkfehler.",
-    "titluActiv": "Stripe Connect aktiv",
-    "titluPending": "Stripe — Verifizierung wird abgeschlossen",
-    "titluNeconectat": "Verbinde Stripe, um Zahlungen zu erhalten",
-    "descActiv": "Zahlungen und Auszahlungen sind aktiv. Du kannst Provisionen erhalten.",
-    "descPending": "Stripe benötigt weitere Informationen, um Auszahlungen zu aktivieren.",
-    "descNeconectatSeller": "Verbinde ein Stripe-Konto, um deine Verkaufseinnahmen zu erhalten.",
-    "descNeconectatCreator": "Verbinde ein Stripe-Konto, um deine Creator-Provisionen zu erhalten.",
-    "badgeVerificat": "VERIFIZIERT",
-    "badgePending": "AUSSTEHEND",
-    "badgeNeconectat": "NICHT VERBUNDEN",
-    "btnRedirect": "Wird weitergeleitet...",
-    "btnContinua": "Verifizierung fortsetzen",
-    "btnConecteaza": "Stripe verbinden"
+    "seVerificaStatusulStripe": "Stripe-Status wird überprüft..."
   },
   "audioPicker": {
     "inchide": "Schließen",
@@ -1335,36 +1292,5 @@
     "step2Body": "Verbinde das Video mit einem Produkt aus dem Marketplace, um Tracking-Links zu generieren.",
     "step3Title": "Du erhältst 5% Provision",
     "step3Body": "Du verdienst automatisch 5% Provision bei jedem Verkauf durch deine Videos."
-  },
-  "reviewForm": {
-    "errRating": "Wähle eine Bewertung zwischen 1 und 5 Sternen.",
-    "errAuth": "Du musst angemeldet sein.",
-    "errDeja": "Du hast bereits eine Bewertung für dieses Produkt abgegeben.",
-    "errGenerica": "Ein Fehler ist aufgetreten.",
-    "errRetea": "Netzwerkfehler. Bitte versuche es später erneut.",
-    "labelRating": "Bewertung",
-    "ariaRating": "Sternebewertung",
-    "ariaStele": "{n} Sterne",
-    "labelTitlu": "Titel (optional)",
-    "labelParere": "Deine Meinung",
-    "btnSeTrimite": "Wird gesendet…",
-    "btnTrimite": "Bewertung absenden"
-  },
-  "settingsClient": {
-    "headerTitle": "Einstellungen",
-    "ariaInapoi": "Zurück zum Profil",
-    "itemAdmin": "Admin-Dashboard",
-    "itemSeller": "Verkäufer-Dashboard",
-    "itemSellerPending": "Seller-App wird überprüft",
-    "itemDevinoSeller": "Werde Verkäufer",
-    "itemEditeaza": "Profil bearbeiten",
-    "itemWallet": "SWYP-Geldbörse",
-    "itemComenzi": "Meine Bestellungen",
-    "itemAdrese": "Lieferadressen",
-    "itemSecuritate": "Sicherheit & Passwort",
-    "itemLimba": "Sprache & Währung",
-    "itemNotificari": "Benachrichtigungen",
-    "itemSeDeconnect": "Wird abgemeldet…",
-    "itemDeconnect": "Abmelden"
   }
 }

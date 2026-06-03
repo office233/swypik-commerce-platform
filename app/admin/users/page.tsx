@@ -189,6 +189,7 @@ export default async function AdminUsersPage({
                           href={`/u/${u.username}`}
                           className="font-bold text-[#0D0D0D] hover:underline"
                           target="_blank"
+                          rel="noopener noreferrer"
                         >
                           @{u.username}
                         </Link>

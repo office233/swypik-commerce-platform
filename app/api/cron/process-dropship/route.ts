@@ -39,6 +39,7 @@ async function handleGET(req: Request) {
          FROM commerce_order_items coi
          JOIN commerce_orders co ON co.id = coi.order_id
          WHERE coi.source_status = 'pending_dropship'
+           AND co.status = 'paid'
            AND COALESCE((co.metadata->>'fraud_block')::boolean, false) = false
            AND NOT EXISTS (
              SELECT 1 FROM users u
@@ -129,11 +130,65 @@ async function handleGET(req: Request) {
         quantity: item.quantity,
       }));
 
+      const { rows: eligibilityRows } = await dbQuery(
+        `SELECT
+           co.status AS order_status,
+           COALESCE((co.metadata->>'fraud_block')::boolean, false) AS fraud_block,
+           EXISTS (
+             SELECT 1 FROM users u
+              WHERE u.id = co.buyer_user_id
+                AND (u.metadata->'fraud_user_block'->>'blocked')::boolean = true
+           ) AS buyer_fraud_block,
+           COUNT(*) FILTER (
+             WHERE coi.source_status = 'pending_dropship'
+               AND coi.metadata->>'dropship_claim_token' = $2
+           ) AS claimed_pending_count
+         FROM commerce_orders co
+         JOIN commerce_order_items coi ON coi.order_id = co.id AND coi.id = ANY($1::uuid[])
+         WHERE co.id = $3
+         GROUP BY co.id`,
+        [claimedItemIds, claimToken, orderId]
+      );
+      const eligibility = eligibilityRows[0];
+      const claimedPendingCount = Number(eligibility?.claimed_pending_count || 0);
+      if (
+        !eligibility ||
+        eligibility.order_status !== "paid" ||
+        eligibility.fraud_block ||
+        eligibility.buyer_fraud_block ||
+        claimedPendingCount !== claimedItemIds.length
+      ) {
+        logger.warn(
+          {
+            cron: "process-dropship",
+            order_id: orderId,
+            order_status: eligibility?.order_status,
+            fraud_block: eligibility?.fraud_block,
+            buyer_fraud_block: eligibility?.buyer_fraud_block,
+            claimed_pending_count: claimedPendingCount,
+            claimed_count: claimedItemIds.length,
+          },
+          "skipping dropship order because eligibility changed before AE placement"
+        );
+        await releaseClaimWithoutRetry(claimedItemIds, claimToken, "order_not_eligible_before_ae_placement");
+        failedCount += items.length;
+        continue;
+      }
+
       try {
         logger.info({ cron: "process-dropship", order_id: orderId, items_count: aeItems.length }, "placing dropship order on AE");
         const result = await placeDropshipOrder(orderId, shippingAddress, aeItems);
 
         const aeOrderId = result?.order_list?.[0] || result?.aliexpress_order_id || null;
+
+        if (!aeOrderId) {
+          const resultKeys = result && typeof result === "object" ? Object.keys(result).slice(0, 20) : [];
+          logger.error(
+            { cron: "process-dropship", order_id: orderId, result_keys: resultKeys },
+            "AE order response missing order id"
+          );
+          throw new Error("AE order response missing order id");
+        }
 
         // FINAL UPDATE: only touch items we claimed (by token), not all order items.
         // This prevents wiping items added later or claimed by another worker.
@@ -192,6 +247,19 @@ async function releaseClaimWithError(itemIds: string[], claimToken: string, erro
        END
      WHERE id = ANY($1::uuid[]) AND metadata->>'dropship_claim_token' = $2`,
     [itemIds, claimToken, errorMessage, MAX_ATTEMPTS]
+  );
+}
+
+async function releaseClaimWithoutRetry(itemIds: string[], claimToken: string, reason: string) {
+  await dbQuery(
+    `UPDATE commerce_order_items
+     SET metadata = (metadata - 'dropship_claim_token' - 'dropship_claim_at')
+       || jsonb_build_object(
+            'last_dropship_skip_reason', $3::text,
+            'last_dropship_skip_at', now()::text
+          )
+     WHERE id = ANY($1::uuid[]) AND metadata->>'dropship_claim_token' = $2`,
+    [itemIds, claimToken, reason]
   );
 }
 

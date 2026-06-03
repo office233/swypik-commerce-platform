@@ -200,7 +200,7 @@ function ProductRow({ product }: { product: Product }) {
             <a
               href={product.product_url}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-slate-900"
             >
               Source

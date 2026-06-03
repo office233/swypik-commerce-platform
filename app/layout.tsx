@@ -11,6 +11,7 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import { CurrencyProvider } from "@/components/i18n/CurrencyProvider";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 const appUrl =
@@ -89,7 +90,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLd({
               "@context": "https://schema.org",
               "@graph": [
                 {

@@ -8,6 +8,14 @@ import { test, expect, devices } from '@playwright/test';
 
 const BASE = process.env.BASE_URL || 'https://swypik.com';
 
+async function gotoFormPage(page: import('@playwright/test').Page, path: string) {
+  const resp = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  expect(resp?.ok(), `HTTP OK for ${path}`).toBe(true);
+  await page.locator('body').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('input').first().waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
+  return resp;
+}
+
 interface ExpectedField {
   selector: string;
   autocomplete: string;
@@ -36,8 +44,7 @@ for (const form of FORMS) {
   test(`forms autocomplete: ${form.name} has correct tokens`, async ({ browser }) => {
     const ctx = await browser.newContext({ ...devices['iPhone 13'] });
     const page = await ctx.newPage();
-    const resp = await page.goto(BASE + form.path, { waitUntil: 'networkidle', timeout: 30000 });
-    expect(resp?.ok(), `HTTP OK for ${form.path}`).toBe(true);
+    await gotoFormPage(page, form.path);
 
     for (const f of form.fields) {
       const el = page.locator(f.selector).first();
@@ -64,8 +71,7 @@ for (const p of SMOKE_PAGES) {
   test(`forms autocomplete smoke: ${p} email/tel inputs have autocomplete`, async ({ browser }) => {
     const ctx = await browser.newContext({ ...devices['iPhone 13'] });
     const page = await ctx.newPage();
-    const resp = await page.goto(BASE + p, { waitUntil: 'networkidle', timeout: 30000 });
-    expect(resp?.ok()).toBe(true);
+    await gotoFormPage(page, p);
 
     const missing = await page.evaluate(() => {
       const inputs = Array.from(document.querySelectorAll('input[type="email"], input[type="tel"]'));

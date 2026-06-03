@@ -121,7 +121,8 @@ export async function getPublicUserProfile(
          WHERE v.creator_id = u.id
            AND v.status = 'ready'
            AND v.visibility = 'public'
-             AND v.effective_label = 'safe') AS video_count,
+           AND COALESCE(v.is_hidden, false) = false
+           AND v.effective_label = 'safe') AS video_count,
        (SELECT COUNT(*)
           FROM follows f
          WHERE f.following_user_id = u.id) AS follower_count,
@@ -132,17 +133,23 @@ export async function getPublicUserProfile(
           FROM videos v
          WHERE v.creator_id = u.id
            AND v.status = 'ready'
-           AND v.visibility = 'public') AS total_views,
+           AND v.visibility = 'public'
+           AND COALESCE(v.is_hidden, false) = false
+           AND v.effective_label = 'safe') AS total_views,
        (SELECT COALESCE(SUM(v.like_count), 0)
           FROM videos v
          WHERE v.creator_id = u.id
            AND v.status = 'ready'
-           AND v.visibility = 'public') AS total_likes,
+           AND v.visibility = 'public'
+           AND COALESCE(v.is_hidden, false) = false
+           AND v.effective_label = 'safe') AS total_likes,
        (SELECT COALESCE(SUM(v.comment_count), 0)
           FROM videos v
          WHERE v.creator_id = u.id
            AND v.status = 'ready'
-           AND v.visibility = 'public') AS total_comments,
+           AND v.visibility = 'public'
+           AND COALESCE(v.is_hidden, false) = false
+           AND v.effective_label = 'safe') AS total_comments,
        CASE
          WHEN $2::uuid IS NULL THEN false
          WHEN $2::uuid = u.id THEN false
@@ -182,6 +189,8 @@ export async function getPublicUserProfile(
      WHERE v.creator_id = $1
        AND v.status = 'ready'
        AND v.visibility = 'public'
+       AND COALESCE(v.is_hidden, false) = false
+       AND v.effective_label = 'safe'
      ORDER BY v.published_at DESC NULLS LAST, v.created_at DESC
      LIMIT $2`,
     [row.id, limit]

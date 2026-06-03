@@ -8,16 +8,32 @@
  * Auth: Bearer ${CRON_SECRET}.
  */
 
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
+function authorizeCronRequest(req: Request): boolean {
+  const expectedSecret = process.env.CRON_SECRET || "";
+  const authorization = req.headers.get("authorization") || "";
+  const bearerToken = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+  const providedSecret =
+    bearerToken ||
+    req.headers.get("x-cron-secret") ||
+    req.headers.get("cron-secret") ||
+    "";
+
+  if (!expectedSecret || !providedSecret) return false;
+  if (Buffer.byteLength(providedSecret) !== Buffer.byteLength(expectedSecret)) return false;
+  return timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expectedSecret));
+}
+
 export async function POST(req: Request) {
-  const auth = req.headers.get("authorization") || "";
-  const expected = process.env.CRON_SECRET;
-  if (!expected || auth !== `Bearer ${expected}`) {
+  if (!authorizeCronRequest(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

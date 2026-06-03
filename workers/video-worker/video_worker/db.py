@@ -81,7 +81,10 @@ class PostgresRepository:
             "UPDATE {assets} SET status = %s, updated_at = NOW(), metadata = metadata || %s::jsonb WHERE id = %s",
             ("failed", message, job.job_id),
             ("failed", _json({"error_message": message}), job.asset_id),
-            "UPDATE videos SET status = %s, metadata = metadata || %s::jsonb, updated_at = NOW() WHERE id = %s",
+            (
+                "UPDATE videos SET status = %s, visibility = 'private', is_hidden = TRUE, "
+                "metadata = metadata || %s::jsonb, updated_at = NOW() WHERE id = %s"
+            ),
             ("failed", _json({"error_message": message}), job.video_id) if job.video_id else None,
         )
 

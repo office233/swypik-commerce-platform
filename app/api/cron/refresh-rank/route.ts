@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
+
+function authorizeCronRequest(request: NextRequest): boolean {
+  const expectedSecret = process.env.CRON_SECRET || "";
+  const authorization = request.headers.get("authorization") || "";
+  const bearerToken = authorization.toLowerCase().startsWith("bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+  const providedSecret =
+    bearerToken ||
+    request.headers.get("x-cron-secret") ||
+    request.headers.get("cron-secret") ||
+    "";
+
+  if (!expectedSecret || !providedSecret) return false;
+  if (Buffer.byteLength(providedSecret) !== Buffer.byteLength(expectedSecret)) return false;
+  return timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expectedSecret));
+}
 
 /**
  * POST/GET /api/cron/refresh-rank
@@ -14,13 +32,7 @@ export const dynamic = "force-dynamic";
  * Schedule externally (cron-job.org / GitHub Action / pg_cron) every 5 minutes.
  */
 async function handle(request: NextRequest) {
-  const expected = process.env.CRON_SECRET || "";
-  const auth = request.headers.get("authorization") || "";
-  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-  const headerSecret = request.headers.get("x-cron-secret") || "";
-  const provided = bearer || headerSecret;
-
-  if (!expected || provided !== expected) {
+  if (!authorizeCronRequest(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Globe } from "lucide-react";
 import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import { LOCALES, type Locale } from "@/lib/i18n/config";
 
 const META: Record<Locale, { label: string; flag: string }> = {
@@ -21,6 +22,7 @@ const META: Record<Locale, { label: string; flag: string }> = {
  */
 export default function LocaleQuickPicker({ className = "" }: { className?: string }) {
   const currentLocale = useLocale() as Locale;
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
@@ -46,7 +48,7 @@ export default function LocaleQuickPicker({ className = "" }: { className?: stri
       } catch {
         document.cookie = `swypik_locale=${loc}; Path=/; Max-Age=31536000; SameSite=Lax`;
       }
-      window.location.reload();
+      router.refresh();
     });
   };
 

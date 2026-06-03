@@ -30,6 +30,8 @@ export default async function HashtagPage({
      FROM videos v
      LEFT JOIN users u ON u.id = v.creator_id
      WHERE v.status = 'ready' AND v.visibility = 'public'
+       AND COALESCE(v.is_hidden, false) = false
+       AND v.effective_label = 'safe'
        AND EXISTS (SELECT 1 FROM unnest(v.tags) t WHERE lower(t) = $1)
      ORDER BY COALESCE(v.like_count,0) DESC, v.published_at DESC NULLS LAST
      LIMIT 60`,

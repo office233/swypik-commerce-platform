@@ -28,7 +28,11 @@ async function getVideo(id: string) {
               u.display_name AS creator_name
        FROM videos v
        JOIN users u ON v.creator_id = u.id
-       WHERE v.id = $1 AND v.status = 'ready'`,
+       WHERE v.id = $1
+         AND v.status = 'ready'
+         AND v.visibility = 'public'
+         AND COALESCE(v.is_hidden, false) = false
+         AND v.effective_label = 'safe'`,
       [id]
     );
     return rows[0] || null;

@@ -178,7 +178,7 @@ export default async function AdminDashboard() {
             <a
               href="https://dashboard.stripe.com"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="rounded-xl bg-[#635BFF] px-4 py-2 text-xs font-bold text-white hover:bg-[#7A73FF] transition-colors"
             >
               Stripe Dashboard
@@ -186,7 +186,7 @@ export default async function AdminDashboard() {
             <a
               href="/api/health"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-[#0D0D0D] border border-[#E5E5E7] hover:border-[#0D0D0D] transition-colors"
             >
               Server Health

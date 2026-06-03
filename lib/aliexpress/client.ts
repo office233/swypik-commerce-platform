@@ -3,6 +3,12 @@ import crypto from "crypto";
 const APP_KEY = process.env.ALIEXPRESS_APP_KEY || "";
 const APP_SECRET = process.env.ALIEXPRESS_APP_SECRET || "";
 const TOKEN = process.env.ALIEXPRESS_ACCESS_TOKEN || "";
+const DEFAULT_AE_API_TIMEOUT_MS = 25_000;
+
+function aeApiTimeoutMs(): number {
+  const configured = Number(process.env.ALIEXPRESS_API_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_AE_API_TIMEOUT_MS;
+}
 
 function stringifyParam(v: any): string {
   if (v === undefined || v === null) return "";
@@ -44,11 +50,21 @@ export async function callAE(method: string, params: Record<string, any> = {}) {
   const url = `https://api-sg.aliexpress.com/sync?${queryParams.toString()}`;
   const body = new URLSearchParams(appParams).toString();
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-    body,
-  });
+  const timeoutMs = aeApiTimeoutMs();
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error: any) {
+    if (error?.name === "AbortError" || error?.name === "TimeoutError") {
+      throw new Error(`AliExpress API timeout after ${timeoutMs}ms`);
+    }
+    throw error;
+  }
 
   const data = await res.json();
   if (data.error_response) {

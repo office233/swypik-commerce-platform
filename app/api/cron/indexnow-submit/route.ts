@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { timingSafeEqual } from "node:crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -10,7 +11,9 @@ const ENDPOINT = "https://api.indexnow.org/IndexNow";
 
 function authOk(t: string | null | undefined) {
   const e = process.env.CRON_SECRET || "";
-  return Boolean(t && e && t === e);
+  if (!t || !e) return false;
+  if (Buffer.byteLength(t) !== Buffer.byteLength(e)) return false;
+  return timingSafeEqual(Buffer.from(t), Buffer.from(e));
 }
 
 async function collectUrls(limit: number): Promise<string[]> {

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { Link } from "@/lib/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements, AddressElement } from "@stripe/react-stripe-js";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
-import { useTranslations } from "next-intl";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -26,6 +27,39 @@ type CartItem = {
   };
   qty: number;
 };
+
+function CheckoutProductImage({
+  item,
+  fallbackAlt,
+  width,
+  height,
+  className,
+  placeholderClassName,
+}: {
+  item: CartItem;
+  fallbackAlt: string;
+  width: number;
+  height: number;
+  className: string;
+  placeholderClassName: string;
+}) {
+  const imageSrc = item.product.images?.[0] || item.product.image;
+  if (!imageSrc) {
+    return <div className={`w-full h-full flex items-center justify-center ${placeholderClassName}`}>📦</div>;
+  }
+
+  return (
+    <Image
+      src={imageSrc}
+      alt={item.product.title || fallbackAlt}
+      width={width}
+      height={height}
+      sizes={`${width}px`}
+      className={className}
+      unoptimized={/\.gif($|\?)/i.test(imageSrc)}
+    />
+  );
+}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    Inner form rendered inside <Elements> provider
@@ -96,7 +130,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
 
     const { error: submitError } = await elements.submit();
     if (submitError) {
-      setError(submitError.message || "Eroare la validarea datelor.");
+      setError(submitError.message || t("errValidare"));
       setIsProcessing(false);
       return;
     }
@@ -111,7 +145,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
     });
 
     if (confirmError) {
-      setError(confirmError.message || "Plata nu a putut fi procesată.");
+      setError(confirmError.message || t("errPlata"));
       setIsProcessing(false);
     }
     // If successful, user is redirected to return_url
@@ -125,7 +159,6 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
         {savedAddresses.length > 0 && (
           <div className="mb-3 rounded-xl border border-[#E5E5E5] bg-white p-3">
             <label className="block text-xs font-bold text-[#6E6E80] mb-2 uppercase tracking-wider">
-              
               {t("folosesteOAdresaSalvata")}
             </label>
             <select
@@ -146,7 +179,6 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
               href="/account/addresses"
               className="mt-2 inline-block text-[11px] font-medium text-[#10A37F] hover:underline"
             >
-              
               {t("gestioneazaAdresele")}
             </Link>
           </div>
@@ -166,7 +198,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
 
       {/* Payment */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold mb-3 text-[#0D0D0D]">💳 Plata</h2>
+        <h2 className="text-lg font-bold mb-3 text-[#0D0D0D]">{t("plata")}</h2>
         <div className="rounded-xl border border-[#E5E5E5] p-4 bg-[#FAFAFA]">
           <PaymentElement
             options={{
@@ -191,7 +223,6 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
         {isProcessing ? (
           <span className="flex items-center justify-center gap-2">
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            
             {t("seProceseazaPlata")}
           </span>
         ) : (
@@ -203,7 +234,6 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
-        
         {t("plataEsteProcesataSecurizat")}
       </div>
 
@@ -222,6 +252,7 @@ function StripePaymentForm({ totalRon, orderId, orderLookupToken }: { totalRon: 
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export default function CheckoutForm() {
   const t = useTranslations("checkoutForm");
+  const locale = useLocale();
   const formatPrice = useFormatPrice();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [email, setEmail] = useState("");
@@ -245,7 +276,7 @@ export default function CheckoutForm() {
         const items: Array<any> = Array.isArray(data?.items) ? data.items : [];
         if (cancelled) return;
         if (items.length === 0) {
-          setError("Coșul tău este gol. Adaugă produse înainte de a plăti.");
+          setError(t("errCosGol"));
         } else {
           const mapped: CartItem[] = items.map((it) => ({
             product: {
@@ -262,13 +293,13 @@ export default function CheckoutForm() {
           setCartItems(mapped);
         }
       } catch {
-        if (!cancelled) setError("Nu am putut încărca coșul. Reîncearcă.");
+        if (!cancelled) setError(t("errIncarcareCos"));
       } finally {
         if (!cancelled) setIsInitializing(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [t]);
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.product.price * item.qty, 0
@@ -300,14 +331,14 @@ export default function CheckoutForm() {
         setOrderId(data.orderId);
         setOrderLookupToken(data.orderLookupToken);
       } else {
-        setError(data.error || "Nu am putut iniția plata.");
+        setError(data.error || t("errInitiereCheckout"));
       }
     } catch {
-      setError("Eroare de rețea. Verifică conexiunea.");
+      setError(t("errRetea"));
     } finally {
       setIsCreatingIntent(false);
     }
-  }, [cartItems, clientSecret]);
+  }, [cartItems, clientSecret, t]);
 
   useEffect(() => {
     if (cartItems.length > 0 && !clientSecret) {
@@ -318,7 +349,7 @@ export default function CheckoutForm() {
   const removeItem = async (index: number) => {
     const updated = cartItems.filter((_, i) => i !== index);
     setCartItems(updated);
-    if (updated.length === 0) setError("Coșul tău este gol.");
+    if (updated.length === 0) setError(t("cosGolScurt"));
     setClientSecret(null);
     // Server: PATCH the matching cart item id by re-reading /api/cart, then DELETE.
     try {
@@ -374,7 +405,6 @@ export default function CheckoutForm() {
           <h2 className="text-xl font-black text-[#0D0D0D] mb-2">{t("cosGol")}</h2>
           <p className="text-sm text-[#6E6E80] mb-6">{error}</p>
           <Link href="/" className="inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]">
-            
             {t("inapoiLaMagazin")}
           </Link>
         </div>
@@ -413,7 +443,7 @@ export default function CheckoutForm() {
             },
           },
         },
-        locale: "ro",
+        locale: (["de", "en", "es", "fr", "it", "pt", "ro"].includes(locale) ? locale : "auto") as StripeElementsOptions["locale"],
       }
     : {};
 
@@ -427,7 +457,7 @@ export default function CheckoutForm() {
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            Checkout securizat
+            {t("checkoutSecurizat")}
           </div>
         </div>
       </div>
@@ -438,19 +468,20 @@ export default function CheckoutForm() {
           {/* Cart Items Summary */}
           <section>
             <h2 className="text-xl font-bold mb-4 text-[#0D0D0D]">
-              
-              {t("produseleTale")}{cartItems.reduce((s, i) => s + i.qty, 0)})
+              {t("produseleTaleCount", { count: cartItems.reduce((s, i) => s + i.qty, 0) })}
             </h2>
             <div className="space-y-3">
               {cartItems.map((item, idx) => (
                 <div key={idx} className="flex gap-4 p-4 rounded-xl border border-[#E5E5E5] bg-white hover:border-[#10A37F]/30 transition-colors">
                   <div className="h-16 w-16 bg-[#F7F7F8] rounded-lg border border-[#E5E5E5] overflow-hidden shrink-0">
-                    {(item.product.images?.[0] || item.product.image) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.product.images?.[0] || item.product.image} alt={item.product.title || "Produs"} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg">📦</div>
-                    )}
+                    <CheckoutProductImage
+                      item={item}
+                      fallbackAlt={t("produsFallback")}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                      placeholderClassName="text-lg"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-[#0D0D0D] line-clamp-1 leading-tight">{item.product.title}</p>
@@ -498,12 +529,14 @@ export default function CheckoutForm() {
               {cartItems.map((item, idx) => (
                 <div key={idx} className="flex gap-3">
                   <div className="h-12 w-12 bg-white rounded-lg border border-[#E5E5E5] overflow-hidden shrink-0 relative">
-                    {(item.product.images?.[0] || item.product.image) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.product.images?.[0] || item.product.image} alt={item.product.title || "Produs"} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-sm">📦</div>
-                    )}
+                    <CheckoutProductImage
+                      item={item}
+                      fallbackAlt={t("produsFallback")}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                      placeholderClassName="text-sm"
+                    />
                     <div className="absolute -top-1.5 -right-1.5 bg-[#6E6E80] text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold">
                       {item.qty}
                     </div>
@@ -520,15 +553,15 @@ export default function CheckoutForm() {
 
             <div className="border-t border-[#E5E5E5] pt-4 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-[#6E6E80]">Subtotal</span>
+                <span className="text-[#6E6E80]">{t("subtotal")}</span>
                 <span className="font-medium">{formatPrice(Math.round(subtotal * 100), { sourceCurrency: "RON" })}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-[#6E6E80]">Livrare Standard</span>
-                <span className="font-bold text-[#10A37F]">Gratuit</span>
+                <span className="text-[#6E6E80]">{t("livrareStandard")}</span>
+                <span className="font-bold text-[#10A37F]">{t("gratuit")}</span>
               </div>
               <div className="flex justify-between text-xl font-black pt-3 mt-1 border-t border-[#E5E5E5]">
-                <span>Total</span>
+                <span>{t("total")}</span>
                 <span className="text-[#10A37F]">{formatPrice(Math.round(subtotal * 100), { sourceCurrency: "RON" })}</span>
               </div>
             </div>

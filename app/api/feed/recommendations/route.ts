@@ -55,6 +55,8 @@ export async function GET(req: Request) {
              (metadata->>'category_id')::text AS category_id
       FROM videos
       WHERE status = 'ready' AND visibility = 'public'
+        AND COALESCE(is_hidden, false) = false
+        AND effective_label = 'safe'
       ORDER BY COALESCE(published_at, created_at) DESC
       LIMIT $1
     ),

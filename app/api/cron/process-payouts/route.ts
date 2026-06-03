@@ -93,7 +93,10 @@ async function handleGET(req: Request) {
        AND coi.metadata->>'seller_payout_cents' IS NOT NULL
        AND (coi.metadata->>'seller_payout_cents')::int > 0
        AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))
-       AND s.stripe_payouts_enabled = true`,
+      AND s.status = 'active'
+      AND s.stripe_payouts_enabled = true
+      AND COALESCE((s.metadata->>'fraud_block')::boolean, false) = false
+      AND COALESCE((s.metadata->'fraud_user_block'->>'blocked')::boolean, false) = false`,
     [String(RETURN_WINDOW_DAYS)]
   );
 
@@ -116,6 +119,8 @@ async function handleGET(req: Request) {
      FROM commerce_order_items coi
      JOIN creator_connect_accounts cca
        ON cca.creator_id = coi.creator_id AND cca.payouts_enabled = true AND cca.account_status = 'active'
+     JOIN users creator_user
+       ON creator_user.id = coi.creator_id
      LEFT JOIN commerce_orders co
        ON co.id = coi.order_id
      WHERE coi.source_status = 'fulfilled'
@@ -123,7 +128,8 @@ async function handleGET(req: Request) {
        AND coi.creator_id IS NOT NULL
        AND (coi.payout_status IS NULL OR coi.payout_status = 'pending')
        AND coi.commissionable_amount_cents > 0
-       AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))`,
+      AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))
+      AND COALESCE((creator_user.metadata->'fraud_user_block'->>'blocked')::boolean, false) = false`,
     [String(RETURN_WINDOW_DAYS)]
   );
 
@@ -147,6 +153,17 @@ async function handleGET(req: Request) {
                NULLIF(metadata->>'seller_payout_processing_at','')::timestamptz,
                'epoch'::timestamptz
              ) < NOW() - ($2 || ' minutes')::interval
+         AND EXISTS (
+           SELECT 1
+             FROM sellers s
+             LEFT JOIN commerce_orders co ON co.id = commerce_order_items.order_id
+            WHERE s.id::text = commerce_order_items.metadata->>'seller_id'
+              AND s.status = 'active'
+              AND s.stripe_payouts_enabled = true
+              AND COALESCE((s.metadata->>'fraud_block')::boolean, false) = false
+              AND COALESCE((s.metadata->'fraud_user_block'->>'blocked')::boolean, false) = false
+              AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))
+         )
        RETURNING id`,
       [item.item_id, String(CLAIM_TTL_MINUTES)]
     );
@@ -217,6 +234,17 @@ async function handleGET(req: Request) {
                NULLIF(metadata->>'creator_payout_processing_at','')::timestamptz,
                'epoch'::timestamptz
              ) < NOW() - ($2 || ' minutes')::interval
+         AND EXISTS (
+           SELECT 1
+             FROM creator_connect_accounts cca
+             JOIN users creator_user ON creator_user.id = commerce_order_items.creator_id
+             LEFT JOIN commerce_orders co ON co.id = commerce_order_items.order_id
+            WHERE cca.creator_id = commerce_order_items.creator_id
+              AND cca.payouts_enabled = true
+              AND cca.account_status = 'active'
+              AND COALESCE((creator_user.metadata->'fraud_user_block'->>'blocked')::boolean, false) = false
+              AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))
+         )
        RETURNING id`,
       [item.item_id, String(CLAIM_TTL_MINUTES)]
     );

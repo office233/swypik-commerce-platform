@@ -44,6 +44,7 @@ async function topVideosFromFollows(userId: string): Promise<DigestVideo[]> {
       JOIN follows f ON f.following_user_id = v.creator_id AND f.follower_user_id = $1
       LEFT JOIN users u ON u.id = v.creator_id
      WHERE v.visibility='public' AND v.is_hidden=false
+       AND v.status='ready' AND v.effective_label='safe'
        AND v.published_at >= NOW() - INTERVAL '7 days'
      ORDER BY COALESCE(v.view_count,0) DESC, v.published_at DESC NULLS LAST
      LIMIT 3`;

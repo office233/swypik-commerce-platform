@@ -52,6 +52,8 @@ export default async function AudioPage({ params }: { params: Promise<{ id: stri
      LEFT JOIN users u ON u.id = v.creator_id
      WHERE v.audio_track_id = $1::bigint
        AND v.status = 'ready' AND v.visibility = 'public'
+       AND COALESCE(v.is_hidden, false) = false
+       AND v.effective_label = 'safe'
      ORDER BY v.view_count DESC NULLS LAST, v.published_at DESC NULLS LAST
      LIMIT 60`,
     [id]

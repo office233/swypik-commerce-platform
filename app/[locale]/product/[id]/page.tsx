@@ -127,6 +127,7 @@ export default async function ProductPage({ params }: Props) {
            JOIN users u ON v.creator_id = u.id
           WHERE v.status='ready' AND v.visibility='public'
             AND COALESCE(v.is_hidden,false)=false
+            AND v.effective_label='safe'
             AND EXISTS (
               SELECT 1 FROM jsonb_array_elements(COALESCE(v.product_refs,'[]'::jsonb)) e
               WHERE (e ? 'product_id' AND e->>'product_id' = $1)

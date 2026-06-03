@@ -25,6 +25,8 @@ export async function GET() {
               updated_at
          FROM marketplace_products
         WHERE status = 'active'
+          AND COALESCE(effective_label, 'safe') = 'safe'
+          AND COALESCE(is_adult, false) = false
         ORDER BY updated_at DESC NULLS LAST
         LIMIT 50`,
     );
@@ -52,11 +54,11 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Swypik — Latest Products</title>
+    <title>Swypik — Produse noi</title>
     <link>${BASE}</link>
     <atom:link href="${BASE}/feed.xml" rel="self" type="application/rss+xml" />
-    <description>Latest video-first marketplace picks on Swypik.</description>
-    <language>en</language>
+    <description>Cele mai noi produse video-first din marketplace-ul Swypik.</description>
+    <language>ro</language>
     <lastBuildDate>${lastBuild}</lastBuildDate>
     <ttl>60</ttl>
 ${itemsXml}

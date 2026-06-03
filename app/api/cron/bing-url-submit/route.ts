@@ -2,6 +2,7 @@
 // Auth: Bearer ${CRON_SECRET}. Body { urls: [...] } optional for ad-hoc.
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { timingSafeEqual } from "node:crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,7 +13,9 @@ const BING_ENDPOINT = "https://ssl.bing.com/webmaster/api.svc/json/SubmitUrlBatc
 
 function authOk(token: string | null | undefined): boolean {
   const expected = process.env.CRON_SECRET || "";
-  return Boolean(token && expected && token === expected);
+  if (!token || !expected) return false;
+  if (Buffer.byteLength(token) !== Buffer.byteLength(expected)) return false;
+  return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
 }
 
 async function collectUrls(limit: number): Promise<string[]> {
@@ -36,6 +39,7 @@ async function collectUrls(limit: number): Promise<string[]> {
   try {
     const { rows } = await dbQuery(
       `SELECT id FROM videos WHERE status='ready' AND visibility='public'
+        AND COALESCE(is_hidden, false)=false AND effective_label='safe'
        ORDER BY published_at DESC NULLS LAST LIMIT 1000`,
     );
     for (const r of rows as Array<{ id: string }>) urls.push(`${BASE_URL}/video/${r.id}`);

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Swypik AE import post-ban guard once after AliExpress ban window
+
+[Timer]
+OnCalendar=2026-06-02 00:05:00 UTC
+Persistent=true
+Unit=swypik-ae-import-post-ban-guard.service
+
+[Install]
+WantedBy=timers.target

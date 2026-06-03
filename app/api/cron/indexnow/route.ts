@@ -3,6 +3,7 @@
 // Auth: Bearer ${CRON_SECRET}. Accepts ad-hoc body { urls: [...] } for live push.
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { timingSafeEqual } from "node:crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,7 +13,9 @@ const HOST = new URL(BASE_URL).host;
 
 function ok(token: string | null | undefined): boolean {
   const expected = process.env.CRON_SECRET || "";
-  return Boolean(token && expected && token === expected);
+  if (!token || !expected) return false;
+  if (Buffer.byteLength(token) !== Buffer.byteLength(expected)) return false;
+  return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
 }
 
 async function fetchUrls(limit: number): Promise<string[]> {
@@ -36,6 +39,7 @@ async function fetchUrls(limit: number): Promise<string[]> {
   try {
     const { rows } = await dbQuery(
       `SELECT id FROM videos WHERE status='ready' AND visibility='public'
+        AND COALESCE(is_hidden, false)=false AND effective_label='safe'
        ORDER BY published_at DESC NULLS LAST LIMIT 500`,
     );
     for (const r of rows as Array<{ id: string }>) urls.push(`${BASE_URL}/video/${r.id}`);

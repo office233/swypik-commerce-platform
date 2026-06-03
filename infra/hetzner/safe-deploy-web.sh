@@ -9,7 +9,7 @@
 #   4. Recreate container.
 #   5. Poll /api/health until 200 AND release.commit matches HEAD (max 90s).
 #   6. Post-deploy probes on EXTRA_URLS + optional Playwright health.spec.ts.
-#   7. On any failure: restore :rollback tag, recreate container, exit 1.
+#   7. On health failure: restore :rollback tag, recreate container, exit 1.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/swypik/app}"
@@ -18,8 +18,12 @@ ENV_FILE="${ENV_FILE:-${APP_DIR}/infra/hetzner/.env.production}"
 SERVICE="${SERVICE:-web-next}"
 IMAGE="${IMAGE:-swypik-prod-web-next:latest}"
 ROLLBACK_IMAGE="${ROLLBACK_IMAGE:-swypik-prod-web-next:rollback}"
+IMAGE_REPO="${IMAGE%:*}"
+IMAGE_KEEP="${IMAGE_KEEP:-8}"
 HEALTH_URL="${HEALTH_URL:-https://swypik.com/api/health}"
 EXTRA_URLS=("${EXTRA_URLS[@]:-https://swypik.com/ https://swypik.com/sitemap.xml}")
+EXTRA_PROBE_RETRIES="${EXTRA_PROBE_RETRIES:-3}"
+EXTRA_PROBE_TIMEOUT="${EXTRA_PROBE_TIMEOUT:-15}"
 LOG_DIR="${LOG_DIR:-/opt/swypik/logs}"
 LOCK_FILE="${LOCK_FILE:-/var/lock/swypik-deploy.lock}"
 DEPLOYER="${DEPLOYER:-$(whoami 2>/dev/null || echo unknown)@$(hostname 2>/dev/null || echo unknown)}"
@@ -41,6 +45,8 @@ cd "$APP_DIR"
 COMMIT_LONG="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+BUILD_TAG_TIME="$(date -u '+%Y%m%dT%H%M%SZ')"
+VERSIONED_IMAGE="${VERSIONED_IMAGE:-${IMAGE_REPO}:${COMMIT}-${BUILD_TAG_TIME}}"
 log "deploy start commit=$COMMIT deployer=$DEPLOYER service=$SERVICE"
 
 # Fail-fast: dacă git rev-parse nu poate determina commit-ul, refuzăm să facem build
@@ -72,6 +78,21 @@ fi
 log "building new image (BUILD_COMMIT=$COMMIT BUILD_TIME=$BUILD_TIME)"
 "${COMPOSE[@]}" build "${BUILD_ARGS[@]}" "$SERVICE" >>"$LOG_FILE" 2>&1
 
+docker tag "$IMAGE" "$VERSIONED_IMAGE"
+log "tagged new image as $VERSIONED_IMAGE"
+
+if [[ "$IMAGE_KEEP" =~ ^[0-9]+$ ]] && [ "$IMAGE_KEEP" -gt 0 ]; then
+  mapfile -t old_images < <(
+    docker images "$IMAGE_REPO" --format '{{.Repository}}:{{.Tag}}' \
+      | grep -Ev ':(latest|rollback)$' \
+      | tail -n +$((IMAGE_KEEP + 1))
+  )
+  if [ "${#old_images[@]}" -gt 0 ]; then
+    docker rmi "${old_images[@]}" >>"$LOG_FILE" 2>&1 || true
+    log "removed old versioned images count=${#old_images[@]} keep=$IMAGE_KEEP"
+  fi
+fi
+
 log "recreating $SERVICE"
 "${COMPOSE[@]}" up -d --no-deps "$SERVICE" >>"$LOG_FILE" 2>&1
 
@@ -80,7 +101,7 @@ released_commit=""
 for i in $(seq 1 30); do
   body=$(curl -sSk -m 5 "$HEALTH_URL" 2>/dev/null || true)
   code=$(curl -sSk -o /dev/null -m 5 -w "%{http_code}" "$HEALTH_URL" 2>/dev/null || echo 000)
-  released_commit=$(printf '%s' "$body" | grep -oE '"commit":"[^"]*"' | head -1 | sed 's/.*"commit":"\([^"]*\)".*/\1/')
+  released_commit=$(printf '%s' "$body" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p' | head -1)
   log "health probe $i: http=$code release.commit=${released_commit:-?}"
   if [ "$code" = "200" ] && [ -n "$released_commit" ] && [ "$released_commit" != "unknown" ]; then
     if [ "${released_commit:0:7}" = "$COMMIT" ] || [ "$released_commit" = "$COMMIT_LONG" ]; then
@@ -111,8 +132,15 @@ fi
 
 post_ok=1
 for url in ${EXTRA_URLS[@]}; do
-  code=$(curl -sSk -o /dev/null -m 5 -w "%{http_code}" "$url" || echo 000)
-  log "extra probe $url: $code"
+  code=000
+  for attempt in $(seq 1 "$EXTRA_PROBE_RETRIES"); do
+    code=$(curl -sSk -o /dev/null -m "$EXTRA_PROBE_TIMEOUT" -w "%{http_code}" "$url" || echo 000)
+    log "extra probe $url attempt=$attempt/$EXTRA_PROBE_RETRIES: $code"
+    if [ "$code" = "200" ]; then
+      break
+    fi
+    sleep 2
+  done
   if [ "$code" != "200" ]; then
     log "EXTRA PROBE FAILED at $url ($code)"
     post_ok=0

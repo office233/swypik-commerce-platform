@@ -23,12 +23,14 @@ async function topHashtags(): Promise<Trend[]> {
       SELECT unnest(tags) AS tag FROM videos
        WHERE published_at >= now() - interval '30 days'
          AND visibility='public' AND is_hidden=false
+         AND status='ready' AND effective_label='safe'
     ),
     prior AS (
       SELECT unnest(tags) AS tag FROM videos
        WHERE published_at >= now() - interval '90 days'
          AND published_at < now() - interval '30 days'
          AND visibility='public' AND is_hidden=false
+         AND status='ready' AND effective_label='safe'
     ),
     r AS (SELECT tag, COUNT(*)::int c FROM recent GROUP BY tag),
     p AS (SELECT tag, COUNT(*)::int c FROM prior GROUP BY tag)
@@ -55,6 +57,7 @@ async function topAudios(): Promise<Trend[]> {
      WHERE v.published_at >= now() - interval '30 days'
        AND v.audio_track_id IS NOT NULL
        AND v.visibility='public' AND v.is_hidden=false
+      AND v.status='ready' AND v.effective_label='safe'
      GROUP BY v.audio_track_id, at.title, at.artist
      ORDER BY c DESC
      LIMIT 10`;

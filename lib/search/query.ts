@@ -84,6 +84,8 @@ export async function searchVideos(
     CROSS JOIN query
     WHERE v.status = 'ready'
       AND v.visibility = 'public'
+      AND COALESCE(v.is_hidden, false) = false
+      AND v.effective_label = 'safe'
       AND (
         v.search_document @@ query.tsq
         OR similarity(public.f_unaccent(lower(coalesce(v.title, ''))), query.qn) > 0.2
@@ -279,6 +281,8 @@ export async function searchHashtags(
     FROM videos v, unnest(v.tags) AS tag
     WHERE v.status = 'ready'
       AND v.visibility = 'public'
+      AND COALESCE(v.is_hidden, false) = false
+      AND v.effective_label = 'safe'
       AND (lower(tag) ILIKE $1 OR lower(tag) ILIKE $2)
     GROUP BY lower(tag)
     ORDER BY

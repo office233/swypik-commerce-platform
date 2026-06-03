@@ -226,7 +226,12 @@ export async function POST(req: Request) {
         );
         // Also set parent video to ready + public
         const { rows: appRows } = await dbQuery<{ id: string; title: string | null; description: string | null }>(
-          `UPDATE videos SET status = 'ready', visibility = 'public', published_at = NOW()
+          `UPDATE videos
+              SET status = 'ready',
+                  visibility = CASE WHEN COALESCE(effective_label, 'safe') IN ('adult', 'blocked') THEN 'private' ELSE 'public' END,
+                  is_hidden = COALESCE(effective_label, 'safe') IN ('adult', 'blocked'),
+                  published_at = CASE WHEN COALESCE(effective_label, 'safe') IN ('adult', 'blocked') THEN published_at ELSE NOW() END,
+                  updated_at = NOW()
            WHERE id = (SELECT video_id FROM video_assets WHERE id = $1)
            RETURNING id, title, description`,
           [videoId]
@@ -263,7 +268,11 @@ export async function POST(req: Request) {
           [videoId]
         );
         await dbQuery(
-          `UPDATE videos SET status = 'failed'
+          `UPDATE videos
+              SET status = 'failed',
+                  visibility = 'private',
+                  is_hidden = true,
+                  updated_at = NOW()
            WHERE id = (SELECT video_id FROM video_assets WHERE id = $1)`,
           [videoId]
         );
