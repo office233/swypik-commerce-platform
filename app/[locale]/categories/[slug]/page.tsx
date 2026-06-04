@@ -11,6 +11,7 @@ import {
   isCurrency,
   DEFAULT_LOCALE,
   DEFAULT_CURRENCY,
+import { safeJsonLd } from "@/lib/seo/json-ld";
 } from "@/lib/i18n/config";
 import type { Metadata } from "next";
 import { formatCurrency } from "@/lib/i18n/currency";
@@ -169,7 +170,7 @@ export default async function CategoryPage({
           return (
             <script
               type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+              dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
             />
           );
         })()}

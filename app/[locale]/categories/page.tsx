@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import type { Metadata } from "next";
 import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +101,7 @@ export default async function CategoriesPage() {
 
   return (
     <main className="min-h-screen text-neutral-900" style={{ backgroundColor: BG }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd({
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         name: labels.title,
@@ -108,7 +109,7 @@ export default async function CategoriesPage() {
         description: (CATEGORIES_META_BY_LOCALE[locale] ?? CATEGORIES_META_BY_LOCALE.ro).description,
         hasPart: hierarchy.slice(0, 20).map((n) => ({ "@type": "Thing", name: n.name, url: `${BASE_URL}/categories/${n.id}` })),
       }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd({
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         itemListElement: [

@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { getTranslations } from "next-intl/server";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
@@ -100,11 +101,11 @@ export default async function Home() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }}
       />
       <header className="sr-only">
         <h1>{t("swypikCumparaPrinVideo")}</h1>
