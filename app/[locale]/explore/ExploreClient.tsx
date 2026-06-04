@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bookmark, Coins, MessageCircle, Scale, Search, ShoppingCart, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX } from "lucide-react";
+import { Bookmark, Coins, MessageCircle, Newspaper, Play, Scale, Search, ShieldCheck, ShoppingCart, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
@@ -16,9 +16,15 @@ const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr:
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
 
 const MUTE_STORAGE_KEY = "swypik.feed.muted";
+const NEWS_AUDIO_STORAGE_KEY = "swypik.feed.newsAudio";
+const YOUTUBE_EMBED_ORIGIN = "https://swypik.com";
 // Mount range: only render real <video src> for slides within ±MOUNT_RADIUS of currentIndex
 const MOUNT_RADIUS = 1;
 const FEED_FORMATS = ["formatMerita", "formatSub50", "formatTestate", "formatSwypikFinds", "formatSelleriLocali", "formatBattles", "formatLiveDeals"] as const;
+
+function isVision24Card(video: any) {
+  return video?.cardType === "news" || video?.cardType === "fact_check" || video?.cardType === "news_video" || String(video?.id || "").startsWith("vision24");
+}
 
 function getProductVerdictKey(product: any): "verdictPretBun" | "verdictVerificaLivrarea" | "verdictSub50" | "verdictTrending" | "verdictRiscVerificat" | "verdictAiRapid" {
   const score = Number(product?.swypikScore || 0);
@@ -105,6 +111,9 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const [activeProduct, setActiveProduct] = useState<any | null>(null);
   const [activeCommentsVideo, setActiveCommentsVideo] = useState<any | null>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [newsAudioEnabled, setNewsAudioEnabled] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [reelHintDismissed, setReelHintDismissed] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
   const [activeFormat, setActiveFormat] = useState<typeof FEED_FORMATS[number]>(FEED_FORMATS[0]);
   const [aiPrompt, setAiPrompt] = useState("");
@@ -117,6 +126,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     try {
       const stored = window.localStorage.getItem(MUTE_STORAGE_KEY);
       if (stored === "0") setIsMuted(false);
+      const storedNewsAudio = window.localStorage.getItem(NEWS_AUDIO_STORAGE_KEY);
+      if (storedNewsAudio === "1") { setNewsAudioEnabled(true); setReelHintDismissed(true); }
     } catch {}
   }, []);
 
@@ -125,6 +136,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const [followingCreators, setFollowingCreators] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const newsFrameRefs = useRef<Map<string, HTMLIFrameElement>>(new Map());
   const progressBarRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const currentTimeRefs = useRef<Map<string, { current: number }>>(new Map());
 
@@ -143,6 +155,20 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     else videoRefs.current.delete(id);
   }, []);
 
+  const registerNewsFrameRef = useCallback((id: string, el: HTMLIFrameElement | null) => {
+    if (el) newsFrameRefs.current.set(id, el);
+    else newsFrameRefs.current.delete(id);
+  }, []);
+
+  const sendYouTubeCommand = useCallback((videoId: string, func: string, args: any[] = []) => {
+    const frame = newsFrameRefs.current.get(videoId);
+    const win = frame?.contentWindow;
+    if (!win) return;
+    const message = JSON.stringify({ event: "command", func, args });
+    win.postMessage(message, "https://www.youtube.com");
+    win.postMessage(message, "https://www.youtube-nocookie.com");
+  }, []);
+
   const handleTimeUpdate = useCallback((videoId: string, ratio: number, currentTime: number) => {
     // ref-based progress update — no setState, no re-render
     const bar = progressBarRefs.current.get(videoId);
@@ -155,6 +181,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   }, []);
 
   const trackEvent = useCallback((videoId: string, eventType: string, data?: any) => {
+    if (videoId.startsWith("vision24")) return;
     // Route via batched client. Map legacy event names to canonical FeedEventType.
     const map: Record<string, string> = {
       impression: "impression",
@@ -173,6 +200,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   }, []);
 
   const sendView = useCallback((videoId: string) => {
+    if (videoId.startsWith("vision24")) return;
     if (viewedVideosRef.current.has(videoId)) return;
     viewedVideosRef.current.add(videoId);
     // legacy server counter
@@ -372,6 +400,44 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       return next;
     });
   }, []);
+
+  const setNewsAudio = useCallback((nextEnabled: boolean) => {
+    haptic("tap");
+    const active = videos[currentIndex];
+    setNewsAudioEnabled(nextEnabled);
+    setAudioUnlocked(true);
+    setReelHintDismissed(true);
+    try { window.localStorage.setItem(NEWS_AUDIO_STORAGE_KEY, nextEnabled ? "1" : "0"); } catch {}
+    if (active?.id && active.cardType === "news_video") {
+      const apply = () => {
+        sendYouTubeCommand(active.id, nextEnabled ? "unMute" : "mute");
+        if (nextEnabled) {
+          sendYouTubeCommand(active.id, "setVolume", [100]);
+          sendYouTubeCommand(active.id, "playVideo");
+        }
+      };
+      apply();
+      window.setTimeout(apply, 180);
+      window.setTimeout(apply, 600);
+    }
+  }, [currentIndex, sendYouTubeCommand, videos]);
+
+  const toggleNewsAudio = useCallback(() => {
+    setNewsAudio(!newsAudioEnabled);
+  }, [newsAudioEnabled, setNewsAudio]);
+
+  useEffect(() => {
+    const active = videos[currentIndex];
+    if (!active?.id || active.cardType !== "news_video") return;
+    const timer = window.setTimeout(() => {
+      sendYouTubeCommand(active.id, newsAudioEnabled ? "unMute" : "mute");
+      if (newsAudioEnabled) {
+        sendYouTubeCommand(active.id, "setVolume", [100]);
+        sendYouTubeCommand(active.id, "playVideo");
+      }
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [currentIndex, newsAudioEnabled, sendYouTubeCommand, videos]);
 
   const countValue = (value: string | number | null | undefined) => {
     const parsed = typeof value === "string" ? parseInt(value, 10) : Number(value);
@@ -638,8 +704,11 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     return String(num || 0);
   };
 
+  const activeSlide = videos[currentIndex];
+  const activeIsNewsVideo = Boolean(activeSlide?.cardType === "news_video" && activeSlide?.newsVideo);
+
   return (
-    <main className="explore-root" aria-label="Discover videos">
+    <main className={`explore-root ${activeIsNewsVideo ? "reel-slide-active" : ""}`} aria-label="Discover videos">
       <h1 className="sr-only">{t("descoperaVideoclipuriSwypik")}</h1>
       <style dangerouslySetInnerHTML={{__html: `
         :root { --feed-bottom-nav: 64px; --feed-safe-bottom: env(safe-area-inset-bottom, 0px); --feed-action-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 16px); --feed-content-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 12px); }
@@ -651,8 +720,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .video-slide video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .video-slide .poster-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .video-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 55%; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, transparent 100%); }
-        .video-gradient-top { position: absolute; top: 0; left: 0; right: 0; height: 120px; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%); }
-        .feed-topbar { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(12px, calc(12px + env(safe-area-inset-left, 0px))); right: max(64px, calc(64px + env(safe-area-inset-right, 0px))); z-index: 30; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+        .video-gradient-top { position: absolute; top: 0; left: 0; right: 0; height: 120px; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%); transition: height 0.2s ease, background 0.2s ease; }
+        .feed-topbar { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(12px, calc(12px + env(safe-area-inset-left, 0px))); right: max(64px, calc(64px + env(safe-area-inset-right, 0px))); z-index: 30; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; transition: opacity 0.18s ease, transform 0.18s ease; }
         .ai-search { height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.16); background: rgba(12,12,14,0.58); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 12px 34px rgba(0,0,0,0.25); }
         .ai-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font-size: 14px; font-weight: 650; }
         .ai-search input::placeholder { color: rgba(255,255,255,0.72); }
@@ -713,6 +782,50 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .product-chip .chip-price { font-weight: 700; font-size: 13px; color: #fff; background: rgba(0,0,0,0.35); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
         .product-chip .chip-score { font-weight: 800; font-size: 12px; color: #0D0D0D; background: #FDE047; padding: 3px 7px; border-radius: 999px; white-space: nowrap; }
         .product-chip .chip-buy { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #7C3AED, #EC4899); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        /* === Vision24 editorial full-screen card (news / fact_check) === */
+        .vision-edit-shell { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #0A0A0C; isolation: isolate; }
+        .vision-edit-bg { position: absolute; inset: -32px; width: calc(100% + 64px); height: calc(100% + 64px); object-fit: cover; filter: blur(38px) saturate(1.25) brightness(0.55); opacity: 0.55; transform: scale(1.08); z-index: 0; }
+        .vision-edit-shell::after { content: ''; position: absolute; inset: 0; z-index: 1; background: linear-gradient(168deg, var(--vision-tint, rgba(124,58,237,0.42)) 0%, rgba(0,0,0,0.0) 38%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0.92) 100%); pointer-events: none; }
+        .vision-edit-content { position: absolute; left: max(20px, calc(20px + env(safe-area-inset-left, 0px))); right: max(20px, calc(20px + env(safe-area-inset-right, 0px))); bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 22px); z-index: 3; max-width: 720px; margin: 0 auto; pointer-events: auto; color: #fff; text-shadow: 0 2px 18px rgba(0,0,0,0.55); }
+        .vision-edit-kicker { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; padding: 0 12px; border-radius: 999px; background: var(--vision-kicker-bg, rgba(255,255,255,0.16)); color: var(--vision-kicker-color, #fff); border: 1px solid var(--vision-kicker-border, rgba(255,255,255,0.28)); font-size: 11px; font-weight: 950; text-transform: uppercase; letter-spacing: 0.02em; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .vision-edit-kicker.fact { background: rgba(16,163,127,0.22); color: #B7F7E6; border-color: rgba(16,163,127,0.48); }
+        .vision-edit-title { margin-top: 14px; font-size: clamp(28px, 8.5vw, 52px); line-height: 0.96; font-weight: 950; letter-spacing: -0.012em; color: #fff; text-wrap: balance; }
+        .vision-edit-dek { margin-top: 14px; color: rgba(255,255,255,0.92); font-size: clamp(15px, 4.2vw, 19px); line-height: 1.38; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 2px 14px rgba(0,0,0,0.45); }
+        .vision-edit-meta { margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: rgba(255,255,255,0.82); font-size: 12px; font-weight: 800; letter-spacing: 0.01em; }
+        .vision-edit-meta span { min-height: 22px; display: inline-flex; align-items: center; }
+        .vision-edit-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,0.5); }
+        .vision-edit-meta .pill-lies { padding: 0 9px; min-height: 22px; border-radius: 999px; background: rgba(239,68,68,0.22); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.38); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+        .vision-edit-cta { margin-top: 18px; min-height: 52px; width: 100%; max-width: 360px; padding: 0 24px; border: 0; border-radius: 16px; background: linear-gradient(135deg, #FFFFFF 0%, #F4F4F5 100%); color: #0A0A0C; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 950; box-shadow: 0 14px 36px rgba(0,0,0,0.42), 0 0 0 1px rgba(255,255,255,0.18); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .vision-edit-cta:active { transform: scale(0.97); box-shadow: 0 8px 20px rgba(0,0,0,0.36); }
+        @media (max-height: 640px) { .vision-edit-title { -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; font-size: clamp(22px, 7vw, 36px); } .vision-edit-dek { -webkit-line-clamp: 3; } }
+        .vision-youtube-shell { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; z-index: 1; background: #000; }
+        .vision-youtube-bg { position: absolute; inset: -28px; width: calc(100% + 56px); height: calc(100% + 56px); object-fit: cover; filter: blur(26px) saturate(1.12); opacity: 0.42; transform: scale(1.06); z-index: 0; }
+        .vision-youtube-shell::after { content: ''; position: absolute; inset: 0; z-index: 0; background: radial-gradient(circle at 50% 42%, transparent 0%, rgba(0,0,0,0.16) 46%, rgba(0,0,0,0.58) 100%); pointer-events: none; }
+        .vision-youtube-frame { position: absolute; top: 50%; left: 50%; width: max(100vw, 177.78vh); height: max(100vh, 56.25vw); transform: translate(-50%, -50%); border: 0; background: #000; z-index: 1; pointer-events: none; }
+        .vision-youtube-frame.short { width: min(100vw, 56.25dvh); height: min(100dvh, 177.78vw); max-width: 520px; max-height: 100dvh; box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 24px 80px rgba(0,0,0,0.5); }
+        @media (max-width: 700px) { .vision-youtube-frame.short { width: 100vw; height: 100dvh; max-width: none; max-height: none; box-shadow: none; } }
+        .vision-sound-btn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, calc(14px + env(safe-area-inset-right, 0px))); z-index: 28; width: 52px; height: 52px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.32); background: rgba(10,10,12,0.72); color: #fff; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 10px 28px rgba(0,0,0,0.45), 0 0 0 2px rgba(0,0,0,0.18); pointer-events: auto; cursor: pointer; transition: transform 0.15s ease, background 0.18s ease; }
+        .vision-sound-btn:active { transform: scale(0.92); }
+        .vision-sound-btn.is-off { background: linear-gradient(135deg, #FDE047 0%, #F59E0B 100%); color: #0A0A0C; border-color: rgba(0,0,0,0.16); animation: visionPulse 1.8s ease-in-out infinite; }
+        @keyframes visionPulse { 0%, 100% { box-shadow: 0 10px 28px rgba(0,0,0,0.45), 0 0 0 0 rgba(253,224,71,0.55); } 50% { box-shadow: 0 10px 28px rgba(0,0,0,0.45), 0 0 0 12px rgba(253,224,71,0); } }
+        .vision-tap-hint { position: absolute; inset: 0; z-index: 27; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.78) 100%); color: #fff; cursor: pointer; pointer-events: auto; animation: visionFade 0.32s ease both; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+        .vision-tap-hint .icon { width: 88px; height: 88px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #FDE047 0%, #F59E0B 100%); color: #0A0A0C; box-shadow: 0 18px 48px rgba(0,0,0,0.5), 0 0 0 8px rgba(255,255,255,0.12); animation: visionPulse 1.8s ease-in-out infinite; }
+        .vision-tap-hint .label { font-size: clamp(18px, 5vw, 26px); font-weight: 950; text-align: center; text-shadow: 0 2px 16px rgba(0,0,0,0.65); }
+        .vision-tap-hint .sub { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.78); text-align: center; max-width: 280px; }
+        @keyframes visionFade { from { opacity: 0; } to { opacity: 1; } }
+        .vision-play-plate { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; pointer-events: none; }
+        .vision-play-plate span { width: 76px; height: 76px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.26); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 16px 42px rgba(0,0,0,0.35); }
+        .vision-reel-overlay { position: absolute; left: 50%; right: auto; bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 18px); z-index: 24; width: min(calc(100vw - 28px), calc(56.25dvh - 28px), 492px); transform: translateX(-50%); pointer-events: none; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.82); }
+        .vision-reel-source { display: inline-flex; align-items: center; gap: 7px; min-height: 25px; max-width: 100%; padding: 0 9px; border-radius: 999px; background: rgba(10,10,12,0.46); border: 1px solid rgba(255,255,255,0.16); color: rgba(255,255,255,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-size: 11px; font-weight: 900; }
+        .vision-reel-source svg { width: 13px; height: 13px; color: #FECACA; flex: 0 0 auto; }
+        .vision-reel-source span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .vision-reel-title { margin-top: 9px; color: #fff; font-size: clamp(18px, 5.2vw, 28px); line-height: 1.04; font-weight: 950; letter-spacing: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-wrap: balance; }
+        .vision-reel-summary { margin-top: 7px; color: rgba(255,255,255,0.82); font-size: 13px; line-height: 1.35; font-weight: 650; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .vision-reel-meta { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 7px; color: rgba(255,255,255,0.72); font-size: 10.5px; font-weight: 850; }
+        .vision-reel-meta span { min-height: 20px; display: inline-flex; align-items: center; }
+        .vision-reel-pill { padding: 0 7px; border-radius: 999px; background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.28); color: #FECACA; text-transform: uppercase; font-size: 9px; letter-spacing: 0; }
+        @media (max-width: 700px) { .vision-reel-overlay { width: calc(100vw - 28px); } }
+        @media (max-height: 640px) { .vision-reel-overlay { bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 10px); } .vision-reel-title { -webkit-line-clamp: 2; font-size: clamp(16px, 4.8vw, 24px); } .vision-reel-summary { display: none; } }
         .music-ticker { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.85); min-height: 20px; }
         .music-ticker .marquee { display: inline-block; white-space: nowrap; max-width: min(60vw, 220px); overflow: hidden; }
         .music-ticker .marquee span { display: inline-block; animation: ticker 12s linear infinite; }
@@ -720,8 +833,11 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         .video-progress { position: absolute; bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom)); left: 0; right: 0; height: 2px; z-index: 21; background: rgba(255,255,255,0.18); overflow: hidden; }
         .video-progress-fill { height: 100%; background: linear-gradient(90deg, #7C3AED 0%, #EC4899 100%); width: 100%; transform: scaleX(0); transform-origin: left center; transition: transform 0.1s linear; will-change: transform; }
-        .mute-btn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, calc(14px + env(safe-area-inset-right, 0px))); width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 26; cursor: pointer; border: 1px solid rgba(255,255,255,0.18); transition: transform 0.15s; }
+        .mute-btn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, calc(14px + env(safe-area-inset-right, 0px))); width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 26; cursor: pointer; border: 1px solid rgba(255,255,255,0.18); transition: opacity 0.18s ease, transform 0.15s; }
         .mute-btn:active { transform: scale(0.9); }
+        .explore-root.reel-slide-active .feed-topbar { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+        .explore-root.reel-slide-active .mute-btn { opacity: 0; pointer-events: none; }
+        .explore-root.reel-slide-active .video-gradient-top { height: 156px; background: linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.34) 56%, transparent 100%); }
         .feed-header { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 0; right: 0; display: flex; justify-content: center; align-items: center; z-index: 26; gap: 24px; pointer-events: none; }
         .feed-tab { font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.55); cursor: pointer; padding: 8px 4px; position: relative; transition: color 0.2s; background: transparent; border: 0; min-height: 44px; pointer-events: auto; }
         .feed-tab.active { color: #fff; }
@@ -786,6 +902,12 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
           videos.map((video, idx) => {
             const isCurrent = idx === currentIndex;
             const nearActive = Math.abs(idx - currentIndex) <= MOUNT_RADIUS;
+            const isVision = isVision24Card(video);
+            const isNewsVideo = video.cardType === "news_video" && video.newsVideo;
+            const newsVideoMuted = !isCurrent || !newsAudioEnabled;
+            const newsVideoEmbedSrc = isNewsVideo && nearActive
+              ? `${video.newsVideo.embedUrl}?autoplay=${isCurrent ? "1" : "0"}&mute=${newsVideoMuted ? "1" : "0"}&playsinline=1&controls=0&modestbranding=1&rel=0&loop=1&enablejsapi=1&origin=${encodeURIComponent(YOUTUBE_EMBED_ORIGIN)}&playlist=${encodeURIComponent(video.newsVideo.videoId)}`
+              : null;
             return (
               <div
                 key={video.id}
@@ -793,7 +915,66 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                 data-video-idx={idx}
                 className="video-slide"
               >
-                {nearActive ? (
+                {newsVideoEmbedSrc ? (
+                  <div className="vision-youtube-shell">
+                    {video.thumbnail && (
+                      <Image
+                        className="vision-youtube-bg"
+                        src={video.thumbnail}
+                        alt=""
+                        fill
+                        sizes="100vw"
+                        loading={nearActive ? "eager" : "lazy"}
+                        unoptimized
+                      />
+                    )}
+                    <iframe
+                      ref={(el) => registerNewsFrameRef(video.id, el)}
+                      className={`vision-youtube-frame ${video.newsVideo.isShortForm ? "short" : ""}`}
+                      src={newsVideoEmbedSrc}
+                      title={video.newsVideo.title}
+                      loading={nearActive ? "eager" : "lazy"}
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      onLoad={() => {
+                        if (!isCurrent) return;
+                        window.setTimeout(() => {
+                          sendYouTubeCommand(video.id, newsAudioEnabled ? "unMute" : "mute");
+                          if (newsAudioEnabled) {
+                            sendYouTubeCommand(video.id, "setVolume", [100]);
+                            sendYouTubeCommand(video.id, "playVideo");
+                          }
+                        }, 120);
+                      }}
+                    />
+                    {isCurrent && !audioUnlocked && !reelHintDismissed && (
+                      <div
+                        className="vision-tap-hint"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); setNewsAudio(true); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setNewsAudio(true); } }}
+                        aria-label="Atinge pentru sunet"
+                      >
+                        <span className="icon"><Volume2 size={40} /></span>
+                        <span className="label">Atinge pentru sunet</span>
+                        <span className="sub">Știri verificate de Vision24 AI — clipuri scurte de la surse oficiale</span>
+                      </div>
+                    )}
+                    {isCurrent && (
+                      <button
+                        type="button"
+                        className={`vision-sound-btn ${newsAudioEnabled ? "" : "is-off"}`}
+                        onClick={toggleNewsAudio}
+                        aria-label={newsAudioEnabled ? "Oprește sunetul clipului" : "Activează sunetul clipului"}
+                        aria-pressed={newsAudioEnabled}
+                      >
+                        {newsAudioEnabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
+                      </button>
+                    )}
+                  </div>
+                ) : nearActive && !isVision ? (
                   <FeedVideo
                     videoId={video.id}
                     src={video.url}
@@ -820,10 +1001,14 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                   )
                 )}
 
+                {nearActive && isNewsVideo && !newsVideoEmbedSrc && (
+                  <div className="vision-play-plate" aria-hidden="true"><span><Play size={34} fill="currentColor" /></span></div>
+                )}
+
                 <div className="video-gradient-top" />
                 <div className="video-gradient" />
 
-                {nearActive && (
+                {nearActive && !isVision && (
                   <div className="video-progress">
                     <div
                       className="video-progress-fill"
@@ -940,6 +1125,68 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                       )}
                     </div>
                   </section>
+                )}
+
+                {nearActive && isVision && video.article && !isNewsVideo && (() => {
+                  const tint = video.article.color || "#7C3AED";
+                  const styleVars = {
+                    ["--vision-tint" as any]: `${tint}55`,
+                    ["--vision-kicker-bg" as any]: `${tint}26`,
+                    ["--vision-kicker-color" as any]: "#fff",
+                    ["--vision-kicker-border" as any]: `${tint}88`,
+                  } as React.CSSProperties;
+                  return (
+                    <div className="vision-edit-shell" style={styleVars}>
+                      {video.thumbnail && (
+                        <Image
+                          className="vision-edit-bg"
+                          src={video.thumbnail}
+                          alt=""
+                          fill
+                          sizes="100vw"
+                          loading={nearActive ? "eager" : "lazy"}
+                          unoptimized
+                        />
+                      )}
+                      <article className="vision-edit-content" aria-label={video.article.title}>
+                        <span className={`vision-edit-kicker ${video.cardType === "fact_check" ? "fact" : ""}`}>
+                          {video.cardType === "fact_check" ? <ShieldCheck size={14} /> : <Newspaper size={14} />}
+                          {video.cardType === "fact_check" ? "Fact-check" : video.article.verticalName || "Vision24"}
+                        </span>
+                        <h2 className="vision-edit-title">{video.article.title}</h2>
+                        {video.article.dek && <p className="vision-edit-dek">{video.article.dek}</p>}
+                        <div className="vision-edit-meta">
+                          <span>Vision24 AI</span>
+                          <span className="dot" aria-hidden="true" />
+                          {video.article.publishedAt && (
+                            <span>{new Date(video.article.publishedAt).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                          )}
+                          {video.article.liesCount > 0 && (
+                            <span className="pill-lies">{video.article.liesCount} semnale verificate</span>
+                          )}
+                        </div>
+                        <button type="button" className="vision-edit-cta" onClick={() => router.push(video.article.url)}>
+                          Citește analiza
+                        </button>
+                      </article>
+                    </div>
+                  );
+                })()}
+
+                {nearActive && isNewsVideo && (
+                  <article className="vision-reel-overlay" aria-label={video.newsVideo.title}>
+                    <div className="vision-reel-source">
+                      <Play size={13} fill="currentColor" />
+                      <span>{video.newsVideo.publisher || video.newsVideo.sourceName}</span>
+                    </div>
+                    <h2 className="vision-reel-title">{video.newsVideo.title}</h2>
+                    {video.newsVideo.summary && <p className="vision-reel-summary">{video.newsVideo.summary}</p>}
+                    <div className="vision-reel-meta">
+                      <span>{video.newsVideo.verticalName}</span>
+                      {video.newsVideo.isShortForm && <span className="vision-reel-pill">Short</span>}
+                      {video.newsVideo.publishedAt && <span>{new Date(video.newsVideo.publishedAt).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>}
+                    </div>
+                  </article>
                 )}
               </div>
             );

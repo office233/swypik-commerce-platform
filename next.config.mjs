@@ -10,7 +10,7 @@ const cspHeader = `
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https://media.swypik.com https://*.aliexpress-media.com https://video.aliexpress-media.com;
   connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
-  frame-src https://js.stripe.com https://hooks.stripe.com;
+  frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';
@@ -25,7 +25,7 @@ const cspReportOnly = `
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https://media.swypik.com https://*.aliexpress-media.com https://video.aliexpress-media.com;
   connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
-  frame-src https://js.stripe.com https://hooks.stripe.com;
+  frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';

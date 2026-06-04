@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { fetchVision24FeedCards, getVision24FeedCardCounts } from "@/lib/vision24/feed";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -150,6 +151,30 @@ function buildPenaltyExpr(hasUser: boolean, hasSession: boolean): string {
 function buildAffinityExpr(hasUser: boolean): string {
   if (!hasUser) return "0";
   return `(COALESCE(uca.affinity_boost, 0))`;
+}
+
+function mixVision24Cards(videos: any[], cards: any[], limit: number) {
+  if (cards.length === 0) return videos.slice(0, limit);
+  if (videos.length === 0) return cards.slice(0, limit);
+
+  const out: any[] = [];
+  const interval = Math.max(3, Math.floor(videos.length / (cards.length + 1)));
+  let cardIndex = 0;
+
+  for (let index = 0; index < videos.length && out.length < limit; index += 1) {
+    out.push(videos[index]);
+    if ((index + 1) % interval === 0 && cardIndex < cards.length && out.length < limit) {
+      out.push(cards[cardIndex]);
+      cardIndex += 1;
+    }
+  }
+
+  while (cardIndex < cards.length && out.length < limit) {
+    out.push(cards[cardIndex]);
+    cardIndex += 1;
+  }
+
+  return out.slice(0, limit);
 }
 
 function buildOrderClause(
@@ -367,6 +392,7 @@ export async function GET(request: NextRequest) {
     const taxonomySlugParam = (searchParams.get("taxonomy_node_slug") || searchParams.get("category") || "").trim();
     const onlyFollowing = sourceParam === "following";
     const hideSoftCommerce = !taxonomySlugParam && sourceParam !== "following" && searchParams.get("include_soft_commerce") !== "1";
+    const shouldBlendVision24 = !onlyFollowing && !taxonomySlugParam;
     const minScoreParam = searchParams.get("min_score");
     const minScoreRaw = minScoreParam == null ? NaN : Number(minScoreParam);
     const minSwypikScore = taxonomySlugParam || onlyFollowing
@@ -379,7 +405,9 @@ export async function GET(request: NextRequest) {
     const limitRaw = parseInt(searchParams.get("limit") || "20", 10) || 20;
     const limit = Math.min(Math.max(1, limitRaw), 50);
     const page = pageRaw;
-    const offset = (page - 1) * limit;
+    const vision24Slots = shouldBlendVision24 ? getVision24FeedCardCounts(limit).total : 0;
+    const productPageSize = Math.max(1, limit - vision24Slots);
+    const offset = (page - 1) * productPageSize;
 
     const publicUrl = (process.env.S3_PUBLIC_URL || process.env.R2_PUBLIC_URL || "").replace(/\/$/, "");
 
@@ -724,11 +752,22 @@ export async function GET(request: NextRequest) {
         if (!video.product?.id) return true;
         return Number(video.product.swypikScore || 0) >= minSwypikScore;
       });
-      const videos = qualityFilteredVideos.slice(0, limit);
-      const hasMore = qualityFilteredVideos.length > limit || rows.length >= queryLimit;
+      let vision24Cards: any[] = [];
+      if (shouldBlendVision24 && vision24Slots > 0) {
+        try {
+          vision24Cards = await fetchVision24FeedCards({ feedLimit: limit, offset });
+        } catch (error) {
+          logger.warn({ err: error }, "Vision24 feed bridge failed");
+        }
+      }
+
+      const productCount = Math.max(1, limit - vision24Cards.length);
+      const productVideos = qualityFilteredVideos.slice(0, productCount);
+      const videos = mixVision24Cards(productVideos, vision24Cards, limit);
+      const hasMore = qualityFilteredVideos.length > productCount || rows.length >= queryLimit;
 
       const cacheHeaders = { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" };
-      return NextResponse.json({ videos, page, hasMore }, { headers: cacheHeaders });
+      return NextResponse.json({ videos, page, hasMore, vision24: { count: vision24Cards.length } }, { headers: cacheHeaders });
     }
 
     // No videos available

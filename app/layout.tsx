@@ -72,6 +72,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="preconnect" href="https://www.youtube.com" />
+        <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+        <link rel="preconnect" href="https://i.ytimg.com" />
+        <link rel="preconnect" href="https://www.gstatic.com" />
         {process.env.GOOGLE_SITE_VERIFICATION ? (
           <meta name="google-site-verification" content={process.env.GOOGLE_SITE_VERIFICATION} />
         ) : null}
