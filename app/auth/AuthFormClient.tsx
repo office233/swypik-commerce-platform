@@ -193,7 +193,7 @@ function LoginForm({ nextPath }: { nextPath: string }) {
         <div className="w-full max-w-sm rounded-3xl bg-white/[0.04] border border-white/10 p-6">
           <h1 className="text-2xl font-black mb-2">{t("verificareInDoiPasi")}</h1>
           <p className="text-sm text-white/60 mb-6">{t("introduCodulDinAplicatie")}</p>
-          <form onSubmit={verify2FA} className="space-y-4">
+          <form method="post" onSubmit={verify2FA} className="space-y-4">
             <input
               type="text"
               name="otp"
@@ -271,7 +271,7 @@ function LoginForm({ nextPath }: { nextPath: string }) {
       {info && !error && <InfoBanner text={info} />}
 
       {step === "email" && tab === "password" && (
-        <form onSubmit={submitPassword} className="space-y-4" noValidate>
+        <form method="post" onSubmit={submitPassword} className="space-y-4" noValidate>
           <FieldEmail value={email} onChange={setEmail} />
           <FieldPassword value={password} onChange={setPassword} autoComplete="current-password" />
           <PrimaryButton loading={loading} disabled={!email || !password}>
@@ -284,7 +284,7 @@ function LoginForm({ nextPath }: { nextPath: string }) {
       )}
 
       {step === "email" && tab === "otp" && (
-        <form
+        <form method="post"
           onSubmit={(e) => {
             e.preventDefault();
             if (email.trim()) sendOtp("login");
@@ -300,7 +300,7 @@ function LoginForm({ nextPath }: { nextPath: string }) {
       )}
 
       {step === "otp_code" && (
-        <form onSubmit={submitOtp} className="space-y-4" noValidate>
+        <form method="post" onSubmit={submitOtp} className="space-y-4" noValidate>
           {devOtp && <DevOtpBanner code={devOtp} />}
           <FieldOtp value={otp} onChange={setOtp} />
           <PrimaryButton loading={loading} disabled={otp.length !== 6}>

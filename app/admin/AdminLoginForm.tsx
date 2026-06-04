@@ -55,7 +55,7 @@ export default function AdminLoginForm({ mode }: AdminLoginFormProps) {
           </div>
 
           {mode === "login" ? (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form method="post" onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label htmlFor="admin-password" className="block text-sm font-bold text-[#0D0D0D] mb-2">
                   Admin password

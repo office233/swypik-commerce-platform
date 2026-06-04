@@ -220,7 +220,7 @@ export default function SecurityPageClient({
         </div>
       )}
 
-      <form onSubmit={submit} className="space-y-4">
+      <form method="post" onSubmit={submit} className="space-y-4">
         <PasswordField
           label={hasPassword ? t("parolaNoua") : t("parola")}
           value={password}
