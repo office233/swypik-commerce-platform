@@ -11,8 +11,8 @@ import {
   isCurrency,
   DEFAULT_LOCALE,
   DEFAULT_CURRENCY,
-import { safeJsonLd } from "@/lib/seo/json-ld";
 } from "@/lib/i18n/config";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 import type { Metadata } from "next";
 import { formatCurrency } from "@/lib/i18n/currency";
 
