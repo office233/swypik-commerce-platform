@@ -6,7 +6,7 @@
  *
  * Labels (strict order — higher wins):
  *   blocked   — illegal/hard-block content. NEVER publish anywhere.
- *   adult     — explicit sexual / 18+ content. Only allowed in Swypik 18+.
+ *   adult     - explicit sexual / adult-only content. Restricted to verified adults.
  *   sensitive — suggestive / sexualized but not explicit. Hidden from public
  *               Swypik general feed; allowed on opt-in 18+ surface.
  *   safe      — clean. Visible in main app.

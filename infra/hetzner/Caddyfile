@@ -159,14 +159,3 @@ www.swypik.com {
 	redir https://swypik.com{uri} 301
 }
 # -------------------------------------------------------
-# Swypik 18+ — DECOMMISSIONED 2026-05-28
-# Service removed; respond 410 Gone for SEO de-indexing.
-# -------------------------------------------------------
-18.swypik.com, media-adult.swypik.com {
-	header {
-		X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
-		Cache-Control "no-store"
-		-Server
-	}
-	respond "Gone" 410
-}

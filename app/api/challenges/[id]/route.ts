@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { isUuid } from "@/lib/validation/uuid";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export async function GET(
 ) {
   try {
     const { id: challengeId } = await params;
+    if (!isUuid(challengeId)) {
+      return NextResponse.json({ error: "Invalid challenge id" }, { status: 400 });
+    }
     
     // Get challenge detail
     const challengeRes = await dbQuery(`

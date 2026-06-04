@@ -18,7 +18,7 @@ const NON_LOCALIZED_PREFIXES = [
   "/api/",
   "/admin",
   "/seller",
-  "/auth/",
+  "/auth",
   "/onboarding",
   "/creator",
   "/feed.xml",
@@ -62,7 +62,6 @@ function allowedOrigins(req: NextRequest): string[] {
   if (envSite) out.add(envSite.replace(/\/$/, ""));
   out.add("https://swypik.com");
   out.add("https://www.swypik.com");
-  out.add("https://18.swypik.com");
   try {
     out.add(`${req.nextUrl.protocol}//${req.nextUrl.host}`);
   } catch {

@@ -51,14 +51,7 @@ export async function GET(_req: Request, context: RouteContext) {
       LIMIT 1`,
     [id]
   );
-  const driftAsset = Object.keys(canonicalAsset).length ? {} : await firstRow(
-    `SELECT * FROM video_assets
-      WHERE id::text = $1 OR upload_session_id::text = $1
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 1`,
-    [id]
-  );
-  const asset = Object.keys(canonicalAsset).length ? canonicalAsset : driftAsset;
+  const asset = canonicalAsset;
 
   const assetId = firstString(asset, "id");
   const videoId = firstString(video, "id") || firstString(asset, "video_id") || id;
@@ -70,14 +63,7 @@ export async function GET(_req: Request, context: RouteContext) {
       LIMIT 1`,
     [id]
   );
-  const driftSession = Object.keys(canonicalSession).length ? {} : await firstRow(
-    `SELECT * FROM video_upload_sessions
-      WHERE id::text = $1
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 1`,
-    [id]
-  );
-  const uploadSession = Object.keys(canonicalSession).length ? canonicalSession : driftSession;
+  const uploadSession = canonicalSession;
 
   const canonicalJob = await firstRow(
     `SELECT * FROM video_processing_jobs
@@ -86,14 +72,7 @@ export async function GET(_req: Request, context: RouteContext) {
       LIMIT 1`,
     [videoId, assetId || ""]
   );
-  const driftJob = Object.keys(canonicalJob).length ? {} : await firstRow(
-    `SELECT * FROM video_processing_jobs
-      WHERE id::text = $1 OR ($2::text <> '' AND video_asset_id::text = $2)
-      ORDER BY started_at DESC NULLS LAST
-      LIMIT 1`,
-    [id, assetId || ""]
-  );
-  const job = Object.keys(canonicalJob).length ? canonicalJob : driftJob;
+  const job = canonicalJob;
 
   if (!Object.keys(video).length && !Object.keys(asset).length && !Object.keys(uploadSession).length) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: { "Cache-Control": "no-store" } });

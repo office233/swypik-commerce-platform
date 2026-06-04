@@ -7,6 +7,7 @@ import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/sessio
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { VideoCommentPostSchema, parseBody } from "@/lib/validation/schemas";
+import { isUuid } from "@/lib/validation/uuid";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -45,6 +46,9 @@ export async function GET(
 ) {
   try {
     const { id: videoId } = await params;
+    if (!isUuid(videoId)) {
+      return NextResponse.json({ error: "Invalid video id" }, { status: 400 });
+    }
     const limit = parseLimit(request.nextUrl.searchParams.get("limit"));
     const page = parsePositiveInt(request.nextUrl.searchParams.get("page"), 1);
     const offset = (page - 1) * limit;
@@ -148,6 +152,9 @@ export async function POST(
 
   try {
     const { id: videoId } = await params;
+    if (!isUuid(videoId)) {
+      return NextResponse.json({ error: "Invalid video id" }, { status: 400 });
+    }
     const rawBody = await request.json().catch(() => null);
     const parsedBody = parseBody(VideoCommentPostSchema, rawBody);
     if (!parsedBody.ok) {

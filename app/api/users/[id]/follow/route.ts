@@ -3,6 +3,7 @@ import { getDb, dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { isUuid } from "@/lib/validation/uuid";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ export async function POST(
     const rl = await rateLimit("userFollow", currentUserId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     const { id: followingUserId } = await params;
+    if (!isUuid(followingUserId)) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
+    }
 
     if (currentUserId === followingUserId) {
       return NextResponse.json({ error: "Cannot follow yourself" }, { status: 400 });
@@ -94,6 +98,9 @@ export async function GET(
   try {
     const currentUserId = await getOptionalSocialUserId();
     const { id: followingUserId } = await params;
+    if (!isUuid(followingUserId)) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
+    }
 
     const [followRes, countRes] = await Promise.all([
       currentUserId

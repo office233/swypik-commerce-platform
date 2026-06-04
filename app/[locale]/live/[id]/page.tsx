@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
+import { isUuid } from "@/lib/validation/uuid";
 import LiveViewerClient from "./LiveViewerClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function LiveViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const { rows } = await dbQuery(
     `SELECT ls.id, ls.title, ls.description, ls.status, ls.hls_url, ls.viewer_count,
             ls.creator_id, u.username, u.display_name, u.avatar_url

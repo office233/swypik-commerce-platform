@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { isUuid } from "@/lib/validation/uuid";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuid(id)) {
+    return NextResponse.json({ languages: [] }, { status: 400 });
+  }
   const { rows } = await dbQuery<{ lang: string }>(
     `SELECT lang FROM video_captions WHERE video_id=$1 ORDER BY lang`,
     [id],

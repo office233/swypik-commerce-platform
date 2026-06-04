@@ -3,7 +3,7 @@
 -- Replaces the boolean is_adult with a richer { safe | sensitive | adult | blocked } label.
 --
 -- Filter rule in Swypik general (swypik.com):  label = 'safe'  (zero tolerance)
--- Filter rule in Swypik 18+ (18.swypik.com):   label IN ('adult')  (only verified adults)
+-- Adult-only filter rule: label IN ('adult') (only verified adults)
 -- 'blocked' is NEVER served anywhere.
 -- 'sensitive' is hidden by default; surface only on explicit opt-in flow.
 
@@ -52,4 +52,4 @@ SELECT
 FROM product_safety_labels;
 
 COMMENT ON TABLE product_safety_labels IS
-  'Trust & Safety classification per product. Filter `effective_label=safe` in Swypik general; only `effective_label=adult` shown on Swypik 18+ to verified users.';
+  'Trust & Safety classification per product. Filter `effective_label=safe` in Swypik general; `effective_label=adult` is restricted to verified adults.';
