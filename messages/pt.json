@@ -333,50 +333,6 @@
     "nuAiNicioComanda": "Ainda não tens encomendas.",
     "comanda": "Encomenda #"
   },
-  "chatInterface": {
-    "cumparaAcum": "Comprar agora",
-    "inapoiAcasa": "Voltar ao início",
-    "cosulMeu": "O meu carrinho",
-    "inchide": "Fechar",
-    "descopera": "Descobrir",
-    "colectiileMele": "As minhas coleções",
-    "contulMeu": "A minha conta",
-    "cosulMeu2": "O meu carrinho",
-    "incarcaClip": "Carregar vídeo",
-    "castiguri": "Ganhos",
-    "euGasescCeChiar": "Eu encontro o que realmente vale.",
-    "aiulTauDeShopping": "O teu assistente de compras com IA. Sem mais horas a procurar.",
-    "cautaPeSwypik": "Procurar na Swypik",
-    "cauta": "Procurar",
-    "intreabaAi": "Perguntar à IA",
-    "exploreazaCategorii": "Explorar categorias",
-    "calitatepretExcelent": "🏆 Qualidade-preço excelente",
-    "pretMaxim": "Preço máximo:",
-    "maiAfiseaza20Produse": "Mostrar +20 produtos (de",
-    "recomandatePentruTine": "Recomandate pentru tine",
-    "bundleAiCompleteazaSetul": "🎁 Bundle IA — Completa o conjunto",
-    "cos": "+ Carrinho",
-    "adaugaTotBundleul": "Adicionar todo o bundle —",
-    "aiAnalizeazaSiCauta": "🧠 IA a analisar e procurar as melhores opções...",
-    "stergeConversatia": "🗑️ Apagar conversa",
-    "seIncarca": "A carregar...",
-    "cosulTau": "O teu carrinho",
-    "cosulEsteGol": "O carrinho está vazio.",
-    "adaugaLaOfertaSi": "🔥 Adicionar à oferta e:",
-    "scrieCeCauti": "Escreve o que procuras...",
-    "incarca": "Carregar",
-    "completeazaBundleul": "Completar o bundle",
-    "maiVreiSiAsta": "Queres também isto?",
-    "mergeBineCuCe": "Combina bem com o que tens no carrinho.",
-    "inchide2": "Fechar",
-    "adaugaLaBundle": "Adicionar ao bundle",
-    "nuAcum": "Agora não",
-    "inchide3": "Fechar",
-    "cos2": "+ Carrinho",
-    "inchide4": "Fechar",
-    "deCeMeritaAi": "🧠 Por que vale — Análise IA",
-    "adaugaInCos": "Adicionar ao carrinho —"
-  },
   "recorder": {
     "inchide": "Fechar",
     "reincearca": "Tentar novamente",
@@ -593,12 +549,6 @@
     "actiuniProdus": "Ações do produto {name}",
     "veziPret": "Ver preço"
   },
-  "accountOrders": {
-    "nuAiComenziInca": "Ainda não tens encomendas.",
-    "comanda": "Encomenda #",
-    "data": "Data",
-    "pentruReturContacteazaSuportul": "Para devoluções, contacta o suporte (token de encomenda em falta)."
-  },
   "accountReturns": {
     "nuAiCereriDe": "Ainda não tens devoluções.",
     "potiSolicitaUnRetur": "Podes solicitar uma devolução na página de detalhes de uma encomenda entregue (em 30 dias).",
@@ -623,12 +573,6 @@
     "fotografii": "Fotos",
     "evidenta": "Prova {i}",
     "istoric": "Histórico"
-  },
-  "becomeacreator": {
-    "devinoCreatorPeSwypik": "Torna-te criador na Swypik",
-    "transformatiPasiuneaPentruShopping": "Transforma a tua paixão por compras numa fonte de rendimento. Publica vídeos,\n          recomenda produtos, ganha comissões.",
-    "logheazateCaSaContinui": "Inicia sessão para continuar",
-    "tePotiIntoarceOricand": "Podes voltar ao papel de comprador na tua conta a qualquer momento."
   },
   "challenges": {
     "provocariActive": "Desafios ativos",
@@ -758,16 +702,6 @@
     "peSwypik": "na Swypik",
     "swypikSocialShoppingUnde": "Swypik · compras sociais onde a comunidade decide o que vale."
   },
-  "ageverificationAgeVerification": {
-    "verificareVarsta": "Verificação de idade",
-    "necesarPentruAAccesa": "Necessário para aceder a conteúdo 18+ na Swypik.",
-    "verificatLa": "Verificado em:",
-    "dataNasterii": "Data de nascimento:",
-    "expiraLa": "Expira em:",
-    "folosimStripeIdentityPentru": "Usamos Stripe Identity para verificar o teu documento. Os dados são processados pela Stripe\n            de acordo com o GDPR. Guardamos apenas a data de nascimento e o país do documento.",
-    "afiseazaContinut18": "Mostrar conteúdo 18+",
-    "activeazaPentruAVedea": "Ativa para ver vídeos e produtos para adultos no feed."
-  },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Pedido de devolução registado. Entraremos em contacto em breve.",
     "solicitaRetur": "Solicitar devolução",
@@ -777,9 +711,6 @@
     "adaugaFotografie": "Adicionar foto",
     "seIncarca": "A carregar...",
     "renunta": "Cancelar"
-  },
-  "stripeConnectCard": {
-    "seVerificaStatusulStripe": "A verificar estado Stripe..."
   },
   "audioPicker": {
     "inchide": "Fechar",

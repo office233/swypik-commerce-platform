@@ -333,50 +333,6 @@
     "nuAiNicioComanda": "No tienes ningún pedido.",
     "comanda": "Pedido #"
   },
-  "chatInterface": {
-    "cumparaAcum": "Compra ahora",
-    "inapoiAcasa": "Volver a inicio",
-    "cosulMeu": "Mi carrito",
-    "inchide": "Cerrar",
-    "descopera": "Descubre",
-    "colectiileMele": "Mis colecciones",
-    "contulMeu": "Mi cuenta",
-    "cosulMeu2": "Mi carrito",
-    "incarcaClip": "Subir vídeo",
-    "castiguri": "Ganancias",
-    "euGasescCeChiar": "Yo encuentro lo que realmente vale.",
-    "aiulTauDeShopping": "Tu IA de compras personal. Sin horas perdidas buscando.",
-    "cautaPeSwypik": "Busca en Swypik",
-    "cauta": "Buscar",
-    "intreabaAi": "Pregunta a la IA",
-    "exploreazaCategorii": "Explorar categorías",
-    "calitatepretExcelent": "🏆 Relación calidad-precio excelente",
-    "pretMaxim": "Precio máximo:",
-    "maiAfiseaza20Produse": "Mostrar +20 productos (de",
-    "recomandatePentruTine": "Recomandate pentru tine",
-    "bundleAiCompleteazaSetul": "🎁 Bundle IA — Completa el set",
-    "cos": "+ Carrito",
-    "adaugaTotBundleul": "Añade todo el bundle —",
-    "aiAnalizeazaSiCauta": "🧠 La IA analiza y busca las mejores opciones...",
-    "stergeConversatia": "🗑️ Borrar conversación",
-    "seIncarca": "Cargando...",
-    "cosulTau": "Tu carrito",
-    "cosulEsteGol": "El carrito está vacío.",
-    "adaugaLaOfertaSi": "🔥 Añade a oferta y:",
-    "scrieCeCauti": "Escribe lo que buscas...",
-    "incarca": "Cargar",
-    "completeazaBundleul": "Completa el bundle",
-    "maiVreiSiAsta": "¿Quieres esto también?",
-    "mergeBineCuCe": "Combina bien con lo que tienes en el carrito.",
-    "inchide2": "Cerrar",
-    "adaugaLaBundle": "Añadir al bundle",
-    "nuAcum": "Ahora no",
-    "inchide3": "Cerrar",
-    "cos2": "+ Carrito",
-    "inchide4": "Cerrar",
-    "deCeMeritaAi": "🧠 Por qué merece — Análisis IA",
-    "adaugaInCos": "Añadir al carrito —"
-  },
   "recorder": {
     "inchide": "Cerrar",
     "reincearca": "Reintentar",
@@ -593,12 +549,6 @@
     "actiuniProdus": "Acciones del producto {name}",
     "veziPret": "Ver precio"
   },
-  "accountOrders": {
-    "nuAiComenziInca": "Aún no tienes pedidos.",
-    "comanda": "Pedido #",
-    "data": "Fecha",
-    "pentruReturContacteazaSuportul": "Para devolver, contacta con soporte (falta token de pedido)."
-  },
   "accountReturns": {
     "nuAiCereriDe": "No tienes solicitudes de devolución.",
     "potiSolicitaUnRetur": "Puedes solicitar una devolución desde la página de detalle de un pedido entregado (en 30 días).",
@@ -623,12 +573,6 @@
     "fotografii": "Fotos",
     "evidenta": "Prueba {i}",
     "istoric": "Historial"
-  },
-  "becomeacreator": {
-    "devinoCreatorPeSwypik": "Conviértete en creator en Swypik",
-    "transformatiPasiuneaPentruShopping": "Convierte tu pasión por las compras en ingresos. Sube vídeos, recomienda productos, gana comisiones.",
-    "logheazateCaSaContinui": "Inicia sesión para continuar",
-    "tePotiIntoarceOricand": "Puedes volver al rol de comprador desde tu cuenta cuando quieras."
   },
   "challenges": {
     "provocariActive": "Retos activos",
@@ -758,16 +702,6 @@
     "peSwypik": "en Swypik",
     "swypikSocialShoppingUnde": "Swypik · compra social donde la comunidad decide qué merece la pena."
   },
-  "ageverificationAgeVerification": {
-    "verificareVarsta": "Verificación de edad",
-    "necesarPentruAAccesa": "Necesario para acceder a contenido 18+ en Swypik.",
-    "verificatLa": "Verificado el:",
-    "dataNasterii": "Fecha de nacimiento:",
-    "expiraLa": "Expira el:",
-    "folosimStripeIdentityPentru": "Usamos Stripe Identity para verificar tu documento. Los datos se procesan según GDPR. Solo almacenamos tu fecha de nacimiento y país del documento.",
-    "afiseazaContinut18": "Mostrar contenido 18+",
-    "activeazaPentruAVedea": "Activa para ver vídeos y productos para adultos en tu feed."
-  },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Tu solicitud de devolución ha sido registrada. Nos pondremos en contacto pronto.",
     "solicitaRetur": "Solicitar devolución",
@@ -777,9 +711,6 @@
     "adaugaFotografie": "Añadir foto",
     "seIncarca": "Cargando...",
     "renunta": "Cancelar"
-  },
-  "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Verificando estado de Stripe..."
   },
   "audioPicker": {
     "inchide": "Cerrar",

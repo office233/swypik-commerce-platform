@@ -333,50 +333,6 @@
     "nuAiNicioComanda": "No orders yet.",
     "comanda": "Order #"
   },
-  "chatInterface": {
-    "cumparaAcum": "Buy now",
-    "inapoiAcasa": "Back home",
-    "cosulMeu": "My cart",
-    "inchide": "Close",
-    "descopera": "Explore",
-    "colectiileMele": "My collections",
-    "contulMeu": "My account",
-    "cosulMeu2": "My cart",
-    "incarcaClip": "Upload clip",
-    "castiguri": "Wins",
-    "euGasescCeChiar": "I find what actually matters.",
-    "aiulTauDeShopping": "Your personal shopping AI. Stop wasting hours searching.",
-    "cautaPeSwypik": "Search Swypik",
-    "cauta": "Search",
-    "intreabaAi": "Ask AI",
-    "exploreazaCategorii": "Browse categories",
-    "calitatepretExcelent": "🏆 Best value for money",
-    "pretMaxim": "Max price:",
-    "maiAfiseaza20Produse": "Show +20 more (from",
-    "recomandatePentruTine": "Recommended for you",
-    "bundleAiCompleteazaSetul": "🎁 AI Bundle — Complete the set",
-    "cos": "+ Cart",
-    "adaugaTotBundleul": "Add whole bundle —",
-    "aiAnalizeazaSiCauta": "🧠 AI analyzing and finding the best options...",
-    "stergeConversatia": "🗑️ Clear chat",
-    "seIncarca": "Loading...",
-    "cosulTau": "Your cart",
-    "cosulEsteGol": "Cart is empty.",
-    "adaugaLaOfertaSi": "🔥 Add to deal and:",
-    "scrieCeCauti": "What are you looking for?",
-    "incarca": "Upload",
-    "completeazaBundleul": "Complete the bundle",
-    "maiVreiSiAsta": "Want this too?",
-    "mergeBineCuCe": "Pairs well with what's in your cart.",
-    "inchide2": "Close",
-    "adaugaLaBundle": "Add to bundle",
-    "nuAcum": "Not now",
-    "inchide3": "Close",
-    "cos2": "+ Cart",
-    "inchide4": "Close",
-    "deCeMeritaAi": "🧠 Why it's worth it — AI Analysis",
-    "adaugaInCos": "Add to cart —"
-  },
   "recorder": {
     "inchide": "Close",
     "reincearca": "Retry",
@@ -593,12 +549,6 @@
     "actiuniProdus": "Actions for {name}",
     "veziPret": "See price"
   },
-  "accountOrders": {
-    "nuAiComenziInca": "No orders yet.",
-    "comanda": "Order #",
-    "data": "Date",
-    "pentruReturContacteazaSuportul": "For returns, contact support (missing order token)."
-  },
   "accountReturns": {
     "nuAiCereriDe": "No return requests.",
     "potiSolicitaUnRetur": "You can request a return from an order's details page (within 30 days of delivery).",
@@ -623,12 +573,6 @@
     "fotografii": "Photos",
     "evidenta": "Proof {i}",
     "istoric": "History"
-  },
-  "becomeacreator": {
-    "devinoCreatorPeSwypik": "Become a Swypik Creator",
-    "transformatiPasiuneaPentruShopping": "Turn your shopping passion into income. Post clips, recommend products, earn commissions.",
-    "logheazateCaSaContinui": "Sign in to continue",
-    "tePotiIntoarceOricand": "You can switch back to shopping anytime in your account."
   },
   "challenges": {
     "provocariActive": "Active Challenges",
@@ -758,16 +702,6 @@
     "peSwypik": "on Swypik",
     "swypikSocialShoppingUnde": "Swypik · social shopping where the community decides what's worth it."
   },
-  "ageverificationAgeVerification": {
-    "verificareVarsta": "Age Verification",
-    "necesarPentruAAccesa": "Required to access 18+ content on Swypik.",
-    "verificatLa": "Verified:",
-    "dataNasterii": "Date of birth:",
-    "expiraLa": "Expires:",
-    "folosimStripeIdentityPentru": "We use Stripe Identity to verify your document. Data is processed by Stripe under GDPR. We only store your birth date and document country.",
-    "afiseazaContinut18": "Show 18+ content",
-    "activeazaPentruAVedea": "Turn on to see adult videos and products in your feed."
-  },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Return request submitted. We'll be in touch soon.",
     "solicitaRetur": "Request return",
@@ -777,9 +711,6 @@
     "adaugaFotografie": "Add photo",
     "seIncarca": "Loading...",
     "renunta": "Cancel"
-  },
-  "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Checking Stripe status..."
   },
   "audioPicker": {
     "inchide": "Close",

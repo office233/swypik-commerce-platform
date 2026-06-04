@@ -6,7 +6,7 @@ import { runCron } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
-const BATCH = 50;
+const BATCH = Number(process.env.EMBED_BATCH_SIZE || 100);
 
 async function authorize(req: Request) {
   const authHeader = req.headers.get("authorization");
@@ -35,7 +35,7 @@ async function processProducts(): Promise<{ done: number; errors: number; lastEr
         WHERE embedding IS NULL
            OR embedding_updated_at IS NULL
            OR embedding_updated_at < updated_at
-        ORDER BY updated_at DESC NULLS LAST
+        ORDER BY (embedding IS NULL) DESC, updated_at DESC NULLS LAST
         LIMIT $1`,
       [BATCH]
     );
@@ -78,7 +78,7 @@ async function processVideos(): Promise<{ done: number; errors: number; lastErro
            OR embedding_updated_at IS NULL
            OR embedding_updated_at < updated_at)
           AND COALESCE(is_hidden, false) = false
-        ORDER BY updated_at DESC NULLS LAST
+        ORDER BY (embedding IS NULL) DESC, updated_at DESC NULLS LAST
         LIMIT $1`,
       [BATCH]
     );

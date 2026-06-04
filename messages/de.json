@@ -333,50 +333,6 @@
     "nuAiNicioComanda": "Du hast noch keine Bestellungen.",
     "comanda": "Bestellung #"
   },
-  "chatInterface": {
-    "cumparaAcum": "Jetzt kaufen",
-    "inapoiAcasa": "Zurück nach Hause",
-    "cosulMeu": "Mein Warenkorb",
-    "inchide": "Schließen",
-    "descopera": "Entdecken",
-    "colectiileMele": "Meine Sammlungen",
-    "contulMeu": "Mein Konto",
-    "cosulMeu2": "Mein Warenkorb",
-    "incarcaClip": "Clip hochladen",
-    "castiguri": "Gewinne",
-    "euGasescCeChiar": "Ich finde, was wirklich zählt.",
-    "aiulTauDeShopping": "Dein persönlicher Shopping-AI. Keine Stunden mehr Suchen.",
-    "cautaPeSwypik": "Auf Swypik suchen",
-    "cauta": "Suchen",
-    "intreabaAi": "AI fragen",
-    "exploreazaCategorii": "Kategorien erkunden",
-    "calitatepretExcelent": "🏆 Hervorragendes Preis-Leistungs-Verhältnis",
-    "pretMaxim": "Höchstpreis:",
-    "maiAfiseaza20Produse": "Zeige +20 Produkte mehr (von",
-    "recomandatePentruTine": "Recomandate pentru tine",
-    "bundleAiCompleteazaSetul": "🎁 AI-Bundle — Komplettiere dein Set",
-    "cos": "+ Warenkorb",
-    "adaugaTotBundleul": "Ganzes Bundle hinzufügen —",
-    "aiAnalizeazaSiCauta": "🧠 AI analysiert und findet die besten Optionen...",
-    "stergeConversatia": "🗑️ Chat löschen",
-    "seIncarca": "Wird geladen...",
-    "cosulTau": "Dein Warenkorb",
-    "cosulEsteGol": "Warenkorb ist leer.",
-    "adaugaLaOfertaSi": "🔥 Zum Angebot hinzufügen und:",
-    "scrieCeCauti": "Was suchst du?",
-    "incarca": "Hochladen",
-    "completeazaBundleul": "Bundle komplettieren",
-    "maiVreiSiAsta": "Möchtest du das auch?",
-    "mergeBineCuCe": "Passt perfekt zu dem, was du im Warenkorb hast.",
-    "inchide2": "Schließen",
-    "adaugaLaBundle": "Zum Bundle hinzufügen",
-    "nuAcum": "Nicht jetzt",
-    "inchide3": "Schließen",
-    "cos2": "+ Warenkorb",
-    "inchide4": "Schließen",
-    "deCeMeritaAi": "🧠 Warum es sich lohnt — AI-Analyse",
-    "adaugaInCos": "In den Warenkorb —"
-  },
   "recorder": {
     "inchide": "Schließen",
     "reincearca": "Erneut versuchen",
@@ -593,12 +549,6 @@
     "actiuniProdus": "Aktionen für {name}",
     "veziPret": "Preis anzeigen"
   },
-  "accountOrders": {
-    "nuAiComenziInca": "Du hast noch keine Bestellungen.",
-    "comanda": "Bestellung #",
-    "data": "Datum",
-    "pentruReturContacteazaSuportul": "Für Rückgaben kontaktiere den Support (Bestelltoken fehlt)."
-  },
   "accountReturns": {
     "nuAiCereriDe": "Du hast keine Rücksendeanfragen.",
     "potiSolicitaUnRetur": "Du kannst eine Rücksendung auf der Detailseite einer gelieferten Bestellung anfordern (innerhalb von 30 Tagen).",
@@ -623,12 +573,6 @@
     "fotografii": "Fotos",
     "evidenta": "Übersicht {i}",
     "istoric": "Verlauf"
-  },
-  "becomeacreator": {
-    "devinoCreatorPeSwypik": "Devino creator pe Swypik",
-    "transformatiPasiuneaPentruShopping": "Verwandle deine Leidenschaft fürs Shopping in Einnahmen. Poste Videos, empfehle Produkte, verdiene Provisionen.",
-    "logheazateCaSaContinui": "Melde dich an, um fortzufahren",
-    "tePotiIntoarceOricand": "Du kannst jederzeit in deinem Konto zur Käufer-Rolle zurückwechseln."
   },
   "challenges": {
     "provocariActive": "Aktive Challenges",
@@ -758,16 +702,6 @@
     "peSwypik": "auf Swypik",
     "swypikSocialShoppingUnde": "Swypik · Social Shopping, wo die Community entscheidet."
   },
-  "ageverificationAgeVerification": {
-    "verificareVarsta": "Altersverifikation",
-    "necesarPentruAAccesa": "Erforderlich, um auf 18+-Inhalte auf Swypik zuzugreifen.",
-    "verificatLa": "Verifiziert am:",
-    "dataNasterii": "Geburtsdatum:",
-    "expiraLa": "Verfällt am:",
-    "folosimStripeIdentityPentru": "Wir verwenden Stripe Identity zur Dokumentenverifikation. Die Daten werden von Stripe gemäß GDPR verarbeitet. Wir speichern nur das Geburtsdatum und das Land des Dokuments.",
-    "afiseazaContinut18": "18+-Inhalte anzeigen",
-    "activeazaPentruAVedea": "Aktivieren, um Videos und Produkte für Erwachsene im Feed zu sehen."
-  },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Rückgabeanfrage eingegangen. Wir kontaktieren dich bald.",
     "solicitaRetur": "Rückgabe anfordern",
@@ -777,9 +711,6 @@
     "adaugaFotografie": "Foto hinzufügen",
     "seIncarca": "Wird geladen...",
     "renunta": "Abbrechen"
-  },
-  "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Stripe-Status wird überprüft..."
   },
   "audioPicker": {
     "inchide": "Schließen",

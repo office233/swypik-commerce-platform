@@ -333,50 +333,6 @@
     "nuAiNicioComanda": "Non hai nessun ordine.",
     "comanda": "Ordine #"
   },
-  "chatInterface": {
-    "cumparaAcum": "Compra ora",
-    "inapoiAcasa": "Torna a casa",
-    "cosulMeu": "Il mio carrello",
-    "inchide": "Chiudi",
-    "descopera": "Scopri",
-    "colectiileMele": "Le mie collezioni",
-    "contulMeu": "Il mio account",
-    "cosulMeu2": "Il mio carrello",
-    "incarcaClip": "Carica clip",
-    "castiguri": "Guadagni",
-    "euGasescCeChiar": "Trovo quello che davvero vale.",
-    "aiulTauDeShopping": "Il tuo shopping assistant AI. Non sprecare più ore a cercare.",
-    "cautaPeSwypik": "Cerca su Swypik",
-    "cauta": "Cerca",
-    "intreabaAi": "Chiedi all'AI",
-    "exploreazaCategorii": "Esplora categorie",
-    "calitatepretExcelent": "🏆 Qualità-prezzo eccellente",
-    "pretMaxim": "Prezzo massimo:",
-    "maiAfiseaza20Produse": "Mostra altri +20 prodotti (da",
-    "recomandatePentruTine": "Consigliati per te",
-    "bundleAiCompleteazaSetul": "🎁 Bundle AI — Completa il set",
-    "cos": "+ Carrello",
-    "adaugaTotBundleul": "Aggiungi tutto il bundle —",
-    "aiAnalizeazaSiCauta": "🧠 L'AI analizza e cerca le migliori opzioni...",
-    "stergeConversatia": "🗑️ Cancella conversazione",
-    "seIncarca": "Caricamento...",
-    "cosulTau": "Il tuo carrello",
-    "cosulEsteGol": "Il carrello è vuoto.",
-    "adaugaLaOfertaSi": "🔥 Aggiungi all'offerta e:",
-    "scrieCeCauti": "Scrivi cosa cerchi...",
-    "incarca": "Carica",
-    "completeazaBundleul": "Completa il bundle",
-    "maiVreiSiAsta": "Ti piacerebbe anche questo?",
-    "mergeBineCuCe": "Sta bene con quello che hai nel carrello.",
-    "inchide2": "Chiudi",
-    "adaugaLaBundle": "Aggiungi al bundle",
-    "nuAcum": "Non ora",
-    "inchide3": "Chiudi",
-    "cos2": "+ Carrello",
-    "inchide4": "Chiudi",
-    "deCeMeritaAi": "🧠 Perché vale — Analisi AI",
-    "adaugaInCos": "Aggiungi al carrello —"
-  },
   "recorder": {
     "inchide": "Chiudi",
     "reincearca": "Riprova",
@@ -593,12 +549,6 @@
     "actiuniProdus": "Azioni prodotto {name}",
     "veziPret": "Vedi prezzo"
   },
-  "accountOrders": {
-    "nuAiComenziInca": "Non hai ancora ordini.",
-    "comanda": "Ordine #",
-    "data": "Data",
-    "pentruReturContacteazaSuportul": "Per i resi, contatta il supporto (token ordine mancante)."
-  },
   "accountReturns": {
     "nuAiCereriDe": "Non hai richieste di reso.",
     "potiSolicitaUnRetur": "Puoi richiedere un reso dalla pagina dettagli di un ordine consegnato (entro 30 giorni).",
@@ -623,12 +573,6 @@
     "fotografii": "Foto",
     "evidenta": "Prova {i}",
     "istoric": "Cronologia"
-  },
-  "becomeacreator": {
-    "devinoCreatorPeSwypik": "Diventa creator su Swypik",
-    "transformatiPasiuneaPentruShopping": "Trasforma la tua passione per lo shopping in guadagni. Posta video, consiglia prodotti, guadagna commissioni.",
-    "logheazateCaSaContinui": "Accedi per continuare",
-    "tePotiIntoarceOricand": "Puoi tornare al ruolo di acquirente dal tuo account quando vuoi."
   },
   "challenges": {
     "provocariActive": "Sfide attive",
@@ -758,16 +702,6 @@
     "peSwypik": "su Swypik",
     "swypikSocialShoppingUnde": "Swypik · social shopping dove la comunità decide cosa vale."
   },
-  "ageverificationAgeVerification": {
-    "verificareVarsta": "Verifica dell'età",
-    "necesarPentruAAccesa": "Necessario per accedere ai contenuti 18+ su Swypik.",
-    "verificatLa": "Verificato il:",
-    "dataNasterii": "Data di nascita:",
-    "expiraLa": "Scade il:",
-    "folosimStripeIdentityPentru": "Usiamo Stripe Identity per verificare il tuo documento. I dati vengono elaborati da Stripe secondo il GDPR. Conserviamo solo la data di nascita e il paese del documento.",
-    "afiseazaContinut18": "Mostra contenuti 18+",
-    "activeazaPentruAVedea": "Attiva per vedere video e prodotti per adulti nel feed."
-  },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "La richiesta di reso è stata registrata. Ti contatteremo presto.",
     "solicitaRetur": "Richiedi reso",
@@ -777,9 +711,6 @@
     "adaugaFotografie": "Aggiungi foto",
     "seIncarca": "Caricamento...",
     "renunta": "Annulla"
-  },
-  "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Verifica dello stato Stripe..."
   },
   "audioPicker": {
     "inchide": "Chiudi",
