@@ -211,7 +211,25 @@ export function middleware(request: NextRequest) {
     return redirectTo(request, gatedTarget, gatedTarget.endsWith("/account"));
   }
 
-  // 4) Delegăm restul (locale resolution, rewrite, cookie set) către next-intl.
+  // 4) Cookie-based locale redirect: dacă userul a ales o limbă diferită de
+  //    default prin /api/i18n/preferences (cookie swypik_locale), dar URL-ul
+  //    nu are prefix de limbă, redirectăm la /<locale>/<path> astfel încât
+  //    next-intl să poată servi conținutul corect (RSC ignoră cookie-uri în
+  //    cache; URL-prefix e singura sursă fiabilă).
+  if (!isNonLocalized(pathname) && prefix === "") {
+    const cookieLocale = cookies.get("swypik_locale")?.value;
+    if (
+      cookieLocale &&
+      cookieLocale !== routing.defaultLocale &&
+      (routing.locales as readonly string[]).includes(cookieLocale)
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${cookieLocale}${pathname === "/" ? "" : pathname}`;
+      return NextResponse.redirect(url, 307);
+    }
+  }
+
+  // 5) Delegăm restul (locale resolution, rewrite, cookie set) către next-intl.
   return intlMiddleware(request);
 }
 

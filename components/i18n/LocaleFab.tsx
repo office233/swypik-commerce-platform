@@ -75,10 +75,16 @@ export default function LocaleFab() {
       } catch {
         document.cookie = `swypik_locale=${loc}; Path=/; Max-Age=31536000; SameSite=Lax`;
       }
-      // Hard reload guarantees ALL server components + middleware re-resolve
-      // the locale cookie. router.refresh() alone leaves client cache stale
-      // on routes with client islands.
-      window.location.reload();
+      // Compute target URL: strip current locale prefix, then prepend the new
+      // one (unless it's the default — then no prefix). Hard navigation ensures
+      // middleware re-runs and ALL RSC payloads are re-fetched for new locale.
+      const stripped =
+        pathname.replace(/^\/(?:en|es|fr|de|pt|it)(?=\/|$)/, "") || "/";
+      const target =
+        loc === "ro"
+          ? stripped
+          : `/${loc}${stripped === "/" ? "" : stripped}`;
+      window.location.href = target + window.location.search + window.location.hash;
     });
   };
 
