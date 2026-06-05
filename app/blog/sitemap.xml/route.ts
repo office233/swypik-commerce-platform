@@ -8,7 +8,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 const LOCALES = ["ro", "en"] as const;
 
 /**
- * /blog/sitemap.xml ??? referenced by the root sitemap index.
+ * /blog/sitemap.xml \u2014 referenced by the root sitemap index.
  * Lists /blog and /en/blog plus every published article URL in both locales,
  * with xhtml:link hreflang annotations so Google indexes both variants.
  */

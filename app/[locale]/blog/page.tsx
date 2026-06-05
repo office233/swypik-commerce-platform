@@ -4,7 +4,7 @@ import Image from "next/image";
 import { listBlogArticles } from "@/lib/db/blog-queries";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 300; // ISR ??? refresh every 5 min
+export const revalidate = 300; // ISR \u2014 refresh every 5 min
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 
@@ -13,17 +13,17 @@ type Props = { params: Promise<{ locale: string }> };
 const T = {
   ro: {
     metaTitle: "Ghiduri & Recenzii Produse | Swypik",
-    metaDesc: "Ghiduri ??i recenzii produse testate de echipa Swypik. Top-uri, compara??ii ??i recomand??ri oneste pentru cump??r??turi mai inteligente.",
-    keywords: "ghiduri produse, recenzii, top produse, recomand??ri, swypik blog",
-    ogDesc: "Articole testate de noi. Produse care merit?? banii t??i.",
+    metaDesc: "Ghiduri și recenzii produse testate de echipa Swypik. Top-uri, comparații și recomandări oneste pentru cumpărături mai inteligente.",
+    keywords: "ghiduri produse, recenzii, top produse, recomandări, swypik blog",
+    ogDesc: "Articole testate de noi. Produse care merită banii tăi.",
     breadcrumb: "Ghiduri",
     h1: "Ghiduri & Recenzii",
-    subtitle: "Articole testate de echipa noastr?? ??? produse curate, compara??ii cinstite, recomand??ri care chiar merit?? banii.",
-    empty: "??n cur??nd ??? primele articole se public??.",
+    subtitle: "Articole testate de echipa noastră — produse curate, comparații cinstite, recomandări care chiar merită banii.",
+    empty: "În curând — primele articole se publică.",
     read: "min citire",
     products: "produse",
     collectionName: "Ghiduri & Recenzii Swypik",
-    collectionDesc: "Recenzii ??i ghiduri produse testate de echipa Swypik.",
+    collectionDesc: "Recenzii și ghiduri produse testate de echipa Swypik.",
   },
   en: {
     metaTitle: "Product Guides & Reviews | Swypik",
@@ -32,8 +32,8 @@ const T = {
     ogDesc: "Articles tested by us. Products actually worth your money.",
     breadcrumb: "Guides",
     h1: "Guides & Reviews",
-    subtitle: "Articles tested by our team ??? curated products, honest comparisons, recommendations actually worth your money.",
-    empty: "Coming soon ??? first articles are being published.",
+    subtitle: "Articles tested by our team — curated products, honest comparisons, recommendations actually worth your money.",
+    empty: "Coming soon — first articles are being published.",
     read: "min read",
     products: "products",
     collectionName: "Swypik Guides & Reviews",
@@ -117,7 +117,7 @@ export default async function BlogIndexPage({ params }: Props) {
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <nav className="text-sm text-zinc-500 mb-4">
             <Link href="/" className="hover:text-[#7C3AED]">Swypik</Link>
-            <span className="mx-2">???</span>
+            <span className="mx-2">\u2014</span>
             <span className="text-zinc-900">{tt.breadcrumb}</span>
           </nav>
           <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight">
@@ -142,7 +142,7 @@ export default async function BlogIndexPage({ params }: Props) {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         {articles.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-5xl mb-4">????</div>
+            <div className="text-5xl mb-4">\ud83d\udceb</div>
             <p className="text-zinc-600">{tt.empty}</p>
           </div>
         ) : (
@@ -167,7 +167,7 @@ export default async function BlogIndexPage({ params }: Props) {
                 <div className="p-5">
                   <div className="text-xs text-zinc-500 mb-2 flex items-center gap-2">
                     {a.category ? <span className="font-bold uppercase tracking-wider text-[#7C3AED]">{a.category}</span> : null}
-                    <span>???</span>
+                    <span>\u2014</span>
                     <span>{a.readTimeMin} {tt.read}</span>
                   </div>
                   <h2 className="font-bold text-lg leading-snug text-[#0D0D0D] line-clamp-2">{a.title}</h2>
@@ -188,8 +188,8 @@ export default async function BlogIndexPage({ params }: Props) {
                     <span className="font-semibold text-zinc-700">{a.authorName}</span>
                     {a.linkedProductCount > 0 ? (
                       <>
-                        <span>???</span>
-                        <span>???? {a.linkedProductCount} {tt.products}</span>
+                        <span>\u2014</span>
+                        <span>\ud83d\uded2 {a.linkedProductCount} {tt.products}</span>
                       </>
                     ) : null}
                   </div>

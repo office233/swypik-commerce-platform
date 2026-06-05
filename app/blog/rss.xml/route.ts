@@ -21,7 +21,7 @@ function rfc822(d: string | null): string {
 }
 
 /**
- * /blog/rss.xml ??? Blog feed (RO by default; ?locale=en for EN).
+ * /blog/rss.xml \u2014 Blog feed (RO by default; ?locale=en for EN).
  * Lists the 30 most recently published guides. RSS 2.0 + Atom self link.
  */
 export async function GET(req: Request) {

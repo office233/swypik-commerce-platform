@@ -13,8 +13,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 type Props = { params: Promise<{ slug: string; locale: string }> };
 
 const T = {
-  ro: { notFound: "Articol neg??sit | Swypik", fallbackDesc: "Ghid Swypik", guides: "Ghiduri", read: "min citire", backHub: "??? Vezi toate ghidurile" },
-  en: { notFound: "Article not found | Swypik", fallbackDesc: "Swypik Guide", guides: "Guides", read: "min read", backHub: "??? See all guides" },
+  ro: { notFound: "Articol negăsit | Swypik", fallbackDesc: "Ghid Swypik", guides: "Ghiduri", read: "min citire", backHub: "\u2190 Vezi toate ghidurile" },
+  en: { notFound: "Article not found | Swypik", fallbackDesc: "Swypik Guide", guides: "Guides", read: "min read", backHub: "\u2190 See all guides" },
 } as const;
 function tStrings(loc: string) { return (T as any)[loc] || T.ro; }
 
@@ -121,9 +121,9 @@ export default async function BlogArticlePage({ params }: Props) {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6">
         <nav className="text-xs text-zinc-500">
           <Link href="/" className="hover:text-[#7C3AED]">Swypik</Link>
-          <span className="mx-1.5">???</span>
+          <span className="mx-1.5">\u2014</span>
           <Link href={`${localePrefix}/blog`} className="hover:text-[#7C3AED]">{tt.guides}</Link>
-          <span className="mx-1.5">???</span>
+          <span className="mx-1.5">\u2014</span>
           <span className="text-zinc-700 truncate">{article.title}</span>
         </nav>
       </div>
@@ -162,7 +162,7 @@ export default async function BlogArticlePage({ params }: Props) {
               {article.readTimeMin} {tt.read}
               {article.publishedAt ? (
                 <>
-                  {" ??? "}
+                  {" \u2014 "}
                   <time dateTime={article.publishedAt}>
                     {new Date(article.publishedAt).toLocaleDateString(locale === "en" ? "en-US" : "ro-RO", {
                       year: "numeric", month: "long", day: "numeric",
@@ -191,7 +191,7 @@ export default async function BlogArticlePage({ params }: Props) {
         </div>
       ) : null}
 
-      {/* Body ??? renders MDX with <InlineProductCard /> hydration */}
+      {/* Body \u2014 renders MDX with <InlineProductCard /> hydration */}
       <article className="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
         <BlogArticleBody mdx={article.bodyMdx} />
       </article>
