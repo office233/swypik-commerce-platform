@@ -41,6 +41,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         en: `${BASE_URL}/en/blog/${article.slug}`,
         "x-default": `${BASE_URL}/blog/${article.slug}`,
       },
+      types: {
+        "application/rss+xml": locale === "en"
+          ? `${BASE_URL}/blog/rss.xml?locale=en`
+          : `${BASE_URL}/blog/rss.xml`,
+      },
     },
     openGraph: {
       title,
