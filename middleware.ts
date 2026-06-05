@@ -24,6 +24,7 @@ const NON_LOCALIZED_PREFIXES = [
   "/feed.xml",
   "/sitemap.xml",
   "/blog/sitemap.xml",
+  "/blog/rss.xml",
   "/static-sitemap.xml",
   "/products/sitemap",
   "/videos/sitemap.xml",
