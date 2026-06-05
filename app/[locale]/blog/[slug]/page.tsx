@@ -10,17 +10,25 @@ export const revalidate = 300;
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string; locale: string }> };
+
+const T = {
+  ro: { notFound: "Articol neg??sit | Swypik", fallbackDesc: "Ghid Swypik", guides: "Ghiduri", read: "min citire", backHub: "??? Vezi toate ghidurile" },
+  en: { notFound: "Article not found | Swypik", fallbackDesc: "Swypik Guide", guides: "Guides", read: "min read", backHub: "??? See all guides" },
+} as const;
+function tStrings(loc: string) { return (T as any)[loc] || T.ro; }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const article = await getBlogArticleBySlug(slug);
-  if (!article) return { title: "Articol negăsit | Swypik" };
+  const { slug, locale } = await params;
+  const tt = tStrings(locale);
+  const article = await getBlogArticleBySlug(slug, locale);
+  if (!article) return { title: tt.notFound };
 
   const title = article.seoTitle || `${article.title} | Swypik`;
-  const description = article.seoDescription || article.excerpt || "Ghid Swypik";
+  const description = article.seoDescription || article.excerpt || tt.fallbackDesc;
   const ogImage = article.ogImageUrl || article.heroImageUrl || `${BASE_URL}/og-preview.webp`;
-  const canonical = `${BASE_URL}/blog/${article.slug}`;
+  const localePrefix = locale && locale !== "ro" ? `/${locale}` : "";
+  const canonical = `${BASE_URL}${localePrefix}/blog/${article.slug}`;
 
   return {
     title,
@@ -47,11 +55,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function BlogArticlePage({ params }: Props) {
-  const { slug } = await params;
-  const article = await getBlogArticleBySlug(slug);
+  const { slug, locale } = await params;
+  const tt = tStrings(locale);
+  const article = await getBlogArticleBySlug(slug, locale);
   if (!article) notFound();
 
-  const canonical = `${BASE_URL}/blog/${article.slug}`;
+  const localePrefix = locale && locale !== "ro" ? `/${locale}` : "";
+  const canonical = `${BASE_URL}${localePrefix}/blog/${article.slug}`;
   const publishedISO = article.publishedAt || new Date().toISOString();
 
   return (
@@ -88,7 +98,7 @@ export default async function BlogArticlePage({ params }: Props) {
             "@type": "BreadcrumbList",
             itemListElement: [
               { "@type": "ListItem", position: 1, name: "Swypik", item: BASE_URL },
-              { "@type": "ListItem", position: 2, name: "Ghiduri", item: `${BASE_URL}/blog` },
+              { "@type": "ListItem", position: 2, name: tt.guides, item: `${BASE_URL}${localePrefix}/blog` },
               { "@type": "ListItem", position: 3, name: article.title, item: canonical },
             ],
           }),
@@ -99,9 +109,9 @@ export default async function BlogArticlePage({ params }: Props) {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6">
         <nav className="text-xs text-zinc-500">
           <Link href="/" className="hover:text-[#7C3AED]">Swypik</Link>
-          <span className="mx-1.5">›</span>
-          <Link href="/blog" className="hover:text-[#7C3AED]">Ghiduri</Link>
-          <span className="mx-1.5">›</span>
+          <span className="mx-1.5">???</span>
+          <Link href={`${localePrefix}/blog`} className="hover:text-[#7C3AED]">{tt.guides}</Link>
+          <span className="mx-1.5">???</span>
           <span className="text-zinc-700 truncate">{article.title}</span>
         </nav>
       </div>
@@ -137,12 +147,12 @@ export default async function BlogArticlePage({ params }: Props) {
           <div>
             <div className="font-bold text-[#0D0D0D]">{article.authorName}</div>
             <div className="text-xs">
-              {article.readTimeMin} min citire
+              {article.readTimeMin} {tt.read}
               {article.publishedAt ? (
                 <>
-                  {" • "}
+                  {" ??? "}
                   <time dateTime={article.publishedAt}>
-                    {new Date(article.publishedAt).toLocaleDateString("ro-RO", {
+                    {new Date(article.publishedAt).toLocaleDateString(locale === "en" ? "en-US" : "ro-RO", {
                       year: "numeric", month: "long", day: "numeric",
                     })}
                   </time>
@@ -169,7 +179,7 @@ export default async function BlogArticlePage({ params }: Props) {
         </div>
       ) : null}
 
-      {/* Body — renders MDX with <InlineProductCard /> hydration */}
+      {/* Body ??? renders MDX with <InlineProductCard /> hydration */}
       <article className="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
         <BlogArticleBody mdx={article.bodyMdx} />
       </article>
@@ -190,10 +200,10 @@ export default async function BlogArticlePage({ params }: Props) {
       {/* CTA back to hub */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
         <Link
-          href="/blog"
+          href={`${localePrefix}/blog`}
           className="inline-flex items-center gap-2 px-5 h-11 rounded-xl bg-[#0D0D0D] text-white font-semibold text-sm hover:bg-zinc-800 transition"
         >
-          ← Vezi toate ghidurile
+          {tt.backHub}
         </Link>
       </div>
     </main>
