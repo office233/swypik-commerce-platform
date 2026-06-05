@@ -29,10 +29,16 @@ const NON_LOCALIZED_PREFIXES = [
   "/products/sitemap",
   "/videos/sitemap.xml",
   "/robots.txt",
+  "/llms.txt",
   "/unsubscribe",
 ];
 
+function isBlogRaw(pathname: string): boolean {
+  return /^\/blog\/[^/]+\/raw(?:\/?|\?.*)?$/.test(pathname);
+}
+
 function isNonLocalized(pathname: string): boolean {
+  if (isBlogRaw(pathname)) return true;
   return NON_LOCALIZED_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p.endsWith("/") ? p : `${p}/`),
   );
