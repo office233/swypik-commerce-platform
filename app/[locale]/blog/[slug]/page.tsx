@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getBlogArticleBySlug } from "@/lib/db/blog-queries";
+import { getCheckoutProductById } from "@/lib/db/product-queries";
 import BlogArticleBody from "@/components/blog/BlogArticleBody";
 
 export const dynamic = "force-dynamic";
@@ -13,10 +14,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 type Props = { params: Promise<{ slug: string; locale: string }> };
 
 const T = {
-  ro: { notFound: "Articol negăsit | Swypik", fallbackDesc: "Ghid Swypik", guides: "Ghiduri", read: "min citire", backHub: "\u2190 Vezi toate ghidurile" },
-  en: { notFound: "Article not found | Swypik", fallbackDesc: "Swypik Guide", guides: "Guides", read: "min read", backHub: "\u2190 See all guides" },
+  ro: { notFound: "Articol negăsit | Swypik", fallbackDesc: "Ghid Swypik", guides: "Ghiduri", read: "min citire", backHub: "← Vezi toate ghidurile" },
+  en: { notFound: "Article not found | Swypik", fallbackDesc: "Swypik Guide", guides: "Guides", read: "min read", backHub: "← See all guides" },
 } as const;
 function tStrings(loc: string) { return (T as any)[loc] || T.ro; }
+
+function priceCurrency(locale: string): string {
+  return locale === "en" ? "EUR" : "RON";
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, locale } = await params;
@@ -29,6 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ogImage = article.ogImageUrl || article.heroImageUrl || `${BASE_URL}/og-preview.webp`;
   const localePrefix = locale && locale !== "ro" ? `/${locale}` : "";
   const canonical = `${BASE_URL}${localePrefix}/blog/${article.slug}`;
+  const rawUrl = `${BASE_URL}/blog/${article.slug}/raw${locale === "en" ? "?locale=en" : ""}`;
 
   return {
     title,
@@ -45,6 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         "application/rss+xml": locale === "en"
           ? `${BASE_URL}/blog/rss.xml?locale=en`
           : `${BASE_URL}/blog/rss.xml`,
+        "text/markdown": rawUrl,
       },
     },
     openGraph: {
@@ -63,7 +70,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       images: [ogImage],
     },
+    other: {
+      "ai:raw-markdown": rawUrl,
+    },
   };
+}
+
+type LinkedProduct = NonNullable<Awaited<ReturnType<typeof getCheckoutProductById>>>;
+
+async function loadLinkedProducts(ids: string[]): Promise<LinkedProduct[]> {
+  if (!ids?.length) return [];
+  const settled = await Promise.allSettled(ids.slice(0, 20).map((id) => getCheckoutProductById(id)));
+  const out: LinkedProduct[] = [];
+  for (const s of settled) {
+    if (s.status === "fulfilled" && s.value) out.push(s.value);
+  }
+  return out;
 }
 
 export default async function BlogArticlePage({ params }: Props) {
@@ -76,31 +98,69 @@ export default async function BlogArticlePage({ params }: Props) {
   const canonical = `${BASE_URL}${localePrefix}/blog/${article.slug}`;
   const publishedISO = article.publishedAt || new Date().toISOString();
 
+  const linkedProducts = await loadLinkedProducts(article.linkedProductIds);
+  const productMentions = linkedProducts.map((p) => ({
+    "@type": "Product",
+    name: p.title,
+    image: p.image,
+    url: `${BASE_URL}${localePrefix}/product/${p.productId}`,
+  }));
+
+  const itemListLd = linkedProducts.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: article.title,
+    itemListOrder: "https://schema.org/ItemListOrderDescending",
+    numberOfItems: linkedProducts.length,
+    itemListElement: linkedProducts.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "Product",
+        name: p.title,
+        image: p.image,
+        url: `${BASE_URL}${localePrefix}/product/${p.productId}`,
+        category: p.category,
+        offers: {
+          "@type": "Offer",
+          price: p.price.toFixed(2),
+          priceCurrency: priceCurrency(locale),
+          availability: "https://schema.org/InStock",
+          url: `${BASE_URL}${localePrefix}/product/${p.productId}`,
+        },
+      },
+    })),
+  } : null;
+
+  const articleLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    description: article.excerpt || article.seoDescription,
+    image: article.heroImageUrl ? [article.heroImageUrl] : undefined,
+    datePublished: publishedISO,
+    dateModified: publishedISO,
+    author: { "@type": "Organization", name: article.authorName, url: BASE_URL },
+    publisher: {
+      "@type": "Organization",
+      name: "Swypik",
+      logo: { "@type": "ImageObject", url: `${BASE_URL}/icon-512.png` },
+    },
+    mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+    articleSection: article.category || undefined,
+    keywords: article.tags.join(", "),
+    inLanguage: locale === "en" ? "en" : "ro",
+  };
+  if (productMentions.length) {
+    articleLd.mentions = productMentions;
+  }
+
   return (
     <main className="min-h-screen bg-[#FAFAFA]">
-      {/* JSON-LD Article + Breadcrumb (rich snippets for Google) */}
+      {/* JSON-LD Article + Breadcrumb + ItemList (rich snippets + AI parsing) */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            headline: article.title,
-            description: article.excerpt || article.seoDescription,
-            image: article.heroImageUrl ? [article.heroImageUrl] : undefined,
-            datePublished: publishedISO,
-            dateModified: publishedISO,
-            author: { "@type": "Organization", name: article.authorName, url: BASE_URL },
-            publisher: {
-              "@type": "Organization",
-              name: "Swypik",
-              logo: { "@type": "ImageObject", url: `${BASE_URL}/icon-512.png` },
-            },
-            mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-            articleSection: article.category || undefined,
-            keywords: article.tags.join(", "),
-          }),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
       />
       <script
         type="application/ld+json"
@@ -116,14 +176,20 @@ export default async function BlogArticlePage({ params }: Props) {
           }),
         }}
       />
+      {itemListLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }}
+        />
+      ) : null}
 
       {/* Breadcrumbs visible */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6">
         <nav className="text-xs text-zinc-500">
           <Link href="/" className="hover:text-[#7C3AED]">Swypik</Link>
-          <span className="mx-1.5">\u2014</span>
+          <span className="mx-1.5">—</span>
           <Link href={`${localePrefix}/blog`} className="hover:text-[#7C3AED]">{tt.guides}</Link>
-          <span className="mx-1.5">\u2014</span>
+          <span className="mx-1.5">—</span>
           <span className="text-zinc-700 truncate">{article.title}</span>
         </nav>
       </div>
@@ -162,7 +228,7 @@ export default async function BlogArticlePage({ params }: Props) {
               {article.readTimeMin} {tt.read}
               {article.publishedAt ? (
                 <>
-                  {" \u2014 "}
+                  {" — "}
                   <time dateTime={article.publishedAt}>
                     {new Date(article.publishedAt).toLocaleDateString(locale === "en" ? "en-US" : "ro-RO", {
                       year: "numeric", month: "long", day: "numeric",
@@ -191,7 +257,7 @@ export default async function BlogArticlePage({ params }: Props) {
         </div>
       ) : null}
 
-      {/* Body \u2014 renders MDX with <InlineProductCard /> hydration */}
+      {/* Body — renders MDX with <InlineProductCard /> hydration */}
       <article className="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
         <BlogArticleBody mdx={article.bodyMdx} />
       </article>

@@ -10,5 +10,62 @@ Disallow: /admin/
 Disallow: /seller/
 Disallow: /creator/
 
+# AI Crawlers — explicitly allowed for content discovery (blog, product guides).
+# Same restrictions as default: no transactional or private routes.
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /creator/
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
 Sitemap: https://swypik.com/sitemap.xml
 Sitemap: https://swypik.com/feed.xml
+Sitemap: https://swypik.com/blog/sitemap.xml
+Sitemap: https://swypik.com/blog/rss.xml
