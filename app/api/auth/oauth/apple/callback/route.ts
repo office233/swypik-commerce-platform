@@ -77,7 +77,7 @@ async function handle(req: Request, params: URLSearchParams, userJson?: string) 
 
   const clientId = process.env.APPLE_CLIENT_ID;
   if (!clientId) {
-    return NextResponse.json({ error: "apple not configured" }, { status: 503 });
+    return NextResponse.json({ error: "apple not configured" }, { status: 404 });
   }
 
   let clientSecret: string;

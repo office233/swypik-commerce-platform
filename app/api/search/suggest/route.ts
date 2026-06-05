@@ -2,9 +2,10 @@
  * Search Suggestions — PostgreSQL-powered autocomplete.
  * Supports: products, categories, #hashtags, @users.
  */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { moderateText } from "@/lib/moderation/moderateText";
 import { searchCreators, searchHashtags, searchProducts } from "@/lib/search/query";
+import { getClientIP, rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -22,10 +23,14 @@ function suggestionLabel(title: string | null) {
   return cleaned.length > 50 ? `${cleaned.slice(0, 50)}...` : cleaned;
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const q = String(url.searchParams.get("q") || "").trim();
+    const { success: __rlOk } = await rateLimit("search-suggest", getClientIP(req), { limit: 30, window: 10 });
+    if (!__rlOk) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     const __mod = moderateText(typeof q === "string" ? q : "", "search");
     if (__mod.action === "reject") {
       return NextResponse.json({ suggestions: [], blocked: true }, { status: 200 });

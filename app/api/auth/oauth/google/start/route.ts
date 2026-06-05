@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   if (!clientId) {
     return NextResponse.json(
       { error: "Google OAuth not configured" },
-      { status: 503 },
+      { status: 404 },
     );
   }
   const state = crypto.randomBytes(16).toString("hex");

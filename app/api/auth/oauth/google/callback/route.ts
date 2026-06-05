@@ -47,7 +47,7 @@ export async function GET(req: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    return NextResponse.json({ error: "google not configured" }, { status: 503 });
+    return NextResponse.json({ error: "google not configured" }, { status: 404 });
   }
 
   const redirectUri = `${getOAuthRedirectBase()}/api/auth/oauth/google/callback`;
