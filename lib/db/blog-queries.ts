@@ -34,7 +34,7 @@ export type BlogArticle = BlogArticleSummary & {
   seoDescription: string | null;
   seoKeywords: string[];
   ogImageUrl: string | null;
-  linkedProductIds: number[];
+  linkedProductIds: string[];
 };
 
 export type BlogArticleFilters = {
@@ -184,7 +184,7 @@ export async function getBlogArticleBySlug(slug: string, locale?: string): Promi
     seoDescription: r.seo_description ?? null,
     seoKeywords: Array.isArray(r.seo_keywords) ? r.seo_keywords : [],
     ogImageUrl: r.og_image_url ?? null,
-    linkedProductIds: Array.isArray(r.linked_product_ids) ? r.linked_product_ids.map(Number) : [],
+    linkedProductIds: Array.isArray(r.linked_product_ids) ? r.linked_product_ids.map(String) : [],
   };
 }
 
@@ -192,7 +192,7 @@ export async function getBlogArticleBySlug(slug: string, locale?: string): Promi
  * Find articles that mention a given product. Used on product detail pages
  * to surface "Read more about this product".
  */
-export async function listArticlesByProduct(productId: number, locale?: string, limit = 5): Promise<BlogArticleSummary[]> {
+export async function listArticlesByProduct(productId: string, locale?: string, limit = 5): Promise<BlogArticleSummary[]> {
   const loc = locale || DEFAULT_LOCALE;
   const sql = `
     SELECT ${buildLocaleSelectFields()}
