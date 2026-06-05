@@ -31,11 +31,11 @@ export async function GET(req: Request) {
   const langTag = locale === "en" ? "en-US" : "ro-RO";
 
   const channelTitle = locale === "en"
-    ? "Swypik ??? Product Guides & Reviews"
-    : "Swypik ??? Ghiduri & Recenzii Produse";
+    ? "Swypik \u2014 Product Guides & Reviews"
+    : "Swypik \u2014 Ghiduri & Recenzii Produse";
   const channelDesc = locale === "en"
     ? "Honest product guides and reviews tested by the Swypik team."
-    : "Ghiduri ??i recenzii produse testate de echipa Swypik.";
+    : "Ghiduri \u0219i recenzii produse testate de echipa Swypik.";
 
   let items: Awaited<ReturnType<typeof listBlogArticles>> = [];
   try {
