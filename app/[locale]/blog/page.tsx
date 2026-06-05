@@ -50,7 +50,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: tt.metaTitle,
     description: tt.metaDesc,
     keywords: tt.keywords,
-    alternates: { canonical: `${BASE_URL}${localePrefix}/blog` },
+    alternates: {
+      canonical: `${BASE_URL}${localePrefix}/blog`,
+      languages: {
+        ro: `${BASE_URL}/blog`,
+        en: `${BASE_URL}/en/blog`,
+        "x-default": `${BASE_URL}/blog`,
+      },
+    },
     openGraph: {
       title: tt.metaTitle,
       description: tt.ogDesc,
