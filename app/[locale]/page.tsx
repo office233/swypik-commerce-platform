@@ -9,31 +9,48 @@ import { safeJsonLd } from "@/lib/seo/json-ld";
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
 
-export const metadata: Metadata = {
-  title: "Swypik — Cumpără prin Video | Marketplace cu AI",
-  description:
-    "Discover and buy products through curated video content. Browse trending items, best-value deals and top-rated picks with AI-powered recommendations on Swypik.",
-  alternates: {
-    canonical: "https://swypik.com/",
-    languages: languagesForMetadata("/"),
-  },
-  openGraph: {
-    title: "Swypik — Cumpără prin Video",
-    description:
-      "AI-powered video marketplace. Trending products, best deals and top-rated picks — all through video.",
-    url: "https://swypik.com/",
-    siteName: "Swypik",
-    type: "website",
-    locale: "ro_RO",
-    images: [{ url: "/og-preview.webp", width: 1200, height: 630, alt: "Swypik — Cumpără prin Video" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Swypik — Shop by Video",
-    description: "AI-powered video marketplace.",
-    images: ["/og-preview.webp"],
-  },
+const OG_LOCALE: Record<string, string> = {
+  ro: "ro_RO",
+  en: "en_US",
+  es: "es_ES",
+  fr: "fr_FR",
+  de: "de_DE",
+  pt: "pt_PT",
+  it: "it_IT",
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "seo" });
+  const canonical = locale === "ro" ? "https://swypik.com/" : `https://swypik.com/${locale}`;
+  return {
+    title: t("homeTitle"),
+    description: t("homeDescription"),
+    alternates: {
+      canonical,
+      languages: languagesForMetadata("/"),
+    },
+    openGraph: {
+      title: t("homeOgTitle"),
+      description: t("homeOgDescription"),
+      url: canonical,
+      siteName: "Swypik",
+      type: "website",
+      locale: OG_LOCALE[locale] ?? "en_US",
+      images: [{ url: "/og-preview.webp", width: 1200, height: 630, alt: t("homeOgTitle") }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("homeTwitterTitle"),
+      description: t("homeTwitterDescription"),
+      images: ["/og-preview.webp"],
+    },
+  };
+}
 
 type ProductSearchResult = Awaited<ReturnType<typeof searchProducts>>;
 

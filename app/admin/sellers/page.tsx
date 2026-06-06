@@ -1,9 +1,11 @@
 import { dbQuery } from "@/lib/db";
 import { approveSeller } from "./actions";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function SellersAdminPage() {
+  const t = await getTranslations("sellers");
   let sellers: any[] = [];
   try {
     const res = await dbQuery("SELECT id, name, cui, email, phone, product_type, status FROM sellers ORDER BY created_at DESC");
@@ -29,7 +31,7 @@ export default async function SellersAdminPage() {
               <th className="px-6 py-4">Nume</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Acțiuni</th>
+              <th className="px-6 py-4 text-right">{t("actiuni")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5] text-sm">
@@ -60,7 +62,8 @@ export default async function SellersAdminPage() {
                         type="submit"
                         className="bg-[#0D0D0D] text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-[#0D0D0D]/80 transition"
                       >
-                        Aprobă
+
+                        {t("aproba")}
                       </button>
                     </form>
                   ) : (
@@ -72,7 +75,8 @@ export default async function SellersAdminPage() {
             {sellers.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                  Nu există selleri înregistrați.
+
+                  {t("nuExistaSelleriInregistrati")}
                 </td>
               </tr>
             )}

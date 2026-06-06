@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/session";
@@ -6,9 +7,13 @@ import AgeVerificationClient from "./AgeVerificationClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Verificare vârstă — Swypik",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pageMeta.ageVerification");
+  return {
+    title: t("title") + " — Swypik",
+    description: t("description"),
+  };
+}
 
 type Row = {
   age_verification_status: "none" | "pending" | "approved" | "rejected" | "expired";

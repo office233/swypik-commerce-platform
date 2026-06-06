@@ -311,7 +311,23 @@ async function getVisionJson(path: string, signal: AbortSignal) {
   return response.json();
 }
 
-export async function fetchVision24FeedCards(options: { feedLimit: number; offset: number; lang?: string }) {
+export async function fetchVision24FeedCards(options: { feedLimit: number; offset: number; lang?: string; videosOnly?: boolean }) {
+  if (options.videosOnly) {
+    if (!isVision24FeedEnabled()) return [] as Vision24FeedCard[];
+    const videoLang = encodeURIComponent((process.env.VISION24_VIDEO_LANG || "all").toLowerCase());
+    const videoFormat = encodeURIComponent((process.env.VISION24_VIDEO_FORMAT || "reels").toLowerCase());
+    const videoLimit = Math.min(120, Math.max(options.feedLimit * 4, 30));
+    const timeoutMs = Math.trunc(numericEnv("VISION24_FEED_TIMEOUT_MS", 2500, 500, 8000));
+    const signal = AbortSignal.timeout(timeoutMs);
+    const payload = await getVisionJson(`/videos?limit=${videoLimit}&lang=${videoLang}&format=${videoFormat}`, signal).catch(() => ({ items: [] as any[] }));
+    const videos = Array.isArray(payload?.items) ? payload.items as Vision24Video[] : [];
+    const cards = rotateTake(videos, options.feedLimit, options.offset)
+      .map((video) => toVideoCard(video))
+      .filter((card): card is Vision24FeedCard => Boolean(card));
+    const seen = new Set<string>();
+    return cards.filter((card) => { if (seen.has(card.id)) return false; seen.add(card.id); return true; });
+  }
+
   const counts = getVision24FeedCardCounts(options.feedLimit);
   if (counts.total === 0) return [] as Vision24FeedCard[];
 

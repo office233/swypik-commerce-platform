@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Bell, X } from "lucide-react";
 import EnablePushButton from "@/components/push/EnablePushButton";
 import { isEnabledClient } from "@/lib/feature-flags-client";
+import { useTranslations } from "next-intl";
 
 const DISMISS_KEY = "swypik:push-prompt-dismissed";
 
@@ -19,6 +20,7 @@ const DISMISS_KEY = "swypik:push-prompt-dismissed";
  * This is the visible mount point requested in FAZA-A2 / Feature 3.
  */
 export default function PushNotificationCard() {
+  const t = useTranslations("pushNotificationCard");
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -64,9 +66,10 @@ export default function PushNotificationCard() {
         <Bell size={16} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-black text-white">Activează notificările push</p>
+        <p className="text-sm font-black text-white">{t("activeazaNotificarilePush")}</p>
         <p className="mt-0.5 text-xs text-white/60">
-          Primește alerte când ai un comentariu, un follow nou sau o comandă.
+
+          {t("primesteAlerteCandAi")}
         </p>
         <div className="mt-3">
           <EnablePushButton className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-[#0D0D0D] hover:bg-white/90" />
@@ -75,7 +78,7 @@ export default function PushNotificationCard() {
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Închide"
+        aria-label={t("inchide")}
         className="absolute right-2 top-2 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
       >
         <X size={14} />

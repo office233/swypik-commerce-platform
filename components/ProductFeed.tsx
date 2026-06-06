@@ -27,6 +27,7 @@ import {
   resetWatchTime,
 } from "@/lib/feed/track";
 import type { FeedEventType } from "@/lib/feed/events";
+import { useTranslations } from "next-intl";
 
 // Map legacy in-component event names → granular tracking taxonomy.
 // Anything not in the map is skipped for the new pipeline (legacy pipeline
@@ -177,6 +178,8 @@ function FeedVideo({ src, registerRef, ...rest }: FeedVideoProps) {
 }
 
 export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose, isLoading }: Props) {
+  const t = useTranslations("productFeed");
+  const tFeed = useTranslations("productFeed");
   const router = useRouter();
   const formatPrice = useFormatPrice();
   const tapAction = { touchAction: "manipulation" } as const;
@@ -416,7 +419,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       <div className="feed-scroll flex items-center justify-center">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
-          <p className="mt-4 text-sm font-bold text-[#888]">Se încarcă clipurile...</p>
+          <p className="mt-4 text-sm font-bold text-[#888]">{t("seIncarcaClipurile")}</p>
         </div>
       </div>
     );
@@ -539,7 +542,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 <h2 className="line-clamp-2 text-[15px] font-black leading-snug text-white drop-shadow-lg">{product.title}</h2>
                 <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
                   <span><Star size={11} className="mr-0.5 inline text-[#B45309]" fill="currentColor" />{product.rating.toFixed(1)}</span>
-                  <span>{product.isEstimatedSocial ? "Popular" : `${product.orders.toLocaleString()}+ vândute`}</span>
+                  <span>{product.isEstimatedSocial ? "Popular" : tFeed("vandute", { n: product.orders.toLocaleString() })}</span>
                   <span><Truck size={11} className="mr-0.5 inline" />{product.deliveryDays}z</span>
                 </div>
               </div>
@@ -557,7 +560,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                     addedToCart === product.id ? "bg-white text-[#10A37F]" : "bg-[#10A37F] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
                   }`}
                 >
-                  {addedToCart === product.id ? "Adăugat" : <><ShoppingCart size={15} className="mr-1 inline" />Coș</>}
+                  {addedToCart === product.id ? tFeed("adaugat") : <><ShoppingCart size={15} className="mr-1 inline" />{t("cos")}</>}
                 </button>
               </div>
             </div>

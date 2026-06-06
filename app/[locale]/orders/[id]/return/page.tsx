@@ -34,6 +34,7 @@ export default async function OrderReturnPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const tReturn = await getTranslations("returnPage");
   const t = await getTranslations("ordersReturn");
   const { id } = await params;
   const user = await getAuthUser();
@@ -75,12 +76,12 @@ export default async function OrderReturnPage({
         <div className="px-4 pt-8 max-w-xl mx-auto text-center">
           <div className="text-5xl mb-4">↩️</div>
           <h2 className="text-xl font-black mb-2">
-            {alreadyRequested ? "Cererea de retur există deja" : "Nu poți cere retur încă"}
+            {alreadyRequested ? tReturn("cerereaExistaTitle") : tReturn("nuPotiCereTitle")}
           </h2>
           <p className="text-sm text-white/60">
             {alreadyRequested
-              ? "Am înregistrat deja o cerere de retur pentru această comandă. Verifică statusul în pagina comenzii."
-              : "Returul devine disponibil după ce comanda a fost expediată sau livrată."}
+              ? tReturn("cerereaExistaBody")
+              : tReturn("nuPotiCereBody")}
           </p>
           <Link
             href={`/account/orders/${id}`}

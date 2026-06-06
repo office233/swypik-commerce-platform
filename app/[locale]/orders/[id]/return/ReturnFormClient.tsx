@@ -28,6 +28,7 @@ export default function ReturnFormClient({
   items: Item[];
 }) {
   const t = useTranslations("returnForm");
+  const tReturn = useTranslations("returnFormClient");
   const router = useRouter();
   const [selection, setSelection] = useState<Record<string, Selected>>({});
   const [reason, setReason] = useState("");
@@ -75,7 +76,7 @@ export default function ReturnFormClient({
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(json.error || "Eroare la încărcarea fotografiei.");
+          setError(json.error || tReturn("errIncarcareFoto"));
           break;
         }
         setPhotos((prev) => [...prev, { url: json.url, key: json.key }]);
@@ -97,11 +98,11 @@ export default function ReturnFormClient({
       qty: s.qty,
     }));
     if (selectedItems.length === 0) {
-      setError("Selectează cel puțin un produs pentru retur.");
+      setError(tReturn("errSelecteazaProdus"));
       return;
     }
     if (reason.trim().length < 10) {
-      setError("Motivul trebuie să aibă minim 10 caractere.");
+      setError(tReturn("errMotivMinim"));
       return;
     }
 
@@ -128,7 +129,7 @@ export default function ReturnFormClient({
       router.replace(`/account/orders/${orderId}?return=requested`);
       router.refresh();
     } catch {
-      setError("Eroare de rețea.");
+      setError(tReturn("errRetea"));
       setSubmitting(false);
     }
   }
@@ -166,7 +167,7 @@ export default function ReturnFormClient({
                 checked={checked}
                 onChange={() => toggleItem(it)}
                 className="sr-only"
-                aria-label={`Selectează ${it.title}`}
+                aria-label={tReturn("selecteazaAria", { title: it.title })}
               />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold line-clamp-2">{it.title}</div>

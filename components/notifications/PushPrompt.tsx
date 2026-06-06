@@ -26,6 +26,7 @@ const HIDE_PREFIXES = ["/auth", "/admin", "/onboarding", "/seller/login"];
  */
 export default function PushPrompt() {
   const t = useTranslations("pushPrompt");
+  const tPush = useTranslations("pushPrompt");
   const pathname = usePathname() || "/";
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -71,7 +72,7 @@ export default function PushPrompt() {
     const res = await subscribeToPush();
     setBusy(false);
     if (res.ok) {
-      setToast("Notificările sunt active");
+      setToast(tPush("notifActive"));
       try {
         window.localStorage.removeItem(DISMISS_KEY);
         window.localStorage.removeItem(DISMISS_AT_KEY);
@@ -83,13 +84,13 @@ export default function PushPrompt() {
         setVisible(false);
       }, 1800);
     } else if (res.reason === "denied") {
-      setToast("Permisiune refuzată");
+      setToast(tPush("permisiuneRefuzata"));
       window.setTimeout(() => {
         setToast(null);
         setVisible(false);
       }, 1800);
     } else {
-      setToast("A eșuat. Încearcă din nou.");
+      setToast(tPush("aEsuat"));
       window.setTimeout(() => setToast(null), 2200);
     }
   }, []);
@@ -134,7 +135,7 @@ export default function PushPrompt() {
               className="inline-flex items-center gap-1.5 rounded-lg bg-[#7C3AED] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#6d28d9] disabled:opacity-60"
             >
               <Bell size={12} />
-              {busy ? "Se conectează…" : "Activează"}
+              {busy ? tPush("seConecteaza") : tPush("activeaza")}
             </button>
             <button
               type="button"

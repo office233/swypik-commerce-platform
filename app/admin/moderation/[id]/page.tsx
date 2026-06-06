@@ -5,6 +5,7 @@ import { dbQuery } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ModerationActions from "./ModerationActions";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default async function ModerationDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("moderation");
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return notFound();
   const r = await getReportDetail(id);
@@ -70,7 +72,8 @@ export default async function ModerationDetailPage({
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <Link href="/admin/moderation" className="text-sm text-[#FE2C55] hover:underline">
-        ← Înapoi la coadă
+
+        {t("inapoiLaCoada")}
       </Link>
       <h1 className="text-2xl font-black mt-2 mb-4">Raport video</h1>
 
@@ -108,7 +111,8 @@ export default async function ModerationDetailPage({
               )}
               {r.suspended_until && (
                 <div className="mt-1 text-xs font-bold text-red-600">
-                  Creator suspendat până la{" "}
+
+                  {t("creatorSuspendatPanaLa")}{" "}
                   {new Date(r.suspended_until).toLocaleDateString("ro-RO")}
                 </div>
               )}
@@ -151,7 +155,7 @@ export default async function ModerationDetailPage({
             </div>
             {r.note && (
               <div className="mt-2">
-                <dt className="font-bold">Notă:</dt>
+                <dt className="font-bold">{t("nota")}</dt>
                 <dd className="text-black/70 whitespace-pre-wrap">{r.note}</dd>
               </div>
             )}
@@ -162,7 +166,7 @@ export default async function ModerationDetailPage({
       <ModerationActions reportId={r.id} videoId={r.target_video_id} creatorId={r.creator_id} />
 
       <div className="mt-6 bg-white rounded-2xl border border-black/10 p-4">
-        <h2 className="font-bold mb-3">Toate rapoartele pe acest video ({related.length})</h2>
+        <h2 className="font-bold mb-3">{t("toateRapoartelePeAcest")}{related.length})</h2>
         <ul className="text-sm divide-y divide-black/5">
           {related.map((rr: any) => (
             <li key={rr.id} className="py-2">

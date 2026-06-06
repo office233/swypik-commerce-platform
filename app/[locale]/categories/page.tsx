@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import type { Metadata } from "next";
@@ -9,30 +10,14 @@ export const dynamic = "force-dynamic";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 
-const CATEGORIES_META_BY_LOCALE: Record<string, { title: string; description: string }> = {
-  ro: {
-    title: "Categorii — Modă, Beauty, Home, Electronice | Swypik",
-    description: "Răsfoiește toate categoriile de pe Swypik. Mii de produse cu prețuri minime, livrare rapidă și recenzii reale.",
-  },
-  en: {
-    title: "Categories — Fashion, Beauty, Home, Electronics | Swypik",
-    description: "Browse all Swypik categories. Thousands of products with lowest prices, fast delivery and real reviews.",
-  },
-  de: {
-    title: "Kategorien — Mode, Beauty, Haus, Elektronik | Swypik",
-    description: "Stöbere durch alle Swypik-Kategorien. Tausende Produkte zu Bestpreisen, schneller Versand.",
-  },
-  fr: {
-    title: "Catégories — Mode, Beauté, Maison, Électronique | Swypik",
-    description: "Parcourez toutes les catégories Swypik. Des milliers de produits aux meilleurs prix.",
-  },
-};
+
 
 export async function generateMetadata(): Promise<Metadata> {
   const c = await cookies();
   const v = c.get(LOCALE_COOKIE)?.value;
   const locale = isLocale(v) ? v : DEFAULT_LOCALE;
-  const meta = CATEGORIES_META_BY_LOCALE[locale] ?? CATEGORIES_META_BY_LOCALE.ro;
+  const t = await getTranslations({ locale, namespace: "pageMeta.categories" });
+  const meta = { title: t("title"), description: t("description") };
   const canonical = `${BASE_URL}/categories`;
   return {
     title: meta.title,
@@ -90,14 +75,14 @@ export default async function CategoriesPage() {
   const locale = isLocale(cLoc) ? cLoc : DEFAULT_LOCALE;
   const hierarchy = await fetchHierarchy(locale);
 
-  const labels =
-    locale === "en"
-      ? { title: "Categories", browse: "Browse", products: "products", empty: "No categories yet." }
-      : locale === "de"
-      ? { title: "Kategorien", browse: "Durchsuchen", products: "Produkte", empty: "Noch keine Kategorien." }
-      : locale === "fr"
-      ? { title: "Catégories", browse: "Parcourir", products: "produits", empty: "Aucune catégorie pour l'instant." }
-      : { title: "Categorii", browse: "Răsfoiește", products: "produse", empty: "Nicio categorie încă." };
+  const tLabels = await getTranslations({ locale, namespace: "categoriesPage" });
+  const tMeta = await getTranslations({ locale, namespace: "pageMeta.categories" });
+  const labels = {
+    title: tLabels("title"),
+    browse: tLabels("browse"),
+    products: tLabels("products"),
+    empty: tLabels("empty"),
+  };
 
   return (
     <main className="min-h-screen text-neutral-900" style={{ backgroundColor: BG }}>
@@ -106,7 +91,7 @@ export default async function CategoriesPage() {
         "@type": "CollectionPage",
         name: labels.title,
         url: `${BASE_URL}/categories`,
-        description: (CATEGORIES_META_BY_LOCALE[locale] ?? CATEGORIES_META_BY_LOCALE.ro).description,
+        description: tMeta("description"),
         hasPart: hierarchy.slice(0, 20).map((n) => ({ "@type": "Thing", name: n.name, url: `${BASE_URL}/categories/${n.id}` })),
       }) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd({

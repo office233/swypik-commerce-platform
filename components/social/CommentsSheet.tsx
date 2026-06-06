@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Heart, Loader2, MessageCircle, RefreshCw, Reply, Send, X } from "lucide-react";
 
@@ -55,6 +56,7 @@ function relativeTime(value: string): string {
 }
 
 export default function CommentsSheet({ open, videoId, initialCount, onClose, onCountChange }: Props) {
+  const t = useTranslations("commentsSheet");
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,12 +141,12 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
     try {
       const res = await fetch(`/api/videos/${videoId}/comments?limit=30`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Nu am putut incarca comentariile.");
+      if (!res.ok) throw new Error(data?.error || t("errNuAmIncarcat"));
 
       setComments(Array.isArray(data.comments) ? data.comments : []);
       if (typeof data.totalCount === "number") setCount(data.totalCount);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nu am putut incarca comentariile.");
+      setError(err instanceof Error ? err.message : t("errNuAmIncarcat"));
     } finally {
       setLoading(false);
     }
@@ -166,11 +168,11 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
 
     const trimmed = text.trim();
     if (!trimmed) {
-      setError("Scrie un comentariu inainte sa trimiti.");
+      setError(t("errScrieComentariu"));
       return;
     }
     if (trimmed.length > 500) {
-      setError("Comentariul trebuie sa aiba cel mult 500 de caractere.");
+      setError(t("errMaxLength"));
       return;
     }
 
@@ -188,7 +190,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Comentariul nu a fost trimis.");
+      if (!res.ok) throw new Error(data?.error || t("errNuTrimis"));
 
       const posted = data.comment as CommentItem | undefined;
       const nextCount = Number(data.comment_count);
@@ -214,13 +216,13 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
           setComments((current) => [posted, ...current]);
         }
       } else {
-        setNotice("Comentariul a fost trimis la moderare.");
+        setNotice(t("trimisLaModerare"));
       }
 
       setText("");
       setReplyTo(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Comentariul nu a fost trimis.");
+      setError(err instanceof Error ? err.message : t("errNuTrimis"));
     } finally {
       setSubmitting(false);
     }
@@ -230,14 +232,14 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col justify-end">
-      <button type="button" className="absolute inset-0 bg-black/60" onClick={onClose} aria-label="Inchide comentariile" />
+      <button type="button" className="absolute inset-0 bg-black/60" onClick={onClose} aria-label={t("inchideAria")} />
       <section ref={sheetRef} role="dialog" aria-modal="true" aria-labelledby="comments-title" tabIndex={-1} className="relative flex h-[68vh] max-h-[720px] flex-col rounded-t-3xl bg-white text-[#0D0D0D] shadow-2xl animate-feed-slide">
         <header className="flex items-center justify-between border-b border-[#E5E5E5] px-5 py-4">
           <div>
-            <h2 id="comments-title" className="text-base font-black">Comentarii</h2>
-            <p className="text-xs font-semibold text-[#6E6E80]">{count} total</p>
+            <h2 id="comments-title" className="text-base font-black">{t("comentarii")}</h2>
+            <p className="text-xs font-semibold text-[#6E6E80]">{count} {t("totalLabel")}</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full bg-[#F7F7F8] p-2 text-[#6E6E80]" aria-label="Inchide comentariile">
+          <button type="button" onClick={onClose} className="rounded-full bg-[#F7F7F8] p-2 text-[#6E6E80]" aria-label={t("inchideAria")}>
             <X size={20} />
           </button>
         </header>
@@ -246,7 +248,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
           {loading ? (
             <div className="flex h-full flex-col items-center justify-center text-[#6E6E80]">
               <Loader2 className="mb-3 animate-spin" size={28} />
-              <p className="text-sm font-bold">Se incarca...</p>
+              <p className="text-sm font-bold">{t("seIncarca")}</p>
             </div>
           ) : error && comments.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center text-[#6E6E80]">
@@ -254,14 +256,14 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
               <p className="text-sm font-bold">{error}</p>
               <button type="button" onClick={loadComments} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white">
                 <RefreshCw size={16} />
-                Reincearca
+                {t("reincearca")}
               </button>
             </div>
           ) : comments.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center text-[#6E6E80]">
               <MessageCircle size={48} className="mb-4 text-[#D1D1D6]" />
-              <p className="text-base font-black text-[#0D0D0D]">Nu sunt comentarii inca</p>
-              <p className="mt-1 text-sm">Incepe conversatia despre clip.</p>
+              <p className="text-base font-black text-[#0D0D0D]">{t("nuSuntComentarii")}</p>
+              <p className="mt-1 text-sm">{t("incepeConversatia")}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -280,9 +282,9 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
 
         {replyTo && (
           <div className="mx-5 mb-2 flex items-center justify-between rounded-xl bg-[#F7F7F8] px-3 py-2 text-xs font-bold text-[#6E6E80]">
-            <span>Raspunzi lui {displayName(replyTo.author)}</span>
+            <span>{t("raspunziLui")} {displayName(replyTo.author)}</span>
             <button type="button" onClick={() => setReplyTo(null)} className="text-[#0D0D0D]">
-              Renunta
+              {t("renunta")}
             </button>
           </div>
         )}
@@ -295,7 +297,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
                 onChange={(event) => setText(event.target.value)}
                 rows={1}
                 maxLength={520}
-                placeholder={replyTo ? "Scrie un raspuns..." : "Adauga un comentariu..."}
+                placeholder={replyTo ? t("scrieRaspuns") : t("adaugaComentariu")}
                 className="max-h-28 min-h-[44px] w-full resize-none rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm font-semibold outline-none focus:border-[#0D0D0D]"
               />
               <p className={`mt-1 text-right text-[11px] font-semibold ${remaining < 0 ? "text-[#EF4444]" : "text-[#8E8E93]"}`}>{remaining}</p>
@@ -304,7 +306,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
               type="submit"
               disabled={submitting || text.trim().length === 0 || remaining < 0}
               className="grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] text-white disabled:bg-[#C7C7CC]"
-              aria-label="Trimite comentariul"
+              aria-label={t("trimiteComentariul")}
             >
               {submitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
             </button>
@@ -316,6 +318,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
 }
 
 function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comment: CommentItem; onReply: (comment: CommentItem) => void; onLike: (id: string) => void; likedIds: Set<string>; likingIds: Set<string> }) {
+  const t = useTranslations("commentsSheet");
   return (
     <article>
       <div className="flex gap-3">
@@ -331,7 +334,7 @@ function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comme
           <div className="mt-2 flex items-center gap-4">
             <button
               type="button"
-              aria-label={likedIds.has(comment.id) ? "Anuleaza aprecierea" : "Apreciaza comentariul"}
+              aria-label={likedIds.has(comment.id) ? t("anuleazaAprecierea") : t("apreciazaComentariul")}
               aria-pressed={likedIds.has(comment.id)}
               disabled={likingIds.has(comment.id)}
               onClick={() => onLike(comment.id)}
@@ -342,7 +345,7 @@ function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comme
             </button>
             <button type="button" onClick={() => onReply(comment)} className="inline-flex items-center gap-1 text-xs font-black text-[#6E6E80]">
               <Reply size={13} />
-              Raspunde
+              {t("raspunde")}
             </button>
           </div>
         </div>
@@ -364,7 +367,7 @@ function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comme
                 <div className="mt-1 flex items-center gap-4">
                   <button
                     type="button"
-                    aria-label={likedIds.has(reply.id) ? "Anuleaza aprecierea" : "Apreciaza raspunsul"}
+                    aria-label={likedIds.has(reply.id) ? t("anuleazaAprecierea") : t("apreciazaRaspunsul")}
                     aria-pressed={likedIds.has(reply.id)}
                     disabled={likingIds.has(reply.id)}
                     onClick={() => onLike(reply.id)}
@@ -374,7 +377,7 @@ function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comme
                     {reply.likeCount > 0 ? reply.likeCount : ""}
                   </button>
                   <button type="button" onClick={() => onReply(reply)} className="text-xs font-black text-[#6E6E80]">
-                    Raspunde
+                    {t("raspunde")}
                   </button>
                 </div>
               </div>

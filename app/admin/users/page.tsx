@@ -2,6 +2,7 @@ import Link from "next/link";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 import UserActions from "./UserActions";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
+  const t = await getTranslations("users");
   await requireAdminSession();
   const sp = await searchParams;
   const q = (sp.q || "").trim() || null;
@@ -121,12 +123,13 @@ export default async function AdminUsersPage({
           type="text"
           name="q"
           defaultValue={q || ""}
-          placeholder="Caută după username, email sau nume..."
+          placeholder={t("cautaDupaUsernameEmail")}
           className="flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm"
         />
         {status !== "all" && <input type="hidden" name="status" value={status} />}
         <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">
-          Caută
+
+          {t("cauta")}
         </button>
       </form>
 
@@ -166,7 +169,7 @@ export default async function AdminUsersPage({
               <th className="px-4 py-3 text-right">Videos</th>
               <th className="px-4 py-3 text-right">Sesiuni</th>
               <th className="px-4 py-3">Inregistrat</th>
-              <th className="px-4 py-3">Acțiuni</th>
+              <th className="px-4 py-3">{t("actiuni")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5]">
@@ -264,7 +267,8 @@ export default async function AdminUsersPage({
           </span>
           {page < totalPages && (
             <Link href={pageHref(page + 1)} className="rounded-lg border border-black/15 px-3 py-1.5 text-sm font-bold">
-              Următor →
+
+              {t("urmator")}
             </Link>
           )}
         </div>

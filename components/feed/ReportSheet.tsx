@@ -6,14 +6,7 @@ import { useTranslations } from "next-intl";
 
 type Category = "spam" | "explicit" | "harassment" | "misinformation" | "copyright" | "other";
 
-const CATEGORIES: { value: Category; label: string }[] = [
-  { value: "spam", label: "Spam" },
-  { value: "explicit", label: "Conținut explicit" },
-  { value: "harassment", label: "Hărțuire" },
-  { value: "misinformation", label: "Dezinformare" },
-  { value: "copyright", label: "Drepturi de autor" },
-  { value: "other", label: "Altul" },
-];
+
 
 type Props = {
   videoId: string;
@@ -23,6 +16,15 @@ type Props = {
 
 export default function ReportSheet({ videoId, onClose, onSubmitted }: Props) {
   const t = useTranslations("reportSheet");
+  const tReport = useTranslations("reportSheet");
+  const CATEGORIES: { value: Category; label: string }[] = [
+    { value: "spam", label: tReport("reportSpam") },
+    { value: "explicit", label: tReport("reportExplicit") },
+    { value: "harassment", label: tReport("reportHartuire") },
+    { value: "misinformation", label: tReport("reportDezinformare") },
+    { value: "copyright", label: tReport("reportCopyright") },
+    { value: "other", label: tReport("reportAltul") },
+  ];
   const [category, setCategory] = useState<Category>("spam");
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -57,11 +59,11 @@ export default function ReportSheet({ videoId, onClose, onSubmitted }: Props) {
         setSubmitting(false);
         return;
       }
-      setToast("Mulțumim, am primit raportul.");
+      setToast(tReport("multumimPrimit"));
       onSubmitted?.();
       setTimeout(() => onClose(), 1200);
     } catch {
-      setError("Eroare de rețea.");
+      setError(tReport("errRetea"));
       setSubmitting(false);
     }
   };
@@ -95,7 +97,7 @@ export default function ReportSheet({ videoId, onClose, onSubmitted }: Props) {
         <p className="mb-3 text-xs text-[#6E6E80]">{t("selecteazaMotivulRaportarii")}</p>
 
         <fieldset className="mb-4 space-y-1.5">
-          <legend className="sr-only">Categorie raport</legend>
+          <legend className="sr-only">{tReport("categorieRaport")}</legend>
           {CATEGORIES.map((c) => (
             <label
               key={c.value}
@@ -142,7 +144,7 @@ export default function ReportSheet({ videoId, onClose, onSubmitted }: Props) {
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#FE2C55] px-6 py-3 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-50"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {submitting ? "Se trimite..." : "Trimite raportul"}
+          {submitting ? tReport("seTrimiteDots") : tReport("trimiteRaportul")}
         </button>
       </div>
     </div>

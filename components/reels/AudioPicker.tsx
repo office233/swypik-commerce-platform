@@ -37,6 +37,7 @@ function formatDur(s: number): string {
 
 export default function AudioPicker({ open, onClose, selectedId, onSelect }: AudioPickerProps) {
   const t = useTranslations("audioPicker");
+  const tAudio = useTranslations("audioPicker");
   const [q, setQ] = useState("");
   const [genre, setGenre] = useState<string>("");
   const [tracks, setTracks] = useState<AudioTrackDTO[]>([]);
@@ -69,7 +70,7 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
       }
     } catch (err: any) {
       if (err?.name === "AbortError") return;
-      setError("Nu am putut încărca piesele.");
+      setError(tAudio("errNuAmIncarcat"));
       setTracks([]);
     } finally {
       if (!controller.signal.aborted) setLoading(false);
@@ -167,12 +168,12 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
           >
             <X size={18} />
           </button>
-          <h2 id={titleId} className="text-sm font-bold">Alege piesa</h2>
+          <h2 id={titleId} className="text-sm font-bold">{tAudio("alegePiesa")}</h2>
           <button
             onClick={handleClear}
             className="text-xs font-bold text-white/60 hover:text-white"
           >
-            {selectedId ? "Elimină" : "Fără"}
+            {selectedId ? tAudio("elimina") : tAudio("fara")}
           </button>
         </div>
 
@@ -240,7 +241,7 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
               >
                 <button
                   onClick={() => togglePlay(t)}
-                  aria-label={isPlaying ? "Pauză" : "Redă"}
+                  aria-label={isPlaying ? tAudio("pauza") : tAudio("reda")}
                   className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 active:scale-95"
                 >
                   {t.imageUrl ? (

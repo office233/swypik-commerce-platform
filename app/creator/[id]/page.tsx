@@ -4,6 +4,7 @@ import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { normalizeViewerUserId } from "@/lib/social/user-profile";
+import { getTranslations } from "next-intl/server";
 
 /* ─── Types ─── */
 interface CreatorProfile {
@@ -175,6 +176,7 @@ export default async function CreatorPublicPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("creator");
   const { id } = await params;
   const canonicalUsername = await getCanonicalUsernameForCreatorId(id).catch(() => null);
   if (canonicalUsername) redirect(`/u/${encodeURIComponent(canonicalUsername)}`);
@@ -212,7 +214,8 @@ export default async function CreatorPublicPage({
               color: "#fff",
             }}
           >
-            Explorează
+
+            {t("exploreaza")}
           </Link>
         </div>
       </header>
@@ -350,7 +353,8 @@ export default async function CreatorPublicPage({
                 Niciun clip publicat
               </p>
               <p className="text-sm" style={{ color: "#6E6E80" }}>
-                Acest creator nu are clipuri publicate.
+
+                {t("acestCreatorNuAre")}
               </p>
             </div>
           </div>

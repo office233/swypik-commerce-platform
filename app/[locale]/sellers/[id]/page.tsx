@@ -107,12 +107,13 @@ function formatPrice(cents: number | null, currency: string): string {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+  const tMeta = await getTranslations("sellersPage");
   const seller = await getSeller(id);
-  if (!seller) return { title: "Vânzător negăsit — Swypik" };
+  if (!seller) return { title: tMeta("metaTitleNotFound") };
   const name = getDisplayName(seller);
   return {
     title: `${name} — Swypik`,
-    description: `Descoperă produsele vândute de ${name} pe Swypik.`,
+    description: tMeta("metaDescription", { name }),
   };
 }
 

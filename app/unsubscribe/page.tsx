@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "Dezabonare — Swypik",
@@ -10,6 +11,7 @@ export default async function UnsubscribePage({
 }: {
   searchParams: Promise<{ email?: string }>;
 }) {
+  const t = await getTranslations("unsubscribe");
   const { email } = await searchParams;
 
   return (
@@ -77,7 +79,8 @@ export default async function UnsubscribePage({
             lineHeight: 1.4,
           }}
         >
-          Te-ai dezabonat cu succes de la emailurile Swypik.
+
+          {t("teaiDezabonatCuSucces")}
         </h1>
 
         {/* Email confirmation */}
@@ -91,8 +94,7 @@ export default async function UnsubscribePage({
             }}
           >
             Emailul{" "}
-            <strong style={{ color: "#374151" }}>{email}</strong> a fost
-            eliminat din lista noastră.
+            <strong style={{ color: "#374151" }}>{email}</strong>  {t("aFostEliminatDin")}
           </p>
         )}
 
@@ -105,8 +107,8 @@ export default async function UnsubscribePage({
             lineHeight: 1.6,
           }}
         >
-          Dacă ai ajuns aici din greșeală, nu te îngrijora — poți oricând să
-          revii pe{" "}
+
+          {t("dacaAiAjunsAici")}{" "}
           <Link
             href="/"
             style={{
@@ -135,7 +137,8 @@ export default async function UnsubscribePage({
             transition: "background-color 0.2s",
           }}
         >
-          Mergi la magazin →
+
+          {t("mergiLaMagazin")}
         </Link>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { dbQuery } from "@/lib/db";
 import { Trophy } from "lucide-react";
 import NewChallengeForm from "./NewChallengeForm";
 import ChallengeActions from "./ChallengeActions";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,7 @@ function statusBadge(status: string) {
 }
 
 export default async function AdminChallengesPage() {
+  const t = await getTranslations("challenges");
   const [challenges, counts] = await Promise.all([getChallenges(), getCounts()]);
 
   return (
@@ -115,7 +117,8 @@ export default async function AdminChallengesPage() {
 
       <details className="mb-6 rounded-lg border border-white/10 bg-white/5">
         <summary className="cursor-pointer px-4 py-3 text-sm font-bold hover:bg-white/5">
-          + Creează challenge nou
+
+          {t("creeazaChallengeNou")}
         </summary>
         <div className="p-4 border-t border-white/10">
           <NewChallengeForm />
@@ -124,7 +127,8 @@ export default async function AdminChallengesPage() {
 
       {challenges.length === 0 ? (
         <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center text-sm text-white/60">
-          Niciun challenge creat încă.
+
+          {t("niciunChallengeCreatInca")}
         </div>
       ) : (
         <div className="rounded-lg border border-white/10 bg-white/5 overflow-hidden">
@@ -138,7 +142,7 @@ export default async function AdminChallengesPage() {
                 <th className="text-left p-2">End</th>
                 <th className="text-left p-2">Status</th>
                 <th className="text-left p-2">Featured</th>
-                <th className="text-right p-2">Acțiuni</th>
+                <th className="text-right p-2">{t("actiuni")}</th>
               </tr>
             </thead>
             <tbody>

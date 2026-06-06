@@ -1,10 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { dbQuery } from "@/lib/db";
 import { Trophy, Coins, Clock, Users } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Missions — Swypik Creators" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pageMeta.missions");
+  return {
+    title: t("title") + " — Swypik",
+    description: t("description"),
+  };
+}
 
 type MissionRow = {
   id: string;
@@ -27,8 +35,8 @@ function fmtPrize(amount: number, currency: string): string {
   return `${(amount / 100).toFixed(2)} ${currency}`;
 }
 
-function fmtRemaining(endsAt: string | null): string {
-  if (!endsAt) return "Fără termen";
+function fmtRemaining(endsAt: string | null, t: (key: any, vars?: any) => string): string {
+  if (!endsAt) return t("faraTermen");
   const ms = new Date(endsAt).getTime() - Date.now();
   if (ms <= 0) return "Expirat";
   const d = Math.floor(ms / 86_400_000);
@@ -38,6 +46,7 @@ function fmtRemaining(endsAt: string | null): string {
 }
 
 export default async function MissionsPage() {
+  const t = await getTranslations("missions");
   const { rows } = await dbQuery<MissionRow>(
     `SELECT
        m.id, m.slug, m.title, m.brief, m.format_hint,
@@ -62,14 +71,16 @@ export default async function MissionsPage() {
           <Trophy className="w-6 h-6 text-yellow-400" /> Missions
         </h1>
         <p className="text-sm text-white/60 mt-1">
-          Brief-uri plătite pentru creatori. Câștigi SWYP + bounty per vânzare.
+
+          {t("briefuriPlatitePentruCreatori")}
         </p>
       </header>
 
       <div className="mx-auto max-w-3xl px-4 py-6">
         {rows.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center text-white/60">
-            Nu sunt mission-uri active acum. Revino curând!
+
+            {t("nuSuntMissionuriActive")}
           </div>
         ) : (
           <ul className="space-y-3">
@@ -106,11 +117,11 @@ export default async function MissionsPage() {
                         </span>
                         {m.bounty_per_sale_minor > 0 ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-400/15 px-2 py-1 text-green-300">
-                            +{(m.bounty_per_sale_minor / 100).toFixed(2)}/vânzare
+                            +{(m.bounty_per_sale_minor / 100).toFixed(2)}{t("vanzare")}
                           </span>
                         ) : null}
                         <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 text-white/60">
-                          <Clock className="w-3 h-3" /> {fmtRemaining(m.ends_at)}
+                          <Clock className="w-3 h-3" /> {fmtRemaining(m.ends_at, t)}
                         </span>
                         <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 text-white/60">
                           <Users className="w-3 h-3" /> {m.submissions_count}

@@ -5,6 +5,7 @@ import { dbQuery } from "@/lib/db";
 import { Clock } from "lucide-react";
 import CronJobRow from "./CronJobRow";
 import { CRON_JOBS } from "./jobs";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ async function getLastRuns(): Promise<Map<string, LastRun>> {
 }
 
 export default async function AdminCronPage() {
+  const t = await getTranslations("cron");
   const lastRuns = await getLastRuns();
 
   return (
@@ -53,7 +55,7 @@ export default async function AdminCronPage() {
               <th className="text-left px-4 py-2 font-black">Schedule</th>
               <th className="text-left px-4 py-2 font-black">Ultim run</th>
               <th className="text-left px-4 py-2 font-black">Status</th>
-              <th className="text-right px-4 py-2 font-black">Acțiuni</th>
+              <th className="text-right px-4 py-2 font-black">{t("actiuni")}</th>
             </tr>
           </thead>
           <tbody>
@@ -69,9 +71,7 @@ export default async function AdminCronPage() {
       </div>
 
       <p className="text-xs text-[#0D0D0D]/50 mt-4">
-        Tabela <code>cron_runs</code> e populată când rulezi un job manual de
-        aici. Dacă „Ultim run” e gol, înseamnă că job-ul a rulat doar din
-        cron-worker (nu loghează încă în DB).
+        Tabela <code>cron_runs</code>  {t("ePopulataCandRulezi")}
       </p>
     </div>
   );

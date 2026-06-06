@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Hash, Package, Search, Tag, User } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Suggestion = {
   label: string;
@@ -20,8 +21,10 @@ const ACCENT = "#0D0D0D";
 
 export default function SearchBar({
   initialQuery = "",
-  placeholder = "Caută produse, creatori, #hashtag-uri…",
+  placeholder,
 }: Props) {
+  const t = useTranslations("searchBar");
+  const resolvedPlaceholder = placeholder ?? t("placeholder");
   const router = useRouter();
   const [q, setQ] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -154,7 +157,7 @@ export default function SearchBar({
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      <label htmlFor="swypik-search" className="sr-only">Caută</label>
+      <label htmlFor="swypik-search" className="sr-only">{t("cauta")}</label>
       <input
         id="swypik-search"
         name="q"
@@ -166,7 +169,7 @@ export default function SearchBar({
           if (suggestions.length > 0) setOpen(true);
         }}
         onKeyDown={onKeyDown}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={open && suggestions.length > 0}

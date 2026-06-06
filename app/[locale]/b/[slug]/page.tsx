@@ -74,16 +74,21 @@ async function loadPost(slug: string) {
   return { post, options: opts };
 }
 
-const FORMAT_CTA: Record<string, string> = {
-  battle: "Votează battle-ul",
-  find_me: "Ajută-mă să aleg",
-  merita: "Merită sau nu?",
-  dupe_hunt: "Găseşte o alternativă mai bună",
-  roast_cart: "Bate-mi coşul",
-  drop: "Vezi drop-ul",
-  setup: "Vezi setup-ul",
-  review_real: "Citeşte review-ul real",
-};
+type CtaTranslator = (key: string) => string;
+
+function getFormatCta(t: CtaTranslator, format: string): string {
+  const map: Record<string, string> = {
+    battle: t("voteazaBattle"),
+    find_me: t("ajutaMaSaAleg"),
+    merita: t("meritaSauNu"),
+    dupe_hunt: t("gasesteAlternativa"),
+    roast_cart: t("bateCos"),
+    drop: t("veziDrop"),
+    setup: t("veziSetup"),
+    review_real: t("citesteReview"),
+  };
+  return map[format] ?? t("veziPeSwypik");
+}
 
 export async function generateMetadata({
   params,
@@ -92,9 +97,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const loaded = await loadPost(slug);
-  if (!loaded) return { title: "Post negăsit · Swypik" };
+  const tMeta = await getTranslations("battleSlug");
+  if (!loaded) return { title: tMeta("postNegasit") };
   const { post } = loaded;
-  const cta = FORMAT_CTA[post.format] ?? "Vezi pe Swypik";
+  const cta = getFormatCta(tMeta, post.format);
   const title = `${cta}: ${post.title}`;
   const description = post.body?.slice(0, 160) || `${cta} pe Swypik — comunitatea decide.`;
   const url = `https://swypik.com/b/${post.slug}`;
@@ -123,14 +129,14 @@ export default async function PublicPostPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const t = await getTranslations("b");
+  const t = await getTranslations("battleSlug");
   const { slug } = await params;
   const loaded = await loadPost(slug);
   if (!loaded) notFound();
   const { post, options } = loaded;
 
   const totalVotes = options.reduce((s, o) => s + (o.vote_count || 0), 0);
-  const cta = FORMAT_CTA[post.format] ?? "Vezi pe Swypik";
+  const cta = getFormatCta(t, post.format);
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50">
@@ -217,7 +223,7 @@ export default async function PublicPostPage({
         </div>
 
         <p className="mt-6 text-center text-xs text-zinc-500">
-          
+
           {t("swypikSocialShoppingUnde")}
         </p>
       </div>

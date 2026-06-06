@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, X, ImageIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Row = {
   id: string;
@@ -16,6 +17,7 @@ type Row = {
 };
 
 export default function SellerReturnsClient({ initialRows }: { initialRows: Row[] }) {
+  const t = useTranslations("returnsSellerReturns");
   const [rows, setRows] = useState<Row[]>(initialRows);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,9 +63,10 @@ export default function SellerReturnsClient({ initialRows }: { initialRows: Row[
   return (
     <div className="flex-1 px-4 md:px-6 py-6 max-w-5xl mx-auto pb-[max(24px,env(safe-area-inset-bottom))]">
       <header className="mb-6">
-        <h1 className="text-2xl font-black text-[#0D0D0D]">Cereri de retur</h1>
+        <h1 className="text-2xl font-black text-[#0D0D0D]">{t("cereriDeRetur")}</h1>
         <p className="mt-1 text-sm text-[#6E6E80]">
-          Comenzi în așteptarea unei decizii (acceptă cu rambursare Stripe sau respinge).
+
+          {t("comenziInAsteptareaUnei")}
         </p>
       </header>
 
@@ -75,7 +78,8 @@ export default function SellerReturnsClient({ initialRows }: { initialRows: Row[
 
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-[#E5E5E5] bg-white p-10 text-center text-[#6E6E80]">
-          Nu ai cereri de retur în așteptare.
+
+          {t("nuAiCereriDe")}
         </div>
       ) : (
         <ul className="space-y-3">
@@ -93,7 +97,8 @@ export default function SellerReturnsClient({ initialRows }: { initialRows: Row[
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-black text-[#0D0D0D]">
-                        Comandă #{r.id.slice(0, 8)}
+
+                        {t("comanda")}{r.id.slice(0, 8)}
                       </span>
                       <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-800">
                         Retur solicitat
@@ -134,16 +139,16 @@ export default function SellerReturnsClient({ initialRows }: { initialRows: Row[
                       type="button"
                       onClick={() => accept(r.id)}
                       disabled={busy === r.id}
-                      aria-label="Acceptă cererea și restituie banii"
+                      aria-label={t("acceptaCerereaSiRestituie")}
                       className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#10A37F] px-4 py-2.5 min-h-[44px] text-xs font-bold text-white hover:bg-[#0e8e6e] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
-                      <Check size={14} /> Acceptă & restituie
+                      <Check size={14} />  {t("acceptaRestituie")}
                     </button>
                     <button
                       type="button"
                       onClick={() => reject(r.id)}
                       disabled={busy === r.id}
-                      aria-label="Respinge cererea de retur"
+                      aria-label={t("respingeCerereaDeRetur")}
                       className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E5E5E5] px-4 py-2.5 min-h-[44px] text-xs font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                       <X size={14} /> Respinge

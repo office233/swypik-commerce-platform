@@ -1,6 +1,7 @@
 import { dbQuery } from "@/lib/db";
 import Link from "next/link";
 import AECancelClient from "./AECancelClient";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,7 @@ function fmtDate(iso: string | null): string {
 }
 
 export default async function AdminAECancelPage() {
+  const t = await getTranslations("aecancel");
   const [pending, resolved] = await Promise.all([getPending(), getResolvedRecent()]);
 
   return (
@@ -87,21 +89,23 @@ export default async function AdminAECancelPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-black text-[#0D0D0D]">AliExpress Cancel Queue</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Items refundate cu comanda AE deja plasată. AE Open Platform nu expune cancel API —
-          contactează AE/seller manual, apoi marchează aici ca rezolvat.
+
+          {t("itemsRefundateCuComanda")}
         </p>
       </div>
 
       <section className="mb-10">
         <div className="flex items-end justify-between mb-3">
           <h2 className="text-lg font-bold text-[#0D0D0D]">
-            În așteptare <span className="text-gray-500 font-normal">({pending.length})</span>
+
+            {t("inAsteptare")} <span className="text-gray-500 font-normal">({pending.length})</span>
           </h2>
         </div>
 
         {pending.length === 0 ? (
           <div className="bg-white border border-[#E5E5E5] rounded-2xl p-8 text-center text-sm text-gray-500">
-            Nicio cerere de cancel manual. Bine.
+
+            {t("nicioCerereDeCancel")}
           </div>
         ) : (
           <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden">
@@ -113,8 +117,8 @@ export default async function AdminAECancelPage() {
                     <th className="text-left px-4 py-3">Order / Buyer</th>
                     <th className="text-left px-4 py-3">AE Order</th>
                     <th className="text-right px-4 py-3">Refund</th>
-                    <th className="text-left px-4 py-3">Refundat la</th>
-                    <th className="text-right px-4 py-3">Acțiuni</th>
+                    <th className="text-left px-4 py-3">{t("refundatLa")}</th>
+                    <th className="text-right px-4 py-3">{t("actiuni")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -162,7 +166,8 @@ export default async function AdminAECancelPage() {
         </h2>
         {resolved.length === 0 ? (
           <div className="bg-white border border-[#E5E5E5] rounded-2xl p-6 text-center text-sm text-gray-500">
-            Nimic rezolvat încă.
+
+            {t("nimicRezolvatInca")}
           </div>
         ) : (
           <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden">
@@ -174,7 +179,7 @@ export default async function AdminAECancelPage() {
                     <th className="text-left px-4 py-3">Order</th>
                     <th className="text-left px-4 py-3">AE Order</th>
                     <th className="text-left px-4 py-3">Status</th>
-                    <th className="text-left px-4 py-3">Rezolvat la</th>
+                    <th className="text-left px-4 py-3">{t("rezolvatLa")}</th>
                   </tr>
                 </thead>
                 <tbody>

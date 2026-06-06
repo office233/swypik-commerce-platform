@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
 import { Swords, Clock, MessageSquare, TrendingUp } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Battles — Swypik Arena" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pageMeta.battles");
+  return {
+    title: t("title") + " — Swypik",
+    description: t("description"),
+  };
+}
 
 type PostRow = {
   id: string;
@@ -19,10 +27,13 @@ type PostRow = {
   author_display: string | null;
 };
 
-function fmtRemaining(endsAt: string | null): string {
+function fmtRemaining(
+  endsAt: string | null,
+  t: (key: any, vars?: any) => string,
+): string {
   if (!endsAt) return "Permanent";
   const ms = new Date(endsAt).getTime() - Date.now();
-  if (ms <= 0) return "Încheiat";
+  if (ms <= 0) return t("incheiat");
   const d = Math.floor(ms / 86_400_000);
   const h = Math.floor((ms % 86_400_000) / 3_600_000);
   if (d > 0) return `${d}z ${h}h`;
@@ -34,6 +45,8 @@ export default async function BattlesPage({
 }: {
   searchParams: Promise<{ sort?: string }>;
 }) {
+  const t = await getTranslations("battles");
+  const tBattlesPage = await getTranslations("battlesPage");
   const sp = await searchParams;
   const sort = sp.sort === "new" ? "new" : sp.sort === "ending" ? "ending" : "hot";
 
@@ -66,7 +79,8 @@ export default async function BattlesPage({
           <Swords className="w-6 h-6 text-red-400" /> Battles
         </h1>
         <p className="text-sm text-white/60 mt-1">
-          Versus între produse. Votează preferatul, câștigă SWYP.
+
+          {t("versusIntreProduseVoteaza")}
         </p>
         <nav className="mt-3 flex gap-2 text-xs">
           {(["hot", "new", "ending"] as const).map((s) => (
@@ -79,7 +93,7 @@ export default async function BattlesPage({
                   : "border-white/10 text-white/60 hover:bg-white/5"
               }`}
             >
-              {s === "hot" ? "🔥 Hot" : s === "new" ? "🆕 Noi" : "⏰ Se închid"}
+              {s === "hot" ? "🔥 Hot" : s === "new" ? "🆕 Noi" : tBattlesPage("seInchid")}
             </Link>
           ))}
         </nav>
@@ -88,9 +102,11 @@ export default async function BattlesPage({
       <div className="mx-auto max-w-3xl px-4 py-6">
         {rows.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center text-white/60">
-            Niciun battle activ. Ești primul!{" "}
+
+            {t("niciunBattleActivEsti")}{" "}
             <Link href="/post/new?format=battle" className="text-[#7C3AED] underline">
-              Creează unul
+
+              {t("creeazaUnul")}
             </Link>
           </div>
         ) : (
@@ -113,7 +129,7 @@ export default async function BattlesPage({
                       <MessageSquare className="w-3 h-3" /> {p.comment_count}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 text-white/60">
-                      <Clock className="w-3 h-3" /> {fmtRemaining(p.ends_at)}
+                      <Clock className="w-3 h-3" /> {fmtRemaining(p.ends_at, tBattlesPage)}
                     </span>
                     {p.author_display ? (
                       <span className="ml-auto text-white/40">

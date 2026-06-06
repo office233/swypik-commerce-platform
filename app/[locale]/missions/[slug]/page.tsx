@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, Coins, Trophy, Users, Video } from "lucide-react";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +28,8 @@ function formatPrize(amount: number, currency: string): string {
   return `${(amount / 100).toFixed(2)} ${currency}`;
 }
 
-function formatRemaining(endsAt: string | null): string {
-  if (!endsAt) return "Fără termen";
+function formatRemaining(endsAt: string | null, t: (key: any, vars?: any) => string): string {
+  if (!endsAt) return t("faraTermen");
   const milliseconds = new Date(endsAt).getTime() - Date.now();
   if (milliseconds <= 0) return "Expirat";
   const days = Math.floor(milliseconds / 86_400_000);
@@ -68,6 +69,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function MissionDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const t = await getTranslations("missions");
   const { slug } = await params;
   const mission = await getMission(slug);
 
@@ -80,13 +82,13 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
           <Link
             href="/missions"
             className="grid h-10 w-10 place-items-center rounded-full text-white/70 hover:bg-white/10 hover:text-white transition"
-            aria-label="Înapoi la missions"
+            aria-label={t("inapoiLaMissions")}
           >
             <ArrowLeft size={20} />
           </Link>
           <div className="min-w-0">
             <h1 className="truncate text-lg font-black">Mission</h1>
-            <p className="text-xs text-white/50">Brief pentru creatori</p>
+            <p className="text-xs text-white/50">{t("briefPentruCreatori")}</p>
           </div>
         </div>
       </header>
@@ -123,14 +125,14 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
             </span>
             {mission.bounty_per_sale_minor > 0 ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-green-400/15 px-3 py-1.5 font-bold text-green-300">
-                +{(mission.bounty_per_sale_minor / 100).toFixed(2)}/vânzare
+                +{(mission.bounty_per_sale_minor / 100).toFixed(2)}{t("vanzare")}
               </span>
             ) : null}
             <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1.5 text-white/70">
-              <Clock className="h-3.5 w-3.5" /> {formatRemaining(mission.ends_at)}
+              <Clock className="h-3.5 w-3.5" /> {formatRemaining(mission.ends_at, t)}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1.5 text-white/70">
-              <Users className="h-3.5 w-3.5" /> {mission.submissions_count} înscrieri
+              <Users className="h-3.5 w-3.5" /> {mission.submissions_count}  {t("inscrieri")}
             </span>
           </div>
 
@@ -155,7 +157,8 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
               href="/upload"
               className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#7C3AED] px-4 py-3 text-sm font-black text-white hover:bg-[#6D28D9] transition"
             >
-              Publică un clip
+
+              {t("publicaUnClip")}
             </Link>
             {mission.product_id ? (
               <Link

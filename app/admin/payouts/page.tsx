@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
 import { Wallet, ArrowRightLeft, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function PayoutsAdminPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const t = await getTranslations("payouts");
   const sp = await searchParams;
   const status = (sp.status || "").trim();
   const creatorQ = (sp.creator || "").trim();
@@ -189,7 +191,8 @@ export default async function PayoutsAdminPage({
         </div>
         <div className="flex flex-col flex-1 min-w-[200px]">
           <label htmlFor="creator" className="text-xs font-bold text-gray-600 mb-1">
-            Creator (username / email)
+
+            {t("creatorUsernameEmail")}
           </label>
           <input
             id="creator"
@@ -203,7 +206,8 @@ export default async function PayoutsAdminPage({
           type="submit"
           className="px-4 py-2 rounded-lg bg-[#0D0D0D] text-white text-sm font-bold hover:bg-black transition"
         >
-          Filtrează
+
+          {t("filtreaza")}
         </button>
         {(status || creatorQ) && (
           <Link
@@ -221,7 +225,7 @@ export default async function PayoutsAdminPage({
             <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
               <tr>
                 <th className="px-4 py-3">Creator</th>
-                <th className="px-4 py-3">Sumă</th>
+                <th className="px-4 py-3">{t("suma")}</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Trimis</th>
                 <th className="px-4 py-3">Finalizat</th>
@@ -297,7 +301,8 @@ export default async function PayoutsAdminPage({
                 href={baseQs({ page: page + 1 })}
                 className="px-3 py-1.5 rounded-lg border border-[#E5E5E5] font-bold hover:bg-gray-50"
               >
-                Următor →
+
+                {t("urmator")}
               </Link>
             )}
           </div>

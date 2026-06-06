@@ -59,6 +59,7 @@ async function migrateLocalCart(): Promise<boolean> {
 export default function CartPage() {
   const router = useRouter();
   const t = useTranslations("cart");
+  const tConfirm = useTranslations("cartConfirm");
   const formatPrice = useFormatPrice();
   const [items, setItems] = useState<ApiItem[]>([]);
   const [currency, setCurrency] = useState("RON");
@@ -139,7 +140,7 @@ export default function CartPage() {
           </p>
         </div>
         {items.length > 0 && (
-          <button onClick={() => { if (confirm("Ești sigur că vrei să golești coșul?")) clearCart(); }} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-2 rounded-lg bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none min-h-[36px]">
+          <button onClick={() => { if (confirm(tConfirm("sigurGolesc"))) clearCart(); }} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-2 rounded-lg bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none min-h-[36px]">
             
             {t("golesteCosul")}
           </button>
@@ -194,7 +195,7 @@ export default function CartPage() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => { if (confirm("Ești sigur că vrei să ștergi acest produs din coș?")) removeItem(item); }} className="self-start grid h-11 w-11 place-items-center rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none" aria-label={t("sterge")}>
+                  <button onClick={() => { if (confirm(tConfirm("sigurStergProdus"))) removeItem(item); }} className="self-start grid h-11 w-11 place-items-center rounded-lg text-[#D1D1D6] hover:text-red-500 hover:bg-red-50 transition-all focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none" aria-label={t("sterge")}>
                     <Trash2 size={16} />
                   </button>
                 </div>

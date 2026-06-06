@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Props = {
   reviewId: string;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function ReviewActions({ reviewId, isHidden }: Props) {
+  const t = useTranslations("reviewActions");
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,10 +61,11 @@ export default function ReviewActions({ reviewId, isHidden }: Props) {
           onClick={() => run("unhide")}
           disabled={loading !== null}
           className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200 disabled:opacity-50 inline-flex items-center gap-1"
-          aria-label="Reactivează"
+          aria-label={t("reactiveaza")}
         >
           <Eye size={14} />
-          Reactivează
+
+          {t("reactiveaza2")}
         </button>
       ) : (
         <button
@@ -81,10 +84,11 @@ export default function ReviewActions({ reviewId, isHidden }: Props) {
         onClick={() => run("delete")}
         disabled={loading !== null}
         className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200 disabled:opacity-50 inline-flex items-center gap-1"
-        aria-label="Șterge"
+        aria-label={t("sterge")}
       >
         <Trash2 size={14} />
-        Șterge
+
+        {t("sterge2")}
       </button>
       {error && <span className="text-xs text-red-600 ml-2">{error}</span>}
     </div>

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function ApplicationActions({ applicationId }: { applicationId: string }) {
+  const t = useTranslations("applicationsApplicationActions");
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
@@ -38,14 +40,14 @@ export default function ApplicationActions({ applicationId }: { applicationId: s
 
   return (
     <div>
-      <label className="block text-xs font-bold text-black/60 uppercase mb-1">Motiv (obligatoriu pentru respingere)</label>
+      <label className="block text-xs font-bold text-black/60 uppercase mb-1">{t("motivObligatoriuPentruRespingere")}</label>
       <textarea
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         rows={2}
         maxLength={500}
         className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm mb-2"
-        placeholder="Notă pentru jurnal sau motiv de respingere..."
+        placeholder={t("notaPentruJurnalSau")}
       />
       {error && (
         <div className="mb-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>

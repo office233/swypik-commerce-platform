@@ -4,6 +4,7 @@
  */
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ async function getRefunds() {
 }
 
 export default async function AdminRefundsPage() {
+  const t = await getTranslations("refunds");
   const items = await getRefunds();
 
   return (
@@ -52,7 +54,8 @@ export default async function AdminRefundsPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-black text-[#0D0D0D]">Restituiri</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Refund-uri Stripe. Inițiere prin seller dashboard sau webhook.
+
+          {t("refunduriStripeInitierePrin")}
         </p>
       </div>
 
@@ -61,9 +64,9 @@ export default async function AdminRefundsPage() {
           <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
             <tr>
               <th className="px-4 py-3">Refund ID</th>
-              <th className="px-4 py-3">Comandă</th>
+              <th className="px-4 py-3">{t("comanda")}</th>
               <th className="px-4 py-3">Client</th>
-              <th className="px-4 py-3">Sumă</th>
+              <th className="px-4 py-3">{t("suma")}</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Procesat</th>
               <th className="px-4 py-3">Creat</th>
@@ -117,7 +120,8 @@ export default async function AdminRefundsPage() {
             {items.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
-                  Nu există restituiri înregistrate încă.
+
+                  {t("nuExistaRestituiriInregistrate")}
                 </td>
               </tr>
             )}

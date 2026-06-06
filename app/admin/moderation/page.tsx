@@ -3,6 +3,7 @@
  */
 import { dbQuery } from "@/lib/db";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -69,12 +70,13 @@ export default async function ModerationPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const t = await getTranslations("moderation");
   const params = await searchParams;
   const reports = await getReports(params);
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-black mb-4">Moderare conținut</h1>
+      <h1 className="text-2xl font-black mb-4">{t("moderareContinut")}</h1>
 
       <form method="GET" className="flex flex-wrap gap-2 mb-6">
         <select
@@ -83,7 +85,7 @@ export default async function ModerationPage({
           className="rounded-lg border border-black/10 px-3 py-2 text-sm bg-white"
         >
           <option value="open">Deschise</option>
-          <option value="triaged">În analiză</option>
+          <option value="triaged">{t("inAnaliza")}</option>
           <option value="actioned">Rezolvate</option>
           <option value="dismissed">Respinse</option>
         </select>
@@ -100,7 +102,8 @@ export default async function ModerationPage({
           ))}
         </select>
         <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">
-          Filtrează
+
+          {t("filtreaza")}
         </button>
       </form>
 

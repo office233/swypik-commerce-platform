@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { HealthResult } from "@/lib/health";
+import { useTranslations } from "next-intl";
 
 type CardKey = "db" | "redis" | "r2" | "queue";
 
@@ -68,6 +69,7 @@ function formatDetail(detail: Record<string, unknown>): string {
 }
 
 export default function HealthRefresh({ initial, checkedAt, meta }: Props) {
+  const t = useTranslations("healthRefresh");
   const [results, setResults] = useState<Record<CardKey, HealthResult>>(initial);
   const [lastCheck, setLastCheck] = useState<string>(checkedAt);
   const [refreshing, setRefreshing] = useState(false);
@@ -143,7 +145,7 @@ export default function HealthRefresh({ initial, checkedAt, meta }: Props) {
               <p className="text-xs text-[#0D0D0D]/60 mb-3">{meta[k].desc}</p>
               <dl className="text-xs space-y-1">
                 <div className="flex justify-between">
-                  <dt className="text-[#0D0D0D]/60">Latență</dt>
+                  <dt className="text-[#0D0D0D]/60">{t("latenta")}</dt>
                   <dd className="font-bold text-[#0D0D0D]">{r.latency_ms} ms</dd>
                 </div>
                 <div className="flex justify-between gap-3">

@@ -391,8 +391,9 @@ export async function GET(request: NextRequest) {
     const sourceParam = searchParams.get("source");
     const taxonomySlugParam = (searchParams.get("taxonomy_node_slug") || searchParams.get("category") || "").trim();
     const onlyFollowing = sourceParam === "following";
+    const onlyVision24 = sourceParam === "vision24";
     const hideSoftCommerce = !taxonomySlugParam && sourceParam !== "following" && searchParams.get("include_soft_commerce") !== "1";
-    const shouldBlendVision24 = !onlyFollowing && !taxonomySlugParam;
+    const shouldBlendVision24 = !onlyFollowing && !onlyVision24 && !taxonomySlugParam;
     const minScoreParam = searchParams.get("min_score");
     const minScoreRaw = minScoreParam == null ? NaN : Number(minScoreParam);
     const minSwypikScore = taxonomySlugParam || onlyFollowing
@@ -408,6 +409,22 @@ export async function GET(request: NextRequest) {
     const vision24Slots = shouldBlendVision24 ? getVision24FeedCardCounts(limit).total : 0;
     const productPageSize = Math.max(1, limit - vision24Slots);
     const offset = (page - 1) * productPageSize;
+
+    if (onlyVision24) {
+      try {
+        const vision24Only = await fetchVision24FeedCards({ feedLimit: limit, offset: (page - 1) * limit, videosOnly: true });
+        const headers = { "Cache-Control": "public, max-age=20, s-maxage=40, stale-while-revalidate=120" };
+        return NextResponse.json({
+          videos: vision24Only,
+          page,
+          hasMore: vision24Only.length >= limit,
+          vision24: { count: vision24Only.length, onlyMode: true },
+        }, { headers });
+      } catch (error) {
+        logger.warn({ err: error }, "Vision24-only feed fetch failed");
+        return NextResponse.json({ videos: [], page, hasMore: false, vision24: { count: 0, onlyMode: true, error: true } }, { headers: { "Cache-Control": "private, max-age=5" } });
+      }
+    }
 
     const publicUrl = (process.env.S3_PUBLIC_URL || process.env.R2_PUBLIC_URL || "").replace(/\/$/, "");
 

@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type TextKey =
   | "product_description"
@@ -62,6 +63,7 @@ export default function DisputeEvidenceForm({
   draft: Record<string, unknown> | null;
   suggestions?: { key: string; potentialDelta: number; newScore: number }[];
 }) {
+  const t = useTranslations("disputesDisputeEvidenceForm");
   const suggMap = new Map<string, { potentialDelta: number; newScore: number }>();
   for (const s of suggestions || []) suggMap.set(s.key, s);
   const router = useRouter();
@@ -193,7 +195,7 @@ export default function DisputeEvidenceForm({
   return (
     <div className="space-y-3 bg-white border border-[#E5E5E5] rounded p-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="font-semibold text-sm text-[#0D0D0D]">Răspunde la dispute</div>
+        <div className="font-semibold text-sm text-[#0D0D0D]">{t("raspundeLaDispute")}</div>
         <button
           type="button"
           onClick={applySuggestions}
@@ -245,7 +247,7 @@ export default function DisputeEvidenceForm({
       </div>
 
       <div>
-        <div className="text-xs font-semibold text-gray-700 mb-1">Fișiere (PDF / PNG / JPG, max 5MB)</div>
+        <div className="text-xs font-semibold text-gray-700 mb-1">{t("fisierePdfPngJpg")}</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {FILE_FIELDS.map((f) => {
             const slot = fileSlots[f.key];
@@ -277,11 +279,12 @@ export default function DisputeEvidenceForm({
                       onClick={() => clearFile(f.key)}
                       className="ml-auto text-red-600 hover:underline"
                     >
-                      șterge
+
+                      {t("sterge")}
                     </button>
                   </div>
                 ) : slot?.uploading ? (
-                  <div className="text-xs text-gray-500">Se urcă la Stripe…</div>
+                  <div className="text-xs text-gray-500">{t("seUrcaLaStripe")}</div>
                 ) : (
                   <input
                     ref={(el) => {
@@ -312,7 +315,8 @@ export default function DisputeEvidenceForm({
           disabled={pending}
           className="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold border border-[#E5E5E5] hover:bg-gray-50 disabled:opacity-60"
         >
-          Salvează draft
+
+          {t("salveazaDraft")}
         </button>
         <button
           type="button"

@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Mail, KeyRound, Loader2, ArrowLeft, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function SellerLogin() {
+  const t = useTranslations("login");
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState("");
@@ -111,7 +113,8 @@ export default function SellerLogin() {
             <form className="space-y-6 animate-in fade-in zoom-in-95 duration-300" onSubmit={handleEmailSubmit}>
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1">
-                  Adresă de email
+
+                  {t("adresaDeEmail")}
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -141,7 +144,8 @@ export default function SellerLogin() {
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
-                      Continuă <ArrowRight className="ml-2 w-5 h-5" />
+
+                      {t("continua")} <ArrowRight className="ml-2 w-5 h-5" />
                     </>
                   )}
                 </button>
@@ -151,7 +155,8 @@ export default function SellerLogin() {
             <form className="space-y-6 animate-in fade-in zoom-in-95 duration-300" onSubmit={handleOtpSubmit}>
               <div>
                 <label htmlFor="otp" className="block text-sm font-semibold text-gray-700 mb-1">
-                  Cod de verificare (6 cifre)
+
+                  {t("codDeVerificare6")}
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -197,7 +202,7 @@ export default function SellerLogin() {
                   }}
                   className="text-sm font-medium text-gray-500 hover:text-black flex items-center justify-center w-full transition-colors"
                 >
-                  <ArrowLeft className="mr-1 w-4 h-4" /> Modifică adresa de email
+                  <ArrowLeft className="mr-1 w-4 h-4" />  {t("modificaAdresaDeEmail")}
                 </button>
               </div>
             </form>

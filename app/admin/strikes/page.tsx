@@ -6,6 +6,7 @@ import { dbQuery } from "@/lib/db";
 import Link from "next/link";
 import { Shield, AlertCircle } from "lucide-react";
 import RevokeStrikeButton from "./RevokeStrikeButton";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +127,7 @@ export default async function AdminStrikesPage({
 }: {
   searchParams: Promise<{ userId?: string }>;
 }) {
+  const t = await getTranslations("strikes");
   const params = await searchParams;
   const userId = params.userId?.trim() || null;
 
@@ -135,12 +137,13 @@ export default async function AdminStrikesPage({
       <div className="p-4 md:p-6 max-w-5xl mx-auto text-white">
         <div className="mb-6 flex items-center gap-2">
           <Shield className="w-6 h-6" />
-          <h1 className="text-2xl font-black">Strikes — user</h1>
+          <h1 className="text-2xl font-black">{t("strikesUser")}</h1>
           <Link
             href="/admin/strikes"
             className="ml-auto text-xs font-bold text-white/60 hover:text-white underline"
           >
-            ← înapoi la lista
+
+            {t("inapoiLaLista")}
           </Link>
         </div>
 
@@ -165,7 +168,8 @@ export default async function AdminStrikesPage({
               </div>
               {summary.suspended_until && (
                 <div className="mt-2 text-xs text-amber-300">
-                  Suspendat până: {fmtDate(summary.suspended_until)}
+
+                  {t("suspendatPana")} {fmtDate(summary.suspended_until)}
                 </div>
               )}
             </div>
@@ -174,21 +178,22 @@ export default async function AdminStrikesPage({
               <table className="w-full text-xs">
                 <thead className="bg-white/5 text-white/60 uppercase tracking-wide">
                   <tr>
-                    <th className="text-left p-2">Când</th>
+                    <th className="text-left p-2">{t("cand")}</th>
                     <th className="text-left p-2">Sev</th>
                     <th className="text-left p-2">Label</th>
                     <th className="text-left p-2">Context</th>
                     <th className="text-left p-2">Ref</th>
-                    <th className="text-left p-2">Expiră</th>
+                    <th className="text-left p-2">{t("expira")}</th>
                     <th className="text-left p-2">Status</th>
-                    <th className="text-right p-2">Acțiuni</th>
+                    <th className="text-right p-2">{t("actiuni")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {strikes.length === 0 && (
                     <tr>
                       <td colSpan={8} className="p-4 text-center text-white/50">
-                        Niciun strike înregistrat.
+
+                        {t("niciunStrikeInregistrat")}
                       </td>
                     </tr>
                   )}
@@ -236,7 +241,7 @@ export default async function AdminStrikesPage({
 
       {users.length === 0 ? (
         <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center text-sm text-white/60 flex items-center justify-center gap-2">
-          <AlertCircle className="w-4 h-4" /> Niciun utilizator cu score &gt; 0.
+          <AlertCircle className="w-4 h-4" />  {t("niciunUtilizatorCuScore")}
         </div>
       ) : (
         <div className="rounded-lg border border-white/10 bg-white/5 overflow-hidden">

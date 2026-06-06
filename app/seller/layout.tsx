@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
+import { useTranslations } from "next-intl";
 
 const sellerNavItems = [
   { href: "/seller", icon: "📊", label: "Dashboard" },
@@ -12,6 +13,7 @@ const sellerNavItems = [
 ];
 
 export default function SellerLayout({ children }: { children: ReactNode }) {
+  const t = useTranslations("seller");
   return (
     <div className="min-h-screen bg-[#F7F7F8] flex">
       {/* Sidebar */}
@@ -39,7 +41,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
             <span className="text-lg">↩️</span> Retururi
           </Link>
           <Link href="/seller/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">⚙️</span> Setări
+            <span className="text-lg">⚙️</span>  {t("setari")}
           </Link>
         </nav>
 
@@ -49,7 +51,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
               👤
             </div>
             <div>
-              <p className="text-xs font-black text-[#0D0D0D]">Cont Vânzător</p>
+              <p className="text-xs font-black text-[#0D0D0D]">{t("contVanzator")}</p>
               <p className="text-[10px] text-[#6E6E80]">Status: Activ</p>
             </div>
           </div>

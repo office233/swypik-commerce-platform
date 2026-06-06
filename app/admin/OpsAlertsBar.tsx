@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
 import { Shield, PackageX, RotateCcw, Coins, AlertTriangle, ShieldAlert } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type Counts = {
   disputes_pending: number;
@@ -77,6 +78,7 @@ function cardClasses(tone: Card["tone"]): string {
 }
 
 export default async function OpsAlertsBar() {
+  const t = await getTranslations("opsAlertsBar");
   let counts: Counts;
   try {
     counts = await getCounts();
@@ -134,7 +136,8 @@ export default async function OpsAlertsBar() {
   if (totalAlerts === 0) {
     return (
       <div className="mb-6 bg-green-50 border border-green-200 rounded-2xl p-3 text-sm text-green-800">
-        ✓ Niciun alert operational. Toate cozile sunt curate.
+
+        {t("niciunAlertOperationalToate")}
       </div>
     );
   }

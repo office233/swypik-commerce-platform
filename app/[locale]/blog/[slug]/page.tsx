@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { translateBlogCategory } from "@/lib/blog/categoryLabel";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -90,6 +92,7 @@ async function loadLinkedProducts(ids: string[]): Promise<LinkedProduct[]> {
 
 export default async function BlogArticlePage({ params }: Props) {
   const { slug, locale } = await params;
+  const tCat = await getTranslations({ locale, namespace: "blogCategory" });
   const tt = tStrings(locale);
   const article = await getBlogArticleBySlug(slug, locale);
   if (!article) notFound();
@@ -147,9 +150,9 @@ export default async function BlogArticlePage({ params }: Props) {
       logo: { "@type": "ImageObject", url: `${BASE_URL}/icon-512.png` },
     },
     mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-    articleSection: article.category || undefined,
+    articleSection: article.category ? translateBlogCategory(article.category, tCat) : undefined,
     keywords: article.tags.join(", "),
-    inLanguage: locale === "en" ? "en" : "ro",
+    inLanguage: locale,
   };
   if (productMentions.length) {
     articleLd.mentions = productMentions;
@@ -198,7 +201,7 @@ export default async function BlogArticlePage({ params }: Props) {
       <header className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 pb-8">
         {article.category ? (
           <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#7C3AED" }}>
-            {article.category}
+            {translateBlogCategory(article.category, tCat)}
           </div>
         ) : null}
         <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight text-[#0D0D0D]">

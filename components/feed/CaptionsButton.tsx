@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Subtitles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const LANG_LABELS: Record<string, string> = {
   ro: "Română",
@@ -23,6 +24,7 @@ type Props = {
 
 /** Floating CC button + active overlay text. Self-contained polling per-frame. */
 export default function CaptionsButton({ videoId, currentTimeRef }: Props) {
+  const t = useTranslations("captionsButton");
   const [open, setOpen] = useState(false);
   const [available, setAvailable] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export default function CaptionsButton({ videoId, currentTimeRef }: Props) {
         type="button"
         className="action-btn"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Subtitrări"
+        aria-label={t("subtitrari")}
         aria-pressed={!!selected}
         style={{ position: "relative" }}
       >

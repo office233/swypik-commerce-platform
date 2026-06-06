@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Bookmark, Heart, MoreVertical, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type SavedVideo = {
   id: string;
@@ -25,6 +26,8 @@ type Props = {
 };
 
 export default function SavedVideosTab({ limit = 50, showHeader = false, enableInfiniteScroll = false }: Props) {
+  const t = useTranslations("accountSavedVideosTab");
+  const tSaved = useTranslations("savedVideosTab");
   const [videos, setVideos] = useState<SavedVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +46,7 @@ export default function SavedVideosTab({ limit = 50, showHeader = false, enableI
         });
         if (!res.ok) {
           if (res.status === 401) {
-            setError("Trebuie să te autentifici.");
+            setError(tSaved("trebuieAutentifici"));
             return;
           }
           throw new Error("fetch_failed");
@@ -54,7 +57,7 @@ export default function SavedVideosTab({ limit = 50, showHeader = false, enableI
         setHasMore(Boolean(data.hasMore));
         setOffset(currentOffset + next.length);
       } catch (e) {
-        setError("Nu am putut încărca clipurile salvate.");
+        setError(tSaved("errNuAmIncarcat"));
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -101,9 +104,10 @@ export default function SavedVideosTab({ limit = 50, showHeader = false, enableI
     return (
       <div className="py-20 text-center text-white/40">
         <Bookmark size={32} className="mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Clipurile pe care le salvezi vor apărea aici.</p>
+        <p className="text-sm">{t("clipurilePeCareLe")}</p>
         <Link href="/explore" className="inline-block mt-3 text-xs text-white/70 underline">
-          Descoperă clipuri
+
+          {t("descoperaClipuri")}
         </Link>
       </div>
     );
@@ -139,7 +143,7 @@ export default function SavedVideosTab({ limit = 50, showHeader = false, enableI
             </div>
             <button
               type="button"
-              aria-label="Opțiuni clip"
+              aria-label={t("optiuniClip")}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -160,7 +164,7 @@ export default function SavedVideosTab({ limit = 50, showHeader = false, enableI
                   }}
                   className="flex items-center gap-2 px-3 py-2 w-full hover:bg-white/5 text-left whitespace-nowrap"
                 >
-                  <Trash2 size={12} /> Elimină din salvate
+                  <Trash2 size={12} />  {t("eliminaDinSalvate")}
                 </button>
               </div>
             )}
@@ -175,7 +179,7 @@ export default function SavedVideosTab({ limit = 50, showHeader = false, enableI
             onClick={() => void fetchPage(offset, true)}
             className="px-4 py-2 text-xs bg-white/10 hover:bg-white/20 rounded disabled:opacity-50"
           >
-            {loadingMore ? "Se încarcă..." : "Încarcă mai multe"}
+            {loadingMore ? tSaved("seIncarca") : tSaved("incarcaMaiMulte")}
           </button>
         </div>
       )}

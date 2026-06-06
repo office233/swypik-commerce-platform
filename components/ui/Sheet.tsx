@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "./cn";
 
 export interface SheetProps {
@@ -24,6 +25,7 @@ export function Sheet({
   side = "bottom",
   className,
 }: SheetProps) {
+  const t = useTranslations("uiSheet");
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -49,7 +51,7 @@ export function Sheet({
     >
       <button
         type="button"
-        aria-label="Închide"
+        aria-label={t("inchide")}
         onClick={onClose}
         className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
       />
@@ -74,7 +76,7 @@ export function Sheet({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Închide"
+              aria-label={t("inchide")}
               className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--swp-surface-2)] text-xl text-[var(--swp-text)] hover:bg-[var(--swp-surface-3)]"
             >
               ×

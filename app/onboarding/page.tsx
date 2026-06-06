@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TOPICS } from "@/lib/topics";
+import { useTranslations } from "next-intl";
 
 export default function OnboardingPage() {
+  const t = useTranslations("onboarding");
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -56,9 +58,10 @@ export default function OnboardingPage() {
 
       <div className="z-10 w-full max-w-md flex flex-col h-full mt-12 mb-12">
         <div className="flex-1">
-          <h1 className="text-4xl font-black mb-2 text-center tracking-tight">Alege ce vrei să vezi</h1>
+          <h1 className="text-4xl font-black mb-2 text-center tracking-tight">{t("alegeCeVreiSa")}</h1>
           <p className="text-gray-400 text-center mb-8">
-            Selectează 3-5 interese. Feed-ul tău va fi personalizat instant.
+
+            {t("selecteaza35IntereseFeedul")}
           </p>
 
           <div className="grid grid-cols-2 gap-3 mb-8">

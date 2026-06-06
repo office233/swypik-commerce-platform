@@ -6,7 +6,7 @@
 //   4. setează `alternates.languages` GLOBAL pentru toate paginile descendente
 //      (paginile pot suprascrie cu propriul `generateMetadata`)
 import { notFound } from "next/navigation";
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { routing } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/config";
@@ -25,7 +25,19 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "seo" });
   return {
+    title: t("siteTitle"),
+    description: t("siteDescription"),
+    openGraph: {
+      title: t("siteTitle"),
+      description: t("siteDescription"),
+      locale,
+    },
+    twitter: {
+      title: t("siteTitle"),
+      description: t("twitterDescription"),
+    },
     alternates: {
       canonical: locale === routing.defaultLocale ? "/" : `/${locale}`,
       languages: languagesForMetadata("/"),

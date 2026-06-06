@@ -6,6 +6,7 @@ import { Link } from "@/lib/i18n/navigation";
 import { ShoppingCart, Star, Truck } from "lucide-react";
 import type { Product } from "@/types/product";
 import { THEME } from "@/lib/ui/theme";
+import { useTranslations } from "next-intl";
 
 type Variant = "compact" | "featured" | "comparison";
 
@@ -14,7 +15,7 @@ type Props = {
   variant?: Variant;
   /** Optional: pre-loaded product to skip the fetch (used by server components). */
   initialProduct?: Product | null;
-  /** Optional: badge text override (e.g. "CÂȘTIGĂTOR #1"). */
+  /** Optional: badge text override (e.g. tInline("castigator1")). */
   badge?: string;
   /** Optional callback for cart add — defaults to /api/cart POST. */
   onAddToCart?: (product: Product) => void;
@@ -22,7 +23,7 @@ type Props = {
 
 /**
  * InlineProductCard — embedded inside article body via MDX:
- *   <InlineProductCard productId={62} variant="featured" badge="CÂȘTIGĂTOR #1" />
+ *   <InlineProductCard productId={62} variant="featured" badge=tInline("castigator1") />
  *
  * Three visual variants:
  *   - compact:    horizontal mini card with thumbnail + price + button
@@ -38,6 +39,8 @@ export default function InlineProductCard({
   badge,
   onAddToCart,
 }: Props) {
+  const t = useTranslations("blogInlineProductCard");
+  const tInline = useTranslations("blogInlineProductCard");
   const [product, setProduct] = useState<Product | null>(initialProduct);
   const [loading, setLoading] = useState(!initialProduct);
   const [adding, setAdding] = useState(false);
@@ -130,7 +133,8 @@ export default function InlineProductCard({
           <div>
             {badge ? (
               <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#7C3AED" }}>
-                🏆 Recomandarea noastră
+
+                {t("recomandareaNoastra")}
               </div>
             ) : null}
             <Link href={href}>
@@ -193,7 +197,7 @@ export default function InlineProductCard({
               disabled={adding}
               className="px-5 h-10 rounded-xl border border-zinc-200 text-sm font-medium hover:border-violet-500 transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <ShoppingCart size={14} /> {adding ? "Adăugat..." : "Adaugă în coș"}
+              <ShoppingCart size={14} /> {adding ? tInline("adaugatDots") : tInline("adaugaInCos")}
             </button>
           </div>
         </div>
@@ -243,7 +247,7 @@ export default function InlineProductCard({
           className="mt-3 w-full h-10 rounded-lg text-white text-sm font-semibold transition active:scale-[0.97] disabled:opacity-50"
           style={{ background: "linear-gradient(135deg,#7C3AED,#EC4899)" }}
         >
-          {adding ? "Adăugat..." : "Adaugă în coș"}
+          {adding ? tInline("adaugatDots") : tInline("adaugaInCos")}
         </button>
       </div>
     );

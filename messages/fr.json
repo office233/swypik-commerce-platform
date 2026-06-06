@@ -48,7 +48,25 @@
     "nuAiComenziInca": "Tu n'as pas encore de commandes.",
     "comanda": "Commande n°",
     "data": "Date",
-    "pentruReturContacteazaSuportul": "Pour un retour, contacte le support (token de commande manquant)."
+    "pentruReturContacteazaSuportul": "Pour un retour, contacte le support (token de commande manquant).",
+    "headerComenzi": "Mes commandes",
+    "statusPending": "En attente",
+    "statusPaid": "Payée",
+    "statusProcessing": "En cours de traitement",
+    "statusFulfilled": "Expédiée",
+    "statusDelivered": "Livrée",
+    "statusCancelled": "Annulée",
+    "statusRefunded": "Remboursée",
+    "statusReturnRequested": "Retour demandé",
+    "produs": "article",
+    "produse": "produits",
+    "status": "Statut",
+    "cantitate": "Qté : {qty} × {unit}",
+    "subtotal": "Sous-total",
+    "reducere": "Réduction",
+    "transport": "Livraison",
+    "tva": "TVA",
+    "total": "Total"
   },
   "accountReturns": {
     "nuAiCereriDe": "Tu n'as pas de demandes de retour.",
@@ -115,14 +133,34 @@
     "expiraLa": "Expire le :",
     "folosimStripeIdentityPentru": "Nous utilisons Stripe Identity pour vérifier ton document. Les données sont traitées par Stripe conformément au RGPD. Nous stockons uniquement ta date de naissance et le pays du document.",
     "afiseazaContinut18": "Afficher le contenu 18+",
-    "activeazaPentruAVedea": "Active pour voir les vidéos et produits pour adultes dans ton fil."
+    "activeazaPentruAVedea": "Active pour voir les vidéos et produits pour adultes dans ton fil.",
+    "errStart": "Impossible de lancer la vérification.",
+    "errNecunoscuta": "Erreur inconnue.",
+    "errOptIn": "Impossible d'enregistrer la préférence.",
+    "ctaReverifica": "Revérifier (remplacer le document)",
+    "ctaReia": "Recommencer la vérification",
+    "ctaVerifica": "Vérifier mon âge",
+    "statusCurent": "Statut actuel",
+    "statusNeverificat": "Non vérifié",
+    "statusPending": "Vérification en cours",
+    "statusVerificat": "Vérifié",
+    "statusRespins": "Refusé",
+    "statusExpirat": "Expiré",
+    "motivRespingere": "Motif du refus : {reason}",
+    "btnSePregateste": "Préparation…"
   },
   "audioPicker": {
     "inchide": "Fermer",
     "cautaTitluArtistTag": "Cherche titre, artiste, tag...",
     "cautaPiesa": "Chercher une piste",
     "seIncarca": "Chargement...",
-    "nicioPiesaGasita": "Aucune piste trouvée."
+    "nicioPiesaGasita": "Aucune piste trouvée.",
+    "errNuAmIncarcat": "Impossible de charger les morceaux.",
+    "alegePiesa": "Choisir le son",
+    "elimina": "Supprimer",
+    "fara": "Aucun",
+    "pauza": "Pause",
+    "reda": "Lire"
   },
   "auth": {
     "login": "Se connecter",
@@ -232,7 +270,17 @@
     "devinoCreatorPeSwypik": "Deviens créateur sur Swypik",
     "transformatiPasiuneaPentruShopping": "Transforme ta passion du shopping en revenus. Poste des vidéos, recommande des produits, gagne des commissions.",
     "logheazateCaSaContinui": "Connecte-toi pour continuer",
-    "tePotiIntoarceOricand": "Tu peux revenir au rôle d'acheteur depuis ton compte à tout moment."
+    "tePotiIntoarceOricand": "Tu peux revenir au rôle d'acheteur depuis ton compte à tout moment.",
+    "metaTitle": "Devenez créateur sur Swypik",
+    "metaDescription": "Publie des vidéos, gagne des commissions sur les ventes et des récompenses SWYP. Rejoins le réseau de créateurs Swypik.",
+    "benefit1Title": "Publie des vidéos façon TikTok",
+    "benefit1Body": "Filme directement depuis l'app et touche une audience verticale prête à acheter.",
+    "benefit2Title": "Commission sur chaque vente",
+    "benefit2Body": "Touche un pourcentage automatique sur les commandes générées par tes vidéos.",
+    "benefit3Title": "Récompenses SWYP",
+    "benefit3Body": "Gagne des points SWYP grâce à ton engagement et échange-les contre de vrais avantages.",
+    "benefit4Title": "Audience dédiée au shopping",
+    "benefit4Body": "Les utilisateurs Swypik viennent pour découvrir des produits — ton contenu a un vrai impact."
   },
   "becomeaseller": {
     "zeroBataiDeCap": "Zéro prise de tête.",
@@ -285,7 +333,10 @@
     "apasaButonulParticipaPe": "Appuie sur Participer sur un défi actif. Tu dois avoir un compte Swypik.",
     "recompensaSeAcordaAutomat": "La récompense est versée automatiquement dans ton portefeuille quand tu remplis les critères.",
     "conturileCuEngagementFals": "Les comptes avec engagement artificiel, spam ou contenu interdit sont disqualifiés sans avertissement.",
-    "reflectaTotalulDeSwyp": "reflète le total de Swyp Coins gagnés (lifetime). Mise à jour en temps réel."
+    "reflectaTotalulDeSwyp": "reflète le total de Swyp Coins gagnés (lifetime). Mise à jour en temps réel.",
+    "creeazaChallengeNou": "+ Créer un challenge",
+    "niciunChallengeCreatInca": "Aucun challenge créé pour le moment.",
+    "actiuni": "Actions"
   },
   "chatInterface": {
     "cumparaAcum": "Acheter maintenant",
@@ -329,7 +380,112 @@
     "cos2": "+ Panier",
     "inchide4": "Fermer",
     "deCeMeritaAi": "🧠 Pourquoi ça vaut le coup — Analyse IA",
-    "adaugaInCos": "Ajouter au panier —"
+    "adaugaInCos": "Ajouter au panier —",
+    "qpGamingLabel": "🎮 Setup gaming",
+    "qpGamingQuery": "setup gaming complet sous 800 €",
+    "qpNuntaLabel": "👗 Tenue de mariage",
+    "qpNuntaQuery": "tenue complète chic pour mariage",
+    "qpApartLabel": "🏠 Nouvel appartement",
+    "qpApartQuery": "kit appartement neuf moins de 2000 lei",
+    "qpCadouLabel": "🎁 Cadeau à moins de 200",
+    "qpCadouQuery": "cadeau original à moins de 40 €",
+    "qpBirouLabel": "💻 Setup bureau",
+    "qpBirouQuery": "setup complet bureau à domicile",
+    "qpSkincareLabel": "💄 Routine skincare",
+    "qpSkincareQuery": "routine skincare complète",
+    "qpFitnessLabel": "🏋️ Kit fitness",
+    "qpFitnessQuery": "kit fitness maison complet",
+    "qpIphoneLabel": "📱 Kit iPhone",
+    "qpIphoneQuery": "kit complet accessoires iPhone",
+    "qpPetLabel": "🐾 Nouveau kit animal",
+    "qpPetQuery": "kit complet nouvel animal de compagnie",
+    "welcomeContent": "Salut ! 👋 Je suis ton assistant shopping.\n\nDis-moi ce que tu cherches et je m'occupe de :\n• Trouver les meilleures options\n• T'expliquer pourquoi elles valent le coup\n• Composer des packs complets avec tout le nécessaire\n• Comparer prix et qualité\n\nEssaie un truc comme :\n💻 \"Setup gaming sous 800 €\"\n👗 \"Tenue chic pour un mariage\"\n🏠 \"Nouvel appart sous 400 €\"",
+    "outfitNunta": "Tenue élégante pour un mariage",
+    "errCauta": "Impossible de rechercher les produits.",
+    "amCautatInMagazin": "J'ai cherché dans la boutique.",
+    "errGenerica": "Une erreur est survenue.",
+    "reducereReala": "💰 Vraie remise",
+    "cosShort": "Panier",
+    "seCautaRezultate": "Recherche en cours…",
+    "pretAsc": "Prix ↑",
+    "pretDesc": "Prix ↓",
+    "economisesti": "Vous économisez {amount} €",
+    "totBundleAdaugat": "🎁 Pack entier ajouté !",
+    "arataAltele": "🔄 Voir d'autres",
+    "promptArataAltceva": "montre-moi autre chose",
+    "promptDoarTopCalitate": "montre-moi uniquement le top qualité",
+    "promptProduseNoi": "montre-moi des produits plus récents",
+    "comparaTop2": "⚖️ Comparer le top 2",
+    "promptComparaTop2": "comparer les 2 meilleurs produits",
+    "seProceseaza": "Traitement…",
+    "finalizeazaComanda": "Finaliser la commande — {total} lei",
+    "navAcasa": "Accueil",
+    "navCos": "Panier",
+    "economisestiBundle": "• vous économisez {amount} €",
+    "trustComenzi": "✅ {count}+ commandes — vendeur de confiance",
+    "trustVandute": "📦 {count}+ vendus — produit vérifié",
+    "trustReducereReala": "💰 Vraie réduction de {percent} % par rapport au prix standard",
+    "trustBestValue": "🏆 Meilleur rapport qualité-prix de sa catégorie",
+    "trustLivrareRapida": "🚀 Livraison rapide — {days} jours",
+    "asistentShoppingAi": "Assistant shopping IA",
+    "qpGamingLabelDefault": "🎮 Setup gaming",
+    "qpGamingQueryDefault": "setup gaming complet à moins de 800 €",
+    "qpNuntaLabelDefault": "👗 Tenue de mariage",
+    "qpNuntaQueryDefault": "tenue complète chic pour mariage",
+    "qpApartLabelDefault": "🏠 Nouvel appartement",
+    "qpApartQueryDefault": "kit appartement neuf à moins de 2000 lei",
+    "qpCadouLabelDefault": "🎁 Cadeau à moins de 200",
+    "qpCadouQueryDefault": "cadeau original à moins de 40 €",
+    "qpBirouLabelDefault": "💻 Setup bureau",
+    "qpBirouQueryDefault": "setup bureau à domicile complet",
+    "qpSkincareLabelDefault": "💄 Routine skincare",
+    "qpSkincareQueryDefault": "routine soin complète",
+    "qpFitnessLabelDefault": "🏋️ Kit fitness",
+    "qpFitnessQueryDefault": "kit fitness maison complet",
+    "qpIphoneLabelDefault": "📱 Kit iPhone",
+    "qpIphoneQueryDefault": "kit complet accessoires iPhone",
+    "qpPetLabelDefault": "🐾 Nouveau kit animal",
+    "qpPetQueryDefault": "kit complet nouvel animal",
+    "aiWelcomeContent": "Salut ! 👋 Je suis ton assistant shopping.\n\nDis-moi ce que tu cherches et je :\n• Trouve les meilleures options\n• Explique pourquoi chacune vaut le coup\n• Crée des packs complets avec tout le nécessaire\n• Compare prix et qualité\n\nEssaie un truc comme :\n💻 \"Setup gaming sous 800 €\"\n👗 \"Tenue chic pour un mariage\"\n🏠 \"Nouvel appart sous 400 €\"",
+    "funnelVeziAlternative": "Voir les alternatives",
+    "funnelCompleteazaBundle": "Compléter le bundle",
+    "errNuAmPutut": "Impossible de rechercher les produits.",
+    "errAmCautat": "J'ai cherché dans la boutique.",
+    "errGenericaAparut": "Une erreur est survenue.",
+    "insightCalitatePesteMedie": "⭐ Qualité supérieure",
+    "insightSellerVerificat": "✅ Vendeur vérifié",
+    "insightReducereReala": "💰 Vraie réduction",
+    "insightBestValue": "🏆 Meilleur rapport qualité-prix",
+    "insightRatingPesteMedie": "⭐ Note {rating}/5 — qualité au-dessus de la moyenne",
+    "insightComenziSellerIncredere": "✅ {orders}+ commandes — vendeur de confiance",
+    "insightVanduteVerificat": "📦 {orders}+ vendus — produit vérifié",
+    "insightReducereRealaPct": "💰 Réduction réelle de {pct}% sur le prix standard",
+    "insightBestValueCategorie": "🏆 Meilleur rapport qualité-prix de sa catégorie",
+    "insightLivrareRapidaZile": "🚀 Livraison rapide — {days} jours",
+    "popularBadge": "Populaire",
+    "zileLivrare": "jours",
+    "lei": "lei",
+    "comenziSuffix": "commandes",
+    "veziToateDetaliile": "Voir tous les détails →",
+    "sortPopular": "Populaire",
+    "sortPretAsc": "Prix ↑",
+    "sortPretDesc": "Prix ↓",
+    "sortNoi": "Nouveaux",
+    "sortReduceri": "Promos",
+    "sortareLabel": "Trier",
+    "produseSuffix": "produits",
+    "navCategorii": "Catégories",
+    "navGhiduri": "Guides",
+    "navFeed": "Feed",
+    "ariaTrimite": "Envoyer",
+    "asistentLabel": "Assistant shopping IA",
+    "contSectionLabel": "Compte",
+    "economisesteLei": "Vous économisez {amt} lei",
+    "totalLei": "Total : {amt} lei",
+    "finalizeazaComandaLei": "Finaliser la commande — {amt} lei",
+    "seProceseazaDots": "Traitement en cours...",
+    "totalLeiCompactLabel": "Total : {amt} lei",
+    "economiseaCompactSavings": "vous économisez {amt} €"
   },
   "checkoutForm": {
     "adresaDeLivrare": "📍 Adresse de livraison",
@@ -420,7 +576,9 @@
     "scheduled": "Programmés",
     "publish": "Publier",
     "saveDraft": "Enregistrer brouillon",
-    "schedule": "Programmer"
+    "schedule": "Programmer",
+    "exploreaza": "Explorer",
+    "acestCreatorNuAre": "Ce créateur n'a publié aucune vidéo."
   },
   "creatorDashboard": {
     "titlu": "Tableau de bord Créateur",
@@ -628,7 +786,13 @@
     "activeazaSunetul": "Activer le son",
     "opresteSunetul": "Couper le son",
     "actiuniProdus": "Actions produit {name}",
-    "veziPret": "Voir le prix"
+    "veziPret": "Voir le prix",
+    "sursaFeed": "Source du flux",
+    "stiri": "Actus",
+    "atingePentruSunet": "Toucher pour activer le son",
+    "atingePentruSunet2": "Appuyez pour le son",
+    "stiriVerificateDeVision24": "Actus vérifiées par Vision24 AI — clips courts de sources officielles",
+    "citesteAnaliza": "Lire l'analyse"
   },
   "help": {
     "ajutorIntrebariFrecvente": "Aide & FAQ",
@@ -703,7 +867,10 @@
     "continua": "Continuer",
     "incepeSaDescoperi": "Commence à découvrir",
     "feedulTauEGata": "Ton fil est prêt. Glisse vers le haut pour voir de nouvelles vidéos.",
-    "mergiLaFeed": "Aller au fil"
+    "mergiLaFeed": "Aller au fil",
+    "sigurSariPeste": "Vraiment passer ? Tu rateras les suggestions.",
+    "urmarit": "Suivi",
+    "urmareste": "Suivre"
   },
   "orders": {
     "seIncarcaComanda": "Chargement de la commande...",
@@ -746,7 +913,16 @@
     "returSolicitat": "Retour demandé",
     "motivulReturului": "Motif du retour",
     "seTrimite": "Envoi en cours…",
-    "trimiteCerereaDeRetur": "Envoyer la demande de retour"
+    "trimiteCerereaDeRetur": "Envoyer la demande de retour",
+    "inapoiLaComenzi": "← Retour aux commandes",
+    "adaugaAwb": "📦 Ajouter AWB",
+    "adaugaAwb2": "📦 Ajouter AWB",
+    "sumarPlata": "Récapitulatif du paiement",
+    "totalPlatit": "Total payé",
+    "urmaresteColetul": "Suivre le colis →",
+    "nuAFostFurnizata": "Aucune adresse de livraison fournie.",
+    "adaugaCodAwb": "Ajouter un numéro de suivi",
+    "introduCodulDeUrmarire": "Saisis le numéro de suivi reçu du transporteur ou du fournisseur."
   },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Demande de retour enregistrée. Nous te contacterons bientôt.",
@@ -772,7 +948,8 @@
   "page": {
     "swypikCumparaPrinVideo": "Swypik — Achète par Vidéo. Marketplace avec IA.",
     "descoperaProdusePopulareOferte": "Découvre les produits populaires, les meilleures affaires et les recommandations top via du contenu vidéo curé. Trouve plus vite le bon produit avec l'IA.",
-    "calitatepretExcelent": "Excellent rapport qualité-prix"
+    "calitatepretExcelent": "Excellent rapport qualité-prix",
+    "sariLaContinut": "Aller au contenu"
   },
   "privacy": {
     "metaTitle": "Politique de confidentialité — Swypik",
@@ -877,13 +1054,23 @@
   "pushDeviceToggle": {
     "seVerifica": "Vérification en cours…",
     "browserulNuSuportaNotificari": "Votre navigateur ne supporte pas les notifications push.",
-    "permisiuneRefuzataActiveazaDin": "Permission refusée. Active les notifications dans les paramètres de ton navigateur."
+    "permisiuneRefuzataActiveazaDin": "Permission refusée. Active les notifications dans les paramètres de ton navigateur.",
+    "permisiuneRefuzata": "Autorisation refusée",
+    "notifActive": "Notifications activées",
+    "notifDezactivate": "Notifications désactivées",
+    "dezactiveazaAria": "Désactiver les notifications",
+    "activeazaAria": "Activer les notifications"
   },
   "pushPrompt": {
     "activeazaNotificarile": "Activer les notifications",
     "primesteAlerteDespreNoi": "Reçois des alertes sur les nouveaux vidéos, commandes et messages.",
     "maiTarziu": "Plus tard",
-    "inchide": "Fermer"
+    "inchide": "Fermer",
+    "notifActive": "Notifications activées",
+    "permisiuneRefuzata": "Autorisation refusée",
+    "aEsuat": "Échec. Réessayez.",
+    "seConecteaza": "Connexion…",
+    "activeaza": "Activer"
   },
   "recorder": {
     "inchide": "Fermer",
@@ -937,7 +1124,18 @@
     "inchide": "Fermer",
     "selecteazaMotivulRaportarii": "Sélectionne le motif du signalement :",
     "detaliiOptional": "Détails (optionnel)",
-    "adaugaContext": "Ajoute un contexte…"
+    "adaugaContext": "Ajoute un contexte…",
+    "reportSpam": "Spam",
+    "reportExplicit": "Contenu explicite",
+    "reportHartuire": "Harcèlement",
+    "multumimPrimit": "Merci, signalement bien reçu.",
+    "errRetea": "Erreur réseau.",
+    "categorieRaport": "Catégorie du signalement",
+    "seTrimiteDots": "Envoi...",
+    "trimiteRaportul": "Envoyer le signalement",
+    "reportDezinformare": "Désinformation",
+    "reportCopyright": "Droits d'auteur",
+    "reportAltul": "Autre"
   },
   "returnForm": {
     "produsePentruRetur": "Produits à retourner",
@@ -947,6 +1145,20 @@
     "fotografiiOptionalMax": "Photos (optionnel, max",
     "adaugaFotografie": "Ajouter une photo",
     "tokenComandaLipsaFotografiile": "Token de commande manquant — impossible de charger les photos."
+  },
+  "reviewForm": {
+    "errRating": "Choisis une note entre 1 et 5 étoiles.",
+    "errAuth": "Tu dois être connecté.",
+    "errDeja": "Tu as déjà laissé un avis sur ce produit.",
+    "errGenerica": "Une erreur est survenue.",
+    "errRetea": "Erreur réseau.",
+    "labelRating": "Note",
+    "ariaRating": "Note en étoiles",
+    "ariaStele": "{n} étoiles",
+    "labelTitlu": "Titre (facultatif)",
+    "labelParere": "Ton avis",
+    "btnSeTrimite": "Envoi…",
+    "btnTrimite": "Publier l'avis"
   },
   "security": {
     "autentificareInDoiPasi": "Authentification à deux facteurs (2FA)",
@@ -1157,15 +1369,51 @@
   "sellers": {
     "vanzatorVerificat": "✓ Vendeur vérifié",
     "vanzari": "Ventes",
-    "produseleAcestuiVanzatorVor": "Les produits de ce vendeur apparaîtront ici bientôt."
+    "produseleAcestuiVanzatorVor": "Les produits de ce vendeur apparaîtront ici bientôt.",
+    "actiuni": "Actions",
+    "aproba": "Approuver",
+    "nuExistaSelleriInregistrati": "Aucun vendeur inscrit."
   },
   "settings": {
     "preferences": "Préférences",
     "selectLanguage": "Choisir la langue",
     "selectCurrency": "Choisir la devise"
   },
+  "settingsClient": {
+    "headerTitle": "Paramètres",
+    "ariaInapoi": "Retour au profil",
+    "itemAdmin": "Admin Dashboard",
+    "itemSeller": "Espace vendeur",
+    "itemSellerPending": "Demande vendeur en cours d'examen",
+    "itemDevinoSeller": "Devenir vendeur",
+    "itemEditeaza": "Modifier le profil",
+    "itemWallet": "Portefeuille SWYP",
+    "itemComenzi": "Mes commandes",
+    "itemAdrese": "Adresses de livraison",
+    "itemSecuritate": "Sécurité et mot de passe",
+    "itemLimba": "Langue et devise",
+    "itemNotificari": "Notifications",
+    "itemSeDeconnect": "Déconnexion…",
+    "itemDeconnect": "Se déconnecter"
+  },
   "stripeConnectCard": {
-    "seVerificaStatusulStripe": "Vérification du statut Stripe..."
+    "seVerificaStatusulStripe": "Vérification du statut Stripe...",
+    "errVerificare": "Erreur lors de la vérification du statut.",
+    "errConectare": "Erreur de connexion.",
+    "errRetea": "Erreur réseau.",
+    "titluActiv": "Stripe Connect activé",
+    "titluPending": "Stripe — terminez la vérification",
+    "titluNeconectat": "Connectez Stripe pour recevoir vos paiements",
+    "descActiv": "Paiements et virements activés. Vous pouvez recevoir vos commissions.",
+    "descPending": "Stripe a besoin d'infos supplémentaires pour activer les virements.",
+    "descNeconectatSeller": "Connecte un compte Stripe pour recevoir tes paiements.",
+    "descNeconectatCreator": "Connecte un compte Stripe pour recevoir tes commissions créateur.",
+    "badgeVerificat": "VÉRIFIÉ",
+    "badgePending": "EN ATTENTE",
+    "badgeNeconectat": "NON CONNECTÉ",
+    "btnRedirect": "Redirection...",
+    "btnContinua": "Continuer la vérification",
+    "btnConecteaza": "Connecter Stripe"
   },
   "success": {
     "livrareCatre": "Livraison vers",
@@ -1292,5 +1540,699 @@
     "reasonAdminDeduct": "Retenu par l'admin",
     "reasonChallengeReward": "Défi remporté",
     "reasonReferral": "Parrainage"
+  },
+  "forgot": {
+    "aiUitatParola": "Mot de passe oublié ?",
+    "introduEmailulContuluiSi": "Saisis l'e-mail de ton compte et on t'envoie un lien pour réinitialiser ton mot de passe.",
+    "dacaExistaUnCont": "Si un compte est associé à cet e-mail, un lien de réinitialisation t'a été envoyé. Vérifie ta boîte de réception (et les spams). Le lien expire dans 1 heure.",
+    "inapoiLaAutentificare": "Retour à la connexion",
+    "inapoiLaAutentificare2": "Retour à la connexion"
+  },
+  "onboarding": {
+    "alegeCeVreiSa": "Choisis ce que tu veux voir",
+    "selecteaza35IntereseFeedul": "Choisis 3 à 5 centres d'intérêt. Ton feed s'adapte aussitôt."
+  },
+  "messages": {
+    "inapoi": "Retour",
+    "conversatie": "Conversation"
+  },
+  "cookiesResetConsentButton": {
+    "modificaPreferintele": "Modifier les préférences"
+  },
+  "legalCookies": {
+    "politicaDeCookies": "Politique de cookies",
+    "ceSuntCookies": "Qu'est-ce qu'un cookie ?",
+    "cookiesSuntFisiereText": "Les cookies sont de petits fichiers texte déposés sur votre appareil lorsque vous visitez un site. Nous les utilisons pour faire fonctionner la plateforme et améliorer votre expérience.",
+    "categoriiDeCookiesFolosite": "Catégories de cookies utilisés",
+    "tokenDeAutentificareDurata": "— jeton d'authentification (durée : session ou jusqu'à la déconnexion)",
+    "sesiuneAnonimaPentruRecomandari": "— session anonyme pour les recommandations (durée : 1 an)",
+    "preferinteleTaleDespreCookies": "— tes préférences cookies (durée : 1 an)",
+    "faraAcesteCookiesPlatforma": "Sans ces cookies, la plateforme ne fonctionne pas (connexion, paiement, panier).",
+    "setariDeAfisareLocale": "Préférences d'affichage (langue, feed)",
+    "agregateAnonimeDeUtilizare": "Données d'usage anonymisées pour améliorer l'app (événements de feed, durée de visionnage)",
+    "pentruProcesareaPlatilorLa": "— pour le traitement des paiements au checkout",
+    "candIntriPrimaData": "Lors de ta première visite sur Swypik, une bannière te permet d'accepter ou de refuser les cookies non essentiels.\n        Tu peux changer d'avis à tout moment en supprimant le cookie",
+    "safariPreferinteConfidentialitate": "Safari : Réglages → Confidentialité",
+    "atentieDezactivareaCookiesEsentiale": "Attention : désactiver les cookies essentiels empêche la connexion et les commandes.",
+    "preferinte": "Préférences"
+  },
+  "video": {
+    "vizualizari": "vues",
+    "vizioneaza": "Regarder",
+    "redirectionareAutomata": "Redirection automatique…"
+  },
+  "shop": {
+    "nuAmGasitProduse": "Aucun produit trouvé",
+    "urmator": "Suivant →"
+  },
+  "news": {
+    "inapoiInFeed": "Retour au feed"
+  },
+  "becomeacreatorBecomeCreatorButton": {
+    "seActiveaza": "Activation..."
+  },
+  "battles": {
+    "versusIntreProduseVoteaza": "Duel de produits. Vote pour ton préféré, gagne des SWYP.",
+    "niciunBattleActivEsti": "Aucun battle en cours. Lance-toi !",
+    "creeazaUnul": "En créer un"
+  },
+  "notifications": {
+    "notificari": "Notifications",
+    "marcheazaToateCitite": "Tout marquer comme lu",
+    "seIncarca": "Chargement…",
+    "nicioNotificareInca": "Aucune notification",
+    "aiciVeiVedeaAprecieri": "Retrouvez ici les nouveaux likes, commentaires et abonnés."
+  },
+  "post": {
+    "acasa": "← Accueil"
+  },
+  "postVoteButtons": {
+    "votulTau": "✓ ton vote",
+    "apasaPeVariantaPentru": "Appuie sur une option pour voter."
+  },
+  "search": {
+    "cautare": "Rechercher"
+  },
+  "missions": {
+    "briefuriPlatitePentruCreatori": "Briefs rémunérés pour créateurs. Gagne des SWYP + bounty par vente.",
+    "nuSuntMissionuriActive": "Aucune mission en cours. Reviens vite !",
+    "vanzare": "/vente",
+    "inapoiLaMissions": "Retour aux missions",
+    "briefPentruCreatori": "Brief créateurs",
+    "inscrieri": "inscriptions",
+    "publicaUnClip": "Publier un clip",
+    "faraTermen": "Sans échéance"
+  },
+  "trends": {
+    "topulCurentHashtaguriSunete": "Tendances du moment — hashtags, sons, produits et sujets détectés par IA.",
+    "niciunTrendDetectatInca": "Aucune tendance détectée pour l'instant. Le cron tourne toutes les 6 h — reviens vite."
+  },
+  "audio": {
+    "inapoi": "Retour",
+    "browserulTauNuPoate": "Votre navigateur ne peut pas lire l'audio.",
+    "sursaLicenta": "Source de la licence",
+    "videoclipuriCuAcestSunet": "Vidéos avec ce son",
+    "niciunVideoclipInca": "Aucune vidéo pour le moment."
+  },
+  "liveViewer": {
+    "cumpara": "Acheter"
+  },
+  "accountLiked": {
+    "niciunVideoLikeuitInca": "Aucune vidéo aimée pour le moment."
+  },
+  "accountSaved": {
+    "nuAiProduseSalvate": "Aucun produit enregistré. Ajoutez-en depuis le feed ou /explore."
+  },
+  "accountSavedVideosTab": {
+    "clipurilePeCareLe": "Les vidéos que tu enregistres apparaîtront ici.",
+    "descoperaClipuri": "Découvrir des vidéos",
+    "optiuniClip": "Options du clip",
+    "eliminaDinSalvate": "Retirer des favoris"
+  },
+  "hiddenVideosList": {
+    "restaureaza": "Restaurer",
+    "restaureaza2": "Restaurer"
+  },
+  "draftsCountdown": {
+    "sePublica": "Publication ·",
+    "sePublicaIn": "Publication dans"
+  },
+  "creatordashboard": {
+    "schite": "Brouillons",
+    "incarcaVideo": "Importer une vidéo",
+    "castiguri": "Gains",
+    "plati": "Paiements",
+    "contCreator": "Compte Créateur"
+  },
+  "liveStudio": {
+    "creeazaStreamNou": "Nouveau live",
+    "programeazaStream": "Programmer un live",
+    "renunta": "Annuler",
+    "creeaza": "Créer",
+    "niciunStreamIncaApasa": "Aucun stream pour le moment. Appuyez sur « Nouveau stream ».",
+    "copiazaUrlRtmp": "Copier l'URL RTMP",
+    "copiazaStreamKey": "Copier la clé de stream",
+    "termina": "Terminer"
+  },
+  "globalerror": {
+    "neCeremScuzeAm": "Désolés, un problème technique est survenu. Notre équipe a été prévenue (Code erreur :",
+    "incearcaDinNou": "Réessayer",
+    "intoarceteLaPaginaPrincipala": "Retour à l'accueil"
+  },
+  "moderation": {
+    "moderareContinut": "Modération du contenu",
+    "inAnaliza": "En cours d'analyse",
+    "filtreaza": "Filtrer",
+    "inapoiLaCoada": "← Retour à la file",
+    "creatorSuspendatPanaLa": "Créateur suspendu jusqu'au",
+    "nota": "Remarque :",
+    "toateRapoartelePeAcest": "Tous les signalements sur cette vidéo ("
+  },
+  "moderationActions": {
+    "actiuni": "Actions",
+    "motivInternOptional": "Motif interne (facultatif)",
+    "notaPentruJurnal": "Note pour le journal..."
+  },
+  "opsAlertsBar": {
+    "niciunAlertOperationalToate": "✓ Aucune alerte. Toutes les files sont à jour."
+  },
+  "returns": {
+    "cereriDeRetur": "Demandes de retour",
+    "returnariInitiateDeClienti": "Retours initiés par les clients, en attente d'une décision admin.",
+    "comanda": "Commande",
+    "actiuni": "Actions",
+    "nuSuntCereriDe": "Aucune demande de retour pour le moment.",
+    "aproba": "Approuver"
+  },
+  "videos": {
+    "durata": "Durée",
+    "actiuni": "Actions",
+    "aproba": "✓ Approuver",
+    "reproceseaza": "↻ Retraiter",
+    "urmator": "Suivant →"
+  },
+  "strikes": {
+    "strikesUser": "Avertissements — utilisateur",
+    "inapoiLaLista": "← retour à la liste",
+    "suspendatPana": "Suspendu jusqu'au :",
+    "cand": "Quand",
+    "expira": "Expire",
+    "actiuni": "Actions",
+    "niciunStrikeInregistrat": "Aucun strike enregistré.",
+    "niciunUtilizatorCuScore": "Aucun utilisateur avec un score &gt; 0."
+  },
+  "disputesDisputeEvidenceForm": {
+    "raspundeLaDispute": "Répondre aux litiges",
+    "fisierePdfPngJpg": "Fichiers (PDF / PNG / JPG, max 5 Mo)",
+    "sterge": "supprimer",
+    "seUrcaLaStripe": "Envoi vers Stripe…",
+    "salveazaDraft": "Enregistrer le brouillon"
+  },
+  "disputes": {
+    "chargebackuriRaspundeCuEvidence": "Litiges. Réponds avec des preuves avant la deadline, sinon tu perds l'argent + frais de 15 €.",
+    "niciunDisputeInCategoria": "Aucun litige dans cette catégorie.",
+    "totalComanda": "Total commande :",
+    "submittedLa": "Envoyé le :",
+    "evidenceTrimisa": "Preuves envoyées :",
+    "estimareSansaCastig": "Chances de gain estimées",
+    "penalizari": "Pénalités (",
+    "campuriLipsaSortateDupa": "champs manquants (triés par impact)",
+    "whatifComboCompletareGrupata": "🎯 Combo what-if (saisie groupée)"
+  },
+  "refunds": {
+    "refunduriStripeInitierePrin": "Remboursements Stripe. Initiez via le dashboard vendeur ou webhook.",
+    "comanda": "Commande",
+    "suma": "Montant",
+    "nuExistaRestituiriInregistrate": "Aucun remboursement enregistré pour le moment."
+  },
+  "payouts": {
+    "creatorUsernameEmail": "Créateur (nom d'utilisateur / e-mail)",
+    "filtreaza": "Filtrer",
+    "suma": "Montant",
+    "urmator": "Suivant →"
+  },
+  "marketplacePagination": {
+    "afisare": "Affichage",
+    "paginaAnterioara": "Page précédente",
+    "paginaUrmatoare": "Page suivante"
+  },
+  "marketplaceImport": {
+    "incarcaUnFisier": "Importer un fichier",
+    "cuColoanele": "avec les\n            colonnes :",
+    "sauClickPentruA": "ou cliquez pour sélectionner depuis le disque",
+    "selecteazaFisierCsv": "Choisir un fichier .csv",
+    "schimbaFisier": "Changer de fichier",
+    "coloaneLipsa": "Colonnes manquantes",
+    "randurileFara": "— lignes sans",
+    "randuri": "lignes",
+    "importa": "Importer",
+    "anuleaza": "Annuler",
+    "seImportaProdusele": "Import des produits…",
+    "produseInCoada": "produits en attente",
+    "importateCuSucces": "Importés avec succès",
+    "totalRanduri": "Total des lignes",
+    "rand": "Ligne",
+    "pret": "Prix",
+    "inapoiLaMarketplace": "Retour au Marketplace"
+  },
+  "marketplaceProductTable": {
+    "seIncarcaProdusele": "Chargement des produits…"
+  },
+  "marketplaceFilters": {
+    "cautaProduseDupaTitlu": "Rechercher par titre, slug, marque ou catégorie…",
+    "sursa": "Source :",
+    "gasite": "trouvés"
+  },
+  "challengesChallengeActions": {
+    "anuleaza": "Annuler"
+  },
+  "challengesNewChallengeForm": {
+    "maxIntrariOpt": "Participations max (opt.)"
+  },
+  "users": {
+    "cautaDupaUsernameEmail": "Rechercher par nom d'utilisateur, e-mail ou nom…",
+    "cauta": "Rechercher",
+    "actiuni": "Actions",
+    "urmator": "Suivant →"
+  },
+  "usersUserActions": {
+    "actiuni": "Actions",
+    "promoveazaLaAdmin": "Promouvoir admin",
+    "retrogradeazaLaUser": "Rétrograder en utilisateur"
+  },
+  "commissions": {
+    "creatorUsernameEmail": "Créateur (nom d'utilisateur / e-mail)",
+    "filtreaza": "Filtrer",
+    "platforma": "Plateforme",
+    "comanda": "Commande",
+    "platit": "Payé",
+    "urmator": "Suivant →"
+  },
+  "applications": {
+    "aplicatiiCreator": "Candidatures créateur",
+    "cereriDeLaUtilizatori": "Demandes d'utilisateurs souhaitant devenir créateurs.",
+    "nicioAplicatieGasita": "Aucune application trouvée.",
+    "notaReview": "Note de l'avis"
+  },
+  "applicationsApplicationActions": {
+    "motivObligatoriuPentruRespingere": "Motif (obligatoire pour refus)",
+    "notaPentruJurnalSau": "Note pour le journal ou motif de refus..."
+  },
+  "cron": {
+    "actiuni": "Actions",
+    "ePopulataCandRulezi": "se remplit lorsque tu lances un job manuel\n        ici. Si « Dernière exéc. » est vide, c'est que le job n'a tourné que depuis\n        le cron-worker (pas encore loggé en BDD)."
+  },
+  "reviewActions": {
+    "reactiveaza": "Réactiver",
+    "reactiveaza2": "Réactiver",
+    "sterge": "Supprimer",
+    "sterge2": "Supprimer"
+  },
+  "healthRefresh": {
+    "latenta": "Latence"
+  },
+  "creators": {
+    "creatorsDupa": "créateurs après",
+    "cautaUsernameSauNume": "Rechercher un pseudo ou un nom...",
+    "cauta": "Rechercher",
+    "urmaritori": "Abonnés",
+    "vanzari": "Ventes (#)",
+    "vanzariTotal": "Ventes (total)",
+    "actiuni": "Actions",
+    "niciunCreatorGasit": "Aucun créateur trouvé."
+  },
+  "aecancel": {
+    "itemsRefundateCuComanda": "Articles remboursés sur la commande AE déjà passée. L'API d'annulation n'est pas exposée par AE Open Platform — contacte AE/le vendeur manuellement, puis marque comme résolu ici.",
+    "inAsteptare": "En attente",
+    "nicioCerereDeCancel": "Aucune demande d'annulation manuelle. Parfait.",
+    "refundatLa": "Remboursé le",
+    "actiuni": "Actions",
+    "nimicRezolvatInca": "Rien de résolu pour le moment.",
+    "rezolvatLa": "Résolu le"
+  },
+  "aecancelAECancel": {
+    "marcheazaRezolvat": "Marquer comme résolu",
+    "anulatLaAe": "Annulé à l'EA",
+    "notaOptionalMax500": "Note (facultatif, 500 caractères max)",
+    "renunta": "Annuler"
+  },
+  "riskMetrics7dPanel": {
+    "rateDeBlockRidicata": "⚠ Taux de blocage élevé (",
+    "verificaDacaWeighturileScoring": " %) — vérifie que les pondérations du scoring ne génèrent pas de faux positifs.",
+    "rateDeApproveRidicata": "ℹ Taux d'approbation élevé (",
+    "scoringPoateFiPrea": " %) — le scoring est peut-être trop agressif, augmente le seuil de vérification."
+  },
+  "riskOrderRiskCard": {
+    "blocheaza": "🛑 BLOQUER",
+    "veziComanda": "Voir la commande →"
+  },
+  "riskBlockedUsersList": {
+    "useriBlocati": "🚫 Utilisateurs bloqués (",
+    "clickPentruDetalii": "appuyez pour détails"
+  },
+  "risk": {
+    "riscFraudaComenzi": "Risque de fraude",
+    "scoring0100PerComanda": "Score 0-100 par commande (90 j). Plus élevé = risque accru. Vérif. manuelle conseillée si ≥50.",
+    "nicioComandaCuRisc": "✅ Aucune commande à risque ≥",
+    "inUltimele90Zile": "sur les 90 derniers jours pour le statut"
+  },
+  "riskTimeSeriesChart": {
+    "niciunSemnalInUltimele": "Aucun signal sur les 30 derniers jours. Le graphique se remplira automatiquement dès que des commandes signalées ou des décisions admin apparaîtront.",
+    "trendUltimele30Zile": "Tendance 30 derniers jours : commandes signalées, décisions approuver/bloquer et blocages auto"
+  },
+  "adminShell": {
+    "inCurand": "Bientôt disponible",
+    "inchideMeniul": "Fermer le menu",
+    "inchide": "Fermer"
+  },
+  "login": {
+    "adresaDeEmail": "Adresse e-mail",
+    "continua": "Continuer",
+    "codDeVerificare6": "Code de vérification (6 chiffres)",
+    "modificaAdresaDeEmail": "Modifier l'adresse e-mail"
+  },
+  "returnsSellerReturns": {
+    "cereriDeRetur": "Demandes de retour",
+    "comenziInAsteptareaUnei": "Commandes en attente de décision (accepter avec remboursement Stripe ou refuser).",
+    "nuAiCereriDe": "Aucune demande de retour en attente.",
+    "comanda": "Commande n°",
+    "acceptaCerereaSiRestituie": "Accepter la demande et rembourser",
+    "acceptaRestituie": "Accepter et rembourser",
+    "respingeCerereaDeRetur": "Refuser la demande de retour"
+  },
+  "seller": {
+    "setari": "Paramètres",
+    "contVanzator": "Compte vendeur"
+  },
+  "settingsStripeConnectButton": {
+    "conecteazaContulCuStripe": "Connecter le compte à Stripe"
+  },
+  "products": {
+    "gestioneazaCatalogulTauDe": "Gérez votre catalogue de produits locaux.",
+    "adaugaProdusNou": "Ajouter un produit",
+    "adaugaProdus": "+ Ajouter un produit",
+    "pret": "Prix",
+    "seIncarca": "Chargement…",
+    "niciunProdusAdaugat": "Aucun produit ajouté.",
+    "incepeSaVinziAdaugand": "Commence à vendre en ajoutant ton premier produit."
+  },
+  "unsubscribe": {
+    "teaiDezabonatCuSucces": "Vous êtes bien désabonné des e-mails Swypik.",
+    "aFostEliminatDin": "a été\n            retiré de notre liste.",
+    "dacaAiAjunsAici": "Si tu es arrivé ici par erreur, pas de souci — tu peux revenir à tout moment sur",
+    "mergiLaMagazin": "Aller à la boutique →"
+  },
+  "sheet": {
+    "inchide": "Fermer",
+    "inchide2": "Fermer"
+  },
+  "topBar": {
+    "cos": "Panier"
+  },
+  "installPrompt": {
+    "instaleazaAplicatia": "Installer l'application",
+    "adaugaSwypikPeEcranul": "Ajoutez Swypik à votre écran d'accueil pour un accès rapide et une expérience native.",
+    "maiTarziu": "Plus tard",
+    "inchide": "Fermer"
+  },
+  "pushNotificationCard": {
+    "activeazaNotificarilePush": "Activer les notifications push",
+    "primesteAlerteCandAi": "Reçois une alerte pour chaque commentaire, nouveau follow ou commande.",
+    "inchide": "Fermer"
+  },
+  "searchBar": {
+    "cauta": "Rechercher",
+    "placeholder": "Rechercher produits, créateurs, #hashtags…"
+  },
+  "blogInlineProductCard": {
+    "recomandareaNoastra": "🏆 Notre coup de cœur",
+    "castigator1": "GAGNANT N°1",
+    "adaugatDots": "Ajouté…",
+    "adaugaInCos": "Ajouter au panier"
+  },
+  "blogHub": {
+    "nouPeSwypik": "Nouveau sur Swypik",
+    "citesteInainteSaCumperi": "À lire avant d'acheter. Produits testés, avis honnêtes.",
+    "cautaGhiduri": "Rechercher un guide…",
+    "niciunArticolGasitIncearca": "Aucun article trouvé. Essayez une autre catégorie.",
+    "incarcaMaiMulte": "Voir plus",
+    "casa": "Accueil",
+    "moda": "Mode",
+    "toate": "Tout",
+    "tech": "Tech",
+    "beauty": "Beauté",
+    "fitness": "Fitness",
+    "cadouri": "Cadeaux",
+    "animale": "Animaux"
+  },
+  "reviewList": {
+    "niciunReviewIncaFii": "Aucun avis pour le moment. Soyez le premier à en laisser un.",
+    "cumparatorVerificat": "Acheteur vérifié"
+  },
+  "captionsButton": {
+    "subtitrari": "Sous-titres"
+  },
+  "productFeed": {
+    "seIncarcaClipurile": "Chargement des vidéos…",
+    "cos": "Panier",
+    "vandute": "{n}+ vendus",
+    "adaugat": "Ajouté"
+  },
+  "seo": {
+    "siteTitle": "Swypik — Achetez en vidéo. Marketplace boosté par l'IA.",
+    "siteDescription": "La plateforme de social video commerce. Découvrez des produits en vidéos courtes, suivez vos créateurs et achetez en un clin d'œil.",
+    "twitterDescription": "Social video commerce. Swipez, découvrez, achetez.",
+    "homeTitle": "Swypik — Achetez en vidéo | Marketplace avec IA",
+    "homeDescription": "Découvrez et achetez des produits grâce à des vidéos sélectionnées. Tendances, meilleures offres et coups de cœur recommandés par l'IA sur Swypik.",
+    "homeOgTitle": "Swypik — Achetez en vidéo",
+    "homeOgDescription": "Marketplace vidéo propulsé par l'IA. Tendances, offres et top produits — tout en vidéo.",
+    "homeTwitterTitle": "Swypik — Achetez en vidéo",
+    "homeTwitterDescription": "La marketplace vidéo propulsée par l'IA."
+  },
+  "pageMeta": {
+    "shop": {
+      "title": "Boutique",
+      "description": "Découvre des milliers de produits à prix réels avec livraison rapide. Achète directement sur Swypik."
+    },
+    "about": {
+      "title": "À propos de Swypik",
+      "description": "Marketplace social de video commerce. Mission, équipe et vision de Swypik."
+    },
+    "help": {
+      "title": "Aide et support",
+      "description": "Réponses aux questions fréquentes, guides d'utilisation et contact du support Swypik."
+    },
+    "checkout": {
+      "title": "Finaliser la commande",
+      "description": "Finalisez votre commande en toute sécurité sur Swypik. Paiement Stripe et livraison rapide."
+    },
+    "cart": {
+      "title": "Mon panier",
+      "description": "Consulte ton panier et finalise ta commande sur Swypik."
+    },
+    "account": {
+      "title": "Mon compte",
+      "description": "Gérez votre compte Swypik, vos commandes, vos favoris et vos paramètres."
+    },
+    "upload": {
+      "title": "Importer un clip",
+      "description": "Ajoute une nouvelle vidéo sur Swypik et gagne des commissions à chaque achat."
+    },
+    "missions": {
+      "title": "Missions",
+      "description": "Gagne de l'argent en réalisant des missions pour des marques. Filme, publie, encaisse."
+    },
+    "battles": {
+      "title": "Battles",
+      "description": "Battles vidéo entre créateurs. Vote, regarde, amuse-toi."
+    },
+    "reels": {
+      "title": "Enregistrer un clip",
+      "description": "Enregistre un nouveau clip directement depuis ton navigateur pour Swypik."
+    },
+    "cookies": {
+      "title": "Politique relative aux cookies",
+      "description": "Comment Swypik utilise les cookies et comment gérer votre consentement."
+    },
+    "ageVerification": {
+      "title": "Vérification d'âge",
+      "description": "Confirme que tu as 18 ans ou plus pour accéder au contenu sensible sur Swypik."
+    },
+    "categories": {
+      "title": "Catégories de produits",
+      "description": "Découvrez toutes les catégories de produits sur Swypik : électronique, mode, maison, beauté et bien plus."
+    },
+    "categoryDetail": {
+      "titleSuffix": "sur Swypik",
+      "descriptionPrefix": "Produits de la catégorie"
+    },
+    "explore": {
+      "title": "Explorer les vidéos",
+      "description": "Feed vidéo personnalisé : clips tendance, produits viraux et découvertes dans toutes les catégories."
+    },
+    "blog": {
+      "title": "Guides & Articles",
+      "description": "Guides shopping, comparatifs produits et conseils de créateurs — tout est sur le blog Swypik.",
+      "subtitle": "Des articles testés par notre équipe — produits sélectionnés, comparatifs honnêtes, recommandations qui valent vraiment le coup.",
+      "empty": "Bientôt — les premiers articles arrivent.",
+      "read": "min de lecture",
+      "keywords": "blog Swypik, guides produits, comparatifs, recommandations créateurs, social commerce",
+      "ogDesc": "Comparatifs, guides et vraies recommandations de l'équipe Swypik.",
+      "collectionDesc": "Collection d'articles publiés sur le blog Swypik."
+    },
+    "product": {
+      "titleSuffix": "sur Swypik",
+      "descriptionFallback": "Découvrez ce produit sur Swypik. Prix, avis, livraison rapide et alternatives similaires."
+    },
+    "productNotFound": "Produit introuvable — Swypik"
+  },
+  "categoriesPage": {
+    "title": "Catégories",
+    "browse": "Parcourir",
+    "products": "produits",
+    "empty": "Aucune catégorie pour le moment."
+  },
+  "blogIndex": {
+    "metaTitle": "Guides & avis produits | Swypik",
+    "metaDesc": "Guides et avis produits testés par l'équipe Swypik. Tops, comparatifs et recommandations honnêtes pour mieux acheter.",
+    "keywords": "guides produits, avis, top produits, recommandations, blog swypik",
+    "ogDesc": "Nos articles testés. Des produits qui valent vraiment le coup.",
+    "breadcrumb": "Guides",
+    "h1": "Guides & avis",
+    "subtitle": "Des articles testés par notre équipe — produits sélectionnés, comparatifs honnêtes et recommandations qui valent vraiment le coup.",
+    "empty": "Bientôt disponible — premiers articles à venir.",
+    "read": "min de lecture",
+    "products": "produits",
+    "collectionName": "Guides & Avis Swypik",
+    "collectionDesc": "Avis et guides produits testés par l'équipe Swypik."
+  },
+  "exploreClient": {
+    "salvatXP": "Enregistré +5 XP",
+    "errVotNuSalvat": "Vote non enregistré",
+    "sursaFeed": "Source du flux",
+    "inCurand": "Bientôt disponible",
+    "inCurandDesc": "Du contenu divertissant arrive bientôt ici. Restez connectés !",
+    "atingePentruSunet": "Toucher pour activer le son",
+    "stiriVerificate": "Infos vérifiées par Vision24 AI — clips courts de sources officielles",
+    "opresteSunet": "Couper le son",
+    "activeazaSunet": "Activer le son"
+  },
+  "battleSlug": {
+    "voteazaBattle": "Voter pour le battle",
+    "ajutaMaSaAleg": "Aide-moi à choisir",
+    "meritaSauNu": "Ça vaut le coup ou pas ?",
+    "gasesteAlternativa": "Trouve une meilleure alternative",
+    "veziDrop": "Voir le drop",
+    "veziSetup": "Voir la config",
+    "postNegasit": "Post introuvable · Swypik",
+    "veziPeSwypik": "Voir sur Swypik",
+    "bateCos": "Défie mon panier",
+    "citesteReview": "Lire l'avis"
+  },
+  "moreLikeThis": {
+    "maiAratamiCaAsta": "Voir plus comme ça",
+    "vomAfisaMaiMulte": "On t'en montrera plus comme ça",
+    "nuMiArataAsta": "Ne plus afficher",
+    "nuVeiMaiVedea": "Tu ne verras plus ce type de contenu",
+    "dezaboneazaTe": "Se désabonner",
+    "urmaresteCreator": "Suivre le créateur",
+    "urmaresti": "Abonné",
+    "raporteaza": "Signaler",
+    "teAiDezabonat": "Désabonné"
+  },
+  "commentsSheet": {
+    "errNuAmIncarcat": "Impossible de charger les commentaires.",
+    "errScrieComentariu": "Écris un commentaire avant d'envoyer.",
+    "errMaxLength": "Le commentaire ne doit pas dépasser 500 caractères.",
+    "errNuTrimis": "Commentaire non envoyé.",
+    "trimisLaModerare": "Commentaire envoyé en modération.",
+    "nuSuntComentarii": "Aucun commentaire pour le moment",
+    "adaugaComentariu": "Ajouter un commentaire…",
+    "trimiteComentariul": "Envoyer",
+    "comentarii": "Commentaires",
+    "totalLabel": "total",
+    "inchideAria": "Fermer les commentaires",
+    "seIncarca": "Chargement...",
+    "reincearca": "Réessayer",
+    "incepeConversatia": "Lance la conversation sur le clip.",
+    "raspunziLui": "Réponse à",
+    "renunta": "Annuler",
+    "scrieRaspuns": "Écrire une réponse...",
+    "raspunde": "Répondre",
+    "apreciazaComentariul": "J'aime le commentaire",
+    "anuleazaAprecierea": "Je n'aime plus",
+    "apreciazaRaspunsul": "J'aime la réponse"
+  },
+  "uiSheet": {
+    "inchide": "Fermer"
+  },
+  "profileHeaderActions": {
+    "errNuAmDeschisConv": "Impossible d'ouvrir la conversation.",
+    "errRetea": "Erreur réseau."
+  },
+  "becomeCreatorButton": {
+    "felicitariCreator": "Félicitations ! Vous êtes désormais créateur. Redirection en cours…",
+    "errNuAmActivat": "Impossible d'activer le compte créateur. Réessaie.",
+    "errRetea": "Erreur réseau. Réessaie."
+  },
+  "savedVideosTab": {
+    "trebuieAutentifici": "Connecte-toi pour continuer.",
+    "errNuAmIncarcat": "Impossible de charger les vidéos enregistrées.",
+    "seIncarca": "Chargement…",
+    "incarcaMaiMulte": "Voir plus"
+  },
+  "returnPage": {
+    "cerereaExistaTitle": "Demande de retour déjà existante",
+    "nuPotiCereTitle": "Retour pas encore disponible",
+    "cerereaExistaBody": "Une demande de retour a déjà été enregistrée pour cette commande. Consulte son statut sur la page de la commande.",
+    "nuPotiCereBody": "Le retour sera disponible une fois la commande expédiée ou livrée."
+  },
+  "returnFormClient": {
+    "errIncarcareFoto": "Erreur lors du chargement de la photo.",
+    "errSelecteazaProdus": "Sélectionne au moins un produit à retourner.",
+    "errMotivMinim": "Le motif doit contenir au moins 10 caractères.",
+    "errRetea": "Erreur réseau.",
+    "selecteazaAria": "Sélectionner {title}"
+  },
+  "blogCategory": {
+    "casaBirou": "Maison & Bureau",
+    "moda": "Mode",
+    "tehnologie": "Technologie",
+    "igienaDentara": "Hygiène dentaire",
+    "beauty": "Beauté",
+    "fitness": "Fitness",
+    "cadouri": "Cadeaux",
+    "animale": "Animaux",
+    "tech": "Tech"
+  },
+  "shopPage": {
+    "titleDefault": "Découvre des produits sélectionnés",
+    "inCategorie": " dans {cat}"
+  },
+  "sellersPage": {
+    "metaTitleNotFound": "Vendeur introuvable — Swypik",
+    "metaDescription": "Découvrez les produits vendus par {name} sur Swypik."
+  },
+  "postSlugPage": {
+    "incheiat": "Terminé",
+    "ramaseDH": "{d}j {h}h restants",
+    "ramaseH": "{h} h restantes"
+  },
+  "cartConfirm": {
+    "sigurGolesc": "Vider le panier ?",
+    "sigurStergProdus": "Supprimer ce produit du panier ?"
+  },
+  "battlesPage": {
+    "incheiat": "Terminé",
+    "seInchid": "⏰ Bientôt fini"
+  },
+  "uiLoadingState": {
+    "seIncarca": "Chargement…"
+  },
+  "uiErrorState": {
+    "aAparutEroare": "Une erreur est survenue"
+  },
+  "themeToggle": {
+    "intunecat": "Sombre",
+    "aria": "Thème : {label} (appuyez pour {next})",
+    "luminos": "Clair",
+    "sistem": "Système"
+  },
+  "pwaInstall": {
+    "seInstaleaza": "Installation…",
+    "instaleaza": "Installer"
+  },
+  "videoPage": {
+    "metaNotFound": "Vidéo introuvable — Swypik",
+    "metaDescription": "Regardez {title} sur Swypik — social video commerce."
+  },
+  "searchPage": {
+    "faraTitlu": "Sans titre"
+  },
+  "productPage": {
+    "metaDescription": "{title} — livraison rapide. Achetez sur Swypik."
+  },
+  "voteButtons": {
+    "errReteua": "Erreur réseau"
   }
 }

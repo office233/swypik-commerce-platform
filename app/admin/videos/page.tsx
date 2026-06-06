@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 /* ─── Types ─── */
 
@@ -65,6 +66,7 @@ function formatDimensions(w: number | null, h: number | null): string {
 const PAGE_SIZE = 50;
 
 export default function AdminVideosPage() {
+  const t = useTranslations("videos");
   const [videos, setVideos] = useState<VideoAsset[]>([]);
   const [counts, setCounts] = useState({ total: 0, ready: 0, processing: 0, failed: 0, pending: 0 });
   const [filteredTotal, setFilteredTotal] = useState(0);
@@ -214,10 +216,10 @@ export default function AdminVideosPage() {
                   <th className="text-left px-5 py-4">Creator</th>
                   <th className="text-left px-5 py-4">Produs</th>
                   <th className="text-center px-5 py-4">Status</th>
-                  <th className="text-center px-5 py-4">Durată</th>
+                  <th className="text-center px-5 py-4">{t("durata")}</th>
                   <th className="text-center px-5 py-4">Dimensiuni</th>
                   <th className="text-left px-5 py-4">Data</th>
-                  <th className="text-right px-5 py-4">Acțiuni</th>
+                  <th className="text-right px-5 py-4">{t("actiuni")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -364,7 +366,8 @@ export default function AdminVideosPage() {
                                     onClick={() => performAction("approve", video.id)}
                                     className="rounded-lg bg-[#0D0D0D]/15 px-3 py-1.5 text-[11px] font-bold text-[#0D0D0D] border border-[#0D0D0D]/30 hover:bg-[#0D0D0D]/25 hover:border-[#0D0D0D]/50 transition-all"
                                   >
-                                    ✓ Aprobă
+
+                                    {t("aproba")}
                                   </button>
                                 )}
 
@@ -418,7 +421,8 @@ export default function AdminVideosPage() {
                                     onClick={() => performAction("reprocess", video.id)}
                                     className="rounded-lg bg-[#F59E0B]/10 px-3 py-1.5 text-[11px] font-bold text-[#F59E0B] border border-[#F59E0B]/20 hover:bg-[#F59E0B]/20 hover:border-[#F59E0B]/40 transition-all"
                                   >
-                                    ↻ Reprocesează
+
+                                    {t("reproceseaza")}
                                   </button>
                                 )}
                               </>
@@ -452,7 +456,8 @@ export default function AdminVideosPage() {
                   disabled={safePage >= totalPages}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E7] bg-white px-4 py-2.5 text-sm font-bold text-[#0D0D0D] disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
                 >
-                  Următor →
+
+                  {t("urmator")}
                 </button>
               </div>
             </div>

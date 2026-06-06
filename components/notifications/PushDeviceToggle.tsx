@@ -18,6 +18,7 @@ type State =
 
 export default function PushDeviceToggle() {
   const t = useTranslations("pushDeviceToggle");
+  const tToggle = useTranslations("pushDeviceToggle");
   const [state, setState] = useState<State>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export default function PushDeviceToggle() {
     } else {
       const r = await subscribeToPush();
       if (r.ok) setMsg("Activate");
-      else if (r.reason === "denied") setMsg("Permisiune refuzată");
+      else if (r.reason === "denied") setMsg(tToggle("permisiuneRefuzata"));
       else setMsg("Nu am putut activa");
     }
     await refresh();
@@ -78,7 +79,7 @@ export default function PushDeviceToggle() {
     <div className="flex items-center justify-between gap-3">
       <span className="inline-flex items-center gap-2 text-sm text-white">
         {on ? <Bell size={14} /> : <BellOff size={14} />}
-        {on ? "Notificări active" : "Notificări dezactivate"}
+        {on ? tToggle("notifActive") : tToggle("notifDezactivate")}
       </span>
       <div className="flex items-center gap-3">
         {msg && <span className="text-xs text-white/70">{msg}</span>}
@@ -87,7 +88,7 @@ export default function PushDeviceToggle() {
           onClick={onToggle}
           disabled={busy}
           aria-pressed={on}
-          aria-label={on ? "Dezactivează notificările" : "Activează notificările"}
+          aria-label={on ? tToggle("dezactiveazaAria") : tToggle("activeazaAria")}
           className={`relative h-6 w-11 rounded-full transition-colors disabled:opacity-60 ${on ? "bg-[#7C3AED]" : "bg-white/20"}`}
         >
           <span

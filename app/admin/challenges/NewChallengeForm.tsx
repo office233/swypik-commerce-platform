@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const TYPES = ["video", "review", "engagement", "commerce", "community"] as const;
 
@@ -11,6 +12,7 @@ function toLocalIso(d: Date) {
 }
 
 export default function NewChallengeForm() {
+  const t = useTranslations("challengesNewChallengeForm");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
@@ -111,7 +113,7 @@ export default function NewChallengeForm() {
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-[10px] uppercase text-white/50">Max intrări (opt.)</span>
+        <span className="text-[10px] uppercase text-white/50">{t("maxIntrariOpt")}</span>
         <input
           type="number"
           name="max_entries"

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchVision24Article } from "@/lib/vision24/feed";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function Vision24ArticlePage({ params }: PageProps) {
+  const t = await getTranslations("news");
   const { vertical, slug } = await params;
   const article = await getArticle(vertical, slug);
   if (!article?.title) notFound();
@@ -76,7 +78,8 @@ export default async function Vision24ArticlePage({ params }: PageProps) {
     <main className="min-h-screen bg-[#F7F7F8] text-[#0D0D0D]">
       <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
         <Link href="/explore" className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-sm font-black text-[#0D0D0D] shadow-sm ring-1 ring-black/5">
-          Înapoi în feed
+
+          {t("inapoiInFeed")}
         </Link>
 
         <header className="pt-8">

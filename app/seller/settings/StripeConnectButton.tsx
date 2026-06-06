@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useTranslations } from "next-intl";
 
 export default function StripeConnectButton() {
+  const t = useTranslations("settingsStripeConnectButton");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +36,8 @@ export default function StripeConnectButton() {
         onClick={handleClick}
         className="w-full sm:w-auto"
       >
-        Conectează contul cu Stripe
+
+        {t("conecteazaContulCuStripe")}
       </Button>
       {error && (
         <p role="alert" className="text-xs font-medium text-[var(--swp-danger)]">

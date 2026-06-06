@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { translateBlogCategory } from "@/lib/blog/categoryLabel";
 import Image from "next/image";
 import { Link } from "@/lib/i18n/navigation";
 import { ChevronRight, Sparkles, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type BlogArticleSummary = {
   id: string;
@@ -22,16 +24,7 @@ type BlogArticleSummary = {
   linkedProductCount: number;
 };
 
-const CATEGORY_PILLS: Array<{ key: string | null; label: string; emoji: string }> = [
-  { key: null,       label: "Toate",   emoji: "✨" },
-  { key: "casa",     label: "Casă",    emoji: "🏠" },
-  { key: "tech",     label: "Tech",    emoji: "💻" },
-  { key: "beauty",   label: "Beauty",  emoji: "💄" },
-  { key: "moda",     label: "Modă",    emoji: "👗" },
-  { key: "fitness",  label: "Fitness", emoji: "🏋️" },
-  { key: "cadouri",  label: "Cadouri", emoji: "🎁" },
-  { key: "animale",  label: "Animale", emoji: "🐾" },
-];
+
 
 /**
  * BlogHub — mounted inside ChatInterface when activeTab === "blog".
@@ -41,6 +34,19 @@ const CATEGORY_PILLS: Array<{ key: string | null; label: string; emoji: string }
  * filters. Article click → Link to /blog/[slug] (SEO-friendly full page).
  */
 export default function BlogHub() {
+  const t = useTranslations("blogHub");
+  const tBlogHub = useTranslations("blogHub");
+  const tCat = useTranslations("blogCategory");
+  const CATEGORY_PILLS: Array<{ key: string | null; label: string; emoji: string }> = [
+    { key: null,       label: tBlogHub("toate"),   emoji: "✨" },
+    { key: "casa",     label: tBlogHub("casa"),    emoji: "🏠" },
+    { key: "tech",     label: tBlogHub("tech"),    emoji: "💻" },
+    { key: "beauty",   label: tBlogHub("beauty"),  emoji: "💄" },
+    { key: "moda",     label: tBlogHub("moda"),    emoji: "👗" },
+    { key: "fitness",  label: tBlogHub("fitness"), emoji: "🏋️" },
+    { key: "cadouri",  label: tBlogHub("cadouri"), emoji: "🎁" },
+    { key: "animale",  label: tBlogHub("animale"), emoji: "🐾" },
+  ];
   const [articles, setArticles] = useState<BlogArticleSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -97,7 +103,7 @@ export default function BlogHub() {
         />
         <div className="relative">
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-zinc-100 text-[10px] font-bold uppercase tracking-wider">
-            <Sparkles size={10} /> Nou pe Swypik
+            <Sparkles size={10} />  {t("nouPeSwypik")}
           </span>
           <h1 className="mt-2 text-2xl font-extrabold leading-tight">
             <span
@@ -112,7 +118,8 @@ export default function BlogHub() {
             </span>
           </h1>
           <p className="text-sm text-zinc-600 mt-1">
-            Citește înainte să cumperi. Produse testate, recenzii oneste.
+
+            {t("citesteInainteSaCumperi")}
           </p>
         </div>
       </div>
@@ -124,7 +131,7 @@ export default function BlogHub() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Caută ghiduri..."
+            placeholder={t("cautaGhiduri")}
             className="w-full h-11 pl-11 pr-4 rounded-2xl bg-[#F4F4F5] text-sm font-medium placeholder:text-[#A1A1AA] outline-none"
           />
         </div>
@@ -162,7 +169,8 @@ export default function BlogHub() {
         <div className="px-4 py-12 text-center">
           <div className="text-4xl mb-3">📭</div>
           <p className="text-sm text-zinc-600 font-medium">
-            Niciun articol găsit. Încearcă altă categorie.
+
+            {t("niciunArticolGasitIncearca")}
           </p>
         </div>
       )}
@@ -229,7 +237,7 @@ export default function BlogHub() {
                 </div>
                 <div className="p-2.5">
                   <div className="text-[10px] text-zinc-500 mb-1">
-                    {a.category ? a.category + " • " : ""}{a.readTimeMin} min
+                    {a.category ? translateBlogCategory(a.category, tCat) + " • " : ""}{a.readTimeMin} min
                   </div>
                   <h4 className="text-xs font-bold leading-tight line-clamp-2">
                     {a.title}
@@ -263,7 +271,8 @@ export default function BlogHub() {
             onClick={() => void fetchArticles(false)}
             className="w-full rounded-xl bg-[#0D0D0D] py-3 font-bold text-white text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition"
           >
-            Încarcă mai multe <ChevronRight size={16} />
+
+            {t("incarcaMaiMulte")} <ChevronRight size={16} />
           </button>
         </div>
       )}

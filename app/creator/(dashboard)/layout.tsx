@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
+import { useTranslations } from "next-intl";
 
 const creatorNavItems = [
   { href: "/creator", icon: "📊", label: "Dashboard" },
@@ -15,6 +16,7 @@ const creatorNavItems = [
 ];
 
 export default function CreatorLayout({ children }: { children: ReactNode }) {
+  const t = useTranslations("creatordashboard");
   return (
     <div className="min-h-screen bg-[#F7F7F8] flex">
       {/* Sidebar */}
@@ -33,19 +35,19 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
             <span className="text-lg">🎬</span> Clipurile Mele
           </Link>
           <Link href="/creator/drafts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">📝</span> Schițe
+            <span className="text-lg">📝</span>  {t("schite")}
           </Link>
           <Link href="/upload" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">⬆️</span> Încarcă Video
+            <span className="text-lg">⬆️</span>  {t("incarcaVideo")}
           </Link>
           <Link href="/creator/analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">📈</span> Analytics
           </Link>
           <Link href="/creator/earnings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">💰</span> Câștiguri
+            <span className="text-lg">💰</span>  {t("castiguri")}
           </Link>
           <Link href="/creator/payouts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">💸</span> Plăți
+            <span className="text-lg">💸</span>  {t("plati")}
           </Link>
           <Link href="/creator/rewards" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <span className="text-lg">🏆</span> SWYP Points
@@ -58,7 +60,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
               🤳
             </div>
             <div>
-              <p className="text-xs font-black text-[#0D0D0D]">Cont Creator</p>
+              <p className="text-xs font-black text-[#0D0D0D]">{t("contCreator")}</p>
               <p className="text-[10px] text-[#6E6E80]">Status: Aprobat</p>
             </div>
           </div>

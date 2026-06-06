@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Inbox, LayoutGrid, ShoppingBag } from "lucide-react";
 import Logo from "@/components/Logo";
 import LocaleQuickPicker from "@/components/i18n/LocaleQuickPicker";
+import { useTranslations } from "next-intl";
 
 /**
  * TopBar — thin sticky chrome for user-facing pages.
@@ -18,6 +19,7 @@ import LocaleQuickPicker from "@/components/i18n/LocaleQuickPicker";
  *   - /api/dm/conversations → unread conversations count
  */
 export default function TopBar() {
+  const t = useTranslations("topBar");
   const [unread, setUnread] = useState(0);
   const [cartCount, setCartCount] = useState(0);
 
@@ -112,7 +114,7 @@ export default function TopBar() {
         <LocaleQuickPicker />
         <Link
           href="/cart"
-          aria-label="Coș"
+          aria-label={t("cos")}
           className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
         >
           <ShoppingBag className="h-5 w-5" />

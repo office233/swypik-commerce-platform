@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Props = {
   userId: string;
@@ -19,6 +20,7 @@ const SUSPEND_OPTIONS: { days: number; label: string }[] = [
 ];
 
 export default function UserActions({ userId, username, role, isSuspended }: Props) {
+  const t = useTranslations("usersUserActions");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -73,7 +75,8 @@ export default function UserActions({ userId, username, role, isSuspended }: Pro
         disabled={busy}
         className="inline-flex items-center gap-1 rounded-lg border border-black/15 px-2.5 py-1 text-xs font-bold disabled:opacity-50"
       >
-        Acțiuni <ChevronDown className="w-3 h-3" />
+
+        {t("actiuni")} <ChevronDown className="w-3 h-3" />
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-lg border border-black/15 shadow-lg w-44 py-1 text-sm">
@@ -109,7 +112,8 @@ export default function UserActions({ userId, username, role, isSuspended }: Pro
               onClick={() => changeRole("admin")}
               className="w-full text-left px-3 py-1.5 hover:bg-purple-50 text-purple-700 font-medium"
             >
-              Promoveaza la admin
+
+              {t("promoveazaLaAdmin")}
             </button>
           ) : (
             <button
@@ -117,7 +121,8 @@ export default function UserActions({ userId, username, role, isSuspended }: Pro
               onClick={() => changeRole("user")}
               className="w-full text-left px-3 py-1.5 hover:bg-gray-50 text-gray-700 font-medium"
             >
-              Retrogradeaza la user
+
+              {t("retrogradeazaLaUser")}
             </button>
           )}
           {err && <div className="px-3 py-1.5 text-xs text-red-600">{err}</div>}

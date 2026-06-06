@@ -1,8 +1,14 @@
+import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import CheckoutForm from "@/components/CheckoutForm";
 
-export const metadata = {
-  title: "Checkout — Swypik",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pageMeta.checkout");
+  return {
+    title: t("title") + " — Swypik",
+    description: t("description"),
+  };
+}
 
 export default function CheckoutPage() {
   return (

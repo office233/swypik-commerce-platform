@@ -1,5 +1,6 @@
 import { dbQuery } from "@/lib/db";
 import StarRating from "./StarRating";
+import { getTranslations } from "next-intl/server";
 
 export type ReviewListProps = {
   productId: string;
@@ -19,6 +20,7 @@ type Row = {
 };
 
 export default async function ReviewList({ productId, limit = 10 }: ReviewListProps) {
+  const t = await getTranslations("reviewList");
   const { rows } = await dbQuery<Row>(
     `SELECT r.id, r.rating, r.title, r.body, r.is_verified_purchase, r.helpful_count, r.created_at,
             u.display_name AS user_display_name, u.username AS user_username
@@ -32,7 +34,7 @@ export default async function ReviewList({ productId, limit = 10 }: ReviewListPr
 
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-gray-500">Niciun review încă. Fii primul care lasă o părere.</p>
+      <p className="text-sm text-gray-500">{t("niciunReviewIncaFii")}</p>
     );
   }
 
@@ -46,7 +48,7 @@ export default async function ReviewList({ productId, limit = 10 }: ReviewListPr
               <StarRating value={r.rating} size={14} />
               <span className="text-sm font-medium">{author}</span>
               {r.is_verified_purchase && (
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Cumpărător verificat</span>
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">{t("cumparatorVerificat")}</span>
               )}
             </div>
             {r.title && <p className="font-semibold text-sm mb-1">{r.title}</p>}

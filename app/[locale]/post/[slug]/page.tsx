@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { MessageSquare, TrendingUp, Clock, Eye, Share2 } from "lucide-react";
 import VoteButtons from "./VoteButtons";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -51,14 +52,17 @@ const FORMAT_LABEL: Record<string, string> = {
   roast_cart: "Roast Cart",
 };
 
-function fmtRemaining(endsAt: string | null): string {
+function fmtRemaining(
+  endsAt: string | null,
+  t: (key: any, vars?: any) => string,
+): string {
   if (!endsAt) return "";
   const ms = new Date(endsAt).getTime() - Date.now();
-  if (ms <= 0) return "Încheiat";
+  if (ms <= 0) return t("incheiat");
   const d = Math.floor(ms / 86_400_000);
   const h = Math.floor((ms % 86_400_000) / 3_600_000);
-  if (d > 0) return `${d}z ${h}h rămase`;
-  return `${h}h rămase`;
+  if (d > 0) return t("ramaseDH", { d, h });
+  return t("ramaseH", { h });
 }
 
 export async function generateMetadata({
@@ -80,6 +84,8 @@ export default async function PostPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const tPostSlug = await getTranslations("postSlugPage");
+  const t = await getTranslations("post");
   const { slug } = await params;
   if (!slug || slug.length > 80) notFound();
 
@@ -137,7 +143,7 @@ export default async function PostPage({
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white pb-24">
       <header className="sticky top-0 z-10 bg-[#0D0D0D]/90 backdrop-blur border-b border-white/10 px-4 py-3">
-        <Link href="/" className="text-sm text-white/60 hover:text-white">← Acasă</Link>
+        <Link href="/" className="text-sm text-white/60 hover:text-white">{t("acasa")}</Link>
       </header>
 
       <article className="mx-auto max-w-2xl px-4 py-6">
@@ -167,7 +173,7 @@ export default async function PostPage({
           )}
           {post.ends_at ? (
             <span className="inline-flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {fmtRemaining(post.ends_at)}
+              <Clock className="w-3 h-3" /> {fmtRemaining(post.ends_at, tPostSlug)}
             </span>
           ) : null}
         </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ApplyResponse = {
   success?: boolean;
@@ -12,6 +13,8 @@ type ApplyResponse = {
 };
 
 export default function BecomeCreatorButton() {
+  const t = useTranslations("becomeacreatorBecomeCreatorButton");
+  const tBecome = useTranslations("becomeCreatorButton");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind: "ok" | "err" } | null>(null);
@@ -28,19 +31,19 @@ export default function BecomeCreatorButton() {
       const data = (await res.json().catch(() => ({}))) as ApplyResponse;
       if (res.ok && data.success) {
         setToast({
-          msg: "Felicitări! Acum ești creator. Te redirecționăm...",
+          msg: tBecome("felicitariCreator"),
           kind: "ok",
         });
         setTimeout(() => router.push("/upload"), 900);
       } else {
         setToast({
-          msg: data.error || "Nu am putut activa contul de creator. Încearcă din nou.",
+          msg: data.error || tBecome("errNuAmActivat"),
           kind: "err",
         });
         setLoading(false);
       }
     } catch {
-      setToast({ msg: "Eroare de rețea. Încearcă din nou.", kind: "err" });
+      setToast({ msg: tBecome("errRetea"), kind: "err" });
       setLoading(false);
     }
   }
@@ -55,7 +58,7 @@ export default function BecomeCreatorButton() {
       >
         {loading ? (
           <>
-            <Loader2 size={18} className="animate-spin" /> Se activează...
+            <Loader2 size={18} className="animate-spin" />  {t("seActiveaza")}
           </>
         ) : (
           <>

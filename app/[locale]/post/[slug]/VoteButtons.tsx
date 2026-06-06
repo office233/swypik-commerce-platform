@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Item = {
   optionKey: string;
@@ -17,6 +18,8 @@ export default function VoteButtons({
   slug: string;
   items: Item[];
 }) {
+  const t = useTranslations("postVoteButtons");
+  const tVote = useTranslations("voteButtons");
   const router = useRouter();
   const [items, setItems] = useState<Item[]>(initial);
   const [myVote, setMyVote] = useState<string | null>(null);
@@ -56,7 +59,7 @@ export default function VoteButtons({
       setMyVote(optionKey);
       startTransition(() => router.refresh());
     } catch (err) {
-      setError((err as Error).message || "Eroare rețea");
+      setError((err as Error).message || tVote("errReteua"));
     } finally {
       setPending(null);
     }
@@ -101,7 +104,7 @@ export default function VoteButtons({
                 <div className="text-sm font-semibold line-clamp-2">{it.label}</div>
                 <div className="mt-1 text-xs text-white/60">
                   {it.voteCount} voturi · {pct}%
-                  {isMine ? <span className="ml-2 text-[#7C3AED]">✓ votul tău</span> : null}
+                  {isMine ? <span className="ml-2 text-[#7C3AED]">{t("votulTau")}</span> : null}
                 </div>
               </div>
             </div>
@@ -111,7 +114,7 @@ export default function VoteButtons({
       {error ? (
         <p className="text-xs text-red-400 text-center">{error}</p>
       ) : (
-        <p className="text-xs text-white/40 text-center">Apasă pe variantă pentru a vota.</p>
+        <p className="text-xs text-white/40 text-center">{t("apasaPeVariantaPentru")}</p>
       )}
     </div>
   );

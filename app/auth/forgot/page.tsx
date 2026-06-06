@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("forgot");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -36,17 +38,20 @@ export default function ForgotPasswordPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black text-white px-4">
       <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold mb-2">Ai uitat parola?</h1>
+        <h1 className="text-2xl font-semibold mb-2">{t("aiUitatParola")}</h1>
         <p className="text-white/60 text-sm mb-6">
-          Introdu emailul contului și îți trimitem un link pentru a-ți reseta parola.
+
+          {t("introduEmailulContuluiSi")}
         </p>
         {done ? (
           <div className="space-y-4">
             <div className="bg-violet-500/10 border border-violet-500/30 rounded-lg p-4 text-sm">
-              Dacă există un cont asociat cu acest email, ți-am trimis un link de resetare. Verifică inbox-ul (și folderul Spam). Link-ul expiră în 1 oră.
+
+              {t("dacaExistaUnCont")}
             </div>
             <Link href="/auth" className="block text-center text-violet-400 hover:underline text-sm">
-              Înapoi la autentificare
+
+              {t("inapoiLaAutentificare")}
             </Link>
           </div>
         ) : (
@@ -71,7 +76,8 @@ export default function ForgotPasswordPage() {
               {loading ? "Se trimite..." : "Trimite link de resetare"}
             </button>
             <Link href="/auth" className="block text-center text-white/60 hover:underline text-sm">
-              Înapoi la autentificare
+
+              {t("inapoiLaAutentificare2")}
             </Link>
           </form>
         )}

@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export default async function AdminCreatorsPage({
 }: {
   searchParams: Promise<{ sort?: string; q?: string }>;
 }) {
+  const t = await getTranslations("creators");
   await requireAdminSession();
   const sp = await searchParams;
   const sort = sp.sort === "sales" ? "sales" : sp.sort === "videos" ? "videos" : "followers";
@@ -75,7 +77,7 @@ export default async function AdminCreatorsPage({
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-[#0D0D0D]">Creators</h1>
-        <p className="text-sm text-black/60 mt-1">Top {rows.length} creators după {sort === "sales" ? "vânzări" : sort === "videos" ? "videoclipuri" : "urmăritori"}.</p>
+        <p className="text-sm text-black/60 mt-1">Top {rows.length}  {t("creatorsDupa")} {sort === "sales" ? "vânzări" : sort === "videos" ? "videoclipuri" : "urmăritori"}.</p>
       </div>
 
       <form className="mb-4 flex flex-wrap items-center gap-2" action="/admin/creators" method="GET">
@@ -83,11 +85,11 @@ export default async function AdminCreatorsPage({
           type="search"
           name="q"
           defaultValue={q}
-          placeholder="Caută username sau nume..."
+          placeholder={t("cautaUsernameSauNume")}
           className="rounded-lg border border-black/15 px-3 py-2 text-sm w-64"
         />
         <input type="hidden" name="sort" value={sort} />
-        <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">Caută</button>
+        <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">{t("cauta")}</button>
         <div className="ml-auto flex flex-wrap gap-2">
           {(["followers", "videos", "sales"] as const).map((s) => (
             <Link
@@ -112,17 +114,17 @@ export default async function AdminCreatorsPage({
           <thead className="bg-black/5 text-left text-xs uppercase tracking-wide text-black/60">
             <tr>
               <th className="px-4 py-3">Creator</th>
-              <th className="px-4 py-3 text-right">Urmăritori</th>
+              <th className="px-4 py-3 text-right">{t("urmaritori")}</th>
               <th className="px-4 py-3 text-right">Videoclipuri</th>
-              <th className="px-4 py-3 text-right">Vânzări (#)</th>
-              <th className="px-4 py-3 text-right">Vânzări (total)</th>
-              <th className="px-4 py-3 text-right">Acțiuni</th>
+              <th className="px-4 py-3 text-right">{t("vanzari")}</th>
+              <th className="px-4 py-3 text-right">{t("vanzariTotal")}</th>
+              <th className="px-4 py-3 text-right">{t("actiuni")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-black/50">Niciun creator găsit.</td>
+                <td colSpan={6} className="px-4 py-12 text-center text-black/50">{t("niciunCreatorGasit")}</td>
               </tr>
             )}
             {rows.map((r) => (

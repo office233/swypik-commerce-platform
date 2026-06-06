@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Props = {
   reportId: string;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function ModerationActions({ reportId, videoId, creatorId }: Props) {
+  const t = useTranslations("moderationActions");
   const router = useRouter();
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
@@ -42,15 +44,15 @@ export default function ModerationActions({ reportId, videoId, creatorId }: Prop
 
   return (
     <div className="bg-white rounded-2xl border border-black/10 p-4">
-      <h2 className="font-bold mb-3">Acțiuni</h2>
-      <label className="block text-sm font-bold mb-1">Motiv intern (opțional)</label>
+      <h2 className="font-bold mb-3">{t("actiuni")}</h2>
+      <label className="block text-sm font-bold mb-1">{t("motivInternOptional")}</label>
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
         rows={2}
         maxLength={500}
         className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm mb-3"
-        placeholder="Notă pentru jurnal..."
+        placeholder={t("notaPentruJurnal")}
       />
       {error && (
         <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">

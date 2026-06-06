@@ -7,6 +7,7 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { formatCurrency } from "@/lib/i18n/currency";
 import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, type Currency } from "@/lib/i18n/config";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ type Row = {
 };
 
 export default async function SavedProductsPage() {
+  const t = await getTranslations("accountSaved");
   const user = await getAuthUser();
   if (!user.userId) redirect("/account?redirect=/account/saved");
 
@@ -50,7 +52,8 @@ export default async function SavedProductsPage() {
       <div className="px-3 md:px-6 pt-4 max-w-5xl mx-auto">
         {rows.length === 0 ? (
           <p className="text-white/50 text-sm mt-8 text-center">
-            Nu ai produse salvate. Salvează produse din feed sau /explore.
+
+            {t("nuAiProduseSalvate")}
           </p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">

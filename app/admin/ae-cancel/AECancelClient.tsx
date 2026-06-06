@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function AECancelClient({ itemId }: { itemId: string }) {
+  const t = useTranslations("aecancelAECancel");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -38,7 +40,8 @@ export default function AECancelClient({ itemId }: { itemId: string }) {
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-bold bg-[#0D0D0D] text-white hover:bg-black transition"
       >
-        Marchează rezolvat
+
+        {t("marcheazaRezolvat")}
       </button>
     );
   }
@@ -53,7 +56,7 @@ export default function AECancelClient({ itemId }: { itemId: string }) {
             checked={status === "cancelled"}
             onChange={() => setStatus("cancelled")}
           />
-          <span>Anulat la AE</span>
+          <span>{t("anulatLaAe")}</span>
         </label>
         <label className="inline-flex items-center gap-1 cursor-pointer">
           <input
@@ -67,7 +70,7 @@ export default function AECancelClient({ itemId }: { itemId: string }) {
       </div>
       <textarea
         rows={2}
-        placeholder="Notă (opțional, max 500 caractere)"
+        placeholder={t("notaOptionalMax500")}
         value={note}
         maxLength={500}
         onChange={(e) => setNote(e.target.value)}
@@ -81,7 +84,8 @@ export default function AECancelClient({ itemId }: { itemId: string }) {
           disabled={pending}
           className="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-200 transition"
         >
-          Renunță
+
+          {t("renunta")}
         </button>
         <button
           type="button"

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Play, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Item = {
   videoId: string;
@@ -21,6 +22,7 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 export default function HiddenVideosList({ initial }: { initial: Item[] }) {
+  const t = useTranslations("hiddenVideosList");
   const [items, setItems] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -71,10 +73,10 @@ export default function HiddenVideosList({ initial }: { initial: Item[] }) {
             onClick={() => restore(i.videoId)}
             disabled={busy === i.videoId}
             className="flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold hover:bg-white/[0.08] disabled:opacity-50"
-            aria-label="Restaurează"
+            aria-label={t("restaureaza")}
           >
             <RotateCcw size={14} />
-            <span className="hidden md:inline">Restaurează</span>
+            <span className="hidden md:inline">{t("restaureaza2")}</span>
           </button>
         </li>
       ))}

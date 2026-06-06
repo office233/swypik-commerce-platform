@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Share2, MessageCircle } from "lucide-react";
 
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export default function ProfileHeaderActions({ userId, displayName, handle }: Props) {
+  const t = useTranslations("profileHeaderActions");
   const [toast, setToast] = useState<string>("");
 
   async function handleShare() {
@@ -55,11 +57,11 @@ export default function ProfileHeaderActions({ userId, displayName, handle }: Pr
       if (data?.conversation_id) {
         window.location.href = `/messages/${data.conversation_id}`;
       } else {
-        setToast("Nu am putut deschide conversația.");
+        setToast(t("errNuAmDeschisConv"));
         setTimeout(() => setToast(""), 2000);
       }
     } catch {
-      setToast("Eroare de rețea.");
+      setToast(t("errRetea"));
       setTimeout(() => setToast(""), 2000);
     } finally {
       setDmPending(false);

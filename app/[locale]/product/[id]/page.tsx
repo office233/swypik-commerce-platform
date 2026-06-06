@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 /**
  * Product Page — Server Component with SSR data
  * 
@@ -32,10 +33,14 @@ type Props = { params: Promise<{ id: string }> };
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const tMeta = await getTranslations("productPage");
   const { id } = await params;
   const locale = await resolveLocale();
   const data = await getProductDetail(id, locale);
-  if (!data) return { title: "Produs negăsit — Swypik" };
+  if (!data) {
+    const tr = await getTranslations({ locale, namespace: "pageMeta" });
+    return { title: tr("productNotFound") };
+  }
 
   const { product } = data as any;
   const seoTitle = product.seoTitle as string | null;
@@ -48,7 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? seoDescription
     : (product.description
       ? `${String(product.description).replace(/<[^>]*>/g, " ").trim().slice(0, 150)}...`
-      : `${product.title} — livrare rapidă. Cumpără de pe Swypik.`);
+      : tMeta("metaDescription", { title: product.title }));
 
   // hreflang alternates from product_translations — uses localized slug per locale when present
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";

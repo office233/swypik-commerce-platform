@@ -1,3 +1,5 @@
+import { getTranslations } from "next-intl/server";
+import { translateBlogCategory } from "@/lib/blog/categoryLabel";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,41 +12,16 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 
 type Props = { params: Promise<{ locale: string }> };
 
-const T = {
-  ro: {
-    metaTitle: "Ghiduri & Recenzii Produse | Swypik",
-    metaDesc: "Ghiduri și recenzii produse testate de echipa Swypik. Top-uri, comparații și recomandări oneste pentru cumpărături mai inteligente.",
-    keywords: "ghiduri produse, recenzii, top produse, recomandări, swypik blog",
-    ogDesc: "Articole testate de noi. Produse care merită banii tăi.",
-    breadcrumb: "Ghiduri",
-    h1: "Ghiduri & Recenzii",
-    subtitle: "Articole testate de echipa noastră — produse curate, comparații cinstite, recomandări care chiar merită banii.",
-    empty: "În curând — primele articole se publică.",
-    read: "min citire",
-    products: "produse",
-    collectionName: "Ghiduri & Recenzii Swypik",
-    collectionDesc: "Recenzii și ghiduri produse testate de echipa Swypik.",
-  },
-  en: {
-    metaTitle: "Product Guides & Reviews | Swypik",
-    metaDesc: "Product guides and reviews tested by the Swypik team. Honest top picks, comparisons and recommendations for smarter shopping.",
-    keywords: "product guides, reviews, top products, recommendations, swypik blog",
-    ogDesc: "Articles tested by us. Products actually worth your money.",
-    breadcrumb: "Guides",
-    h1: "Guides & Reviews",
-    subtitle: "Articles tested by our team — curated products, honest comparisons, recommendations actually worth your money.",
-    empty: "Coming soon — first articles are being published.",
-    read: "min read",
-    products: "products",
-    collectionName: "Swypik Guides & Reviews",
-    collectionDesc: "Product reviews and guides tested by the Swypik team.",
-  },
-} as const;
-function tStrings(loc: string) { return (T as any)[loc] || T.ro; }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  const tt = tStrings(locale);
+  const t = await getTranslations({ locale, namespace: "blogIndex" });
+  const tt = {
+    metaTitle: t("metaTitle"), metaDesc: t("metaDesc"), keywords: t("keywords"),
+    ogDesc: t("ogDesc"), breadcrumb: t("breadcrumb"), h1: t("h1"), subtitle: t("subtitle"),
+    empty: t("empty"), read: t("read"), products: t("products"),
+    collectionName: t("collectionName"), collectionDesc: t("collectionDesc"),
+  };
   const localePrefix = locale && locale !== "ro" ? `/${locale}` : "";
   return {
     title: tt.metaTitle,
@@ -55,6 +32,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       languages: {
         ro: `${BASE_URL}/blog`,
         en: `${BASE_URL}/en/blog`,
+        es: `${BASE_URL}/es/blog`,
+        fr: `${BASE_URL}/fr/blog`,
+        de: `${BASE_URL}/de/blog`,
+        pt: `${BASE_URL}/pt/blog`,
+        it: `${BASE_URL}/it/blog`,
         "x-default": `${BASE_URL}/blog`,
       },
       types: {
@@ -74,8 +56,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function BlogIndexPage({ params }: Props) {
+  const tCat = await getTranslations("blogCategory");
   const { locale } = await params;
-  const tt = tStrings(locale);
+  const t = await getTranslations({ locale, namespace: "blogIndex" });
+  const tt = {
+    metaTitle: t("metaTitle"), metaDesc: t("metaDesc"), keywords: t("keywords"),
+    ogDesc: t("ogDesc"), breadcrumb: t("breadcrumb"), h1: t("h1"), subtitle: t("subtitle"),
+    empty: t("empty"), read: t("read"), products: t("products"),
+    collectionName: t("collectionName"), collectionDesc: t("collectionDesc"),
+  };
   const localePrefix = locale && locale !== "ro" ? `/${locale}` : "";
   const articles = await listBlogArticles({ limit: 24, locale });
 
@@ -166,7 +155,7 @@ export default async function BlogIndexPage({ params }: Props) {
                 </div>
                 <div className="p-5">
                   <div className="text-xs text-zinc-500 mb-2 flex items-center gap-2">
-                    {a.category ? <span className="font-bold uppercase tracking-wider text-[#7C3AED]">{a.category}</span> : null}
+                    {a.category ? <span className="font-bold uppercase tracking-wider text-[#7C3AED]">{translateBlogCategory(a.category, tCat)}</span> : null}
                     <span>\u2014</span>
                     <span>{a.readTimeMin} {tt.read}</span>
                   </div>

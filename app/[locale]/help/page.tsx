@@ -1,16 +1,16 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { useTranslations } from "next-intl";
 
-export const metadata: Metadata = {
-  title: "Ajutor — Swypik",
-  description: "Întrebări frecvente și sprijin pentru cumpărători și creatori Swypik.",
-  alternates: {
-    canonical: "https://swypik.com/help",
-    languages: languagesForMetadata("/help"),
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pageMeta.help");
+  return {
+    title: t("title") + " — Swypik",
+    description: t("description"),
+  };
+}
 
 const FAQ_KEYS = ["cumpar", "livrare", "retur", "creator", "plati"] as const;
 

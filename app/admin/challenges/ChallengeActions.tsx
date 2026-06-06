@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const NEXT_STATUS: Record<string, { label: string; to: string } | null> = {
   draft: { label: "Activează", to: "active" },
@@ -18,6 +19,7 @@ export default function ChallengeActions({
   status: string;
   featured: boolean;
 }) {
+  const t = useTranslations("challengesChallengeActions");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
@@ -74,7 +76,8 @@ export default function ChallengeActions({
           }}
           className="text-[10px] font-black uppercase px-2 py-1 rounded bg-red-500/20 text-red-300 hover:bg-red-500/30 disabled:opacity-50"
         >
-          Anulează
+
+          {t("anuleaza")}
         </button>
       )}
     </div>

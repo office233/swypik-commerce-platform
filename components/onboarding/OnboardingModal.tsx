@@ -27,6 +27,7 @@ function formatCount(n: number): string {
 
 export default function OnboardingModal({ initialCreators }: Props) {
   const t = useTranslations("onboardingModal");
+  const tOnb = useTranslations("onboardingModal");
   const router = useRouter();
   const [open, setOpen] = useState(true);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -43,7 +44,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
   }, []);
 
   const handleClose = useCallback(async () => {
-    const ok = window.confirm("Sigur sări peste? Vei rata sugestiile.");
+    const ok = window.confirm(tOnb("sigurSariPeste"));
     if (!ok) return;
     setOpen(false);
     await completeOnboarding();
@@ -211,7 +212,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
                             isFollowing ? "bg-black/10 text-black" : "bg-black text-white hover:bg-black/85"
                           } disabled:opacity-50`}
                         >
-                          {isFollowing ? "Urmărit" : "Urmărește"}
+                          {isFollowing ? tOnb("urmarit") : tOnb("urmareste")}
                         </button>
                       </div>
                     );

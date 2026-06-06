@@ -5,6 +5,7 @@ import { searchAll } from "@/lib/search/query";
 import SearchBar from "@/components/search/SearchBar";
 import { formatCurrency } from "@/lib/i18n/currency";
 import { getProductRatingMap } from "@/lib/reviews/aggregate";
+import { getTranslations } from "next-intl/server";
 import {
   CURRENCY_COOKIE,
   LOCALE_COOKIE,
@@ -26,6 +27,8 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const tSearchPage = await getTranslations("searchPage");
+  const t = await getTranslations("search");
   const params: SearchParams = await searchParams;
 
   const q = (params.q ?? "").trim();
@@ -69,7 +72,7 @@ export default async function SearchPage({
     <main className="min-h-screen overflow-x-hidden text-white" style={{ backgroundColor: BG }}>
       <div className="mx-auto max-w-5xl min-w-0 px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold mb-4">Căutare</h1>
+          <h1 className="text-2xl font-semibold mb-4">{t("cautare")}</h1>
           <SearchBar initialQuery={q} />
         </header>
 
@@ -120,7 +123,7 @@ export default async function SearchPage({
                           ) : null}
                         </div>
                         <div className="p-2">
-                          <div className="text-sm font-medium truncate">{v.title ?? "Fără titlu"}</div>
+                          <div className="text-sm font-medium truncate">{v.title ?? tSearchPage("faraTitlu")}</div>
                           <div className="text-xs text-neutral-400 truncate">
                             {v.creator_name ?? "—"} · {Intl.NumberFormat().format(v.like_count)} likes
                           </div>

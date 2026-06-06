@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
@@ -6,9 +7,13 @@ import UploadClient from "./UploadClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Adaugă video | Swypik",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pageMeta.upload");
+  return {
+    title: t("title") + " — Swypik",
+    description: t("description"),
+  };
+}
 
 export default async function UploadPage() {
   const auth = await getAuthUser();

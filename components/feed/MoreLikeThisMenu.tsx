@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { MoreVertical, Sparkles, EyeOff, UserPlus, Flag, Loader2 } from "lucide-react";
 import ReportSheet from "./ReportSheet";
 
@@ -33,6 +34,7 @@ export default function MoreLikeThisMenu({
   onActionDone,
   className = "",
 }: Props) {
+  const t = useTranslations("moreLikeThis");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -94,24 +96,24 @@ export default function MoreLikeThisMenu({
         >
           <MenuItem
             icon={busy === "more_like_this" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-neutral-700" />}
-            label="Mai arată-mi ca asta"
-            onClick={() => send("more_like_this", "Vom afișa mai multe ca acesta")}
+            label={t("maiAratamiCaAsta")}
+            onClick={() => send("more_like_this", t("vomAfisaMaiMulte"))}
             disabled={busy !== null}
           />
           <MenuItem
             icon={busy === "not_interested" ? <Loader2 className="h-4 w-4 animate-spin" /> : <EyeOff className="h-4 w-4 text-amber-400" />}
-            label="Nu-mi arăta asta"
-            onClick={() => send("not_interested", "Nu vei mai vedea conținut similar")}
+            label={t("nuMiArataAsta")}
+            onClick={() => send("not_interested", t("nuVeiMaiVedea"))}
             disabled={busy !== null}
           />
           {creatorId && (
             <MenuItem
               icon={busy === (isFollowing ? "unfollow" : "follow_creator") ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4 text-sky-400" />}
-              label={isFollowing ? "Dezabonează-te" : "Urmărește creator"}
+              label={isFollowing ? t("dezaboneazaTe") : t("urmaresteCreator")}
               onClick={() =>
                 send(
                   isFollowing ? "unfollow" : "follow_creator",
-                  isFollowing ? "Te-ai dezabonat" : "Urmărești acum",
+                  isFollowing ? t("teAiDezabonat") : t("urmaresti"),
                 )
               }
               disabled={busy !== null}
@@ -120,7 +122,7 @@ export default function MoreLikeThisMenu({
           <div className="my-1 border-t border-white/10" />
           <MenuItem
             icon={<Flag className="h-4 w-4 text-rose-400" />}
-            label="Raportează"
+            label={t("raporteaza")}
             onClick={openReport}
             disabled={busy !== null}
           />

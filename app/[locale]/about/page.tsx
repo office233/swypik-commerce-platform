@@ -1,16 +1,16 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { useTranslations } from "next-intl";
 
-export const metadata: Metadata = {
-  title: "Despre Swypik — Cumpără prin video",
-  description: "Swypik este marketplace-ul românesc unde descoperi produse prin clipuri scurte, cu recomandări AI și creatori locali.",
-  alternates: {
-    canonical: "https://swypik.com/about",
-    languages: languagesForMetadata("/about"),
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("pageMeta.about");
+  return {
+    title: t("title") + " — Swypik",
+    description: t("description"),
+  };
+}
 
 export default function AboutPage() {
   const t = useTranslations("about");
@@ -18,7 +18,7 @@ export default function AboutPage() {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-3xl font-bold mb-4">Despre Swypik</h1>
       <p className="text-zinc-700 mb-6">
-        
+
         {t("swypikEstePlatformaRomaneasca")}
       </p>
 

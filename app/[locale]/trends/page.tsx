@@ -1,4 +1,5 @@
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
@@ -13,6 +14,7 @@ const TYPE_LABEL: Record<string, { label: string; color: string }> = {
 };
 
 export default async function TrendsPage() {
+  const t = await getTranslations("trends");
   let rows: Row[] = [];
   try {
     const res = await dbQuery<Row>(
@@ -33,11 +35,12 @@ export default async function TrendsPage() {
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: 24, minHeight: "100vh" }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>🔥 Trends acum</h1>
-      <p style={{ color: "#666", marginBottom: 24 }}>Topul curent — hashtag-uri, sunete, produse și topicuri detectate AI.</p>
+      <p style={{ color: "#666", marginBottom: 24 }}>{t("topulCurentHashtaguriSunete")}</p>
 
       {rows.length === 0 ? (
         <p style={{ color: "#999", textAlign: "center", padding: 40 }}>
-          Niciun trend detectat încă. Cron-ul rulează la 6 ore — revino curând.
+
+          {t("niciunTrendDetectatInca")}
         </p>
       ) : (
         <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>

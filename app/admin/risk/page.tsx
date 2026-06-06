@@ -7,6 +7,7 @@ import { Metrics7dPanel, type Metrics7d } from "./Metrics7dPanel";
 import { BlockedUsersList, type BlockedUser } from "./BlockedUsersList";
 import { OrderRiskCard, type OrderRow } from "./OrderRiskCard";
 import { TimeSeriesChart, type TimeSeries30d, type TimeSeriesPoint } from "./TimeSeriesChart";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -205,6 +206,7 @@ export default async function AdminRiskPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const t = await getTranslations("risk");
   const sp = await searchParams;
   const statusFilter = sp.status || "paid";
   const minScore = Number(sp.min || "0");
@@ -232,9 +234,10 @@ export default async function AdminRiskPage({
     <main className="max-w-7xl mx-auto p-4 space-y-4">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#0D0D0D]">Risc fraudă comenzi</h1>
+          <h1 className="text-xl font-semibold text-[#0D0D0D]">{t("riscFraudaComenzi")}</h1>
           <p className="text-xs text-gray-500 mt-1">
-            Scoring 0-100 per comandă (90 zile). Mai mare = risc mai mare. Review manual recomandat pentru ≥50.
+
+            {t("scoring0100PerComanda")}
           </p>
         </div>
         <Link href="/admin" className="text-xs text-violet-700 hover:underline">
@@ -250,7 +253,8 @@ export default async function AdminRiskPage({
 
       {scored.length === 0 ? (
         <div className="bg-emerald-50 border border-emerald-200 rounded p-6 text-center text-emerald-800 text-sm">
-          ✅ Nicio comandă cu risc ≥{minScore} în ultimele 90 zile pentru status <strong>{statusFilter}</strong>.
+
+          {t("nicioComandaCuRisc")}{minScore}  {t("inUltimele90Zile")} <strong>{statusFilter}</strong>.
         </div>
       ) : (
         <div className="space-y-2">
