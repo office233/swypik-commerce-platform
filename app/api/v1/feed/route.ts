@@ -13,7 +13,37 @@ function toInt(value: string | null, fallback: number, min: number, max: number)
   return Math.max(min, Math.min(Math.trunc(n), max));
 }
 
-function toFeedItem(product: any, index: number, seed: number) {
+// Heterogeneous shapes from searchProducts() / explore-feed bridge; narrow at access.
+type FeedProduct = Record<string, unknown> & {
+  id: string | number;
+  pgId?: number;
+  product_id?: string | number;
+  productId?: string | number;
+  video_id?: string;
+  videoId?: string;
+  creator_id?: string;
+  creatorId?: string;
+  video?: string | null;
+  images?: string[];
+  orders?: number;
+  rating?: number;
+  discountPercent?: number;
+  likes?: number;
+  commentCount?: number;
+};
+type FeedVideo = Record<string, unknown> & {
+  id: string | number;
+  url?: string | null;
+  hlsUrl?: string | null;
+  thumbnail?: string | null;
+  likes?: number;
+  comments?: number;
+  creator?: { id?: string; username?: string; name?: string; avatar?: string | null };
+  product?: { id?: string | number; swypikScore?: number } | null;
+};
+type FeedItem = ReturnType<typeof toFeedItem>;
+
+function toFeedItem(product: FeedProduct, index: number, seed: number) {
   const likes = product.likes || Math.max(3, Math.round((product.orders || 30) * 0.35));
   const comments = product.commentCount || Math.max(1, Math.round((product.orders || 30) * 0.04));
   const productId = String(product.pgId || product.product_id || product.productId || product.id);
@@ -71,7 +101,7 @@ function toFeedItem(product: any, index: number, seed: number) {
   };
 }
 
-function toExploreFeedItem(video: any, index: number, seed: number) {
+function toExploreFeedItem(video: FeedVideo, index: number, seed: number) {
   const productId = video.product?.id ? String(video.product.id) : null;
   const likes = Number(video.likes) || 0;
   const comments = Number(video.comments) || 0;
@@ -141,12 +171,12 @@ export async function GET(req: Request) {
       });
       if (exploreResponse.ok) {
         const payload = await exploreResponse.json();
-        const videos = Array.isArray(payload?.videos) ? payload.videos : [];
-        const items = videos.map((video: any, index: number) => toExploreFeedItem(video, offset + index, seed));
+        const videos: FeedVideo[] = Array.isArray(payload?.videos) ? payload.videos : [];
+        const items = videos.map((video, index) => toExploreFeedItem(video, offset + index, seed));
         return NextResponse.json(
           {
             items,
-            products: videos.map((video: any) => video.product).filter(Boolean),
+            products: videos.map((video) => video.product).filter(Boolean),
             paging: {
               offset,
               limit,
@@ -175,7 +205,7 @@ export async function GET(req: Request) {
       seed,
     });
 
-    const items = result.products.map((product: any, index: number) =>
+    const items = (result.products as FeedProduct[]).map((product, index) =>
       toFeedItem(product, offset + index, seed)
     );
 
@@ -189,10 +219,10 @@ export async function GET(req: Request) {
         );
         const seen = new Set<string>(Array.isArray(rows?.[0]?.seen_video_ids) ? rows[0].seen_video_ids as string[] : []);
         if (seen.size > 0) {
-          visibleItems = items.filter((it: any) => !seen.has(String(it.video_id)));
+          visibleItems = items.filter((it: FeedItem) => !seen.has(String(it.video_id)));
           if (visibleItems.length === 0) visibleItems = items;
         }
-        const newIds = visibleItems.map((it: any) => String(it.video_id)).filter(Boolean);
+        const newIds = visibleItems.map((it: FeedItem) => String(it.video_id)).filter(Boolean);
         if (newIds.length > 0) {
           const merged = Array.from(new Set([...newIds.reverse(), ...Array.from(seen)])).slice(0, 500);
           await dbQuery(

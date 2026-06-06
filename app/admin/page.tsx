@@ -4,10 +4,31 @@
 
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminConfigured } from "@/lib/security/admin-auth";
+import { logger } from "@/lib/logger";
 import Link from "next/link";
 import OpsAlertsBar from "./OpsAlertsBar";
 
 export const dynamic = "force-dynamic";
+
+const log = logger.child({ route: "/admin" });
+
+type DailyRevenueRow = { day: string; orders: number | string; revenue: number | string };
+type StatusRow = { status: string; count: number | string };
+type FulfillmentRow = { fulfillment_status: string | null; count: number | string };
+type CountryRow = { country: string; count: number | string; revenue: number | string };
+type OrderItem = { quantity?: number; title?: string };
+type RecentOrderRow = {
+  id: string;
+  stripe_session_id: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  total_ron: number | string;
+  status: string;
+  fulfillment_status: string | null;
+  items: OrderItem[] | string | null;
+  shipping_address: { country?: string; name?: string } | string | null;
+  created_at: string;
+};
 
 async function getStats() {
   try {
@@ -117,8 +138,8 @@ async function getStats() {
       dailyRevenue,
       catalog: catalog[0],
     };
-  } catch (error: any) {
-    console.error("[Admin] Stats error:", error);
+  } catch (err) {
+    log.error({ err }, "admin stats error");
     return null;
   }
 }
@@ -161,7 +182,7 @@ export default async function AdminDashboard() {
     );
   }
 
-  const maxRevenue = Math.max(...stats.dailyRevenue.map((day: any) => Number(day.revenue)), 1);
+  const maxRevenue = Math.max(...(stats.dailyRevenue as DailyRevenueRow[]).map((day) => Number(day.revenue)), 1);
 
   return (
     <div className="min-h-screen bg-white text-[#0D0D0D]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -219,7 +240,7 @@ export default async function AdminDashboard() {
         <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
           <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Revenue • Last 14 days</h2>
           <div className="flex items-end gap-1 h-40">
-            {stats.dailyRevenue.map((day: any, index: number) => {
+            {(stats.dailyRevenue as DailyRevenueRow[]).map((day, index) => {
               const height = maxRevenue > 0 ? (Number(day.revenue) / maxRevenue) * 100 : 0;
               const label = new Date(day.day).toLocaleDateString("ro-RO", { weekday: "short", day: "numeric" });
               return (
@@ -249,7 +270,7 @@ export default async function AdminDashboard() {
           <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Order status</h2>
             <div className="space-y-2">
-              {stats.byStatus.map((status: any) => (
+              {(stats.byStatus as StatusRow[]).map((status) => (
                 <div key={status.status} className="flex justify-between items-center">
                   <span className="flex items-center gap-2 text-sm">
                     <StatusBadge status={status.status} />
@@ -265,7 +286,7 @@ export default async function AdminDashboard() {
           <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Fulfillment</h2>
             <div className="space-y-2">
-              {stats.byFulfillment.map((fulfillment: any) => (
+              {(stats.byFulfillment as FulfillmentRow[]).map((fulfillment) => (
                 <div key={fulfillment.fulfillment_status} className="flex justify-between items-center">
                   <span className="text-sm">{fulfillment.fulfillment_status || "N/A"}</span>
                   <span className="text-sm font-bold">{fulfillment.count}</span>
@@ -278,7 +299,7 @@ export default async function AdminDashboard() {
           <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
             <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Customer locations</h2>
             <div className="space-y-2">
-              {stats.countries.map((country: any) => (
+              {(stats.countries as CountryRow[]).map((country) => (
                 <div key={country.country} className="flex justify-between items-center">
                   <span className="text-sm">
                     {COUNTRY_FLAGS[country.country] || "?"} {country.country}
@@ -344,14 +365,14 @@ export default async function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {stats.recent.map((order: any) => {
-                  const items = typeof order.items === "string" ? JSON.parse(order.items) : order.items;
+                {(stats.recent as RecentOrderRow[]).map((order) => {
+                  const items: OrderItem[] = typeof order.items === "string" ? JSON.parse(order.items) : (order.items ?? []);
                   const shipping = order.shipping_address
                     ? typeof order.shipping_address === "string"
                       ? JSON.parse(order.shipping_address)
                       : order.shipping_address
                     : null;
-                  const itemCount = items?.reduce?.((sum: number, item: any) => sum + (item.quantity || 1), 0) || 0;
+                  const itemCount = items?.reduce?.((sum: number, item: OrderItem) => sum + (item.quantity || 1), 0) || 0;
 
                   return (
                     <tr key={order.id} className="border-b border-[#F0F0F2] hover:bg-[#F7F7F8] transition-colors">
@@ -416,7 +437,7 @@ export default async function AdminDashboard() {
   );
 }
 
-function KPICard({ label, value, icon }: { label: string; value: any; icon: string }) {
+function KPICard({ label, value, icon }: { label: string; value: string | number; icon: string }) {
   return (
     <div className="rounded-2xl bg-white border border-[#E5E5E7] p-5 hover:border-[#0D0D0D] hover:shadow-md transition-all shadow-sm">
       <p className="text-xs font-bold uppercase tracking-widest text-[#6E6E80] mb-1">
@@ -427,7 +448,7 @@ function KPICard({ label, value, icon }: { label: string; value: any; icon: stri
   );
 }
 
-function PeriodCard({ label, orders, revenue, color }: { label: string; orders: any; revenue: any; color: string }) {
+function PeriodCard({ label, orders, revenue, color }: { label: string; orders: number | string; revenue: number | string; color: string }) {
   return (
     <div
       className="rounded-2xl bg-white border border-[#E5E5E7] p-5 shadow-sm"

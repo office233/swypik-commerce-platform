@@ -31,7 +31,7 @@ type EnrichedItem = {
   id: string;
   title: string;
   quantity: number;
-  item_metadata?: any;
+  item_metadata?: Record<string, unknown> | null;
   aeProductId: string | null;
   supplier: "aliexpress" | "unknown";
   externalVariantId?: string | null;
@@ -42,7 +42,7 @@ type EnrichedItem = {
  * Determine which supplier to use for a given product
  * Based on ae_product_id prefix or source metadata
  */
-function detectSupplier(aeProductId: string, metadata?: any): "aliexpress" | "unknown" {
+function detectSupplier(aeProductId: string, metadata?: Record<string, unknown> | null): "aliexpress" | "unknown" {
   if (metadata?.source === "aliexpress") return "aliexpress";
   // AliExpress IDs are long numeric
   if (/^\d{10,}$/.test(aeProductId)) return "aliexpress";
@@ -55,7 +55,7 @@ async function upsertSupplierOrder(params: {
   source: "aliexpress" | "unknown";
   supplierOrderId?: string | null;
   status: "pending" | "submitted" | "failed";
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }): Promise<SupplierRecord> {
   if (params.supplierOrderId) {
     const { rows } = await dbQuery(
@@ -306,7 +306,7 @@ export async function fulfillOrder(orderId: string): Promise<FulfillmentResult> 
   );
 
   if (supplierError) {
-    console.error(`[Fulfillment] ❌ Order ${orderId}: ${supplierError}`);
+    log.error({ order_id: orderId, supplier_error: supplierError }, "order supplier error");
   }
 
   return {
@@ -428,22 +428,23 @@ export async function updateOrderTracking(
           `SELECT title, quantity, (unit_amount_cents::numeric / 100) AS price FROM commerce_order_items WHERE order_id = $1`,
           [orderId]
         );
+        type ShipItemRow = { title: string; quantity: number; price: string | number };
         sendShippingNotification({
           orderId,
           orderLookupToken: meta.order_lookup_token,
           customerEmail: email,
           customerName: meta.shipping_address?.name || "",
-          items: items.map((r: any) => ({ title: r.title, quantity: r.quantity, price: Number(r.price) })),
+          items: (items as ShipItemRow[]).map((r) => ({ title: r.title, quantity: r.quantity, price: Number(r.price) })),
           totalRon: Number(orderRows[0].total_ron),
           trackingNumber,
           trackingUrl: finalTrackingUrl,
-        }).catch(err => console.error("[Fulfillment] Email send failed:", err.message));
+        }).catch((err: unknown) => log.error({ err, order_id: orderId }, "shipping email send failed"));
       }
     }
 
     return true;
-  } catch (e: any) {
-    console.error(`[Fulfillment] Tracking update failed:`, e.message);
+  } catch (err) {
+    log.error({ err, order_id: orderId }, "tracking update failed");
     return false;
   }
 }
@@ -478,9 +479,9 @@ export async function cancelOrder(orderId: string, reason?: string): Promise<boo
         refundId = refund.id;
         refundAmountCents = refund.amount || 0;
         log.info({ refund_id: refundId, amount_cents: refundAmountCents, intent_id: paymentIntentId }, "stripe refund created");
-      } catch (stripeErr: any) {
-        refundError = stripeErr.message;
-        console.error(`[Fulfillment] ⚠️ Stripe refund failed for ${paymentIntentId}:`, stripeErr.message);
+      } catch (stripeErr) {
+        refundError = (stripeErr as Error).message;
+        log.error({ err: stripeErr, intent_id: paymentIntentId }, "stripe refund failed");
         // We still cancel the order in our DB even if Stripe refund fails
       }
     }
@@ -522,8 +523,8 @@ export async function cancelOrder(orderId: string, reason?: string): Promise<boo
     }
 
     return true;
-  } catch (e: any) {
-    console.error(`[Fulfillment] Cancel failed:`, e.message);
+  } catch (err) {
+    log.error({ err, order_id: orderId }, "cancel failed");
     return false;
   }
 }

@@ -30,7 +30,7 @@ export async function aliexpressSearch(
   size = 20
 ): Promise<SupplierProduct[]> {
   if (!API_KEY) {
-    console.error("[AliExpress] RAPIDAPI_KEY not configured");
+    log.error("RAPIDAPI_KEY not configured");
     return [];
   }
 
@@ -41,14 +41,14 @@ export async function aliexpressSearch(
 
     const res = await fetch(url, { headers: headers() });
     if (!res.ok) {
-      console.error(`[AliExpress] Search HTTP ${res.status}`);
+      log.error({ status: res.status }, "search HTTP error");
       return [];
     }
 
     const json = await res.json();
 
     if (json.result?.status?.code !== 200 || !json.result?.resultList) {
-      console.error("[AliExpress] Search error:", json.result?.status?.msg || "no results");
+      log.error({ msg: json.result?.status?.msg || "no results" }, "search error");
       return [];
     }
 
@@ -63,8 +63,8 @@ export async function aliexpressSearch(
 
     log.info({ keyword, count: products.length }, "search complete");
     return products;
-  } catch (error: any) {
-    console.error("[AliExpress] Search error:", error.message);
+  } catch (err) {
+    log.error({ err, keyword }, "search error");
     return [];
   }
 }
@@ -156,8 +156,8 @@ export async function aliexpressProductDetail(
         stockStatus: "in_stock" as const,
       }],
     };
-  } catch (error: any) {
-    console.error(`[AliExpress] Detail error for ${itemId}:`, error.message);
+  } catch (err) {
+    log.error({ err, item_id: itemId }, "detail error");
     return null;
   }
 }
