@@ -19,6 +19,58 @@ export type ProductFilters = {
   includeCount?: boolean;
 };
 
+// Loose DB row shape — marketplace_products + LATERAL joins are heterogeneous,
+// columns vary by mode; we narrow at access-time with `firstNonEmpty`/`Number`.
+type ProductMetadata = Record<string, unknown>;
+type ProductRow = Record<string, unknown> & {
+  id: string;
+  title?: string;
+  image_url?: string | null;
+  price_cents?: number | string | null;
+  compare_at_price_cents?: number | string | null;
+  metadata?: ProductMetadata | null;
+  taxonomy_node_slug?: string | null;
+};
+type CategoryRow = {
+  category_id: string;
+  name_en: string;
+  name_ro: string;
+  count: number | string;
+};
+type TaxonomyTreeRow = {
+  slug: string;
+  label: string;
+  total: number | string;
+  kind: string;
+  parent_slug: string | null;
+  sort_order: number | null;
+};
+type CategoryHierarchyRow = {
+  department: string;
+  category: string;
+  subcategory: string;
+  leaf: string;
+  slug: string;
+  count: number | string;
+};
+type TreeNode = {
+  id: string;
+  name: string;
+  tag?: string;
+  count: number;
+  kind?: string;
+  _parent?: string | null;
+  _sort?: number;
+  children: TreeNode[];
+};
+type CategoryHierarchyNode = {
+  id: string;
+  name: string;
+  count: number;
+  children: CategoryHierarchyNode[];
+  tag?: string;
+};
+
 const BASE_PRODUCT_SELECT = `
   FROM marketplace_products p
   LEFT JOIN LATERAL (
@@ -231,10 +283,10 @@ function toBoolean(...values: unknown[]) {
   return undefined;
 }
 
-function getMetadataValue(metadata: any, path: string) {
-  return path.split(".").reduce((acc, key) => {
-    if (acc && typeof acc === "object" && key in acc) {
-      return acc[key];
+function getMetadataValue(metadata: ProductMetadata | null | undefined, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === "object" && key in (acc as Record<string, unknown>)) {
+      return (acc as Record<string, unknown>)[key];
     }
     return undefined;
   }, metadata);
@@ -248,10 +300,10 @@ function hashCode(input: string): number {
   return Math.abs(hash);
 }
 
-function buildImages(row: any, metadata: any) {
+function buildImages(row: ProductRow, metadata: ProductMetadata) {
   const images: string[] = [];
-  if (row.image_url) images.push(row.image_url);
-  const extraImages = Array.isArray(metadata?.images) ? metadata.images : [];
+  if (typeof row.image_url === "string" && row.image_url) images.push(row.image_url);
+  const extraImages = Array.isArray(metadata.images) ? (metadata.images as unknown[]) : [];
   for (const image of extraImages) {
     if (typeof image === "string" && image && image !== row.image_url) {
       images.push(image);
@@ -260,7 +312,7 @@ function buildImages(row: any, metadata: any) {
   return images.slice(0, 6);
 }
 
-function firstMetadataVideoUrl(metadata: any) {
+function firstMetadataVideoUrl(metadata: ProductMetadata) {
   const direct = firstNonEmpty(
     metadata.video_url,
     metadata.ae_video_url,
@@ -269,16 +321,12 @@ function firstMetadataVideoUrl(metadata: any) {
   );
   if (typeof direct === "string" && direct.trim()) return direct.trim();
 
-  const videos = Array.isArray(metadata?.videos) ? metadata.videos : [];
+  const videos = Array.isArray(metadata.videos) ? (metadata.videos as unknown[]) : [];
   for (const entry of videos) {
     if (typeof entry === "string" && entry.trim()) return entry.trim();
     if (entry && typeof entry === "object") {
-      const url = firstNonEmpty(
-        (entry as any).url,
-        (entry as any).video_url,
-        (entry as any).play_url,
-        (entry as any).media_url,
-      );
+      const obj = entry as Record<string, unknown>;
+      const url = firstNonEmpty(obj.url, obj.video_url, obj.play_url, obj.media_url);
       if (typeof url === "string" && url.trim()) return url.trim();
     }
   }
@@ -340,7 +388,7 @@ export async function loadProductTranslations(
 }
 
 function transformProduct(
-  row: any,
+  row: ProductRow,
   locale = "ro",
   taxonomyMap?: Map<string, TaxonomyLabels>,
   translationsMap?: Map<string, ProductTranslation>,
@@ -443,7 +491,7 @@ function transformProduct(
     aeProductId: String(firstNonEmpty(row.supplier_product_id, row.external_product_id, row.ae_product_id, row.id)),
     title,
     titleEn: String(firstNonEmpty(row.ae_title, row.title, title) || title),
-    description: row.description ? row.description.replace(/<[^>]*>/g, " ").trim().substring(0, 200) : title,
+    description: typeof row.description === "string" && row.description ? row.description.replace(/<[^>]*>/g, " ").trim().substring(0, 200) : title,
     benefits: ["Livrare rapida in Romania", "Checkout securizat", "Produs verificat"],
     whyBuy: "",
     warnings: [] as string[],
@@ -818,12 +866,12 @@ export async function searchProducts(filters: ProductFilters = {}) {
   }
 
   const slugList = sliced
-    .map((r: any) => (typeof r.taxonomy_node_slug === "string" ? r.taxonomy_node_slug : ""))
+    .map((r: ProductRow) => (typeof r.taxonomy_node_slug === "string" ? r.taxonomy_node_slug : ""))
     .filter((s: string) => s);
   const taxonomyMap = slugList.length > 0 ? await resolveTaxonomyLabels(slugList, locale) : undefined;
-  const idList = sliced.map((r: any) => String(r.id)).filter(Boolean);
+  const idList = sliced.map((r: ProductRow) => String(r.id)).filter(Boolean);
   const translationsMap = idList.length > 0 ? await loadProductTranslations(idList, locale) : undefined;
-  const products = sliced.map((row: any) => transformProduct(row, locale, taxonomyMap, translationsMap));
+  const products = sliced.map((row: ProductRow) => transformProduct(row, locale, taxonomyMap, translationsMap));
   return { products, total, offset, limit: cappedLimit, hasMore };
 }
 
@@ -942,10 +990,10 @@ export async function getCategories(locale = "ro") {
     `,
   );
 
-  return rows.map((row: any) => mapCategoryRow(row, locale));
+  return rows.map((row: CategoryRow) => mapCategoryRow(row, locale));
 }
 
-function mapCategoryRow(row: any, locale = "ro") {
+function mapCategoryRow(row: CategoryRow, locale = "ro") {
   const nameEn = cleanCategoryLabel(row.name_en);
 
   return {
@@ -1057,8 +1105,8 @@ export async function getCategoryHierarchy(locale = "ro") {
   return buildTaxonomyNodeTree(rows);
 }
 
-function buildTaxonomyNodeTree(rows: any[]) {
-  const nodes = new Map<string, any>();
+function buildTaxonomyNodeTree(rows: TaxonomyTreeRow[]): TreeNode[] {
+  const nodes = new Map<string, TreeNode>();
   for (const r of rows) {
     nodes.set(r.slug, {
       id: r.slug,
@@ -1071,18 +1119,19 @@ function buildTaxonomyNodeTree(rows: any[]) {
       children: [],
     });
   }
-  const roots: any[] = [];
+  const roots: TreeNode[] = [];
   for (const node of nodes.values()) {
-    if (node._parent && nodes.has(node._parent)) {
-      nodes.get(node._parent).children.push(node);
+    const parent = node._parent;
+    if (parent && nodes.has(parent)) {
+      nodes.get(parent)!.children.push(node);
     } else {
       roots.push(node);
     }
   }
   // Hide "Altele" bucket and noisy thin top-level nodes (<5 products) from nav.
   const filtered = roots.filter((r) => r.id !== 'other' && r.count >= 5);
-  const sortRec = (list: any[]) => {
-    list.sort((a, b) => (a._sort - b._sort) || (b.count - a.count) || a.name.localeCompare(b.name));
+  const sortRec = (list: TreeNode[]) => {
+    list.sort((a, b) => ((a._sort ?? 9999) - (b._sort ?? 9999)) || (b.count - a.count) || a.name.localeCompare(b.name));
     for (const n of list) {
       if (n.children.length) sortRec(n.children);
       delete n._parent;
@@ -1093,8 +1142,8 @@ function buildTaxonomyNodeTree(rows: any[]) {
   return filtered;
 }
 
-function buildCategoryHierarchy(rows: any[], locale = "ro") {
-  const roots: Record<string, any> = {};
+function buildCategoryHierarchy(rows: CategoryHierarchyRow[], locale = "ro"): CategoryHierarchyNode[] {
+  const roots: Record<string, CategoryHierarchyNode> = {};
 
   for (const row of rows) {
     const department = cleanCategoryLabel(row.department, "Other");
@@ -1113,14 +1162,14 @@ function buildCategoryHierarchy(rows: any[], locale = "ro") {
 
     const count = Number(row.count) || 0;
     const categoryId = `${rootId}:${taxonomySlugPart(category)}`;
-    let categoryNode = roots[rootId].children.find((child: any) => child.id === categoryId);
+    let categoryNode = roots[rootId].children.find((child) => child.id === categoryId);
     if (!categoryNode) {
       categoryNode = { id: categoryId, name: localizeTaxonomyLabel(category, locale), count: 0, children: [] };
       roots[rootId].children.push(categoryNode);
     }
 
     const subcategoryId = `${categoryId}:${taxonomySlugPart(subcategory)}`;
-    let subcategoryNode = categoryNode.children.find((child: any) => child.id === subcategoryId);
+    let subcategoryNode = categoryNode.children.find((child) => child.id === subcategoryId);
     if (!subcategoryNode) {
       subcategoryNode = { id: subcategoryId, name: localizeTaxonomyLabel(subcategory, locale), count: 0, children: [] };
       categoryNode.children.push(subcategoryNode);
@@ -1131,28 +1180,31 @@ function buildCategoryHierarchy(rows: any[], locale = "ro") {
       name: localizeTaxonomyLabel(leaf, locale),
       tag: String(row.slug),
       count,
+      children: [],
     });
     subcategoryNode.count += count;
     categoryNode.count += count;
     roots[rootId].count += count;
   }
 
+  const cmp = (a: CategoryHierarchyNode, b: CategoryHierarchyNode) =>
+    b.count - a.count || a.name.localeCompare(b.name);
   return Object.values(roots)
-    .map((root: any) => ({
+    .map((root) => ({
       ...root,
       children: root.children
-        .map((category: any) => ({
+        .map((category) => ({
           ...category,
           children: category.children
-            .map((subcategory: any) => ({
+            .map((subcategory) => ({
               ...subcategory,
-              children: subcategory.children.sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
+              children: subcategory.children.sort(cmp),
             }))
-            .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
+            .sort(cmp),
         }))
-        .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
+        .sort(cmp),
     }))
-    .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name));
+    .sort(cmp);
 }
 
 export {
