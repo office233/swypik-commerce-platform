@@ -171,25 +171,48 @@ const CUSTOM_TEMPLATES = {
   },
 };
 
+/**
+ * Display-friendly category name: take the leaf segment of a hierarchical
+ * taxonomy ("Fashion > Men > Pantaloni scurți" -> "Pantaloni scurți") and
+ * apply a light title-case to the first letter. Diacritics preserved.
+ */
+function niceCategoryName(raw) {
+  if (!raw || typeof raw !== 'string') return raw;
+  const segments = raw.split(/\s*[>›/|]\s*/).filter(Boolean);
+  let leaf = segments[segments.length - 1] || raw;
+  leaf = leaf.trim();
+  // De-duplicate accidental repetition like "Pantaloni Scurți Pantaloni Scurți"
+  const words = leaf.split(/\s+/);
+  if (words.length >= 2 && words.length % 2 === 0) {
+    const half = words.length / 2;
+    const a = words.slice(0, half).join(' ').toLowerCase();
+    const b = words.slice(half).join(' ').toLowerCase();
+    if (a === b) leaf = words.slice(0, half).join(' ');
+  }
+  // Title-case first letter only (preserve Romanian diacritics elsewhere)
+  return leaf.charAt(0).toUpperCase() + leaf.slice(1);
+}
+
 function buildSeedFromCategory(cat, weekInfo) {
-  const tpl = CUSTOM_TEMPLATES[cat.category] || CATEGORY_TEMPLATES.default;
-  const titleBase = typeof tpl.titleTpl === 'function' ? tpl.titleTpl(cat.category) : tpl.titleTpl;
-  const slugBase = slugify(cat.category);
+  const displayCat = niceCategoryName(cat.category);
+  const tpl = CUSTOM_TEMPLATES[cat.category] || CUSTOM_TEMPLATES[displayCat] || CATEGORY_TEMPLATES.default;
+  const titleBase = typeof tpl.titleTpl === 'function' ? tpl.titleTpl(displayCat) : tpl.titleTpl;
+  const slugBase = slugify(displayCat);
   const slug = `top-${slugBase}-${weekInfo.label}`;
-  const intro = typeof tpl.intro === 'function' ? tpl.intro(cat.category, cat.total_orders) : tpl.intro;
+  const intro = typeof tpl.intro === 'function' ? tpl.intro(displayCat, cat.total_orders) : tpl.intro;
 
   return {
     slug,
     locale: 'ro',
     title: `${titleBase} (săpt. ${weekInfo.week}/${weekInfo.year})`,
-    excerpt: `${cat.n_products} produse din categoria ${cat.category} au rating ≥ 4.5 și peste 50 de comenzi. Iată top 7.`,
+    excerpt: `${cat.n_products} produse din categoria ${displayCat} au rating ≥ 4.5 și peste 50 de comenzi. Iată top 7.`,
     intro,
     heroImage: tpl.hero,
-    heroAlt: `Top produse din categoria ${cat.category}`,
+    heroAlt: `Top produse din categoria ${displayCat}`,
     category: cat.category,
     tags: ['top-rated', 'bestseller', slugBase, `saptamana-${weekInfo.week}`],
     seoTitle: `${titleBase} — Swypik W${weekInfo.week}`,
-    seoDescription: `Top 7 produse din ${cat.category} cu rating ≥ 4.5 și peste 50 de comenzi confirmate. Actualizat săptămânal.`,
+    seoDescription: `Top 7 produse din ${displayCat} cu rating ≥ 4.5 și peste 50 de comenzi confirmate. Actualizat săptămânal.`,
     seoKeywords: tpl.seoKw,
     query: {
       categoryAny: [cat.category],

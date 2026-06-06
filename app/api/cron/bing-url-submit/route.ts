@@ -52,6 +52,35 @@ async function collectUrls(limit: number): Promise<string[]> {
     for (const r of rows as Array<{ slug: string }>) urls.push(`${BASE_URL}/categories/${r.slug}`);
   } catch { /* ignore */ }
 
+  try {
+    const { rows } = await dbQuery(
+      `SELECT a.slug AS canonical_slug,
+              COALESCE(
+                (SELECT json_agg(t.locale)
+                 FROM blog_article_translations t WHERE t.article_id = a.id),
+                '[]'::json
+              ) AS locales
+         FROM blog_articles a
+        WHERE a.status = 'published'
+        ORDER BY a.published_at DESC NULLS LAST
+        LIMIT 200`,
+    );
+    const LOCALES = ['ro', 'en', 'es', 'fr', 'de', 'pt', 'it'];
+    for (const r of rows as Array<{ canonical_slug: string; locales: string[] | null }>) {
+      const present = new Set<string>(['ro', ...(Array.isArray(r.locales) ? r.locales : [])]);
+      for (const loc of LOCALES) {
+        if (!present.has(loc)) continue;
+        const prefix = loc === 'ro' ? '' : `/${loc}`;
+        urls.push(`${BASE_URL}${prefix}/blog/${r.canonical_slug}`);
+      }
+    }
+    // Hub pages per locale
+    for (const loc of LOCALES) {
+      const prefix = loc === 'ro' ? '' : `/${loc}`;
+      urls.push(`${BASE_URL}${prefix}/blog`);
+    }
+  } catch { /* ignore */ }
+
   return Array.from(new Set(urls)).slice(0, limit);
 }
 
