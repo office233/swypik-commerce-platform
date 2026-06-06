@@ -52,7 +52,41 @@ const CATEGORY_EN = {
   'Accesorii frumusețe': 'Beauty Accessories',
   'Birotică': 'Office Supplies',
   'Electronice': 'Electronics',
+  'Încărcătoare & cabluri': 'Chargers & Cables',
+  'Încărcătoare': 'Chargers',
+  'Cabluri': 'Cables',
+  'Căști': 'Headphones',
+  'Boxe': 'Speakers',
+  'Tricouri': 'T-shirts',
+  'Bluze': 'Blouses',
+  'Pantofi': 'Shoes',
+  'Sandale': 'Sandals',
+  'Adidași': 'Sneakers',
+  'Ceasuri': 'Watches',
+  'Ochelari': 'Glasses',
+  'Parfumuri': 'Perfumes',
+  'Cosmetice': 'Cosmetics',
+  'Jocuri': 'Games',
+  'Cărți': 'Books',
+  'Lenjerie': 'Underwear',
+  "Genți damă": "Women's Bags",
+  "Genți barbati": "Men's Bags",
+  'Portofele': 'Wallets',
+  'Pantaloni Scurți': 'Shorts', 'Pantaloni scurți': 'shorts',
+  'Fashion': 'Fashion', 'Men': 'Men', 'Women': 'Women', 'Kids': 'Kids',
 };
+
+/**
+ * Translate a (possibly compound) category like 'Fashion > Men > Pantaloni Scurți'
+ * into a clean leaf label. Falls back to raw leaf if unmapped.
+ */
+function translateCategoryEn(raw) {
+  if (!raw) return '';
+  if (CATEGORY_EN[raw]) return CATEGORY_EN[raw];
+  const segments = String(raw).split(/\s*>\s*/).map((s) => s.trim()).filter(Boolean);
+  const leaf = segments[segments.length - 1] || raw;
+  return CATEGORY_EN[leaf] || leaf;
+}
 
 // =====================================================================
 // Translate title: RO → EN via pattern matching
@@ -66,7 +100,7 @@ function translateTitle(roTitle, articleCategory) {
     [/Cele mai vândute rochii de vară pe Swypik în (\d+)/i, 'Best-Selling Summer Dresses on Swypik in $1'],
     [/Top (\d+) folii de protecție telefon (\d+).*$/i, 'Top $1 Phone Screen Protectors $2 — Tested by Real Buyers'],
     [/Top accesorii de birou \(Birotică\) cumpărate masiv în (\d+)/i, 'Top Office Supplies Bought Heavily in $1'],
-    [/Top produse din categoria (.+?) cu cele mai bune review-uri/i, (m, p1) => `Top ${CATEGORY_EN[p1] || p1} Products with the Best Reviews`],
+    [/Top produse din categoria (.+?) cu cele mai bune review-uri/i, (m, p1) => `Top ${translateCategoryEn(p1)} Products with the Best Reviews`],
     [/\(săpt\. (\d+)\/(\d+)\)/i, '(Week $1/$2)'],
     [/Top (\d+) bijuterii bestseller/i, 'Top $1 Bestselling Jewelry'],
     [/Top jucării pentru copii/i, 'Top Toys for Kids'],
@@ -80,7 +114,7 @@ function translateTitle(roTitle, articleCategory) {
   }
   if (matched) return t;
   // Fallback: literal category map
-  const cat = CATEGORY_EN[articleCategory];
+  const cat = translateCategoryEn(articleCategory);
   if (cat) {
     return `Top ${cat} Products on Swypik`;
   }
@@ -89,7 +123,7 @@ function translateTitle(roTitle, articleCategory) {
 
 function translateExcerpt(roExcerpt, n_products, category) {
   if (!roExcerpt) return null;
-  const catEn = CATEGORY_EN[category] || category;
+  const catEn = translateCategoryEn(category);
   // Pattern: "Top X produse din categoria Y au rating ≥ 4.5 și peste 50 de comenzi. Iată top 7."
   if (/au rating.*comenzi/i.test(roExcerpt)) {
     return `${n_products} products in ${catEn} have a rating of 4.5+ and over 50 confirmed orders. Here's the top 7.`;
