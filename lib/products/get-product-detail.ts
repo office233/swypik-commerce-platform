@@ -181,16 +181,60 @@ function asStringArray(value: unknown): string[] | null {
   return items.length > 0 ? items : null;
 }
 
-function buildImages(row: any, metadata: Record<string, any>) {
+type ProductDetailMetadata = Record<string, unknown>;
+type ProductDetailRow = Record<string, unknown> & { image_url?: string | null };
+type TranslationRow = {
+  locale: string;
+  title: string | null;
+  description: string | null;
+  slug: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+};
+type VariantRow = Record<string, unknown> & {
+  id: string | number;
+  sku_id: string | number;
+  title?: string | null;
+  attributes?: unknown;
+  metadata?: unknown;
+  inventory_quantity?: number | string | null;
+  price_cents?: number | string | null;
+};
+type TaxonomyPathRow = { slug: string; label: string };
+type SimilarRow = Record<string, unknown> & {
+  id: string | number;
+  ae_internal_id?: number | null;
+  ae_title_ro?: string | null;
+  title?: string | null;
+  price_cents?: number | string | null;
+  compare_at_price_cents?: number | string | null;
+  image_url?: string | null;
+  metadata?: unknown;
+  has_video?: boolean | null;
+  rating?: number | string | null;
+};
+type SimilarItem = {
+  id: string;
+  title: string;
+  price: number;
+  oldPrice: number;
+  image: string;
+  hasVideo: boolean;
+  rating: number;
+  ratingAvg: number | null;
+  ratingCount: number;
+};
+
+function buildImages(row: ProductDetailRow, metadata: ProductDetailMetadata) {
   const result: string[] = [];
   if (typeof row.image_url === "string" && row.image_url) result.push(row.image_url);
 
-  const metadataImages = Array.isArray(metadata.images) ? metadata.images : [];
+  const metadataImages = Array.isArray(metadata.images) ? (metadata.images as unknown[]) : [];
   for (const image of metadataImages) {
     if (typeof image === "string" && image && !result.includes(image)) result.push(image);
   }
 
-  const aeImages = Array.isArray(metadata.ae_images) ? metadata.ae_images : [];
+  const aeImages = Array.isArray(metadata.ae_images) ? (metadata.ae_images as unknown[]) : [];
   for (const image of aeImages) {
     if (typeof image === "string" && image && !result.includes(image)) result.push(image);
   }
@@ -316,9 +360,9 @@ export async function getProductDetail(
 
   // ---- Process translation result ----
   let translation: { title: string; description: string | null; seo_title: string | null; seo_description: string | null; slug: string | null } | null = null;
-  const trs = translationResult.rows;
-  const preferred = trs.find((r: any) => r.locale === locale);
-  const fallback = trs.find((r: any) => r.locale === "en");
+  const trs = translationResult.rows as TranslationRow[];
+  const preferred = trs.find((r) => r.locale === locale);
+  const fallback = trs.find((r) => r.locale === "en");
   const t = preferred ?? fallback;
   if (t) {
     translation = {
@@ -363,9 +407,9 @@ export async function getProductDetail(
   const storeRating = firstNumber(store.rating, row.store_rating, metadata.store_rating, 0) || 0;
   const hasRealOrders = ordersCount !== null && ordersCount > 0;
 
-  const variantRows = variantResult.rows;
+  const variantRows = variantResult.rows as VariantRow[];
   const colorMap: Record<string, { image: string | null; sizes: Array<{ size: string; price: number; stock: number; skuId: string }> }> = {};
-  const variants = variantRows.map((variant: any) => {
+  const variants = variantRows.map((variant) => {
     const variantAttrs = metadataObject(variant.attributes);
     const variantMeta = metadataObject(variant.metadata);
     const color = firstString(variantAttrs.color, variantMeta.color);
@@ -403,8 +447,8 @@ export async function getProductDetail(
     };
   });
 
-  const similarRows = similarResult.rows;
-  const taxonomyPath: Array<{ slug: string; label: string }> = taxonomyPathResult.rows.map((r: any) => ({
+  const similarRows = similarResult.rows as SimilarRow[];
+  const taxonomyPath: Array<{ slug: string; label: string }> = (taxonomyPathResult.rows as TaxonomyPathRow[]).map((r) => ({
     slug: String(r.slug),
     label: String(r.label),
   }));
@@ -469,10 +513,10 @@ export async function getProductDetail(
     colorMap,
     similar: (await (async () => {
       const { getProductRatingMap } = await import("@/lib/reviews/aggregate");
-      const ids = similarRows.map((r: any) => String(r.id));
+      const ids = similarRows.map((r) => String(r.id));
       const ratingMap = ids.length ? await getProductRatingMap(ids) : new Map();
       return similarRows
-        .map((similarRow: any) => {
+        .map<SimilarItem>((similarRow) => {
           const similarMetadata = metadataObject(similarRow.metadata);
           const similarPriceCents = firstNumber(similarRow.price_cents, 0) || 0;
           const similarCompareAtCents = firstNumber(similarRow.compare_at_price_cents, 0) || 0;
@@ -482,14 +526,14 @@ export async function getProductDetail(
             title: String(firstString(similarRow.ae_title_ro, similarMetadata.title_ro, similarRow.title) || similarRow.title),
             price: similarPriceCents / 100,
             oldPrice: similarCompareAtCents > 0 ? similarCompareAtCents / 100 : Math.round((similarPriceCents / 100) * 1.3),
-            image: String(firstString(similarRow.image_url, ...(Array.isArray(similarMetadata.images) ? similarMetadata.images : [])) || ""),
+            image: String(firstString(similarRow.image_url, ...(Array.isArray(similarMetadata.images) ? (similarMetadata.images as unknown[]) : [])) || ""),
             hasVideo: firstBool(similarMetadata.has_video, similarRow.has_video, false),
             rating: firstNumber(similarMetadata.rating, similarRow.rating, 0) || 0,
             ratingAvg: agg && agg.reviewCount > 0 ? Number(agg.avgRating.toFixed(2)) : null,
             ratingCount: agg ? agg.reviewCount : 0,
           };
         })
-        .filter((item: any) => item.image);
+        .filter((item) => item.image);
     })()),
   };
 }

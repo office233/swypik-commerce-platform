@@ -6,6 +6,21 @@ import { logger } from "@/lib/logger";
 
 const log = logger.child({ service: "ai-orchestrator" });
 
+// Minimal product shape passed into the orchestrator from /api/chat.
+export type OrchestratorProductContext = {
+  id: string | number;
+  title?: string;
+  price?: number;
+  category?: string;
+  rating?: number;
+  orders?: number;
+};
+type CategoryRow = { name: string; nameEn: string; count: number };
+type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+type CopilotCompletion = {
+  choices?: Array<{ message?: { content?: string } }>;
+};
+
 function hasAIProvider(): boolean { return getCopilotGhuTokens().length > 0; }
 
 function getModel(): string { return (process.env.ORCHESTRATOR_MODEL || process.env.OPENROUTER_MODEL || "gpt-4o-mini").replace(/^openai\//, ""); }
@@ -20,7 +35,7 @@ async function loadCategories(forceRefresh = false) {
   if (!forceRefresh && cachedCategories.length > 0 && now - categoryCacheTime < CATEGORY_CACHE_TTL) return cachedCategories;
   try {
     const cats = await getCategories();
-    cachedCategories = cats.filter((c: any) => c.count > 0).map((c: any) => ({ name: c.name, nameEn: c.nameEn, count: c.count }));
+    cachedCategories = (cats as CategoryRow[]).filter((c) => c.count > 0).map((c) => ({ name: c.name, nameEn: c.nameEn, count: c.count }));
     categoryCacheTime = now;
     log.info({ count: cachedCategories.length }, "categories loaded from DB");
   } catch (e) {
@@ -131,7 +146,7 @@ function detectRefineIntent(message: string) {
   return /nu-mi place|nu imi place|altceva|altele|alte optiuni|nu asta|schimba|diferit|mai mare|mai mic|alta culoare|alt stil|alt model|nu vreau|arata altele|mai arata|alte variante|nu e ce cautam/.test(msg);
 }
 
-function extractMaxPrice(message: string, productContext: any[] = []) {
+function extractMaxPrice(message: string, productContext: OrchestratorProductContext[] = []) {
   const msg = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const explicit = msg.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/) || msg.match(/(\d{2,5})\s*(?:lei|ron)/);
   if (explicit?.[1]) return Number(explicit[1]);
@@ -216,7 +231,7 @@ function cleanCheaperQuery(message: string) {
   return translateQuery(cleaned);
 }
 
-export async function orchestrate(userMessage: string, chatHistory: { role: "user" | "assistant"; content: string }[] = [], productContext: any[] = [], shoppingSession: ShoppingSession = {}): Promise<OrchestratorResult> {
+export async function orchestrate(userMessage: string, chatHistory: { role: "user" | "assistant"; content: string }[] = [], productContext: OrchestratorProductContext[] = [], shoppingSession: ShoppingSession = {}): Promise<OrchestratorResult> {
   const hasProductContext = productContext.length > 0;
   const hardCheaper = detectCheaperIntent(userMessage, hasProductContext);
   const hardMaxPrice = extractMaxPrice(userMessage, productContext);
@@ -235,7 +250,7 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
         `**2. ${p2.title?.slice(0, 50)}**\n` +
         `   💰 ${p2.price} lei | ⭐ ${p2.rating || '?'} | 📦 ${p2.orders || 0}+ comenzi\n\n` +
         `🏆 **Recomandare AI:** ${winner.title?.slice(0, 40)} — ${winner === p1 ? 'preț/calitate mai bun' : 'raport calitate-preț superior'}. Vrei să-l adaugi în coș?`,
-      productId: winner.id,
+      productId: String(winner.id),
       productTitle: winner.title,
       shouldAskFollowUp: true,
     };
@@ -264,7 +279,7 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
       intent: "refine_search",
       reply: `Am înțeles, îți arăt variante diferite! 🔄 Caut alte opțiuni care s-ar potrivi mai bine gusturilor tale.`,
       searchQuery: translatedLastQuery || translateQuery(userMessage),
-      excludeIds: productContext.map((p: any) => String(p.id)),
+      excludeIds: productContext.map((p) => String(p.id)),
       shouldAskFollowUp: true,
     };
   }
@@ -275,7 +290,7 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
   try {
     const contextSummary = productContext.slice(0, 10).map((p) => ({ id: p.id, title: p.title, price: p.price, category: p.category, rating: p.rating, orders: p.orders }));
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{CATEGORIES}}", buildCategoryPrompt(categories));
-    const messages: any[] = [{ role: "system", content: systemPrompt }, { role: "system", content: buildSessionPrompt(shoppingSession) }, ...chatHistory.slice(-10)];
+    const messages: ChatMessage[] = [{ role: "system", content: systemPrompt }, { role: "system", content: buildSessionPrompt(shoppingSession) }, ...chatHistory.slice(-10)];
     if (contextSummary.length) messages.push({ role: "system", content: `Products in context: ${JSON.stringify(contextSummary)}` });
     messages.push({ role: "user", content: userMessage });
     const { res } = await fetchCopilot("/chat/completions", {
@@ -284,21 +299,21 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
       body: JSON.stringify({ model: getModel(), messages, temperature: 0.72, max_tokens: 750, response_format: { type: "json_object" } }),
     });
     if (!res.ok) {
-      console.warn("[AI Orchestrator] http", res.status);
+      log.warn({ status: res.status }, "AI orchestrator http error");
       return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
     }
-    const completion: any = await res.json();
+    const completion = (await res.json()) as CopilotCompletion;
     const content = completion?.choices?.[0]?.message?.content || "{}";
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const result = JSON.parse(cleaned);
-    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, category: result.category || undefined, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p: any) => String(p.id)) : undefined };
-  } catch (error) {
-    console.error("[AI Orchestrator] Error:", error);
+    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, category: result.category || undefined, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p) => String(p.id)) : undefined };
+  } catch (err) {
+    log.error({ err }, "AI orchestrator error");
     return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
   }
 }
 
-function fallbackOrchestrate(message: string, productContext: any[] = [], shoppingSession: ShoppingSession = {}, categories: { name: string; nameEn: string; count: number }[] = []): OrchestratorResult {
+function fallbackOrchestrate(message: string, productContext: OrchestratorProductContext[] = [], shoppingSession: ShoppingSession = {}, categories: { name: string; nameEn: string; count: number }[] = []): OrchestratorResult {
   const msg = message.toLowerCase().trim();
   const msgNorm = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const firstProduct = productContext[0];
@@ -308,7 +323,7 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
   const checkoutKeywords = ["checkout", "finalizeaza", "finalizează", "platesc", "plătesc", "comanda", "comandă"];
   const greetKeywords = ["salut", "buna", "bună", "hello", "hey", "servus"];
   
-  if (cartKeywords.some((k) => msg.includes(k))) return { intent: "add_to_cart", reply: firstProduct ? `Perfect 🛒 Iti pun ${firstProduct.title} in cos. Iti recomand sa il iei cu inca un produs complementar.` : "Sigur 🛒 Alege produsul dorit si il punem imediat in cos.", productId: firstProduct?.id, productTitle: firstProduct?.title };
+  if (cartKeywords.some((k) => msg.includes(k))) return { intent: "add_to_cart", reply: firstProduct ? `Perfect 🛒 Iti pun ${firstProduct.title} in cos. Iti recomand sa il iei cu inca un produs complementar.` : "Sigur 🛒 Alege produsul dorit si il punem imediat in cos.", productId: firstProduct ? String(firstProduct.id) : undefined, productTitle: firstProduct?.title };
   if (checkoutKeywords.some((k) => msg.includes(k))) return { intent: "checkout", reply: "Perfect. Hai sa finalizam comanda cat mai simplu 🛒" };
   if (greetKeywords.some((k) => msg.includes(k))) {
     const topCats = getPopulatedCategoryNames(categories).slice(0, 3).join(", ") || "haine, accesorii";
