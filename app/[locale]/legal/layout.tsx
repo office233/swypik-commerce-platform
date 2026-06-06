@@ -5,8 +5,8 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       <div className="max-w-3xl mx-auto px-4 py-10 pb-24 prose prose-neutral dark:prose-invert prose-headings:font-bold prose-h1:text-3xl prose-h2:text-xl prose-h2:mt-8">
         {children}
         <div className="mt-12 pt-6 border-t border-neutral-200 dark:border-neutral-800 text-sm flex gap-4 flex-wrap">
-          <Link href="/legal/terms" className="underline">Termeni</Link>
-          <Link href="/legal/privacy" className="underline">Confidentialitate</Link>
+          <Link href="/terms" className="underline">Termeni</Link>
+          <Link href="/privacy" className="underline">Confidentialitate</Link>
           <Link href="/legal/cookies" className="underline">Cookie-uri</Link>
           <Link href="/" className="underline">Inapoi acasa</Link>
         </div>
