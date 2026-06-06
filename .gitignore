@@ -43,3 +43,7 @@ playwright/.cache/
 MEMORY.md
 .cache/
 .backups/
+
+# Local scratch (audit scripts, screenshots, probes)
+.tmp/
+.tmp_*
