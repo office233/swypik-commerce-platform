@@ -8,6 +8,9 @@
 
 import { dbQuery } from "@/lib/db";
 import { sendPushToUser, type PushPayload } from "@/lib/push/web-push";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "notify" });
 
 // Mapped to the existing notifications.notification_type CHECK constraint.
 export type NotificationType =
@@ -114,23 +117,23 @@ export async function notifyUser(
           [notificationId],
         );
       } catch (e) {
-        console.warn("[notifyUser] mark sent failed:", (e as Error)?.message);
+        log.warn({ err: e, notificationId }, "mark sent failed");
       }
     }).catch(async (err) => {
-      console.warn("[notifyUser] push failed:", err?.message || err);
+      log.warn({ err, notificationId }, "push failed");
       try {
         await dbQuery(
           `UPDATE notifications SET delivery_status = 'failed', updated_at = NOW() WHERE id = $1`,
           [notificationId],
         );
       } catch (e) {
-        console.warn("[notifyUser] mark failed failed:", (e as Error)?.message);
+        log.warn({ err: e, notificationId }, "mark failed failed");
       }
     });
   } else if (notificationId && !pushAllowed) {
     void dbQuery(
       `UPDATE notifications SET delivery_status = 'suppressed', updated_at = NOW() WHERE id = $1`,
       [notificationId],
-    ).catch((e) => console.warn("[notifyUser] mark suppressed failed:", (e as Error)?.message));
+    ).catch((e) => log.warn({ err: e, notificationId }, "mark suppressed failed"));
   }
 }

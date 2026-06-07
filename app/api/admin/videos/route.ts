@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     // Filter expression compatible with the derived status returned to the client.
     // Status mapping: video_status='ready' OR va.status='available' → 'ready'; otherwise va.status.
     const where: string[] = [`va.asset_type = 'source'`];
-    const params: any[] = [];
+    const params: Array<string | number> = [];
 
     if (statusFilter !== "all") {
       params.push(statusFilter);
@@ -136,14 +136,36 @@ export async function GET(req: Request) {
     `, params);
 
     // Derive product info from videos.product_refs JSONB array
-    const videos = rows.map((r: any) => {
+    type AdminVideoRow = {
+      id: string;
+      video_id: string;
+      status: string | null;
+      video_status: string | null;
+      object_key: string;
+      public_url: string | null;
+      duration_ms: number | null;
+      width: number | null;
+      height: number | null;
+      video_title: string | null;
+      video_description: string | null;
+      creator_name: string | null;
+      creator_email: string | null;
+      created_at: string;
+      job_error: string | null;
+      job_status: string | null;
+      job_attempts: number | null;
+      // jsonb cols
+      product_refs: unknown;
+      asset_metadata: any;
+    };
+    const videos = (rows as AdminVideoRow[]).map((r) => {
       let productId: string | null = null;
       try {
         const refs = typeof r.product_refs === "string"
           ? JSON.parse(r.product_refs)
           : r.product_refs;
         if (Array.isArray(refs) && refs.length > 0) {
-          const firstRef = refs[0];
+          const firstRef = refs[0] as string | { product_id?: string; id?: string };
           productId = typeof firstRef === "string"
             ? firstRef
             : firstRef?.product_id || firstRef?.id || null;
@@ -189,8 +211,8 @@ export async function GET(req: Request) {
       offset,
       hasMore: offset + videos.length < filteredTotal,
     });
-  } catch (error: any) {
-    logger.error({ err: error }, "[Admin Videos] GET error:");
+  } catch (err) {
+    logger.error({ err }, "[Admin Videos] GET error");
     return NextResponse.json(
       { error: "Failed to fetch video assets" },
       { status: 500 }
@@ -253,10 +275,10 @@ export async function POST(req: Request) {
                 rows[0].email,
                 rows[0].display_name || "Creator",
                 rows[0].title || "Untitled",
-              ).catch(console.error);
+              ).catch((err) => logger.error({ err, videoId }, "[Admin Videos] notify approved failed"));
             }
           })
-          .catch(console.error);
+          .catch((err) => logger.error({ err, videoId }, "[Admin Videos] approve lookup failed"));
 
         return NextResponse.json({ success: true, message: "Video approved" });
       }
@@ -299,10 +321,10 @@ export async function POST(req: Request) {
                 rows[0].display_name || "Creator",
                 rows[0].title || "Untitled",
                 rejectReason,
-              ).catch(console.error);
+              ).catch((err) => logger.error({ err, videoId }, "[Admin Videos] notify rejected failed"));
             }
           })
-          .catch(console.error);
+          .catch((err) => logger.error({ err, videoId }, "[Admin Videos] reject lookup failed"));
 
         return NextResponse.json({ success: true, message: "Video rejected" });
       }
@@ -354,8 +376,8 @@ export async function POST(req: Request) {
           { status: 400 }
         );
     }
-  } catch (error: any) {
-    logger.error({ err: error }, "[Admin Videos] POST error:");
+  } catch (err) {
+    logger.error({ err }, "[Admin Videos] POST error");
     return NextResponse.json(
       { error: "Action failed" },
       { status: 500 }

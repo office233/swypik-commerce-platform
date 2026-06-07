@@ -13,6 +13,9 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "stripe-identity-webhook" });
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +52,7 @@ function dobToIso(dob: { day: number | null; month: number | null; year: number 
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_IDENTITY_WEBHOOK_SECRET;
   if (!secret) {
-    console.error("[stripe-identity webhook] STRIPE_IDENTITY_WEBHOOK_SECRET missing");
+    log.error("STRIPE_IDENTITY_WEBHOOK_SECRET missing");
     return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
   }
 
@@ -60,8 +63,8 @@ export async function POST(req: Request) {
   try {
     const body = await getRawBody(req);
     event = getStripe().webhooks.constructEvent(body, sig, secret);
-  } catch (err: any) {
-    console.error("[stripe-identity webhook] signature verification failed:", err.message);
+  } catch (err) {
+    log.error({ err }, "signature verification failed");
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -70,7 +73,7 @@ export async function POST(req: Request) {
       const verification = event.data.object as Stripe.Identity.VerificationSession;
       const userId = verification.metadata?.user_id;
       if (!userId) {
-        console.warn("[stripe-identity webhook] event without user_id metadata", verification.id);
+        log.warn({ verification_id: verification.id }, "event without user_id metadata");
         return NextResponse.json({ received: true, skipped: "no user_id" });
       }
 
@@ -154,8 +157,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (err: any) {
-    console.error("[stripe-identity webhook] handler error:", err);
-    return NextResponse.json({ error: err?.message || "Handler error" }, { status: 500 });
+  } catch (err) {
+    log.error({ err }, "handler error");
+    const message = err instanceof Error ? err.message : "Handler error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
