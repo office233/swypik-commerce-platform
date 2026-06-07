@@ -37,13 +37,21 @@ function noProductsReply(value: unknown): string {
   return `⚠️ Momentan nu avem produse pentru „${label}” în catalog. Adăugăm produse zilnic; între timp pot căuta alternative apropiate din categoriile disponibile (haine, accesorii, beauty, gadgeturi).`;
 }
 
-async function safeReplyJson(payload: any) {
+type ChatReplyPayload = {
+  reply?: string;
+  products?: unknown[];
+  bundleProducts?: unknown[];
+  moderation?: { blocked: boolean; reason?: string };
+  [key: string]: unknown;
+};
+
+async function safeReplyJson(payload: ChatReplyPayload) {
   try {
     const reply = String(payload?.reply ?? "");
     if (reply) {
       const verdict = await moderateOutput(reply);
       if (!verdict.safe) {
-        console.warn("[chat] moderation blocked:", verdict.reason);
+        logger.warn({ reason: verdict.reason }, "[chat] moderation blocked");
         payload = { ...payload, reply: SAFE_FALLBACK, products: [], bundleProducts: [], moderation: { blocked: true, reason: verdict.reason } };
       }
     }
@@ -83,7 +91,7 @@ export async function POST(req: Request) {
         bundleQueries.slice(0, 2).map(bq => searchPG(bq, 6, { maxPrice: baseSession.budget }))
       );
       const bundleProducts = uniqueProducts(bundleResults.flat())
-        .filter(p => !products.some((main: any) => main.id === p.id))
+        .filter(p => !products.some((main: { id: string | number }) => main.id === p.id))
         .slice(0, 12);
 
       const suggestion = products[0] ? ` ${buildSalesSuggestion(products[0], bundleProducts.slice(0, 2))}` : "";
@@ -126,7 +134,7 @@ export async function POST(req: Request) {
       const maxPrice = aiResult.maxPrice || (explicitMax ? Number(explicitMax) : undefined) || (shoppingSession.priceSensitivity === "high" ? shoppingSession.budget : undefined);
 
       const excludeIds = aiResult.intent === "refine_search"
-        ? (aiResult.excludeIds || productContext.map((p: any) => String(p.id)))
+        ? (aiResult.excludeIds || productContext.map((p: { id: string | number }) => String(p.id)))
         : undefined;
 
       // Safe-filter excludeIds
@@ -200,7 +208,7 @@ export async function POST(req: Request) {
       shoppingSession,
       sessionId: sessionId || crypto.randomUUID(),
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Chat API v3] Error:");
     return NextResponse.json(
       { error: "A apărut o eroare. Încearcă din nou." },

@@ -137,15 +137,30 @@ export async function GET(req: Request) {
         logger.warn({ err: e }, "[Products API] fx convert failed");
       }
     }
-    const convertPrice = (p: any) => {
+    const convertPrice = (p: number | string | null | undefined): number | string | null | undefined => {
       const n = Number(p);
       if (!isFinite(n) || n <= 0) return p;
       return Math.round(n * fxRate * 100) / 100;
     };
 
+    type ProductRow = {
+      id: string | number;
+      title: string;
+      price: number;
+      oldPrice?: number | null;
+      image?: string | null;
+      thumbnail?: string | null;
+      images?: string[] | null;
+      video?: string | null;
+      hasVideo?: boolean;
+      videoId?: string | null;
+      videoThumbnail?: string | null;
+      [key: string]: unknown;
+    };
+
     // Minimal DTO for video mode (high-volume infinite scroll)
     const products = mode === "video"
-      ? (result.products || []).map((p: any) => ({
+      ? ((result.products || []) as ProductRow[]).map((p) => ({
           id: p.id,
           title: p.title,
           price: convertPrice(p.price),
@@ -157,7 +172,7 @@ export async function GET(req: Request) {
           videoId: p.videoId || null,
           videoThumbnail: p.videoThumbnail || null,
         }))
-      : (result.products || []).map((p: any) => ({
+      : ((result.products || []) as ProductRow[]).map((p) => ({
           ...p,
           price: convertPrice(p.price),
           priceRon: p.price,
@@ -166,7 +181,7 @@ export async function GET(req: Request) {
 
     const nextOffset = (result.offset || 0) + (result.limit || limit);
     const hasMore = mode === "video"
-      ? Boolean((result as any).hasMore)
+      ? Boolean((result as { hasMore?: boolean }).hasMore)
       : nextOffset < result.total;
 
     return NextResponse.json(
@@ -190,7 +205,7 @@ export async function GET(req: Request) {
         },
       },
     );
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Products API]");
     return NextResponse.json(
       { error: "A aparut o eroare la incarcarea produselor.", products: [], total: 0, source: "error" },

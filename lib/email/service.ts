@@ -41,7 +41,7 @@ async function isUnsubscribed(email: string): Promise<boolean> {
     );
     return (res.rows?.length || 0) > 0;
   } catch (e) {
-    console.warn("[email] unsubscribes check failed:", (e as Error).message);
+    log.warn({ err: e }, "unsubscribes check failed");
     return false;
   }
 }
@@ -123,7 +123,7 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
     });
     return true;
   } catch (error) {
-    console.error("Failed to send OTP email:", error);
+    log.error({ err: error }, "Failed to send OTP email");
     return false;
   }
 }
@@ -292,7 +292,7 @@ function orderTrackingUrl(data: OrderEmailData): string {
  */
 export async function sendEmail(params: { to: string; subject: string; html: string; marketing?: boolean }): Promise<boolean> {
   if (!params.to || !params.to.includes("@")) {
-    console.warn("[Email] Invalid recipient:", params.to);
+    log.warn({ to: params.to }, "Invalid recipient");
     return false;
   }
 
@@ -348,7 +348,7 @@ export async function sendEmail(params: { to: string; subject: string; html: str
 
     log.info({ to: maskEmail(params.to), provider_id: data?.id }, "email sent");
     return true;
-  } catch (e: any) {
+  } catch (e) {
     log.error({ err: e, to: maskEmail(params.to) }, "email send error");
     return false;
   }
@@ -357,7 +357,9 @@ export async function sendEmail(params: { to: string; subject: string; html: str
 /**
  * Send an alert to a seller about a new order
  */
-export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: any[], customerName: string = 'X'): Promise<boolean> {
+type SellerAlertItem = { title?: string; name?: string; quantity?: number };
+
+export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: SellerAlertItem[], customerName: string = 'X'): Promise<boolean> {
   if (!isEnabled("emailMarketing")) {
     log.info({ fn: "sendSellerNewOrderAlert", to: maskEmail(sellerEmail) }, "email skipped — marketing disabled");
     return true;

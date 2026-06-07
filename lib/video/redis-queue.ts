@@ -1,4 +1,7 @@
 import type { ProcessVideoJobPayload } from "@/lib/video/upload-session";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "video-queue" });
 
 export type QueuePublishResult = {
   queued: boolean;
@@ -25,33 +28,31 @@ export async function publishProcessVideoJob(
         data: JSON.stringify(payload),
       });
       return { queued: true, backend: "upstash", messageId };
-    } catch (error: any) {
-      console.error("[VideoUpload] Upstash Redis enqueue failed:", error);
+    } catch (error) {
+      log.error({ err: error }, "Upstash Redis enqueue failed");
       return {
         queued: false,
         backend: "upstash",
-        error: error?.message || "Redis enqueue failed",
+        error: error instanceof Error ? error.message : "Redis enqueue failed",
       };
     }
   } else if (redisUrl) {
     try {
       const messageId = await redisXadd(redisUrl, queueName, "data", JSON.stringify(payload));
       return { queued: true, backend: "native", messageId };
-    } catch (error: any) {
-      console.error("[VideoUpload] Native Redis enqueue failed:", error);
+    } catch (error) {
+      log.error({ err: error }, "Native Redis enqueue failed");
       return {
         queued: false,
         backend: "native",
-        error: error?.message || "Native Redis enqueue failed",
+        error: error instanceof Error ? error.message : "Native Redis enqueue failed",
       };
     }
   }
 
   if (!warnedAboutRedisUrl) {
     warnedAboutRedisUrl = true;
-    console.warn(
-      "[VideoUpload] No Redis configuration found. The DB job remains queued."
-    );
+    log.warn("No Redis configuration found. The DB job remains queued.");
   }
   return { queued: false, backend: "none" };
 }
