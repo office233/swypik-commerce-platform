@@ -5,6 +5,7 @@ import { getStripe } from "@/lib/stripe/checkout";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import crypto from "crypto";
 import { getTranslations } from "next-intl/server";
+import { logger } from "@/lib/logger";
 
 function tokensMatch(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
@@ -29,7 +30,20 @@ export default async function CheckoutSuccess({
 }) {
   const t = await getTranslations("success");
   const sp = await searchParams;
-  let order: any = null;
+  type SuccessOrder = {
+    id: string;
+    buyer_user_id: string | null;
+    customer_email: string | null;
+    total_ron: number | string | null;
+    items: unknown;
+    shipping_address: unknown;
+    order_lookup_token: string | null;
+    status: string;
+    created_at: string | Date;
+    stripe_session_id?: string;
+    stripe_payment_intent?: string;
+  };
+  let order: SuccessOrder | null = null;
   let lookupError = false;
   let paymentConfirmed = false;
 
@@ -40,7 +54,7 @@ export default async function CheckoutSuccess({
 
   if (sessionId) {
     try {
-      const { rows } = await dbQuery(
+      const { rows } = await dbQuery<SuccessOrder>(
         `SELECT
            ord.id,
            ord.buyer_user_id,
@@ -91,11 +105,11 @@ export default async function CheckoutSuccess({
       }
     } catch (error) {
       lookupError = true;
-      console.error("[CheckoutSuccess] Error fetching order:", error);
+      logger.error({ err: error, sessionId }, "[CheckoutSuccess] Error fetching order");
     }
   } else if (paymentIntentId) {
     try {
-      const { rows } = await dbQuery(
+      const { rows } = await dbQuery<SuccessOrder>(
         `SELECT
            ord.id,
            ord.buyer_user_id,
@@ -142,7 +156,7 @@ export default async function CheckoutSuccess({
       }
     } catch (error) {
       lookupError = true;
-      console.error("[CheckoutSuccess] Error fetching payment intent order:", error);
+      logger.error({ err: error, paymentIntentId }, "[CheckoutSuccess] Error fetching payment intent order");
     }
   }
 
@@ -178,7 +192,9 @@ export default async function CheckoutSuccess({
     };
   }
 
-  let items = pii_ok && order?.items ? (typeof order.items === "string" ? JSON.parse(order.items) : order.items) : [];
+  let items: unknown[] = pii_ok && order?.items
+    ? (typeof order.items === "string" ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []))
+    : [];
   if (pii_ok && order && items.length === 0) {
     const { rows } = await dbQuery(
       `SELECT title, quantity, (unit_amount_cents::numeric / 100) AS price
@@ -270,7 +286,7 @@ export default async function CheckoutSuccess({
                 <>
                   {items.length > 0 && (
                     <div className="mb-6 space-y-3">
-                      {items.map((item: any, idx: number) => (
+                      {(items as Array<{ title: string; quantity: number; price: number }>).map((item, idx) => (
                         <div key={idx} className="flex justify-between gap-4 text-sm">
                           <span className="line-clamp-1 font-medium text-[#0D0D0D]">
                             {item.quantity}x {item.title}

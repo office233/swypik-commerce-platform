@@ -13,6 +13,25 @@ const fetcher = async (url: string) => {
   return json;
 };
 
+type SellerOrderItem = {
+  item_id: string;
+  title: string;
+  quantity: number;
+};
+
+type SellerOrder = {
+  order_id: string;
+  status: string;
+  status_label?: string;
+  total_cents: number;
+  items?: SellerOrderItem[];
+  order_metadata?: {
+    return_reason?: string;
+    tracking_number?: string;
+    tracking_url?: string;
+  };
+};
+
 /* ───────────────────────────── status badge helper ───────────────────────────── */
 function statusBadge(status: string) {
   switch (status) {
@@ -140,7 +159,7 @@ export default function SellerOrdersPage() {
                   </td>
                 </tr>
               ) : (
-                orders.map((order: any) => {
+                orders.map((order: SellerOrder) => {
                   const badge = statusBadge(order.status);
                   const badgeLabel = order.status_label || badge.label;
                   const returnReason = order.order_metadata?.return_reason;
@@ -162,7 +181,7 @@ export default function SellerOrdersPage() {
                         {order.order_id.split("-")[0]}...
                       </td>
                       <td className="px-6 py-4">
-                        {order.items?.map((item: any) => (
+                        {order.items?.map((item) => (
                           <div key={item.item_id} className="text-[#0D0D0D] mb-1 last:mb-0">
                             <span className="font-semibold">{item.quantity}x</span> {item.title}
                           </div>

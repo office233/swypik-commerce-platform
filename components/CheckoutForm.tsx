@@ -355,7 +355,7 @@ export default function CheckoutForm() {
     try {
       const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
       const data = await r.json();
-      const items: any[] = Array.isArray(data?.items) ? data.items : [];
+      const items: Array<{ id?: string | number }> = Array.isArray(data?.items) ? data.items : [];
       const target = items[index];
       if (target?.id) {
         await fetch(`/api/cart/items/${target.id}`, { method: "DELETE", credentials: "include" });
@@ -373,7 +373,7 @@ export default function CheckoutForm() {
     try {
       const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
       const data = await r.json();
-      const items: any[] = Array.isArray(data?.items) ? data.items : [];
+      const items: Array<{ id?: string | number }> = Array.isArray(data?.items) ? data.items : [];
       const target = items[index];
       if (target?.id) {
         await fetch(`/api/cart/items/${target.id}`, {
