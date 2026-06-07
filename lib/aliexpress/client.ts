@@ -1,4 +1,7 @@
 import crypto from "crypto";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "aliexpress-api" });
 
 const APP_KEY = process.env.ALIEXPRESS_APP_KEY || "";
 const APP_SECRET = process.env.ALIEXPRESS_APP_SECRET || "";
@@ -10,13 +13,15 @@ function aeApiTimeoutMs(): number {
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_AE_API_TIMEOUT_MS;
 }
 
-function stringifyParam(v: any): string {
+function stringifyParam(v: unknown): string {
   if (v === undefined || v === null) return "";
   if (typeof v === "object") return JSON.stringify(v);
   return String(v);
 }
 
-export async function callAE(method: string, params: Record<string, any> = {}) {
+type AEParams = Record<string, unknown>;
+
+export async function callAE(method: string, params: AEParams = {}) {
   if (!APP_KEY || !APP_SECRET || !TOKEN) {
     throw new Error("AliExpress credentials missing");
   }
@@ -59,25 +64,45 @@ export async function callAE(method: string, params: Record<string, any> = {}) {
       body,
       signal: AbortSignal.timeout(timeoutMs),
     });
-  } catch (error: any) {
-    if (error?.name === "AbortError" || error?.name === "TimeoutError") {
+  } catch (err) {
+    const name = (err as { name?: string } | null)?.name;
+    if (name === "AbortError" || name === "TimeoutError") {
       throw new Error(`AliExpress API timeout after ${timeoutMs}ms`);
     }
-    throw error;
+    throw err;
   }
 
   const data = await res.json();
   if (data.error_response) {
-    console.error(`[AE API] Error calling ${method}:`, data.error_response);
+    log.error({ method, error: data.error_response }, "AE API error");
     throw new Error(data.error_response.msg || "Unknown AE API error");
   }
   return data;
 }
 
+// Shipping address shape from checkout / orders table.
+type AEShippingAddress = {
+  name: string;
+  phone_country?: string;
+  phone?: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state?: string;
+  country?: string;
+  postal_code: string;
+};
+type AEOrderItem = {
+  ae_product_id: string | number;
+  ae_sku_attr?: string;
+  quantity: number;
+  logistics_service_name?: string;
+};
+
 export async function placeDropshipOrder(
   orderId: string,
-  shippingAddress: any,
-  items: any[]
+  shippingAddress: AEShippingAddress,
+  items: AEOrderItem[]
 ) {
   // Format items for aliexpress.ds.trade.order.add
   // Docs: https://open.aliexpress.com/doc/api.htm?apiName=aliexpress.ds.trade.order.add
@@ -124,9 +149,9 @@ export async function placeDropshipOrder(
       ? raw.order_list.map(String)
       : [];
     return { ...raw, order_list };
-  } catch (error: any) {
-    console.error(`[AE API] Failed to place order ${orderId}:`, error);
-    throw error;
+  } catch (err) {
+    log.error({ err, orderId }, "Failed to place AE order");
+    throw err;
   }
 }
 
@@ -138,8 +163,8 @@ export async function getDropshipOrderStatus(aeOrderId: string) {
   try {
     const response = await callAE("aliexpress.ds.trade.order.get", params);
     return response.aliexpress_ds_trade_order_get_response?.result;
-  } catch (error: any) {
-    console.error(`[AE API] Failed to get order status for ${aeOrderId}:`, error);
-    throw error;
+  } catch (err) {
+    log.error({ err, aeOrderId }, "Failed to get AE order status");
+    throw err;
   }
 }

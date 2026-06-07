@@ -7,6 +7,9 @@
  */
 
 import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "transcribe" });
 
 export type CaptionSegment = { start: number; end: number; text: string };
 export type TranscribeResult = { text: string; segments: CaptionSegment[] };
@@ -20,15 +23,15 @@ export async function transcribe(
   filename = "audio.mp3",
 ): Promise<TranscribeResult> {
   if (!ENABLED) {
-    console.warn("[transcribe] disabled (GITHUB_MODELS_WHISPER!=1) → empty stub");
+    log.warn("disabled (GITHUB_MODELS_WHISPER!=1) → empty stub");
     return { text: "", segments: [] };
   }
   if (getCopilotGhuTokens().length === 0) {
-    console.warn("[transcribe] no Copilot tokens → empty stub");
+    log.warn("no Copilot tokens → empty stub");
     return { text: "", segments: [] };
   }
   if (audioBuffer.length > 25 * 1024 * 1024) {
-    console.warn("[transcribe] audio >25MB → skipped");
+    log.warn({ bytes: audioBuffer.length }, "audio >25MB → skipped");
     return { text: "", segments: [] };
   }
 
@@ -44,21 +47,23 @@ export async function transcribe(
       body: form,
     });
     if (!res.ok) {
-      console.warn("[transcribe] http", res.status);
+      log.warn({ status: res.status }, "http error");
       return { text: "", segments: [] };
     }
-    const json: any = await res.json();
+    type WhisperSegment = { start?: number; end?: number; text?: string };
+    type WhisperResponse = { text?: string; segments?: WhisperSegment[] };
+    const json = (await res.json()) as WhisperResponse;
     const text = String(json?.text || "");
     const segments: CaptionSegment[] = Array.isArray(json?.segments)
-      ? json.segments.map((s: any) => ({
+      ? json.segments.map((s) => ({
           start: Number(s.start) || 0,
           end: Number(s.end) || 0,
           text: String(s.text || "").trim(),
         }))
       : [];
     return { text, segments };
-  } catch (e) {
-    console.warn("[transcribe] failed:", (e as Error).message);
+  } catch (err) {
+    log.warn({ err }, "transcribe failed");
     return { text: "", segments: [] };
   }
 }

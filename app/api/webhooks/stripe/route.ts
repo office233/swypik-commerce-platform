@@ -52,10 +52,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing signature" }, { status: 400 });
     }
     event = getStripe().webhooks.constructEvent(rawBody, signature, webhookSecret);
-  } catch (err: any) {
-    console.error("[Stripe Webhook] Signature verification failed:", err.message);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err }, "[Stripe Webhook] Signature verification failed");
     await logCheckoutEvent("webhook_fail", {
-      error: err.message || "Signature verification failed",
+      error: message || "Signature verification failed",
       payload: { stage: "signature" },
     });
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
       logger.info(`[Stripe Webhook] duplicate stripe event, skipping: ${event.id} (${event.type})`);
       return NextResponse.json({ received: true, duplicate: true });
     }
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, `[Stripe Webhook] idempotency claim failed for ${event.id}`);
     // Returning 500 lets Stripe retry; do NOT proceed without a successful claim.
     return NextResponse.json({ error: "Idempotency claim failed" }, { status: 500 });
@@ -174,12 +175,12 @@ export async function POST(req: Request) {
                 : (order.total_cents || 0);
               if (toEmail) {
                 await sendRefundEmail(toEmail, order.id, amountCents, order.currency || "RON").catch((err) =>
-                  console.warn("[refund-email]", err?.message || err)
+                  logger.warn({ err }, "[refund-email] send failed")
                 );
               }
             }
           } catch (err) {
-            console.warn("[refund-email] lookup failed:", (err as Error).message);
+            logger.warn({ err }, "[refund-email] lookup failed");
           }
         }
         break;
@@ -187,7 +188,7 @@ export async function POST(req: Request) {
       case "payment_intent.canceled":
       case "checkout.session.async_payment_failed":
       case "checkout.session.expired": {
-        const objId = (event.data.object as any).id;
+        const objId = (event.data.object as { id: string }).id;
         await dbQuery(
           "UPDATE commerce_orders SET status='cancelled', metadata = metadata || jsonb_build_object('cancelled_at', NOW()::text, 'cancelled_event', $2::text) WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'sessionId' = $1 OR metadata->>'stripe_session_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
           [objId, event.type]
@@ -289,10 +290,11 @@ export async function POST(req: Request) {
       default:
         logger.info({ event_type: event.type, event_id: event.id }, "[Stripe Webhook] unhandled event");
     }
-  } catch (err: any) {
-    console.error("[Stripe Webhook] Handler failed:", err.message);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err, event_type: event.type, event_id: event.id }, "[Stripe Webhook] Handler failed");
     await logCheckoutEvent("webhook_fail", {
-      error: err.message || "Webhook handler failed",
+      error: message || "Webhook handler failed",
       payload: { stage: "handler", eventType: event.type, eventId: event.id },
     });
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
@@ -327,18 +329,27 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   }
 
   const shipping = intent.shipping;
-  let shippingAddress: any = null;
+  type ShippingAddress = {
+    name: string | null;
+    phone: string | null;
+    line1: string | null;
+    line2: string | null;
+    city: string | null;
+    state: string | null;
+    postal_code: string | null;
+    country: string | null;
+  };
+  let shippingAddress: ShippingAddress | null = null;
   if (shipping) {
     shippingAddress = {
-      name: shipping.name,
-      phone: shipping.phone,
-      // @ts-ignore
-      line1: shipping.address?.line1,
-      line2: shipping.address?.line2,
-      city: shipping.address?.city,
-      state: shipping.address?.state,
-      postal_code: shipping.address?.postal_code,
-      country: shipping.address?.country,
+      name: shipping.name ?? null,
+      phone: shipping.phone ?? null,
+      line1: shipping.address?.line1 ?? null,
+      line2: shipping.address?.line2 ?? null,
+      city: shipping.address?.city ?? null,
+      state: shipping.address?.state ?? null,
+      postal_code: shipping.address?.postal_code ?? null,
+      country: shipping.address?.country ?? null,
     };
   }
 
@@ -399,6 +410,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
         title: string;
         quantity: number;
         unit_amount_cents: number;
+        // jsonb column with variable shape (pg_id, product_id, sku_id, skuId, etc.)
         metadata: any;
       }>(
         `SELECT product_id::text AS product_id, title, quantity, unit_amount_cents, metadata
@@ -432,6 +444,7 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
     buyer_user_id: string | null;
     currency: string;
     total_cents: number;
+    // jsonb column; shape varies (shipping_address, billing_address, checkout_ip_country, item_count, items, fraud_*)
     metadata: any;
     buyer_email: string | null;
     buyer_phone: string | null;
@@ -702,7 +715,7 @@ async function maybeSendOrderConfirmation(orderId: string) {
     orderLookupToken: metadata.order_lookup_token,
     customerEmail,
     customerName: metadata.shipping_address?.name || "",
-    items: itemRows.map((r: any) => ({ title: r.title, quantity: r.quantity, price: Number(r.price) })),
+    items: (itemRows as Array<{ title: string; quantity: number; price: number | string }>).map((r) => ({ title: r.title, quantity: r.quantity, price: Number(r.price) })),
     totalRon: Number(order.total_cents || 0) / 100,
     shippingAddress: metadata.shipping_address || undefined,
   });
