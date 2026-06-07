@@ -23,7 +23,7 @@ async function loadVideoContext(videoId: string, creatorId: string) {
       id: string;
       title: string | null;
       description: string | null;
-      metadata: any;
+      metadata: Record<string, unknown> | null;
     }>(
       `SELECT id, title, description, metadata
        FROM videos
@@ -33,7 +33,7 @@ async function loadVideoContext(videoId: string, creatorId: string) {
     );
     return rows[0] || null;
   } catch (e) {
-    console.warn("[upload-suggestions] video lookup failed:", (e as Error).message);
+    logger.warn({ err: e }, "[upload-suggestions] video lookup failed");
     return null;
   }
 }
@@ -49,7 +49,7 @@ async function persistSuggestions(videoId: string, creatorId: string, bundle: Ge
     );
   } catch (e) {
     // Migration may not have been applied yet — fail soft.
-    console.warn("[upload-suggestions] persist failed:", (e as Error).message);
+    logger.warn({ err: e }, "[upload-suggestions] persist failed");
   }
 }
 
@@ -116,10 +116,11 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ...bundle, cached: false });
-  } catch (err: any) {
-    logger.error({ err: err }, "[upload-suggestions] POST error:");
+  } catch (err) {
+    logger.error({ err }, "[upload-suggestions] POST error:");
+    const message = err instanceof Error ? err.message : "Internal Server Error";
     return NextResponse.json(
-      { error: err?.message || "Internal Server Error" },
+      { error: message },
       { status: 500 }
     );
   }

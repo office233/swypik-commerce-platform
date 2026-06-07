@@ -308,8 +308,8 @@ async function completeLocalUploadSession(sessionId: string, creatorId: string) 
     byte_size: string | number | null;
     asset_id: string;
     // jsonb cols with variable shape
-    product_refs: any;
-    metadata: any;
+    product_refs: unknown;
+    metadata: Record<string, unknown> | null;
   }>(
     `
     SELECT

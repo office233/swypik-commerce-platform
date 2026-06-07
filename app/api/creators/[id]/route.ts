@@ -72,7 +72,17 @@ export async function GET(
     const profile = profileRows[0];
 
     // ── Query 2: Latest public clips ────────────────────────────────
-    const { rows: videoRows } = await dbQuery(
+    type CreatorVideoRow = {
+      id: string;
+      title: string | null;
+      thumbnail_url: string | null;
+      playback_url: string | null;
+      duration_ms: number | null;
+      view_count: number | string | null;
+      like_count: number | string | null;
+      published_at: string | Date | null;
+    };
+    const { rows: videoRows } = await dbQuery<CreatorVideoRow>(
       `SELECT
          id,
          title,
@@ -104,7 +114,7 @@ export async function GET(
         video_count: Number(profile.video_count),
         total_views: Number(profile.total_views),
       },
-      videos: videoRows.map((v: any) => ({
+      videos: videoRows.map((v) => ({
         id:            v.id,
         title:         v.title,
         thumbnail_url: v.thumbnail_url,
@@ -115,8 +125,8 @@ export async function GET(
         published_at:  v.published_at,
       })),
     });
-  } catch (err: any) {
-    logger.error({ err: err }, "GET /api/creators/[id] error:");
+  } catch (err) {
+    logger.error({ err }, "GET /api/creators/[id] error:");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
