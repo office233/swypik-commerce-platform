@@ -62,8 +62,8 @@ ${taxonomyText}`;
     );
     const parsed = parseJsonLoose<{ results?: Suggestion[] }>(text);
     return Array.isArray(parsed?.results) ? parsed!.results.slice(0, 3) : [];
-  } catch (e: any) {
-    logger.warn({ err: e?.message }, "[seller/classify] studiai error");
+  } catch (e) {
+    logger.warn({ err: e }, "[seller/classify] studiai error");
     return [];
   }
 }
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
       suggestions: filtered,
       top: filtered[0] || null,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[seller/classify] error");
     return NextResponse.json({ success: false, error: "Eroare la clasificare." }, { status: 500 });
   }

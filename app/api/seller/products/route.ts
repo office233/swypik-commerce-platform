@@ -51,7 +51,7 @@ export async function GET(req: Request) {
     );
 
     return NextResponse.json({ success: true, products: rows, limit, offset, hasMore: rows.length === limit });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller Products API] GET Error:");
     return NextResponse.json({ success: false, error: "Eroare la preluarea produselor." }, { status: 500 });
   }
@@ -191,7 +191,7 @@ export async function POST(req: Request) {
       }).catch((e) => logger.warn({ err: e?.message }, "[seller/products] translate fanout failed"));
     }
     return NextResponse.json({ success: true, product: rows[0] });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller Products API] POST Error:");
     return NextResponse.json({ success: false, error: "Eroare la adaugarea produsului." }, { status: 500 });
   }

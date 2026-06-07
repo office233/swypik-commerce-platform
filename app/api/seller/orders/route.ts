@@ -52,12 +52,23 @@ export async function GET(req: Request) {
       unit_amount_cents: number;
       source_status: string;
       // jsonb shape varies (seller_id, tracking_number, tracking_url, ...)
-      metadata: any;
+      metadata: {
+        seller_id?: string;
+        tracking_number?: string;
+        tracking_url?: string;
+      } | null;
     };
     type OrderRow = {
       order_id: string;
       order_status: string;
-      order_meta: any;
+      order_meta: {
+        tracking_number?: string;
+        tracking_url?: string;
+        latest_tracking_number?: string;
+        latest_tracking_url?: string;
+        return_reason?: string;
+        return_requested_at?: string;
+      } | null;
       created_at: string;
       total_cents: number;
       items: OrderItemRow[] | null;
