@@ -51,8 +51,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       } else {
         router.push('/collections');
       }
-    } catch (e) {
-      console.error("Failed to fetch collection details", e);
+    } catch {
+      // graceful fallback — stay on page, loading turns off
     } finally {
       setLoading(false);
     }
@@ -74,8 +74,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         setCollection(data.collection);
         setShowEdit(false);
       }
-    } catch (e) {
-      console.error("Failed to update collection", e);
+    } catch {
+      // graceful fallback — edit dialog stays open for retry
     }
   };
 
@@ -88,8 +88,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       if (res.ok) {
         router.push('/collections');
       }
-    } catch (e) {
-      console.error("Failed to delete collection", e);
+    } catch {
+      // graceful fallback — user can retry
     }
   };
 

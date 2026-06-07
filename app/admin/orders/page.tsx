@@ -4,8 +4,31 @@ import { deriveOrderStatus } from "@/lib/commerce/order-status";
 
 export const dynamic = "force-dynamic";
 
+type OrderRow = {
+  id: string;
+  total_cents: number | null;
+  status: string;
+  created_at: string;
+  metadata: any; // jsonb col with variable shape
+};
+
+type FormattedOrder = {
+  id: string;
+  client: string;
+  total: number;
+  status: string;
+  statusLabel: string;
+  statusDetail: string;
+  trackingNumber: string | null;
+  data: string;
+  fraudScore: number | null;
+  fraudLevel: string | null;
+  fraudBlock: boolean;
+  fraudReview: boolean;
+};
+
 export default async function OrdersAdminPage() {
-  let orders: any[] = [];
+  let orders: FormattedOrder[] = [];
   let loadError: string | null = null;
 
   try {
@@ -16,7 +39,7 @@ export default async function OrdersAdminPage() {
        LIMIT 100`
     );
 
-    orders = res.rows.map((o: any) => {
+    orders = (res.rows as OrderRow[]).map((o) => {
       const derived = deriveOrderStatus({
         status: o.status,
         fulfillmentStatus: o.metadata?.fulfillment_status,
@@ -39,9 +62,8 @@ export default async function OrdersAdminPage() {
         fraudReview: o.metadata?.fraud_review === true,
       };
     });
-  } catch (err: any) {
-    console.error("Error fetching orders:", err);
-    loadError = err.message || "Nu am putut incarca comenzile.";
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : "Nu am putut incarca comenzile.";
   }
 
   return (
@@ -67,7 +89,7 @@ export default async function OrdersAdminPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5] text-sm">
-            {orders.map((order: any) => (
+            {orders.map((order) => (
               <tr key={order.id} className="hover:bg-[#F7F7F8]/50 transition">
                 <td className="px-6 py-4 font-mono text-xs text-gray-500">
                   <Link href={`/admin/orders/${order.id}`} className="hover:text-[#0D0D0D] hover:underline">

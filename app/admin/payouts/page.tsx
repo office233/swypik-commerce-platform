@@ -59,7 +59,24 @@ export default async function PayoutsAdminPage({
     failedCount: 0,
     last30Cents: 0,
   };
-  let rows: any[] = [];
+  type PayoutRow = {
+    id: string;
+    status: string;
+    amount_cents: number;
+    currency: string;
+    submitted_at: string | null;
+    completed_at: string | null;
+    failed_at: string | null;
+    failure_message: string | null;
+    provider_transfer_id: string | null;
+    created_at: string;
+    creator_id: string | null;
+    username: string | null;
+    display_name: string | null;
+    email: string | null;
+  };
+
+  let rows: PayoutRow[] = [];
   let totalRows = 0;
   let loadError: string | null = null;
 
@@ -81,7 +98,7 @@ export default async function PayoutsAdminPage({
     };
 
     const filters: string[] = [];
-    const params: any[] = [];
+    const params: Array<string | number> = [];
     if (status) {
       params.push(status);
       filters.push(`ct.status = $${params.length}`);
@@ -117,10 +134,9 @@ export default async function PayoutsAdminPage({
        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
       dataParams
     );
-    rows = res.rows;
-  } catch (err: any) {
-    console.error("Error fetching payouts:", err);
-    loadError = err.message || "Nu am putut încărca payout-urile.";
+    rows = res.rows as PayoutRow[];
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : "Nu am putut încărca payout-urile.";
   }
 
   const totalPages = Math.max(1, Math.ceil(totalRows / limit));
@@ -241,7 +257,7 @@ export default async function PayoutsAdminPage({
                   </td>
                 </tr>
               )}
-              {rows.map((r: any) => (
+              {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-[#F7F7F8]/50 transition">
                   <td className="px-4 py-3">
                     <div className="font-bold text-[#0D0D0D]">
