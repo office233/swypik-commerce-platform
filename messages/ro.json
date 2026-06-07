@@ -491,7 +491,12 @@
     "maiNoi": "🆕 Mai noi",
     "bundleComplet": "Bundle complet",
     "navChat": "Chat",
-    "promptMaiIeftin": "vreau mai ieftin"
+    "promptMaiIeftin": "vreau mai ieftin",
+    "trendingTodayBadge": "🔥 În tendințe azi",
+    "alegerileCreatorilor": "✨ Alegerile creatorilor (populare)",
+    "topApreciateBadge": "⭐ Top apreciate (4.7+)",
+    "reduceriTab": "Reduceri",
+    "rezultateCount": "Rezultate ({n})"
   },
   "checkoutForm": {
     "adresaDeLivrare": "📍 Adresa de livrare",

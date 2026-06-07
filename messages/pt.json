@@ -491,7 +491,12 @@
     "maiNoi": "🆕 Mais recentes",
     "bundleComplet": "Bundle completo",
     "navChat": "Chat",
-    "promptMaiIeftin": "quero mais barato"
+    "promptMaiIeftin": "quero mais barato",
+    "trendingTodayBadge": "🔥 Em tendência hoje",
+    "alegerileCreatorilor": "✨ Escolhas dos criadores (populares)",
+    "topApreciateBadge": "⭐ Mais bem avaliados (4.7+)",
+    "reduceriTab": "Promoções",
+    "rezultateCount": "Resultados ({n})"
   },
   "checkoutForm": {
     "adresaDeLivrare": "📍 Endereço de entrega",
