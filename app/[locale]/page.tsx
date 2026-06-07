@@ -64,16 +64,16 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 const getHomeProductSections = unstable_cache(
-  async () => {
+  async (locale: string) => {
     let trending = emptyResult;
     let bestValue = emptyResult;
     let topRated = emptyResult;
 
     try {
       [trending, bestValue, topRated] = await Promise.all([
-        withTimeout(searchProducts({ mode: "trending", limit: 20 }), 8000, emptyResult),
-        withTimeout(searchProducts({ mode: "bestvalue", limit: 20 }), 8000, emptyResult),
-        withTimeout(searchProducts({ mode: "toprated", limit: 20 }), 8000, emptyResult),
+        withTimeout(searchProducts({ mode: "trending", limit: 20, locale }), 8000, emptyResult),
+        withTimeout(searchProducts({ mode: "bestvalue", limit: 20, locale }), 8000, emptyResult),
+        withTimeout(searchProducts({ mode: "toprated", limit: 20, locale }), 8000, emptyResult),
       ]);
     } catch (error) {
       console.error("[Home] Failed to load initial products:", error);
@@ -81,13 +81,14 @@ const getHomeProductSections = unstable_cache(
 
     return { trending, bestValue, topRated };
   },
-  ["home-product-sections-v1"],
+  ["home-product-sections-v2"],
   { revalidate: 120 },
 );
 
-export default async function Home() {
-  const t = await getTranslations("page");
-  const { trending, bestValue, topRated } = await getHomeProductSections();
+export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "page" });
+  const { trending, bestValue, topRated } = await getHomeProductSections(locale);
 
   const websiteJsonLd = {
     "@context": "https://schema.org",

@@ -109,24 +109,21 @@ async function handleGET(req: Request) {
         meta?.customer_email || meta?.email;
 
       if (!customerEmail || !customerEmail.includes("@")) {
-        console.warn(
-          `[Abandoned Cart] Skipping session ${session.id} — no valid email`
-        );
+        logger.warn({ cron: "abandoned-cart", session_id: session.id }, "skipping — no valid email");
         skipped++;
         continue;
       }
 
-      // Extract cart items from metadata
-      const rawItems: any[] = meta?.items || [];
+      // Extract cart items from metadata (jsonb with variable shape)
+      type RawCartItem = { title?: string; price?: number | string; unit_amount_cents?: number | string; image?: string; quantity?: number };
+      const rawItems: RawCartItem[] = meta?.items || [];
       if (rawItems.length === 0) {
-        console.warn(
-          `[Abandoned Cart] Skipping session ${session.id} — no items in metadata`
-        );
+        logger.warn({ cron: "abandoned-cart", session_id: session.id }, "skipping — no items in metadata");
         skipped++;
         continue;
       }
 
-      const cartItems: AbandonedCartItem[] = rawItems.map((item: any) => ({
+      const cartItems: AbandonedCartItem[] = rawItems.map((item) => ({
         title: item.title || "Produs",
         price:
           item.unit_amount_cents != null
@@ -164,7 +161,7 @@ async function handleGET(req: Request) {
           skipped++;
           logger.warn({ cron: "abandoned-cart", session_id: session.id }, "recovery email send returned false");
         }
-      } catch (emailErr: any) {
+      } catch (emailErr) {
         skipped++;
         logger.error({ err: emailErr, cron: "abandoned-cart", session_id: session.id }, "recovery email failed");
       }
@@ -180,7 +177,7 @@ async function handleGET(req: Request) {
       skipped,
       total: abandonedSessions.length,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Abandoned Cart Cron Error]:");
     return NextResponse.json(
       { error: "Internal Server Error" },

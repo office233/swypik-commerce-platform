@@ -29,7 +29,7 @@ export async function POST(
     const rl = await rateLimit("videoSave", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    let body: any = {};
+    let body: { collection_name?: unknown } = {};
     try { body = await request.json(); } catch {}
     const collectionName = normalizeCollectionName(body.collection_name);
 
@@ -92,7 +92,7 @@ export async function POST(
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Save API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -115,12 +115,12 @@ export async function GET(
       dbQuery("SELECT save_count FROM videos WHERE id = $1", [videoId])
     ]);
 
-    const collections = savesRes.rows.map((r: any) => r.collection_name);
+    const collections = (savesRes.rows as Array<{ collection_name: string }>).map((r) => r.collection_name);
     const saved = collections.length > 0;
     const saveCount = parseInt(videoRes.rows[0]?.save_count || "0", 10);
 
     return NextResponse.json({ saved, collections, save_count: saveCount });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Save API] GET Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

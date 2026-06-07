@@ -44,8 +44,8 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           const dataVideos = await resVideos.json();
           if (dataVideos.videos) setVideos(dataVideos.videos);
         }
-      } catch (e) {
-        console.error("No videos found", e);
+      } catch {
+        // graceful fallback — videos remain empty
       }
 
       try {
@@ -67,8 +67,8 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       } catch (e) {
         console.error("swypik stats fetch failed", e);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // top-level swallow — UI shows login/empty state
     }
   }, []);
 
