@@ -41,8 +41,8 @@ async function handle(request: NextRequest) {
     // Try CONCURRENTLY first (zero downtime), fallback to plain REFRESH if not possible.
     try {
       await dbQuery(`REFRESH MATERIALIZED VIEW CONCURRENTLY video_rank_14d`);
-    } catch (e: any) {
-      logger.warn({ err: e?.message }, "refresh-rank concurrent failed, falling back");
+    } catch (e) {
+      logger.warn({ err: e }, "refresh-rank concurrent failed, falling back");
       await dbQuery(`REFRESH MATERIALIZED VIEW video_rank_14d`);
     }
 
@@ -63,23 +63,24 @@ async function handle(request: NextRequest) {
          VALUES ('refresh-rank', NOW() - ($1::text || ' milliseconds')::interval, NOW(), $1::integer, 'success', $2::jsonb)`,
         [elapsedMs, JSON.stringify(stats)]
       );
-    } catch (err: any) {
-      logger.warn({ err: err?.message }, "refresh-rank: cron_runs insert failed");
+    } catch (err) {
+      logger.warn({ err }, "refresh-rank: cron_runs insert failed");
     }
 
     return NextResponse.json({ ok: true, elapsedMs, ...stats });
-  } catch (e: any) {
-    logger.error({ err: e?.message }, "refresh-rank failed");
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    logger.error({ err: e }, "refresh-rank failed");
     try {
       await dbQuery(
         `INSERT INTO cron_runs (job_name, started_at, completed_at, duration_ms, status, error)
          VALUES ('refresh-rank', NOW() - ($1::text || ' milliseconds')::interval, NOW(), $1::integer, 'failed', $2)`,
-        [Date.now() - startedAt, String(e?.message || e).slice(0, 500)]
+        [Date.now() - startedAt, msg.slice(0, 500)]
       );
     } catch {
       /* ignore secondary failure */
     }
-    return NextResponse.json({ ok: false, error: e?.message || "refresh failed" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: msg || "refresh failed" }, { status: 500 });
   }
 }
 

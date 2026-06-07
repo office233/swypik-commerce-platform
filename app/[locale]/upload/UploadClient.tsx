@@ -187,8 +187,8 @@ export default function UploadClient() {
       if (!completeRes.ok) throw new Error(completeData.error || "Eroare finalizare.");
       setVideoId(completeData.videoId || session.videoId);
       setTranscodeStatus("processing");
-    } catch (err: any) {
-      setErrorMsg(err.message || "Eroare upload.");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Eroare upload.");
       setTranscodeStatus("failed");
     }
   }
@@ -229,7 +229,20 @@ export default function UploadClient() {
     setSubmitting(true);
     setErrorMsg("");
     try {
-      const body: any = {
+      type UploadSubmitBody = {
+        title?: string;
+        description?: string;
+        allow_comments: boolean;
+        allow_duet: boolean;
+        allow_stitch: boolean;
+        audio_track_id: string | number | null;
+        product_id: string | null;
+        tags: string[];
+        is_draft?: boolean;
+        visibility?: "draft" | "public";
+        scheduled_publish_at?: string | null;
+      };
+      const body: UploadSubmitBody = {
         title: title || undefined,
         description: description || undefined,
         allow_comments: allowComments,
@@ -262,8 +275,8 @@ export default function UploadClient() {
       }
       if (mode === "publish") router.push("/creator/videos");
       else router.push("/creator/drafts");
-    } catch (err: any) {
-      setErrorMsg(err.message || "Eroare.");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Eroare.");
     } finally {
       setSubmitting(false);
     }
