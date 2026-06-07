@@ -77,7 +77,22 @@ export function chooseCommentStatus(text: string): CommentStatus {
   return FLAGGED_TERMS.some((term) => normalized.includes(term)) ? "flagged" : "visible";
 }
 
-export function mapCommentRow(row: any): CommentView {
+export type CommentRow = {
+  id: string;
+  video_id: string;
+  user_id: string | null;
+  parent_comment_id: string | null;
+  body: string | null;
+  status?: string | null;
+  like_count?: number | string | null;
+  reply_count?: number | string | null;
+  created_at: string | Date;
+  display_name?: string | null;
+  username?: string | null;
+  avatar_url?: string | null;
+};
+
+export function mapCommentRow(row: CommentRow): CommentView {
   const displayName = String(row.display_name || row.username || "Comunitate");
 
   return {
@@ -100,7 +115,7 @@ export function mapCommentRow(row: any): CommentView {
   };
 }
 
-export function attachReplies(topLevelRows: any[], replyRows: any[]): CommentView[] {
+export function attachReplies(topLevelRows: CommentRow[], replyRows: CommentRow[]): CommentView[] {
   const comments = topLevelRows.map(mapCommentRow);
   const byId = new Map(comments.map((comment) => [comment.id, comment]));
 

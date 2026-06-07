@@ -226,8 +226,8 @@ export async function enqueueAeVideoPipeline(input: AePipelineInput): Promise<Ae
 export async function findExternalSourceUrlForVideo(videoId: string): Promise<string | null> {
   const { rows } = await dbQuery<{
     playback_url: string | null;
-    metadata: any;
-    product_refs: any;
+    metadata: Record<string, unknown> | string | null;
+    product_refs: Array<Record<string, unknown>> | string | null;
   }>(
     `SELECT playback_url, metadata, product_refs FROM videos WHERE id = $1 LIMIT 1`,
     [videoId]
@@ -236,7 +236,7 @@ export async function findExternalSourceUrlForVideo(videoId: string): Promise<st
   if (!row) return null;
 
   const metadata = typeof row.metadata === "string" ? safeJson(row.metadata) : row.metadata;
-  const fromMeta = metadata && typeof metadata === "object" ? (metadata as any).source_url : null;
+  const fromMeta = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>).source_url : null;
   if (typeof fromMeta === "string" && /^https?:\/\//i.test(fromMeta)) return fromMeta;
 
   if (row.playback_url && /aliexpress|alicdn|alibaba/i.test(row.playback_url)) {

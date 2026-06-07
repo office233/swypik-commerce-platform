@@ -119,8 +119,8 @@ async function translateOne(
       seo_description: parsed.seo_description ? String(parsed.seo_description).slice(0, 220) : null,
       slug: parsed.slug ? slugify(String(parsed.slug)) : slugify(String(parsed.title)),
     };
-  } catch (e: any) {
-    logger.warn({ err: e?.message, sourceLocale, targetLocale }, "[translator] studiai error");
+  } catch (e) {
+    logger.warn({ err: e, sourceLocale, targetLocale }, "[translator] studiai error");
     return null;
   }
 }
@@ -153,8 +153,8 @@ export async function translateProductToLocales(args: {
         [args.productId, loc, r.title, r.description, r.slug, r.seo_title, r.seo_description, MODEL],
       );
       written.push(loc);
-    } catch (e: any) {
-      logger.warn({ err: e?.message, productId: args.productId, loc }, "[translator] db insert failed");
+    } catch (e) {
+      logger.warn({ err: e, productId: args.productId, loc }, "[translator] db insert failed");
       skipped.push(loc);
     }
   }
