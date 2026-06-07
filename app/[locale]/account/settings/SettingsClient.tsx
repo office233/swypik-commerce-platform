@@ -17,6 +17,8 @@ import {
   Bell,
   LogOut,
   ChevronRight,
+  Users,
+  BadgeCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -55,6 +57,8 @@ export default function SettingsClient({ isAdmin = false, sellerStatus = null }:
     { href: "/account/edit", icon: UserCircle2, label: t("itemEditeaza") },
     { href: "/wallet", icon: Wallet, label: "$SWYP Wallet" },
     { href: "/earn", icon: Pickaxe, label: "Mining" },
+    { href: "/account/invite-friend", icon: Users, label: "Invite friends" },
+    { href: "/account/kyc", icon: BadgeCheck, label: "Verify identity (KYC)" },
     { href: "/account/orders", icon: ShoppingBag, label: t("itemComenzi") },
     { href: "/account/addresses", icon: MapPin, label: t("itemAdrese") },
     { href: "/account/security", icon: ShieldCheck, label: t("itemSecuritate") },
