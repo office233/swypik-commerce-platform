@@ -3,6 +3,7 @@
  * Supports: products, categories, #hashtags, @users.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { moderateText } from "@/lib/moderation/moderateText";
 import { searchCreators, searchHashtags, searchProducts } from "@/lib/search/query";
 import { getClientIP, rateLimit } from "@/lib/security/rate-limit";
@@ -40,7 +41,10 @@ export async function GET(req: NextRequest) {
 
     if (q.length < 2) return NextResponse.json({ ok: true, suggestions: [] });
 
-    const cacheKey = `suggest_${q}_${limit}`;
+    const cookieStore = await cookies();
+    const locale = (url.searchParams.get("locale") || cookieStore.get("swypik_locale")?.value || "ro").toLowerCase();
+
+    const cacheKey = `suggest_${locale}_${q}_${limit}`;
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.ts < CACHE_TTL) return NextResponse.json(cached.data);
 
@@ -82,7 +86,7 @@ export async function GET(req: NextRequest) {
       }
 
       const allowSoftCommerce = SOFT_COMMERCE_QUERY_RE.test(cleaned || q);
-      const products = await searchProducts(cleaned || q, { limit: 20 }).catch(() => []);
+      const products = await searchProducts(cleaned || q, { limit: 20, locale }).catch(() => []);
       for (const p of products) {
         if (!allowSoftCommerce && SOFT_COMMERCE_TITLE_RE.test(p.title || "")) continue;
         if (MARKETPLACE_SPAM_TITLE_RE.test(p.title || "")) continue;

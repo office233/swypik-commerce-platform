@@ -39,6 +39,7 @@ export type SearchOpts = {
   limit?: number;
   offset?: number;
   userId?: string | null;
+  locale?: string;
 };
 
 const clampLimit = (n: number | undefined, max = 50, def = 20) => {
@@ -182,6 +183,7 @@ export async function searchProducts(
 ): Promise<ProductResult[]> {
   const limit = clampLimit(opts.limit);
   const offset = clampOffset(opts.offset);
+  const locale = (opts.locale || 'ro').toLowerCase();
 
   // Cross-language expansion: RO/DE/FR query → matching taxonomy slugs.
   // Product titles are predominantly EN; this lets "rochie" match slug fashion-women-dresses.
@@ -213,7 +215,7 @@ export async function searchProducts(
     )
     SELECT
       mp.id::text     AS id,
-      mp.title        AS title,
+      COALESCE(pt_target.title, pt_en.title, mp.title) AS title,
       mp.price_cents  AS price_cents,
       mp.image_url    AS image_url,
       GREATEST(
@@ -222,6 +224,8 @@ export async function searchProducts(
         CASE WHEN mp.taxonomy_node_slug = ANY($4::text[]) THEN 0.5 ELSE 0 END
       )::float AS rank
     FROM marketplace_products mp
+    LEFT JOIN product_translations pt_target ON pt_target.product_id = mp.id AND pt_target.locale = $5
+    LEFT JOIN product_translations pt_en     ON pt_en.product_id = mp.id     AND pt_en.locale = 'en'
     CROSS JOIN query
     WHERE mp.status = 'active'
       AND COALESCE(mp.is_adult, false) = false AND mp.effective_label = 'safe'
@@ -235,25 +239,27 @@ export async function searchProducts(
   `;
 
   try {
-    const { rows } = await dbQuery(ftsSql, [q, limit, offset, matchedSlugs]);
+    const { rows } = await dbQuery(ftsSql, [q, limit, offset, matchedSlugs, locale]);
     return rows as ProductResult[];
   } catch {
     const pattern = `%${q}%`;
     const ilikeSql = `
       SELECT
         mp.id::text     AS id,
-        mp.title        AS title,
+        COALESCE(pt_target.title, pt_en.title, mp.title) AS title,
         mp.price_cents  AS price_cents,
         mp.image_url    AS image_url,
         0::float        AS rank
       FROM marketplace_products mp
+      LEFT JOIN product_translations pt_target ON pt_target.product_id = mp.id AND pt_target.locale = $4
+      LEFT JOIN product_translations pt_en     ON pt_en.product_id = mp.id     AND pt_en.locale = 'en'
       WHERE mp.status = 'active'
         AND COALESCE(mp.is_adult, false) = false AND mp.effective_label = 'safe'
         AND mp.title ILIKE $1
       ORDER BY mp.title ASC
       LIMIT $2 OFFSET $3
     `;
-    const { rows } = await dbQuery(ilikeSql, [pattern, limit, offset]);
+    const { rows } = await dbQuery(ilikeSql, [pattern, limit, offset, locale]);
     return rows as ProductResult[];
   }
 }

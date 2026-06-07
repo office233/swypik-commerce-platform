@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { moderateText } from "@/lib/moderation/moderateText";
 import {
   searchAll,
@@ -37,6 +38,8 @@ export async function GET(req: NextRequest) {
   const type = parseType(url.searchParams.get("type"));
   const limit = parseInt32(url.searchParams.get("limit"), PAGE_LIMIT, 1, 50);
   const offset = parseInt32(url.searchParams.get("offset"), 0, 0, 10_000);
+  const cookieStore = await cookies();
+  const locale = (url.searchParams.get("locale") || cookieStore.get("swypik_locale")?.value || "ro").toLowerCase();
   const { success: allowed } = await rateLimit("search", getClientIP(req), { limit: 60, window: 60 });
   if (!allowed) {
     return NextResponse.json({ error: "Too many search requests" }, { status: 429 });
@@ -91,7 +94,7 @@ export async function GET(req: NextRequest) {
     }
 
     // products
-    const items = await searchProducts(q, { limit, offset });
+    const items = await searchProducts(q, { limit, offset, locale });
     return NextResponse.json({
       q,
       type,

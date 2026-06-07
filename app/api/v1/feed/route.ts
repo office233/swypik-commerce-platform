@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { searchProducts } from "@/lib/db/product-queries";
 import { proxyToSocialApi } from "@/lib/social/proxy";
 import { getOptionalSocialUserId } from "@/lib/social/session";
@@ -149,6 +150,8 @@ export async function GET(req: Request) {
     const limit = toInt(url.searchParams.get("limit"), 15, 1, 50);
     const offset = toInt(url.searchParams.get("offset"), 0, 0, 100000);
     const seed = toInt(url.searchParams.get("seed"), 0, 0, 1000000);
+    const cookieStore = await cookies();
+    const locale = (url.searchParams.get("locale") || cookieStore.get("swypik_locale")?.value || "ro").toLowerCase();
 
     if (url.searchParams.get("source") === "platform") {
       const proxied = await proxyToSocialApi(req, "/v1/feed");
@@ -203,6 +206,7 @@ export async function GET(req: Request) {
       limit,
       offset,
       seed,
+      locale,
     });
 
     const items = (result.products as FeedProduct[]).map((product, index) =>

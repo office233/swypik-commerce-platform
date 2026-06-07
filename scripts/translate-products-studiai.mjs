@@ -34,7 +34,7 @@ function contentHash(title, description) {
 const DATABASE_URL = process.env.DATABASE_URL;
 const BASE_URL = process.env.STUDIAI_BASE_URL || 'https://ai.studiai.ro/v1';
 const MODEL = process.env.STUDIAI_MODEL || 'claude-opus-4-7';
-const PROMPT_VERSION = process.env.PROMPT_VERSION || 'v2.1';
+const PROMPT_VERSION = process.env.PROMPT_VERSION || 'v2.4';
 const MODEL_TAG = `${MODEL}-prompt-${PROMPT_VERSION}`;
 const TIER_ENABLED = process.env.TIER_ENABLED === '1';
 // StudiAI mirror oferă doar claude-opus-4-7 + claude-haiku-4-5 (verified 2026-05-28).
@@ -46,8 +46,8 @@ const TIER_OPUS_ORDERS = Number(process.env.TIER_OPUS_ORDERS || 100);
 const TIER_OPUS_RATING = Number(process.env.TIER_OPUS_RATING || 4.7);
 // Per-tier prompt version: opus performs best with v2.1 (90% in 145-160), haiku needs v2.2 (slug language fix)
 const TIER_PROMPTS = {
-  opus: process.env.TIER_PROMPT_OPUS || 'v2.1',
-  haiku: process.env.TIER_PROMPT_HAIKU || 'v2.2',
+  opus: process.env.TIER_PROMPT_OPUS || 'v2.4',
+  haiku: process.env.TIER_PROMPT_HAIKU || 'v2.4',
 };
 function pickTier(ordersCount, rating) {
   const o = Number(ordersCount) || 0;
