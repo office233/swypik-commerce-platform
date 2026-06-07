@@ -270,14 +270,14 @@ export default function EarnClient() {
       {/* BOOST ACTIONS */}
       <div className="mx-5 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ActionCard
-          href="#"
+          href="/account/kyc"
           icon={<ShieldCheck className="w-5 h-5" />}
           title="Verify face (KYC)"
-          subtitle={stats?.kyc_face_verified ? "Verified — +50% applied" : "Coming soon — +50% boost"}
+          subtitle={stats?.kyc_face_verified ? "Verified — +50% applied" : "Opens Q3 — +50% boost"}
           done={stats?.kyc_face_verified}
         />
         <ActionCard
-          href="/earn/refer"
+          href="/account/invite-friend"
           icon={<Users className="w-5 h-5" />}
           title="Invite friends"
           subtitle={`${stats?.refs_l1_active ?? 0} active · +10% each (unlimited)`}

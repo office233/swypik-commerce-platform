@@ -33,6 +33,28 @@ const NON_LOCALIZED_PREFIXES = [
   "/unsubscribe",
 ];
 
+// Prefix-uri (forma canonică, fără locale) care REQUIRED login shopper.
+// Lipsa cookie-ului SHOPPER_COOKIE → redirect la /auth/login?redirect=<orig>.
+// NOTĂ: doar paginile cu acțiuni personalizate / sensibile sunt aici.
+// Paginile publice (/, /explore, /product, /blog, /search, /categories, /legal, /help,
+//  /about, /shop, /trends, /best, /b, /hashtag, /u, /sellers, /battles, /live,
+//  /collections, /audio, /video, /post, /news, /privacy, /terms, /become-a-*)
+// rămân deschise pentru SEO + discovery + onboarding pasiv.
+const REQUIRE_AUTH_PREFIXES = [
+  "/account",
+  "/cart",
+  "/checkout",
+  "/inbox",
+  "/messages",
+  "/wallet",
+  "/earn",
+  "/upload",
+  "/reels/record",
+  "/orders",
+  "/notifications",
+  "/missions",
+];
+
 function isBlogRaw(pathname: string): boolean {
   return /^\/blog\/[^/]+\/raw(?:\/?|\?.*)?$/.test(pathname);
 }
@@ -41,6 +63,12 @@ function isNonLocalized(pathname: string): boolean {
   if (isBlogRaw(pathname)) return true;
   return NON_LOCALIZED_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p.endsWith("/") ? p : `${p}/`),
+  );
+}
+
+function isRequireAuth(canonical: string): boolean {
+  return REQUIRE_AUTH_PREFIXES.some(
+    (p) => canonical === p || canonical.startsWith(`${p}/`),
   );
 }
 
@@ -119,6 +147,13 @@ function redirectTo(req: NextRequest, target: string, withRedirect = true) {
   return NextResponse.redirect(url);
 }
 
+function redirectToLogin(req: NextRequest, localePrefix: string) {
+  // Login este non-localized în Swypik, deci /auth/login direct.
+  const url = new URL("/auth/login", req.url);
+  url.searchParams.set("redirect", `${req.nextUrl.pathname}${req.nextUrl.search}`);
+  return NextResponse.redirect(url);
+}
+
 const intlMiddleware = createIntlMiddleware(routing);
 
 // Verifică dacă pathname-ul canonical (fără prefix locale) declanșează un redirect
@@ -144,14 +179,6 @@ function gatedRedirectTarget(
     !pathname.startsWith("/seller/login/")
   ) {
     if (!hasSeller) return "/seller/login";
-  }
-  const gatedPrefixes = ["/collections", "/orders", "/checkout", "/creator"];
-  const isGated = gatedPrefixes.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
-  const isAuthed = hasShopper || hasLegacyCreator;
-  if (isGated && !isAuthed) {
-    return localized("/account");
   }
   return null;
 }
@@ -198,6 +225,12 @@ export function middleware(request: NextRequest) {
 
   const prefix = currentLocalePrefix(pathname);
   const canonical = stripLocale(pathname);
+
+  // 3a) REQUIRE_AUTH: dacă userul nu are sesiune (shopper sau creator) →
+  //     redirect la /auth/login cu ?redirect=<orig>. Login-ul e non-localized.
+  if (isRequireAuth(canonical) && !hasShopper && !hasLegacyCreator) {
+    return redirectToLogin(request, prefix);
+  }
 
   const gatedTarget = gatedRedirectTarget(
     canonical,
