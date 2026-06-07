@@ -90,7 +90,7 @@ export async function GET(
         total: Number(agg.total || "0"),
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Reviews GET]");
     return NextResponse.json({ error: "internal" }, { status: 500 });
   }
@@ -153,13 +153,13 @@ export async function POST(
         [productId, session.userId, orderId, rating, title, text, isVerified]
       );
       return NextResponse.json({ id: rows[0].id, isVerifiedPurchase: isVerified }, { status: 201 });
-    } catch (err: any) {
-      if (err?.code === "23505") {
+    } catch (err) {
+      if ((err as { code?: string } | null)?.code === "23505") {
         return NextResponse.json({ error: "already_reviewed" }, { status: 409 });
       }
       throw err;
     }
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Reviews POST]");
     return NextResponse.json({ error: "internal" }, { status: 500 });
   }

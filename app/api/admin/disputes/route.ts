@@ -46,7 +46,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const status = url.searchParams.get("status") || "all";
 
-  const args: any[] = [];
+  const args: Array<string | number> = [];
   let where = "1=1";
   if (status === "needs_response") {
     where = "d.status IN ('needs_response','warning_needs_response')";
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
   }
 
-  let body: any;
+  let body: { disputeId?: unknown; evidence?: unknown; submit?: unknown } | null = null;
   try {
     body = await req.json();
   } catch {
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
   }
 
   const disputeId = typeof body?.disputeId === "string" ? body.disputeId.trim() : "";
-  const evidence = body?.evidence && typeof body.evidence === "object" ? body.evidence : {};
+  const evidence = body?.evidence && typeof body.evidence === "object" ? (body.evidence as Record<string, unknown>) : {};
   const submit = body?.submit === true;
 
   if (!/^dp_[A-Za-z0-9]+$/.test(disputeId)) {
@@ -145,12 +145,10 @@ export async function POST(req: Request) {
 
       logger.info({ disputeId, newStatus: updated.status }, "[Admin] Dispute evidence submitted");
       return NextResponse.json({ success: true, status: updated.status, submitted: true });
-    } catch (err: any) {
+    } catch (err) {
       logger.error({ err, disputeId }, "[Admin] Stripe dispute.update failed");
-      return NextResponse.json(
-        { error: err?.message || "Stripe API error" },
-        { status: 502 },
-      );
+      const message = err instanceof Error ? err.message : "Stripe API error";
+      return NextResponse.json({ error: message }, { status: 502 });
     }
   }
 

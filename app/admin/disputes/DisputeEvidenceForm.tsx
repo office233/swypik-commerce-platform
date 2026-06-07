@@ -117,8 +117,8 @@ export default function DisputeEvidenceForm({
         return next;
       });
       setOkMsg(`Sugestii aplicate (${Object.keys(s).length} câmpuri). Cele completate manual nu au fost suprascrise.`);
-    } catch (e: any) {
-      setError(e?.message || "Eroare necunoscută");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Eroare necunoscută");
     } finally {
       setSuggesting(false);
     }
@@ -143,8 +143,8 @@ export default function DisputeEvidenceForm({
         [key]: { uploading: false, fileId: data.file_id, filename: data.filename },
       }));
       setEvidence((prev) => ({ ...prev, [key]: data.file_id }));
-    } catch (e: any) {
-      setFileSlots((prev) => ({ ...prev, [key]: { uploading: false, error: e?.message || "upload error" } }));
+    } catch (e) {
+      setFileSlots((prev) => ({ ...prev, [key]: { uploading: false, error: e instanceof Error ? e.message : "upload error" } }));
     }
   }
 
@@ -187,8 +187,8 @@ export default function DisputeEvidenceForm({
       }
       setOkMsg(submit ? `Trimis la Stripe (status: ${data.status})` : "Draft salvat");
       if (submit) startTransition(() => router.refresh());
-    } catch (e: any) {
-      setError(e?.message || "Eroare necunoscută");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Eroare necunoscută");
     }
   }
 
