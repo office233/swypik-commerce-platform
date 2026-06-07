@@ -61,13 +61,26 @@ function calculateCompetitivePrice(costRON: number, shippingRON: number): {
   return { sellPrice, oldPrice, marginPercent };
 }
 
+// Raw OTAPI item shape — vendor wire format, only fields we touch.
+type OtapiFeaturedValue = { Name: string; Value: string };
+type OtapiPicture = { Large?: { Url: string }; Medium?: { Url: string }; Small?: { Url: string } };
+type OtapiItem = {
+  Id?: string;
+  Title?: string;
+  Price?: { OriginalPrice?: number };
+  PhysicalParameters?: { Weight?: number };
+  Pictures?: OtapiPicture[];
+  FeaturedValues?: OtapiFeaturedValue[];
+  Features?: string[];
+};
+
 // ─── AI Quality Score — Filters junk, ranks quality ───────────────────
-function calculateQualityScore(item: any): number {
+function calculateQualityScore(item: OtapiItem): number {
   let score = 50; // baseline
 
   // Sales volume (huge signal)
   const sales = parseInt(
-    (item.FeaturedValues || []).find((f: any) => f.Name === "SalesInLast30Days")?.Value || "0"
+    (item.FeaturedValues || []).find((f) => f.Name === "SalesInLast30Days")?.Value || "0"
   );
   if (sales > 1000) score += 25;
   else if (sales > 300) score += 20;
@@ -78,7 +91,7 @@ function calculateQualityScore(item: any): number {
 
   // Rating
   const rating = parseFloat(
-    (item.FeaturedValues || []).find((f: any) => f.Name === "rating")?.Value || "0"
+    (item.FeaturedValues || []).find((f) => f.Name === "rating")?.Value || "0"
   );
   if (rating >= 4.8) score += 15;
   else if (rating >= 4.5) score += 10;
@@ -109,7 +122,7 @@ function calculateQualityScore(item: any): number {
 }
 
 // ─── Parse OTAPI Item → SupplierProduct ───────────────────────────────
-function parseOtapiItem(item: any): SupplierProduct | null {
+function parseOtapiItem(item: OtapiItem): SupplierProduct | null {
   const title = item.Title || "";
   if (!title || title.length < 5) return null;
 
@@ -132,7 +145,7 @@ function parseOtapiItem(item: any): SupplierProduct | null {
 
   // Images (must have at least 1)
   const images = (item.Pictures || [])
-    .map((p: any) => p.Large?.Url || p.Medium?.Url || p.Small?.Url || "")
+    .map((p) => p.Large?.Url || p.Medium?.Url || p.Small?.Url || "")
     .filter((u: string) => u.length > 10 && u.startsWith("http"))
     .slice(0, 6);
   if (images.length === 0) return null;
@@ -142,10 +155,10 @@ function parseOtapiItem(item: any): SupplierProduct | null {
 
   // Sales data
   const salesLast30 = parseInt(
-    (item.FeaturedValues || []).find((f: any) => f.Name === "SalesInLast30Days")?.Value || "0"
+    (item.FeaturedValues || []).find((f) => f.Name === "SalesInLast30Days")?.Value || "0"
   );
   const rating = parseFloat(
-    (item.FeaturedValues || []).find((f: any) => f.Name === "rating")?.Value || "4.5"
+    (item.FeaturedValues || []).find((f) => f.Name === "rating")?.Value || "4.5"
   );
 
   // Clean title — remove "(Trading transfrontalier)" and junk prefixes
@@ -187,7 +200,7 @@ export async function otapiSearch(
   pageSize = 50,
 ): Promise<{ products: SupplierProduct[]; totalCount: number; callsUsed: number }> {
   if (!OTAPI_KEY) {
-    console.error("[OTAPI] OTAPI_KEY not configured");
+    log.error("OTAPI_KEY not configured");
     return { products: [], totalCount: 0, callsUsed: 0 };
   }
 
@@ -212,7 +225,7 @@ export async function otapiSearch(
     const json = await res.json();
 
     if (json.ErrorCode !== "Ok") {
-      console.error(`[OTAPI] ❌ ${json.ErrorCode}: ${json.ErrorDescription || ""}`);
+      log.error({ code: json.ErrorCode, description: json.ErrorDescription || "" }, "OTAPI error");
       return { products: [], totalCount: 0, callsUsed: 1 };
     }
 
@@ -230,8 +243,8 @@ export async function otapiSearch(
     log.info({ quality: products.length, filtered_out: items.length - products.length }, "AI filter complete");
 
     return { products, totalCount, callsUsed: 1 };
-  } catch (error: any) {
-    console.error("[OTAPI] Error:", error.message);
+  } catch (err) {
+    log.error({ err }, "OTAPI fetch error");
     return { products: [], totalCount: 0, callsUsed: 0 };
   }
 }

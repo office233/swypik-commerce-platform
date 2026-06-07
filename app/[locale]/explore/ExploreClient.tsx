@@ -22,11 +22,16 @@ const YOUTUBE_EMBED_ORIGIN = "https://swypik.com";
 const MOUNT_RADIUS = 1;
 const FEED_FORMATS = ["formatMerita", "formatSub50", "formatTestate", "formatSwypikFinds", "formatSelleriLocali", "formatBattles", "formatLiveDeals"] as const;
 
-function isVision24Card(video: any) {
+// Feed video/product shapes returned by /api/explore/feed. The exact JSON has many heterogeneous
+// fields (cardType-dependent), so we declare a loose record indexer to keep existing access valid.
+type ExploreFeedVideo = Record<string, any>;
+type ExploreFeedProduct = Record<string, any>;
+
+function isVision24Card(video: ExploreFeedVideo) {
   return video?.cardType === "news" || video?.cardType === "fact_check" || video?.cardType === "news_video" || String(video?.id || "").startsWith("vision24");
 }
 
-function getProductVerdictKey(product: any): "verdictPretBun" | "verdictVerificaLivrarea" | "verdictSub50" | "verdictTrending" | "verdictRiscVerificat" | "verdictAiRapid" {
+function getProductVerdictKey(product: ExploreFeedProduct): "verdictPretBun" | "verdictVerificaLivrarea" | "verdictSub50" | "verdictTrending" | "verdictRiscVerificat" | "verdictAiRapid" {
   const score = Number(product?.swypikScore || 0);
   const price = Number(product?.priceCents || 0);
   const delivery = String(product?.deliveryLabel || "").toLowerCase();
@@ -39,7 +44,7 @@ function getProductVerdictKey(product: any): "verdictPretBun" | "verdictVerifica
   return "verdictAiRapid";
 }
 
-function withOptimisticVote(product: any, vote: "worth_it" | "not_worth_it") {
+function withOptimisticVote(product: ExploreFeedProduct, vote: "worth_it" | "not_worth_it") {
   const votes = product?.votes || {};
   const previousVote = votes.viewerVote || null;
   let worthIt = Number(votes.worthIt || 0);
@@ -97,13 +102,13 @@ function FeedVideo({ videoId, src, hlsUrl, fallbackSrc, poster, isCurrent, muted
   );
 }
 
-function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: any[]; initialCategory?: string }) {
+function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: ExploreFeedVideo[]; initialCategory?: string }) {
   const t = useTranslations("explore");
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialVideoId = searchParams.get("v");
 
-  const [videos, setVideos] = useState<any[]>(initialVideos || []);
+  const [videos, setVideos] = useState<ExploreFeedVideo[]>(initialVideos || []);
   const [loading, setLoading] = useState((initialVideos?.length || 0) === 0);
   const [feedSource, setFeedSource] = useState<"foryou" | "following">("foryou");
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
@@ -160,7 +165,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     else newsFrameRefs.current.delete(id);
   }, []);
 
-  const sendYouTubeCommand = useCallback((videoId: string, func: string, args: any[] = []) => {
+  const sendYouTubeCommand = useCallback((videoId: string, func: string, args: unknown[] = []) => {
     const frame = newsFrameRefs.current.get(videoId);
     const win = frame?.contentWindow;
     if (!win) return;
@@ -180,7 +185,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     trackWatchTime(videoId, Math.round(currentTime * 1000));
   }, []);
 
-  const trackEvent = useCallback((videoId: string, eventType: string, data?: any) => {
+  const trackEvent = useCallback((videoId: string, eventType: string, data?: Record<string, unknown>) => {
     if (videoId.startsWith("vision24")) return;
     // Route via batched client. Map legacy event names to canonical FeedEventType.
     const map: Record<string, string> = {
@@ -231,17 +236,21 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          const nextVideos = (data.videos || []) as any[];
+          const nextVideos = (data.videos || []) as ExploreFeedVideo[];
           for (const v of nextVideos) seenIdsRef.current.add(v.id);
           hasMoreRef.current = Boolean(data.hasMore);
           pageRef.current = 1;
           setVideos(nextVideos);
-          setLikedVideos(new Set(nextVideos.filter((video: any) => video.viewer?.liked).map((video: any) => video.id)));
-          setSavedVideos(new Set(nextVideos.filter((video: any) => video.viewer?.saved).map((video: any) => video.id)));
-          setFollowingCreators(new Set(nextVideos.filter((video: any) => video.viewer?.following).map((video: any) => video.creator?.id).filter(Boolean)));
+          setLikedVideos(new Set(nextVideos.filter((video) => video.viewer?.liked).map((video) => video.id)));
+          setSavedVideos(new Set(nextVideos.filter((video) => video.viewer?.saved).map((video) => video.id)));
+          setFollowingCreators(new Set(nextVideos.filter((video) => video.viewer?.following).map((video) => video.creator?.id).filter(Boolean) as string[]));
         }
       } catch (err) {
-        console.error("Error fetching videos:", err);
+        if (typeof window !== "undefined") {
+          // Surfacing to console keeps client diagnostics; server logger isn't reachable from browser.
+          // eslint-disable-next-line no-console
+          console.error("Error fetching videos:", err);
+        }
       } finally {
         setLoading(false);
       }
@@ -252,9 +261,9 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       for (const v of seeded) seenIdsRef.current.add(v.id);
       pageRef.current = 1;
       hasMoreRef.current = true; // server seed always assumed to have more
-      setLikedVideos(new Set(seeded.filter((v: any) => v.viewer?.liked).map((v: any) => v.id)));
-      setSavedVideos(new Set(seeded.filter((v: any) => v.viewer?.saved).map((v: any) => v.id)));
-      setFollowingCreators(new Set(seeded.filter((v: any) => v.viewer?.following).map((v: any) => v.creator?.id).filter(Boolean)));
+      setLikedVideos(new Set(seeded.filter((v) => v.viewer?.liked).map((v) => v.id)));
+      setSavedVideos(new Set(seeded.filter((v) => v.viewer?.saved).map((v) => v.id)));
+      setFollowingCreators(new Set(seeded.filter((v) => v.viewer?.following).map((v) => v.creator?.id).filter(Boolean) as string[]));
       setLoading(false);
       return;
     }
@@ -274,7 +283,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
-      const incoming: any[] = data.videos || [];
+      const incoming: ExploreFeedVideo[] = data.videos || [];
       // Dedup against previously seen ids (server uses OFFSET so dups are rare,
       // but ranking jitter can return same video on adjacent pages).
       const fresh = incoming.filter((v) => v?.id && !seenIdsRef.current.has(v.id));
@@ -300,7 +309,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         });
       }
     } catch (err) {
-      console.error("loadMoreVideos error:", err);
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.error("loadMoreVideos error:", err);
+      }
     } finally {
       loadingMoreRef.current = false;
     }
@@ -612,7 +624,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     }
   }, [followingCreators]);
 
-  const openProduct = useCallback((video: any) => {
+  const openProduct = useCallback((video: ExploreFeedVideo) => {
     if (!video.product?.id) {
       setActiveProduct(null);
       return;
@@ -623,7 +635,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     setActiveProduct({ ...video.product, videoId: video.id });
   }, [trackEvent]);
 
-  const handleProductVote = useCallback(async (video: any, vote: "worth_it" | "not_worth_it") => {
+  const handleProductVote = useCallback(async (video: ExploreFeedVideo, vote: "worth_it" | "not_worth_it") => {
     if (!video?.id || !video.product?.id || video.product?.votes?.viewerVote === vote) return;
     haptic("tap");
     const previousProduct = video.product;
@@ -660,7 +672,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     }
   }, [trackEvent, updateVideo]);
 
-  const handleAddProductToCart = useCallback(async (video: any) => {
+  const handleAddProductToCart = useCallback(async (video: ExploreFeedVideo) => {
     if (!video?.product?.id || cartBusyProductId === String(video.product.id)) return;
     haptic("tap");
     setCartBusyProductId(String(video.product.id));
@@ -1198,7 +1210,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         <ProductDrawer
           initialProduct={activeProduct}
           onClose={() => setActiveProduct(null)}
-          onVoteChange={(nextProduct: any) => {
+          onVoteChange={(nextProduct: ExploreFeedProduct) => {
             if (!activeProduct?.videoId) return;
             const mergedProduct = { ...activeProduct, ...nextProduct };
             setActiveProduct(mergedProduct);
@@ -1224,14 +1236,14 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         onCountChange={(nextCount: number) => {
           if (!activeCommentsVideo?.id) return;
           updateVideo(activeCommentsVideo.id, { comments: String(nextCount) });
-          setActiveCommentsVideo((current: any) => current ? { ...current, comments: String(nextCount) } : current);
+          setActiveCommentsVideo((current: ExploreFeedVideo | null) => current ? { ...current, comments: String(nextCount) } : current);
         }}
       />
     </main>
   );
 }
 
-export default function ExploreClient({ initialVideos = [], initialCategory = "" }: { initialVideos?: any[]; initialCategory?: string }) {
+export default function ExploreClient({ initialVideos = [], initialCategory = "" }: { initialVideos?: ExploreFeedVideo[]; initialCategory?: string }) {
   const t = useTranslations("explore");
   return (
     <Suspense fallback={<div style={{ background: '#000', height: '100dvh' }} />}>

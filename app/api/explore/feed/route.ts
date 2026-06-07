@@ -153,11 +153,13 @@ function buildAffinityExpr(hasUser: boolean): string {
   return `(COALESCE(uca.affinity_boost, 0))`;
 }
 
-function mixVision24Cards(videos: any[], cards: any[], limit: number) {
+type FeedVideoCard = Record<string, any>;
+
+function mixVision24Cards<T extends FeedVideoCard>(videos: T[], cards: T[], limit: number): T[] {
   if (cards.length === 0) return videos.slice(0, limit);
   if (videos.length === 0) return cards.slice(0, limit);
 
-  const out: any[] = [];
+  const out: T[] = [];
   const interval = Math.max(3, Math.floor(videos.length / (cards.length + 1)));
   let cardIndex = 0;
 
@@ -246,11 +248,11 @@ function scoreLabel(score: number): string {
   return "Risc ridicat";
 }
 
-function metadataNumber(metadata: any, keys: string[]): number | null {
+function metadataNumber(metadata: unknown, keys: string[]): number | null {
   if (!metadata || typeof metadata !== "object") return null;
+  const obj = metadata as Record<string, unknown>;
   for (const key of keys) {
-    const value = metadata[key];
-    const parsed = Number(value);
+    const parsed = Number(obj[key]);
     if (Number.isFinite(parsed)) return parsed;
   }
   return null;
@@ -288,7 +290,11 @@ function titleQualitySignals(title: string): { penalty: number; flags: string[] 
   return { penalty, flags };
 }
 
-function computeSwypikScoreDetails(row: any): { score: number; reasons: string[]; riskFlags: string[] } {
+// Raw SQL row — many heterogeneous columns from a complex query.
+// Typed loosely on purpose: each column has its own optional shape from the LEFT JOINs.
+type FeedRow = Record<string, any>;
+
+function computeSwypikScoreDetails(row: FeedRow): { score: number; reasons: string[]; riskFlags: string[] } {
   const metadata = row.mp_metadata || {};
   const productTitle = String(row.mp_name || "");
   const reasons: string[] = [];
@@ -435,7 +441,7 @@ export async function GET(request: NextRequest) {
     // Fetch extra rows when quality filtering is active so the default feed can
     // skip low-quality products without looking empty.
     const queryLimit = minSwypikScore > 1 ? Math.min(limit * 4 + 1, 200) : limit + 1;
-    const queryParams: any[] = [queryLimit, offset];
+    const queryParams: (string | number)[] = [queryLimit, offset];
     let userParam = "";
     let sessionParam = "";
     let taxonomyParam = "";
@@ -663,7 +669,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (rows.length > 0) {
-      const mappedVideos = rows.map((row: any) => {
+      const mappedVideos = (rows as FeedRow[]).map((row) => {
         const productId = row.mp_id ? String(row.mp_id) : firstProductRefId(row.product_refs);
         const currency = String(row.mp_currency || "RON").trim().toUpperCase();
         const priceCents = asNumber(row.mp_price_cents);
@@ -765,11 +771,11 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      const qualityFilteredVideos = mappedVideos.filter((video: any) => {
+      const qualityFilteredVideos = mappedVideos.filter((video) => {
         if (!video.product?.id) return true;
         return Number(video.product.swypikScore || 0) >= minSwypikScore;
       });
-      let vision24Cards: any[] = [];
+      let vision24Cards: FeedVideoCard[] = [];
       if (shouldBlendVision24 && vision24Slots > 0) {
         try {
           vision24Cards = await fetchVision24FeedCards({ feedLimit: limit, offset });
@@ -790,8 +796,8 @@ export async function GET(request: NextRequest) {
     // No videos available
     const emptyHeaders = { "Cache-Control": "private, max-age=5" };
     return NextResponse.json({ videos: [], page, hasMore: false }, { headers: emptyHeaders });
-  } catch (error: any) {
-    logger.error({ err: error }, "Explore feed API error:");
+  } catch (err) {
+    logger.error({ err }, "Explore feed API error");
     return NextResponse.json(
       { error: "Failed to fetch video feed" },
       { status: 500 }
