@@ -270,6 +270,13 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt).*)",
+    // Skip:
+    //  - Next.js internals (_next/static, _next/image)
+    //  - Toate fișierele statice din /public (orice are extensie comună de asset).
+    //    Altfel intlMiddleware încearcă să rezolve `/apple-touch-icon.png` ca rută
+    //    localizată și răspunde 404, deși fișierul există în /app/public.
+    //    Listă completă: imagini, fonturi, manifest, PWA service worker, sitemap-uri,
+    //    robots.txt, txt-uri de verificare (Google/Bing), media.
+    "/((?!_next/static|_next/image|sw\\.js$|sw-push\\.js$|workbox-.+\\.js$|.*\\.(?:ico|png|jpg|jpeg|gif|svg|webp|avif|woff|woff2|ttf|otf|eot|json|xml|txt|webmanifest|map|mp4|webm|mp3|wav|pdf)$).*)",
   ],
 };
