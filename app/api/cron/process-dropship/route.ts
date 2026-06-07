@@ -204,9 +204,10 @@ async function handleGET(req: Request) {
           [claimedItemIds, aeOrderId, claimToken]
         );
         processedCount += items.length;
-      } catch (aeError: any) {
-        logger.error({ err: aeError }, `[Cron] AE auto-ordering failed for order ${orderId}:`);
-        await releaseClaimWithError(claimedItemIds, claimToken, String(aeError?.message || aeError).slice(0, 500));
+      } catch (aeError) {
+        logger.error({ err: aeError, orderId }, "[Cron] AE auto-ordering failed");
+        const aeMessage = aeError instanceof Error ? aeError.message : String(aeError);
+        await releaseClaimWithError(claimedItemIds, claimToken, aeMessage.slice(0, 500));
         failedCount += items.length;
       }
     }
@@ -218,7 +219,7 @@ async function handleGET(req: Request) {
       claimedCount: pendingItems.length,
       claimToken,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Process Dropship Cron Error]:");
     return NextResponse.json(
       { error: "Internal Server Error" },

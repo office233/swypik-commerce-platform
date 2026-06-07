@@ -18,7 +18,26 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { rows } = await dbQuery(
+    type CreatorVideoRow = {
+      id: string;
+      status: string;
+      title: string | null;
+      description: string | null;
+      video_url: string | null;
+      thumbnail_url: string | null;
+      duration_ms: number | null;
+      product_refs: unknown;
+      visibility: string;
+      view_count: number | string | null;
+      created_at: string | Date;
+      product_id: string | null;
+      product_title: string | null;
+      product_image: string | null;
+      source_object_key: string | null;
+      source_public_url: string | null;
+      asset_status: string | null;
+    };
+    const { rows } = await dbQuery<CreatorVideoRow>(
       `
       SELECT 
         v.id,
@@ -58,14 +77,14 @@ export async function GET() {
       [creatorId]
     );
 
-    const videos = rows.map((r: any) => {
+    const videos = rows.map((r) => {
       let productId: string | null = r.product_id || null;
       try {
         const refs = typeof r.product_refs === "string"
           ? JSON.parse(r.product_refs)
           : r.product_refs;
         if (!productId && Array.isArray(refs) && refs.length > 0) {
-          const firstRef = refs[0];
+          const firstRef = refs[0] as string | { product_id?: string; id?: string } | null;
           productId = typeof firstRef === "string"
             ? firstRef
             : firstRef?.product_id || firstRef?.id || null;
@@ -88,7 +107,7 @@ export async function GET() {
     });
 
     return NextResponse.json({ videos });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "Creator Videos API Error:");
     return NextResponse.json(
       { error: "Failed to fetch creator videos" },

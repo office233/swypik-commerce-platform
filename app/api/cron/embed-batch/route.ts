@@ -40,7 +40,7 @@ async function processProducts(): Promise<{ done: number; errors: number; lastEr
       [BATCH]
     );
     rows = res.rows;
-  } catch (e: any) {
+  } catch (e) {
     // probably column doesn't exist yet (migration 0024 not applied → pgvector missing)
     return { done: 0, errors: 0, lastError: ((e as Error)?.message || "").slice(0, 200) || null };
   }
@@ -83,7 +83,7 @@ async function processVideos(): Promise<{ done: number; errors: number; lastErro
       [BATCH]
     );
     rows = res.rows;
-  } catch (e: any) {
+  } catch (e) {
     return { done: 0, errors: 0, lastError: ((e as Error)?.message || "").slice(0, 200) || null };
   }
   for (const r of rows) {
