@@ -80,9 +80,19 @@ export async function GET(req: Request) {
       [sellerId]
     );
 
-    const recentOrders = recentRes.rows.map((row: any) => {
+    type SellerOrderItem = { source_status?: string; [key: string]: unknown };
+    type SellerOrderRow = {
+      order_id: string;
+      order_status: string;
+      order_meta: any; // jsonb col with variable shape
+      total_cents: number | string | null;
+      created_at: string;
+      items: SellerOrderItem[] | null;
+    };
+
+    const recentOrders = (recentRes.rows as SellerOrderRow[]).map((row) => {
       const items = row.items || [];
-      const allFulfilled = items.length > 0 && items.every((item: any) => item.source_status === "fulfilled");
+      const allFulfilled = items.length > 0 && items.every((item) => item.source_status === "fulfilled");
       const localFulfillmentStatus =
         row.order_status === "return_requested" || row.order_status === "refunded"
           ? row.order_status
@@ -114,7 +124,7 @@ export async function GET(req: Request) {
       stripeConnected,
       recentOrders,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller Dashboard API] GET Error:");
     return NextResponse.json({ success: false, error: "Eroare la preluarea dashboard-ului." }, { status: 500 });
   }

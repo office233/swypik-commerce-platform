@@ -60,7 +60,25 @@ export default async function CommissionsAdminPage({
     paidCount: 0,
     last30Cents: 0,
   };
-  let rows: any[] = [];
+  type CommissionRow = {
+    id: string;
+    creator_id: string | null;
+    gross_amount_cents: number;
+    creator_amount_cents: number;
+    platform_fee_cents: number;
+    currency: string;
+    status: string;
+    commission_type: string;
+    created_at: string;
+    paid_at: string | null;
+    commerce_order_id: string | null;
+    video_id: string | null;
+    commission_rate_bps: number | null;
+    username: string | null;
+    display_name: string | null;
+  };
+
+  let rows: CommissionRow[] = [];
   let totalRows = 0;
   let loadError: string | null = null;
 
@@ -84,7 +102,7 @@ export default async function CommissionsAdminPage({
     };
 
     const filters: string[] = [];
-    const params: any[] = [];
+    const params: Array<string | number> = [];
     if (status) {
       params.push(status);
       filters.push(`c.status = $${params.length}`);
@@ -120,10 +138,9 @@ export default async function CommissionsAdminPage({
        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
       dataParams
     );
-    rows = res.rows;
-  } catch (err: any) {
-    console.error("Error fetching commissions:", err);
-    loadError = err.message || "Nu am putut încărca comisioanele.";
+    rows = res.rows as CommissionRow[];
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : "Nu am putut încărca comisioanele.";
   }
 
   const totalPages = Math.max(1, Math.ceil(totalRows / limit));
@@ -248,7 +265,7 @@ export default async function CommissionsAdminPage({
                   </td>
                 </tr>
               )}
-              {rows.map((r: any) => (
+              {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-[#F7F7F8]/50 transition">
                   <td className="px-4 py-3">
                     <div className="font-bold text-[#0D0D0D]">

@@ -3,6 +3,9 @@ import { timingSafeEqual } from "crypto";
 import { fetchCopilot, getCopilotGhuTokens } from "@/lib/ai/github-models-tokens";
 import { dbQuery } from "@/lib/db";
 import { runCron } from "@/lib/cron/runCron";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "detect-trends" });
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -15,7 +18,7 @@ function authorize(req: Request): boolean {
   return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
 }
 
-type Trend = { name: string; score: number; type: "hashtag" | "audio" | "product" | "topic"; metadata?: any };
+type Trend = { name: string; score: number; type: "hashtag" | "audio" | "product" | "topic"; metadata?: Record<string, unknown> };
 
 async function topHashtags(): Promise<Trend[]> {
   const sql = `
@@ -132,20 +135,21 @@ async function aiSynthesize(input: { hashtags: Trend[]; audios: Trend[]; product
       }),
     });
     if (!res.ok) {
-      console.warn("[detect-trends] ai synth http", res.status);
+      log.warn({ status: res.status }, "ai synth http");
       return [];
     }
-    const json: any = await res.json();
+    type AiResponse = { choices?: Array<{ message?: { content?: string } }> };
+    const json = (await res.json()) as AiResponse;
     const raw = json?.choices?.[0]?.message?.content || "{}";
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as { trends?: Array<{ name?: unknown; score?: unknown }> };
     const arr = Array.isArray(parsed?.trends) ? parsed.trends : [];
-    return arr.slice(0, 5).map((t: any) => ({
+    return arr.slice(0, 5).map((t) => ({
       name: String(t.name || ""),
       score: Number(t.score) || 0,
       type: "topic" as const,
     })).filter((t: Trend) => t.name);
   } catch (e) {
-    console.warn("[detect-trends] ai synth failed:", (e as Error).message);
+    log.warn({ err: e }, "ai synth failed");
     return [];
   }
 }
@@ -165,7 +169,7 @@ async function run(req: Request) {
       );
       inserted++;
     } catch (e) {
-      console.warn("[detect-trends] insert fail:", (e as Error).message);
+      log.warn({ err: e }, "insert fail");
     }
   }
   await dbQuery(`DELETE FROM trending_now WHERE detected_at < now() - interval '7 days'`).catch(() => {});
