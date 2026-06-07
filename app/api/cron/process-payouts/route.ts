@@ -37,6 +37,7 @@ import { dbQuery } from "@/lib/db";
 import { getStripe } from "@/lib/stripe/checkout";
 import { timingSafeEqual } from "crypto";
 import { runCron } from "@/lib/cron/runCron";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -205,8 +206,9 @@ async function handleGET(req: Request) {
         [item.item_id, transfer.id]
       );
       paidSellerCount++;
-    } catch (e: any) {
-      console.error(`[payout-cron] seller payout failed for item ${item.item_id}:`, e?.message || e);
+    } catch (e) {
+      const errMessage = e instanceof Error ? e.message : String(e);
+      logger.error({ err: e, item_id: item.item_id }, "[payout-cron] seller payout failed");
       await dbQuery(
         `UPDATE commerce_order_items
            SET metadata = coalesce(metadata, '{}'::jsonb)
@@ -216,7 +218,7 @@ async function handleGET(req: Request) {
                              'seller_payout_failed_at', NOW()::text
                            )
          WHERE id = $1`,
-        [item.item_id, String(e?.message || 'unknown_error').slice(0, 500)]
+        [item.item_id, (errMessage || 'unknown_error').slice(0, 500)]
       );
     }
   }
@@ -288,8 +290,9 @@ async function handleGET(req: Request) {
         [item.stripe_account_id, transfer.id, creatorPayoutCents, item.item_id]
       );
       paidCreatorCount++;
-    } catch (e: any) {
-      console.error(`[payout-cron] creator payout failed for item ${item.item_id}:`, e?.message || e);
+    } catch (e) {
+      const errMessage = e instanceof Error ? e.message : String(e);
+      logger.error({ err: e, item_id: item.item_id }, "[payout-cron] creator payout failed");
       await dbQuery(
         `UPDATE commerce_order_items
            SET payout_status = 'failed',
@@ -299,7 +302,7 @@ async function handleGET(req: Request) {
                              'creator_payout_failed_at', NOW()::text
                            )
          WHERE id = $1`,
-        [item.item_id, String(e?.message || 'unknown_error').slice(0, 500)]
+        [item.item_id, (errMessage || 'unknown_error').slice(0, 500)]
       );
     }
   }

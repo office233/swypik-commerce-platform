@@ -170,9 +170,10 @@ async function handleGET(req: Request) {
         }
 
         syncedCount += group.length;
-      } catch (aeError: any) {
+      } catch (aeError) {
         errorCount++;
-        logger.error({ err: aeError?.message || String(aeError), aeOrderId }, "[Cron sync-dropship-status] AE sync failed");
+        const aeMessage = aeError instanceof Error ? aeError.message : String(aeError);
+        logger.error({ err: aeError, aeOrderId }, "[Cron sync-dropship-status] AE sync failed");
         // Record error in metadata so we can see it in DB
         try {
           await dbQuery(
@@ -182,7 +183,7 @@ async function handleGET(req: Request) {
                'sync_error', $2::text
              )
              WHERE id = ANY($3::uuid[])`,
-            [nowIso, String(aeError?.message || aeError).slice(0, 500), group.map(g => g.itemId)]
+            [nowIso, aeMessage.slice(0, 500), group.map(g => g.itemId)]
           );
         } catch {}
       }
@@ -194,8 +195,8 @@ async function handleGET(req: Request) {
       errorCount,
       aeOrderCount: byAeOrder.size,
     });
-  } catch (error: any) {
-    logger.error({ err: error?.message || String(error) }, "[Sync Dropship Status Cron Error]");
+  } catch (error) {
+    logger.error({ err: error }, "[Sync Dropship Status Cron Error]");
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

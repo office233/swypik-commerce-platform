@@ -63,7 +63,7 @@ export async function PATCH(
     );
 
     return NextResponse.json({ ok: true });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Reviews PATCH]");
     return NextResponse.json({ error: "internal" }, { status: 500 });
   }
@@ -95,7 +95,7 @@ export async function DELETE(
     await dbQuery(`DELETE FROM product_reviews WHERE id = $1`, [id]);
 
     return NextResponse.json({ ok: true });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Reviews DELETE]");
     return NextResponse.json({ error: "internal" }, { status: 500 });
   }
