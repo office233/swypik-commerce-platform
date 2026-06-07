@@ -38,7 +38,7 @@ export default function BottomNav() {
       data-testid="bottom-nav" className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-[#E5E5E5] dark:border-[#1F1F1F] shadow-[0_-2px_20px_rgba(0,0,0,0.05)]"
       style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
     >
-      <div className="mx-auto max-w-lg grid grid-cols-5 items-center px-2 pt-1.5 pb-1">
+      <div className="w-full grid grid-cols-5 items-center px-2 pt-1.5 pb-1">
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;

@@ -15,7 +15,31 @@ import {
   User as UserIcon,
   Phone,
   AtSign,
+  Globe,
 } from "lucide-react";
+
+/* ── Region → locale + currency mapping ─────────────────────────── */
+type Region = {
+  code: string;       // ISO 3166-1 alpha-2
+  name: string;
+  flag: string;
+  locale: "ro" | "en" | "es" | "fr" | "de" | "pt" | "it";
+  currency: "RON" | "EUR" | "USD" | "GBP";
+};
+const REGIONS: Region[] = [
+  { code: "RO", name: "România",        flag: "\uD83C\uDDF7\uD83C\uDDF4", locale: "ro", currency: "RON" },
+  { code: "MD", name: "Moldova",        flag: "\uD83C\uDDF2\uD83C\uDDE9", locale: "ro", currency: "EUR" },
+  { code: "GB", name: "United Kingdom", flag: "\uD83C\uDDEC\uD83C\uDDE7", locale: "en", currency: "GBP" },
+  { code: "US", name: "United States",  flag: "\uD83C\uDDFA\uD83C\uDDF8", locale: "en", currency: "USD" },
+  { code: "ES", name: "Espa\u00f1a",    flag: "\uD83C\uDDEA\uD83C\uDDF8", locale: "es", currency: "EUR" },
+  { code: "FR", name: "France",         flag: "\uD83C\uDDEB\uD83C\uDDF7", locale: "fr", currency: "EUR" },
+  { code: "DE", name: "Deutschland",    flag: "\uD83C\uDDE9\uD83C\uDDEA", locale: "de", currency: "EUR" },
+  { code: "AT", name: "\u00d6sterreich",flag: "\uD83C\uDDE6\uD83C\uDDF9", locale: "de", currency: "EUR" },
+  { code: "PT", name: "Portugal",       flag: "\uD83C\uDDF5\uD83C\uDDF9", locale: "pt", currency: "EUR" },
+  { code: "BR", name: "Brasil",         flag: "\uD83C\uDDE7\uD83C\uDDF7", locale: "pt", currency: "USD" },
+  { code: "IT", name: "Italia",         flag: "\uD83C\uDDEE\uD83C\uDDF9", locale: "it", currency: "EUR" },
+  { code: "OTHER", name: "Alt\u0103 \u021Bar\u0103 (English)", flag: "\uD83C\uDF0D", locale: "en", currency: "EUR" },
+];
 
 type Mode = "login" | "signup";
 
@@ -354,6 +378,9 @@ type SignupData = {
   username: string;
   phone: string;
   avatar_url: string;
+  country_code: string;
+  locale: string;
+  currency: string;
 };
 
 function SignupWizard({ nextPath }: { nextPath: string }) {
@@ -368,6 +395,9 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
     username: "",
     phone: "",
     avatar_url: "",
+    country_code: "",
+    locale: "",
+    currency: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -381,7 +411,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
 
   // Live username check (debounced)
   useEffect(() => {
-    if (step !== 3) return;
+    if (step !== 4) return;
     const handle = data.username.trim().toLowerCase();
     if (!handle) {
       setUsernameStatus("idle");
@@ -433,6 +463,9 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
           username: data.username.trim().toLowerCase(),
           phone: data.phone.trim() || undefined,
           avatar_url: data.avatar_url || undefined,
+          country_code: data.country_code || undefined,
+          locale: data.locale || undefined,
+          currency: data.currency || undefined,
           next: nextPath || undefined,
         }),
       });
@@ -440,9 +473,9 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
       if (!res.ok || !j.success) {
         setError(j.error || t("nuAmPututCreaContul"));
         // Sari înapoi la pasul relevant pentru field-ul cu eroare
-        if (j.field === "email") setStep(1);
-        else if (j.field === "username") { setStep(3); setUsernameStatus("taken"); }
-        else if (j.field === "phone") setStep(4);
+        if (j.field === "email") setStep(2);
+        else if (j.field === "username") { setStep(4); setUsernameStatus("taken"); }
+        else if (j.field === "phone") setStep(5);
         return;
       }
       const target =
@@ -458,42 +491,79 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
     }
   }
 
-  // Validări per-pas
+  // Validări per-pas (1=region, 2=email, 3=name, 4=username, 5=phone)
   const canAdvance =
     step === 1
-      ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && data.password.length >= 8
+      ? data.country_code.length > 0
       : step === 2
-        ? data.first_name.trim().length > 0 && data.last_name.trim().length > 0
+        ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && data.password.length >= 8
         : step === 3
-          ? usernameStatus === "available"
-          : true;
+          ? data.first_name.trim().length > 0 && data.last_name.trim().length > 0
+          : step === 4
+            ? usernameStatus === "available"
+            : true;
 
   return (
     <section className="flex flex-1 flex-col">
       <div className="mb-6">
         <p className="text-xs font-bold uppercase tracking-widest text-[#7C3AED]">
-          {t("pasDin", { step, total: 4 })}
+          {t("pasDin", { step, total: 5 })}
         </p>
         <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">
-          {step === 1 && t("emailParola")}
-          {step === 2 && t("cumTeCheama")}
-          {step === 3 && t("alegeUnUsername")}
-          {step === 4 && t("aproapeGata")}
+          {step === 1 && "Alege regiunea"}
+          {step === 2 && t("emailParola")}
+          {step === 3 && t("cumTeCheama")}
+          {step === 4 && t("alegeUnUsername")}
+          {step === 5 && t("aproapeGata")}
         </h1>
         <p className="mt-2 text-sm text-white/60">
-          {step === 1 && t("folosimEmailulRecuperare")}
-          {step === 2 && t("apareProfilulPublic")}
-          {step === 3 && t("numeleUnicPrieteni")}
-          {step === 4 && t("telefonAvatarOptionale")}
+          {step === 1 && "Determină limba și moneda implicită ale aplicației. Le poți schimba ulterior din Setări."}
+          {step === 2 && t("folosimEmailulRecuperare")}
+          {step === 3 && t("apareProfilulPublic")}
+          {step === 4 && t("numeleUnicPrieteni")}
+          {step === 5 && t("telefonAvatarOptionale")}
         </p>
       </div>
 
-      <ProgressBar step={step} total={4} />
+      <ProgressBar step={step} total={5} />
 
       {error && <ErrorBanner text={error} />}
 
-      {step === 1 && <OAuthButtons nextPath={nextPath} />}
       {step === 1 && (
+        <div className="space-y-2" role="radiogroup" aria-label="Regiune">
+          {REGIONS.map((r) => {
+            const selected = data.country_code === r.code;
+            return (
+              <button
+                key={r.code}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => {
+                  update("country_code", r.code);
+                  update("locale", r.locale);
+                  update("currency", r.currency);
+                }}
+                className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${
+                  selected
+                    ? "border-[#7C3AED] bg-[#7C3AED]/10"
+                    : "border-white/10 bg-white/[0.04] hover:bg-white/[0.07]"
+                }`}
+              >
+                <span className="text-2xl" aria-hidden>{r.flag}</span>
+                <span className="flex-1">
+                  <span className="block text-[15px] font-bold text-white">{r.name}</span>
+                  <span className="block text-xs text-white/50">{r.locale.toUpperCase()} · {r.currency}</span>
+                </span>
+                {selected && <CheckCircle2 className="h-5 w-5 text-[#7C3AED]" aria-hidden />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {step === 2 && <OAuthButtons nextPath={nextPath} />}
+      {step === 2 && (
         <div className="space-y-4">
           <FieldEmail value={data.email} onChange={(v) => update("email", v)} />
           <FieldPassword
@@ -505,7 +575,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
         </div>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <div className="space-y-4">
           <FieldText
             label={t("prenume")}
@@ -526,7 +596,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
         </div>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <div className="space-y-4">
           <FieldText
             label={t("username")}
@@ -540,7 +610,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
         </div>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <div className="space-y-4">
           <FieldText
             label={t("telefonOptional")}
@@ -568,7 +638,7 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
             <ArrowLeft className="h-4 w-4" /> {t("inapoi")}
           </button>
         )}
-        {step < 4 ? (
+        {step < 5 ? (
           <button
             type="button"
             onClick={next}

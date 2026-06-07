@@ -361,6 +361,9 @@ export async function POST(req: Request) {
     last_name,
     username,
     avatar_url,
+    country_code,
+    locale: bodyLocale,
+    currency: bodyCurrency,
   } = body || {};
   const cookieStore = await cookies();
 
@@ -480,18 +483,28 @@ export async function POST(req: Request) {
       const passwordHash = await bcrypt.hash(password, 12);
       const displayName = `${first_name.trim()} ${last_name.trim()}`.trim();
 
+      const ALLOWED_LOCALES = ["ro", "en", "es", "fr", "de", "pt", "it"] as const;
+      const ALLOWED_CURRENCIES = ["RON", "EUR", "USD", "GBP"] as const;
+      const safeLocale = ALLOWED_LOCALES.includes(bodyLocale) ? bodyLocale : "ro";
+      const safeCurrency = ALLOWED_CURRENCIES.includes(bodyCurrency) ? bodyCurrency : "RON";
+      const safeCountry =
+        typeof country_code === "string" && /^[A-Z]{2}$/.test(country_code.toUpperCase())
+          ? country_code.toUpperCase()
+          : null;
+      const metadataJson = JSON.stringify(safeCountry ? { country_code: safeCountry } : {});
+
       const { rows: insertRows } = await dbQuery<{ id: string }>(
         `INSERT INTO users (
            username, email, display_name, first_name, last_name,
            phone, avatar_url, password_hash, password_set_at,
-           locale, role, status, suspend_grace_until, auth_providers, metadata
+           locale, preferred_currency, role, status, suspend_grace_until, auth_providers, metadata
          ) VALUES (
            $1, $2, $3, $4, $5,
            $6, $7, $8, now(),
-           'ro', 'creator', 'active',
+           $9, $10, 'creator', 'active',
            NULL,
            ARRAY['email_password']::text[],
-           '{}'::jsonb
+           $11::jsonb
          )
          RETURNING id`,
         [
@@ -503,6 +516,9 @@ export async function POST(req: Request) {
           phoneTrimmed || null,
           typeof avatar_url === "string" ? avatar_url : null,
           passwordHash,
+          safeLocale,
+          safeCurrency,
+          metadataJson,
         ],
       );
 

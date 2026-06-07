@@ -53,7 +53,7 @@ import OnboardingGate from "@/components/onboarding/OnboardingGate";
 import PushPrompt from "@/components/notifications/PushPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import CookieBanner from "@/components/CookieBanner";
-import LocaleFab from "@/components/i18n/LocaleFab";
+// LocaleFab removed: language switch is only available in /account/preferences
 import { getTranslations } from "next-intl/server";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -149,7 +149,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PushPrompt />
             <InstallPrompt />
             <CookieBanner />
-                      <LocaleFab />
           </CurrencyProvider>
         </NextIntlClientProvider>
       </body>
