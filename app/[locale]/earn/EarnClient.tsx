@@ -149,11 +149,11 @@ export default function EarnClient() {
       <div className="px-5 pt-6 pb-4">
         <div className="flex items-center justify-between mb-4">
           <Link
-            href="/wallet"
+            href="/account"
             className="text-sm text-violet-300 flex items-center gap-1 hover:text-violet-200"
           >
             <Wallet className="w-4 h-4" />
-            Wallet
+            Profile
           </Link>
           <Link
             href="/earn/leaderboard"
@@ -268,10 +268,10 @@ export default function EarnClient() {
       {/* BOOST ACTIONS */}
       <div className="mx-5 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ActionCard
-          href="/wallet/swypik/kyc"
+          href="#"
           icon={<ShieldCheck className="w-5 h-5" />}
           title="Verify face (KYC)"
-          subtitle={stats?.kyc_face_verified ? "Verified — +50% applied" : "+50% boost & unlock referrals"}
+          subtitle={stats?.kyc_face_verified ? "Verified — +50% applied" : "Coming soon — +50% boost"}
           done={stats?.kyc_face_verified}
         />
         <ActionCard
