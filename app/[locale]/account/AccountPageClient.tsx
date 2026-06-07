@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, TrendingUp, Swords } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, ChevronRight, TrendingUp, Swords, Pickaxe, Sparkles } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
 import { useTranslations } from "next-intl";
 
@@ -19,8 +19,8 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
   const [orders, setOrders] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"videos" | "orders" | "saved">("videos");
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [challengesCount, setChallengesCount] = useState<number | null>(null);
+  const [swypBalance, setSwypBalance] = useState<string | null>(null);
+  const [swypStreak, setSwypStreak] = useState<number | null>(null);
   
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -49,23 +49,23 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       }
 
       try {
-        const resWallet = await fetch("/api/wallet");
-        if (resWallet.ok) {
-          const dw = await resWallet.json();
-          if (typeof dw.balance === "number") setWalletBalance(dw.balance);
+        const resBal = await fetch("/api/swypik-token/balance");
+        if (resBal.ok) {
+          const db = await resBal.json();
+          if (typeof db.balance === "string") setSwypBalance(db.balance);
         }
       } catch (e) {
-        console.error("wallet fetch failed", e);
+        console.error("swypik balance fetch failed", e);
       }
 
       try {
-        const resCh = await fetch("/api/challenges");
-        if (resCh.ok) {
-          const dc = await resCh.json();
-          if (Array.isArray(dc.challenges)) setChallengesCount(dc.challenges.length);
+        const resStats = await fetch("/api/swypik-token/stats");
+        if (resStats.ok) {
+          const ds = await resStats.json();
+          if (typeof ds.streak_current === "number") setSwypStreak(ds.streak_current);
         }
       } catch (e) {
-        console.error("challenges fetch failed", e);
+        console.error("swypik stats fetch failed", e);
       }
     } catch (e) {
       console.error(e);
@@ -301,52 +301,52 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           </div>
         </div>
 
-        {/* Coins & Provocari */}
-        <section aria-label="Coins si provocari" className="mb-6">
+        {/* $SWYP Token */}
+        <section aria-label="$SWYP Token" className="mb-6">
           <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-sm font-black uppercase tracking-wider text-white/70">{t("coinsProvocari")}</h3>
+            <h3 className="text-sm font-black uppercase tracking-wider text-white/70">$SWYP Token</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Link
-              href="/wallet"
+              href="/earn"
+              className="group relative overflow-hidden rounded-2xl border border-[#FBBF24]/20 bg-gradient-to-br from-[#FBBF24]/15 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#FBBF24]/60 transition active:scale-[0.98]"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-9 h-9 rounded-xl bg-[#FBBF24]/20 flex items-center justify-center">
+                  <Sparkles size={18} className="text-[#FBBF24]" aria-hidden />
+                </div>
+                <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
+              </div>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Balanță</p>
+              <p className="mt-1 text-xl font-black text-white">
+                {swypBalance === null ? (
+                  <span className="inline-block h-5 w-16 rounded bg-white/10 animate-pulse align-middle" aria-label={t("seIncarca")} />
+                ) : (
+                  <>{Number(swypBalance).toLocaleString("ro-RO", { maximumFractionDigits: 4 })} <span className="text-xs text-[#FBBF24]/80 font-bold">$SWYP</span></>
+                )}
+              </p>
+              <p className="mt-1 text-xs text-[#FBBF24] font-bold">Vezi wallet →</p>
+            </Link>
+
+            <Link
+              href="/earn"
               className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#7C3AED]/20 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#7C3AED]/60 transition active:scale-[0.98]"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="w-9 h-9 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center">
-                  <Coins size={18} className="text-[#FBBF24]" aria-hidden />
+                  <Pickaxe size={18} className="text-[#7C3AED]" aria-hidden />
                 </div>
                 <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
               </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Portofel SWYP</p>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Mining streak</p>
               <p className="mt-1 text-xl font-black text-white">
-                {walletBalance === null ? (
-                  <span className="inline-block h-5 w-16 rounded bg-white/10 animate-pulse align-middle" aria-label={t("seIncarca")} />
-                ) : (
-                  <>{walletBalance.toLocaleString("ro-RO")} <span className="text-xs text-white/50 font-bold">coins</span></>
-                )}
-              </p>
-              <p className="mt-1 text-xs text-[#7C3AED] font-bold">Vezi portofel →</p>
-            </Link>
-
-            <Link
-              href="/challenges"
-              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#EC4899]/20 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#EC4899]/60 transition active:scale-[0.98]"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-9 h-9 rounded-xl bg-[#EC4899]/20 flex items-center justify-center">
-                  <Trophy size={18} className="text-[#EC4899]" aria-hidden />
-                </div>
-                <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
-              </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">{t("provocariActive")}</p>
-              <p className="mt-1 text-xl font-black text-white">
-                {challengesCount === null ? (
+                {swypStreak === null ? (
                   <span className="inline-block h-5 w-10 rounded bg-white/10 animate-pulse align-middle" aria-label={t("seIncarca2")} />
                 ) : (
-                  <>{challengesCount} <span className="text-xs text-white/50 font-bold">{challengesCount === 1 ? "activă" : "active"}</span></>
+                  <>{swypStreak} <span className="text-xs text-white/50 font-bold">{swypStreak === 1 ? "zi" : "zile"}</span></>
                 )}
               </p>
-              <p className="mt-1 text-xs text-[#EC4899] font-bold">{t("veziProvocari")}</p>
+              <p className="mt-1 text-xs text-[#7C3AED] font-bold">Mine acum →</p>
             </Link>
           </div>
         </section>
