@@ -185,6 +185,11 @@ export const RATE_LIMITS = {
   referralGet: { limit: 30, window: 60 } as RateLimitConfig,          // referral code GET/POST
   reviewHelpful: { limit: 30, window: 60 } as RateLimitConfig,        // toggle helpful
   ageVerifyStart: { limit: 3, window: 600 } as RateLimitConfig,       // Stripe Identity (expensive)
+  // ── Added 2026-06-07: $SWYP token mining anti-abuse ────────────────
+  swypikMineChallenge: { limit: 10, window: 60 } as RateLimitConfig,  // PoW challenge issuance (cheap GET)
+  swypikMineClaim: { limit: 5, window: 60 } as RateLimitConfig,       // claim submit (rate-of-attempts cap; 24h cooldown enforced by chain)
+  swypikLeaderboard: { limit: 30, window: 60 } as RateLimitConfig,    // public leaderboard reads
+  swypikStats: { limit: 60, window: 60 } as RateLimitConfig,          // user stats reads (called on Earn page load)
 } as const;
 
 /**

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { swypikFetch, SwypikChainError } from "@/lib/swypik-chain/client";
+import { rateLimit } from "@/lib/security/rate-limit";
 import type { LeaderboardEntry } from "@/lib/swypik-chain/types";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const user = await getAuthUser();
   if (!user.userId) return NextResponse.json({ error: "unauth" }, { status: 401 });
+  const rl = await rateLimit("swypikLeaderboard", user.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const limit = new URL(req.url).searchParams.get("limit") ?? "50";
   try {
     const data = await swypikFetch<{ top: LeaderboardEntry[] }>(
