@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
-import { attachReplies, chooseCommentStatus, mapCommentRow, validateCommentText } from "@/lib/social/comments";
+import { attachReplies, chooseCommentStatus, mapCommentRow, validateCommentText, type CommentRow } from "@/lib/social/comments";
 import { moderateText } from "@/lib/moderation/moderateText";
 import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
@@ -87,7 +87,7 @@ export async function GET(
     }
 
     const [{ rows: topLevelRows }, countRes] = await Promise.all([
-      dbQuery(
+      dbQuery<CommentRow>(
         `SELECT ${COMMENT_SELECT}
          FROM comments c
          LEFT JOIN users u ON u.id = c.user_id
@@ -108,11 +108,11 @@ export async function GET(
       ),
     ]);
 
-    const topLevelIds = topLevelRows.map((row: any) => row.id);
-    let replyRows: any[] = [];
+    const topLevelIds = topLevelRows.map((row) => row.id);
+    let replyRows: CommentRow[] = [];
 
     if (topLevelIds.length > 0) {
-      const replies = await dbQuery(
+      const replies = await dbQuery<CommentRow>(
         `SELECT *
          FROM (
            SELECT

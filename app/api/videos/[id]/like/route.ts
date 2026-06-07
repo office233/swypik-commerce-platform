@@ -92,7 +92,7 @@ export async function POST(
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Like API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -119,7 +119,7 @@ export async function GET(
     const likeCount = parseInt(videoRes.rows[0]?.like_count || "0", 10);
 
     return NextResponse.json({ liked, like_count: likeCount });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Like API] GET Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

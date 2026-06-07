@@ -85,7 +85,7 @@ export async function POST(
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Follow API] POST Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -119,7 +119,7 @@ export async function GET(
     const followerCount = parseInt(countRes.rows[0]?.count || "0", 10);
 
     return NextResponse.json({ following, follower_count: followerCount });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Follow API] GET Error:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
