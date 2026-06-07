@@ -62,8 +62,9 @@ export async function POST(
         RETURNING *
       `, [challengeId, userId, videoId]);
       entry = rows[0];
-    } catch (e: any) {
-      if (e.code === '23505') { // UNIQUE constraint violation
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      if (code === '23505') { // UNIQUE constraint violation
         return NextResponse.json({ error: "Already entered" }, { status: 400 });
       }
       throw e;
@@ -79,7 +80,7 @@ export async function POST(
     }
 
     return NextResponse.json({ entry, points_awarded: pointsAwarded });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "POST /api/challenges/[id]/enter Error:");
     return NextResponse.json({ error: "Failed to enter challenge" }, { status: 500 });
   }

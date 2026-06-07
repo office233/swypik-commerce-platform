@@ -39,9 +39,9 @@ export async function POST(
     return NextResponse.json({ error: "Missing video id" }, { status: 400 });
   }
 
-  let body: any = {};
+  let body: { sourceUrl?: unknown; source_url?: unknown } = {};
   try {
-    body = await req.json();
+    body = (await req.json()) as { sourceUrl?: unknown; source_url?: unknown };
   } catch {
     // Empty body is fine — we'll auto-discover the source URL.
   }
@@ -92,10 +92,11 @@ export async function POST(
       },
       { status: 202 }
     );
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, `[Admin Videos] reencode ${videoId} error:`);
+    const message = error instanceof Error ? error.message : "Re-encode failed";
     return NextResponse.json(
-      { error: error?.message || "Re-encode failed" },
+      { error: message },
       { status: 500 }
     );
   }
