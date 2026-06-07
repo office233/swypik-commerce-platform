@@ -120,12 +120,13 @@ export async function POST(
       refundStatus = refund.status || "pending";
       refundAmountCents = refund.amount || 0;
       refundCurrency = String(refund.currency || "ron").toUpperCase();
-    } catch (stripeError: any) {
+    } catch (stripeError) {
       logger.error({ err: stripeError }, "[Seller Refund] Stripe refund error:");
+      const message = stripeError instanceof Error ? stripeError.message : "Eroare necunoscuta";
       return NextResponse.json(
         {
           success: false,
-          error: `Eroare Stripe la restituire: ${stripeError.message || "Eroare necunoscuta"}`,
+          error: `Eroare Stripe la restituire: ${message}`,
         },
         { status: 502 }
       );
@@ -181,16 +182,18 @@ export async function POST(
       [orderId, sellerId, refundId]
     );
     for (const row of sellerClawback) {
-      console.error(
-        '[refund-after-payout] seller payout already settled - manual Stripe clawback required',
-        JSON.stringify({
+      logger.error(
+        {
+          event: "refund-after-payout",
+          payee: "seller",
           order_id: orderId,
           item_id: row.id,
           seller_id: sellerId,
           amount_cents: row.amount_cents,
           transfer_id: row.transfer_id,
           refund_id: refundId,
-        })
+        },
+        "[refund-after-payout] seller payout already settled - manual Stripe clawback required"
       );
     }
 
@@ -236,16 +239,18 @@ export async function POST(
       [orderId, sellerId]
     );
     for (const row of creatorClawback) {
-      console.error(
-        '[refund-after-payout] creator payout already settled - manual Stripe clawback required',
-        JSON.stringify({
+      logger.error(
+        {
+          event: "refund-after-payout",
+          payee: "creator",
           order_id: orderId,
           item_id: row.id,
           creator_id: row.creator_id,
           amount_cents: row.amount_cents,
           transfer_id: row.transfer_id,
           refund_id: refundId,
-        })
+        },
+        "[refund-after-payout] creator payout already settled - manual Stripe clawback required"
       );
     }
 
@@ -284,7 +289,7 @@ export async function POST(
     logger.info({ order_id: orderId, seller_id: sellerId }, "[Seller Refund] order marked as refunded");
 
     return NextResponse.json({ success: true, refundId, refundStatus });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller Refund] Unexpected error:");
     return NextResponse.json(
       { success: false, error: "Eroare interna. Incearca din nou." },

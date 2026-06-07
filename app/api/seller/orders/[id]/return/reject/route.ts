@@ -36,9 +36,9 @@ export async function POST(
     const rl = await rateLimit("sellerReturns", sellerId);
     if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
-    let body: any = {};
+    let body: { note?: unknown } = {};
     try {
-      body = await req.json();
+      body = (await req.json()) as { note?: unknown };
     } catch {
       body = {};
     }
@@ -47,7 +47,17 @@ export async function POST(
         ? body.note.trim().slice(0, 500)
         : null;
 
-    const { rows } = await dbQuery(
+    const { rows } = await dbQuery<{
+      id: string;
+      status: string;
+      metadata: {
+        return_status?: string;
+        delivered_at?: string;
+        fulfillment_status?: string;
+        tracking_number?: string;
+      } | null;
+      seller_items: number;
+    }>(
       `SELECT
          co.id,
          co.status,
@@ -103,7 +113,7 @@ export async function POST(
     );
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "[Seller Return Reject] failed");
     return NextResponse.json(
       { success: false, error: "Eroare internă. Încearcă din nou." },
