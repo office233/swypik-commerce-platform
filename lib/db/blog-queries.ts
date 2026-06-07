@@ -49,7 +49,24 @@ export type BlogArticleFilters = {
 
 const DEFAULT_LOCALE = "ro";
 
-function rowToSummary(r: any): BlogArticleSummary {
+type BlogArticleRow = {
+  id: string | number;
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  hero_image_url?: string | null;
+  hero_image_alt?: string | null;
+  category?: string | null;
+  tags?: string[] | null;
+  author_name?: string | null;
+  author_avatar?: string | null;
+  read_time_min?: number | string | null;
+  view_count?: number | string | null;
+  published_at?: string | Date | null;
+  linked_product_count?: number | string | null;
+};
+
+function rowToSummary(r: BlogArticleRow): BlogArticleSummary {
   return {
     id: String(r.id),
     slug: String(r.slug),
@@ -100,7 +117,7 @@ export async function listBlogArticles(filters: BlogArticleFilters = {}): Promis
   const offset = Math.max(filters.offset ?? 0, 0);
   const status = filters.status ?? "published";
 
-  const params: any[] = [locale];
+  const params: Array<string | number> = [locale];
   const where: string[] = [];
 
   if (status !== "all") {
@@ -232,8 +249,8 @@ export async function listPublishedSlugs(locale?: string): Promise<Array<{ slug:
     WHERE a.status = 'published'
     ORDER BY a.published_at DESC NULLS LAST
   `;
-  const { rows } = await dbQuery(sql, [loc]);
-  return rows.map((r: any) => ({
+  const { rows } = await dbQuery<{ slug: string; updated_at: string | Date }>(sql, [loc]);
+  return rows.map((r) => ({
     slug: String(r.slug),
     updatedAt: new Date(r.updated_at).toISOString(),
   }));

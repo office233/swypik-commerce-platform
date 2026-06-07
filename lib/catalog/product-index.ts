@@ -34,7 +34,7 @@ export async function searchIndexedProducts({
   minPrice?: number;
   maxPrice?: number;
 }) {
-  const params: any[] = [];
+  const params: Array<string | number> = [];
   const where: string[] = [];
 
   if (query?.trim()) {
@@ -99,11 +99,28 @@ export async function searchIndexedProducts({
   };
 }
 
-export async function upsertIndexedProducts(products: any[]) {
+type UpsertProductInput = {
+  id: string;
+  supplierProductId: string;
+  supplierVariantId?: string | null;
+  handle: string;
+  title: string;
+  description?: string | null;
+  category?: string | null;
+  vendor?: string | null;
+  tags?: string[] | null;
+  imageUrl?: string | null;
+  price: number;
+  compareAtPrice?: number | null;
+  availableForSale?: boolean;
+  inventoryQuantity?: number | null;
+};
+
+export async function upsertIndexedProducts(products: UpsertProductInput[]) {
   if (!products.length) return;
 
   const values: string[] = [];
-  const params: any[] = [];
+  const params: Array<string | number | boolean | string[] | null | undefined> = [];
 
   products.forEach((p, index) => {
     const offset = index * 15;

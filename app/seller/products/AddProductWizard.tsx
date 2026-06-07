@@ -69,8 +69,8 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         setTaxonomySlug(list[0].slug);
         setCategoryText(list[0].label);
       }
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setClassifying(false);
     }
@@ -91,8 +91,8 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         const data = await res.json();
         if (!data.success) throw new Error(data.error || t("errUpload"));
         setImages((arr) => [...arr, { url: data.url, key: data.key }]);
-      } catch (e: any) {
-        setError(`${f.name}: ${e.message}`);
+      } catch (e) {
+        setError(`${f.name}: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
         setUploadingCount((c) => c - 1);
       }
@@ -124,7 +124,32 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
     setSaving(true);
     setError(null);
     try {
-      const payload: any = {
+      type ProductPayload = {
+        title: string;
+        description?: string;
+        brand?: string;
+        sku?: string;
+        price: number;
+        compare_at_price?: number;
+        supplier_cost?: number;
+        currency: string;
+        stock: number;
+        category?: string;
+        taxonomy_node_slug?: string;
+        image_urls: string[];
+        shipping_cost?: number;
+        shipping_days_min?: number;
+        shipping_days_max?: number;
+        courier?: string;
+        variants?: Array<{
+          sku?: string;
+          title?: string;
+          attributes: Record<string, string>;
+          price_cents?: number;
+          inventory_quantity?: number;
+        }>;
+      };
+      const payload: ProductPayload = {
         title: title.trim(),
         description: description.trim() || undefined,
         brand: brand.trim() || undefined,
@@ -164,8 +189,8 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
       const data = await res.json();
       if (!data.success) throw new Error(data.error || t("errSalvare"));
       onSaved();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
