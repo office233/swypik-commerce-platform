@@ -485,7 +485,13 @@
     "finalizeazaComandaLei": "Completa l'ordine — {amt} €",
     "seProceseazaDots": "Elaborazione...",
     "totalLeiCompactLabel": "Totale: {amt} €",
-    "economiseaCompactSavings": "risparmi {amt} €"
+    "economiseaCompactSavings": "risparmi {amt} €",
+    "maiIeftin": "💰 Più economico",
+    "topCalitate": "⭐ Top qualità",
+    "maiNoi": "🆕 Più recenti",
+    "bundleComplet": "Bundle completo",
+    "navChat": "Chat",
+    "promptMaiIeftin": "voglio più economico"
   },
   "checkoutForm": {
     "adresaDeLivrare": "📍 Indirizzo di spedizione",
@@ -1927,7 +1933,9 @@
     "inchide2": "Chiudi"
   },
   "topBar": {
-    "cos": "Carrello"
+    "cos": "Carrello",
+    "categorii": "Categorie",
+    "inbox": "Posta in arrivo"
   },
   "installPrompt": {
     "instaleazaAplicatia": "Installa l'app",
@@ -1976,7 +1984,13 @@
     "seIncarcaClipurile": "Caricamento clip...",
     "cos": "Carrello",
     "vandute": "{n}+ venduti",
-    "adaugat": "Aggiunto"
+    "adaugat": "Aggiunto",
+    "badgeDealBun": "Ottimo affare",
+    "badgeTopCalitate": "Top qualità",
+    "badgePopular": "Popolare",
+    "badgeAiPick": "Scelta AI",
+    "niciunClipDisponibil": "Nessun clip disponibile",
+    "detalii": "Dettagli"
   },
   "seo": {
     "siteTitle": "Swypik — Acquista con i Video. Marketplace con AI.",

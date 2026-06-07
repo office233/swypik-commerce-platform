@@ -140,12 +140,12 @@ function eventSubject(type: string, product: FeedProduct) {
   return videoId ? { subject_type: "video", subject_id: videoId } : { subject_type: "product", subject_id: productEventId(product) };
 }
 
-function aiOverlay(product: FeedProduct) {
-  if (product.commerceBadge) return product.commerceBadge;
-  if (product.discountPercent >= 20) return "Deal bun";
-  if (product.rating >= 4.8) return "Top calitate";
-  if ((product.orders || 0) > 250) return "Popular";
-  return "AI Pick";
+function aiOverlayKey(product: FeedProduct): { raw?: string; key?: "badgeDealBun" | "badgeTopCalitate" | "badgePopular" | "badgeAiPick" } {
+  if (product.commerceBadge) return { raw: product.commerceBadge };
+  if (product.discountPercent >= 20) return { key: "badgeDealBun" };
+  if (product.rating >= 4.8) return { key: "badgeTopCalitate" };
+  if ((product.orders || 0) > 250) return { key: "badgePopular" };
+  return { key: "badgeAiPick" };
 }
 
 function getRealLikes(product: FeedProduct) {
@@ -430,7 +430,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       <div className="feed-scroll flex items-center justify-center">
         <div className="px-8 text-center">
           <Package className="mx-auto mb-4 text-[#333]" size={48} />
-          <p className="font-black text-[#888]">Niciun clip disponibil</p>
+          <p className="font-black text-[#888]">{tFeed("niciunClipDisponibil")}</p>
         </div>
       </div>
     );
@@ -529,20 +529,20 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
                   <ShoppingCart size={24} />
                 </div>
-                <span className="text-[10px] font-bold text-white/90">Detalii</span>
+                <span className="text-[10px] font-bold text-white/90">{tFeed("detalii")}</span>
               </button>
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
               <div className="mb-3">
                 <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">{aiOverlay(product)}</span>
+                  {(() => { const o = aiOverlayKey(product); return (<span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">{o.raw ?? tFeed(o.key!)}</span>); })()}
                   {product.discountPercent > 0 && <span className="rounded-full bg-[#DC2626] px-2.5 py-0.5 text-[10px] font-black text-white">-{product.discountPercent}%</span>}
                 </div>
                 <h2 className="line-clamp-2 text-[15px] font-black leading-snug text-white drop-shadow-lg">{product.title}</h2>
                 <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
                   <span><Star size={11} className="mr-0.5 inline text-[#B45309]" fill="currentColor" />{product.rating.toFixed(1)}</span>
-                  <span>{product.isEstimatedSocial ? "Popular" : tFeed("vandute", { n: product.orders.toLocaleString() })}</span>
+                  <span>{product.isEstimatedSocial ? tFeed("badgePopular") : tFeed("vandute", { n: product.orders.toLocaleString() })}</span>
                   <span><Truck size={11} className="mr-0.5 inline" />{product.deliveryDays}z</span>
                 </div>
               </div>

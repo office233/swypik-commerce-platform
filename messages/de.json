@@ -412,7 +412,7 @@
     "economisesti": "Du sparst {amount} €",
     "totBundleAdaugat": "🎁 Ganzes Bundle hinzugefügt!",
     "arataAltele": "🔄 Andere anzeigen",
-    "promptArataAltceva": "Zeig mir was anderes",
+    "promptArataAltceva": "zeig mir etwas anderes",
     "promptDoarTopCalitate": "Nur Top-Qualität zeigen",
     "promptProduseNoi": "Zeig mir neuere Produkte",
     "comparaTop2": "⚖️ Top 2 vergleichen",
@@ -458,7 +458,7 @@
     "insightBestValue": "🏆 Bestes Angebot",
     "insightRatingPesteMedie": "⭐ Bewertung {rating}/5 – überdurchschnittliche Qualität",
     "insightComenziSellerIncredere": "✅ {orders}+ Bestellungen – vertrauenswürdiger Seller",
-    "insightVanduteVerificat": "📦 {orders}+ verkauft – geprüftes Produkt",
+    "insightVanduteVerificat": "📦 {orders}+ verkauft — verifiziertes Produkt",
     "insightReducereRealaPct": "💰 Echte Ersparnis von {pct}% gegenüber dem Normalpreis",
     "insightBestValueCategorie": "🏆 Bestes Preis-Leistungs-Verhältnis seiner Kategorie",
     "insightLivrareRapidaZile": "🚀 Schnelle Lieferung — {days} Tage",
@@ -485,7 +485,13 @@
     "finalizeazaComandaLei": "Bestellung abschließen – {amt} Lei",
     "seProceseazaDots": "Wird verarbeitet …",
     "totalLeiCompactLabel": "Gesamt: {amt} Lei",
-    "economiseaCompactSavings": "du sparst {amt} €"
+    "economiseaCompactSavings": "du sparst {amt} €",
+    "maiIeftin": "💰 Günstiger",
+    "topCalitate": "⭐ Top Qualität",
+    "maiNoi": "🆕 Neuere",
+    "bundleComplet": "Komplettes Bundle",
+    "navChat": "Chat",
+    "promptMaiIeftin": "ich möchte günstiger"
   },
   "checkoutForm": {
     "adresaDeLivrare": "📍 Lieferadresse",
@@ -1927,7 +1933,9 @@
     "inchide2": "Schließen"
   },
   "topBar": {
-    "cos": "Warenkorb"
+    "cos": "Warenkorb",
+    "categorii": "Kategorien",
+    "inbox": "Posteingang"
   },
   "installPrompt": {
     "instaleazaAplicatia": "App installieren",
@@ -1976,7 +1984,13 @@
     "seIncarcaClipurile": "Clips werden geladen …",
     "cos": "Warenkorb",
     "vandute": "{n}+ verkauft",
-    "adaugat": "Hinzugefügt"
+    "adaugat": "Hinzugefügt",
+    "badgeDealBun": "Top Deal",
+    "badgeTopCalitate": "Top Qualität",
+    "badgePopular": "Beliebt",
+    "badgeAiPick": "KI-Auswahl",
+    "niciunClipDisponibil": "Keine Clips verfügbar",
+    "detalii": "Details"
   },
   "seo": {
     "siteTitle": "Swypik – Per Video shoppen. Marktplatz mit KI.",
