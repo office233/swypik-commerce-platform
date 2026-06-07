@@ -126,7 +126,15 @@ export async function aliexpressProductDetail(
     const ronShipping = Math.round(shippingCost * USD_TO_RON);
 
     // Extract SKU variants
-    const variants = (item.sku?.skuList || []).slice(0, 6).map((sku: any) => ({
+    type AeSku = {
+      skuId?: string;
+      propPath?: string;
+      skuVal?: {
+        actSkuCalPrice?: string;
+        skuAmount?: { value?: number };
+      };
+    };
+    const variants = (item.sku?.skuList || []).slice(0, 6).map((sku: AeSku) => ({
       sourceVariantId: sku.skuId || `sku-${Math.random().toString(36).slice(2)}`,
       title: sku.skuVal?.actSkuCalPrice ? `${sku.skuVal.actSkuCalPrice} EUR` : "Standard",
       options: { variant: sku.propPath || "Standard" },
@@ -162,10 +170,20 @@ export async function aliexpressProductDetail(
   }
 }
 
+type AeSearchItem = {
+  itemId?: string | number;
+  title?: string;
+  image?: string | { imgUrl?: string };
+  sku?: { def?: { promotionPrice?: number | string; price?: number | string } };
+  averageStarRate?: number;
+  sales?: number | string;
+  trade?: { tradeDesc?: string };
+};
+
 /**
  * Parse a search result item into SupplierProduct
  */
-function parseSearchItem(item: any): SupplierProduct | null {
+function parseSearchItem(item: AeSearchItem): SupplierProduct | null {
   try {
     const itemId = String(item.itemId || "");
     if (!itemId) return null;

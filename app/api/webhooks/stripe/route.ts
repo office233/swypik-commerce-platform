@@ -411,7 +411,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
         quantity: number;
         unit_amount_cents: number;
         // jsonb column with variable shape (pg_id, product_id, sku_id, skuId, etc.)
-        metadata: any;
+        metadata: Record<string, unknown>;
       }>(
         `SELECT product_id::text AS product_id, title, quantity, unit_amount_cents, metadata
            FROM commerce_order_items WHERE order_id = $1`,
@@ -445,7 +445,7 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
     currency: string;
     total_cents: number;
     // jsonb column; shape varies (shipping_address, billing_address, checkout_ip_country, item_count, items, fraud_*)
-    metadata: any;
+    metadata: Record<string, unknown>;
     buyer_email: string | null;
     buyer_phone: string | null;
     buyer_email_verified_at: string | null;
@@ -481,10 +481,11 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
   const o = rows[0];
   if (!o) return;
 
-  const md = o.metadata || {};
-  const ship = md.shipping_address || {};
-  const bill = md.billing_address || {};
-  const items = Array.isArray(md.items) ? md.items : [];
+  type AddressShape = { line1?: string; address_line_1?: string; country?: string };
+  const md = (o.metadata || {}) as Record<string, unknown>;
+  const ship = (md.shipping_address || {}) as AddressShape;
+  const bill = (md.billing_address || {}) as AddressShape;
+  const items = Array.isArray(md.items) ? (md.items as unknown[]) : [];
   const itemCount = Number(md.item_count) || items.length || 1;
   const accountAgeDays = o.buyer_created_at
     ? Math.floor((Date.now() - new Date(o.buyer_created_at).getTime()) / 86_400_000)
@@ -497,7 +498,7 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
     hasShippingAddress: Boolean(ship.line1 || ship.address_line_1),
     shippingCountry: ship.country || null,
     billingCountry: bill.country || null,
-    ipCountry: md.checkout_ip_country || null,
+    ipCountry: (typeof md.checkout_ip_country === "string" ? md.checkout_ip_country : null),
     email: o.buyer_email,
     phone: o.buyer_phone,
     buyerAccountAgeDays: o.buyer_user_id ? accountAgeDays : null,

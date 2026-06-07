@@ -4,10 +4,10 @@
  */
 
 import { searchProducts, type ProductFilters } from "@/lib/db/product-queries";
-import { inferBundleQueries, buildSalesSuggestion } from "@/lib/sales/bundle-engine";
+import { inferBundleQueries, buildSalesSuggestion, type BundleProduct } from "@/lib/sales/bundle-engine";
 import { detectCategory } from "./category-detect";
 
-type ProductModel = any;
+type ProductModel = BundleProduct;
 
 export async function searchPG(
   query: string,
@@ -30,7 +30,7 @@ export async function searchPG(
 
 export function uniqueProducts(products: ProductModel[]) {
   return products.filter(
-    (p: any, idx: number, arr: any[]) => arr.findIndex((x: any) => x.id === p.id) === idx,
+    (p, idx, arr) => arr.findIndex((x) => x.id === p.id) === idx,
   );
 }
 
@@ -98,7 +98,7 @@ export async function fetchBundles(
   );
 
   return uniqueProducts(bundleResults.flat())
-    .filter((p) => !products.some((main: any) => main.id === p.id))
+    .filter((p) => !products.some((main) => main.id === p.id))
     .slice(0, 12);
 }
 
