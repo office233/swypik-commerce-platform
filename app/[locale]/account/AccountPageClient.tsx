@@ -45,7 +45,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           if (dataVideos.videos) setVideos(dataVideos.videos);
         }
       } catch {
-        // graceful fallback — videos remain empty
+        // optional — user may not be a creator
       }
 
       try {
@@ -54,8 +54,8 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           const db = await resBal.json();
           if (typeof db.balance === "string") setSwypBalance(db.balance);
         }
-      } catch (e) {
-        console.error("swypik balance fetch failed", e);
+      } catch {
+        // optional widget — keep UI silent
       }
 
       try {
@@ -64,11 +64,11 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           const ds = await resStats.json();
           if (typeof ds.streak_current === "number") setSwypStreak(ds.streak_current);
         }
-      } catch (e) {
-        console.error("swypik stats fetch failed", e);
+      } catch {
+        // optional widget — keep UI silent
       }
     } catch {
-      // top-level swallow — UI shows login/empty state
+      // outer fetch (orders) failed — already handled by empty state
     }
   }, []);
 

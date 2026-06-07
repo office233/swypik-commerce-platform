@@ -121,10 +121,20 @@ export type CopilotFetchResult = {
  *  - temperature must be default (omit)
  *  - response_format=json_object requires the literal word "json" in messages
  */
+type CopilotMessage = { role?: string; content?: unknown };
+type CopilotBody = {
+  model?: string;
+  max_tokens?: number;
+  max_completion_tokens?: number;
+  temperature?: number;
+  response_format?: { type?: string };
+  messages?: CopilotMessage[];
+};
+
 function normalizeGpt5Body(init: RequestInit & { headers?: Record<string, string> }): RequestInit & { headers?: Record<string, string> } {
   if (!init || !init.body || typeof init.body !== "string") return init;
-  let obj: any;
-  try { obj = JSON.parse(init.body); } catch { return init; }
+  let obj: CopilotBody;
+  try { obj = JSON.parse(init.body) as CopilotBody; } catch { return init; }
   const model: string = String(obj?.model || "");
   if (!model.startsWith("gpt-5")) return init;
   if (typeof obj.max_tokens === "number" && obj.max_completion_tokens === undefined) {
@@ -134,7 +144,7 @@ function normalizeGpt5Body(init: RequestInit & { headers?: Record<string, string
   delete obj.temperature;
   const wantsJson = obj?.response_format?.type === "json_object";
   if (wantsJson && Array.isArray(obj.messages)) {
-    const haveJsonWord = obj.messages.some((m: any) => typeof m?.content === "string" && /json/i.test(m.content));
+    const haveJsonWord = obj.messages.some((m) => typeof m?.content === "string" && /json/i.test(m.content));
     if (!haveJsonWord) {
       obj.messages = [{ role: "system", content: "Reply ONLY with valid JSON." }, ...obj.messages];
     }
@@ -158,10 +168,8 @@ export async function fetchCopilot(
     let session: SessionCache;
     try {
       session = await getSession(ghu);
-    } catch (e) {
-      const tail = ghu.slice(-4);
-      // eslint-disable-next-line no-console
-      console.warn(`[copilot] session exchange failed for …${tail}: ${(e as Error).message}`);
+    } catch {
+      // session exchange failed — try next token silently
       continue;
     }
     const url = session.endpoint.replace(/\/+$/, '') + (path.startsWith('/') ? path : '/' + path);
@@ -174,11 +182,8 @@ export async function fetchCopilot(
     lastEndpoint = url;
     if (res.ok) return { res, tokenIndex: i, endpoint: url };
     if (res.status === 401 || res.status === 403 || res.status === 429) {
-      const tail = ghu.slice(-4);
-      // invalidate session — refetch next time
+      // invalidate session — refetch next time and rotate to next token
       _memCache.delete(ghu);
-      // eslint-disable-next-line no-console
-      console.warn(`[copilot] token #${i + 1} (…${tail}) → ${res.status}, rotating`);
       continue;
     }
     return { res, tokenIndex: i, endpoint: url };

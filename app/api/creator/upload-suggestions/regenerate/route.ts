@@ -47,8 +47,8 @@ export async function POST(req: Request) {
       id: string;
       title: string | null;
       description: string | null;
-      metadata: any;
-      ai_suggestions: any;
+      metadata: Record<string, unknown> | null;
+      ai_suggestions: Record<string, unknown> | null;
     }>(
       `SELECT id, title, description, metadata, ai_suggestions
        FROM videos WHERE id = $1 AND creator_id = $2 LIMIT 1`,
@@ -57,10 +57,9 @@ export async function POST(req: Request) {
     const video = rows[0];
     if (!video) return NextResponse.json({ error: "Video not found" }, { status: 404 });
 
+    const meta = video.metadata as { transcript?: unknown } | null;
     const transcript =
-      (video.metadata && typeof video.metadata === "object" && typeof (video.metadata as any).transcript === "string"
-        ? (video.metadata as any).transcript
-        : undefined) || undefined;
+      (meta && typeof meta.transcript === "string" ? meta.transcript : undefined) || undefined;
     const description = video.description || undefined;
     const title = video.title || undefined;
     const language = body.language || "ro";
@@ -107,8 +106,9 @@ export async function POST(req: Request) {
     ).catch(() => undefined);
 
     return NextResponse.json({ ...next, cached: false, focus });
-  } catch (err: any) {
-    logger.error({ err: err }, "[upload-suggestions/regenerate] error:");
-    return NextResponse.json({ error: err?.message || "Internal Server Error" }, { status: 500 });
+  } catch (err) {
+    logger.error({ err }, "[upload-suggestions/regenerate] error:");
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
