@@ -34,7 +34,7 @@ const NON_LOCALIZED_PREFIXES = [
 ];
 
 // Prefix-uri (forma canonică, fără locale) care REQUIRED login shopper.
-// Lipsa cookie-ului SHOPPER_COOKIE → redirect la /auth/login?redirect=<orig>.
+// Lipsa cookie-ului SHOPPER_COOKIE → redirect la /auth/login?next=<orig>.
 // NOTĂ: doar paginile cu acțiuni personalizate / sensibile sunt aici.
 // Paginile publice (/, /explore, /product, /blog, /search, /categories, /legal, /help,
 //  /about, /shop, /trends, /best, /b, /hashtag, /u, /sellers, /battles, /live,
@@ -142,7 +142,8 @@ function csrfBlocked(req: NextRequest): boolean {
 function redirectTo(req: NextRequest, target: string, withRedirect = true) {
   const url = new URL(target, req.url);
   if (withRedirect) {
-    url.searchParams.set("redirect", `${req.nextUrl.pathname}${req.nextUrl.search}`);
+    // 'next' este convenția folosită de /auth/login + /auth/signup + /account/page.tsx.
+    url.searchParams.set("next", `${req.nextUrl.pathname}${req.nextUrl.search}`);
   }
   return NextResponse.redirect(url);
 }
@@ -150,7 +151,8 @@ function redirectTo(req: NextRequest, target: string, withRedirect = true) {
 function redirectToLogin(req: NextRequest, localePrefix: string) {
   // Login este non-localized în Swypik, deci /auth/login direct.
   const url = new URL("/auth/login", req.url);
-  url.searchParams.set("redirect", `${req.nextUrl.pathname}${req.nextUrl.search}`);
+  // 'next' este convenția folosită de /auth/login (vezi app/auth/login/page.tsx::pickNext).
+  url.searchParams.set("next", `${req.nextUrl.pathname}${req.nextUrl.search}`);
   return NextResponse.redirect(url);
 }
 
@@ -227,7 +229,7 @@ export function middleware(request: NextRequest) {
   const canonical = stripLocale(pathname);
 
   // 3a) REQUIRE_AUTH: dacă userul nu are sesiune (shopper sau creator) →
-  //     redirect la /auth/login cu ?redirect=<orig>. Login-ul e non-localized.
+  //     redirect la /auth/login cu ?next=<orig>. Login-ul e non-localized.
   if (isRequireAuth(canonical) && !hasShopper && !hasLegacyCreator) {
     return redirectToLogin(request, prefix);
   }
