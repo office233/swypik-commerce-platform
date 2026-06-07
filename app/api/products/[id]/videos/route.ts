@@ -17,8 +17,21 @@ export async function GET(
     return NextResponse.json({ videos: [] });
   }
 
+  type ProductVideoRow = {
+    id: string;
+    title: string | null;
+    description: string | null;
+    playback_url: string | null;
+    thumbnail_url: string | null;
+    duration_ms: number | null;
+    view_count: number | string | null;
+    like_count: number | string | null;
+    published_at: string | Date | null;
+    creator_name: string | null;
+    creator_id: string;
+  };
   try {
-    const { rows } = await dbQuery(
+    const { rows } = await dbQuery<ProductVideoRow>(
       `SELECT
          v.id,
          v.title,
@@ -47,7 +60,7 @@ export async function GET(
       [productId]
     );
 
-    const videos = rows.map((r: any) => ({
+    const videos = rows.map((r) => ({
       id: r.id,
       title: r.title,
       description: r.description,
@@ -62,8 +75,8 @@ export async function GET(
     }));
 
     return NextResponse.json({ videos });
-  } catch (err: any) {
-    logger.error({ err: err.message }, "[products/videos] query error:");
+  } catch (err) {
+    logger.error({ err }, "[products/videos] query error:");
     return NextResponse.json({ videos: [] });
   }
 }

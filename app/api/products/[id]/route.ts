@@ -26,8 +26,9 @@ export async function GET(
 
     const targetCurrency = (cookieStore.get("swypik_currency")?.value || "RON").toUpperCase();
 
-    const d: any = detail;
-    const prod = d.product || d;
+    type DetailLike = { product?: Record<string, unknown>; price?: number; [k: string]: unknown };
+    const d = detail as DetailLike;
+    const prod = (d.product || d) as { price?: number; [k: string]: unknown };
     const priceRon = Number(prod.price ?? 0);
     const priceRonCents = Math.round(priceRon * 100);
     let converted = priceRon;
@@ -53,7 +54,7 @@ export async function GET(
       price: converted,
       priceRon,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Product Detail API]");
     return NextResponse.json({ error: "A aparut o eroare la incarcarea produsului." }, { status: 500 });
   }

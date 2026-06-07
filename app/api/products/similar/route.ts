@@ -187,7 +187,7 @@ export async function GET(req: Request) {
     }
 
     const minSimilarity = productId ? PRODUCT_VECTOR_MIN_SIMILARITY : VECTOR_MIN_SIMILARITY;
-    const params: any[] = [pgVec, limit, minSimilarity];
+    const params: (string | number)[] = [pgVec, limit, minSimilarity];
     let where = `${BASE_PRODUCT_WHERE}
       AND embedding IS NOT NULL
       AND (1 - (embedding <=> $1::vector)) >= $3`;
@@ -230,10 +230,11 @@ export async function GET(req: Request) {
       { products, mode: "vector", reason: products.length ? undefined : "low-similarity" },
       { headers: HEADERS }
     );
-  } catch (e: any) {
+  } catch (e) {
     // probabil pgvector neactivat sau coloana embedding lipsește
+    const message = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
-      { products: [], reason: "unavailable", error: String(e?.message || e).slice(0, 200) },
+      { products: [], reason: "unavailable", error: message.slice(0, 200) },
       { headers: HEADERS, status: 200 }
     );
   }
