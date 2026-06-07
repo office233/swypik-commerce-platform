@@ -178,6 +178,31 @@ services:
       - social_grafana_data:/var/lib/grafana
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
 
+  swypik-chain:
+    build:
+      context: ./services/swypik-chain
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SWYPIK_CHAIN_ENV: ${SWYPIK_CHAIN_ENV:-development}
+      SWYPIK_CHAIN_LOG_LEVEL: ${SWYPIK_CHAIN_LOG_LEVEL:-INFO}
+      SWYPIK_CHAIN_SERVICE_TOKEN: ${SWYPIK_CHAIN_TOKEN:-dev-internal-token-change-me}
+      SWYPIK_CHAIN_DATABASE_URL: postgresql://${POSTGRES_USER:-swypik}:${POSTGRES_PASSWORD:-swypik_dev_password}@postgres:5432/${POSTGRES_DB:-swypik_social}
+      SWYPIK_CHAIN_REDIS_URL: redis://redis:6379/3
+    ports:
+      - "127.0.0.1:${SWYPIK_CHAIN_PORT:-8090}:8090"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 # Production media storage should use Cloudflare R2 or another S3-compatible
 # object store. Keep MinIO for local development only, and point S3_ENDPOINT,
 # S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, and SOCIAL_MEDIA_BUCKET at R2 in env.

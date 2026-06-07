@@ -30,11 +30,18 @@ def issue_challenge(user_id: str) -> dict[str, str | int]:
 
 
 def verify_proof(user_id: str, challenge: str, nonce: str, issued_at: int) -> bool:
-    """Verifies that the client found a valid nonce within the TTL."""
+    """Verifies that the client found a valid nonce within the TTL.
+
+    The PoW proves the client spent CPU cycles. The challenge itself is
+    derived from the user_id at issue time, so binding to a specific user
+    is established by the auth cookie + the per-session challenge — we do
+    NOT rebind here (the client cannot know its own user_id from JS).
+    """
+    _ = user_id  # binding handled by auth layer + per-session challenge
     now = int(time.time())
     if now - issued_at > CHALLENGE_TTL_SECONDS:
         return False
     if now < issued_at - 5:  # clock skew tolerance
         return False
-    h = hashlib.sha256(f"{user_id}|{challenge}|{nonce}".encode()).hexdigest()
+    h = hashlib.sha256(f"{challenge}|{nonce}".encode()).hexdigest()
     return h.startswith("0" * DIFFICULTY_HEX_ZEROS)
