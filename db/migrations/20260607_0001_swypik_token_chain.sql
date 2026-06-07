@@ -132,8 +132,10 @@ CREATE TABLE IF NOT EXISTS swypik_mining_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_swypik_mining_user_recent
   ON swypik_mining_sessions (user_id, created_at DESC);
+-- date_trunc on timestamptz is NOT IMMUTABLE (depends on timezone), so we cast
+-- to UTC explicitly before converting to date — that expression IS IMMUTABLE.
 CREATE INDEX IF NOT EXISTS idx_swypik_mining_type_day
-  ON swypik_mining_sessions (session_type, date_trunc('day', created_at));
+  ON swypik_mining_sessions (session_type, ((created_at AT TIME ZONE 'UTC')::date));
 
 -- ---------------------------------------------------------------------
 -- 6. MINING STATS — per-user denormalized (fast UI)
@@ -493,8 +495,11 @@ VALUES (
   '2026-06-07 00:00:00+00'
 ) ON CONFLICT (height) DO NOTHING;
 
--- Genesis allocations (all balances are 0 initially — we mint via swypik_apply_tx
--- when chain service starts, so the ledger is the source of truth).
+-- Genesis allocations — mint full 21M $SWYP hard cap into the 6 designated
+-- addresses at block 0. The ledger (swypik_token_txs) is the source of truth;
+-- balances are derived. Each mint is recorded as a 'mint' tx with a
+-- deterministic txid (sha256 of "genesis-mint|<address>") so re-running this
+-- migration is idempotent.
 INSERT INTO swypik_token_balances (address, balance) VALUES
   ('swyp1treasurymultisig0000000000000000000a', 0),
   ('swyp1liquiditybootstrap000000000000000000', 0),
@@ -505,6 +510,45 @@ INSERT INTO swypik_token_balances (address, balance) VALUES
   ('swyp1burn000000000000000000000000000000a0', 0),
   ('swyp1feecollector000000000000000000000000', 0)
 ON CONFLICT (address) DO NOTHING;
+
+DO $genesis$
+DECLARE
+  alloc record;
+  v_txid text;
+BEGIN
+  FOR alloc IN
+    SELECT * FROM (VALUES
+      ('swyp1miningrewardspool00000000000000000a0', 15750000.0::numeric, 'Mining Rewards Pool (75%)'),
+      ('swyp1treasurymultisig0000000000000000000a',  2100000.0::numeric, 'Treasury Multi-Sig (10%)'),
+      ('swyp1teamvestingcliff0000000000000000000a',  1050000.0::numeric, 'Team Vesting (5%)'),
+      ('swyp1liquiditybootstrap000000000000000000',  1050000.0::numeric, 'Liquidity Bootstrap (5%)'),
+      ('swyp1airdropmarketing00000000000000000000',   630000.0::numeric, 'Airdrop Marketing (3%)'),
+      ('swyp1presalereserve000000000000000000000a',   420000.0::numeric, 'Pre-sale Reserve (2%)')
+    ) AS v(address, amount, label)
+  LOOP
+    v_txid := encode(sha256(('genesis-mint|' || alloc.address)::bytea), 'hex');
+    IF NOT EXISTS (SELECT 1 FROM swypik_token_txs WHERE txid = v_txid) THEN
+      INSERT INTO swypik_token_txs
+        (txid, block_height, from_address, to_address, amount, fee, tx_type, memo, metadata)
+      VALUES
+        (v_txid, 0, NULL, alloc.address, alloc.amount, 0, 'mint',
+         'Genesis allocation — ' || alloc.label,
+         jsonb_build_object('allocation_label', alloc.label, 'genesis', true));
+
+      UPDATE swypik_token_balances
+         SET balance = alloc.amount,
+             total_received = alloc.amount,
+             updated_at = now()
+       WHERE address = alloc.address;
+    END IF;
+  END LOOP;
+END
+$genesis$;
+
+-- Update genesis block to reflect actual mint tx count
+UPDATE swypik_blocks
+   SET tx_count = (SELECT COUNT(*) FROM swypik_token_txs WHERE block_height = 0)
+ WHERE height = 0;
 
 -- ---------------------------------------------------------------------
 -- Track migration
