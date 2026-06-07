@@ -8,6 +8,9 @@ export const metadata = {
   title: "Mine $SWYP — Earn Digital Cash | Swypik",
   description:
     "Tap to mine $SWYP daily. Spend it on real products, tip creators, boost content. The first crypto you can actually use.",
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default async function EarnPage() {

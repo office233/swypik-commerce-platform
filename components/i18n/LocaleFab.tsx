@@ -25,6 +25,8 @@ const HIDDEN_PREFIXES = [
   "/seller",
   "/creator",
   "/r/",
+  "/account",
+  "/admin-internal",
 ];
 
 /**

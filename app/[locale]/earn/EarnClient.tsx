@@ -57,7 +57,9 @@ type ApiError = { error: string; message?: string; retry_at?: string };
 function fmt(n: string | number, decimals = 4): string {
   const x = typeof n === "string" ? Number.parseFloat(n) : n;
   if (!Number.isFinite(x)) return "0";
-  return x.toFixed(decimals).replace(/\.?0+$/, "");
+  const fixed = x.toFixed(decimals);
+  if (decimals === 0 || !fixed.includes(".")) return fixed;
+  return fixed.replace(/\.?0+$/, "");
 }
 
 function timeUntil(iso: string): string {

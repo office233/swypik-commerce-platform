@@ -10,6 +10,48 @@ from app.mining.daily_claim import ClaimError, claim_daily
 from app.mining.multipliers import compute_for_user
 from app.mining.tappow import issue_challenge, verify_proof
 
+
+# ---------------------------------------------------------------------------
+# Anti-abuse: block system account + accounts with no verified email
+# ---------------------------------------------------------------------------
+SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001"
+
+
+async def _require_legitimate_user(user_id: str) -> None:
+    """Reject mining attempts from system or unverified accounts."""
+    if user_id == SYSTEM_USER_ID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "system_account", "message": "System account cannot mine."},
+        )
+    row = await db.fetchrow(
+        "SELECT email, email_verified_at, username FROM users WHERE id = $1::uuid",
+        user_id,
+    )
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "no_user", "message": "User not found."},
+        )
+    email = row["email"]
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "no_email", "message": "Sign up with a real email to start mining."},
+        )
+    if row["email_verified_at"] is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "email_not_verified", "message": "Please verify your email to start mining."},
+        )
+    username = row["username"] or ""
+    if username.startswith("anon_") or username.startswith("audit") or username.startswith("test"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "non_human_account", "message": "This account type cannot mine."},
+        )
+
+
 router = APIRouter(prefix="/v1/mining", tags=["mining"])
 
 
@@ -22,6 +64,7 @@ class ClaimRequest(BaseModel):
 
 @router.post("/challenge", dependencies=[Depends(require_internal_token)])
 async def get_challenge(user_id: str = Depends(require_user_id)) -> dict:
+    await _require_legitimate_user(user_id)
     return issue_challenge(user_id)
 
 
@@ -31,6 +74,7 @@ async def claim(
     body: ClaimRequest,
     user_id: str = Depends(require_user_id),
 ) -> dict:
+    await _require_legitimate_user(user_id)
     if not verify_proof(user_id, body.challenge, body.nonce, body.issued_at):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
