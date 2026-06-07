@@ -279,7 +279,38 @@ services:
     restart: unless-stopped
 
   # ──────────────────────────────────────────────
-  # 7. caddy — Reverse proxy + auto TLS
+  # 7. swypik-chain — $SWYP token L1 (mining, transfers, bridges)
+  # ──────────────────────────────────────────────
+  swypik-chain:
+    build:
+      context: ../../services/swypik-chain
+    env_file:
+      - .env.production
+    environment:
+      SWYPIK_CHAIN_ENV: production
+      SWYPIK_CHAIN_LOG_LEVEL: ${SWYPIK_CHAIN_LOG_LEVEL:-INFO}
+      SWYPIK_CHAIN_SERVICE_TOKEN: ${SWYPIK_CHAIN_TOKEN}
+      SWYPIK_CHAIN_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      SWYPIK_CHAIN_REDIS_URL: redis://redis:6379/3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
+  # 8. caddy — Reverse proxy + auto TLS
   # ──────────────────────────────────────────────
   caddy:
     image: caddy:2.8-alpine
