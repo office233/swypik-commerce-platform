@@ -45,11 +45,29 @@ export async function GET(req: Request) {
       [sellerId]
     );
 
-    const orders = rows.map((row: any) => {
-      const items = row.items || [];
-      const allFulfilled = items.length > 0 && items.every((i: any) => i.source_status === "fulfilled");
-      const itemTracking = items.find((i: any) => i.metadata?.tracking_number)?.metadata?.tracking_number;
-      const itemTrackingUrl = items.find((i: any) => i.metadata?.tracking_url)?.metadata?.tracking_url;
+    type OrderItemRow = {
+      item_id: string;
+      title: string;
+      quantity: number;
+      unit_amount_cents: number;
+      source_status: string;
+      // jsonb shape varies (seller_id, tracking_number, tracking_url, ...)
+      metadata: any;
+    };
+    type OrderRow = {
+      order_id: string;
+      order_status: string;
+      order_meta: any;
+      created_at: string;
+      total_cents: number;
+      items: OrderItemRow[] | null;
+    };
+
+    const orders = (rows as OrderRow[]).map((row) => {
+      const items: OrderItemRow[] = row.items || [];
+      const allFulfilled = items.length > 0 && items.every((i) => i.source_status === "fulfilled");
+      const itemTracking = items.find((i) => i.metadata?.tracking_number)?.metadata?.tracking_number;
+      const itemTrackingUrl = items.find((i) => i.metadata?.tracking_url)?.metadata?.tracking_url;
 
       let status: string;
       if (row.order_status === "return_requested" || row.order_status === "refunded") {
@@ -79,8 +97,8 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ success: true, orders });
-  } catch (error: any) {
-    logger.error({ err: error }, "[Seller Orders API] GET Error:");
+  } catch (err) {
+    logger.error({ err }, "[Seller Orders API] GET Error");
     return NextResponse.json({ success: false, error: "Eroare la preluarea comenzilor." }, { status: 500 });
   }
 }
@@ -182,7 +200,7 @@ export async function POST(req: Request) {
       [order_id]
     );
     const remainingItems = Number(statusRes.rows[0]?.remaining_items || 0);
-    const orderMetadataPatch: Record<string, any> = {
+    const orderMetadataPatch: Record<string, string> = {
       fulfillment_status: remainingItems === 0 ? "shipped" : "partially_shipped",
       latest_tracking_number: trackingNumber,
       latest_tracking_url: trackingUrl,
@@ -227,8 +245,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, order: rows[0], trackingNumber, trackingUrl });
-  } catch (error: any) {
-    logger.error({ err: error }, "[Seller Orders API] POST Error:");
+  } catch (err) {
+    logger.error({ err }, "[Seller Orders API] POST Error");
     return NextResponse.json({ success: false, error: "Eroare la actualizarea comenzii." }, { status: 500 });
   }
 }

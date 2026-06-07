@@ -111,7 +111,7 @@ async def leaderboard(limit: int = 50) -> dict:
     limit = max(1, min(limit, 200))
     rows = await db.fetch(
         """
-        SELECT u.id AS user_id, u.handle, u.display_name,
+        SELECT u.id AS user_id, u.username, u.display_name,
                ms.total_mined, ms.streak_current,
                ms.refs_l1_active, ms.current_multiplier
           FROM swypik_mining_stats ms
@@ -126,7 +126,7 @@ async def leaderboard(limit: int = 50) -> dict:
         "top": [
             {
                 "user_id": str(r["user_id"]),
-                "handle": r["handle"],
+                "handle": r["username"],
                 "display_name": r["display_name"],
                 "total_mined": str(r["total_mined"]),
                 "streak": int(r["streak_current"]),

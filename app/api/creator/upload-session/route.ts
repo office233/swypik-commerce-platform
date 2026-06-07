@@ -61,12 +61,11 @@ export async function POST(req: Request) {
       },
       { status: 503 }
     );
-  } catch (error: any) {
-    logger.error({ err: error }, "Upload Session POST Error:");
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: error instanceof UploadInputError ? error.status : 500 }
-    );
+  } catch (err) {
+    logger.error({ err }, "Upload Session POST Error");
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    const status = err instanceof UploadInputError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -92,12 +91,10 @@ export async function GET(req: Request) {
     if (platform) return NextResponse.json(platform);
 
     return NextResponse.json({ error: "Upload session not found" }, { status: 404 });
-  } catch (error: any) {
-    logger.error({ err: error }, "Upload Session GET Error:");
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (err) {
+    logger.error({ err }, "Upload Session GET Error");
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -136,12 +133,10 @@ export async function PATCH(req: Request) {
     if (platform) return NextResponse.json(platform);
 
     return NextResponse.json({ error: "Upload session not found" }, { status: 404 });
-  } catch (error: any) {
-    logger.error({ err: error }, "Upload Session PATCH Error:");
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (err) {
+    logger.error({ err }, "Upload Session PATCH Error");
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -312,6 +307,7 @@ async function completeLocalUploadSession(sessionId: string, creatorId: string) 
     content_type: string | null;
     byte_size: string | number | null;
     asset_id: string;
+    // jsonb cols with variable shape
     product_refs: any;
     metadata: any;
   }>(
@@ -472,7 +468,22 @@ async function getLocalUploadStatus(sessionId: string, creatorId: string) {
     [sessionId, creatorId]
   );
 
-  const row: any = rows[0];
+  type UploadStatusRow = {
+    session_id: string;
+    upload_status: string;
+    completed_at: string | null;
+    video_id: string;
+    video_status: string;
+    visibility: string;
+    playback_url: string | null;
+    thumbnail_url: string | null;
+    asset_id: string | null;
+    asset_status: string | null;
+    job_id: string | null;
+    job_status: string | null;
+    job_error: string | null;
+  };
+  const row = rows[0] as UploadStatusRow | undefined;
   if (!row) return null;
 
   return {

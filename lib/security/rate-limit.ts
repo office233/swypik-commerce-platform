@@ -12,6 +12,9 @@
 import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
 import { getRedis as getLocalRedis } from "@/lib/redis";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ service: "rate-limit" });
 
 // ── Redis client (lazy init) ────────────────────────────────────────
 let redis: Redis | null = null;
@@ -68,7 +71,7 @@ async function localRedisRateLimit(identifier: string, limit: number, windowSeco
   } catch (e) {
     if (process.env.NODE_ENV === "production" && !warnedAboutLocalRedisError) {
       warnedAboutLocalRedisError = true;
-      console.warn("[RateLimit] Local Redis error:", (e as Error).message);
+      log.warn({ err: e }, "Local Redis error");
     }
     return null;
   }
@@ -207,7 +210,7 @@ export async function rateLimit(
       const result = await limiter.limit(fullIdentifier);
       return { success: result.success, remaining: result.remaining };
     } catch (e) {
-      console.warn("[RateLimit] Upstash error:", (e as Error).message);
+      log.warn({ err: e }, "Upstash error");
     }
   }
 
@@ -215,13 +218,13 @@ export async function rateLimit(
   if (localRedisResult) return localRedisResult;
 
   if (process.env.NODE_ENV === "production" && process.env.RATE_LIMIT_REDIS_REQUIRED !== "false") {
-    console.error("[RateLimit] Redis is required in production! Failing closed.");
+    log.error("Redis is required in production! Failing closed.");
     return { success: false, remaining: 0 };
   }
 
   if (process.env.NODE_ENV === "production" && !warnedAboutMemoryFallback) {
     warnedAboutMemoryFallback = true;
-    console.warn("[RateLimit] Upstash Redis is not configured; using in-memory limits for this Node process.");
+    log.warn("Upstash Redis is not configured; using in-memory limits for this Node process.");
   }
 
   // Fallback: in-memory (works in dev and single-node Hetzner deployments)
