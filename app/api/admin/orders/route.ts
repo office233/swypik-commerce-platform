@@ -23,7 +23,7 @@ export async function GET(req: Request) {
   const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
 
   let whereClause = "";
-  const params: any[] = [];
+  const params: Array<string | number> = [];
 
   if (status) {
     params.push(status);
@@ -51,7 +51,17 @@ export async function GET(req: Request) {
     params
   );
 
-  const formattedOrders = orders.map((o: any) => {
+  type OrderRow = {
+    id: string;
+    status: string;
+    total_ron: string | number;
+    metadata: any; // jsonb col with variable shape
+    created_at: string;
+    fulfilled_at: string | null;
+    item_count: string | number;
+  };
+
+  const formattedOrders = (orders as OrderRow[]).map((o) => {
     const meta = o.metadata || {};
     return {
       id: o.id,
@@ -88,8 +98,8 @@ export async function PATCH(req: Request) {
     const { orderId, status, trackingNumber, trackingUrl, fulfillmentStatus, notes } = parsed.data;
 
     const updates: string[] = [];
-    const params: any[] = [orderId];
-    const metaUpdates: Record<string, any> = {};
+    const params: Array<string | number> = [orderId];
+    const metaUpdates: Record<string, string> = {};
 
     if (status) {
       params.push(status);
@@ -131,7 +141,7 @@ export async function PATCH(req: Request) {
     }
 
     return NextResponse.json({ success: true, order: rows[0] });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Admin Orders PATCH]");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }

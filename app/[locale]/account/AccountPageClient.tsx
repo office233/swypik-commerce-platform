@@ -44,8 +44,8 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           const dataVideos = await resVideos.json();
           if (dataVideos.videos) setVideos(dataVideos.videos);
         }
-      } catch (e) {
-        console.error("No videos found", e);
+      } catch {
+        // graceful fallback — videos remain empty
       }
 
       try {
@@ -54,8 +54,8 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           const dw = await resWallet.json();
           if (typeof dw.balance === "number") setWalletBalance(dw.balance);
         }
-      } catch (e) {
-        console.error("wallet fetch failed", e);
+      } catch {
+        // graceful fallback — wallet stays null
       }
 
       try {
@@ -64,11 +64,11 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           const dc = await resCh.json();
           if (Array.isArray(dc.challenges)) setChallengesCount(dc.challenges.length);
         }
-      } catch (e) {
-        console.error("challenges fetch failed", e);
+      } catch {
+        // graceful fallback — challenges count stays null
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // top-level swallow — UI shows login/empty state
     }
   }, []);
 
