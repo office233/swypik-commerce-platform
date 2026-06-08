@@ -32,11 +32,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       languages: {
         ro: `${BASE_URL}/blog`,
         en: `${BASE_URL}/en/blog`,
+        de: `${BASE_URL}/de/blog`,
         es: `${BASE_URL}/es/blog`,
         fr: `${BASE_URL}/fr/blog`,
-        de: `${BASE_URL}/de/blog`,
-        pt: `${BASE_URL}/pt/blog`,
         it: `${BASE_URL}/it/blog`,
+        pt: `${BASE_URL}/pt/blog`,
         "x-default": `${BASE_URL}/blog`,
       },
       types: {

@@ -18,6 +18,11 @@ type Props = { params: Promise<{ slug: string; locale: string }> };
 const T = {
   ro: { notFound: "Articol negăsit | Swypik", fallbackDesc: "Ghid Swypik", guides: "Ghiduri", read: "min citire", backHub: "← Vezi toate ghidurile" },
   en: { notFound: "Article not found | Swypik", fallbackDesc: "Swypik Guide", guides: "Guides", read: "min read", backHub: "← See all guides" },
+  de: { notFound: "Artikel nicht gefunden | Swypik", fallbackDesc: "Swypik-Ratgeber", guides: "Ratgeber", read: "Min. Lesezeit", backHub: "← Alle Ratgeber" },
+  es: { notFound: "Artículo no encontrado | Swypik", fallbackDesc: "Guía Swypik", guides: "Guías", read: "min de lectura", backHub: "← Ver todas las guías" },
+  fr: { notFound: "Article introuvable | Swypik", fallbackDesc: "Guide Swypik", guides: "Guides", read: "min de lecture", backHub: "← Voir tous les guides" },
+  it: { notFound: "Articolo non trovato | Swypik", fallbackDesc: "Guida Swypik", guides: "Guide", read: "min di lettura", backHub: "← Vedi tutte le guide" },
+  pt: { notFound: "Artigo não encontrado | Swypik", fallbackDesc: "Guia Swypik", guides: "Guias", read: "min de leitura", backHub: "← Ver todos os guias" },
 } as const;
 function tStrings(loc: string) { return (T as any)[loc] || T.ro; }
 
@@ -47,6 +52,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       languages: {
         ro: `${BASE_URL}/blog/${article.slug}`,
         en: `${BASE_URL}/en/blog/${article.slug}`,
+        de: `${BASE_URL}/de/blog/${article.slug}`,
+        es: `${BASE_URL}/es/blog/${article.slug}`,
+        fr: `${BASE_URL}/fr/blog/${article.slug}`,
+        it: `${BASE_URL}/it/blog/${article.slug}`,
+        pt: `${BASE_URL}/pt/blog/${article.slug}`,
         "x-default": `${BASE_URL}/blog/${article.slug}`,
       },
       types: {
@@ -137,12 +147,12 @@ export default async function BlogArticlePage({ params }: Props) {
 
   const articleLd: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: article.title,
     description: article.excerpt || article.seoDescription,
     image: article.heroImageUrl ? [article.heroImageUrl] : undefined,
     datePublished: publishedISO,
-    dateModified: publishedISO,
+    dateModified: article.updatedAt || publishedISO,
     author: { "@type": "Organization", name: article.authorName, url: BASE_URL },
     publisher: {
       "@type": "Organization",

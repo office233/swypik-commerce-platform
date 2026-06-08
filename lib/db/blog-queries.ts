@@ -25,6 +25,7 @@ export type BlogArticleSummary = {
   readTimeMin: number;
   viewCount: number;
   publishedAt: string | null;
+  updatedAt: string | null;
   linkedProductCount: number;
 };
 
@@ -63,6 +64,7 @@ type BlogArticleRow = {
   read_time_min?: number | string | null;
   view_count?: number | string | null;
   published_at?: string | Date | null;
+  updated_at?: string | Date | null;
   linked_product_count?: number | string | null;
 };
 
@@ -81,6 +83,7 @@ function rowToSummary(r: BlogArticleRow): BlogArticleSummary {
     readTimeMin: Number(r.read_time_min) || 5,
     viewCount: Number(r.view_count) || 0,
     publishedAt: r.published_at ? new Date(r.published_at).toISOString() : null,
+    updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
     linkedProductCount: Number(r.linked_product_count) || 0,
   };
 }
@@ -104,6 +107,7 @@ function buildLocaleSelectFields(): string {
     a.read_time_min,
     a.view_count,
     a.published_at,
+    GREATEST(a.updated_at, COALESCE(t.updated_at, a.updated_at)) AS updated_at,
     COALESCE(array_length(a.linked_product_ids, 1), 0) AS linked_product_count
   `;
 }
@@ -176,6 +180,7 @@ export async function getBlogArticleBySlug(slug: string, locale?: string): Promi
       a.read_time_min,
       a.view_count,
       a.published_at,
+      GREATEST(a.updated_at, COALESCE(t.updated_at, a.updated_at)) AS updated_at,
       a.linked_product_ids,
       COALESCE(array_length(a.linked_product_ids, 1), 0) AS linked_product_count,
       COALESCE(t.seo_title, a.seo_title)               AS seo_title,
