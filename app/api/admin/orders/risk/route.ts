@@ -20,7 +20,14 @@ type OrderRow = {
   currency: string;
   total_cents: number;
   created_at: string;
-  metadata: any;
+  metadata: {
+    shipping_address?: { line1?: string; address_line_1?: string; country?: string; [k: string]: unknown };
+    billing_address?: { country?: string; [k: string]: unknown };
+    items?: unknown[];
+    item_count?: number;
+    checkout_ip_country?: string;
+    [k: string]: unknown;
+  } | null;
   buyer_email: string | null;
   buyer_phone: string | null;
   buyer_email_verified_at: string | null;
@@ -40,7 +47,7 @@ export async function GET(req: Request) {
   const minScore = Number(url.searchParams.get("minScore") ?? "0");
 
   const conditions: string[] = ["co.created_at > now() - interval '90 days'"];
-  const args: any[] = [];
+  const args: string[] = [];
   if (statusFilter) {
     args.push(statusFilter);
     conditions.push(`co.status = $${args.length}`);

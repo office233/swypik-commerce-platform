@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     const sortDir = (url.searchParams.get("dir") || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
 
     const where: string[] = [];
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (status !== "all") {
       params.push(status);
@@ -107,7 +107,7 @@ export async function GET(req: Request) {
       },
       hasMore: offset + rows.length < totalNum,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "Admin marketplace fetch error:");
     return NextResponse.json(
       { error: "Failed to fetch products" },
