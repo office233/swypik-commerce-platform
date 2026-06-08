@@ -33,8 +33,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({ topics: Array.from(selected) }),
       });
       router.push("/explore");
-    } catch (e) {
-      console.error(e);
+    } catch {
       setLoading(false);
     }
   };
@@ -42,8 +41,8 @@ export default function OnboardingPage() {
   const handleSkip = async () => {
     try {
       await fetch("/api/onboarding/skip", { method: "POST" });
-    } catch (e) {
-      console.error(e);
+    } catch {
+      /* non-fatal: proceed to explore even if skip POST fails */
     }
     router.push("/explore");
   };

@@ -4,6 +4,7 @@
  */
 import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
 import type { CaptionSegment } from "./transcribe";
+import { logger } from "@/lib/logger";
 
 export type TargetLang = "en" | "es" | "fr" | "de" | "pt" | "it" | "ro";
 
@@ -47,10 +48,10 @@ export async function translateSegments(
       }),
     });
     if (!res.ok) {
-      console.warn("[translateSegments] http", res.status);
+      logger.warn({ status: res.status }, "[translateSegments] http");
       return segments;
     }
-    const json: any = await res.json();
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = json?.choices?.[0]?.message?.content || "{}";
     const parsed = JSON.parse(raw);
     const arr: Array<{ i: number; t: string }> = Array.isArray(parsed?.segments) ? parsed.segments : [];
@@ -60,7 +61,7 @@ export async function translateSegments(
     }
     return segments.map((s, i) => ({ start: s.start, end: s.end, text: byIdx.get(i) ?? s.text }));
   } catch (e) {
-    console.warn("[translateSegments] failed:", (e as Error).message);
+    logger.warn({ err: e }, "[translateSegments] failed");
     return segments;
   }
 }

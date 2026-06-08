@@ -3,6 +3,7 @@
  */
 
 import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { logger } from "@/lib/logger";
 
 function getModel(): string {
   return (process.env.REWRITER_MODEL || process.env.OPENROUTER_MODEL || "gpt-4o-mini").replace(/^openai\//, "");
@@ -61,10 +62,10 @@ export async function rewriteProduct(product: {
     });
 
     if (!res.ok) {
-      console.warn("[AI Rewriter] http", res.status);
+      logger.warn({ status: res.status }, "[AI Rewriter] http");
       return fallbackRewrite(product);
     }
-    const json: any = await res.json();
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const content = json?.choices?.[0]?.message?.content || "{}";
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     try {
@@ -73,7 +74,7 @@ export async function rewriteProduct(product: {
       return fallbackRewrite(product);
     }
   } catch (error) {
-    console.error("[AI Rewriter] Error:", error);
+    logger.error({ err: error }, "[AI Rewriter] Error");
     return fallbackRewrite(product);
   }
 }
