@@ -4,6 +4,7 @@
  */
 
 import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { logger } from "@/lib/logger";
 
 export type UploadSuggestionInput = {
   description?: string;
@@ -124,14 +125,14 @@ export async function suggestUploadContent(input: UploadSuggestionInput): Promis
     });
 
     if (!res.ok) {
-      console.warn("[upload-suggestions] http", res.status);
+      logger.warn({ status: res.status }, "[upload-suggestions] http");
       return fallback;
     }
-    const json: any = await res.json();
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const content = json?.choices?.[0]?.message?.content || "{}";
     return sanitizeResult(parseSuggestionJson(content), fallback);
   } catch (error) {
-    console.error("[AI Upload Suggestions] Error:", error);
+    logger.error({ err: error }, "[AI Upload Suggestions] Error");
     return fallback;
   }
 }

@@ -25,10 +25,37 @@ function buildSteps(t: (k: string) => string) {
   ];
 }
 
+type OrderItem = {
+  title: string;
+  quantity: number;
+  unit_price: number;
+};
+
+type OrderShipping = {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+};
+
+type OrderData = {
+  id: string;
+  status: string;
+  fulfillmentStatus?: string;
+  createdAt: string;
+  totalRon: number | string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  items?: OrderItem[];
+  shipping?: OrderShipping;
+};
+
 export default function OrderTrackingPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations("orders");
   const { id } = use(params);
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReturnForm, setShowReturnForm] = useState(false);
@@ -81,7 +108,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
 
   const STATUS_MAP = buildStatusMap(t);
   const STEPS = buildSteps(t);
-  const statusInfo = STATUS_MAP[order.status] || STATUS_MAP[order.fulfillmentStatus] || STATUS_MAP.pending;
+  const statusInfo = STATUS_MAP[order.status] || (order.fulfillmentStatus ? STATUS_MAP[order.fulfillmentStatus] : undefined) || STATUS_MAP.pending;
   const currentStep = statusInfo.step;
   const isCancelled = order.status === "cancelled";
   const isReturnable =
@@ -109,7 +136,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         setReturnSuccess(true);
         setShowReturnForm(false);
         // Update local order state to reflect the new status
-        setOrder((prev: any) => ({ ...prev, status: "return_requested" }));
+        setOrder((prev) => (prev ? { ...prev, status: "return_requested" } : prev));
       } else {
         setReturnError(data.error || t("eroareLaTrimiterea"));
       }
@@ -204,7 +231,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
           <h2 className="text-base font-black text-[#0D0D0D] mb-4">{t("produseComandate")}</h2>
           <div className="space-y-3">
-            {(order.items || []).map((item: any, i: number) => (
+            {(order.items || []).map((item, i) => (
               <div key={i} className="flex justify-between items-center py-2 border-b border-[#F7F7F8] last:border-0">
                 <div className="flex-1">
                   <p className="text-sm font-bold text-[#0D0D0D] line-clamp-1">{item.title}</p>

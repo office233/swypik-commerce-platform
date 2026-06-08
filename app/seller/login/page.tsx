@@ -40,8 +40,8 @@ export default function SellerLogin() {
       } else {
         setError(data.error || "Nu am putut trimite codul. Verifică emailul.");
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Eroare necunoscută");
     } finally {
       setIsLoading(false);
     }
@@ -67,8 +67,8 @@ export default function SellerLogin() {
 
       // Success redirect to dashboard
       router.push("/seller");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Eroare necunoscută");
     } finally {
       setIsLoading(false);
     }
