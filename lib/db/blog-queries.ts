@@ -211,6 +211,50 @@ export async function getBlogArticleBySlug(slug: string, locale?: string): Promi
 }
 
 /**
+ * Find related articles to surface at the bottom of an article page.
+ * Ranks by:
+ *   - same category               +5
+ *   - shared tags (array overlap) +3 per tag
+ * Excludes the source article, requires status='published'.
+ * Returns up to `limit` BlogArticleSummary in score-DESC, recency-DESC order.
+ */
+export async function listRelatedArticles(
+  articleId: string,
+  category: string | null,
+  tags: string[],
+  locale?: string,
+  limit = 3,
+): Promise<BlogArticleSummary[]> {
+  const loc = locale || DEFAULT_LOCALE;
+  const tagArr = Array.isArray(tags) ? tags : [];
+  const sql = `
+    SELECT ${buildLocaleSelectFields()},
+           (CASE WHEN a.category = $2 AND $2 IS NOT NULL THEN 5 ELSE 0 END)
+           + (COALESCE(cardinality(ARRAY(SELECT UNNEST(a.tags) INTERSECT SELECT UNNEST($3::text[]))), 0) * 3)
+           AS rel_score
+    FROM blog_articles a
+    LEFT JOIN blog_article_translations t
+      ON t.article_id = a.id AND t.locale = $1
+    WHERE a.status = 'published'
+      AND a.id <> $4::uuid
+      AND (
+        (a.category = $2 AND $2 IS NOT NULL)
+        OR (a.tags && $3::text[])
+      )
+    ORDER BY rel_score DESC, a.published_at DESC NULLS LAST
+    LIMIT $5
+  `;
+  const { rows } = await dbQuery(sql, [
+    loc,
+    category,
+    tagArr,
+    articleId,
+    Math.min(limit, 10),
+  ]);
+  return rows.map(rowToSummary);
+}
+
+/**
  * Find articles that mention a given product. Used on product detail pages
  * to surface "Read more about this product".
  */

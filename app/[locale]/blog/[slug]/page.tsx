@@ -4,7 +4,7 @@ import { translateBlogCategory } from "@/lib/blog/categoryLabel";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getBlogArticleBySlug } from "@/lib/db/blog-queries";
+import { getBlogArticleBySlug, listRelatedArticles } from "@/lib/db/blog-queries";
 import { getCheckoutProductById } from "@/lib/db/product-queries";
 import BlogArticleBody from "@/components/blog/BlogArticleBody";
 
@@ -16,13 +16,13 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
 type Props = { params: Promise<{ slug: string; locale: string }> };
 
 const T = {
-  ro: { notFound: "Articol negăsit | Swypik", fallbackDesc: "Ghid Swypik", guides: "Ghiduri", read: "min citire", backHub: "← Vezi toate ghidurile" },
-  en: { notFound: "Article not found | Swypik", fallbackDesc: "Swypik Guide", guides: "Guides", read: "min read", backHub: "← See all guides" },
-  de: { notFound: "Artikel nicht gefunden | Swypik", fallbackDesc: "Swypik-Ratgeber", guides: "Ratgeber", read: "Min. Lesezeit", backHub: "← Alle Ratgeber" },
-  es: { notFound: "Artículo no encontrado | Swypik", fallbackDesc: "Guía Swypik", guides: "Guías", read: "min de lectura", backHub: "← Ver todas las guías" },
-  fr: { notFound: "Article introuvable | Swypik", fallbackDesc: "Guide Swypik", guides: "Guides", read: "min de lecture", backHub: "← Voir tous les guides" },
-  it: { notFound: "Articolo non trovato | Swypik", fallbackDesc: "Guida Swypik", guides: "Guide", read: "min di lettura", backHub: "← Vedi tutte le guide" },
-  pt: { notFound: "Artigo não encontrado | Swypik", fallbackDesc: "Guia Swypik", guides: "Guias", read: "min de leitura", backHub: "← Ver todos os guias" },
+  ro: { notFound: "Articol negăsit | Swypik", fallbackDesc: "Ghid Swypik", guides: "Ghiduri", read: "min citire", backHub: "← Vezi toate ghidurile", relatedTitle: "Articole conexe" },
+  en: { notFound: "Article not found | Swypik", fallbackDesc: "Swypik Guide", guides: "Guides", read: "min read", backHub: "← See all guides", relatedTitle: "Related articles" },
+  de: { notFound: "Artikel nicht gefunden | Swypik", fallbackDesc: "Swypik-Ratgeber", guides: "Ratgeber", read: "Min. Lesezeit", backHub: "← Alle Ratgeber", relatedTitle: "Verwandte Artikel" },
+  es: { notFound: "Artículo no encontrado | Swypik", fallbackDesc: "Guía Swypik", guides: "Guías", read: "min de lectura", backHub: "← Ver todas las guías", relatedTitle: "Artículos relacionados" },
+  fr: { notFound: "Article introuvable | Swypik", fallbackDesc: "Guide Swypik", guides: "Guides", read: "min de lecture", backHub: "← Voir tous les guides", relatedTitle: "Articles connexes" },
+  it: { notFound: "Articolo non trovato | Swypik", fallbackDesc: "Guida Swypik", guides: "Guide", read: "min di lettura", backHub: "← Vedi tutte le guide", relatedTitle: "Articoli correlati" },
+  pt: { notFound: "Artigo não encontrado | Swypik", fallbackDesc: "Guia Swypik", guides: "Guias", read: "min de leitura", backHub: "← Ver todos os guias", relatedTitle: "Artigos relacionados" },
 } as const;
 function tStrings(loc: string) { return (T as any)[loc] || T.ro; }
 
@@ -112,6 +112,13 @@ export default async function BlogArticlePage({ params }: Props) {
   const publishedISO = article.publishedAt || new Date().toISOString();
 
   const linkedProducts = await loadLinkedProducts(article.linkedProductIds);
+  const relatedArticles = await listRelatedArticles(
+    article.id,
+    article.category,
+    article.tags,
+    locale,
+    3,
+  );
   const productMentions = linkedProducts.map((p) => ({
     "@type": "Product",
     name: p.title,
@@ -274,6 +281,49 @@ export default async function BlogArticlePage({ params }: Props) {
       <article className="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
         <BlogArticleBody mdx={article.bodyMdx} />
       </article>
+
+      {/* Related articles section (internal linking — SEO + dwell time) */}
+      {relatedArticles.length > 0 ? (
+        <nav
+          aria-label="Related articles section"
+          className="max-w-3xl mx-auto px-4 sm:px-6 pb-12"
+        >
+          <h2 className="text-xl sm:text-2xl font-extrabold mb-5 pt-6 border-t border-zinc-200">
+            {tt.relatedTitle}
+          </h2>
+          <div className="grid sm:grid-cols-3 gap-5">
+            {relatedArticles.map((rel) => (
+              <Link
+                key={rel.id}
+                href={`${localePrefix}/blog/${rel.slug}`}
+                className="group block rounded-xl overflow-hidden border border-zinc-200 bg-white hover:border-[#7C3AED] hover:shadow-md transition"
+              >
+                {rel.heroImageUrl ? (
+                  <div className="relative aspect-[16/9] bg-zinc-100 overflow-hidden">
+                    <Image
+                      src={rel.heroImageUrl}
+                      alt={rel.heroImageAlt || rel.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition duration-500"
+                    />
+                  </div>
+                ) : null}
+                <div className="p-4">
+                  <h3 className="font-bold text-sm leading-snug text-[#0D0D0D] line-clamp-2 group-hover:text-[#7C3AED] transition">
+                    {rel.title}
+                  </h3>
+                  {rel.excerpt ? (
+                    <p className="mt-1.5 text-xs text-zinc-500 line-clamp-2">
+                      {rel.excerpt}
+                    </p>
+                  ) : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </nav>
+      ) : null}
 
       {/* Tags */}
       {article.tags.length > 0 ? (
