@@ -51,8 +51,8 @@ export default function AgeVerificationClient({ initialState }: Props) {
         return;
       }
       setState((s) => ({ ...s, status: "pending" }));
-    } catch (err: any) {
-      setError(err?.message || t("errNecunoscuta"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("errNecunoscuta"));
     } finally {
       setLoading(false);
     }
@@ -70,8 +70,8 @@ export default function AgeVerificationClient({ initialState }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || t("errOptIn"));
       setState((s) => ({ ...s, optIn: data.optIn }));
-    } catch (err: any) {
-      setError(err?.message || t("errNecunoscuta"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("errNecunoscuta"));
     } finally {
       setOptInLoading(false);
     }

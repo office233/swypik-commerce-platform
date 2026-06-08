@@ -20,6 +20,7 @@ type Variant = {
 };
 type ColorData = { image: string | null; sizes: { size: string; price: number; stock: number; skuId: string }[] };
 type SimilarProduct = { id: string; title: string; price: number; oldPrice: number; image: string; hasVideo: boolean; rating: number; ratingAvg?: number | null; ratingCount?: number };
+type ProductVideo = { id: string; title: string; playbackUrl: string; thumbnailUrl: string | null; durationSeconds?: number; viewCount?: number; likeCount?: number; publishedAt?: string; creatorName?: string; creatorId?: string; description?: string };
 
 function dedupeSizes(sizes: ColorData["sizes"]): ColorData["sizes"] {
   const bySize = new Map<string, ColorData["sizes"][number]>();
@@ -34,7 +35,7 @@ function dedupeSizes(sizes: ColorData["sizes"]): ColorData["sizes"] {
   return Array.from(bySize.values());
 }
 
-type Props = { initialData?: ProductDetail | null; initialVideos?: any[] };
+type Props = { initialData?: ProductDetail | null; initialVideos?: ProductVideo[] };
 
 export default function ProductClient({ initialData, initialVideos }: Props) {
   const t = useTranslations("product");
@@ -78,7 +79,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       setSavePending(false);
     }
   };
-  const [productVideos, setProductVideos] = useState<any[]>(initialVideos || []);
+  const [productVideos, setProductVideos] = useState<ProductVideo[]>(initialVideos || []);
   const [activeTab, setActiveTab] = useState<"clips" | "details" | "reviews">("clips");
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
@@ -95,7 +96,8 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       if (saveData && typeof saveData.saved === "boolean") setLiked(saveData.saved);
       if (videosData && Array.isArray(videosData.videos)) setProductVideos(videosData.videos);
       if (similarData?.products?.length) {
-        const mapped: SimilarProduct[] = similarData.products.map((p: any) => ({
+        type SimilarApiRow = { id: string; title: string; price?: number; image?: string; rating?: number; ratingCount?: number };
+        const mapped: SimilarProduct[] = (similarData.products as SimilarApiRow[]).map((p) => ({
           id: p.id,
           title: p.title,
           price: p.price || 0,

@@ -124,7 +124,20 @@ export default async function ProductPage({ params }: Props) {
   let initialVideos: Array<{ id: string; title: string; playbackUrl: string; thumbnailUrl: string; durationSeconds: number; viewCount: number; likeCount: number; publishedAt: string; creatorName: string; creatorId: string; description: string }> = [];
   if (data) {
     try {
-      const { rows: vRows } = await dbQuery<any>(
+      type VRow = {
+        id: string;
+        title: string;
+        description: string | null;
+        playback_url: string;
+        thumbnail_url: string;
+        duration_ms: number | null;
+        view_count: number | string | null;
+        like_count: number | string | null;
+        published_at: string;
+        creator_name: string;
+        creator_id: string;
+      };
+      const { rows: vRows } = await dbQuery<VRow>(
         `SELECT v.id, v.title, v.description, v.playback_url, v.thumbnail_url, v.duration_ms,
                 v.view_count, v.like_count, v.published_at,
                 u.display_name AS creator_name, u.id AS creator_id
@@ -142,7 +155,7 @@ export default async function ProductPage({ params }: Props) {
           LIMIT 12`,
         [productUuid]
       );
-      initialVideos = vRows.map((r: any) => ({
+      initialVideos = vRows.map((r) => ({
         id: r.id,
         title: r.title,
         description: r.description ?? "",
@@ -162,7 +175,8 @@ export default async function ProductPage({ params }: Props) {
   let initialSimilar: Array<{ id: string; title: string; price: number; image: string; oldPrice: number; hasVideo: boolean; rating: number; ratingAvg: number | null; ratingCount: number }> = [];
   if (data) {
     try {
-      const { rows: sRows } = await dbQuery<any>(
+      type SRow = { id: string; title: string; price_cents: number | null; image_url: string | null };
+      const { rows: sRows } = await dbQuery<SRow>(
         `SELECT p.id, p.title, p.price_cents, p.image_url
            FROM marketplace_products p
           WHERE p.status = 'active'
@@ -175,7 +189,7 @@ export default async function ProductPage({ params }: Props) {
           LIMIT 8`,
         [productUuid]
       );
-      initialSimilar = sRows.map((r: any) => ({
+      initialSimilar = sRows.map((r) => ({
         id: r.id,
         title: r.title,
         price: r.price_cents ? r.price_cents / 100 : 0,
