@@ -20,17 +20,30 @@ const REASONS: Record<string, string> = {
 
 type SearchParams = { reason?: string; status?: string };
 
-async function getReports(params: SearchParams) {
+type ReportRow = {
+  video_id: string;
+  reason: string;
+  reports_count: number;
+  first_reported_at: string | Date;
+  sample_report_id: string;
+  title: string | null;
+  thumbnail_url: string | null;
+  is_hidden: boolean | null;
+  creator_username: string | null;
+  creator_id: string | null;
+};
+
+async function getReports(params: SearchParams): Promise<ReportRow[]> {
   const status = params.status || "open";
   const reason = params.reason || null;
   const where: string[] = ["mr.status = $1", "mr.target_video_id IS NOT NULL"];
-  const args: any[] = [status];
+  const args: string[] = [status];
   if (reason && REASONS[reason]) {
     args.push(reason);
     where.push(`mr.reason = $${args.length}`);
   }
 
-  const { rows } = await dbQuery(
+  const { rows } = await dbQuery<ReportRow>(
     `
     WITH grouped AS (
       SELECT
@@ -123,7 +136,7 @@ export default async function ModerationPage({
               </tr>
             </thead>
             <tbody>
-              {reports.map((r: any) => (
+              {reports.map((r) => (
                 <tr key={`${r.video_id}-${r.reason}`} className="border-t border-black/5">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">

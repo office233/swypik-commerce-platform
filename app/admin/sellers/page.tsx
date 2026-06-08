@@ -1,22 +1,33 @@
 import { dbQuery } from "@/lib/db";
 import { approveSeller } from "./actions";
 import { getTranslations } from "next-intl/server";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
+type SellerRow = {
+  id: string;
+  name: string | null;
+  cui: string | null;
+  email: string | null;
+  phone: string | null;
+  product_type: string | null;
+  status: string | null;
+};
+
 export default async function SellersAdminPage() {
   const t = await getTranslations("sellers");
-  let sellers: any[] = [];
+  let sellers: SellerRow[] = [];
   try {
-    const res = await dbQuery("SELECT id, name, cui, email, phone, product_type, status FROM sellers ORDER BY created_at DESC");
+    const res = await dbQuery<SellerRow>("SELECT id, name, cui, email, phone, product_type, status FROM sellers ORDER BY created_at DESC");
     sellers = res.rows;
-  } catch (err) {
+  } catch {
     // Fallback if created_at doesn't exist
     try {
-      const resFallback = await dbQuery("SELECT id, name, cui, email, phone, product_type, status FROM sellers");
+      const resFallback = await dbQuery<SellerRow>("SELECT id, name, cui, email, phone, product_type, status FROM sellers");
       sellers = resFallback.rows;
     } catch (fallbackErr) {
-      console.error("Sellers table might not exist or columns differ:", fallbackErr);
+      logger.error({ err: fallbackErr }, "[admin/sellers] table might not exist or columns differ");
     }
   }
 
@@ -35,7 +46,7 @@ export default async function SellersAdminPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5] text-sm">
-            {sellers.map((seller: any) => (
+            {sellers.map((seller) => (
               <tr key={seller.id} className="hover:bg-[#F7F7F8]/50 transition">
                 <td className="px-6 py-4 font-mono text-xs text-gray-500">
                   {String(seller.id).split("-")[0]}...

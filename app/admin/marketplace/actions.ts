@@ -239,8 +239,9 @@ export async function createMarketplaceProduct(formData: FormData) {
     const values = readProductFormValues(formData);
     productId = await writeMarketplaceProduct(values);
     revalidatePath("/admin/marketplace");
-  } catch (error: any) {
-    redirect(`/admin/marketplace/new?error=${encodeActionError(error.message || "Could not create product.")}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not create product.";
+    redirect(`/admin/marketplace/new?error=${encodeActionError(message)}`);
   }
 
   redirect(`/admin/marketplace/${productId}?created=1`);
@@ -255,8 +256,9 @@ export async function updateMarketplaceProduct(id: string, formData: FormData) {
 
     revalidatePath("/admin/marketplace");
     revalidatePath(`/admin/marketplace/${id}`);
-  } catch (error: any) {
-    redirect(`/admin/marketplace/${id}?error=${encodeActionError(error.message || "Could not save product.")}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not save product.";
+    redirect(`/admin/marketplace/${id}?error=${encodeActionError(message)}`);
   }
 
   redirect(`/admin/marketplace/${id}?saved=1`);
