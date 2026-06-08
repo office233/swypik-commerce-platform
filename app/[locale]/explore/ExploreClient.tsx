@@ -1171,7 +1171,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: E
                           <span>Vision24 AI</span>
                           <span className="dot" aria-hidden="true" />
                           {video.article.publishedAt && (
-                            <span>{new Date(video.article.publishedAt).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                            <span>{new Date(video.article.publishedAt).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bucharest" })}</span>
                           )}
                           {video.article.liesCount > 0 && (
                             <span className="pill-lies">{video.article.liesCount} semnale verificate</span>
@@ -1196,7 +1196,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: E
                     <div className="vision-reel-meta">
                       <span>{video.newsVideo.verticalName}</span>
                       {video.newsVideo.isShortForm && <span className="vision-reel-pill">Short</span>}
-                      {video.newsVideo.publishedAt && <span>{new Date(video.newsVideo.publishedAt).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>}
+                      {video.newsVideo.publishedAt && <span>{new Date(video.newsVideo.publishedAt).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bucharest" })}</span>}
                     </div>
                   </article>
                 )}

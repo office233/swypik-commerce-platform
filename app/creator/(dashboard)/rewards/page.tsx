@@ -130,7 +130,7 @@ export default function RewardsPage() {
                 <tbody className="divide-y divide-[#E5E5E5]">
                   {history.map((event) => {
                     const date = new Date(event.created_at).toLocaleDateString('ro-RO', {
-                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest'
                     });
                     
                     let badgeClass = "bg-neutral-100 text-neutral-900";

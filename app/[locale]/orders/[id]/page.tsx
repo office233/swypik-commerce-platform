@@ -140,7 +140,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           </span>
           <p className="mt-2 text-xs text-[#6E6E80]">
             
-            {t("plasataPe")} {new Date(order.createdAt).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            {t("plasataPe")} {new Date(order.createdAt).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bucharest" })}
           </p>
         </div>
 
