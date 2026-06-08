@@ -189,10 +189,11 @@ export async function POST(req: Request) {
           labelProduct({ id: insRows[0].id, title, description, category }).catch(() => {});
         }
         imported++;
-      } catch (dbErr: any) {
+      } catch (dbErr) {
+        const dbMessage = dbErr instanceof Error ? dbErr.message : String(dbErr);
         errors.push({
           row: rowNumber,
-          reason: `DB error: ${dbErr.message?.slice(0, 200) ?? "Unknown"}`,
+          reason: `DB error: ${dbMessage.slice(0, 200) || "Unknown"}`,
           data: rowData,
         });
       }
@@ -204,10 +205,11 @@ export async function POST(req: Request) {
       total: rows.length,
       errors,
     });
-  } catch (err: any) {
-    logger.error({ err: err }, "CSV import error:");
+  } catch (err) {
+    logger.error({ err }, "CSV import error:");
+    const message = err instanceof Error ? err.message : "Server error.";
     return NextResponse.json(
-      { success: false, imported: 0, errors: [{ row: 0, reason: err.message || "Server error." }] },
+      { success: false, imported: 0, errors: [{ row: 0, reason: message }] },
       { status: 500 }
     );
   }

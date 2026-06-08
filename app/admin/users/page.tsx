@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 import UserActions from "./UserActions";
 import { getTranslations } from "next-intl/server";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export default async function AdminUsersPage({
       ? "AND (username ILIKE '%'||$1||'%' OR email ILIKE '%'||$1||'%' OR display_name ILIKE '%'||$1||'%')"
       : "";
 
-    const params: any[] = q ? [q, PAGE_SIZE, offset] : [PAGE_SIZE, offset];
+    const params: (string | number)[] = q ? [q, PAGE_SIZE, offset] : [PAGE_SIZE, offset];
     const limitIdx = q ? "$2" : "$1";
     const offsetIdx = q ? "$3" : "$2";
 
@@ -86,9 +87,9 @@ export default async function AdminUsersPage({
     const countParams = q ? [q] : [];
     const cRes = await dbQuery(countSql, countParams);
     totalCount = cRes.rows[0]?.c || 0;
-  } catch (err: any) {
-    console.error("Error fetching users:", err);
-    loadError = err.message || "Eroare la incarcarea utilizatorilor.";
+  } catch (err) {
+    logger.error({ err }, "[admin/users] Error fetching users");
+    loadError = err instanceof Error ? err.message : "Eroare la incarcarea utilizatorilor.";
   }
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));

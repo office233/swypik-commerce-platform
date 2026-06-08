@@ -26,7 +26,7 @@ export default function UserActions({ userId, username, role, isSuspended }: Pro
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function call(url: string, body?: any) {
+  async function call(url: string, body?: Record<string, unknown>) {
     setBusy(true);
     setErr(null);
     try {
@@ -43,8 +43,8 @@ export default function UserActions({ userId, username, role, isSuspended }: Pro
       }
       setOpen(false);
       router.refresh();
-    } catch (e: any) {
-      setErr(e?.message || "Eroare retea");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Eroare retea");
     } finally {
       setBusy(false);
     }
