@@ -25,13 +25,15 @@ export async function POST(req: Request) {
 
   // ── 2. Process webhook payload ──
   try {
-    let body: any;
+    let body: { external_order_id?: unknown; status?: unknown; tracking_number?: unknown } = {};
     try {
       body = rawBody ? JSON.parse(rawBody) : {};
     } catch {
       return NextResponse.json({ success: false, error: "Invalid JSON" }, { status: 400 });
     }
-    const { external_order_id, status, tracking_number } = body;
+    const external_order_id = typeof body.external_order_id === "string" ? body.external_order_id : null;
+    const tracking_number = typeof body.tracking_number === "string" ? body.tracking_number : null;
+    const status = typeof body.status === "string" ? body.status : null;
 
     if (!external_order_id || !tracking_number) {
       return NextResponse.json(
@@ -69,7 +71,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Supplier Webhook] POST Error:");
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },

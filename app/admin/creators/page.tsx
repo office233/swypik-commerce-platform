@@ -47,13 +47,13 @@ export default async function AdminCreatorsPage({
   let loadError: string | null = null;
 
   try {
-    const params: any[] = [];
+    const params: string[] = [];
     let searchSql = "";
     if (q) {
       params.push(q);
       searchSql = `AND (u.username ILIKE '%'||$1||'%' OR u.display_name ILIKE '%'||$1||'%')`;
     }
-    const res = await dbQuery(
+    const res = await dbQuery<Row>(
       `
       SELECT u.id, u.username, u.display_name, u.avatar_url, u.is_verified,
              (SELECT COUNT(*) FROM follows WHERE following_user_id = u.id)::text AS followers,
@@ -68,9 +68,9 @@ export default async function AdminCreatorsPage({
       `,
       params
     );
-    rows = res.rows as Row[];
-  } catch (e: any) {
-    loadError = e?.message || "Eroare DB";
+    rows = res.rows;
+  } catch (e) {
+    loadError = e instanceof Error ? e.message : "Eroare DB";
   }
 
   return (

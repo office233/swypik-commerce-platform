@@ -60,13 +60,13 @@ export default async function AdminApplicationsPage({
   let loadError: string | null = null;
 
   try {
-    const params: any[] = [];
+    const params: string[] = [];
     let whereSql = "";
     if (status !== "all") {
       params.push(status);
       whereSql = `WHERE ca.status = $1`;
     }
-    const res = await dbQuery(
+    const res = await dbQuery<Row>(
       `
       SELECT ca.id, ca.user_id, ca.status, ca.requested_handle, ca.category,
              ca.website_url, ca.social_links, ca.review_note, ca.reviewed_at, ca.created_at,
@@ -79,9 +79,9 @@ export default async function AdminApplicationsPage({
       `,
       params
     );
-    rows = res.rows as Row[];
-  } catch (e: any) {
-    loadError = e?.message || "Eroare DB";
+    rows = res.rows;
+  } catch (e) {
+    loadError = e instanceof Error ? e.message : "Eroare DB";
   }
 
   const tabs: Array<{ value: string; label: string }> = [
