@@ -22,11 +22,9 @@
     "urmaritori": "Abonnés",
     "publica": "Publier",
     "editeaza": "Modifier",
-    "coinsProvocari": "Coins & Défis",
     "seIncarca": "chargement",
     "provocariActive": "Défis actifs",
     "seIncarca2": "chargement",
-    "veziProvocari": "Voir les défis →",
     "descopera": "Découvrir",
     "descopera2": "Découvrir",
     "intraInArena": "Entre dans l'arène →",
@@ -166,12 +164,8 @@
     "login": "Se connecter",
     "logout": "Se déconnecter",
     "register": "S'inscrire",
-    "signIn": "Se connecter",
-    "signUp": "Créer un compte",
     "email": "E-mail",
     "password": "Mot de passe",
-    "continueWithGoogle": "Continuer avec Google",
-    "continueWithApple": "Continuer avec Apple",
     "or": "ou"
   },
   "authClient": {
@@ -381,35 +375,8 @@
     "inchide4": "Fermer",
     "deCeMeritaAi": "🧠 Pourquoi ça vaut le coup — Analyse IA",
     "adaugaInCos": "Ajouter au panier —",
-    "qpGamingLabel": "🎮 Setup gaming",
-    "qpGamingQuery": "setup gaming complet sous 800 €",
-    "qpNuntaLabel": "👗 Tenue de mariage",
-    "qpNuntaQuery": "tenue complète chic pour mariage",
-    "qpApartLabel": "🏠 Nouvel appartement",
-    "qpApartQuery": "kit appartement neuf moins de 2000 lei",
-    "qpCadouLabel": "🎁 Cadeau à moins de 200",
-    "qpCadouQuery": "cadeau original à moins de 40 €",
-    "qpBirouLabel": "💻 Setup bureau",
-    "qpBirouQuery": "setup complet bureau à domicile",
-    "qpSkincareLabel": "💄 Routine skincare",
-    "qpSkincareQuery": "routine skincare complète",
-    "qpFitnessLabel": "🏋️ Kit fitness",
-    "qpFitnessQuery": "kit fitness maison complet",
-    "qpIphoneLabel": "📱 Kit iPhone",
-    "qpIphoneQuery": "kit complet accessoires iPhone",
-    "qpPetLabel": "🐾 Nouveau kit animal",
-    "qpPetQuery": "kit complet nouvel animal de compagnie",
-    "welcomeContent": "Salut ! 👋 Je suis ton assistant shopping.\n\nDis-moi ce que tu cherches et je m'occupe de :\n• Trouver les meilleures options\n• T'expliquer pourquoi elles valent le coup\n• Composer des packs complets avec tout le nécessaire\n• Comparer prix et qualité\n\nEssaie un truc comme :\n💻 \"Setup gaming sous 800 €\"\n👗 \"Tenue chic pour un mariage\"\n🏠 \"Nouvel appart sous 400 €\"",
-    "outfitNunta": "Tenue élégante pour un mariage",
-    "errCauta": "Impossible de rechercher les produits.",
-    "amCautatInMagazin": "J'ai cherché dans la boutique.",
     "errGenerica": "Une erreur est survenue.",
-    "reducereReala": "💰 Vraie remise",
-    "cosShort": "Panier",
     "seCautaRezultate": "Recherche en cours…",
-    "pretAsc": "Prix ↑",
-    "pretDesc": "Prix ↓",
-    "economisesti": "Vous économisez {amount} €",
     "totBundleAdaugat": "🎁 Pack entier ajouté !",
     "arataAltele": "🔄 Voir d'autres",
     "promptArataAltceva": "montre-moi autre chose",
@@ -421,13 +388,6 @@
     "finalizeazaComanda": "Finaliser la commande — {total} lei",
     "navAcasa": "Accueil",
     "navCos": "Panier",
-    "economisestiBundle": "• vous économisez {amount} €",
-    "trustComenzi": "✅ {count}+ commandes — vendeur de confiance",
-    "trustVandute": "📦 {count}+ vendus — produit vérifié",
-    "trustReducereReala": "💰 Vraie réduction de {percent} % par rapport au prix standard",
-    "trustBestValue": "🏆 Meilleur rapport qualité-prix de sa catégorie",
-    "trustLivrareRapida": "🚀 Livraison rapide — {days} jours",
-    "asistentShoppingAi": "Assistant shopping IA",
     "qpGamingLabelDefault": "🎮 Setup gaming",
     "qpGamingQueryDefault": "setup gaming complet à moins de 800 €",
     "qpNuntaLabelDefault": "👗 Tenue de mariage",
@@ -510,7 +470,6 @@
     "seIncarcaCheckoutulSecurizat": "Chargement du paiement sécurisé…",
     "cosGol": "Panier vide",
     "inapoiLaMagazin": "Retour à la boutique",
-    "produseleTale": "Tes produits (",
     "sterge": "Supprimer",
     "sePregatesteFormularulDe": "Préparation du formulaire de paiement…",
     "sumarComanda": "Résumé de la commande",
@@ -550,7 +509,6 @@
   "common": {
     "loading": "Chargement…",
     "error": "Une erreur s'est produite",
-    "retry": "Réessayer",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "close": "Fermer",
@@ -586,7 +544,6 @@
     "drafts": "Brouillons",
     "scheduled": "Programmés",
     "publish": "Publier",
-    "saveDraft": "Enregistrer brouillon",
     "schedule": "Programmer",
     "exploreaza": "Explorer",
     "acestCreatorNuAre": "Ce créateur n'a publié aucune vidéo."
@@ -797,13 +754,7 @@
     "activeazaSunetul": "Activer le son",
     "opresteSunetul": "Couper le son",
     "actiuniProdus": "Actions produit {name}",
-    "veziPret": "Voir le prix",
-    "sursaFeed": "Source du flux",
-    "stiri": "Actus",
-    "atingePentruSunet": "Toucher pour activer le son",
-    "atingePentruSunet2": "Appuyez pour le son",
-    "stiriVerificateDeVision24": "Actus vérifiées par Vision24 AI — clips courts de sources officielles",
-    "citesteAnaliza": "Lire l'analyse"
+    "veziPret": "Voir le prix"
   },
   "help": {
     "ajutorIntrebariFrecvente": "Aide & FAQ",
@@ -970,32 +921,13 @@
     "draftNotice": "Ce document est une version provisoire. La version finale sera examinée juridiquement avant le lancement.",
     "h1": "Politique de confidentialité",
     "lastUpdated": "Dernière mise à jour : 15 mai 2026",
-    "section1Title": "1. Données collectées",
-    "section1Body": "Swypik collecte et traite les catégories suivantes de données personnelles, en tant que responsable au sens du Règlement (UE) 2016/679 (GDPR) : (a) données de compte — nom, adresse e-mail, numéro de téléphone (facultatif), mot de passe (stocké en hash), date de naissance pour vérification d'âge ; (b) données de navigation — adresse IP (traitée sous forme pseudonymisée), type d'appareil, navigateur, pages consultées, durée de session, interactions avec les vidéos et produits ; (c) historique d'achats — commandes, produits consultés, articles en panier, adresses de livraison, préférences ; (d) contenu généré par l'utilisateur — vidéos, commentaires, j'aime, avis ; (e) communications avec l'équipe d'assistance. La fourniture de certaines données est nécessaire au fonctionnement du compte, d'autres sont facultatives.",
-    "section2Title": "2. Comment nous utilisons vos données",
-    "section2Body": "Les données collectées sont traitées aux fins suivantes et sur la base des fondements légaux correspondants : (a) authentification des utilisateurs et gestion des sessions — nécessaire pour l'exécution du contrat ; (b) personnalisation du fil vidéo et des recommandations de produits, selon vos interactions antérieures — intérêt légitime de Swypik de vous offrir une expérience pertinente, avec droit d'opposition ; (c) traitement des paiements via Stripe et transmission des informations minimales nécessaires à l'autorisation de la transaction — exécution du contrat et obligation légale ; (d) prévention de la fraude et des abus — intérêt légitime ; (e) communications transactionnelles (confirmations de commande, notifications de livraison) — exécution du contrat ; (f) marketing par e-mail, uniquement sur la base de votre consentement explicite, avec possibilité de vous désabonner à tout moment.",
-    "section3Title": "3. Cookies et suivi",
-    "section3Body": "La plateforme utilise des cookies techniques essentiels pour le fonctionnement de la session (authentification, panier) et des cookies analytiques pour comprendre le comportement global. Le serveur reverse-proxy (Caddy) enregistre les adresses IP dans les journaux d'accès, le temps nécessaire au débogage et à la sécurité. Les événements d'interaction avec le fil vidéo sont associés à un identifiant dérivé de votre adresse IP via une fonction de hachage salée (« IP-salted feed events »), de sorte que votre IP brute n'est pas stockée avec vos événements comportementaux. Vous pouvez gérer vos préférences de cookies dans les paramètres de votre navigateur, mais désactiver les cookies essentiels peut affecter le fonctionnement de la plateforme.",
-    "section4Title": "4. Partage avec des tiers",
-    "section4Body": "Vos données peuvent être transmises aux catégories de destinataires suivants, exclusivement pour les finalités décrites : (a) Stripe Payments Europe Ltd., pour le traitement des paiements — seules les informations minimales nécessaires à l'autorisation de la transaction sont transmises ; (b) Cloudflare, Inc., pour les services CDN, la protection DDoS et le stockage des fichiers média sur Cloudflare R2 ; (c) prestataires de messagerie transactionnelle pour la livraison des notifications ; (d) partenaires prestataires d'expédition et de dropshipping international — uniquement lorsque le produit commandé est traité via ce canal, avec transmission de l'adresse de livraison et des détails minimaux de la commande. Nous ne vendons ni ne louons vos données personnelles à des tiers à des fins de marketing indépendant. Les transferts en dehors de l'Espace économique européen sont protégés par des clauses contractuelles types.",
-    "section5Title": "5. Vos droits",
-    "section5Body": "Conformément au RGPD, vous disposez des droits suivants : (a) droit d'accès à vos données personnelles traitées ; (b) droit de rectification des données inexactes ; (c) droit à l'effacement (« droit à l'oubli »), dans les limites prévues par la loi ; (d) droit à la limitation du traitement ; (e) droit à la portabilité des données, dans un format structuré, couramment utilisé et lisible automatiquement ; (f) droit d'opposition au traitement, notamment pour les traitements fondés sur l'intérêt légitime ou le marketing direct ; (g) droit de ne pas faire l'objet d'une décision fondée exclusivement sur un traitement automatisé. Pour exercer l'un de ces droits, contactez-nous à privacy@swypik.com. Vous avez également le droit de déposer une plainte auprès de la CNIL (www.cnil.fr).",
-    "section6Title": "6. Conservation des données",
-    "section6Body": "Les données personnelles sont conservées uniquement pour la durée nécessaire à la réalisation des finalités pour lesquelles elles ont été collectées, selon les délais indicatifs suivants : données de compte — pendant la durée d'existence du compte plus 3 ans après sa fermeture, pour résoudre les litiges éventuels ; données transactionnelles et factures — 10 ans, conformément à la législation fiscale française ; données de navigation et journaux techniques — maximum 12 mois ; contenu généré par l'utilisateur (vidéos, commentaires) — jusqu'à suppression par l'utilisateur ou fermeture du compte. À l'expiration de ces délais, les données sont supprimées de manière sécurisée ou anonymisées de façon irréversible à des fins statistiques agrégées.",
-    "section7Title": "7. Sécurité",
-    "section7Body": "Swypik applique des mesures techniques et organisationnelles appropriées pour protéger vos données contre l'accès non autorisé, la perte, la modification ou la divulgation. Celles-ci incluent notamment : transmission chiffrée des données via HTTPS/TLS, stockage des mots de passe sous forme de hash cryptographique salé, séparation des environnements de production et de développement, journalisation vérifiable des opérations sensibles, contrôle d'accès à la base de données par rôle, sauvegardes régulières et surveillance continue de l'infrastructure. Cependant, aucune méthode de transmission ou de stockage n'est totalement sécurisée. Nous vous encourageons à utiliser des mots de passe forts et à protéger vos identifiants.",
     "section8Title": "8. Contact DPO",
     "section8BodyPrefix": "Pour toute demande concernant le traitement de vos données personnelles, l'exercice de vos droits GDPR ou le signalement d'un incident de sécurité potentiel, veuillez contacter notre Délégué à la protection des données (DPO) à",
-    "section8BodySuffix": ". Nous traiterons votre demande dans un délai maximum de 30 jours calendaires à compter de sa réception, conformément au GDPR.",
-    "section9Title": "9. Modifications de cette politique",
-    "section9Body": "Swypik se réserve le droit de mettre à jour régulièrement cette Politique de confidentialité pour refléter les changements législatifs, technologiques ou nos pratiques de traitement. Tout changement significatif sera annoncé clairement sur la plateforme ou par e-mail avant son entrée en vigueur. La version mise à jour inclura la date de la dernière modification, et l'utilisation continue de la plateforme après cette date constitue l'acceptation des nouveaux termes. Nous vous recommandons de consulter régulièrement cette page pour rester informé de la façon dont nous protégeons vos données."
+    "section8BodySuffix": ". Nous traiterons votre demande dans un délai maximum de 30 jours calendaires à compter de sa réception, conformément au GDPR."
   },
   "product": {
     "addToCart": "Ajouter au panier",
-    "buyNow": "Acheter",
-    "outOfStock": "Rupture de stock",
     "shipping": "Livraison",
-    "freeShipping": "Livraison gratuite",
     "reviews": "Avis",
     "details": "Détails",
     "variants": "Variantes",
@@ -1400,7 +1332,6 @@
     "itemSellerPending": "Demande vendeur en cours d'examen",
     "itemDevinoSeller": "Devenir vendeur",
     "itemEditeaza": "Modifier le profil",
-    "itemWallet": "Portefeuille SWYP",
     "itemComenzi": "Mes commandes",
     "itemAdrese": "Adresses de livraison",
     "itemSecuritate": "Sécurité et mot de passe",
@@ -1458,22 +1389,7 @@
     "lastUpdated": "Dernière mise à jour : 15 mai 2026",
     "contactPrefix": "Pour toute question, réclamation ou demande concernant ces Conditions générales, contactez-nous à",
     "contactSuffix": ". Nous vous répondrons dans un délai maximum de 30 jours ouvrables à compter de la réception de votre demande.",
-    "section1Title": "1. Acceptation des conditions",
-    "section1Body": "En accédant ou en utilisant la plateforme Swypik (« Plateforme », « Service »), vous confirmez avoir lu, compris et accepté ces Conditions générales ainsi que la Politique de confidentialité disponible sur le site. Ces conditions constituent un accord légal entre vous (« Utilisateur ») et l'opérateur de la plateforme. Si vous n'acceptez pas l'une des dispositions ci-dessous, veuillez ne pas utiliser la plateforme. La poursuite de l'utilisation après la publication de modifications implique votre acceptation de ces modifications. Pour les utilisateurs de moins de 18 ans, l'accès à certaines sections peut être restreint ou soumis au consentement des parents ou représentants légaux. Swypik se réserve le droit de refuser l'accès ou de suspendre les comptes qui violent ces conditions, sans préavis, dans les cas prévus par la loi ou le présent document.",
-    "section2Title": "2. Utilisation de la plateforme",
-    "section2Body": "La plateforme permet de découvrir et d'acheter des produits via des vidéos créées par les utilisateurs et vendeurs. Vous vous engagez à utiliser le Service uniquement à des fins légales, conformément à ces conditions et à la législation applicable en Roumanie et dans l'Union européenne. Sont interdits : l'utilisation abusive de l'infrastructure (scraping massif, attaques DDoS, exploitation de vulnérabilités), les tentatives de contournement des mécanismes de sécurité, le téléchargement de logiciels malveillants, l'usurpation d'identité d'autres personnes ou marques, et toute activité frauduleuse liée aux paiements. Les vendeurs et créateurs sont responsables de la conformité de leurs produits et contenus avec la législation commerciale, fiscale et de protection des consommateurs applicable en Roumanie.",
-    "section3Title": "3. Comptes utilisateurs",
-    "section3Body": "L'accès à certaines fonctionnalités nécessite la création d'un compte. Vous êtes responsable de la confidentialité de vos identifiants (mot de passe, OTP, sessions) et de toutes les activités effectuées via votre compte. Vous vous engagez à fournir des informations exactes, complètes et à jour lors de l'inscription et pendant l'utilisation. Un seul compte par personne physique est autorisé, sauf si vous possédez également un compte vendeur ou créateur. Swypik peut suspendre ou fermer les comptes qui violent ces conditions, présentent une activité suspecte, ou restent inactifs longtemps. Vous pouvez demander la suppression de votre compte à tout moment, selon notre Politique de confidentialité.",
-    "section4Title": "4. Contenu généré par les utilisateurs",
-    "section4Body": "Les utilisateurs (créateurs, vendeurs, acheteurs) peuvent télécharger des vidéos, images, avis et commentaires. En téléchargeant du contenu, vous accordez à Swypik une licence non-exclusive, mondiale, transférable et gratuite pour stocker, reproduire, afficher, distribuer et adapter ce contenu afin d'exploiter et de promouvoir la plateforme. Vous garantissez que vous détenez tous les droits nécessaires sur le contenu téléchargé et qu'il ne viole aucun droit d'auteur, droit à l'image ou droit de tiers. Sont interdits : le contenu illégal, diffamatoire, obscène, promouvant la violence, la discrimination, l'exploitation des mineurs, ou trompant les acheteurs. Swypik se réserve le droit de modérer, retirer ou supprimer tout contenu violant ces conditions, sans préavis.",
-    "section5Title": "5. Achats et paiements",
-    "section5Body": "Les paiements sur Swypik sont traités par Stripe, selon ses conditions et politiques propres. Les prix affichés incluent la TVA le cas échéant, et les frais de livraison sont indiqués séparément avant la confirmation de la commande. Conformément à la loi française transposant la Directive 2011/83/UE, vous avez le droit de retourner les produits achetés à distance dans un délai de 14 jours à compter de la réception, sans justification, sauf exceptions légales (produits personnalisés, scellés pour des raisons d'hygiène, etc.). Le remboursement s'effectue dans un maximum de 14 jours suivant la réception du produit retourné. Les détails complets sur les retours, l'annulation de commandes et les garanties sont disponibles dans la section « Politique de retour » de la plateforme.",
-    "section6Title": "6. Droits d'auteur",
-    "section6Body": "Swypik respecte les droits de propriété intellectuelle et traite les signalements de violation conformément à la législation applicable, y compris la Directive (UE) 2019/790 sur les droits d'auteur dans le marché unique numérique. Si vous estimez qu'un contenu disponible sur la plateforme viole vos droits d'auteur, vous pouvez nous envoyer une notification écrite à legal@swypik.com contenant : (a) l'identification de l'œuvre protégée ; (b) la localisation exacte du matériel présumé illicite ; (c) vos coordonnées ; (d) une déclaration sous votre responsabilité que les informations sont exactes et que vous êtes titulaire des droits ou représentant autorisé. Nous analyserons la notification et pourrons retirer le contenu en question. Les violations répétées peuvent entraîner la suspension du compte responsable.",
-    "section7Title": "7. Limitation de responsabilité",
-    "section7Body": "Swypik fournit la plateforme « en l'état » et « telle que disponible », sans garanties explicites ou implicites concernant la disponibilité ininterrompue, l'absence d'erreurs ou l'adéquation à un usage particulier. Dans la limite permise par la loi, Swypik ne peut être tenue responsable des dommages indirects, accessoires, spéciaux ou consécutifs (y compris la perte de profits, de données ou d'opportunités commerciales) résultant de l'utilisation ou de l'impossibilité d'utiliser la plateforme. Pour les produits commercialisés par des vendeurs tiers, la responsabilité principale incombe au vendeur, conformément à la législation sur le commerce électronique et la protection des consommateurs. Ces limitations ne s'appliquent pas en cas de fraude, de faute grave ou dans d'autres situations où la loi n'autorise pas la limitation de responsabilité.",
-    "section8Title": "8. Droit applicable",
-    "section8Body": "Ces Conditions générales sont régies par la loi roumaine. Tout litige découlant de ou lié à l'utilisation de la plateforme sera résolu à l'amiable, ou sera de la compétence des tribunaux compétents sur le territoire de la Roumanie. Les consommateurs peuvent également recourir à la plateforme européenne de résolution des litiges en ligne (RLL), disponible à l'adresse https://ec.europa.eu/consumers/odr, ou à l'Autorité nationale pour la protection des consommateurs (ANPC). Si l'une des dispositions de ces conditions est déclarée nulle ou inapplicable, les autres dispositions restent pleinement valables et produisent leurs effets juridiques entre les parties."
+    "section8Title": "8. Droit applicable"
   },
   "upload": {
     "inapoi": "Retour",
@@ -1569,26 +1485,6 @@
     "inapoi": "Retour",
     "conversatie": "Conversation"
   },
-  "cookiesResetConsentButton": {
-    "modificaPreferintele": "Modifier les préférences"
-  },
-  "legalCookies": {
-    "politicaDeCookies": "Politique de cookies",
-    "ceSuntCookies": "Qu'est-ce qu'un cookie ?",
-    "cookiesSuntFisiereText": "Les cookies sont de petits fichiers texte déposés sur votre appareil lorsque vous visitez un site. Nous les utilisons pour faire fonctionner la plateforme et améliorer votre expérience.",
-    "categoriiDeCookiesFolosite": "Catégories de cookies utilisés",
-    "tokenDeAutentificareDurata": "— jeton d'authentification (durée : session ou jusqu'à la déconnexion)",
-    "sesiuneAnonimaPentruRecomandari": "— session anonyme pour les recommandations (durée : 1 an)",
-    "preferinteleTaleDespreCookies": "— tes préférences cookies (durée : 1 an)",
-    "faraAcesteCookiesPlatforma": "Sans ces cookies, la plateforme ne fonctionne pas (connexion, paiement, panier).",
-    "setariDeAfisareLocale": "Préférences d'affichage (langue, feed)",
-    "agregateAnonimeDeUtilizare": "Données d'usage anonymisées pour améliorer l'app (événements de feed, durée de visionnage)",
-    "pentruProcesareaPlatilorLa": "— pour le traitement des paiements au checkout",
-    "candIntriPrimaData": "Lors de ta première visite sur Swypik, une bannière te permet d'accepter ou de refuser les cookies non essentiels.\n        Tu peux changer d'avis à tout moment en supprimant le cookie",
-    "safariPreferinteConfidentialitate": "Safari : Réglages → Confidentialité",
-    "atentieDezactivareaCookiesEsentiale": "Attention : désactiver les cookies essentiels empêche la connexion et les commandes.",
-    "preferinte": "Préférences"
-  },
   "video": {
     "vizualizari": "vues",
     "vizioneaza": "Regarder",
@@ -1666,10 +1562,6 @@
     "restaureaza": "Restaurer",
     "restaureaza2": "Restaurer"
   },
-  "draftsCountdown": {
-    "sePublica": "Publication ·",
-    "sePublicaIn": "Publication dans"
-  },
   "creatordashboard": {
     "schite": "Brouillons",
     "incarcaVideo": "Importer une vidéo",
@@ -1688,9 +1580,7 @@
     "termina": "Terminer"
   },
   "globalerror": {
-    "neCeremScuzeAm": "Désolés, un problème technique est survenu. Notre équipe a été prévenue (Code erreur :",
-    "incearcaDinNou": "Réessayer",
-    "intoarceteLaPaginaPrincipala": "Retour à l'accueil"
+    "incearcaDinNou": "Réessayer"
   },
   "moderation": {
     "moderareContinut": "Modération du contenu",
@@ -1711,10 +1601,8 @@
   },
   "returns": {
     "cereriDeRetur": "Demandes de retour",
-    "returnariInitiateDeClienti": "Retours initiés par les clients, en attente d'une décision admin.",
     "comanda": "Commande",
     "actiuni": "Actions",
-    "nuSuntCereriDe": "Aucune demande de retour pour le moment.",
     "aproba": "Approuver"
   },
   "videos": {
@@ -1741,17 +1629,6 @@
     "seUrcaLaStripe": "Envoi vers Stripe…",
     "salveazaDraft": "Enregistrer le brouillon"
   },
-  "disputes": {
-    "chargebackuriRaspundeCuEvidence": "Litiges. Réponds avec des preuves avant la deadline, sinon tu perds l'argent + frais de 15 €.",
-    "niciunDisputeInCategoria": "Aucun litige dans cette catégorie.",
-    "totalComanda": "Total commande :",
-    "submittedLa": "Envoyé le :",
-    "evidenceTrimisa": "Preuves envoyées :",
-    "estimareSansaCastig": "Chances de gain estimées",
-    "penalizari": "Pénalités (",
-    "campuriLipsaSortateDupa": "champs manquants (triés par impact)",
-    "whatifComboCompletareGrupata": "🎯 Combo what-if (saisie groupée)"
-  },
   "refunds": {
     "refunduriStripeInitierePrin": "Remboursements Stripe. Initiez via le dashboard vendeur ou webhook.",
     "comanda": "Commande",
@@ -1763,11 +1640,6 @@
     "filtreaza": "Filtrer",
     "suma": "Montant",
     "urmator": "Suivant →"
-  },
-  "marketplacePagination": {
-    "afisare": "Affichage",
-    "paginaAnterioara": "Page précédente",
-    "paginaUrmatoare": "Page suivante"
   },
   "marketplaceImport": {
     "incarcaUnFisier": "Importer un fichier",
@@ -1788,13 +1660,8 @@
     "pret": "Prix",
     "inapoiLaMarketplace": "Retour au Marketplace"
   },
-  "marketplaceProductTable": {
-    "seIncarcaProdusele": "Chargement des produits…"
-  },
   "marketplaceFilters": {
-    "cautaProduseDupaTitlu": "Rechercher par titre, slug, marque ou catégorie…",
-    "sursa": "Source :",
-    "gasite": "trouvés"
+    "sursa": "Source :"
   },
   "challengesChallengeActions": {
     "anuleaza": "Annuler"
@@ -1869,19 +1736,8 @@
     "notaOptionalMax500": "Note (facultatif, 500 caractères max)",
     "renunta": "Annuler"
   },
-  "riskMetrics7dPanel": {
-    "rateDeBlockRidicata": "⚠ Taux de blocage élevé (",
-    "verificaDacaWeighturileScoring": " %) — vérifie que les pondérations du scoring ne génèrent pas de faux positifs.",
-    "rateDeApproveRidicata": "ℹ Taux d'approbation élevé (",
-    "scoringPoateFiPrea": " %) — le scoring est peut-être trop agressif, augmente le seuil de vérification."
-  },
   "riskOrderRiskCard": {
-    "blocheaza": "🛑 BLOQUER",
     "veziComanda": "Voir la commande →"
-  },
-  "riskBlockedUsersList": {
-    "useriBlocati": "🚫 Utilisateurs bloqués (",
-    "clickPentruDetalii": "appuyez pour détails"
   },
   "risk": {
     "riscFraudaComenzi": "Risque de fraude",
@@ -1889,13 +1745,7 @@
     "nicioComandaCuRisc": "✅ Aucune commande à risque ≥",
     "inUltimele90Zile": "sur les 90 derniers jours pour le statut"
   },
-  "riskTimeSeriesChart": {
-    "niciunSemnalInUltimele": "Aucun signal sur les 30 derniers jours. Le graphique se remplira automatiquement dès que des commandes signalées ou des décisions admin apparaîtront.",
-    "trendUltimele30Zile": "Tendance 30 derniers jours : commandes signalées, décisions approuver/bloquer et blocages auto"
-  },
   "adminShell": {
-    "inCurand": "Bientôt disponible",
-    "inchideMeniul": "Fermer le menu",
     "inchide": "Fermer"
   },
   "login": {
@@ -2063,10 +1913,6 @@
       "title": "Catégories de produits",
       "description": "Découvrez toutes les catégories de produits sur Swypik : électronique, mode, maison, beauté et bien plus."
     },
-    "categoryDetail": {
-      "titleSuffix": "sur Swypik",
-      "descriptionPrefix": "Produits de la catégorie"
-    },
     "explore": {
       "title": "Explorer les vidéos",
       "description": "Feed vidéo personnalisé : clips tendance, produits viraux et découvertes dans toutes les catégories."
@@ -2080,10 +1926,6 @@
       "keywords": "blog Swypik, guides produits, comparatifs, recommandations créateurs, social commerce",
       "ogDesc": "Comparatifs, guides et vraies recommandations de l'équipe Swypik.",
       "collectionDesc": "Collection d'articles publiés sur le blog Swypik."
-    },
-    "product": {
-      "titleSuffix": "sur Swypik",
-      "descriptionFallback": "Découvrez ce produit sur Swypik. Prix, avis, livraison rapide et alternatives similaires."
     },
     "productNotFound": "Produit introuvable — Swypik"
   },
@@ -2106,17 +1948,6 @@
     "products": "produits",
     "collectionName": "Guides & Avis Swypik",
     "collectionDesc": "Avis et guides produits testés par l'équipe Swypik."
-  },
-  "exploreClient": {
-    "salvatXP": "Enregistré +5 XP",
-    "errVotNuSalvat": "Vote non enregistré",
-    "sursaFeed": "Source du flux",
-    "inCurand": "Bientôt disponible",
-    "inCurandDesc": "Du contenu divertissant arrive bientôt ici. Restez connectés !",
-    "atingePentruSunet": "Toucher pour activer le son",
-    "stiriVerificate": "Infos vérifiées par Vision24 AI — clips courts de sources officielles",
-    "opresteSunet": "Couper le son",
-    "activeazaSunet": "Activer le son"
   },
   "battleSlug": {
     "voteazaBattle": "Voter pour le battle",
@@ -2229,9 +2060,6 @@
   },
   "uiLoadingState": {
     "seIncarca": "Chargement…"
-  },
-  "uiErrorState": {
-    "aAparutEroare": "Une erreur est survenue"
   },
   "themeToggle": {
     "intunecat": "Sombre",

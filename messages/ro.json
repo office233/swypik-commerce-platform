@@ -22,11 +22,9 @@
     "urmaritori": "Urmăritori",
     "publica": "Publică",
     "editeaza": "Editează",
-    "coinsProvocari": "Coins & Provocări",
     "seIncarca": "se încarcă",
     "provocariActive": "Provocări active",
     "seIncarca2": "se încarcă",
-    "veziProvocari": "Vezi provocări →",
     "descopera": "Descoperă",
     "descopera2": "Descoperă",
     "intraInArena": "Intră în arenă →",
@@ -166,12 +164,8 @@
     "login": "Autentificare",
     "logout": "Ieșire",
     "register": "Înregistrare",
-    "signIn": "Conectează-te",
-    "signUp": "Creează cont",
     "email": "Email",
     "password": "Parolă",
-    "continueWithGoogle": "Continuă cu Google",
-    "continueWithApple": "Continuă cu Apple",
     "or": "sau"
   },
   "authClient": {
@@ -381,35 +375,8 @@
     "inchide4": "Închide",
     "deCeMeritaAi": "🧠 De ce merită — AI Analysis",
     "adaugaInCos": "Adaugă în coș —",
-    "qpGamingLabel": "🎮 Setup gaming",
-    "qpGamingQuery": "setup gaming complet sub 4000 lei",
-    "qpNuntaLabel": "👗 Outfit nuntă",
-    "qpNuntaQuery": "outfit complet elegant pentru nuntă",
-    "qpApartLabel": "🏠 Apartament nou",
-    "qpApartQuery": "kit apartament nou sub 2000 lei",
-    "qpCadouLabel": "🎁 Cadou sub 200",
-    "qpCadouQuery": "cadou creativ sub 200 lei",
-    "qpBirouLabel": "💻 Setup birou",
-    "qpBirouQuery": "setup birou de acasă complet",
-    "qpSkincareLabel": "💄 Rutină skincare",
-    "qpSkincareQuery": "rutină skincare completă",
-    "qpFitnessLabel": "🏋️ Kit fitness",
-    "qpFitnessQuery": "kit fitness acasă complet",
-    "qpIphoneLabel": "📱 Kit iPhone",
-    "qpIphoneQuery": "kit complet accesorii iPhone",
-    "qpPetLabel": "🐾 Kit animal nou",
-    "qpPetQuery": "kit complet animal de companie nou",
-    "welcomeContent": "Bună! 👋 Sunt asistentul tău de shopping.\n\nSpune-mi ce cauți și eu:\n• Găsesc cele mai bune opțiuni\n• Explic de ce merită fiecare\n• Fac bundle-uri complete cu tot ce ai nevoie\n• Compar prețuri și calitate\n\nÎncearcă ceva de genul:\n💻 \"Setup gaming sub 4000 lei\"\n👗 \"Outfit elegant pentru nuntă\"\n🏠 \"Apartament nou sub 2000 lei\"",
-    "outfitNunta": "Outfit elegant pentru nuntă",
-    "errCauta": "Nu am putut căuta produsele.",
-    "amCautatInMagazin": "Am căutat în magazin.",
     "errGenerica": "A apărut o eroare.",
-    "reducereReala": "💰 Reducere reală",
-    "cosShort": "Coș",
     "seCautaRezultate": "Se caută rezultate...",
-    "pretAsc": "Preț ↑",
-    "pretDesc": "Preț ↓",
-    "economisesti": "Economisești {amount} lei",
     "totBundleAdaugat": "🎁 Tot bundle-ul adăugat!",
     "arataAltele": "🔄 Arată altele",
     "promptArataAltceva": "arată-mi altceva",
@@ -421,13 +388,6 @@
     "finalizeazaComanda": "Finalizează comanda — {total} lei",
     "navAcasa": "Acasă",
     "navCos": "Coș",
-    "economisestiBundle": "• economisești {amount} lei",
-    "trustComenzi": "✅ {count}+ comenzi — seller de încredere",
-    "trustVandute": "📦 {count}+ vândute — produs verificat",
-    "trustReducereReala": "💰 Reducere reală de {percent}% față de prețul standard",
-    "trustBestValue": "🏆 Best value în categoria sa",
-    "trustLivrareRapida": "🚀 Livrare rapidă — {days} zile",
-    "asistentShoppingAi": "Asistent Shopping AI",
     "qpGamingLabelDefault": "🎮 Setup gaming",
     "qpGamingQueryDefault": "setup gaming complet sub 4000 lei",
     "qpNuntaLabelDefault": "👗 Outfit nuntă",
@@ -510,7 +470,6 @@
     "seIncarcaCheckoutulSecurizat": "Se încarcă checkout-ul securizat...",
     "cosGol": "Coș gol",
     "inapoiLaMagazin": "Înapoi la magazin",
-    "produseleTale": "Produsele tale (",
     "sterge": "Șterge",
     "sePregatesteFormularulDe": "Se pregătește formularul de plată...",
     "sumarComanda": "Sumar comandă",
@@ -550,7 +509,6 @@
   "common": {
     "loading": "Se încarcă…",
     "error": "A apărut o eroare",
-    "retry": "Încearcă din nou",
     "save": "Salvează",
     "cancel": "Anulează",
     "close": "Închide",
@@ -586,7 +544,6 @@
     "drafts": "Schițe",
     "scheduled": "Programate",
     "publish": "Publică",
-    "saveDraft": "Salvează draft",
     "schedule": "Programează",
     "exploreaza": "Explorează",
     "acestCreatorNuAre": "Acest creator nu are clipuri publicate."
@@ -797,13 +754,7 @@
     "activeazaSunetul": "Activează sunetul",
     "opresteSunetul": "Oprește sunetul",
     "actiuniProdus": "Acțiuni produs {name}",
-    "veziPret": "Vezi preț",
-    "sursaFeed": "Sursă feed",
-    "stiri": "Știri",
-    "atingePentruSunet": "Atinge pentru sunet",
-    "atingePentruSunet2": "Atinge pentru sunet",
-    "stiriVerificateDeVision24": "Știri verificate de Vision24 AI — clipuri scurte de la surse oficiale",
-    "citesteAnaliza": "Citește analiza"
+    "veziPret": "Vezi preț"
   },
   "help": {
     "ajutorIntrebariFrecvente": "Ajutor & Întrebări frecvente",
@@ -970,32 +921,13 @@
     "draftNotice": "Acest document este o versiune provizorie. Versiunea finală va fi revizuită juridic înainte de lansare.",
     "h1": "Politica de confidențialitate",
     "lastUpdated": "Ultima actualizare: 15 mai 2026",
-    "section1Title": "1. Date colectate",
-    "section1Body": "Swypik colectează și prelucrează următoarele categorii de date personale, în calitate de operator în sensul Regulamentului (UE) 2016/679 (GDPR): (a) date de cont — nume, adresă de e-mail, număr de telefon (opțional), parolă (stocată ca hash), data nașterii pentru verificarea vârstei; (b) date de navigare — adresă IP (procesată într-o formă pseudonimizată), tip de dispozitiv, browser, pagini accesate, durata sesiunii, interacțiuni cu conținutul video și cu produsele; (c) istoric de achiziții — comenzi, produse vizualizate, articole adăugate în coș, adrese de livrare, preferințe; (d) conținut generat de utilizator — video-uri, comentarii, aprecieri, recenzii; (e) comunicări cu echipa de suport. Furnizarea unora dintre aceste date este necesară pentru funcționarea contului, iar altele sunt opționale.",
-    "section2Title": "2. Cum folosim datele",
-    "section2Body": "Datele colectate sunt prelucrate în următoarele scopuri și pe baza temeiurilor legale corespunzătoare: (a) autentificarea utilizatorilor și gestionarea sesiunilor — necesar pentru executarea contractului; (b) personalizarea feedului video și a recomandărilor de produse, pe baza interacțiunilor anterioare — interesul legitim al Swypik de a furniza o experiență relevantă, cu posibilitatea de opoziție; (c) procesarea plăților prin Stripe și transmiterea informațiilor minime necesare pentru autorizarea tranzacției — executare contract și obligație legală; (d) prevenirea fraudei și a abuzului — interes legitim; (e) comunicări tranzacționale (confirmări comenzi, notificări de livrare) — executare contract; (f) marketing prin e-mail, doar pe baza consimțământului expres, cu opțiunea de dezabonare în orice moment.",
-    "section3Title": "3. Cookie-uri și tracking",
-    "section3Body": "Platforma utilizează cookie-uri tehnice esențiale pentru funcționarea sesiunii (autentificare, coș de cumpărături) și cookie-uri analitice pentru înțelegerea comportamentului agregat. Serverul de reverse-proxy (Caddy) înregistrează adresele IP în jurnalele de acces, pe perioada necesară pentru depanare și securitate. Evenimentele de interacțiune cu feedul video sunt asociate unui identificator derivat din adresa IP printr-o funcție hash cu sare („IP-salted feed events”), astfel încât IP-ul brut nu este stocat alături de evenimentele comportamentale. Puteți gestiona preferințele privind cookie-urile din setările browserului, însă dezactivarea cookie-urilor esențiale poate afecta funcționarea platformei.",
-    "section4Title": "4. Partajare cu terți",
-    "section4Body": "Datele dumneavoastră pot fi transmise următoarelor categorii de persoane împuternicite, exclusiv în scopurile descrise: (a) Stripe Payments Europe Ltd., pentru procesarea plăților — sunt transmise informațiile minime necesare autorizării tranzacției; (b) Cloudflare, Inc., pentru servicii de CDN, protecție DDoS și stocarea fișierelor media în Cloudflare R2; (c) furnizori de e-mail tranzacțional pentru livrarea notificărilor; (d) furnizori parteneri de fulfillment și dropshipping internațional — doar atunci când produsul comandat este onorat printr-un astfel de canal, fiind transmise adresa de livrare și detaliile minime ale comenzii. Nu vindem și nu închiriem date personale către terți pentru scopuri de marketing independent. Transferurile în afara Spațiului Economic European sunt protejate prin clauze contractuale standard.",
-    "section5Title": "5. Drepturile utilizatorului",
-    "section5Body": "În conformitate cu GDPR, beneficiați de următoarele drepturi: (a) dreptul de acces la datele personale prelucrate; (b) dreptul de rectificare a datelor inexacte; (c) dreptul la ștergerea datelor („dreptul de a fi uitat”), în limitele prevăzute de lege; (d) dreptul la restricționarea prelucrării; (e) dreptul la portabilitatea datelor, într-un format structurat, utilizat în mod curent și care poate fi citit automat; (f) dreptul de opoziție la prelucrare, în special pentru prelucrările bazate pe interesul legitim sau pe marketing direct; (g) dreptul de a nu face obiectul unei decizii bazate exclusiv pe prelucrarea automată. Pentru exercitarea oricăruia dintre aceste drepturi, ne puteți contacta la adresa privacy@swypik.com. Aveți, de asemenea, dreptul de a depune o plângere la ANSPDCP (www.dataprotection.ro).",
-    "section6Title": "6. Retenția datelor",
-    "section6Body": "Datele personale sunt păstrate doar pentru perioada necesară atingerii scopurilor pentru care au fost colectate, conform următoarelor termene orientative: datele de cont — pe durata existenței contului plus 3 ani de la închidere, pentru soluționarea unor eventuale litigii; datele tranzacționale și facturile — 10 ani, conform legislației fiscale române; datele de navigare și jurnalele tehnice — maximum 12 luni; conținutul generat de utilizator (video-uri, comentarii) — până la ștergerea de către utilizator sau închiderea contului. La expirarea acestor termene, datele sunt șterse în siguranță sau anonimizate ireversibil pentru scopuri statistice agregate.",
-    "section7Title": "7. Securitate",
-    "section7Body": "Swypik aplică măsuri tehnice și organizatorice adecvate pentru protejarea datelor împotriva accesului neautorizat, pierderii, modificării sau divulgării. Acestea includ, fără a se limita la: transmiterea criptată a datelor prin HTTPS/TLS, stocarea parolelor sub formă de hash criptografic cu sare, segregarea mediilor de producție și de dezvoltare, jurnalizarea auditabilă a operațiunilor sensibile, controlul accesului la baza de date pe bază de roluri, copii de siguranță periodice și monitorizarea continuă a infrastructurii. Cu toate acestea, nicio metodă de transmitere sau stocare nu este complet sigură, iar utilizatorii sunt încurajați să folosească parole puternice și să își protejeze credențialele de acces.",
     "section8Title": "8. Contact DPO",
     "section8BodyPrefix": "Pentru orice solicitare legată de prelucrarea datelor personale, exercitarea drepturilor GDPR sau sesizarea unor potențiale incidente de securitate, vă rugăm să contactați Responsabilul cu protecția datelor (DPO) la adresa",
-    "section8BodySuffix": ". Vom răspunde solicitărilor în termen de maximum 30 de zile calendaristice de la primire, conform GDPR.",
-    "section9Title": "9. Modificări la această politică",
-    "section9Body": "Swypik își rezervă dreptul de a actualiza periodic prezenta Politică de confidențialitate pentru a reflecta modificări legislative, tehnologice sau ale practicilor noastre de prelucrare. Orice modificare semnificativă va fi anunțată în mod vizibil pe platformă sau prin e-mail, înainte de intrarea în vigoare. Versiunea actualizată va include data ultimei modificări, iar continuarea utilizării platformei după această dată constituie acceptarea noilor termeni. Vă recomandăm să revedeți periodic această pagină pentru a fi la curent cu modul în care vă protejăm datele."
+    "section8BodySuffix": ". Vom răspunde solicitărilor în termen de maximum 30 de zile calendaristice de la primire, conform GDPR."
   },
   "product": {
     "addToCart": "Adaugă în coș",
-    "buyNow": "Cumpără acum",
-    "outOfStock": "Stoc epuizat",
     "shipping": "Livrare",
-    "freeShipping": "Livrare gratuită",
     "reviews": "Recenzii",
     "details": "Detalii",
     "variants": "Variante",
@@ -1400,7 +1332,6 @@
     "itemSellerPending": "Aplicație seller în review",
     "itemDevinoSeller": "Devino seller",
     "itemEditeaza": "Editează profil",
-    "itemWallet": "Portofel SWYP",
     "itemComenzi": "Comenzile mele",
     "itemAdrese": "Adrese de livrare",
     "itemSecuritate": "Securitate & parolă",
@@ -1458,22 +1389,7 @@
     "lastUpdated": "Ultima actualizare: 15 mai 2026",
     "contactPrefix": "Pentru orice întrebări, sesizări sau solicitări legate de acești Termeni și condiții, ne puteți contacta la adresa de e-mail",
     "contactSuffix": ". Vă vom răspunde în termen de maximum 30 de zile lucrătoare de la primirea solicitării.",
-    "section1Title": "1. Acceptarea termenilor",
-    "section1Body": "Prin accesarea sau utilizarea platformei Swypik („Platforma”, „Serviciul”), confirmați că ați citit, ați înțeles și acceptați să respectați acești Termeni și condiții, precum și Politica de confidențialitate disponibilă pe site. Acești termeni constituie un acord legal între dumneavoastră („Utilizatorul”) și operatorul platformei. Dacă nu sunteți de acord cu oricare dintre prevederile de mai jos, vă rugăm să nu utilizați platforma. Continuarea utilizării după publicarea unor modificări implică acceptarea acelor modificări. Pentru utilizatorii sub 18 ani, accesul la anumite secțiuni poate fi restricționat sau condiționat de acordul părinților sau al reprezentanților legali. Swypik își rezervă dreptul de a refuza accesul sau de a suspenda conturile care încalcă acești termeni, fără preaviz, în cazurile prevăzute de lege sau de prezentul document.",
-    "section2Title": "2. Utilizarea platformei",
-    "section2Body": "Platforma este destinată descoperirii și achiziționării de produse prin intermediul conținutului video creat de utilizatori și de vânzători. Utilizatorul se obligă să folosească Serviciul exclusiv în scopuri legale, conforme cu acești termeni și cu legislația aplicabilă în România și Uniunea Europeană. Sunt interzise: utilizarea abuzivă a infrastructurii (scraping automatizat masiv, atacuri DDoS, exploatarea vulnerabilităților), încercarea de a ocoli mecanismele de securitate, încărcarea de software malițios, uzurparea identității altor persoane sau brandurilor, și orice activitate frauduloasă legată de plăți. Vânzătorii și creatorii sunt responsabili pentru conformitatea produselor și a conținutului cu legislația comercială, fiscală și de protecție a consumatorului aplicabilă în România.",
-    "section3Title": "3. Conturile utilizatorilor",
-    "section3Body": "Pentru a accesa anumite funcționalități, este necesară crearea unui cont. Utilizatorul este responsabil pentru menținerea confidențialității credențialelor de autentificare (parolă, OTP, sesiuni) și pentru toate activitățile desfășurate prin contul propriu. Vă obligați să furnizați informații exacte, complete și actualizate la momentul înregistrării și pe parcursul utilizării. Un singur cont este permis per persoană fizică, cu excepția cazurilor în care același utilizator deține și un cont de vânzător sau de creator. Swypik poate suspenda sau închide conturile care încalcă acești termeni, prezintă activitate suspectă, sau rămân inactive o perioadă îndelungată. Utilizatorul poate solicita ștergerea contului în orice moment, conform Politicii de confidențialitate.",
-    "section4Title": "4. Conținut generat de utilizatori",
-    "section4Body": "Utilizatorii (creatori, vânzători, cumpărători) pot încărca conținut video, imagini, recenzii și comentarii. Prin încărcarea conținutului, acordați Swypik o licență non-exclusivă, mondială, transferabilă și fără redevențe de a stoca, reproduce, afișa, distribui și adapta acel conținut în scopul operării și promovării platformei. Garantați că dețineți toate drepturile necesare asupra conținutului încărcat și că acesta nu încalcă drepturi de autor, drepturi de imagine sau alte drepturi ale terților. Este interzis conținutul ilegal, defăimător, obscen, care promovează violența, discriminarea, exploatarea minorilor, sau care induce în eroare cumpărătorii. Swypik își rezervă dreptul de a modera, retrage sau șterge orice conținut care încalcă acești termeni, fără preaviz.",
-    "section5Title": "5. Achiziții și plăți",
-    "section5Body": "Plățile pe Swypik sunt procesate prin Stripe, conform termenilor și politicilor proprii ai Stripe. Prețurile afișate includ TVA, dacă este aplicabil, iar costurile de livrare sunt prezentate separat înainte de finalizarea comenzii. În conformitate cu OUG 34/2014 privind drepturile consumatorilor (transpunerea Directivei 2011/83/UE), aveți dreptul de a returna produsele achiziționate la distanță în termen de 14 zile de la primire, fără a fi nevoie să justificați decizia, cu excepțiile prevăzute de lege (produse personalizate, sigilate din motive de igienă etc.). Rambursarea se efectuează în maximum 14 zile de la primirea produsului returnat. Detaliile complete privind returnarea, anularea comenzilor și garanțiile sunt disponibile în secțiunea „Politica de retur” a platformei.",
-    "section6Title": "6. Drepturi de autor",
-    "section6Body": "Swypik respectă drepturile de proprietate intelectuală și răspunde notificărilor de încălcare în conformitate cu legislația aplicabilă, inclusiv Directiva (UE) 2019/790 privind drepturile de autor pe piața unică digitală. Dacă considerați că un material disponibil pe platformă încalcă drepturile dumneavoastră de autor, ne puteți transmite o notificare scrisă la adresa legal@swypik.com, care să conțină: (a) identificarea operei protejate; (b) localizarea exactă a materialului pretins ilicit; (c) datele dumneavoastră de contact; (d) o declarație pe propria răspundere că informațiile sunt corecte și că sunteți titularul drepturilor sau reprezentantul autorizat. Vom analiza notificarea și putem retrage conținutul incriminat. Repetarea încălcărilor poate atrage suspendarea contului responsabil.",
-    "section7Title": "7. Limitarea răspunderii",
-    "section7Body": "Swypik furnizează platforma „așa cum este” și „așa cum este disponibilă”, fără garanții exprese sau implicite privind disponibilitatea neîntreruptă, absența erorilor sau adecvarea pentru un scop particular. În limita maximă permisă de lege, Swypik nu răspunde pentru daune indirecte, incidentale, speciale sau de consecință (inclusiv pierderea de profit, date sau oportunități comerciale) rezultate din utilizarea sau imposibilitatea de utilizare a platformei. Pentru produsele comercializate de vânzători terți, răspunderea principală revine vânzătorului, conform legislației privind comerțul electronic și protecția consumatorului. Aceste limitări nu se aplică în cazurile de dol, culpă gravă sau în alte situații în care legea nu permite limitarea răspunderii.",
-    "section8Title": "8. Legea aplicabilă",
-    "section8Body": "Acești Termeni și condiții sunt guvernați de legea română. Orice litigiu care decurge din sau în legătură cu utilizarea platformei va fi soluționat amiabil, iar în caz contrar va fi de competența instanțelor judecătorești competente de pe teritoriul României. Consumatorii pot apela și la platforma europeană de soluționare online a litigiilor (ODR), disponibilă la adresa https://ec.europa.eu/consumers/odr, sau la Autoritatea Națională pentru Protecția Consumatorilor (ANPC). Dacă vreuna dintre prevederile acestor termeni este declarată nulă sau inaplicabilă, restul prevederilor rămân pe deplin valabile și produc efecte juridice între părți."
+    "section8Title": "8. Legea aplicabilă"
   },
   "upload": {
     "inapoi": "Înapoi",
@@ -1569,26 +1485,6 @@
     "inapoi": "Înapoi",
     "conversatie": "Conversație"
   },
-  "cookiesResetConsentButton": {
-    "modificaPreferintele": "Modifică preferințele"
-  },
-  "legalCookies": {
-    "politicaDeCookies": "Politica de cookies",
-    "ceSuntCookies": "Ce sunt cookies",
-    "cookiesSuntFisiereText": "Cookies sunt fisiere text mici plasate pe dispozitivul tau cand vizitezi un site. Le folosim\n        pentru a face platforma sa functioneze si pentru a-ti imbunatati experienta.",
-    "categoriiDeCookiesFolosite": "Categorii de cookies folosite",
-    "tokenDeAutentificareDurata": "— token de autentificare (durata: sesiune sau pana la logout)",
-    "sesiuneAnonimaPentruRecomandari": "— sesiune anonima pentru recomandari (durata: 1 an)",
-    "preferinteleTaleDespreCookies": "— preferintele tale despre cookies (durata: 1 an)",
-    "faraAcesteCookiesPlatforma": "Fara aceste cookies platforma nu functioneaza (login, plata, cos).",
-    "setariDeAfisareLocale": "Setari de afisare (locale, preferinte feed)",
-    "agregateAnonimeDeUtilizare": "Agregate anonime de utilizare pentru a imbunatati produsul (event-uri de feed, durata vizionare)",
-    "pentruProcesareaPlatilorLa": "— pentru procesarea platilor la checkout",
-    "candIntriPrimaData": "Cand intri prima data pe Swypik vei vedea un banner unde poti accepta sau refuza cookies non-esentiale.\n        Iti poti schimba decizia oricand prin stergerea cookie-ului",
-    "safariPreferinteConfidentialitate": "Safari: Preferinte → Confidentialitate",
-    "atentieDezactivareaCookiesEsentiale": "Atentie: dezactivarea cookies esentiale va impiedica login-ul si efectuarea de comenzi.",
-    "preferinte": "Preferințe"
-  },
   "video": {
     "vizualizari": "vizualizări",
     "vizioneaza": "Vizionează",
@@ -1666,10 +1562,6 @@
     "restaureaza": "Restaurează",
     "restaureaza2": "Restaurează"
   },
-  "draftsCountdown": {
-    "sePublica": "Se publică ·",
-    "sePublicaIn": "Se publică în"
-  },
   "creatordashboard": {
     "schite": "Schițe",
     "incarcaVideo": "Încarcă Video",
@@ -1688,9 +1580,7 @@
     "termina": "Termină"
   },
   "globalerror": {
-    "neCeremScuzeAm": "Ne cerem scuze, am întâmpinat o problemă tehnică neașteptată. Echipa noastră a fost notificată (Cod eroare:",
-    "incearcaDinNou": "Încearcă din nou",
-    "intoarceteLaPaginaPrincipala": "Întoarce-te la Pagina Principală"
+    "incearcaDinNou": "Încearcă din nou"
   },
   "moderation": {
     "moderareContinut": "Moderare conținut",
@@ -1711,10 +1601,8 @@
   },
   "returns": {
     "cereriDeRetur": "Cereri de retur",
-    "returnariInitiateDeClienti": "Returnări inițiate de clienți, în așteptarea unei decizii admin.",
     "comanda": "Comandă",
     "actiuni": "Acțiuni",
-    "nuSuntCereriDe": "Nu sunt cereri de retur încă.",
     "aproba": "Aprobă"
   },
   "videos": {
@@ -1741,17 +1629,6 @@
     "seUrcaLaStripe": "Se urcă la Stripe…",
     "salveazaDraft": "Salvează draft"
   },
-  "disputes": {
-    "chargebackuriRaspundeCuEvidence": "Chargeback-uri. Răspunde cu evidence înainte de deadline sau pierzi banii + fee €15.",
-    "niciunDisputeInCategoria": "Niciun dispute în categoria selectată.",
-    "totalComanda": "Total comandă:",
-    "submittedLa": "Submitted la:",
-    "evidenceTrimisa": "Evidence trimisă:",
-    "estimareSansaCastig": "Estimare șansă câștig",
-    "penalizari": "Penalizări (",
-    "campuriLipsaSortateDupa": "câmpuri lipsă (sortate după impact)",
-    "whatifComboCompletareGrupata": "🎯 What-if combo (completare grupată)"
-  },
   "refunds": {
     "refunduriStripeInitierePrin": "Refund-uri Stripe. Inițiere prin seller dashboard sau webhook.",
     "comanda": "Comandă",
@@ -1763,11 +1640,6 @@
     "filtreaza": "Filtrează",
     "suma": "Sumă",
     "urmator": "Următor →"
-  },
-  "marketplacePagination": {
-    "afisare": "Afișare",
-    "paginaAnterioara": "Pagina anterioară",
-    "paginaUrmatoare": "Pagina următoare"
   },
   "marketplaceImport": {
     "incarcaUnFisier": "Încarcă un fișier",
@@ -1788,13 +1660,8 @@
     "pret": "Preț",
     "inapoiLaMarketplace": "Înapoi la Marketplace"
   },
-  "marketplaceProductTable": {
-    "seIncarcaProdusele": "Se încarcă produsele…"
-  },
   "marketplaceFilters": {
-    "cautaProduseDupaTitlu": "Caută produse după titlu, slug, brand sau categorie...",
-    "sursa": "Sursă:",
-    "gasite": "găsite"
+    "sursa": "Sursă:"
   },
   "challengesChallengeActions": {
     "anuleaza": "Anulează"
@@ -1869,19 +1736,8 @@
     "notaOptionalMax500": "Notă (opțional, max 500 caractere)",
     "renunta": "Renunță"
   },
-  "riskMetrics7dPanel": {
-    "rateDeBlockRidicata": "⚠ Rate de block ridicată (",
-    "verificaDacaWeighturileScoring": "%) — verifică dacă weight-urile scoring nu produc false positives.",
-    "rateDeApproveRidicata": "ℹ Rate de approve ridicată (",
-    "scoringPoateFiPrea": "%) — scoring poate fi prea agresiv, ridică pragul de review."
-  },
   "riskOrderRiskCard": {
-    "blocheaza": "🛑 BLOCHEAZĂ",
     "veziComanda": "Vezi comanda →"
-  },
-  "riskBlockedUsersList": {
-    "useriBlocati": "🚫 Useri blocați (",
-    "clickPentruDetalii": "click pentru detalii"
   },
   "risk": {
     "riscFraudaComenzi": "Risc fraudă comenzi",
@@ -1889,13 +1745,7 @@
     "nicioComandaCuRisc": "✅ Nicio comandă cu risc ≥",
     "inUltimele90Zile": "în ultimele 90 zile pentru status"
   },
-  "riskTimeSeriesChart": {
-    "niciunSemnalInUltimele": "Niciun semnal în ultimele 30 zile. Chart-ul se va popula automat când apar comenzi flagged sau decizii admin.",
-    "trendUltimele30Zile": "Trend ultimele 30 zile pentru comenzi flagged, decizii approve/block și auto-blocks"
-  },
   "adminShell": {
-    "inCurand": "În curând",
-    "inchideMeniul": "Închide meniul",
     "inchide": "Închide"
   },
   "login": {
@@ -2063,10 +1913,6 @@
       "title": "Categorii produse",
       "description": "Explorează toate categoriile de produse de pe Swypik: electronice, modă, casă, beauty și mai mult."
     },
-    "categoryDetail": {
-      "titleSuffix": "pe Swypik",
-      "descriptionPrefix": "Produse din categoria"
-    },
     "explore": {
       "title": "Explorează clipuri",
       "description": "Feed video personalizat: clipuri trending, produse virale și descoperiri din toate categoriile."
@@ -2080,10 +1926,6 @@
       "keywords": "blog swypik, ghiduri produse, comparații, recomandări creatori, social commerce",
       "ogDesc": "Comparații, ghiduri și recomandări reale de la echipa Swypik.",
       "collectionDesc": "Colecție de articole publicate pe Swypik Blog."
-    },
-    "product": {
-      "titleSuffix": "pe Swypik",
-      "descriptionFallback": "Vezi acest produs pe Swypik. Preț, recenzii, livrare rapidă și alternative similare."
     },
     "productNotFound": "Produs negăsit — Swypik"
   },
@@ -2106,17 +1948,6 @@
     "products": "produse",
     "collectionName": "Ghiduri & Recenzii Swypik",
     "collectionDesc": "Recenzii și ghiduri produse testate de echipa Swypik."
-  },
-  "exploreClient": {
-    "salvatXP": "Salvat +5 XP",
-    "errVotNuSalvat": "Votul nu s-a salvat",
-    "sursaFeed": "Sursă feed",
-    "inCurand": "În curând",
-    "inCurandDesc": "Aici vom aduce conținut de divertisment. Stay tuned!",
-    "atingePentruSunet": "Atinge pentru sunet",
-    "stiriVerificate": "Știri verificate de Vision24 AI — clipuri scurte de la surse oficiale",
-    "opresteSunet": "Oprește sunetul clipului",
-    "activeazaSunet": "Activează sunetul clipului"
   },
   "battleSlug": {
     "voteazaBattle": "Votează battle-ul",
@@ -2229,9 +2060,6 @@
   },
   "uiLoadingState": {
     "seIncarca": "Se încarcă…"
-  },
-  "uiErrorState": {
-    "aAparutEroare": "A apărut o eroare"
   },
   "themeToggle": {
     "intunecat": "Întunecat",
