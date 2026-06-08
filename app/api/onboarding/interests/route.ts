@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "Interests POST error:");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json({ interests: rows });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "Interests GET error:");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

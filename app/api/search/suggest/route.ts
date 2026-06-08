@@ -12,8 +12,9 @@ import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 type Suggestion = { label: string; type: "categorie" | "produs" | "hashtag" | "user"; href?: string; count?: number };
+type SuggestResponse = { ok: boolean; q?: string; suggestions: Suggestion[] };
 
-const cache = new Map<string, { data: any; ts: number }>();
+const cache = new Map<string, { data: SuggestResponse; ts: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
 const SOFT_COMMERCE_QUERY_RE = /\b(sexy|adult|erotic|fetish|bdsm|underwear|underpants|panties|panty|lingerie|shapewear|bodysuit|bra|bras|bralette|briefs|bikini|swimwear|nightdress|sleepwear|corset|socks?)\b/i;
 const SOFT_COMMERCE_TITLE_RE = /\b(sexy|adult|erotic|fetish|bdsm|underwear|underpants|panties|panty|lingerie|shapewear|bodysuit|bra|bras|bralette|briefs|bikini|swimwear|nightdress|sleepwear|corset)\b/i;
@@ -103,7 +104,7 @@ export async function GET(req: NextRequest) {
     const responseData = { ok: true, q, suggestions: suggestions.slice(0, limit) };
     cache.set(cacheKey, { data: responseData, ts: Date.now() });
     return NextResponse.json(responseData, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Search Suggest]");
     return NextResponse.json({ ok: false, error: "A apărut o eroare la căutare.", suggestions: [] }, { status: 500 });
   }

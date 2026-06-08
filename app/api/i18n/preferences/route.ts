@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     const auth = await getAuthUser();
     if (auth.userId) {
       const sets: string[] = [];
-      const params: any[] = [];
+      const params: string[] = [];
       let i = 1;
       if (body.locale !== undefined) { sets.push(`locale = $${i++}`); params.push(body.locale); }
       if (body.currency !== undefined) { sets.push(`preferred_currency = $${i++}`); params.push(body.currency); }
@@ -60,8 +60,8 @@ export async function POST(req: Request) {
         await dbQuery(`UPDATE users SET ${sets.join(", ")} WHERE id = $${i}`, params);
       }
     }
-  } catch (e: any) {
-    logger.warn({ err: e?.message }, "[i18n/preferences] user-profile persist failed");
+  } catch (e) {
+    logger.warn({ err: e }, "[i18n/preferences] user-profile persist failed");
   }
 
   return res;
