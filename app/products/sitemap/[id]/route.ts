@@ -13,6 +13,7 @@
 import { dbQuery } from "@/lib/db";
 import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
@@ -63,7 +64,7 @@ export async function GET(
     );
     rows = res.rows;
   } catch (e) {
-    console.error("[ProductsSitemap] fetch chunk failed:", e);
+    logger.error({ err: e }, "[ProductsSitemap] fetch chunk failed");
     return new NextResponse("DB error", { status: 503 });
   }
 
@@ -95,7 +96,7 @@ export async function GET(
       m.set(t.locale, t.slug);
     }
   } catch (e) {
-    console.error("[ProductsSitemap] translations fetch failed:", e);
+    logger.error({ err: e }, "[ProductsSitemap] translations fetch failed");
   }
 
   const urlEntries: string[] = [];

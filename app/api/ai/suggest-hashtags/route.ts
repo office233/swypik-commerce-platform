@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchCopilot, getCopilotGhuTokens } from "@/lib/ai/github-models-tokens";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -46,10 +47,10 @@ export async function POST(req: Request) {
       }),
     });
     if (!res.ok) {
-      console.warn("[suggest-hashtags] http", res.status);
+      logger.warn({ status: res.status }, "[suggest-hashtags] http");
       return NextResponse.json({ hashtags: FALLBACK });
     }
-    const json: any = await res.json();
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = json?.choices?.[0]?.message?.content || "{}";
     const parsed = JSON.parse(raw);
     const list: string[] = Array.isArray(parsed.hashtags) ? parsed.hashtags : [];
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ hashtags: cleaned });
   } catch (e) {
-    console.warn("[suggest-hashtags] failed:", (e as Error).message);
+    logger.warn({ err: e }, "[suggest-hashtags] failed");
     return NextResponse.json({ hashtags: FALLBACK });
   }
 }

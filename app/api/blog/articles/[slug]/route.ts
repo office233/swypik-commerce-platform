@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBlogArticleBySlug, incrementArticleViews } from "@/lib/db/blog-queries";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export async function GET(
 
     // Fire-and-forget view count bump. Do not block response.
     incrementArticleViews(article.id).catch((e) => {
-      console.warn("[blog] failed to bump view_count", e);
+      logger.warn({ err: e }, "[blog] failed to bump view_count");
     });
 
     return NextResponse.json({ article }, {
@@ -35,7 +36,7 @@ export async function GET(
       },
     });
   } catch (err) {
-    console.error("[blog/articles/slug] error", err);
+    logger.error({ err }, "[blog/articles/slug] error");
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
