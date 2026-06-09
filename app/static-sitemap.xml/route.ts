@@ -36,6 +36,7 @@ const STATIC: Entry[] = [
   { path: "/legal/cookies", priority: 0.2, changefreq: "yearly" },
   { path: "/become-a-creator", priority: 0.6, changefreq: "monthly" },
   { path: "/become-a-seller", priority: 0.6, changefreq: "monthly" },
+  { path: "/swyp/genesis", priority: 0.7, changefreq: "weekly" },
   { path: "/unsubscribe", priority: 0.1, changefreq: "yearly", noLocalize: true },
 ];
 
