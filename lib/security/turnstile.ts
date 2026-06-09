@@ -5,6 +5,8 @@
  * secret is missing, verification is skipped (with a warning) so local dev
  * isn't broken.
  */
+import { logger } from "@/lib/logger";
+
 export async function verifyTurnstile(
   token: string | undefined,
   ip: string,
@@ -14,9 +16,7 @@ export async function verifyTurnstile(
     if (process.env.NODE_ENV === "production") {
       throw new Error("TURNSTILE_SECRET_KEY missing in production");
     }
-    console.warn(
-      "[turnstile] secret not set — skipping verification (dev only)",
-    );
+    logger.warn("[turnstile] secret not set — skipping verification (dev only)");
     return true;
   }
   if (!token) return false;
@@ -36,7 +36,7 @@ export async function verifyTurnstile(
     const data = (await res.json()) as { success: boolean };
     return data.success === true;
   } catch (e) {
-    console.error("[turnstile] verification request failed:", e);
+    logger.error({ err: e }, "[turnstile] verification request failed");
     return false;
   }
 }

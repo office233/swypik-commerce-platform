@@ -7,6 +7,7 @@
 import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
 import { hashSessionToken } from "@/lib/auth/session";
+import { logger } from "@/lib/logger";
 
 const COOKIE_NAME = "swypik_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
@@ -96,7 +97,7 @@ export async function findOrCreateUserFromOAuth(
       const { attributeOnSignup } = await import("@/lib/referral/attribution");
       await attributeOnSignup({ inviteeUserId: userId });
     } catch (err) {
-      console.warn("[oauth/signup] referral attribution failed:", (err as Error).message);
+      logger.warn({ err }, "[oauth/signup] referral attribution failed");
     }
     // Fraud recreation detection — best-effort, never blocks signup
     try {
@@ -111,7 +112,7 @@ export async function findOrCreateUserFromOAuth(
       });
       recreationBlocked = r.blocked;
     } catch (err) {
-      console.warn("[oauth/signup] recreation check failed:", (err as Error).message);
+      logger.warn({ err }, "[oauth/signup] recreation check failed");
     }
   } else if (profile.email && profile.emailVerified) {
     // backfill verification on existing email

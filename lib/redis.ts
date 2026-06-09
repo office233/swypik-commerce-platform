@@ -6,6 +6,7 @@
  */
 
 import IORedis, { type Redis } from "ioredis";
+import { logger } from "@/lib/logger";
 
 let client: Redis | null = null;
 let subscriberCache: Redis | null = null;
@@ -26,7 +27,7 @@ export function getRedis(): Redis {
   if (!client) {
     client = buildClient();
     client.on("error", (err) => {
-      console.error("[redis] client error:", err?.message || err);
+      logger.error({ err }, "[redis] client error");
     });
   }
   return client;
@@ -54,7 +55,7 @@ export function getSharedSubscriber(): Redis {
   if (!subscriberCache) {
     subscriberCache = createSubscriber();
     subscriberCache.on("error", (err) => {
-      console.error("[redis] subscriber error:", err?.message || err);
+      logger.error({ err }, "[redis] subscriber error");
     });
   }
   return subscriberCache;
