@@ -21,7 +21,8 @@ export class SwypikChainError extends Error {
 type FetchOpts = {
   method?: "GET" | "POST";
   body?: unknown;
-  userId: string;
+  /** Optional — set only for per-user endpoints. Omit for public endpoints. */
+  userId?: string;
   signal?: AbortSignal;
   cache?: RequestCache;
 };
@@ -32,7 +33,7 @@ export async function swypikFetch<T>(path: string, opts: FetchOpts): Promise<T> 
     method: opts.method ?? "GET",
     headers: {
       "X-Internal-Token": INTERNAL_TOKEN,
-      "X-User-Id": opts.userId,
+      ...(opts.userId ? { "X-User-Id": opts.userId } : {}),
       ...(opts.body ? { "Content-Type": "application/json" } : {}),
     },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
