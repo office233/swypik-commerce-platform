@@ -74,7 +74,7 @@ export async function loadCartItems(cartId: string) {
     quantity: number;
     currency: string;
     unit_amount_cents: number;
-    metadata: any;
+    metadata: { image?: string | null } | null;
     mp_title: string | null;
     mp_price_cents: number | null;
     mp_currency: string | null;

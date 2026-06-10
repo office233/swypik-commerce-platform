@@ -48,7 +48,7 @@ export async function idempotencyGet<T = any>(key: string): Promise<T | null> {
 
 export async function idempotencySet(
   key: string,
-  value: any,
+  value: unknown,
   ttlSec = 300
 ): Promise<void> {
   try {
