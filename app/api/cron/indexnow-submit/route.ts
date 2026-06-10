@@ -30,6 +30,25 @@ async function collectUrls(limit: number): Promise<string[]> {
     const { rows } = await dbQuery<{ slug: string }>(`SELECT slug FROM taxonomy_nodes WHERE slug IS NOT NULL LIMIT 500`);
     for (const r of rows) urls.push(`${BASE}/categories/${r.slug}`);
   } catch {}
+  // Blog articles — all locales (RO canonical + 6 translated).
+  try {
+    const { rows } = await dbQuery<{ slug: string }>(`
+      SELECT slug FROM blog_articles
+      WHERE status = 'published' AND slug IS NOT NULL
+      ORDER BY published_at DESC NULLS LAST
+      LIMIT 1000
+    `);
+    const LOCS = ["", "/en", "/de", "/es", "/fr", "/it", "/pt"];
+    for (const r of rows) {
+      for (const loc of LOCS) urls.push(`${BASE}${loc}/blog/${r.slug}`);
+    }
+  } catch {}
+  // Marketing landings — $SWYP transparency + earn hub.
+  const STATIC_LOCS = ["", "/en", "/de", "/es", "/fr", "/it", "/pt"];
+  for (const loc of STATIC_LOCS) {
+    urls.push(`${BASE}${loc}/swyp/genesis`);
+    urls.push(`${BASE}${loc}/blog`);
+  }
   return Array.from(new Set(urls)).slice(0, limit);
 }
 
