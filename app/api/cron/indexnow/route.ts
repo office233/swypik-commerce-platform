@@ -8,7 +8,7 @@ import { timingSafeEqual } from "node:crypto";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE_URL = (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim()) || "https://swypik.com";
 const HOST = new URL(BASE_URL).host;
 
 function ok(token: string | null | undefined): boolean {
