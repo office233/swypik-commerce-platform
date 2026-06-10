@@ -24,7 +24,7 @@ export async function awardOrderSwyp(orderId: string): Promise<void> {
     buyer_user_id: string | null;
     total_cents: number;
     source_share_id: string | null;
-    metadata: any;
+    metadata: { source_video_id?: string } | null;
   }>(
     `SELECT id, status, buyer_user_id, total_cents, source_share_id, metadata
        FROM commerce_orders WHERE id = $1 LIMIT 1`,

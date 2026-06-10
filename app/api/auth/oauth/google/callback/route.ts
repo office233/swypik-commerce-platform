@@ -10,6 +10,7 @@ import {
   getOAuthRedirectBase,
   isSafeRedirect,
 } from "@/lib/auth/oauth/helpers";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
   });
   if (!tokenRes.ok) {
     const text = await tokenRes.text();
-    console.error("[oauth/google] token exchange failed:", text);
+    logger.error({ body: text, status: tokenRes.status }, "[oauth/google] token exchange failed");
     return NextResponse.redirect(`${getOAuthRedirectBase()}/auth?error=oauth_token`);
   }
   const tokenJson = (await tokenRes.json()) as { id_token?: string };
@@ -80,7 +81,7 @@ export async function GET(req: Request) {
     });
     payload = verified as GoogleIdToken;
   } catch (err) {
-    console.error("[oauth/google] verify failed:", (err as Error).message);
+    logger.error({ err }, "[oauth/google] verify failed");
     return NextResponse.redirect(`${getOAuthRedirectBase()}/auth?error=oauth_verify`);
   }
 

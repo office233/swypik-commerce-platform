@@ -48,7 +48,7 @@ export async function moderateOutput(text: string): Promise<ModerationResult> {
       logger.warn({ status: res.status }, "[moderation] http failed open");
       return { safe: true, reason: "moderation-http" };
     }
-    const json: any = await res.json();
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = json?.choices?.[0]?.message?.content || "{}";
     const parsed = JSON.parse(raw);
     return {
