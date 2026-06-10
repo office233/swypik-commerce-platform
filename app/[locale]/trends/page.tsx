@@ -1,10 +1,11 @@
 import { dbQuery } from "@/lib/db";
 import { getTranslations } from "next-intl/server";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
-type Row = { id: number; type: string; name: string; score: string | null; metadata: any; detected_at: string };
+type Row = { id: number; type: string; name: string; score: string | null; metadata: unknown; detected_at: string };
 
 const TYPE_LABEL: Record<string, { label: string; color: string }> = {
   hashtag: { label: "#tag", color: "#7C3AED" },
@@ -29,7 +30,7 @@ export default async function TrendsPage() {
     );
     rows = res.rows;
   } catch (e) {
-    console.warn("[/trends] db err:", (e as Error).message);
+    logger.warn({ err: e }, "[/trends] db err");
   }
 
   return (

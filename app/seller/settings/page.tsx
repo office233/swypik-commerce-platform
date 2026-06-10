@@ -16,8 +16,17 @@ export default async function SellerSettingsPage() {
   }
   const t = await getTranslations("sellerSettings");
 
-  const { rows } = await dbQuery("SELECT * FROM sellers WHERE id = $1", [sellerId]);
-  const seller: any = rows[0] || null;
+  type SellerRow = {
+    name: string | null;
+    email: string | null;
+    business_details: { description?: string } | null;
+    stripe_account_id: string | null;
+    stripe_payouts_enabled: boolean | null;
+    stripe_details_submitted: boolean | null;
+    stripe_requirements: { currently_due?: string[]; disabled_reason?: string | null } | null;
+  };
+  const { rows } = await dbQuery<SellerRow>("SELECT * FROM sellers WHERE id = $1", [sellerId]);
+  const seller = rows[0] || null;
 
   if (!seller) {
     redirect("/seller/login");
@@ -67,7 +76,7 @@ export default async function SellerSettingsPage() {
                   <input
                     id="seller-name"
                     type="text"
-                    defaultValue={seller.name}
+                    defaultValue={seller.name ?? ""}
                     className="w-full px-3 py-2.5 min-h-[44px] border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-[#0D0D0D] transition-colors"
                   />
                 </div>
@@ -76,7 +85,7 @@ export default async function SellerSettingsPage() {
                   <input
                     id="seller-email"
                     type="email"
-                    defaultValue={seller.email}
+                    defaultValue={seller.email ?? ""}
                     className="w-full px-3 py-2.5 min-h-[44px] border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-[#0D0D0D] transition-colors"
                   />
                 </div>
