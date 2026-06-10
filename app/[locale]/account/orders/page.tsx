@@ -6,7 +6,8 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { formatCurrency } from "@/lib/i18n/currency";
 import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, type Currency } from "@/lib/i18n/config";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { formatDate } from "@/lib/i18n/date";
 
 export const dynamic = "force-dynamic";
 
@@ -19,20 +20,13 @@ type Row = {
   item_count: string;
 };
 
-function fmtDate(iso: string) {
-  try {
-    return new Date(iso).toLocaleDateString("ro-RO", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
+function fmtDate(iso: string, locale: string) {
+  return formatDate(iso, locale, { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default async function OrdersPage() {
   const t = await getTranslations("accountOrders");
+  const locale = await getLocale();
   const user = await getAuthUser();
   if (!user.userId) redirect("/account?redirect=/account/orders");
 
@@ -90,7 +84,7 @@ export default async function OrdersPage() {
                       {t("comanda")}{r.id.slice(0, 8)}
                     </div>
                     <div className="text-xs text-white/60">
-                      {fmtDate(r.created_at)} · {r.item_count} {Number(r.item_count) === 1 ? t("produs") : t("produse")}
+                      {fmtDate(r.created_at, locale)} · {r.item_count} {Number(r.item_count) === 1 ? t("produs") : t("produse")}
                     </div>
                   </div>
                   <div className="text-right">

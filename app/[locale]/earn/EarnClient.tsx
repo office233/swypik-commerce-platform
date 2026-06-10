@@ -168,7 +168,7 @@ export default function EarnClient() {
 
         <h1 className="text-3xl font-bold tracking-tight">Mine $SWYP</h1>
         <p className="text-violet-300 text-sm mt-1">
-          Digital cash for real life. Tap daily, spend anywhere.
+          Digital cash for real life. Manual mining — come back every 24h and tap.
         </p>
       </div>
 
@@ -219,8 +219,13 @@ export default function EarnClient() {
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <Pickaxe className={`w-12 h-12 ${canMine ? "text-white" : "text-slate-400"}`} />
             <span className="text-white font-bold text-lg mt-2">
-              {mining ? "Mining…" : canMine ? "TAP" : "Wait"}
+              {mining ? "Mining…" : canMine ? "TAP" : retryAt ? timeUntil(retryAt) : "Wait"}
             </span>
+            {!canMine && !mining && retryAt && (
+              <span className="text-slate-300 text-[10px] uppercase tracking-wide mt-1">
+                until next tap
+              </span>
+            )}
           </div>
         </button>
 
@@ -233,12 +238,31 @@ export default function EarnClient() {
           {retryAt && !canMine && (
             <div className="text-violet-300 text-sm flex items-center justify-center gap-1 mt-2">
               <Clock className="w-4 h-4" />
-              Next claim in {timeUntil(retryAt)}
+              Come back in {timeUntil(retryAt)} to keep your streak
             </div>
           )}
           {error && (
             <div className="text-rose-300 text-sm mt-2">{error}</div>
           )}
+        </div>
+
+        {/* HOW IT WORKS — compact explainer so users know mining is manual */}
+        <div className="mt-6 w-full max-w-md rounded-2xl bg-white/5 border border-white/10 p-4">
+          <div className="text-xs uppercase tracking-wider text-violet-300 mb-2">How it works</div>
+          <ol className="space-y-1.5 text-sm text-violet-100">
+            <li className="flex gap-2">
+              <span className="text-amber-300 font-bold">1.</span>
+              <span>Tap the orange button to mine $SWYP — you must tap manually.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-amber-300 font-bold">2.</span>
+              <span>Wait 24h, then come back and tap again to keep your streak.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-amber-300 font-bold">3.</span>
+              <span>Miss a day and your streak resets to zero — your boost drops.</span>
+            </li>
+          </ol>
         </div>
       </div>
 

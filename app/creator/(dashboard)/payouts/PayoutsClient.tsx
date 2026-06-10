@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { formatDate } from "@/lib/i18n/date";
 import { Banknote, ExternalLink, CheckCircle2, AlertTriangle, Loader2, ArrowRightLeft } from "lucide-react";
 
 type ConnectStatus = {

@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, PackageSearch } from "lucide-react";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { formatDate } from "@/lib/i18n/date";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ const RETURN_STATUS_LABEL: Record<string, string> = {
 
 export default async function ReturnsPage() {
   const t = await getTranslations("accountReturns");
+  const locale = await getLocale();
   const user = await getAuthUser();
   if (!user.userId) redirect("/auth?next=/account/returns");
 
@@ -71,7 +73,7 @@ export default async function ReturnsPage() {
         ) : (
           <ul className="space-y-3">
             {rows.map((r) => {
-              const reqAt = r.return_requested_at ? new Date(r.return_requested_at).toLocaleDateString("ro-RO") : null;
+              const reqAt = r.return_requested_at ? formatDate(r.return_requested_at, locale) : null;
               const label = RETURN_STATUS_LABEL[r.return_status || "requested"] || (r.return_status || "Solicitat");
               return (
                 <li

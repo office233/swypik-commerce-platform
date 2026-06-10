@@ -13,7 +13,8 @@ import { Star } from "lucide-react";
 import { getProductRatingMap } from "@/lib/reviews/aggregate";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { formatDate } from "@/lib/i18n/date";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -119,6 +120,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SellerStorefrontPage({ params }: Props) {
   const t = await getTranslations("sellers");
+  const locale = await getLocale();
   const { id } = await params;
   const seller = await getSeller(id);
   if (!seller) notFound();
@@ -134,10 +136,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
   const displayName = getDisplayName(seller);
   const logoUrl = getLogo(seller);
   const isVerified = seller.status === "active";
-  const memberSince = new Date(seller.created_at).toLocaleDateString("ro-RO", {
-    year: "numeric",
-    month: "long",
-  });
+  const memberSince = formatDate(seller.created_at, locale, { year: "numeric", month: "long" });
 
   return (
     <div className="min-h-screen bg-white text-[#0D0D0D]">

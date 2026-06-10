@@ -1,6 +1,7 @@
 import { dbQuery } from "@/lib/db";
 import StarRating from "./StarRating";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { formatDate } from "@/lib/i18n/date";
 
 export type ReviewListProps = {
   productId: string;
@@ -21,6 +22,7 @@ type Row = {
 
 export default async function ReviewList({ productId, limit = 10 }: ReviewListProps) {
   const t = await getTranslations("reviewList");
+  const locale = await getLocale();
   const { rows } = await dbQuery<Row>(
     `SELECT r.id, r.rating, r.title, r.body, r.is_verified_purchase, r.helpful_count, r.created_at,
             u.display_name AS user_display_name, u.username AS user_username
@@ -54,7 +56,7 @@ export default async function ReviewList({ productId, limit = 10 }: ReviewListPr
             {r.title && <p className="font-semibold text-sm mb-1">{r.title}</p>}
             {r.body && <p className="text-sm text-gray-700 whitespace-pre-wrap">{r.body}</p>}
             <p className="text-xs text-gray-400 mt-1">
-              {new Date(r.created_at).toLocaleDateString("ro-RO")} · {r.helpful_count} utili
+              {formatDate(r.created_at, locale)} · {r.helpful_count} utili
             </p>
           </li>
         );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { formatDateTime } from "@/lib/i18n/date";
 
 interface Wallet {
   balance_points: number;
@@ -129,8 +130,8 @@ export default function RewardsPage() {
                 </thead>
                 <tbody className="divide-y divide-[#E5E5E5]">
                   {history.map((event) => {
-                    const date = new Date(event.created_at).toLocaleDateString('ro-RO', {
-                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest'
+                    const date = formatDateTime(event.created_at, locale, {
+                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                     });
                     
                     let badgeClass = "bg-neutral-100 text-neutral-900";

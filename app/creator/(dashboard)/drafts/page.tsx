@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
+import { formatDate } from "@/lib/i18n/date";
 import { getCreatorUserId } from "@/lib/creator/session";
 import { Pencil, Trash2, Clock, X } from "lucide-react";
 import DraftActions from "./DraftActions";
@@ -21,6 +22,7 @@ export default async function DraftsPage(
   const creatorId = await getCreatorUserId();
   if (!creatorId) redirect("/auth?next=/creator/drafts");
   const t = await getTranslations("creatorDrafts");
+  const locale = await getLocale();
 
   const sp = await searchParams;
   const tab: Tab = sp.tab === "scheduled" ? "scheduled" : "drafts";
@@ -119,7 +121,7 @@ export default async function DraftsPage(
                     {d.title || t("faraTitlu")}
                   </p>
                   <p className="text-[11px] text-[#6E6E80] mb-3">
-                    {t("ultimaEditare", { date: new Date(d.updated_at).toLocaleDateString("ro-RO") })}
+                    {t("ultimaEditare", { date: formatDate(d.updated_at, locale) })}
                   </p>
                   <div className="mt-auto flex gap-2">
                     <Link

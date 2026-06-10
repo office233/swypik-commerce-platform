@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { formatDate as fmtDateI18n } from "@/lib/i18n/date";
 import { Wallet, Clock, CheckCircle2, CalendarClock, ExternalLink, AlertTriangle } from "lucide-react";
 
 type SellerInfo = {
@@ -46,13 +47,9 @@ function fmt(cents: number, currency: string): string {
   }
 }
 
-function fmtDate(iso: string | null): string {
+function fmtDate(iso: string | null, locale: string): string {
   if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", year: "numeric" });
-  } catch {
-    return "—";
-  }
+  return fmtDateI18n(iso, locale, { day: "2-digit", month: "short", year: "numeric" }) || "—";
 }
 
 const STATUS_CLASS: Record<string, string> = {

@@ -4,7 +4,8 @@ import PurchaseTracker from "@/components/PurchaseTracker";
 import { getStripe } from "@/lib/stripe/checkout";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import crypto from "crypto";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { formatDate } from "@/lib/i18n/date";
 import { logger } from "@/lib/logger";
 
 function tokensMatch(a: string | null | undefined, b: string | null | undefined): boolean {
@@ -29,6 +30,7 @@ export default async function CheckoutSuccess({
   searchParams: Promise<SearchParams>;
 }) {
   const t = await getTranslations("success");
+  const locale = await getLocale();
   const sp = await searchParams;
   type SuccessOrder = {
     id: string;
@@ -271,11 +273,7 @@ export default async function CheckoutSuccess({
                   </span>
                   {order?.created_at && (
                     <p className="mt-1 text-xs text-[#6E6E80]">
-                      {new Date(order.created_at).toLocaleDateString("ro-RO", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
+                      {formatDate(order.created_at, locale, { day: "numeric", month: "long", year: "numeric" })}
                     </p>
                   )}
                 </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { formatDate } from "@/lib/i18n/date";
 
 type Status = "none" | "pending" | "approved" | "rejected" | "expired";
 
@@ -26,6 +27,7 @@ const STATUS_COLOR: Record<Status, string> = {
 
 export default function AgeVerificationClient({ initialState }: Props) {
   const t = useTranslations("ageverificationAgeVerification");
+  const locale = useLocale();
   const [state, setState] = useState(initialState);
   const [loading, setLoading] = useState(false);
   const [optInLoading, setOptInLoading] = useState(false);
@@ -107,19 +109,19 @@ export default function AgeVerificationClient({ initialState }: Props) {
           {state.verifiedAt && (
             <p className="text-sm text-white/70 mb-2">
               
-              {t("verificatLa")} <span className="text-white">{new Date(state.verifiedAt).toLocaleDateString("ro-RO")}</span>
+              {t("verificatLa")} <span className="text-white">{formatDate(state.verifiedAt, locale)}</span>
             </p>
           )}
           {state.birthDate && (
             <p className="text-sm text-white/70 mb-2">
               
-              {t("dataNasterii")} <span className="text-white">{new Date(state.birthDate).toLocaleDateString("ro-RO")}</span>
+              {t("dataNasterii")} <span className="text-white">{formatDate(state.birthDate, locale)}</span>
             </p>
           )}
           {state.expiresAt && (
             <p className="text-sm text-white/70 mb-2">
               
-              {t("expiraLa")} <span className="text-white">{new Date(state.expiresAt).toLocaleDateString("ro-RO")}</span>
+              {t("expiraLa")} <span className="text-white">{formatDate(state.expiresAt, locale)}</span>
             </p>
           )}
           {state.rejectionReason && state.status === "rejected" && (
