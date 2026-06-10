@@ -73,6 +73,7 @@ export default function PayoutsClient({
   nextPayoutIso: string;
 }) {
   const t = useTranslations("sellerPayouts");
+  const locale = useLocale();
   const STATUS_LABEL = useMemo<Record<string, string>>(() => ({
     pending: t("stPending"),
     submitted: t("stSubmitted"),
@@ -116,7 +117,7 @@ export default function PayoutsClient({
     { label: t("kpiSold"), value: fmt(summary.availableCents, summary.currency), icon: Wallet, accent: "text-green-700 bg-green-100" },
     { label: t("kpiTranzit"), value: fmt(summary.pendingCents, summary.currency), icon: Clock, accent: "text-yellow-700 bg-yellow-100" },
     { label: t("kpiPlatit90"), value: fmt(summary.paid90Cents, summary.currency), icon: CheckCircle2, accent: "text-blue-700 bg-blue-100" },
-    { label: t("kpiNextPayout"), value: fmtDate(nextPayoutIso), icon: CalendarClock, accent: "text-purple-700 bg-purple-100" },
+    { label: t("kpiNextPayout"), value: fmtDate(nextPayoutIso, locale), icon: CalendarClock, accent: "text-purple-700 bg-purple-100" },
   ];
 
   const onboardingIncomplete = !seller.payoutsEnabled || !seller.detailsSubmitted;
@@ -201,7 +202,7 @@ export default function PayoutsClient({
               <tbody>
                 {transfers.map((t) => (
                   <tr key={t.id} className="border-t border-[#E5E5E5]">
-                    <td className="px-4 py-3 text-[#0D0D0D]">{fmtDate(t.created_at)}</td>
+                    <td className="px-4 py-3 text-[#0D0D0D]">{fmtDate(t.created_at, locale)}</td>
                     <td className="px-4 py-3 text-right font-bold text-[#0D0D0D]">
                       {fmt(t.amount_cents, t.currency)}
                     </td>

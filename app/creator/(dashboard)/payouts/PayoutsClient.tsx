@@ -69,6 +69,7 @@ export default function PayoutsClient({
   recentTransfers?: TransferRow[];
 }) {
   const tr = useTranslations("creatorPayouts");
+  const locale = useLocale();
   const router = useRouter();
   const search = useSearchParams();
   const [status, setStatus] = useState<ConnectStatus | null>(null);
@@ -222,7 +223,7 @@ export default function PayoutsClient({
               <tbody className="divide-y divide-[#E5E5E5]">
                 {recentTransfers.map((t) => (
                   <tr key={t.id}>
-                    <td className="px-4 py-3 whitespace-nowrap">{new Date(t.completed_at || t.submitted_at || t.created_at).toLocaleDateString("ro-RO")}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{formatDate(t.completed_at || t.submitted_at || t.created_at, locale)}</td>
                     <td className="px-4 py-3 font-bold whitespace-nowrap">{formatMoney(t.amount_cents - (t.reversed_amount_cents || 0), t.currency)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-block px-2 py-1 rounded-md text-xs font-bold ${TRANSFER_STATUS_CLASS[t.status] || "bg-[#F7F7F8]"}`}>
@@ -261,9 +262,9 @@ export default function PayoutsClient({
               <tbody className="divide-y divide-[#E5E5E5]">
                 {recentPayouts.map((p) => (
                   <tr key={p.id}>
-                    <td className="px-4 py-3">{new Date(p.paid_at || p.created_at).toLocaleDateString("ro-RO")}</td>
+                    <td className="px-4 py-3">{formatDate(p.paid_at || p.created_at, locale)}</td>
                     <td className="px-4 py-3 text-xs text-[#6E6E80]">
-                      {p.period_start ? new Date(p.period_start).toLocaleDateString("ro-RO") : "—"} → {p.period_end ? new Date(p.period_end).toLocaleDateString("ro-RO") : "—"}
+                      {p.period_start ? formatDate(p.period_start, locale) : "—"} → {p.period_end ? formatDate(p.period_end, locale) : "—"}
                     </td>
                     <td className="px-4 py-3 font-bold">{formatMoney(p.net_amount_cents, p.currency)}</td>
                     <td className="px-4 py-3">

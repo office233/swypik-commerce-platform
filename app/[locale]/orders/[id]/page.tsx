@@ -2,7 +2,8 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { formatDateTime } from "@/lib/i18n/date";
 
 function buildStatusMap(t: (k: string) => string): Record<string, { label: string; color: string; icon: string; step: number }> {
   return {
@@ -54,6 +55,7 @@ type OrderData = {
 
 export default function OrderTrackingPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations("orders");
+  const locale = useLocale();
   const { id } = use(params);
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,7 +169,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           </span>
           <p className="mt-2 text-xs text-[#6E6E80]">
             
-            {t("plasataPe")} {new Date(order.createdAt).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bucharest" })}
+            {t("plasataPe")} {formatDateTime(order.createdAt, locale, { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
 

@@ -10,7 +10,8 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
 import { trackEvent as trackFeedEvent, trackWatchTime, flushWatchTime, resetWatchTime, getSessionId } from "@/lib/feed/track";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { formatDateTime } from "@/lib/i18n/date";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
@@ -104,6 +105,7 @@ function FeedVideo({ videoId, src, hlsUrl, fallbackSrc, poster, isCurrent, muted
 
 function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: ExploreFeedVideo[]; initialCategory?: string }) {
   const t = useTranslations("explore");
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialVideoId = searchParams.get("v");
@@ -1171,7 +1173,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: E
                           <span>Vision24 AI</span>
                           <span className="dot" aria-hidden="true" />
                           {video.article.publishedAt && (
-                            <span>{new Date(video.article.publishedAt).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bucharest" })}</span>
+                            <span>{formatDateTime(video.article.publishedAt, locale, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                           )}
                           {video.article.liesCount > 0 && (
                             <span className="pill-lies">{video.article.liesCount} semnale verificate</span>
@@ -1196,7 +1198,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: E
                     <div className="vision-reel-meta">
                       <span>{video.newsVideo.verticalName}</span>
                       {video.newsVideo.isShortForm && <span className="vision-reel-pill">Short</span>}
-                      {video.newsVideo.publishedAt && <span>{new Date(video.newsVideo.publishedAt).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bucharest" })}</span>}
+                      {video.newsVideo.publishedAt && <span>{formatDateTime(video.newsVideo.publishedAt, locale, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>}
                     </div>
                   </article>
                 )}
