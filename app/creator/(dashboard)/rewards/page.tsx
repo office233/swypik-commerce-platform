@@ -29,6 +29,7 @@ const REWARD_RULE_KEYS = [
 
 export default function RewardsPage() {
   const t = useTranslations("creatorRewards");
+  const locale = useLocale();
   const rewardRules = useMemo(
     () => REWARD_RULE_KEYS.map((r) => ({ action: r.action, points: r.points, description: t(r.key) })),
     [t],
