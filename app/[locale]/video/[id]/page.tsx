@@ -8,7 +8,7 @@
 
 import { Metadata } from "next";
 import Link from "next/link";
-import { parseHashtags } from "@/lib/text/parseHashtags";
+import { HashtagText } from "@/lib/text/parseHashtags";
 import { dbQuery } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { safeJsonLd } from "@/lib/seo/json-ld";
@@ -265,7 +265,7 @@ export default async function VideoPage({ params }: Props) {
               letterSpacing: "-0.01em",
             }}
           >
-            {parseHashtags(video.title)}
+            <HashtagText text={video.title} />
           </h1>
 
           {/* Creator */}
@@ -301,7 +301,7 @@ export default async function VideoPage({ params }: Props) {
                 textAlign: "left",
               }}
             >
-              {parseHashtags(video.description)}
+              <HashtagText text={video.description} />
             </p>
           )}
 
