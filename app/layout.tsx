@@ -49,6 +49,7 @@ export const viewport: Viewport = {
 import RewardFlash from "@/components/RewardFlash";
 import BottomNav from "@/components/BottomNav";
 import EmailVerifyBanner from "@/components/auth/EmailVerifyBanner";
+import PiLoginButton from "@/components/auth/PiLoginButton";
 import OnboardingGate from "@/components/onboarding/OnboardingGate";
 import PushPrompt from "@/components/notifications/PushPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
@@ -94,6 +95,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {process.env.FACEBOOK_DOMAIN_VERIFICATION ? (
           <meta name="facebook-domain-verification" content={process.env.FACEBOOK_DOMAIN_VERIFICATION} />
         ) : null}
+        {/* Pi Network SDK — required for in-PiBrowser authentication / payments.
+            Safe outside Pi Browser too (window.Pi just stays undefined for non-Pi UAs). */}
+        <script src="https://sdk.minepi.com/pi-sdk.js" async />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -139,6 +143,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CurrencyProvider initial={currency}>
+            {/* Silent Pi Network auto-login: when the app loads inside Pi Browser
+                (or with NEXT_PUBLIC_PI_SANDBOX=1), this triggers Pi.authenticate
+                and exchanges the token for a Swypik session. Renders no UI. */}
+            <PiLoginButton silent redirectTo="" />
             <EmailVerifyBanner />
             <OnboardingGate />
             <div id="main-content" style={{ minHeight: '100dvh' }}>

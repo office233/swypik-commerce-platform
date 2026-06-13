@@ -17,6 +17,8 @@ export const CLIENT_FEATURES = {
   pushNotifications: flag('NEXT_PUBLIC_FEATURE_PUSH_NOTIFICATIONS', false),
   stripeConnect: flag('NEXT_PUBLIC_FEATURE_STRIPE_CONNECT', false),
   returns: flag('NEXT_PUBLIC_FEATURE_RETURNS', false),
+  piAuth: flag('NEXT_PUBLIC_FEATURE_PI_AUTH', true),
+  piSandbox: flag('NEXT_PUBLIC_PI_SANDBOX', false),
 } as const;
 
 export type ClientFeatureName = keyof typeof CLIENT_FEATURES;

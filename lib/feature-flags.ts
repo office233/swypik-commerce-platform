@@ -19,6 +19,7 @@ export const FEATURES = {
   emailMarketing: flag('FEATURE_EMAIL_MARKETING', false),
   seoPages: flag('FEATURE_SEO_PAGES', false),
   aiChatFull: flag('FEATURE_AI_CHAT_FULL', false),
+  piAuth: flag('FEATURE_PI_AUTH', true),
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;
