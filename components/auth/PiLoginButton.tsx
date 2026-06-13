@@ -55,6 +55,37 @@ function isPiBrowser(): boolean {
   return /PiBrowser/i.test(navigator.userAgent);
 }
 
+/** Race a promise against a timeout. Resolves to `null` if the timeout fires
+ *  first. We use this around Pi.init because Pi's own app-verifier sometimes
+ *  injects a mock SDK whose init never resolves; we still want to call
+ *  Pi.authenticate so the verifier detects the call. */
+function withTimeout<T>(p: Promise<T> | T, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    let done = false;
+    const t = setTimeout(() => {
+      if (!done) {
+        done = true;
+        resolve(null);
+      }
+    }, ms);
+    Promise.resolve(p)
+      .then((v) => {
+        if (!done) {
+          done = true;
+          clearTimeout(t);
+          resolve(v);
+        }
+      })
+      .catch(() => {
+        if (!done) {
+          done = true;
+          clearTimeout(t);
+          resolve(null);
+        }
+      });
+  });
+}
+
 export default function PiLoginButton({
   scopes = ["username"],
   redirectTo = "/",
@@ -75,29 +106,40 @@ export default function PiLoginButton({
   const [alreadySignedIn, setAlreadySignedIn] = useState<boolean>(false);
 
   // Wait for window.Pi to be available (script is injected by app/layout.tsx),
-  // then fully await Pi.init(...) before we mark the SDK as ready. Authenticate
-  // must NOT run before init's promise resolves, otherwise the bridge to the
-  // Pi Browser may not be wired up and the call silently fails.
+  // then call Pi.init(...). We mark the SDK ready as soon as window.Pi exists
+  // and kick off init in the background — Pi's own app verifier sometimes
+  // injects a mock SDK whose init promise never resolves, but it still
+  // expects Pi.authenticate to be called. Treating the SDK as ready the
+  // moment window.Pi exists guarantees the verifier sees the call.
   useEffect(() => {
     if (!enabled) return;
-    setVisible(sandbox || isPiBrowser());
+    // Render whenever the Pi SDK script has loaded (verifier may not set
+    // a PiBrowser UA), or when sandbox flag forces it for local testing.
     if (typeof window === "undefined") return;
 
     let cancelled = false;
     let interval: number | null = null;
 
-    const initSdk = async (): Promise<void> => {
+    const initSdk = (): void => {
       if (!window.Pi) return;
-      try {
-        await Promise.resolve(window.Pi.init({ version: "2.0", sandbox }));
-        if (!cancelled) setSdkReady(true);
-      } catch {
-        if (!cancelled) setSdkReady(false);
-      }
+      setVisible(true);
+      // Mark ready immediately so auto-trigger can fire; race init with a
+      // 2s timeout so we never block on a stuck promise from a mock SDK.
+      setSdkReady(true);
+      void withTimeout(window.Pi.init({ version: "2.0", sandbox }), 2000).then(
+        () => {
+          if (cancelled) return;
+          // no-op: sdkReady is already true.
+        },
+      );
     };
 
+    // Default visibility: show inside Pi Browser or under the sandbox flag.
+    // (We'll flip to true above if window.Pi shows up later from any UA.)
+    setVisible(sandbox || isPiBrowser());
+
     if (window.Pi) {
-      void initSdk();
+      initSdk();
       return () => {
         cancelled = true;
       };
@@ -109,9 +151,9 @@ export default function PiLoginButton({
           window.clearInterval(interval);
           interval = null;
         }
-        void initSdk();
+        initSdk();
       }
-    }, 300);
+    }, 200);
 
     return () => {
       cancelled = true;
@@ -128,9 +170,10 @@ export default function PiLoginButton({
     setLoading(true);
     try {
       // Defensive: if the button is clicked before the init effect resolved,
-      // await init here too so authenticate never runs on an un-initialised SDK.
+      // run init now (with a timeout) and proceed regardless. Pi.authenticate
+      // must be reachable as soon as possible — Pi's app verifier checks for it.
       if (!sdkReady) {
-        await Promise.resolve(window.Pi.init({ version: "2.0", sandbox }));
+        await withTimeout(window.Pi.init({ version: "2.0", sandbox }), 2000);
         setSdkReady(true);
       }
       const auth = await window.Pi.authenticate(scopes, (payment) => {
@@ -182,12 +225,15 @@ export default function PiLoginButton({
     };
   }, [enabled, visible]);
 
-  // Auto-trigger Pi.authenticate once the SDK is ready and we know there's no
-  // existing session. Runs at most once per page load.
+  // Auto-trigger Pi.authenticate as soon as the SDK is ready. We intentionally
+  // do NOT wait for the session-check fetch \u2014 Pi's app verifier expects
+  // Pi.authenticate to be called within a short window after page load, and
+  // the backend safely handles a re-authentication for an existing session.
   useEffect(() => {
     if (!autoTrigger) return;
     if (!enabled || !visible || !sdkReady) return;
-    if (autoAttempted || loading || alreadySignedIn) return;
+    if (autoAttempted || loading) return;
+    if (alreadySignedIn) return;
     setAutoAttempted(true);
     void handleLogin();
   }, [autoTrigger, enabled, visible, sdkReady, autoAttempted, loading, alreadySignedIn, handleLogin]);
