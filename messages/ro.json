@@ -2114,5 +2114,18 @@
   },
   "voteButtons": {
     "errReteua": "Eroare rețea"
+  },
+  "footer": {
+    "legal": "Legal",
+    "companie": "Companie",
+    "termeni": "Termeni și condiții",
+    "confidentialitate": "Confidențialitate",
+    "cookies": "Politica de cook-uri",
+    "despre": "Despre Swypik",
+    "blog": "Blog & ghiduri",
+    "ajutor": "Ajutor & FAQ",
+    "tagline": "Spune-mi ce vrei. Eu găsesc ce chiar merită.",
+    "drepturi": "Toate drepturile rezervate.",
+    "contact": "Contact"
   }
 }

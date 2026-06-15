@@ -54,6 +54,7 @@ import OnboardingGate from "@/components/onboarding/OnboardingGate";
 import PushPrompt from "@/components/notifications/PushPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import CookieBanner from "@/components/CookieBanner";
+import SiteFooter from "@/components/SiteFooter";
 // LocaleFab removed: language switch is only available in /account/preferences
 import { getTranslations } from "next-intl/server";
 
@@ -151,6 +152,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <OnboardingGate />
             <div id="main-content" style={{ minHeight: '100dvh' }}>
               {children}
+              <SiteFooter />
             </div>
             <BottomNav />
             <RewardFlash />

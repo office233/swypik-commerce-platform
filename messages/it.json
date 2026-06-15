@@ -2114,5 +2114,18 @@
   },
   "voteButtons": {
     "errReteua": "Errore di rete"
+  },
+  "footer": {
+    "legal": "Legale",
+    "companie": "Azienda",
+    "termeni": "Termini e condizioni",
+    "confidentialitate": "Privacy",
+    "cookies": "Politica sui cookie",
+    "despre": "Chi è Swypik",
+    "blog": "Blog e guide",
+    "ajutor": "Aiuto e FAQ",
+    "tagline": "Dimmi cosa vuoi. Trovo ciò che vale davvero.",
+    "drepturi": "Tutti i diritti riservati.",
+    "contact": "Contatto"
   }
 }

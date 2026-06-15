@@ -171,7 +171,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   );
 
   const images = product.images || [];
-  const title = product.titleRo || product.title;
+  const title = product.title || product.titleRo;
   const selectedColorSizes = selectedColor ? dedupeSizes(colorMap[selectedColor]?.sizes || []) : [];
   const selectedSizeData = selectedColorSizes.find(s => s.size === selectedSize) || null;
   // Variant prices are raw cost (no markup); product.price has markup applied.
@@ -195,7 +195,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       pgId: product.pgId || undefined,
       aeProductId: product.aeProductId || undefined,
       videoId: productVideos[0]?.id ? String(productVideos[0].id) : undefined,
-      title: product.titleRo || product.title,
+      title: product.title || product.titleRo,
       price: currentPrice,
       oldPrice: product.oldPrice,
       images: images,

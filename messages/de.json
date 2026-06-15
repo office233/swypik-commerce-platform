@@ -2114,5 +2114,18 @@
   },
   "voteButtons": {
     "errReteua": "Netzwerkfehler"
+  },
+  "footer": {
+    "legal": "Rechtliches",
+    "companie": "Unternehmen",
+    "termeni": "AGB",
+    "confidentialitate": "Datenschutz",
+    "cookies": "Cookie-Richtlinie",
+    "despre": "Über Swypik",
+    "blog": "Blog & Guides",
+    "ajutor": "Hilfe & FAQ",
+    "tagline": "Sag mir, was du willst. Ich finde, was sich wirklich lohnt.",
+    "drepturi": "Alle Rechte vorbehalten.",
+    "contact": "Kontakt"
   }
 }

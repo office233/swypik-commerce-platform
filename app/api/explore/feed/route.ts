@@ -437,6 +437,7 @@ export async function GET(request: NextRequest) {
     const userId = await getOptionalSocialUserId();
     const rawSessionId = (searchParams.get("session_id") || "").trim();
     const viewerSessionId = SESSION_RE.test(rawSessionId) ? rawSessionId : null;
+    const feedLocale = (searchParams.get("locale") || request.cookies.get("swypik_locale")?.value || "ro").toLowerCase().slice(0, 2);
 
     // Fetch extra rows when quality filtering is active so the default feed can
     // skip low-quality products without looking empty.
@@ -493,6 +494,7 @@ export async function GET(request: NextRequest) {
         va.status      AS asset_status,
         mp.id          AS mp_id,
         mp.title       AS mp_name,
+        mpt.title       AS mp_title_tr,
         mp.price_cents AS mp_price_cents,
         mp.image_url   AS mp_image_url,
         mp.currency    AS mp_currency,
@@ -570,6 +572,12 @@ export async function GET(request: NextRequest) {
         FROM video_product_votes
         WHERE video_id = v.id AND product_id = mp.id
       ) vpv ON mp.id IS NOT NULL
+      LEFT JOIN LATERAL (
+        SELECT title
+        FROM product_translations
+        WHERE product_id = mp.id AND locale = '${feedLocale}'
+        LIMIT 1
+      ) mpt ON mp.id IS NOT NULL
       ${userId || viewerSessionId ? `LEFT JOIN LATERAL (
         SELECT vote
         FROM video_product_votes
@@ -710,8 +718,8 @@ export async function GET(request: NextRequest) {
           },
           product: row.mp_id && productId ? {
             id: productId,
-            name: row.mp_name || null,
-            title: row.mp_name || null,
+            name: row.mp_title_tr || row.mp_name || null,
+            title: row.mp_title_tr || row.mp_name || null,
             price: priceCents != null ? priceCents / 100 : null,
             priceCents,
             priceDisplay: formatMoney(priceCents, currency),
