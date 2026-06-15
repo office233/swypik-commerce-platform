@@ -14,9 +14,19 @@ export async function searchPG(
   limit = 16,
   opts: { maxPrice?: number; category?: string; sort?: string; excludeIds?: string[] } = {},
 ): Promise<ProductModel[]> {
+  // Category handling:
+  //  - If the caller explicitly passes a category, honor it.
+  //  - Otherwise only auto-detect a category when there is NO free-text query.
+  //    With a text query, full-text search already scopes results; layering a
+  //    guessed AliExpress category name (e.g. "Consumer Electronics") on top
+  //    is a HARD filter that does not match our taxonomy columns and silently
+  //    zeroes out otherwise-relevant results (the "we have no products" bug).
+  const hasQuery = Boolean(query && query.trim());
+  const category = opts.category || (hasQuery ? undefined : detectCategory(query));
+
   const filters: ProductFilters = {
     search: query || undefined,
-    category: opts.category || detectCategory(query),
+    category,
     maxPrice: opts.maxPrice,
     sort: (opts.sort as any) || "popular",
     limit,

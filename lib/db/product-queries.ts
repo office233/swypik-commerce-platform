@@ -1,5 +1,6 @@
 import { dbQuery } from "@/lib/db";
 import { buildScopedTagId, parseScopedTagFilter } from "@/lib/db/category-filter-utils";
+import { extractSearchTokens } from "@/lib/db/search-query";
 
 export type ProductFilters = {
   search?: string;
@@ -661,21 +662,28 @@ function buildSearchFilters(filters: ProductFilters) {
 
   if (search) {
     const effLocale = (locale || "ro").toLowerCase();
+    const tokens = extractSearchTokens(search);
+    // tsquery text predicate: OR of meaningful keywords gives recall; ranking
+    // (see buildOrderBy) pushes the most relevant items to the top. When the
+    // query yields no usable keywords (e.g. only stop-words), we fall back to
+    // the original websearch behavior so we never regress to "everything".
+    const hasTokens = tokens.orQuery.length > 0;
+    const tsqParam = hasTokens ? tokens.orQuery : search;
+    const likeParam = hasTokens ? tokens.primaryLike : `%${search}%`;
+    const ftsMatch = hasTokens
+      ? `to_tsquery('simple', $${paramIndex + 1})`
+      : `websearch_to_tsquery('simple', $${paramIndex + 1})`;
     where.push(`
       (
-        p.search_document @@ websearch_to_tsquery('simple', $${paramIndex})
+        p.search_document @@ ${ftsMatch}
         OR EXISTS (
           SELECT 1 FROM product_translations pt_s
            WHERE pt_s.product_id = p.id
              AND pt_s.locale = $${paramIndex + 2}
-             AND pt_s.search_document @@ websearch_to_tsquery('simple', $${paramIndex})
+             AND pt_s.search_document @@ ${ftsMatch}
         )
-        OR p.title ILIKE $${paramIndex + 1}
-        OR COALESCE(p.category, '') ILIKE $${paramIndex + 1}
-        OR COALESCE(p.metadata->>'ae_category_name', '') ILIKE $${paramIndex + 1}
-        OR COALESCE(p.metadata->>'ae_category_name_ro', '') ILIKE $${paramIndex + 1}
-        OR COALESCE(p.metadata->>'product_type', '') ILIKE $${paramIndex + 1}
-        OR COALESCE(p.metadata->>'product_type_ro', '') ILIKE $${paramIndex + 1}
+        OR p.title ILIKE $${paramIndex + 3}
+        OR COALESCE(p.metadata->>'product_type_ro', '') ILIKE $${paramIndex + 3}
         OR p.taxonomy_node_slug IN (
           WITH RECURSIVE matched AS (
             SELECT DISTINCT tt.node_slug AS slug
@@ -697,8 +705,8 @@ function buildSearchFilters(filters: ProductFilters) {
         )
       )
     `);
-    params.push(search, `%${search}%`, effLocale);
-    paramIndex += 3;
+    params.push(search, tsqParam, effLocale, likeParam);
+    paramIndex += 4;
   }
 
   if (category) {
@@ -793,6 +801,19 @@ function buildOrderBy(sort?: ProductFilters["sort"], mode?: ProductFilters["mode
   // taxonomy-slug-match priority so products in a category that matches the
   // query label come first. This avoids "rochii" returning slimming devices
   // (matched only by description text).
+  // Relevance boost: rank by full-text match strength against the tsquery
+  // ($2 holds the OR/websearch query string built in buildSearchFilters).
+  // This makes free-text searches return the most relevant items first
+  // instead of falling through to generic "popular" ordering.
+  const tokens = search ? extractSearchTokens(search) : null;
+  const tsFn = tokens && tokens.orQuery.length > 0 ? "to_tsquery" : "websearch_to_tsquery";
+  // ts_rank_cd with field weights {D,C,B,A} = {0.1,0.2,0.4,1.0} so that matches
+  // in the product TITLE (weight A) dominate matches in the description/category
+  // (weights C/D). This pushes genuinely relevant products to the top instead of
+  // items that only mention the keyword deep in the description.
+  const rankBoost = search
+    ? `ts_rank_cd('{0.1,0.2,0.4,1.0}', p.search_document, ${tsFn}('simple', $2)) DESC, `
+    : "";
   const slugBoost = search
     ? `CASE WHEN p.taxonomy_node_slug IN (
         WITH RECURSIVE matched AS (
@@ -815,13 +836,13 @@ function buildOrderBy(sort?: ProductFilters["sort"], mode?: ProductFilters["mode
   if (sort === "price_asc") return `${slugBoost}p.price_cents ASC NULLS LAST, p.updated_at DESC`;
   if (sort === "price_desc") return `${slugBoost}p.price_cents DESC NULLS LAST, p.updated_at DESC`;
   if (sort === "discount") return `${slugBoost}${DISCOUNT_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
-  if (sort === "popular" || mode === "trending") return `${slugBoost}${ORDERS_SQL} DESC, ${RATING_SQL} DESC, p.updated_at DESC`;
-  if (mode === "deals") return `${slugBoost}${DISCOUNT_SQL} DESC, p.price_cents ASC NULLS LAST, ${ORDERS_SQL} DESC`;
+  if (sort === "popular" || mode === "trending") return `${slugBoost}${rankBoost}${ORDERS_SQL} DESC, ${RATING_SQL} DESC, p.updated_at DESC`;
+  if (mode === "deals") return `${slugBoost}${rankBoost}${DISCOUNT_SQL} DESC, p.price_cents ASC NULLS LAST, ${ORDERS_SQL} DESC`;
   if (mode === "feed") return `${slugBoost}${VIDEO_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
-  if (mode === "bestvalue") return `${slugBoost}CASE WHEN COALESCE(p.price_cents, 0) > 0 THEN (${ORDERS_SQL}::numeric / p.price_cents) ELSE 0 END DESC, ${RATING_SQL} DESC, p.updated_at DESC`;
-  if (mode === "toprated") return `${slugBoost}${RATING_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
+  if (mode === "bestvalue") return `${slugBoost}${rankBoost}CASE WHEN COALESCE(p.price_cents, 0) > 0 THEN (${ORDERS_SQL}::numeric / p.price_cents) ELSE 0 END DESC, ${RATING_SQL} DESC, p.updated_at DESC`;
+  if (mode === "toprated") return `${slugBoost}${rankBoost}${RATING_SQL} DESC, ${ORDERS_SQL} DESC, p.updated_at DESC`;
   if (sort === "newest") return `${slugBoost}p.created_at DESC`;
-  return `${slugBoost}p.created_at DESC`;
+  return `${slugBoost}${rankBoost}p.created_at DESC`;
 }
 
 export async function searchProducts(filters: ProductFilters = {}) {

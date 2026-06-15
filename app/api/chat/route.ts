@@ -13,7 +13,7 @@ import { NextResponse } from "next/server";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { orchestrate } from "@/lib/ai/orchestrator";
 import { updateShoppingSession } from "@/lib/sales/shopping-session";
-import { detectCategory, looksLikeShopping } from "@/lib/chat/category-detect";
+import { looksLikeShopping } from "@/lib/chat/category-detect";
 import { searchPG, searchWithFallback, fetchBundles, buildBundleSuggestionText, uniqueProducts } from "@/lib/chat/search-pg";
 import { inferBundleQueries, buildSalesSuggestion } from "@/lib/sales/bundle-engine";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
@@ -83,8 +83,11 @@ export async function POST(req: Request) {
 
     // ─── Direct query (from search bar) ────────────────────────────
     if (directQuery) {
-      const category = detectCategory(directQuery);
-      const products = await searchPG(directQuery, 20, { maxPrice: baseSession.budget, category });
+      // Do NOT force a guessed category here: full-text search already scopes
+      // results, and a guessed AliExpress category name (e.g. "Consumer
+      // Electronics") is a hard filter that doesn't match our taxonomy columns
+      // and silently zeroes out relevant products.
+      const products = await searchPG(directQuery, 20, { maxPrice: baseSession.budget });
 
       const bundleQueries = inferBundleQueries(directQuery);
       const bundleResults = await Promise.all(
@@ -129,7 +132,10 @@ export async function POST(req: Request) {
     // ─── Search intents ──────────────────────────────────────────
     if (aiResult.intent === "search_product" || aiResult.intent === "find_cheaper" || aiResult.intent === "refine_search") {
       const query = aiResult.searchQuery || userMessage;
-      const category = aiResult.category || detectCategory(query) || detectCategory(userMessage);
+      // Avoid hard category filtering when we have free-text to search on; a
+      // guessed category name doesn't match our taxonomy columns and drops
+      // relevant results. FTS scopes the results instead.
+      const category = (query && query.trim()) ? undefined : aiResult.category;
       const explicitMax = userMessage.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i)?.[1];
       const maxPrice = aiResult.maxPrice || (explicitMax ? Number(explicitMax) : undefined) || (shoppingSession.priceSensitivity === "high" ? shoppingSession.budget : undefined);
 
@@ -180,7 +186,7 @@ export async function POST(req: Request) {
     // ─── Non-search intents — check if it still looks like shopping ──
     if (looksLikeShopping(userMessage) && aiResult.intent !== "checkout" && aiResult.intent !== "track_order") {
       const query = aiResult.searchQuery || userMessage;
-      const category = aiResult.category || detectCategory(query) || detectCategory(userMessage);
+      const category = (query && query.trim()) ? undefined : aiResult.category;
       const explicitMax = userMessage.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i)?.[1];
       const maxPrice = aiResult.maxPrice || (explicitMax ? Number(explicitMax) : undefined);
       const products = await searchPG(query, 16, { category, maxPrice });

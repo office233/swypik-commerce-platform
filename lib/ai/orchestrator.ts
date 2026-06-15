@@ -387,11 +387,14 @@ function fallbackOrchestrate(message: string, productContext: OrchestratorProduc
   // Smart category-aware reply
   const populated = getPopulatedCategoryNames(categories);
   const categoryIsPopulated = matchedCategory ? populated.includes(matchedCategory) : true;
+  // Guard: only surface a category name in the user-facing reply when it looks
+  // like a real category label (short, few words). The category context can be
+  // polluted with raw product titles; printing those reads as broken copy.
+  const looksLikeCategoryName = (name?: string): boolean =>
+    !!name && name.length <= 32 && name.trim().split(/\s+/).length <= 4;
   let catText = "";
-  if (matchedCategory && categoryIsPopulated) {
+  if (matchedCategory && categoryIsPopulated && looksLikeCategoryName(matchedCategory)) {
     catText = ` din categoria ${matchedCategory}`;
-  } else if (matchedCategory && !categoryIsPopulated) {
-    catText = `. Categoria ${matchedCategory} este în curs de populare`;
   }
 
   // Smart bundle queries — if category is empty, bundle from populated categories
