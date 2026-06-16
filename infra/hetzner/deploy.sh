@@ -52,7 +52,9 @@ fi
 
 log "Hardening local infra permissions"
 chmod 750 "${APP_DIR}/infra" "${APP_DIR}/infra/hetzner" || true
-chmod 640 "${APP_DIR}/infra/hetzner/.env.production" || true
+# 600 (root-only) to prevent leak via group readability; .env contains
+# Stripe live keys, R2 secrets, GitHub token, Postgres password.
+chmod 600 "${APP_DIR}/infra/hetzner/.env.production" || true
 chmod 644 "${APP_DIR}/infra/hetzner/Caddyfile" "${APP_DIR}/infra/hetzner/docker-compose.prod.yml" || true
 chmod 755 "${APP_DIR}/infra/hetzner/"*.sh || true
 

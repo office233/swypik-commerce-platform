@@ -82,8 +82,19 @@ mkdir_hardened "$LOG_DIR"
 chmod_if_exists 750 "${APP_DIR}/infra"
 chmod_if_exists 750 "${APP_DIR}/infra/hetzner"
 if [[ -e "$ENV_FILE" ]]; then
-  run chmod 640 "$ENV_FILE"
+  # 600 (root-only). The env file holds Stripe live keys, R2 secrets,
+  # GitHub token, Postgres password; group readability is unnecessary
+  # and constitutes a leak vector if any non-root process is added.
+  run chmod 600 "$ENV_FILE"
 fi
+# Sweep any stale backups created manually (.bak, .tmp). They tend to be
+# left with 644 by accident and contain identical secrets — exfiltration
+# risk. We only chmod; deletion is operator's decision.
+for stale in "${APP_DIR}/infra/hetzner/.env.production".bak* "${APP_DIR}/infra/hetzner/.env.production.tmp"; do
+  if [[ -e "$stale" ]]; then
+    run chmod 600 "$stale"
+  fi
+done
 chmod_if_exists 644 "${APP_DIR}/infra/hetzner/Caddyfile"
 chmod_if_exists 644 "${APP_DIR}/infra/hetzner/docker-compose.prod.yml"
 
