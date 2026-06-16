@@ -399,7 +399,11 @@ function transformProduct(
   const hasValidPrice = Number.isFinite(rawPriceCents) && rawPriceCents > 0;
   const price = hasValidPrice ? rawPriceCents / 100 : 29;
   const oldPriceCents = Number(row.compare_at_price_cents) || 0;
-  const oldPrice = oldPriceCents > 0 ? oldPriceCents / 100 : Math.round(price * 1.5);
+  // Omnibus compliance (Directive 98/6/EC + OUG 58/2022 RO): never fabricate a
+  // "was" price. Only set oldPrice when there's a genuine reference price
+  // (compare_at_price_cents) strictly above current price. Otherwise leave 0
+  // and the UI hides the strikethrough; no fake discount badge will render.
+  const oldPrice = oldPriceCents > rawPriceCents ? oldPriceCents / 100 : 0;
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
   const seed = hashCode(`mp_${row.id}`);
 
@@ -965,7 +969,11 @@ export async function getCheckoutProductById(id: string) {
     sellerId: row.seller_id ? String(row.seller_id) : undefined,
     title: row.title,
     price: priceCents / 100,
-    oldPrice: Number(row.compare_at_price_cents) > 0 ? Number(row.compare_at_price_cents) / 100 : Math.round((priceCents / 100) * 1.3),
+    // Omnibus compliance (Directive 98/6/EC): NEVER fabricate an "old price".
+    // Only show a strikethrough when we have a genuine historical reference
+    // price (compare_at_price_cents > current price). Otherwise return 0 and
+    // the UI hides the strikethrough — no fake discount.
+    oldPrice: Number(row.compare_at_price_cents) > priceCents ? Number(row.compare_at_price_cents) / 100 : 0,
     image: images[0] || row.image_url || undefined,
     category,
     metadata,

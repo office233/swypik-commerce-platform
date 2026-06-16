@@ -525,7 +525,9 @@ export async function getProductDetail(
             id: String(firstNumber(similarRow.ae_internal_id) || similarRow.id),
             title: String(firstString(similarRow.ae_title_ro, similarMetadata.title_ro, similarRow.title) || similarRow.title),
             price: similarPriceCents / 100,
-            oldPrice: similarCompareAtCents > 0 ? similarCompareAtCents / 100 : Math.round((similarPriceCents / 100) * 1.3),
+            // Omnibus: only show old price when there's a genuine reference
+            // higher than current price. Never fabricate via * 1.3 markup.
+            oldPrice: similarCompareAtCents > similarPriceCents ? similarCompareAtCents / 100 : 0,
             image: String(firstString(similarRow.image_url, ...(Array.isArray(similarMetadata.images) ? (similarMetadata.images as unknown[]) : [])) || ""),
             hasVideo: firstBool(similarMetadata.has_video, similarRow.has_video, false),
             rating: firstNumber(similarMetadata.rating, similarRow.rating, 0) || 0,

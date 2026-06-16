@@ -494,16 +494,13 @@ async function recalcPricing(client, productDbId) {
                ELSE 1.7
              END * 1.21
            )::int,
-           compare_at_price_cents = ROUND(
-             ROUND(
-               (agg.min_cost + COALESCE(agg.min_ship,0)) *
-               CASE
-                 WHEN (agg.min_cost + COALESCE(agg.min_ship,0)) <  2500 THEN 3.0
-                 WHEN (agg.min_cost + COALESCE(agg.min_ship,0)) < 10000 THEN 2.0
-                 ELSE 1.7
-               END * 1.21
-             )::int * 1.30
-           )::int,
+           -- Omnibus compliance (Directive 98/6/EC + OUG 58/2022 RO):
+           -- NEVER fabricate a "compare_at" via static markup. The pre-discount
+           -- price MUST be a real historical reference (lowest price in last 30
+           -- days) or it constitutes misleading commercial practice (ANPC).
+           -- We leave compare_at_price_cents NULL; a separate price_history
+           -- pipeline must populate it from real observations.
+           compare_at_price_cents = NULL,
            updated_at = now()
       FROM agg
      WHERE p.id = $1::uuid AND agg.min_cost IS NOT NULL
