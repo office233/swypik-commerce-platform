@@ -77,6 +77,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Media origin — open the TCP + TLS handshake to media.swypik.com
+            (Cloudflare-backed R2) before the first <video> element fires its
+            HLS request. Saves ~150-300ms on the first playback. */}
+        <link rel="preconnect" href="https://media.swypik.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://media.swypik.com" />
         <link rel="preconnect" href="https://www.youtube.com" />
         <link rel="preconnect" href="https://www.youtube-nocookie.com" />
         <link rel="preconnect" href="https://i.ytimg.com" />

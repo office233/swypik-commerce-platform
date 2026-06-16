@@ -72,12 +72,25 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: false,
-          // Conservative buffer for vertical feed swiping — we don't need to
-          // buffer ahead aggressively because the user may swipe away.
-          startLevel: 0,
+          // Tuned for vertical short-form feed:
+          //  - startLevel: -1 → let ABR pick from current bandwidth estimate
+          //    instead of always starting at 360p; on fast networks we jump
+          //    straight to 720p without a visible quality bump mid-playback.
+          //  - capLevelToPlayerSize keeps mobile clients on lower rungs.
+          //  - maxBufferLength 30s gives enough headroom that brief network
+          //    jitter on 4G doesn't cause a stall; on 5-15s loops the cost
+          //    of "wasted" buffer is negligible if user swipes.
+          //  - backBufferLength 10 frees memory on long sessions.
+          //  - manifestLoadingTimeOut 6s caps the worst-case cold start
+          //    instead of the 10s default — fail over to fallbackSrc faster.
+          startLevel: -1,
           capLevelToPlayerSize: true,
-          maxBufferLength: 8,
-          maxMaxBufferLength: 16,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          backBufferLength: 10,
+          manifestLoadingTimeOut: 6000,
+          manifestLoadingMaxRetry: 2,
+          fragLoadingTimeOut: 8000,
         });
         hlsInstance = hls;
         hls.on(Hls.Events.ERROR, (_event, data) => {

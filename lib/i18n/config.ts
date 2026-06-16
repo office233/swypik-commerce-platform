@@ -4,7 +4,16 @@
 
 export const LOCALES = ["ro", "en", "es", "fr", "de", "pt", "it"] as const;
 export type Locale = (typeof LOCALES)[number];
-export const DEFAULT_LOCALE: Locale = "ro";
+// English is the platform default (international launch). Romanian remains
+// fully supported at `/ro/*`. With `localePrefix: "as-needed"` (see routing.ts):
+//   /            → en
+//   /ro          → ro
+//   /es, /de…   → other locales
+// Pre-existing `/` traffic that used to be RO is preserved via middleware
+// redirect: if `swypik_locale=ro` cookie is set, requests to `/` get
+// redirected to `/ro` (already wired). Old indexed RO URLs at `/` will
+// now serve EN — accept short-term SEO churn for international upside.
+export const DEFAULT_LOCALE: Locale = "en";
 
 export const LOCALE_COOKIE = "swypik_locale";
 export const CURRENCY_COOKIE = "swypik_currency";
