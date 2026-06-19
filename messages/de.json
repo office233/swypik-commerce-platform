@@ -1354,7 +1354,18 @@
     "itemLimba": "Sprache & Währung",
     "itemNotificari": "Benachrichtigungen",
     "itemSeDeconnect": "Abmelden …",
-    "itemDeconnect": "Abmelden"
+    "itemDeconnect": "Abmelden",
+    "itemDownloadData": "Meine Daten herunterladen",
+    "itemDeleteAccount": "Konto löschen",
+    "itemDeleteWarningBody": "Diese Aktion löscht dein Konto endgültig nach einer 30-tägigen Frist. Du kannst die Löschung jederzeit innerhalb dieser Frist abbrechen, indem du dich erneut anmeldest.",
+    "itemDeleteBullet1": "Dein Profil, Videos, Kommentare und Bestellungen werden gelöscht.",
+    "itemDeleteBullet2": "E-Mail und Benutzername werden sofort anonymisiert.",
+    "itemDeleteBullet3": "Du wirst von allen Geräten abgemeldet.",
+    "itemDeleteConfirmLabel": "Tippe DELETE zur Bestätigung:",
+    "itemDeleteConfirmHint": "Bitte tippe DELETE in Großbuchstaben, um fortzufahren.",
+    "itemDeleteConfirm": "Mein Konto löschen",
+    "itemDeleteCancel": "Abbrechen",
+    "itemDeleteRunning": "Lösche…"
   },
   "stripeConnectCard": {
     "seVerificaStatusulStripe": "Stripe-Status wird überprüft...",

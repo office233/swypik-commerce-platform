@@ -1354,7 +1354,18 @@
     "itemLimba": "Lingua e valuta",
     "itemNotificari": "Notifiche",
     "itemSeDeconnect": "Disconnessione…",
-    "itemDeconnect": "Esci"
+    "itemDeconnect": "Esci",
+    "itemDownloadData": "Scarica i miei dati",
+    "itemDeleteAccount": "Elimina account",
+    "itemDeleteWarningBody": "Questa azione eliminerà definitivamente il tuo account dopo un periodo di tolleranza di 30 giorni. Puoi annullare l'eliminazione in qualsiasi momento durante questo periodo effettuando nuovamente l'accesso.",
+    "itemDeleteBullet1": "Profilo, video, commenti e ordini verranno cancellati.",
+    "itemDeleteBullet2": "Email e nome utente verranno anonimizzati immediatamente.",
+    "itemDeleteBullet3": "Verrai disconnesso da tutti i dispositivi.",
+    "itemDeleteConfirmLabel": "Digita DELETE per confermare:",
+    "itemDeleteConfirmHint": "Digita DELETE in maiuscolo per continuare.",
+    "itemDeleteConfirm": "Elimina il mio account",
+    "itemDeleteCancel": "Annulla",
+    "itemDeleteRunning": "Eliminazione…"
   },
   "stripeConnectCard": {
     "seVerificaStatusulStripe": "Verifica dello stato Stripe...",

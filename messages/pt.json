@@ -1354,7 +1354,18 @@
     "itemLimba": "Idioma & moeda",
     "itemNotificari": "Notificações",
     "itemSeDeconnect": "A terminar sessão…",
-    "itemDeconnect": "Terminar sessão"
+    "itemDeconnect": "Terminar sessão",
+    "itemDownloadData": "Descarregar os meus dados",
+    "itemDeleteAccount": "Eliminar conta",
+    "itemDeleteWarningBody": "Esta ação eliminará permanentemente a tua conta após um período de tolerância de 30 dias. Podes cancelar a eliminação em qualquer momento durante este período iniciando sessão novamente.",
+    "itemDeleteBullet1": "O perfil, vídeos, comentários e encomendas serão apagados.",
+    "itemDeleteBullet2": "O e-mail e o nome de utilizador serão anonimizados imediatamente.",
+    "itemDeleteBullet3": "Sessão terminada em todos os dispositivos.",
+    "itemDeleteConfirmLabel": "Escreve DELETE para confirmar:",
+    "itemDeleteConfirmHint": "Por favor escreve DELETE em maiúsculas para continuar.",
+    "itemDeleteConfirm": "Eliminar a minha conta",
+    "itemDeleteCancel": "Cancelar",
+    "itemDeleteRunning": "A eliminar…"
   },
   "stripeConnectCard": {
     "seVerificaStatusulStripe": "A verificar estado Stripe...",

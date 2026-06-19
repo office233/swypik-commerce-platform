@@ -1354,7 +1354,18 @@
     "itemLimba": "Language & currency",
     "itemNotificari": "Notifications",
     "itemSeDeconnect": "Logging out…",
-    "itemDeconnect": "Log out"
+    "itemDeconnect": "Log out",
+    "itemDownloadData": "Download my data",
+    "itemDeleteAccount": "Delete account",
+    "itemDeleteWarningBody": "This action will permanently delete your account after a 30-day grace period. You can cancel the deletion any time during this period by logging back in.",
+    "itemDeleteBullet1": "Your profile, videos, comments and orders will be erased.",
+    "itemDeleteBullet2": "Your email and username will be anonymized immediately.",
+    "itemDeleteBullet3": "You will be logged out of all devices.",
+    "itemDeleteConfirmLabel": "Type DELETE to confirm:",
+    "itemDeleteConfirmHint": "Please type DELETE in uppercase to continue.",
+    "itemDeleteConfirm": "Delete my account",
+    "itemDeleteCancel": "Cancel",
+    "itemDeleteRunning": "Deleting…"
   },
   "stripeConnectCard": {
     "seVerificaStatusulStripe": "Checking Stripe status...",

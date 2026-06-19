@@ -1354,7 +1354,18 @@
     "itemLimba": "Langue et devise",
     "itemNotificari": "Notifications",
     "itemSeDeconnect": "Déconnexion…",
-    "itemDeconnect": "Se déconnecter"
+    "itemDeconnect": "Se déconnecter",
+    "itemDownloadData": "Télécharger mes données",
+    "itemDeleteAccount": "Supprimer le compte",
+    "itemDeleteWarningBody": "Cette action supprimera définitivement votre compte après une période de grâce de 30 jours. Vous pouvez annuler la suppression à tout moment pendant cette période en vous reconnectant.",
+    "itemDeleteBullet1": "Profil, vidéos, commentaires et commandes seront effacés.",
+    "itemDeleteBullet2": "E-mail et nom d'utilisateur seront anonymisés immédiatement.",
+    "itemDeleteBullet3": "Vous serez déconnecté de tous les appareils.",
+    "itemDeleteConfirmLabel": "Tapez DELETE pour confirmer :",
+    "itemDeleteConfirmHint": "Veuillez taper DELETE en majuscules pour continuer.",
+    "itemDeleteConfirm": "Supprimer mon compte",
+    "itemDeleteCancel": "Annuler",
+    "itemDeleteRunning": "Suppression…"
   },
   "stripeConnectCard": {
     "seVerificaStatusulStripe": "Vérification du statut Stripe...",

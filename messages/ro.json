@@ -1354,7 +1354,18 @@
     "itemLimba": "Limbă & monedă",
     "itemNotificari": "Notificări",
     "itemSeDeconnect": "Se deconectează…",
-    "itemDeconnect": "Deconectează-te"
+    "itemDeconnect": "Deconectează-te",
+    "itemDownloadData": "Descarcă datele mele",
+    "itemDeleteAccount": "Șterge contul",
+    "itemDeleteWarningBody": "Această acțiune îți va șterge definitiv contul după o perioadă de grație de 30 de zile. Poți anula ștergerea oricând în acest interval autentificându-te din nou.",
+    "itemDeleteBullet1": "Profilul, videoclipurile, comentariile și comenzile tale vor fi șterse.",
+    "itemDeleteBullet2": "Emailul și numele de utilizator vor fi anonimizate imediat.",
+    "itemDeleteBullet3": "Vei fi deconectat de pe toate dispozitivele.",
+    "itemDeleteConfirmLabel": "Scrie DELETE pentru confirmare:",
+    "itemDeleteConfirmHint": "Te rugăm să scrii DELETE cu majuscule pentru a continua.",
+    "itemDeleteConfirm": "Șterge contul meu",
+    "itemDeleteCancel": "Anulează",
+    "itemDeleteRunning": "Se șterge…"
   },
   "stripeConnectCard": {
     "seVerificaStatusulStripe": "Se verifică statusul Stripe...",
