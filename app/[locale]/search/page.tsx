@@ -45,9 +45,13 @@ export default async function SearchPage({
       : formatCurrency(cents, { locale, displayCurrency, sourceCurrency: "RON" });
 
   const tooShort = q.length < 2;
+  // Pass the resolved locale through — searchProducts uses it to pick the
+  // correct product_translations row. Without this, EN visitors got RO
+  // results and "husa" failed to match cases that exist only via the RO
+  // translation.
   const results = tooShort
     ? { videos: [], creators: [], products: [], hashtags: [] }
-    : await searchAll(q).catch(() => ({
+    : await searchAll(q, { locale }).catch(() => ({
         videos: [],
         creators: [],
         products: [],

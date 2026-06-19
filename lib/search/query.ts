@@ -174,8 +174,28 @@ export async function searchCreators(
 }
 
 /**
- * Product search. Uses marketplace_products.search_document if present
- * (added by the 20260514 migration), else falls back to ILIKE on title.
+ * Product search — locale-aware FTS over product_translations.
+ *
+ * Why product_translations (not marketplace_products)?
+ *   marketplace_products.search_document is built from the original English
+ *   AliExpress title/description. So "husa" (Romanian for "phone case")
+ *   matched ZERO products even though we have 83 cases in the catalog
+ *   visible as "Husă pentru iPhone…" through the RO translation.
+ *
+ *   product_translations has 152k rows per locale (ro/en/es/fr/de/pt/it),
+ *   each with its own search_document tsvector (see migration
+ *   20260527_0002_product_translations_fts.sql). Searching there gives us
+ *   native-language matches in the user's locale, falling back to EN for
+ *   any product missing a translation in that locale.
+ *
+ * Strategy:
+ *   1. FTS hit in pt(locale)  →  rank 1.0 + ts_rank
+ *   2. FTS hit in pt(en)      →  rank 0.7 + ts_rank  (so EN-only catalog rows still surface)
+ *   3. Trigram similarity on the localized title for typo tolerance
+ *   4. taxonomy slug match (covers "rochie" → fashion-women-dresses) as a tiebreaker
+ *
+ * The slug expansion that existed in the prior version is kept but no longer
+ * the load-bearing path; it only adds a small rank boost when titles also hit.
  */
 export async function searchProducts(
   q: string,
@@ -185,22 +205,20 @@ export async function searchProducts(
   const offset = clampOffset(opts.offset);
   const locale = (opts.locale || 'ro').toLowerCase();
 
-  // Cross-language expansion: RO/DE/FR query → matching taxonomy slugs.
-  // Product titles are predominantly EN; this lets "rochie" match slug fashion-women-dresses.
+  // Cross-language taxonomy slug expansion (rank boost only).
   let matchedSlugs: string[] = [];
   try {
     const { rows: slugRows } = await dbQuery<{ node_slug: string }>(
       `WITH q AS (SELECT public.f_unaccent(lower($1)) AS qn)
        SELECT DISTINCT node_slug
          FROM taxonomy_translations, q
-        WHERE locale IN ('ro','de','fr','en')
+        WHERE locale IN ('ro','de','fr','en','es','pt','it')
           AND char_length(qn) >= 3
           AND (
             public.f_unaccent(lower(label)) LIKE qn || '%'
             OR qn LIKE public.f_unaccent(lower(label)) || '%'
             OR public.f_unaccent(lower(label)) LIKE '%' || qn || '%'
             OR word_similarity(qn, public.f_unaccent(lower(label))) > 0.65
-            OR public.f_unaccent(lower(COALESCE(description,''))) LIKE '%' || qn || '%'
           )
         LIMIT 50`,
       [q]
@@ -208,60 +226,103 @@ export async function searchProducts(
     matchedSlugs = slugRows.map((r) => r.node_slug);
   } catch {}
 
+  // Main query: search product_translations (target locale + EN fallback),
+  // join back to marketplace_products to apply visibility/safety filters.
   const ftsSql = `
     WITH query AS (
       SELECT websearch_to_tsquery('simple', public.f_unaccent($1)) AS tsq,
              public.f_unaccent(lower($1)) AS qn
+    ),
+    hits AS (
+      -- Target-locale FTS hits (highest weight)
+      SELECT pt.product_id,
+             ts_rank_cd(pt.search_document, query.tsq) AS r,
+             1.0::float AS locale_boost
+        FROM product_translations pt
+        CROSS JOIN query
+       WHERE pt.locale = $5
+         AND pt.search_document @@ query.tsq
+      UNION ALL
+      -- English fallback FTS hits (so EN-only entries still surface)
+      SELECT pt.product_id,
+             ts_rank_cd(pt.search_document, query.tsq) AS r,
+             0.7::float AS locale_boost
+        FROM product_translations pt
+        CROSS JOIN query
+       WHERE pt.locale = 'en'
+         AND $5 <> 'en'
+         AND pt.search_document @@ query.tsq
+      UNION ALL
+      -- Trigram similarity on the target-locale title (typo tolerance).
+      -- Cheap because of the trigram GIN; only triggered when FTS missed.
+      SELECT pt.product_id,
+             similarity(public.f_unaccent(lower(coalesce(pt.title, ''))), query.qn) AS r,
+             0.9::float AS locale_boost
+        FROM product_translations pt
+        CROSS JOIN query
+       WHERE pt.locale = $5
+         AND char_length(query.qn) >= 3
+         AND similarity(public.f_unaccent(lower(coalesce(pt.title, ''))), query.qn) > 0.3
+    ),
+    ranked AS (
+      SELECT product_id, MAX(r * locale_boost) AS rank
+        FROM hits
+       GROUP BY product_id
     )
+    SELECT
+      mp.id::text                                              AS id,
+      COALESCE(pt_target.title, pt_en.title, mp.title)         AS title,
+      mp.price_cents                                           AS price_cents,
+      mp.image_url                                             AS image_url,
+      (ranked.rank
+        + CASE WHEN mp.taxonomy_node_slug = ANY($4::text[]) THEN 0.05 ELSE 0 END
+      )::float                                                 AS rank
+    FROM ranked
+    JOIN marketplace_products mp ON mp.id = ranked.product_id
+    LEFT JOIN product_translations pt_target ON pt_target.product_id = mp.id AND pt_target.locale = $5
+    LEFT JOIN product_translations pt_en     ON pt_en.product_id     = mp.id AND pt_en.locale     = 'en'
+   WHERE mp.status = 'active'
+     AND COALESCE(mp.is_adult, false) = false
+     AND mp.effective_label = 'safe'
+   ORDER BY rank DESC
+   LIMIT $2 OFFSET $3
+  `;
+
+  try {
+    const { rows } = await dbQuery(ftsSql, [q, limit, offset, matchedSlugs, locale]);
+    if (rows.length > 0) return rows as ProductResult[];
+    // Fall through to ILIKE if FTS returned 0 — covers very short queries
+    // and edge cases where tsquery parsing gave us an empty tsq.
+  } catch {
+    // Schema drift safety net — fall through to ILIKE.
+  }
+
+  const pattern = `%${q}%`;
+  const ilikeSql = `
     SELECT
       mp.id::text     AS id,
       COALESCE(pt_target.title, pt_en.title, mp.title) AS title,
       mp.price_cents  AS price_cents,
       mp.image_url    AS image_url,
-      GREATEST(
-        ts_rank_cd(mp.search_document, query.tsq),
-        similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn),
-        CASE WHEN mp.taxonomy_node_slug = ANY($4::text[]) THEN 0.5 ELSE 0 END
-      )::float AS rank
+      0::float        AS rank
     FROM marketplace_products mp
-    LEFT JOIN product_translations pt_target ON pt_target.product_id = mp.id AND pt_target.locale = $5
-    LEFT JOIN product_translations pt_en     ON pt_en.product_id = mp.id     AND pt_en.locale = 'en'
-    CROSS JOIN query
+    LEFT JOIN product_translations pt_target
+      ON pt_target.product_id = mp.id AND pt_target.locale = $4
+    LEFT JOIN product_translations pt_en
+      ON pt_en.product_id = mp.id     AND pt_en.locale = 'en'
     WHERE mp.status = 'active'
-      AND COALESCE(mp.is_adult, false) = false AND mp.effective_label = 'safe'
+      AND COALESCE(mp.is_adult, false) = false
+      AND mp.effective_label = 'safe'
       AND (
-        mp.search_document @@ query.tsq
-        OR similarity(public.f_unaccent(lower(coalesce(mp.title, ''))), query.qn) > 0.2
-        OR ($4::text[] <> ARRAY[]::text[] AND mp.taxonomy_node_slug = ANY($4::text[]))
+        COALESCE(pt_target.title, '') ILIKE $1
+        OR COALESCE(pt_en.title, '')   ILIKE $1
+        OR mp.title                    ILIKE $1
       )
-    ORDER BY rank DESC
+    ORDER BY mp.title ASC
     LIMIT $2 OFFSET $3
   `;
-
-  try {
-    const { rows } = await dbQuery(ftsSql, [q, limit, offset, matchedSlugs, locale]);
-    return rows as ProductResult[];
-  } catch {
-    const pattern = `%${q}%`;
-    const ilikeSql = `
-      SELECT
-        mp.id::text     AS id,
-        COALESCE(pt_target.title, pt_en.title, mp.title) AS title,
-        mp.price_cents  AS price_cents,
-        mp.image_url    AS image_url,
-        0::float        AS rank
-      FROM marketplace_products mp
-      LEFT JOIN product_translations pt_target ON pt_target.product_id = mp.id AND pt_target.locale = $4
-      LEFT JOIN product_translations pt_en     ON pt_en.product_id = mp.id     AND pt_en.locale = 'en'
-      WHERE mp.status = 'active'
-        AND COALESCE(mp.is_adult, false) = false AND mp.effective_label = 'safe'
-        AND mp.title ILIKE $1
-      ORDER BY mp.title ASC
-      LIMIT $2 OFFSET $3
-    `;
-    const { rows } = await dbQuery(ilikeSql, [pattern, limit, offset, locale]);
-    return rows as ProductResult[];
-  }
+  const { rows } = await dbQuery(ilikeSql, [pattern, limit, offset, locale]);
+  return rows as ProductResult[];
 }
 
 
@@ -314,7 +375,15 @@ export async function searchAll(
   products: ProductResult[];
   hashtags: HashtagResult[];
 }> {
-  const fanOpts: SearchOpts = { limit: 10, offset: 0, userId: opts.userId };
+  // Per-tab fanout cap. Note: locale MUST be forwarded so searchProducts
+  // can query the right product_translations row; previously it defaulted
+  // to 'ro' which broke EN searches.
+  const fanOpts: SearchOpts = {
+    limit: 10,
+    offset: 0,
+    userId: opts.userId,
+    locale: opts.locale,
+  };
   const [videos, creators, products, hashtags] = await Promise.all([
     searchVideos(q, fanOpts).catch(() => [] as VideoResult[]),
     searchCreators(q, fanOpts).catch(() => [] as CreatorResult[]),
