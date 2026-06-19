@@ -68,6 +68,40 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  /*
+   * Idempotency claim (P0 #8 fix, 2026-06-19).
+   *
+   * Stripe retries webhook delivery up to ~3 days with exponential backoff
+   * if we return non-2xx OR don't ack within 10s. Without the claim, a
+   * single retried `identity.verification_session.verified` would:
+   *   - bill us for a second `verificationSessions.retrieve()` call
+   *   - update age_verified_at = now() again (changes the audit clock)
+   *   - if a `verified` and a later `requires_input` arrive out of order
+   *     during retry, the `requires_input` can clobber an `approved` row
+   *
+   * Reusing the same processed_stripe_events table as the main webhook is
+   * fine — event_ids are globally unique across all Stripe webhooks for
+   * the same account, and the column is keyed by event_id alone. We tag
+   * the row with the event_type so audits can tell the two webhooks apart.
+   */
+  try {
+    const { rows: claimRows } = await dbQuery<{ event_id: string }>(
+      `INSERT INTO processed_stripe_events (event_id, event_type)
+       VALUES ($1, $2)
+       ON CONFLICT (event_id) DO NOTHING
+       RETURNING event_id`,
+      [event.id, event.type],
+    );
+    if (claimRows.length === 0) {
+      log.info({ event_id: event.id, event_type: event.type }, "duplicate event, skipping");
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+  } catch (err) {
+    log.error({ err, event_id: event.id }, "idempotency claim failed");
+    // 500 → Stripe will retry. Do NOT proceed without a successful claim.
+    return NextResponse.json({ error: "Idempotency claim failed" }, { status: 500 });
+  }
+
   try {
     if (event.type.startsWith("identity.verification_session.")) {
       const verification = event.data.object as Stripe.Identity.VerificationSession;

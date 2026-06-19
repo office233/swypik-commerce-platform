@@ -46,6 +46,47 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: "Ignored, status is not shipped." });
     }
 
+    /*
+     * Idempotency claim (P0 #8 fix, 2026-06-19).
+     *
+     * supplier_webhook_events has a UNIQUE index on
+     *   (supplier_id, external_order_id, tracking_number)
+     * which gives us free dedup. The UPDATE downstream is already
+     * guarded by `WHERE source_status = 'processing_dropship'` so a
+     * second arrival wouldn't re-fulfill — but the customer email
+     * `sendCustomerShippingAlert` is NOT idempotent. Without this
+     * claim, the buyer can get the same "your package shipped" email
+     * multiple times when the supplier (or our own retry policy)
+     * re-delivers.
+     *
+     * supplier_id defaults to "unknown" because the verify layer
+     * doesn't currently expose a supplier identity field; tighten
+     * this when the per-supplier signing is added.
+     */
+    try {
+      const { rows: claimRows } = await dbQuery<{ id: string }>(
+        `INSERT INTO supplier_webhook_events
+                 (supplier_id, external_order_id, tracking_number, payload)
+          VALUES ($1, $2, $3, $4::jsonb)
+          ON CONFLICT (supplier_id, external_order_id, tracking_number) DO NOTHING
+          RETURNING id`,
+        ["unknown", external_order_id, tracking_number, rawBody || "{}"],
+      );
+      if (claimRows.length === 0) {
+        logger.info(
+          { external_order_id, tracking_number },
+          "[Supplier Webhook] duplicate, skipping",
+        );
+        return NextResponse.json({ success: true, duplicate: true });
+      }
+    } catch (err) {
+      logger.error({ err, external_order_id }, "[Supplier Webhook] idempotency claim failed");
+      return NextResponse.json(
+        { success: false, error: "Idempotency claim failed" },
+        { status: 500 },
+      );
+    }
+
     // Update commerce_order_items -> source_status = 'fulfilled'
     const updateRes = await dbQuery(
       `UPDATE commerce_order_items
