@@ -75,6 +75,30 @@ function isValidEmail(value: string): boolean {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+// Disposable / known-junk email domains. Not exhaustive — covers the most
+// common abuse vectors. Real users almost never hit this list, and it costs
+// us nothing if they do (clear error message). Update as needed.
+const DISPOSABLE_EMAIL_DOMAINS = new Set<string>([
+  "invalid", "test.com", "test.ro", "example.com", "example.org",
+  "mailinator.com", "guerrillamail.com", "guerrillamail.net", "sharklasers.com",
+  "tempmail.com", "tempmail.net", "temp-mail.org", "tempmailaddress.com",
+  "10minutemail.com", "10minutemail.net", "yopmail.com", "yopmail.fr",
+  "throwawaymail.com", "trashmail.com", "trashmail.de", "fakeinbox.com",
+  "maildrop.cc", "getnada.com", "mintemail.com", "mohmal.com",
+  "dispostable.com", "spamgourmet.com", "mytemp.email", "moakt.com",
+  "discard.email", "emailondeck.com",
+]);
+
+// Use BEFORE creating users / sending mails. Combines format check with the
+// disposable-domain blocklist. The format check is repeated so callers can use
+// this single helper at any entry point without remembering to also call
+// isValidEmail() first.
+function isAcceptableEmail(value: unknown): value is string {
+  if (typeof value !== "string" || !isValidEmail(value)) return false;
+  const domain = value.trim().toLowerCase().split("@")[1] || "";
+  return !DISPOSABLE_EMAIL_DOMAINS.has(domain);
+}
+
 function isValidPhone(value: string): boolean {
   // E.164-ish; allow + and 7-15 digits
   return /^\+?[0-9]{7,15}$/.test(value.replace(/\s|-/g, ""));
@@ -252,7 +276,11 @@ async function issueSessionResponse(
 
 /** Send-OTP flow (used by both `login` and `resend_otp`). */
 async function handleSendOtp(req: Request, rawEmail: unknown) {
-  if (typeof rawEmail !== "string" || !rawEmail.includes("@")) {
+  // Strict validation. The previous check (`.includes("@")`) allowed
+  // `test@invalid` and created phantom users on every spam request, firing
+  // referral attribution + recreation detection side-effects each time.
+  // isAcceptableEmail combines RFC-ish format + disposable-domain blocklist.
+  if (!isAcceptableEmail(rawEmail)) {
     return NextResponse.json(
       { success: false, error: "Email invalid." },
       { status: 400 },
@@ -387,8 +415,8 @@ export async function POST(req: Request) {
 
     /* ═══════════════════ SIGNUP WITH PASSWORD ═══════════════════ */
     case "signup_password": {
-      // Validări sincrone
-      if (!isValidEmail(email)) {
+      // Validări sincrone — block disposable domains too (see isAcceptableEmail).
+      if (!isAcceptableEmail(email)) {
         return NextResponse.json(
           { success: false, error: "Email invalid." },
           { status: 400 },
