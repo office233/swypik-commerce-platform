@@ -185,16 +185,70 @@ function gatedRedirectTarget(
   return null;
 }
 
+/**
+ * Defense-in-depth cache control (P0 #10, 2026-06-19).
+ *
+ * Every route that touches user-specific state MUST never be cached by
+ * a CDN, a corporate proxy, or a shared browser. Individual route
+ * handlers already set `Cache-Control: private, no-store` correctly
+ * today — but if anyone ever forgets (or a new route is added without
+ * thinking about it), the consequence is severe: one user's cart, DM,
+ * order history, or auth state served to another user from a
+ * Cloudflare/Caddy edge cache.
+ *
+ * We mark these prefixes here so the response carries no-store
+ * regardless of what the handler returns. Matching is prefix-based on
+ * the canonical path (post locale-strip is irrelevant here because
+ * none of these are localized).
+ *
+ * If a path is in MAYBE_PUBLIC_API_PREFIXES (catalog, public feed,
+ * etc.), we explicitly do NOT touch it so the handler's own caching
+ * directives win.
+ */
+const PRIVATE_API_PREFIXES = [
+  "/api/account/",
+  "/api/admin/",
+  "/api/auth/",
+  "/api/cart",
+  "/api/checkout/",
+  "/api/chat/",
+  "/api/creator/",
+  "/api/dm/",
+  "/api/me/",
+  "/api/onboarding/",
+  "/api/orders",
+  "/api/seller/",
+  "/api/sellers/me",
+  "/api/stripe-connect/",
+  "/api/users/",
+  "/api/wallet/",
+];
+
+function isPrivateApi(pathname: string): boolean {
+  if (!pathname.startsWith("/api/")) return false;
+  return PRIVATE_API_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
+function withNoStore(res: NextResponse): NextResponse {
+  // Belt + braces. Some intermediaries honor only one of these; setting
+  // both no-store and private + max-age=0 means even broken proxies that
+  // ignore no-store still won't serve a stale copy.
+  res.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+  res.headers.set("Pragma", "no-cache");
+  return res;
+}
+
 export function middleware(request: NextRequest) {
   // 1) CSRF check.
   if (csrfBlocked(request)) {
     return new NextResponse(JSON.stringify({ error: "csrf" }), {
       status: 403,
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "Cache-Control": "no-store" },
     });
   }
 
   const { pathname } = request.nextUrl;
+  const needsNoStore = isPrivateApi(pathname);
 
   // 2) Rute non-localizate: aplicăm DOAR auth gating, fără next-intl.
   if (isNonLocalized(pathname)) {
@@ -204,7 +258,10 @@ export function middleware(request: NextRequest) {
     const hasSeller = Boolean(cookies.get(SELLER_COOKIE)?.value);
     const hasAdmin = Boolean(cookies.get(ADMIN_COOKIE)?.value);
 
-    if (pathname.startsWith("/api/")) return NextResponse.next();
+    if (pathname.startsWith("/api/")) {
+      const res = NextResponse.next();
+      return needsNoStore ? withNoStore(res) : res;
+    }
     const target = gatedRedirectTarget(
       pathname,
       hasShopper,

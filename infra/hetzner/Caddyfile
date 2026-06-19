@@ -24,7 +24,15 @@ swypik.com {
 		# IE legacy + Edge pre-Chromium pot introduce noi vulnerabilități cf. OWASP 2024).
 		# CSP frame-ancestors 'none' + X-Frame-Options DENY rămân protecția anti-XSS reală.
 		-X-XSS-Protection
-		Permissions-Policy         "camera=(self), microphone=(self), geolocation=()"
+		# x-middleware-rewrite leakează rutarea internă Next (ex. "/en") către
+		# client. Scos defensiv aici (2026-06-19, P0 #10) — nu schimbă comportamentul,
+		# doar elimină semnalul exploatabil pentru fingerprinting.
+		-X-Middleware-Rewrite
+		# Permissions-Policy mai strict (2026-06-19, P0 #10). Closed-by-default:
+		# tot ce nu folosim activ este =() ca să blocăm orice iframe-injection vector.
+		# camera + microphone rămân (self) — record + AI chat le folosesc.
+		# fullscreen + clipboard-read rămân (self) — UI video + share button.
+		Permissions-Policy         "accelerometer=(), autoplay=(self), browsing-topics=(), camera=(self), clipboard-read=(self), clipboard-write=(self), display-capture=(), fullscreen=(self), geolocation=(), gyroscope=(), interest-cohort=(), magnetometer=(), microphone=(self), midi=(), payment=(self \"https://js.stripe.com\" \"https://checkout.stripe.com\"), picture-in-picture=(self), publickey-credentials-get=(self), screen-wake-lock=(self), serial=(), usb=(), web-share=(self), xr-spatial-tracking=()"
 		# Cross-Origin isolation (best-effort; same-origin pentru izolare totală)
 		Cross-Origin-Opener-Policy "same-origin-allow-popups"
 		Cross-Origin-Resource-Policy "same-origin"
