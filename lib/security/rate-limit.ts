@@ -185,6 +185,12 @@ export const RATE_LIMITS = {
   referralGet: { limit: 30, window: 60 } as RateLimitConfig,          // referral code GET/POST
   reviewHelpful: { limit: 30, window: 60 } as RateLimitConfig,        // toggle helpful
   ageVerifyStart: { limit: 3, window: 600 } as RateLimitConfig,       // Stripe Identity (expensive)
+  // ── Added 2026-06-19: P0 #7 rate-limit hardening pass 2 ────────────
+  accountDelete: { limit: 3, window: 3600 } as RateLimitConfig,       // GDPR Art. 17 delete request — high-stakes, low frequency
+  accountExport: { limit: 3, window: 3600 } as RateLimitConfig,       // GDPR Art. 20 export — full DB scan, expensive
+  adminTotpInit: { limit: 5, window: 300 } as RateLimitConfig,        // admin TOTP secret regen — already authed but bound it
+  adminTotpEnable: { limit: 10, window: 300 } as RateLimitConfig,     // brute-force guard on TOTP verify
+  oauthStart: { limit: 10, window: 60 } as RateLimitConfig,           // OAuth redirect kick-off (prevents redirect-loop abuse)
 } as const;
 
 /**

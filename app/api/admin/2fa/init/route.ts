@@ -21,11 +21,25 @@ import {
   generateSecret,
   getOtpAuthUrl,
 } from "@/lib/auth/totp";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function POST() {
+const log = logger.child({ route: "/api/admin/2fa/init" });
+
+export async function POST(req: Request) {
+  // Rate limit: 5 inits / 5 min / IP. Even though the caller is already
+  // authed (admin session required), we cap it so a compromised admin
+  // session can't be used to thrash the table or flood logs.
+  const ip = getClientIP(req);
+  const { success } = await rateLimit("adminTotpInit", ip);
+  if (!success) {
+    log.warn({ ip }, "admin_totp_init_rate_limited");
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+
   if (!(await hasAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

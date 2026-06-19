@@ -20,6 +20,7 @@ import {
   hashBackupCodes,
 } from "@/lib/auth/totp";
 import { logger } from "@/lib/logger";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +28,18 @@ export const runtime = "nodejs";
 const log = logger.child({ route: "/api/admin/2fa/enable" });
 
 export async function POST(req: Request) {
+  // Brute-force guard on the TOTP code field. 10 verify attempts / 5 min / IP
+  // is well above any legitimate retry (re-syncing a clock, fat-fingering
+  // the keypad once or twice) but blocks 1M+/sec automated guessing.
+  // 6-digit space = 1M codes × window=±1 ≈ 3 valid windows = 3M effective
+  // tries needed in the worst case; 10/5min keeps it astronomical.
+  const ip = getClientIP(req);
+  const { success } = await rateLimit("adminTotpEnable", ip);
+  if (!success) {
+    log.warn({ ip }, "admin_totp_enable_rate_limited");
+    return NextResponse.json({ error: "Too many attempts." }, { status: 429 });
+  }
+
   if (!(await hasAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

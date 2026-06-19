@@ -5,10 +5,21 @@ import {
   getOAuthRedirectBase,
   isSafeRedirect,
 } from "@/lib/auth/oauth/helpers";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  // Rate limit: 10 OAuth starts / 60s / IP (see google/start for rationale).
+  const ip = getClientIP(req);
+  const { success } = await rateLimit("oauthStart", ip);
+  if (!success) {
+    return NextResponse.json(
+      { error: "Too many sign-in attempts. Please wait a moment." },
+      { status: 429 },
+    );
+  }
+
   const url = new URL(req.url);
   const next = isSafeRedirect(url.searchParams.get("next"));
   const clientId = process.env.APPLE_CLIENT_ID;

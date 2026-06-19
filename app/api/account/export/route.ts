@@ -15,9 +15,13 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const log = logger.child({ route: "account/export" });
 
 // Safely fetch rows; if a table doesn't exist for some reason (schema drift)
 // we return an empty array rather than 500.
@@ -31,6 +35,20 @@ async function safeQuery(sql: string, params: any[] = []): Promise<any[]> {
 }
 
 export async function GET(req: Request) {
+  // Rate limit: 3 exports / hour / IP. The export query fans out across
+  // 18 tables — repeated unbounded calls would degrade Postgres and
+  // produce ~MB-scale responses each time. 3/h is enough for a confused
+  // user who clicks twice and still leaves headroom for legitimate retries.
+  const ip = getClientIP(req);
+  const { success, remaining } = await rateLimit("accountExport", ip);
+  if (!success) {
+    log.warn({ ip }, "account_export_rate_limited");
+    return NextResponse.json(
+      { error: "Too many export requests. Please wait an hour before trying again." },
+      { status: 429, headers: { "X-RateLimit-Remaining": String(remaining) } },
+    );
+  }
+
   const auth = await getAuthUser();
   if (!auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

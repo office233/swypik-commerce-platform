@@ -33,11 +33,32 @@ import crypto from "crypto";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const log = logger.child({ route: "account/delete" });
+
+/**
+ * Rate limit: 3 requests / hour / IP, shared between POST and DELETE.
+ * Why so tight: deletion is a destructive, high-stakes operation. A normal
+ * user clicks once, maybe twice if they mis-typed the confirm string.
+ * Anything beyond that is almost certainly automated abuse (mass-delete
+ * via a compromised token, or social-engineering exfiltration).
+ */
+async function enforceRateLimit(req: Request): Promise<NextResponse | null> {
+  const ip = getClientIP(req);
+  const { success, remaining } = await rateLimit("accountDelete", ip);
+  if (!success) {
+    log.warn({ ip }, "account_delete_rate_limited");
+    return NextResponse.json(
+      { error: "Too many deletion attempts. Please try again later." },
+      { status: 429, headers: { "X-RateLimit-Remaining": String(remaining) } },
+    );
+  }
+  return null;
+}
 
 const SHOPPER_COOKIE = "swypik_session";
 const GRACE_PERIOD_DAYS = 30;
@@ -66,6 +87,9 @@ async function logAudit(
 }
 
 export async function POST(req: Request) {
+  const rl = await enforceRateLimit(req);
+  if (rl) return rl;
+
   const auth = await getAuthUser();
   if (!auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -165,6 +189,9 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const rl = await enforceRateLimit(req);
+  if (rl) return rl;
+
   // Cancel a pending deletion.
   // Note: by this point the user has been logged out (POST revoked sessions).
   // They need to log in again first; this endpoint is only reachable with

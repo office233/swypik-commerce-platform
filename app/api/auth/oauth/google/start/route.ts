@@ -5,10 +5,26 @@ import {
   getOAuthRedirectBase,
   isSafeRedirect,
 } from "@/lib/auth/oauth/helpers";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  // Rate limit: 10 OAuth starts / 60s / IP.
+  // Why: each call mints a fresh state cookie and triggers a redirect.
+  // Without a cap, a bot can spin up hundreds of incomplete OAuth flows,
+  // each pinned for 10 min in the state-cookie store, plus drives synthetic
+  // traffic to Google's endpoint that may eventually trip Google's own
+  // anti-abuse limits and block us. 10/min is plenty for any real user.
+  const ip = getClientIP(req);
+  const { success } = await rateLimit("oauthStart", ip);
+  if (!success) {
+    return NextResponse.json(
+      { error: "Too many sign-in attempts. Please wait a moment." },
+      { status: 429 },
+    );
+  }
+
   const url = new URL(req.url);
   const next = isSafeRedirect(url.searchParams.get("next"));
   const clientId = process.env.GOOGLE_CLIENT_ID;
