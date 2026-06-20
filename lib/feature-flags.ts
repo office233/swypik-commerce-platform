@@ -17,6 +17,13 @@ export const FEATURES = {
   fulfillment: flag('FEATURE_FULFILLMENT', false),
   returns: flag('FEATURE_RETURNS', false),
   emailMarketing: flag('FEATURE_EMAIL_MARKETING', false),
+  // Transactional email (order/shipping/refund confirmations, seller alerts).
+  // MUST default ON: these are legally-expected receipts a buyer gets after
+  // paying, NOT marketing. They were previously (incorrectly) gated behind
+  // emailMarketing, so a paying customer received nothing. Separate flag so
+  // ops can still kill-switch if Resend has an incident, without re-enabling
+  // marketing blasts.
+  transactionalEmail: flag('FEATURE_TRANSACTIONAL_EMAIL', true),
   seoPages: flag('FEATURE_SEO_PAGES', false),
   aiChatFull: flag('FEATURE_AI_CHAT_FULL', false),
   piAuth: flag('FEATURE_PI_AUTH', true),

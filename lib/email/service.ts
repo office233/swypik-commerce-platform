@@ -132,8 +132,8 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
  * Send order confirmation email after successful payment
  */
 export async function sendOrderConfirmation(data: OrderEmailData): Promise<boolean> {
-  if (!isEnabled("emailMarketing")) {
-    log.info({ fn: "sendOrderConfirmation", to: maskEmail(data.customerEmail) }, "email skipped — marketing disabled");
+  if (!isEnabled("transactionalEmail")) {
+    log.info({ fn: "sendOrderConfirmation", to: maskEmail(data.customerEmail) }, "email skipped — transactional email disabled");
     return true;
   }
   const trackingUrl = orderTrackingUrl(data);
@@ -225,8 +225,8 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
  * Send shipping notification email with tracking info
  */
 export async function sendShippingNotification(data: OrderEmailData): Promise<boolean> {
-  if (!isEnabled("emailMarketing")) {
-    log.info({ fn: "sendShippingNotification", to: maskEmail(data.customerEmail) }, "email skipped — marketing disabled");
+  if (!isEnabled("transactionalEmail")) {
+    log.info({ fn: "sendShippingNotification", to: maskEmail(data.customerEmail) }, "email skipped — transactional email disabled");
     return true;
   }
   const trackingUrl = orderTrackingUrl(data);
@@ -360,8 +360,8 @@ export async function sendEmail(params: { to: string; subject: string; html: str
 type SellerAlertItem = { title?: string; name?: string; quantity?: number };
 
 export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: SellerAlertItem[], customerName: string = 'X'): Promise<boolean> {
-  if (!isEnabled("emailMarketing")) {
-    log.info({ fn: "sendSellerNewOrderAlert", to: maskEmail(sellerEmail) }, "email skipped — marketing disabled");
+  if (!isEnabled("transactionalEmail")) {
+    log.info({ fn: "sendSellerNewOrderAlert", to: maskEmail(sellerEmail) }, "email skipped — transactional email disabled");
     return true;
   }
   const itemsHtml = orderItems.map(i =>
@@ -418,8 +418,8 @@ export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: S
  * Send an email to notify a seller that their account has been approved
  */
 export async function sendSellerApprovalEmail(email: string, name: string): Promise<boolean> {
-  if (!isEnabled("emailMarketing")) {
-    log.info({ fn: "sendSellerApprovalEmail", to: maskEmail(email) }, "email skipped — marketing disabled");
+  if (!isEnabled("transactionalEmail")) {
+    log.info({ fn: "sendSellerApprovalEmail", to: maskEmail(email) }, "email skipped — transactional email disabled");
     return true;
   }
   const html = `
@@ -459,8 +459,8 @@ export async function sendSellerApprovalEmail(email: string, name: string): Prom
  * Send tracking update to customer
  */
 export async function sendCustomerShippingAlert(email: string, trackingNumber: string): Promise<boolean> {
-  if (!isEnabled("emailMarketing")) {
-    log.info({ fn: "sendCustomerShippingAlert", to: maskEmail(email) }, "email skipped — marketing disabled");
+  if (!isEnabled("transactionalEmail")) {
+    log.info({ fn: "sendCustomerShippingAlert", to: maskEmail(email) }, "email skipped — transactional email disabled");
     return true;
   }
   const html = `
