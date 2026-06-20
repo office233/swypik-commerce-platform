@@ -8,7 +8,11 @@ COMPOSE_FILE="${COMPOSE_FILE:-${APP_DIR}/infra/hetzner/docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-${APP_DIR}/infra/hetzner/.env.production}"
 BACKUP_DIR="${BACKUP_DIR:-/opt/swypik/backups}"
 LOG_FILE="${LOG_FILE:-/opt/swypik/logs/backup.log}"
-KEEP_LAST="${KEEP_LAST:-14}"
+# Keep only a few local dumps here for fast rollback. The authoritative
+# history lives in /opt/swypik/backups/postgres/ (systemd backup-db.sh,
+# 14-day retention) and offsite in R2 (30-day retention). Holding 14 here
+# too was ~25G of pure duplication that pushed the disk to 79%.
+KEEP_LAST="${KEEP_LAST:-3}"
 PG_CONTAINER="${PG_CONTAINER:-swypik-prod-postgres-1}"
 MIN_SIZE="${MIN_SIZE:-1048576}"
 MIN_TABLES="${MIN_TABLES:-10}"
