@@ -29,6 +29,19 @@ export type PiPaymentCallbacks = {
   onError: (error: Error, payment?: { identifier?: string }) => void;
 };
 
+export type PiMigratedWallet = { publicKey: string };
+
+export type PiWallet = {
+  /**
+   * Returns the list of wallet addresses the authenticated user has migrated
+   * to the Pi blockchain. Each entry has a public Stellar key (`G...`).
+   * Requires the `wallet_address` scope on Pi.authenticate. Pi Browser only.
+   */
+  getUserMigratedWalletAddresses: () => Promise<{ wallets: PiMigratedWallet[] }>;
+  /** Submit a pre-signed Stellar XDR. Not used in the auth flow. */
+  submitTransaction?: (xdr: string) => Promise<unknown>;
+};
+
 export type PiSDK = {
   init: (opts: { version: "2.0"; sandbox?: boolean }) => Promise<void> | void;
   authenticate: (
@@ -36,6 +49,9 @@ export type PiSDK = {
     onIncompletePaymentFound: (payment: PiIncompletePayment) => void,
   ) => Promise<PiAuthResult>;
   createPayment: (data: PiPaymentData, callbacks: PiPaymentCallbacks) => void;
+  /** Wallet module exposed by the Pi SDK inside Pi Browser. May be undefined
+   *  in older SDK versions or under sandbox without wallet permission. */
+  Wallet?: PiWallet;
 };
 
 declare global {

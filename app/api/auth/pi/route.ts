@@ -86,7 +86,21 @@ async function verifyAccessToken(accessToken: string): Promise<PiMeResponse | nu
   }
 }
 
-async function upsertPiUser(piUid: string, piUsername: string): Promise<string> {
+function isValidPiWallet(value: unknown): value is string {
+  // Stellar public keys are 56-char strings starting with "G". We accept the
+  // exact Stellar shape to avoid persisting placeholder / malformed strings.
+  return (
+    typeof value === "string" &&
+    value.length === 56 &&
+    /^G[A-Z2-7]{55}$/.test(value)
+  );
+}
+
+async function upsertPiUser(
+  piUid: string,
+  piUsername: string,
+  piWalletAddress: string | null,
+): Promise<string> {
   // 1. Existing pi link?
   const existing = await dbQuery<{ user_id: string }>(
     `SELECT user_id FROM oauth_accounts
@@ -95,12 +109,15 @@ async function upsertPiUser(piUid: string, piUsername: string): Promise<string> 
     [piUid],
   );
   if (existing.rows[0]?.user_id) {
+    // Refresh username + wallet (COALESCE keeps a previously stored wallet
+    // even if the user declined the wallet_address scope on re-auth).
     await dbQuery(
       `UPDATE users
           SET pi_username = $2,
+              pi_wallet_address = COALESCE($3, pi_wallet_address),
               last_seen_at = now()
         WHERE id = $1`,
-      [existing.rows[0].user_id, piUsername],
+      [existing.rows[0].user_id, piUsername, piWalletAddress],
     );
     return existing.rows[0].user_id;
   }
@@ -113,13 +130,14 @@ async function upsertPiUser(piUid: string, piUsername: string): Promise<string> 
   const candidateUsername = `${baseUsername || "piuser"}_${piUid.slice(0, 4)}`;
 
   const inserted = await dbQuery<{ id: string }>(
-    `INSERT INTO users (email, username, display_name, pi_username, role, created_at)
-     VALUES ($1, $2, $3, $4, 'shopper', now())
+    `INSERT INTO users (email, username, display_name, pi_username, pi_wallet_address, role, created_at)
+     VALUES ($1, $2, $3, $4, $5, 'shopper', now())
      ON CONFLICT (email) DO UPDATE
        SET pi_username = EXCLUDED.pi_username,
+           pi_wallet_address = COALESCE(EXCLUDED.pi_wallet_address, users.pi_wallet_address),
            last_seen_at = now()
      RETURNING id`,
-    [synthEmail, candidateUsername, piUsername, piUsername],
+    [synthEmail, candidateUsername, piUsername, piUsername, piWalletAddress],
   );
   const userId = inserted.rows[0].id;
 
@@ -161,7 +179,11 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { accessToken?: unknown; user?: { uid?: unknown; username?: unknown } };
+  let body: {
+    accessToken?: unknown;
+    user?: { uid?: unknown; username?: unknown };
+    walletAddress?: unknown;
+  };
   try {
     body = await req.json();
   } catch {
@@ -173,6 +195,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "missing_access_token" }, { status: 400 });
   }
 
+  // Wallet address comes from Pi.Wallet.getUserMigratedWalletAddresses() on
+  // the client. The user may decline the wallet_address scope, in which case
+  // the client will send null; the upsert COALESCEs so we keep any previously
+  // stored value rather than wiping it.
+  const walletAddress = isValidPiWallet(body.walletAddress) ? body.walletAddress : null;
+
   const me = await verifyAccessToken(accessToken);
   if (!me?.uid || !me?.username) {
     return NextResponse.json({ ok: false, error: "pi_verification_failed" }, { status: 401 });
@@ -180,7 +208,7 @@ export async function POST(req: Request) {
 
   let userId: string;
   try {
-    userId = await upsertPiUser(me.uid, me.username);
+    userId = await upsertPiUser(me.uid, me.username, walletAddress);
   } catch (err) {
     log.error({ err }, "pi upsert failed");
     return NextResponse.json({ ok: false, error: "user_upsert_failed" }, { status: 500 });
@@ -196,7 +224,12 @@ export async function POST(req: Request) {
 
   const res = NextResponse.json({
     ok: true,
-    user: { id: userId, piUid: me.uid, piUsername: me.username },
+    user: {
+      id: userId,
+      piUid: me.uid,
+      piUsername: me.username,
+      piWalletAddress: walletAddress,
+    },
   });
   // Pi Browser renders apps inside an iframe (third-party context). With
   // SameSite=Lax the session cookie is dropped in that context — especially

@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, ChevronRight, TrendingUp, Swords, Pickaxe, Sparkles, Users, BadgeCheck } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, ChevronRight, TrendingUp, Swords, Pickaxe, Sparkles, Users, BadgeCheck, Wallet, Copy, Check } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
+import PiLoginButton from "@/components/auth/PiLoginButton";
 import { useTranslations } from "next-intl";
 
 type AccountPageClientProps = {
@@ -27,6 +28,9 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
   const [devOtp, setDevOtp] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
+  // Pi wallet copy-to-clipboard feedback. Auto-resets after 2s so the icon
+  // returns to its idle Copy glyph without requiring user interaction.
+  const [piWalletCopied, setPiWalletCopied] = useState(false);
 
   const router = useRouter();
 
@@ -350,6 +354,95 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             </Link>
           </div>
         </section>
+
+        {/* Pi Network identity — linked username + public wallet address.
+            We only render this card once the user has actually authenticated
+            with Pi (piUsername present). The connect CTA below covers the
+            opposite state. The wallet address is a public Stellar key and
+            safe to display; we never show balance because the Pi platform
+            does not expose it to third-party apps. */}
+        {customer?.piUsername ? (
+          <section aria-label="Pi Network" className="mb-6">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-sm font-black uppercase tracking-wider text-white/70">Pi Network</h3>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#7C3AED]">Conectat</span>
+            </div>
+            <div className="rounded-2xl border border-[#7C3AED]/30 bg-gradient-to-br from-[#7C3AED]/15 via-[#1A1A1A] to-[#1A1A1A] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Pi Username</p>
+                  <p className="mt-1 text-base font-black text-white truncate">@{customer.piUsername}</p>
+                </div>
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#7C3AED]/20">
+                  <span className="text-lg font-black text-[#7C3AED]" aria-hidden>π</span>
+                </div>
+              </div>
+              {customer.piWalletAddress ? (
+                <div className="mt-3 border-t border-white/5 pt-3">
+                  <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Wallet (public)</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <code className="flex-1 truncate rounded-lg bg-black/40 px-3 py-2 font-mono text-xs text-white/90">
+                      {customer.piWalletAddress}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof navigator === "undefined" || !navigator.clipboard) return;
+                        void navigator.clipboard.writeText(customer.piWalletAddress).then(() => {
+                          setPiWalletCopied(true);
+                          window.setTimeout(() => setPiWalletCopied(false), 2000);
+                        });
+                      }}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10 text-white/80 transition hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
+                      aria-label={piWalletCopied ? "Copiat" : "Copiaza adresa wallet"}
+                    >
+                      {piWalletCopied ? (
+                        <Check size={16} className="text-[#10B981]" aria-hidden />
+                      ) : (
+                        <Copy size={16} aria-hidden />
+                      )}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-white/50">
+                    Aceasta este adresa publica a wallet-ului tau Pi (Stellar). Balance-ul nu este
+                    expus de Pi Network catre terti — vezi-l direct in app-ul Pi.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 border-t border-white/5 pt-3 text-[11px] leading-snug text-white/50">
+                  Adresa wallet-ului nu a fost partajata. Reautentifica-te in Pi Browser si accepta
+                  scope-ul „wallet_address” pentru a o conecta.
+                </p>
+              )}
+            </div>
+          </section>
+        ) : (
+          <section aria-label="Conecteaza Pi Network" className="mb-6">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-sm font-black uppercase tracking-wider text-white/70">Pi Network</h3>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#7C3AED]/10 via-[#1A1A1A] to-[#1A1A1A] p-4">
+              <div className="mb-3 flex items-start gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#7C3AED]/20">
+                  <Wallet size={18} className="text-[#7C3AED]" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-base font-black text-white">Conecteaza contul Pi</p>
+                  <p className="mt-1 text-xs text-white/60">
+                    Linkaza-ti identitatea Pi Network la contul Swypik ca sa platesti in Pi si sa
+                    vezi wallet-ul tau public.
+                  </p>
+                </div>
+              </div>
+              <PiLoginButton
+                showOutsidePiBrowser
+                autoTrigger={false}
+                redirectTo="/account"
+                label="Conecteaza cu Pi Network"
+              />
+            </div>
+          </section>
+        )}
 
         {/* Earn more — invite + KYC */}
         <section aria-label="Earn more" className="mb-6">

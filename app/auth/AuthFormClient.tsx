@@ -17,6 +17,8 @@ import {
   AtSign,
   Globe,
 } from "lucide-react";
+import PiLoginButton from "@/components/auth/PiLoginButton";
+import { CLIENT_FEATURES } from "@/lib/feature-flags-client";
 
 /* ── Region → locale + currency mapping ─────────────────────────── */
 type Region = {
@@ -945,8 +947,16 @@ function OAuthButtons({ nextPath }: { nextPath: string }) {
   const t = useTranslations("authClient");
   const googleEnabled = process.env.NEXT_PUBLIC_OAUTH_GOOGLE_ENABLED === "1";
   const appleEnabled = process.env.NEXT_PUBLIC_OAUTH_APPLE_ENABLED === "1";
-  if (!googleEnabled && !appleEnabled) return null;
+  // Pi auth shares the same client feature flag as the rest of the app and
+  // defaults to enabled. We surface it on the public login/signup pages so
+  // Pioneers can sign in without first having to navigate to pi.swypik.com.
+  const piEnabled = CLIENT_FEATURES.piAuth;
+  if (!googleEnabled && !appleEnabled && !piEnabled) return null;
   const next = encodeURIComponent(nextPath || "/");
+  // Once the Pi.authenticate() handshake succeeds we just want to land the
+  // user on the same `next` target the email/Google flows resolve to. Falls
+  // back to /account so they see the freshly linked Pi profile immediately.
+  const piRedirect = nextPath && nextPath.startsWith("/") ? nextPath : "/account";
   return (
     <div className="mb-5">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -973,6 +983,22 @@ function OAuthButtons({ nextPath }: { nextPath: string }) {
           </svg>
           {t("continuaCuApple")}
         </a>)}
+        {piEnabled && (
+          // We render the Pi button in the same grid as Google/Apple so the
+          // three look like peers. `showOutsidePiBrowser` keeps it visible in
+          // Chrome/desktop with a hand-off CTA pointing to pi.swypik.com.
+          // `autoTrigger=false` prevents the Pi consent dialog from popping
+          // open the moment a Pioneer lands on the login page \u2014 it must
+          // always require a deliberate click.
+          <div className="sm:col-span-2">
+            <PiLoginButton
+              showOutsidePiBrowser
+              autoTrigger={false}
+              redirectTo={piRedirect}
+              label="Continua cu Pi Network"
+            />
+          </div>
+        )}
       </div>
       <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-widest text-white/40">
         <span className="h-px flex-1 bg-white/10" />

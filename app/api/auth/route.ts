@@ -1080,6 +1080,8 @@ export async function GET() {
     first_name: string | null;
     last_name: string | null;
     suspend_grace_until: string | null;
+    pi_username: string | null;
+    pi_wallet_address: string | null;
   }>(
     `SELECT
        us.user_id,
@@ -1093,7 +1095,9 @@ export async function GET() {
        u.phone,
        u.first_name,
        u.last_name,
-       u.suspend_grace_until
+       u.suspend_grace_until,
+       u.pi_username,
+       u.pi_wallet_address
      FROM user_sessions us
      JOIN users u ON u.id = us.user_id
      WHERE us.session_token_hash = $1
@@ -1137,6 +1141,10 @@ export async function GET() {
       phone: user.phone || (user.metadata as { phone?: unknown })?.phone || null,
       emailVerified: Boolean(user.email_verified_at),
       suspendGraceUntil: user.suspend_grace_until,
+      // Pi Network identity (null when the user hasn't linked Pi yet). The
+      // wallet address is a public Stellar key, safe to ship to the client.
+      piUsername: user.pi_username,
+      piWalletAddress: user.pi_wallet_address,
     },
     orderCount: parseInt(orderStats[0]?.count || "0"),
   });
