@@ -28,8 +28,14 @@ const isProd = process.env.NODE_ENV === "production";
 const SECURE_FLAG = isProd ? "; Secure" : "";
 const COOKIE_DOMAIN_FLAG = isProd ? "; Domain=swypik.com" : "";
 
-const PI_API_BASE =
-  process.env.PI_API_BASE_URL?.replace(/\/+$/, "") || "https://api.minepi.com";
+// The /me verification endpoint lives at api.minepi.com/v2/me. We derive the
+// host root from PI_API_BASE_URL but strip any trailing "/v2" so we don't end
+// up calling /v2/v2/me. PI_API_BASE_URL is shared with the payments client,
+// which keeps the "/v2" suffix; auth needs only the host.
+const PI_API_BASE = (
+  process.env.PI_API_BASE_URL?.replace(/\/+$/, "").replace(/\/v2$/, "") ||
+  "https://api.minepi.com"
+);
 
 type PiMeResponse = {
   uid?: string;

@@ -152,13 +152,13 @@ export default function PiLoginButton({
     setError(null);
     setLoading(true);
     try {
-      // Defensive: if the button is clicked before the init effect resolved,
-      // run init now (with a timeout) and proceed regardless. Pi.authenticate
-      // must be reachable as soon as possible — Pi's app verifier checks for it.
-      if (!sdkReady) {
-        await withTimeout(window.Pi.init({ version: "2.0", sandbox }), 2000);
-        setSdkReady(true);
-      }
+      // Per Pi SDK docs: Pi.init returns a Promise; await it FULLY before
+      // calling Pi.authenticate. We always await init here (idempotent in the
+      // SDK) so authenticate never runs against a half-initialized bridge.
+      // A generous 8s timeout guards against a stuck mock SDK injected by the
+      // app verifier, without truncating a real (slower) Pi Browser init.
+      await withTimeout(window.Pi.init({ version: "2.0", sandbox }), 8000);
+      setSdkReady(true);
       const auth = await window.Pi.authenticate(scopes, (payment) => {
         // Required by the SDK. When payments are wired up later, resolve here.
         // eslint-disable-next-line no-console

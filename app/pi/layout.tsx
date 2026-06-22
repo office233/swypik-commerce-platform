@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import PiAppInit from "./PiAppInit";
+import PiLoginButton from "@/components/auth/PiLoginButton";
 
 /**
  * Pi-only app shell (served at pi.swypik.com, rewritten to /pi by middleware).
@@ -36,7 +37,14 @@ export default function PiLayout({ children }: { children: React.ReactNode }) {
           </span>
         </div>
       </header>
-      <main className="mx-auto max-w-screen-sm px-4 pb-24 pt-4">{children}</main>
+      <main className="mx-auto max-w-screen-sm px-4 pb-24 pt-4">
+        {/* Auto-triggers Pi auth on load; also renders a manual sign-in button.
+            scope "username", token verified server-side via /v2/me. */}
+        <div className="mb-4">
+          <PiLoginButton scopes={["username"]} redirectTo="" autoTrigger />
+        </div>
+        {children}
+      </main>
     </div>
   );
 }
