@@ -198,9 +198,16 @@ export async function POST(req: Request) {
     ok: true,
     user: { id: userId, piUid: me.uid, piUsername: me.username },
   });
+  // Pi Browser renders apps inside an iframe (third-party context). With
+  // SameSite=Lax the session cookie is dropped in that context — especially
+  // on iOS — so the user appears logged out right after authenticating.
+  // SameSite=None lets the cookie survive the iframe; it REQUIRES Secure,
+  // which we always have in prod (HTTPS). In local dev (no HTTPS) we fall
+  // back to Lax so the cookie still sets.
+  const sameSite = isProd ? "None" : "Lax";
   res.headers.append(
     "Set-Cookie",
-    `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}${COOKIE_DOMAIN_FLAG}`,
+    `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}${COOKIE_DOMAIN_FLAG}`,
   );
   return res;
 }

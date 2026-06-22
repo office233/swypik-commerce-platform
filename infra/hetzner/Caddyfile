@@ -16,13 +16,18 @@
 swypik.com {
 	# Security headers
 	header {
-		X-Frame-Options            "DENY"
+		# X-Frame-Options removed (2026-06-22): it only supports DENY /
+		# SAMEORIGIN / deprecated ALLOW-FROM. To let the Pi Browser embed
+		# Swypik in its iframe while still blocking everyone else, we rely on
+		# CSP `frame-ancestors` (set in next.config.mjs) which supports an
+		# allow-list of origins. Keeping X-Frame-Options: DENY here would
+		# override CSP and block Pi entirely.
+		-X-Frame-Options
 		X-Content-Type-Options     "nosniff"
 		Referrer-Policy            "strict-origin-when-cross-origin"
 		Strict-Transport-Security  "max-age=63072000; includeSubDomains; preload"
 		# X-XSS-Protection eliminat (deprecated; modern browsers ignoră,
 		# IE legacy + Edge pre-Chromium pot introduce noi vulnerabilități cf. OWASP 2024).
-		# CSP frame-ancestors 'none' + X-Frame-Options DENY rămân protecția anti-XSS reală.
 		-X-XSS-Protection
 		# x-middleware-rewrite leakează rutarea internă Next (ex. "/en") către
 		# client. Scos defensiv aici (2026-06-19, P0 #10) — nu schimbă comportamentul,

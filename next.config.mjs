@@ -5,17 +5,17 @@ const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
 const isDev = process.env.NODE_ENV === "development";
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com;
+  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://sdk.minepi.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https://media.swypik.com https://*.aliexpress-media.com https://video.aliexpress-media.com;
-  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
+  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com https://api.minepi.com https://sdk.minepi.com;
   frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';
   form-action 'self' https://checkout.stripe.com;
-  frame-ancestors 'none';
+  frame-ancestors 'self' https://*.minepi.com https://*.pi;
   upgrade-insecure-requests;
 `.replace(/\s{2,}/g, " ").trim();
 const cspReportOnly = `
@@ -24,13 +24,13 @@ const cspReportOnly = `
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https://media.swypik.com https://*.aliexpress-media.com https://video.aliexpress-media.com;
-  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
+  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com https://api.minepi.com https://sdk.minepi.com;
   frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';
   form-action 'self' https://checkout.stripe.com;
-  frame-ancestors 'none';
+  frame-ancestors 'self' https://*.minepi.com https://*.pi;
 `.replace(/\s{2,}/g, " ").trim();
 
 
