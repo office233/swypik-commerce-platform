@@ -322,10 +322,14 @@ export default function CheckoutForm() {
   }, []);
   const subtotalPi =
     piRate && piRate > 0 ? Math.round((subtotal / piRate) * 1e7) / 1e7 : null;
+  // Pi payment line items - mirror Stripe's shape so the snapshot stored at
+  // /approve is rich enough to populate commerce_order_items (videoId for
+  // creator attribution, skuId for SKU-specific orders).
   const piItems = cartItems.map((i) => ({
     productId: String(i.product.productId || i.product.id || ""),
     quantity: i.qty,
     skuId: i.product.skuId,
+    videoId: i.product.videoId,
   }));
 
   // Create Payment Intent when cart is loaded

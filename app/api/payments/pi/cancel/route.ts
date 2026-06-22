@@ -4,6 +4,12 @@
  * Called by the client's onCancel callback, or our own error handler, with
  * { paymentId }. Marks the local record cancelled and tells Pi to cancel.
  * Safe to call repeatedly.
+ *
+ * Note: if we have no row for this paymentId we DO NOT insert a synthetic
+ * `amount_pi = 0, cancelled` row ??? that pollutes the table with stubs for
+ * payments we never approved server-side (e.g. user cancelled before our
+ * /approve was ever called). We still try to cancel at Pi so their side is
+ * clean.
  */
 
 import { NextResponse } from "next/server";
@@ -40,27 +46,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "paymentId required" }, { status: 400 });
   }
 
-  // Don't cancel an already-completed payment.
+  // Look up the local record (if any). We only mutate rows we already own;
+  // we never INSERT a synthetic cancelled stub here.
   const { rows } = await dbQuery<{ status: string; user_id: string | null }>(
     `SELECT status, user_id FROM pi_payments WHERE payment_id = $1`,
     [paymentId],
   );
   const rec = rows[0];
-  if (rec && rec.user_id && rec.user_id !== auth.userId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (rec && rec.status === "completed") {
-    return NextResponse.json({ error: "Already completed" }, { status: 409 });
+
+  if (rec) {
+    if (rec.user_id && rec.user_id !== auth.userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (rec.status === "completed") {
+      return NextResponse.json({ error: "Already completed" }, { status: 409 });
+    }
+    await dbQuery(
+      `UPDATE pi_payments
+          SET status='cancelled', cancelled_at=now(), updated_at=now()
+        WHERE payment_id=$1`,
+      [paymentId],
+    );
   }
 
-  await dbQuery(
-    `INSERT INTO pi_payments (payment_id, user_id, amount_pi, status, cancelled_at)
-     VALUES ($1, $2, 0, 'cancelled', now())
-     ON CONFLICT (payment_id) DO UPDATE
-        SET status='cancelled', cancelled_at=now(), updated_at=now()`,
-    [paymentId, auth.userId],
-  );
-
+  // Always try to tell Pi, even if we have no local row ??? the user may have
+  // been mid-flow before /approve ran.
   try {
     await cancelPiPayment(paymentId);
   } catch (err) {

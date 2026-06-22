@@ -17,7 +17,14 @@ import { useEffect, useState } from "react";
 import { ensurePiAuthWithPayments, createPiPayment } from "@/lib/pi/payments";
 
 type Props = {
-  items: Array<{ productId: string; quantity: number; skuId?: string }>;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    skuId?: string;
+    videoId?: string;
+    creatorId?: string;
+    creatorProductLinkId?: string;
+  }>;
   // Display amount in Pi (already converted). If null we fetch a fresh quote.
   amountPi: number | null;
   title: string;

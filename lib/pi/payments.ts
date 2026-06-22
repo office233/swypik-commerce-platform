@@ -63,7 +63,17 @@ export type CreatePiPaymentArgs = {
   amountPi: number;
   memo: string;
   // The cart the server will re-price authoritatively at approval time.
-  items: Array<{ productId: string; quantity: number; skuId?: string }>;
+  // Optional creator/video attribution fields are forwarded straight to
+  // computePiCartQuote() so the eventual commerce_order_items rows match
+  // what Stripe writes (creator_id, video_id, creator_product_link_id).
+  items: Array<{
+    productId: string;
+    quantity: number;
+    skuId?: string;
+    videoId?: string;
+    creatorId?: string;
+    creatorProductLinkId?: string;
+  }>;
   onApproved?: () => void;
   onCompleted?: (orderId: string) => void;
   onCancelled?: () => void;
