@@ -1,40 +1,31 @@
 import PiFeedClient from "./PiFeedClient";
-import { getPiToRonRate } from "@/lib/pi/rate";
+import type { PiShopProduct } from "./types";
 
-// Pi-only marketplace home. Server-fetches the first page of products from the
-// same catalog the main site uses, then hands off to the client for browsing +
-// Pi checkout. No fiat surfaces, no external links.
-async function getProducts() {
+// Pi-only marketplace home. Same catalog as the main site, but only Pi-safe
+// fields, prices in Pi. No fiat, no external links.
+async function getProducts(): Promise<PiShopProduct[]> {
   const base = process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
   try {
-    const res = await fetch(`${base}/api/products?limit=24`, {
+    const res = await fetch(`${base}/api/pi/products?limit=30`, {
       next: { revalidate: 120 },
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.products || data.items || []) as PiProduct[];
+    return (data.products || []) as PiShopProduct[];
   } catch {
     return [];
   }
 }
 
-export type PiProduct = {
-  id: string;
-  title: string;
-  price: number; // RON
-  images?: string[];
-  category?: string;
-};
-
 export default async function PiHomePage() {
   const products = await getProducts();
-  // Live market rate for display. If it's unavailable we still render the
-  // catalog; the client shows "—" and Buy re-quotes server-side at pay time.
-  let piToRon = 0;
-  try {
-    piToRon = await getPiToRonRate();
-  } catch {
-    piToRon = 0;
-  }
-  return <PiFeedClient products={products} piToRon={piToRon} />;
+  return (
+    <div>
+      <div className="mb-4">
+        <h1 className="text-xl font-black">Shop with Pi</h1>
+        <p className="text-xs text-white/50">Browse and pay with Pi</p>
+      </div>
+      <PiFeedClient products={products} />
+    </div>
+  );
 }

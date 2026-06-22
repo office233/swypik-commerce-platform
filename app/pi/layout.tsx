@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import Link from "next/link";
 import PiAppInit from "./PiAppInit";
-import PiLoginButton from "@/components/auth/PiLoginButton";
+import PiNav from "./PiNav";
 
 /**
  * Pi-only app shell (served at pi.swypik.com, rewritten to /pi by middleware).
@@ -28,23 +29,21 @@ export default function PiLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#0D0D0D] text-white">
       {/* Pi SDK */}
       <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
+      {/* Inits the Pi SDK and auto-triggers auth (scope "username",
+          verified server-side via /v2/me). */}
       <PiAppInit />
       <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0D0D0D]/90 backdrop-blur px-4 py-3">
         <div className="mx-auto flex max-w-screen-sm items-center justify-between">
-          <span className="text-lg font-black tracking-tight">Swypik</span>
+          <Link href="/pi" className="text-lg font-black tracking-tight">
+            Swypik
+          </Link>
           <span className="rounded-full bg-[#7D4698]/20 px-3 py-1 text-xs font-bold text-[#C9A2DC]">
             π Pi Network
           </span>
         </div>
       </header>
-      <main className="mx-auto max-w-screen-sm px-4 pb-24 pt-4">
-        {/* Auto-triggers Pi auth on load; also renders a manual sign-in button.
-            scope "username", token verified server-side via /v2/me. */}
-        <div className="mb-4">
-          <PiLoginButton scopes={["username"]} redirectTo="" autoTrigger />
-        </div>
-        {children}
-      </main>
+      <main className="mx-auto max-w-screen-sm px-4 pb-24 pt-4">{children}</main>
+      <PiNav />
     </div>
   );
 }
