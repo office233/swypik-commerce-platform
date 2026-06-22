@@ -267,7 +267,7 @@ export default function PiLoginButton({
   // user to pi.swypik.com inside Pi Browser. Same visual weight as the SDK
   // button so the option doesn't look broken.
   const sdkAvailable = typeof window !== "undefined" && Boolean(window.Pi);
-  const showHandoff = showOutsidePiBrowser && !sdkAvailable && !sandbox;
+  const showHandoff = showOutsidePiBrowser && !sdkAvailable;
 
   if (showHandoff) {
     return (
