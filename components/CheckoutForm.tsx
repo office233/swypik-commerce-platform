@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements, AddressElement } from "@stripe/react-stripe-js";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import PayWithPiButton from "@/components/PayWithPiButton";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -305,6 +306,28 @@ export default function CheckoutForm() {
     (sum, item) => sum + item.product.price * item.qty, 0
   );
 
+  // Live Pi rate for the "Pay with Pi" option (Pi Browser only). RON per 1 Pi.
+  const [piRate, setPiRate] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/pi/products?limit=1")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && d?.rate > 0) setPiRate(d.rate);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const subtotalPi =
+    piRate && piRate > 0 ? Math.round((subtotal / piRate) * 1e7) / 1e7 : null;
+  const piItems = cartItems.map((i) => ({
+    productId: String(i.product.productId || i.product.id || ""),
+    quantity: i.qty,
+    skuId: i.product.skuId,
+  }));
+
   // Create Payment Intent when cart is loaded
   const createPaymentIntent = useCallback(async () => {
     if (cartItems.length === 0 || clientSecret) return;
@@ -519,6 +542,22 @@ export default function CheckoutForm() {
               ⚠️ {error}
             </div>
           ) : null}
+
+          {/* Pay with Pi — renders ONLY inside the Pi Browser, as an extra
+              payment option next to Stripe. Same cart, same order pipeline. */}
+          {cartItems.length > 0 && (
+            <div className="mt-4">
+              <PayWithPiButton
+                items={piItems}
+                amountPi={subtotalPi}
+                title={
+                  cartItems.length === 1
+                    ? cartItems[0].product.title
+                    : `${cartItems.length} items`
+                }
+              />
+            </div>
+          )}
         </div>
 
         {/* Right Col — Order Summary */}
