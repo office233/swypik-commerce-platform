@@ -21,6 +21,7 @@ const NON_LOCALIZED_PREFIXES = [
   "/auth",
   "/onboarding",
   "/creator",
+  "/pi",
   "/feed.xml",
   "/sitemap.xml",
   "/blog/sitemap.xml",
@@ -238,6 +239,17 @@ function withNoStore(res: NextResponse): NextResponse {
   return res;
 }
 
+// The Pi-only experience is served on a dedicated host so it can comply with
+// Pi Mainnet listing rules (Pi auth only, Pi payments only, no fiat surfaces,
+// no external links) without touching the main fiat/Stripe site. Requests to
+// this host are internally rewritten to the /pi route group.
+const PI_HOST = process.env.PI_APP_HOST || "pi.swypik.com";
+
+function isPiHost(request: NextRequest): boolean {
+  const host = (request.headers.get("host") || "").toLowerCase().split(":")[0];
+  return host === PI_HOST;
+}
+
 export function middleware(request: NextRequest) {
   // 1) CSRF check.
   if (csrfBlocked(request)) {
@@ -249,6 +261,27 @@ export function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const needsNoStore = isPrivateApi(pathname);
+
+  // 0) Pi host routing. Shared APIs (/api), Next internals, and the Pi
+  //    domain-validation file pass through untouched; everything else is
+  //    rewritten under /pi so the Pi-only shell renders. We also guard
+  //    against double-prefixing if a request already targets /pi.
+  if (isPiHost(request)) {
+    if (
+      pathname.startsWith("/api/") ||
+      pathname.startsWith("/_next/") ||
+      pathname.startsWith("/pi") ||
+      pathname === "/validation-key.txt" ||
+      pathname === "/favicon.ico" ||
+      pathname === "/manifest.json"
+    ) {
+      const res = NextResponse.next();
+      return needsNoStore ? withNoStore(res) : res;
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = `/pi${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url);
+  }
 
   // 2) Rute non-localizate: aplicăm DOAR auth gating, fără next-intl.
   if (isNonLocalized(pathname)) {

@@ -13,29 +13,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { CLIENT_FEATURES } from "@/lib/feature-flags-client";
 
-type PiUser = { uid: string; username: string };
-type PiAuthResult = { accessToken: string; user: PiUser };
-type PiIncompletePayment = { identifier: string; transaction?: { txid?: string } };
-
-type PiSdk = {
-  // Pi SDK 2.0: init returns a Promise that resolves once the bridge to the
-  // Pi Browser is ready. Older builds returned void; we coerce both via
-  // Promise.resolve(...) at the call site.
-  init: (opts: { version: "2.0"; sandbox?: boolean }) => Promise<void> | void;
-  authenticate: (
-    scopes: string[],
-    onIncompletePaymentFound: (payment: PiIncompletePayment) => void,
-  ) => Promise<PiAuthResult>;
-};
-
-declare global {
-  interface Window {
-    Pi?: PiSdk;
-  }
-}
+// Pi SDK types + the single global Window.Pi declaration live in lib/pi/types.
+import type { PiAuthResult, PiScope } from "@/lib/pi/types";
+import "@/lib/pi/types";
 
 type Props = {
-  scopes?: string[];
+  scopes?: PiScope[];
   redirectTo?: string;
   className?: string;
   label?: string;

@@ -161,6 +161,69 @@ api.swypik.com {
 }
 
 # -------------------------------------------------------
+# Pi Network app — pi.swypik.com  (Pi-only experience)
+# Middleware rewrites all non-/api traffic on this host to /pi.
+# -------------------------------------------------------
+pi.swypik.com {
+	header {
+		X-Content-Type-Options     "nosniff"
+		Referrer-Policy            "strict-origin-when-cross-origin"
+		Strict-Transport-Security  "max-age=63072000; includeSubDomains; preload"
+		-X-XSS-Protection
+		-X-Middleware-Rewrite
+		-Server
+		# Pi Browser loads the app inside its own webview and needs the Pi SDK.
+		# Allow the SDK origin for scripts + connections; everything else stays
+		# locked down. frame-ancestors permits Pi's app shell to host us.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.minepi.com; connect-src 'self' https://swypik.com https://api.minepi.com https://sdk.minepi.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; frame-ancestors https://*.minepi.com https://app-cdn.minepi.com"
+		Permissions-Policy "payment=(self \"https://sdk.minepi.com\"), camera=(), microphone=(), geolocation=()"
+	}
+
+	encode zstd gzip
+
+	log {
+		output file /var/log/caddy/pi-access.log {
+			roll_size 100MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+	}
+
+	# Static + API + media share the same Next backend.
+	handle /_next/* {
+		reverse_proxy web-next:3000 {
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 5s
+			max_fails 3
+		}
+	}
+	handle /api/* {
+		reverse_proxy web-next:3000 {
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 5s
+			max_fails 3
+		}
+	}
+	handle_path /media/* {
+		header Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy https://media.swypik.com {
+			header_up Host media.swypik.com
+		}
+	}
+	handle {
+		reverse_proxy web-next:3000 {
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 5s
+			max_fails 3
+		}
+	}
+}
+
+# -------------------------------------------------------
 # www.swypik.com → swypik.com (301)
 # -------------------------------------------------------
 www.swypik.com {
