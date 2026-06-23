@@ -159,10 +159,47 @@ export default function PiLoginButton({
     };
   }, [enabled, sandbox]);
 
+  /** Persist a structured diagnostic record both in localStorage (so
+   *  /debug/pi can render it) and best-effort to /api/debug/pi-error
+   *  (so we can grep server logs without needing access to the user's
+   *  browser). All writes are fire-and-forget; nothing here can break the
+   *  login UI. Never includes the Pi accessToken. */
+  const recordDiagnostic = useCallback((stage: string, detail: Record<string, unknown>) => {
+    const entry = {
+      ts: new Date().toISOString(),
+      stage,
+      ua: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      sandbox,
+      sdkPresent: typeof window !== "undefined" && Boolean(window.Pi),
+      walletModule:
+        typeof window !== "undefined" && Boolean(window.Pi?.Wallet),
+      scopes,
+      ...detail,
+    };
+    try {
+      window.localStorage.setItem("swypik:pi:lastDiag", JSON.stringify(entry));
+    } catch {
+      // localStorage may be disabled in private mode; safe to ignore.
+    }
+    // Send to backend (best-effort, no await).
+    try {
+      void fetch("/api/debug/pi-error", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(entry),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      /* noop */
+    }
+  }, [sandbox, scopes]);
+
   const handleLogin = useCallback(async () => {
     if (!window.Pi) {
       // Outside Pi Browser the SDK never loads. Tell the user how to recover
       // instead of throwing a cryptic message.
+      recordDiagnostic("no_sdk", { msg: "window.Pi missing on click" });
       setError(
         "Pi SDK indisponibil. Deschide pi.swypik.com in Pi Browser pentru a continua cu Pi Network.",
       );
@@ -170,25 +207,23 @@ export default function PiLoginButton({
     }
     setError(null);
     setLoading(true);
+    let stage: "init" | "authenticate" | "wallet" | "backend" | "redirect" = "init";
     try {
-      // Per Pi SDK docs: Pi.init returns a Promise; await it FULLY before
-      // calling Pi.authenticate. We always await init here (idempotent in the
-      // SDK) so authenticate never runs against a half-initialized bridge.
-      // A generous 8s timeout guards against a stuck mock SDK injected by the
-      // app verifier, without truncating a real (slower) Pi Browser init.
+      // Stage 1: Pi.init — race against an 8s timeout to avoid a stuck mock SDK.
+      stage = "init";
       await withTimeout(window.Pi.init({ version: "2.0", sandbox }), 8000);
       setSdkReady(true);
+
+      // Stage 2: Pi.authenticate — this is the dialog the user sees.
+      stage = "authenticate";
       const auth = await window.Pi.authenticate(scopes, (payment) => {
         // Required by the SDK. When payments are wired up later, resolve here.
         // eslint-disable-next-line no-console
         console.warn("[pi] incomplete payment found", payment.identifier);
       });
 
-      // After authenticate, optionally read the user's migrated wallet
-      // addresses. Only attempted when the caller requested the
-      // `wallet_address` scope AND the runtime SDK actually exposes the
-      // Wallet module (the sandbox mock SDK does not always implement it).
-      // All failures are swallowed so they never break the login flow.
+      // Stage 3 (optional): wallet read. Only when explicitly requested.
+      stage = "wallet";
       let walletAddress: string | null = null;
       const wantsWallet = scopes.includes("wallet_address");
       if (wantsWallet && window.Pi?.Wallet?.getUserMigratedWalletAddresses) {
@@ -206,6 +241,8 @@ export default function PiLoginButton({
         }
       }
 
+      // Stage 4: hand the verified accessToken to Swypik's backend.
+      stage = "backend";
       const res = await fetch("/api/auth/pi", {
         method: "POST",
         credentials: "include",
@@ -222,18 +259,56 @@ export default function PiLoginButton({
 
       if (!res.ok || !("ok" in json) || !json.ok) {
         const reason = ("error" in json && json.error) || `http_${res.status}`;
+        recordDiagnostic("backend_reject", {
+          httpStatus: res.status,
+          backendError: reason,
+          piUsername: auth.user?.username || null,
+        });
         throw new Error(reason);
       }
+
+      // Stage 5: redirect — success. We log success too because it helps
+      // distinguish "user clicked and gave up" from "user clicked and it
+      // worked". Logging happens before location.assign so even a fast
+      // navigation does not race the localStorage write.
+      stage = "redirect";
+      recordDiagnostic("success", {
+        userId: json.user.id,
+        piUsername: json.user.piUsername,
+      });
 
       onSuccess?.(json.user);
       if (redirectTo) window.location.assign(redirectTo);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "pi_login_failed";
-      setError(msg);
+      const rawMessage = err instanceof Error ? err.message : String(err);
+      recordDiagnostic("exception", { stage, rawMessage });
+
+      // Translate technical errors into actionable Romanian messages. We
+      // keep the original message exposed when it is already a known
+      // backend error code so the UI helper below can pick it up.
+      let display = rawMessage;
+      if (stage === "init") {
+        display = "Pi SDK nu a putut fi initializat. Reincarca pagina si reincearca.";
+      } else if (stage === "authenticate") {
+        // Most common: user dismissed the dialog or denied consent.
+        const low = rawMessage.toLowerCase();
+        if (low.includes("cancel") || low.includes("denied") || low.includes("user")) {
+          display = "Autentificarea Pi a fost anulata. Apasa din nou si accepta consimtamantul.";
+        } else if (low.includes("scope") || low.includes("permission")) {
+          display = "Pi a refuzat scope-urile cerute. Verifica setarile app-ului in Pi Developer Portal.";
+        } else {
+          display = `Pi.authenticate a esuat: ${rawMessage}`;
+        }
+      } else if (stage === "backend") {
+        // Already-known backend codes get pretty-printed below.
+        display = rawMessage;
+      }
+
+      setError(display);
     } finally {
       setLoading(false);
     }
-  }, [scopes, redirectTo, onSuccess, sdkReady, sandbox]);
+  }, [scopes, redirectTo, onSuccess, sandbox, recordDiagnostic]);
 
   // Detect existing Swypik session so we skip auto-trigger for already-signed-in users.
   useEffect(() => {
@@ -307,15 +382,30 @@ export default function PiLoginButton({
         <span>{loading ? "Se conecteaza..." : label}</span>
       </button>
       {error ? (
-        <p className="mt-2 text-xs text-red-500" role="alert">
-          {error === "pi_verification_failed"
-            ? "Pi nu a putut verifica token-ul. Reincearca."
-            : error === "rate_limited"
-              ? "Prea multe incercari. Asteapta cateva minute."
-              : error.startsWith("Pi SDK indisponibil")
-                ? error
-                : "Conectare esuata."}
-        </p>
+        <div className="mt-2 space-y-1" role="alert">
+          <p className="text-xs leading-snug text-red-500">
+            {error === "pi_verification_failed"
+              ? "Pi nu a putut verifica token-ul. Reincearca."
+              : error === "rate_limited"
+                ? "Prea multe incercari. Asteapta cateva minute."
+                : error === "missing_access_token"
+                  ? "Pi nu a returnat un access token valid. Reincearca."
+                  : error === "feature_disabled"
+                    ? "Login-ul Pi este dezactivat momentan."
+                    : error === "user_upsert_failed"
+                      ? "Eroare la crearea contului. Contacteaza support."
+                      : error === "session_failed"
+                        ? "Eroare la crearea sesiunii. Reincearca."
+                        : error}
+          </p>
+          <p className="text-[10px] leading-snug text-white/45">
+            Cod: <code className="rounded bg-white/5 px-1 py-0.5 font-mono">{error.slice(0, 80)}</code>
+            {" · "}
+            <a href="/debug/pi" className="underline hover:text-white/70">
+              vezi diagnostic
+            </a>
+          </p>
+        </div>
       ) : null}
     </div>
   );
