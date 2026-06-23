@@ -75,8 +75,15 @@ function withTimeout<T>(p: Promise<T> | T, ms: number): Promise<T | null> {
   });
 }
 
+// Default scopes: only `username`. The `wallet_address` scope is opt-in via
+// the prop because (a) the Pi Browser sandbox mock SDK does not always
+// implement it and rejects the whole authenticate() call when present, and
+// (b) the Mainnet listing review treats wallet_address as a privileged
+// permission that has to be justified. Callers who explicitly want the
+// wallet public key (e.g. the /account "connect Pi" card on swypik.com) can
+// pass scopes={["username","wallet_address"]} themselves.
 export default function PiLoginButton({
-  scopes = ["username", "wallet_address"],
+  scopes = ["username"],
   redirectTo = "/",
   className,
   label = "Continua cu Pi Network",
@@ -177,13 +184,14 @@ export default function PiLoginButton({
         console.warn("[pi] incomplete payment found", payment.identifier);
       });
 
-      // After authenticate, ask the SDK for the user's migrated wallet
-      // addresses. Requires the `wallet_address` scope to have been granted.
-      // Pi only exposes this through the in-browser SDK — there is no
-      // server-side endpoint for it, so we capture it client-side and forward
-      // the public key to our backend for persistence.
+      // After authenticate, optionally read the user's migrated wallet
+      // addresses. Only attempted when the caller requested the
+      // `wallet_address` scope AND the runtime SDK actually exposes the
+      // Wallet module (the sandbox mock SDK does not always implement it).
+      // All failures are swallowed so they never break the login flow.
       let walletAddress: string | null = null;
-      if (window.Pi?.Wallet?.getUserMigratedWalletAddresses) {
+      const wantsWallet = scopes.includes("wallet_address");
+      if (wantsWallet && window.Pi?.Wallet?.getUserMigratedWalletAddresses) {
         try {
           const walletInfo = await withTimeout(
             window.Pi.Wallet.getUserMigratedWalletAddresses(),

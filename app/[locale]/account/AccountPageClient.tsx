@@ -437,6 +437,12 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               <PiLoginButton
                 showOutsidePiBrowser
                 autoTrigger={false}
+                // On the /account "connect Pi" card we explicitly ask for the
+                // wallet_address scope because the card is built to display
+                // the public Stellar key. The PiLoginButton default only
+                // asks for `username` so it stays compatible with sandbox
+                // mock SDKs that do not implement wallet_address.
+                scopes={["username", "wallet_address"]}
                 redirectTo="/account"
                 label="Conecteaza cu Pi Network"
               />
