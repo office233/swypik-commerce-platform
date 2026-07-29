@@ -43,6 +43,7 @@ function getS3Client(): S3Client {
     region: firstEnv("S3_REGION", "R2_REGION", "AWS_REGION") || "auto",
     endpoint,
     credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
   });
 
   return _client;

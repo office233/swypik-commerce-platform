@@ -93,6 +93,7 @@ export async function checkR2(): Promise<HealthResult> {
       region: firstEnv("S3_REGION", "R2_REGION", "AWS_REGION") || "auto",
       endpoint,
       credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
     });
     const { latency_ms } = await withLatency(() =>
       withTimeout(client.send(new HeadBucketCommand({ Bucket: bucket })), 2_000)

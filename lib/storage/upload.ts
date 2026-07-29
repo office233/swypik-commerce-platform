@@ -30,6 +30,9 @@ function getS3Client(): S3Client | null {
     region: "auto",
     endpoint,
     credentials: { accessKeyId, secretAccessKey },
+    // MinIO și majoritatea store-urilor self-hosted nu suportă virtual-host
+    // style (bucket.host). R2/S3 acceptă și path style, deci e sigur global.
+    forcePathStyle: true,
   });
 
   return _client;
