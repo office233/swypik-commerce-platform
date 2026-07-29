@@ -88,8 +88,22 @@ const BASE_PRODUCT_COLUMNS = `
     NULL::text AS ae_root_name_ro
 `;
 
-const ORDERS_SQL = `COALESCE(p.orders_count_int, 0)`;
-const RATING_SQL = `COALESCE(p.rating_numeric, 0)`;
+// FIX 2026-07-29: coloanele `orders_count_int` si `rating_numeric` NU EXISTA in
+// tabela marketplace_products ⇒ ORICE query de listare crapa cu
+// "column p.orders_count_int does not exist" (42703) si toata pagina principala
+// (trending / deals / bestvalue / toprated / feed) returna HTTP 500.
+// Valorile traiesc in `metadata` JSONB, ca restul campurilor derivate (vezi
+// VIDEO_SQL mai jos). Citim de acolo, cu fallback pe 0.
+const ORDERS_SQL = `COALESCE(
+  NULLIF(p.metadata->>'orders_count', '')::numeric,
+  NULLIF(p.metadata->>'ae_orders', '')::numeric,
+  0
+)`;
+const RATING_SQL = `COALESCE(
+  NULLIF(p.metadata->>'rating', '')::numeric,
+  NULLIF(p.metadata->>'ae_rating', '')::numeric,
+  0
+)`;
 const VIDEO_SQL = `(
   COALESCE((p.metadata->>'has_video')::boolean, false)
   OR NULLIF(p.metadata->>'ae_video_url', '') IS NOT NULL
