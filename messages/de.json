@@ -1460,10 +1460,33 @@
       "kitchen": "Küche",
       "garden": "Garten",
       "appliances": "Haushaltsgeräte",
-      "lighting": "Beleuchtung"
+      "lighting": "Beleuchtung",
+      "devices": "Geräte",
+      "consumables": "Verbrauchsmaterial",
+      "mobilityAid": "Mobilität",
+      "dental": "Dental",
+      "lab": "Labor",
+      "orthopedic": "Orthopädie",
+      "machines": "Maschinen",
+      "packaging": "Verpackung",
+      "safety": "Arbeitsschutz",
+      "horeca": "HoReCa",
+      "tractors": "Traktoren",
+      "seeds": "Saatgut",
+      "livestock": "Viehzucht",
+      "irrigation": "Bewässerung"
     },
     "cares": {
       "label": "Spenden"
+    },
+    "medical": {
+      "label": "Medizin"
+    },
+    "industrial": {
+      "label": "Industrie"
+    },
+    "agro": {
+      "label": "Landwirtschaft"
     }
   },
   "home": {

@@ -79,10 +79,42 @@ export const VERTICAL_CATALOG: Vertical[] = [
             { slug: "art", labelKey: "sub.art", emoji: "🎨" },
             { slug: "jewelry", labelKey: "sub.jewelry", emoji: "💍" },
             { slug: "office", labelKey: "sub.office", emoji: "🖇️" },
-            { slug: "industrial", labelKey: "sub.industrial", emoji: "🏭" },
-            { slug: "agriculture", labelKey: "sub.agriculture", emoji: "🚜" },
-            { slug: "medical", labelKey: "sub.medical", emoji: "🩹" },
             { slug: "collectibles", labelKey: "sub.collectibles", emoji: "🏺" },
+        ],
+    },
+    // Medical: produse medicale (dispozitive, consumabile) — separat de Shop,
+    // pentru că are reglementare proprie și cumpărători diferiți (clinici, PFA).
+    {
+        id: "medical", brand: "Swypik Medical", labelKey: "medical", emoji: "🩹", accent: "#0284C7",
+        mode: "cart", publisher: "seller", taxonomyRoot: "medical", wave: 1, group: "shop",
+        subcategories: [
+            { slug: "devices", labelKey: "sub.devices", emoji: "🩻" },
+            { slug: "consumables", labelKey: "sub.consumables", emoji: "🧤" },
+            { slug: "mobility", labelKey: "sub.mobilityAid", emoji: "🦽" },
+            { slug: "dental", labelKey: "sub.dental", emoji: "🦷" },
+            { slug: "lab", labelKey: "sub.lab", emoji: "🔬" },
+            { slug: "orthopedic", labelKey: "sub.orthopedic", emoji: "🦴" },
+        ],
+    },
+    // Industrial & agricol: utilaje, echipamente, B2B.
+    {
+        id: "industrial", brand: "Swypik Industrial", labelKey: "industrial", emoji: "🏭", accent: "#52525B",
+        mode: "cart", publisher: "seller", taxonomyRoot: "industrial", wave: 1, group: "shop",
+        subcategories: [
+            { slug: "machines", labelKey: "sub.machines", emoji: "⚙️" },
+            { slug: "packaging", labelKey: "sub.packaging", emoji: "📦" },
+            { slug: "safety", labelKey: "sub.safety", emoji: "🦺" },
+            { slug: "horeca", labelKey: "sub.horeca", emoji: "🍽️" },
+        ],
+    },
+    {
+        id: "agro", brand: "Swypik Agro", labelKey: "agro", emoji: "🚜", accent: "#65A30D",
+        mode: "cart", publisher: "seller", taxonomyRoot: "agro", wave: 1, group: "shop",
+        subcategories: [
+            { slug: "tractors", labelKey: "sub.tractors", emoji: "🚜" },
+            { slug: "seeds", labelKey: "sub.seeds", emoji: "🌱" },
+            { slug: "livestock", labelKey: "sub.livestock", emoji: "🐄" },
+            { slug: "irrigation", labelKey: "sub.irrigation", emoji: "💧" },
         ],
     },
     {

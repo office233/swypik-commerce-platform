@@ -1460,10 +1460,33 @@
       "kitchen": "Kitchen",
       "garden": "Garden",
       "appliances": "Appliances",
-      "lighting": "Lighting"
+      "lighting": "Lighting",
+      "devices": "Devices",
+      "consumables": "Consumables",
+      "mobilityAid": "Mobility",
+      "dental": "Dental",
+      "lab": "Lab",
+      "orthopedic": "Orthopedic",
+      "machines": "Machinery",
+      "packaging": "Packaging",
+      "safety": "Safety",
+      "horeca": "HoReCa",
+      "tractors": "Tractors",
+      "seeds": "Seeds",
+      "livestock": "Livestock",
+      "irrigation": "Irrigation"
     },
     "cares": {
       "label": "Donations"
+    },
+    "medical": {
+      "label": "Medical"
+    },
+    "industrial": {
+      "label": "Industrial"
+    },
+    "agro": {
+      "label": "Agriculture"
     }
   },
   "home": {

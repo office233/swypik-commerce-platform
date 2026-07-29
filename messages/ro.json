@@ -1596,10 +1596,33 @@
       "kitchen": "Bucătărie",
       "garden": "Grădină",
       "appliances": "Electrocasnice",
-      "lighting": "Iluminat"
+      "lighting": "Iluminat",
+      "devices": "Dispozitive",
+      "consumables": "Consumabile",
+      "mobilityAid": "Mobilitate",
+      "dental": "Stomatologie",
+      "lab": "Laborator",
+      "orthopedic": "Ortopedie",
+      "machines": "Utilaje",
+      "packaging": "Ambalaje",
+      "safety": "Protecția muncii",
+      "horeca": "HoReCa",
+      "tractors": "Tractoare",
+      "seeds": "Semințe",
+      "livestock": "Zootehnie",
+      "irrigation": "Irigații"
     },
     "cares": {
       "label": "Donații"
+    },
+    "medical": {
+      "label": "Medical"
+    },
+    "industrial": {
+      "label": "Industrial"
+    },
+    "agro": {
+      "label": "Agricultură"
     }
   },
   "home": {
