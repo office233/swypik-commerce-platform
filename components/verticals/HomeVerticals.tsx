@@ -12,18 +12,13 @@
  *   • badge cu cârlig → urgență/beneficiu, cel mai puternic declanșator
  *   • target tactil ≥ 132px pe eroi, ≥ 104px pe restul
  */
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ChevronDown } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { liveVerticals, type Vertical } from "@/lib/verticals/catalog";
 
 /** Cardurile mari, în ordinea impactului comercial. */
 const HERO_IDS = ["eats", "shop", "estates", "auto"];
-
-/** Verticalele afișate compact sub eroi (înainte de „vezi toate”). */
-const POPULAR_IDS = ["home", "build", "farm", "stays", "pro", "go"];
 
 /** A doua culoare a gradientului — mai închisă, pentru adâncime. */
 const GRADIENT_TO: Record<string, string> = {
@@ -37,15 +32,13 @@ export default function HomeVerticals({ className = "" }: { className?: string }
     const t = useTranslations("verticals");
     const th = useTranslations("home");
     const router = useRouter();
-    const [expanded, setExpanded] = useState(false);
 
     const all = liveVerticals(1);
     const byId = (id: string) => all.find((v) => v.id === id);
 
     const heroes = HERO_IDS.map(byId).filter(Boolean) as Vertical[];
-    const popular = POPULAR_IDS.map(byId).filter(Boolean) as Vertical[];
-    const others = all.filter((v) => !HERO_IDS.includes(v.id) && !POPULAR_IDS.includes(v.id));
-    const compact = expanded ? [...popular, ...others] : popular;
+    // TOATE celelalte, mereu vizibile — zero butoane ascunse, doar scroll.
+    const rest = all.filter((v) => !HERO_IDS.includes(v.id));
 
     const go = (id: string) => {
         haptic("tap");
@@ -96,7 +89,7 @@ export default function HomeVerticals({ className = "" }: { className?: string }
 
             {/* ── COMPACT ── */}
             <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6">
-                {compact.map((v) => (
+                {rest.map((v) => (
                     <button
                         key={v.id}
                         type="button"
@@ -111,7 +104,6 @@ export default function HomeVerticals({ className = "" }: { className?: string }
                         >
                             {v.emoji}
                         </span>
-                        {/* „Swypik Food” → afișăm „Food” mare + traducerea mică */}
                         <span className="text-center text-[12px] font-black leading-none text-[#0D0D0D]">
                             {v.brand.replace("Swypik ", "")}
                         </span>
@@ -121,21 +113,6 @@ export default function HomeVerticals({ className = "" }: { className?: string }
                     </button>
                 ))}
             </div>
-
-            {others.length > 0 && (
-                <button
-                    type="button"
-                    onClick={() => {
-                        haptic("tap");
-                        setExpanded((e) => !e);
-                    }}
-                    aria-expanded={expanded}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-[#F7F7F8] py-3.5 text-xs font-black text-[#0D0D0D] transition active:scale-95"
-                >
-                    {expanded ? t("showLess") : t("showAll")}
-                    <ChevronDown size={15} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-                </button>
-            )}
         </section>
     );
 }

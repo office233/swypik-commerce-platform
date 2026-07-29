@@ -135,10 +135,10 @@ export const VERTICAL_CATALOG: Vertical[] = [
             { slug: "healthy", labelKey: "sub.healthy", emoji: "🥗" },
         ],
     },
-    { id: "market", brand: "Swypik Market", labelKey: "market", emoji: "🛒", accent: "#16A34A", mode: "order", publisher: "merchant", taxonomyRoot: "grocery", wave: 3, group: "local", localOnly: true },
-    { id: "pharma", brand: "Swypik Pharma", labelKey: "pharma", emoji: "💊", accent: "#0891B2", mode: "order", publisher: "merchant", taxonomyRoot: "pharmacy", wave: 3, group: "local", localOnly: true },
-    { id: "flowers", brand: "Swypik Flowers", labelKey: "flowers", emoji: "💐", accent: "#EC4899", mode: "order", publisher: "merchant", taxonomyRoot: "flowers", wave: 3, group: "local", localOnly: true },
-    { id: "drinks", brand: "Swypik Drinks", labelKey: "drinks", emoji: "🍷", accent: "#7E22CE", mode: "order", publisher: "merchant", taxonomyRoot: "drinks", wave: 4, group: "local", localOnly: true, adultOnly: true },
+    { id: "market", brand: "Swypik Market", labelKey: "market", emoji: "🛒", accent: "#16A34A", mode: "order", publisher: "merchant", taxonomyRoot: "grocery", wave: 1, group: "local", localOnly: true },
+    { id: "pharma", brand: "Swypik Pharma", labelKey: "pharma", emoji: "💊", accent: "#0891B2", mode: "order", publisher: "merchant", taxonomyRoot: "pharmacy", wave: 1, group: "local", localOnly: true },
+    { id: "flowers", brand: "Swypik Flowers", labelKey: "flowers", emoji: "💐", accent: "#EC4899", mode: "order", publisher: "merchant", taxonomyRoot: "flowers", wave: 1, group: "local", localOnly: true },
+    { id: "drinks", brand: "Swypik Drinks", labelKey: "drinks", emoji: "🍷", accent: "#7E22CE", mode: "order", publisher: "merchant", taxonomyRoot: "drinks", wave: 1, group: "local", localOnly: true, adultOnly: true },
 
     // ─── IMOBILIARE & AUTO ────────────────────────────────────────────────────
     {
@@ -161,31 +161,31 @@ export const VERTICAL_CATALOG: Vertical[] = [
             { slug: "parts", labelKey: "sub.parts", emoji: "⚙️" },
         ],
     },
-    { id: "rentals", brand: "Swypik Rentals", labelKey: "rentals", emoji: "🔑", accent: "#7C3AED", mode: "booking", publisher: "agency", taxonomyRoot: "rentals", wave: 3, group: "property", localOnly: true },
+    { id: "rentals", brand: "Swypik Rentals", labelKey: "rentals", emoji: "🔑", accent: "#7C3AED", mode: "booking", publisher: "agency", taxonomyRoot: "rentals", wave: 1, group: "property", localOnly: true },
 
     // ─── TURISM & EXPERIENȚE ──────────────────────────────────────────────────
     { id: "stays", brand: "Swypik Stays", labelKey: "stays", emoji: "🏖️", accent: "#0D9488", mode: "booking", publisher: "host", taxonomyRoot: "vacation-rentals", wave: 1, group: "travel" },
-    { id: "trips", brand: "Swypik Trips", labelKey: "trips", emoji: "🗺️", accent: "#38BDF8", mode: "booking", publisher: "agency", taxonomyRoot: "trips", wave: 2, group: "travel" },
-    { id: "events", brand: "Swypik Events", labelKey: "events", emoji: "🎟️", accent: "#9333EA", mode: "booking", publisher: "agency", taxonomyRoot: "events", wave: 5, group: "travel" },
-    { id: "fly", brand: "Swypik Fly", labelKey: "fly", emoji: "✈️", accent: "#1D4ED8", mode: "booking", publisher: "agency", taxonomyRoot: "flights", wave: 5, group: "travel" },
+    { id: "trips", brand: "Swypik Trips", labelKey: "trips", emoji: "🗺️", accent: "#38BDF8", mode: "booking", publisher: "agency", taxonomyRoot: "trips", wave: 1, group: "travel" },
+    { id: "events", brand: "Swypik Events", labelKey: "events", emoji: "🎟️", accent: "#9333EA", mode: "booking", publisher: "agency", taxonomyRoot: "events", wave: 1, group: "travel" },
+    { id: "fly", brand: "Swypik Fly", labelKey: "fly", emoji: "✈️", accent: "#1D4ED8", mode: "booking", publisher: "agency", taxonomyRoot: "flights", wave: 1, group: "travel" },
 
     // ─── SERVICII ─────────────────────────────────────────────────────────────
-    { id: "beautypro", brand: "Swypik Salon", labelKey: "beautypro", emoji: "💇", accent: "#F472B6", mode: "booking", publisher: "professional", taxonomyRoot: "services/beauty", wave: 2, group: "services", localOnly: true },
-    { id: "health", brand: "Swypik Health", labelKey: "health", emoji: "🩺", accent: "#0EA5E9", mode: "booking", publisher: "professional", taxonomyRoot: "services/health", wave: 2, group: "services", localOnly: true },
-    { id: "fit", brand: "Swypik Fit", labelKey: "fit", emoji: "🏋️", accent: "#EA580C", mode: "booking", publisher: "professional", taxonomyRoot: "services/fitness", wave: 2, group: "services", localOnly: true },
-    { id: "service", brand: "Swypik Service", labelKey: "service", emoji: "🔧", accent: "#64748B", mode: "booking", publisher: "professional", taxonomyRoot: "services/auto-service", wave: 2, group: "services", localOnly: true },
+    { id: "beautypro", brand: "Swypik Salon", labelKey: "beautypro", emoji: "💇", accent: "#F472B6", mode: "booking", publisher: "professional", taxonomyRoot: "services/beauty", wave: 1, group: "services", localOnly: true },
+    { id: "health", brand: "Swypik Health", labelKey: "health", emoji: "🩺", accent: "#0EA5E9", mode: "booking", publisher: "professional", taxonomyRoot: "services/health", wave: 1, group: "services", localOnly: true },
+    { id: "fit", brand: "Swypik Fit", labelKey: "fit", emoji: "🏋️", accent: "#EA580C", mode: "booking", publisher: "professional", taxonomyRoot: "services/fitness", wave: 1, group: "services", localOnly: true },
+    { id: "service", brand: "Swypik Service", labelKey: "service", emoji: "🔧", accent: "#64748B", mode: "booking", publisher: "professional", taxonomyRoot: "services/auto-service", wave: 1, group: "services", localOnly: true },
     { id: "pro", brand: "Swypik Pro", labelKey: "pro", emoji: "🛠️", accent: "#B45309", mode: "lead", publisher: "professional", taxonomyRoot: "services/home-repair", wave: 1, group: "services", localOnly: true },
-    { id: "learn", brand: "Swypik Learn", labelKey: "learn", emoji: "📚", accent: "#4F46E5", mode: "lead", publisher: "professional", taxonomyRoot: "services/education", wave: 4, group: "services" },
-    { id: "care", brand: "Swypik Care", labelKey: "care", emoji: "🧹", accent: "#0D9488", mode: "lead", publisher: "professional", taxonomyRoot: "services/care", wave: 4, group: "services", localOnly: true },
-    { id: "biz", brand: "Swypik Biz", labelKey: "biz", emoji: "💼", accent: "#475569", mode: "lead", publisher: "professional", taxonomyRoot: "services/business", wave: 4, group: "services" },
+    { id: "learn", brand: "Swypik Learn", labelKey: "learn", emoji: "📚", accent: "#4F46E5", mode: "lead", publisher: "professional", taxonomyRoot: "services/education", wave: 1, group: "services" },
+    { id: "care", brand: "Swypik Care", labelKey: "care", emoji: "🧹", accent: "#0D9488", mode: "lead", publisher: "professional", taxonomyRoot: "services/care", wave: 1, group: "services", localOnly: true },
+    { id: "biz", brand: "Swypik Biz", labelKey: "biz", emoji: "💼", accent: "#475569", mode: "lead", publisher: "professional", taxonomyRoot: "services/business", wave: 1, group: "services" },
 
     // ─── MOBILITATE ───────────────────────────────────────────────────────────
-    { id: "go", brand: "Swypik Go", labelKey: "go", emoji: "🚕", accent: "#FACC15", mode: "ride", publisher: "driver", taxonomyRoot: "rides", wave: 5, group: "mobility", localOnly: true },
-    { id: "send", brand: "Swypik Send", labelKey: "send", emoji: "📦", accent: "#F97316", mode: "order", publisher: "driver", taxonomyRoot: "courier", wave: 3, group: "mobility", localOnly: true },
-    { id: "move", brand: "Swypik Move", labelKey: "move", emoji: "🚚", accent: "#78716C", mode: "lead", publisher: "professional", taxonomyRoot: "services/transport", wave: 4, group: "mobility" },
+    { id: "go", brand: "Swypik Go", labelKey: "go", emoji: "🚕", accent: "#FACC15", mode: "ride", publisher: "driver", taxonomyRoot: "rides", wave: 1, group: "mobility", localOnly: true },
+    { id: "send", brand: "Swypik Send", labelKey: "send", emoji: "📦", accent: "#F97316", mode: "order", publisher: "driver", taxonomyRoot: "courier", wave: 1, group: "mobility", localOnly: true },
+    { id: "move", brand: "Swypik Move", labelKey: "move", emoji: "🚚", accent: "#78716C", mode: "lead", publisher: "professional", taxonomyRoot: "services/transport", wave: 1, group: "mobility" },
 
     // ─── MUNCĂ ────────────────────────────────────────────────────────────────
-    { id: "jobs", brand: "Swypik Jobs", labelKey: "jobs", emoji: "💼", accent: "#1E40AF", mode: "lead", publisher: "seller", taxonomyRoot: "jobs", wave: 4, group: "work" },
+    { id: "jobs", brand: "Swypik Jobs", labelKey: "jobs", emoji: "💼", accent: "#1E40AF", mode: "lead", publisher: "seller", taxonomyRoot: "jobs", wave: 1, group: "work" },
 
     // ─── SOCIAL ───────────────────────────────────────────────────────────────
     // Donații: românii donează pentru România. Comision 0% — doar taxa de
