@@ -20,6 +20,9 @@ import { liveVerticals, type Vertical } from "@/lib/verticals/catalog";
 /** Cardurile mari, în ordinea impactului comercial. */
 const HERO_IDS = ["eats", "shop", "estates", "auto"];
 
+/** Ordinea grupelor sub eroi. */
+const GROUP_ORDER = ["local", "shop", "travel", "property", "services", "mobility", "work", "social"] as const;
+
 /** A doua culoare a gradientului — mai închisă, pentru adâncime. */
 const GRADIENT_TO: Record<string, string> = {
     eats: "#15803D",
@@ -87,32 +90,39 @@ export default function HomeVerticals({ className = "" }: { className?: string }
                 ))}
             </div>
 
-            {/* ── COMPACT ── */}
-            <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6">
-                {rest.map((v) => (
-                    <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => go(v.id)}
-                        className="group flex min-h-[104px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-[#E5E5E5] bg-white p-2 transition duration-150 active:scale-95"
-                        style={{ borderTopColor: v.accent, borderTopWidth: 3 }}
-                    >
-                        <span
-                            className="grid h-12 w-12 place-items-center rounded-2xl text-2xl transition group-active:scale-90"
-                            style={{ backgroundColor: `${v.accent}1F` }}
-                            aria-hidden
-                        >
-                            {v.emoji}
-                        </span>
-                        <span className="text-center text-[12px] font-black leading-none text-[#0D0D0D]">
-                            {v.brand.replace("Swypik ", "")}
-                        </span>
-                        <span className="text-center text-[9px] font-semibold leading-tight text-[#9A9AA8]">
-                            {t(`${v.labelKey}.label`)}
-                        </span>
-                    </button>
-                ))}
-            </div>
+            {/* ── GRUPE: aerisit, cu titlu — creierul procesează 4-6 iconițe, nu 28 ── */}
+            {GROUP_ORDER.map((g) => {
+                const items = rest.filter((v) => v.group === g);
+                if (!items.length) return null;
+                return (
+                    <div key={g} className="mt-6">
+                        <h3 className="mb-2.5 px-0.5 text-[11px] font-black uppercase tracking-[0.14em] text-[#9A9AA8]">
+                            {th(`groups.${g}`)}
+                        </h3>
+                        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+                            {items.map((v) => (
+                                <button
+                                    key={v.id}
+                                    type="button"
+                                    onClick={() => go(v.id)}
+                                    className="group flex flex-col items-center gap-1.5 rounded-xl py-1.5 transition active:scale-95"
+                                >
+                                    <span
+                                        className="grid h-14 w-14 place-items-center rounded-2xl text-2xl shadow-sm transition group-active:scale-90"
+                                        style={{ backgroundColor: `${v.accent}1A`, boxShadow: `inset 0 0 0 1.5px ${v.accent}33` }}
+                                        aria-hidden
+                                    >
+                                        {v.emoji}
+                                    </span>
+                                    <span className="text-center text-[10px] font-bold leading-tight text-[#0D0D0D]">
+                                        {v.brand.replace("Swypik ", "")}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })}
         </section>
     );
 }

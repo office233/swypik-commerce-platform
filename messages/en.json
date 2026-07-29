@@ -1508,6 +1508,16 @@
       "trending": "🔥 Trending now",
       "nearby": "📍 Near you",
       "forYou": "✨ For you"
+    },
+    "groups": {
+      "local": "Fast delivery",
+      "shop": "Shopping",
+      "travel": "Travel",
+      "property": "Property & Auto",
+      "services": "Services",
+      "mobility": "Transport",
+      "work": "Jobs",
+      "social": "Community"
     }
   }
 }

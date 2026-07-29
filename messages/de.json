@@ -1508,6 +1508,16 @@
       "trending": "🔥 Im Trend",
       "nearby": "📍 In deiner Nähe",
       "forYou": "✨ Für dich"
+    },
+    "groups": {
+      "local": "Schnelle Lieferung",
+      "shop": "Einkaufen",
+      "travel": "Reisen",
+      "property": "Immobilien & Auto",
+      "services": "Dienstleistungen",
+      "mobility": "Transport",
+      "work": "Jobs",
+      "social": "Gemeinschaft"
     }
   }
 }

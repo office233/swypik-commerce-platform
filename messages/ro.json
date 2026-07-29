@@ -1644,6 +1644,16 @@
       "trending": "🔥 În trend acum",
       "nearby": "📍 Lângă tine",
       "forYou": "✨ Pentru tine"
+    },
+    "groups": {
+      "local": "Livrare rapidă",
+      "shop": "Cumpărături",
+      "travel": "Călătorii",
+      "property": "Imobiliare & Auto",
+      "services": "Servicii",
+      "mobility": "Transport",
+      "work": "Joburi",
+      "social": "Comunitate"
     }
   }
 }
