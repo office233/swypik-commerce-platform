@@ -23,18 +23,6 @@ type Tab = "home" | "chat" | "deals" | "feed" | "cart" | "categories";
 type Suggestion = { label: string; type: "product" | "category" | "tag"; score: number };
 type FunnelStage = "discover" | "compare" | "consider" | "cart" | "checkout" | "upsell";
 
-const QUICK_PROMPTS = [
-  { label: "🎮 Setup gaming", query: "setup gaming complet sub 4000 lei" },
-  { label: "👗 Outfit nuntă", query: "outfit complet elegant pentru nuntă" },
-  { label: "🏠 Apartament nou", query: "kit apartament nou sub 2000 lei" },
-  { label: "🎁 Cadou sub 200", query: "cadou creativ sub 200 lei" },
-  { label: "💻 Setup birou", query: "setup birou de acasă complet" },
-  { label: "💄 Rutină skincare", query: "rutină skincare completă" },
-  { label: "🏋️ Kit fitness", query: "kit fitness acasă complet" },
-  { label: "📱 Kit iPhone", query: "kit complet accesorii iPhone" },
-  { label: "🐾 Kit animal nou", query: "kit complet animal de companie nou" },
-];
-
 const AI_WELCOME: ChatMessage = {
   id: "welcome", role: "assistant", timestamp: new Date(),
   content: `Bună! 👋 Sunt asistentul tău de shopping.
@@ -586,12 +574,6 @@ export default function ChatInterface({
           {/* Verticalele Swypik — accesul principal, primul lucru vizibil */}
           <HomeVerticals className="mb-4" />
           <CaresBanner className="mb-4" />
-          <div className="mt-3 flex overflow-x-auto no-scrollbar gap-2">
-            {QUICK_PROMPTS.map((qa) => <button type="button" key={qa.label} onClick={() => sendMessage(qa.query)} className="shrink-0 whitespace-nowrap inline-flex items-center rounded-full bg-white border border-[#E5E5E5] px-4 py-2.5 text-xs font-bold text-[#0D0D0D] hover:border-[#0D0D0D] hover:text-[#0D0D0D] active:scale-95 transition-all min-h-[40px]">{qa.label}</button>)}
-          </div>
-          <div className="mt-4">
-            <button type="button" onClick={() => setActiveTab("categories")} className="w-full rounded-xl bg-[#0D0D0D] py-3 font-bold text-white flex items-center justify-center gap-2"><Grid3x3 size={16} />  {t("exploreazaCategorii")}</button>
-          </div>
           {searchLoading ? <ProductCarousel title={`Se caută rezultate...`} isLoading={true} /> : searchResults.length > 0 && <ProductCarousel title={`Rezultate (${searchResults.length})`} products={searchResults} />}
           <TrendingHero />
           <ProductCarousel title="✨ Alegerile creatorilor (populare)" products={topRatedProducts.slice(0, 10)} />
