@@ -1301,7 +1301,8 @@
       "order": "Bestellen",
       "book": "Buchen",
       "contact": "Kontakt",
-      "call": "Rufen"
+      "call": "Rufen",
+      "donate": "Spenden"
     },
     "shop": {
       "label": "Shop"
@@ -1313,7 +1314,7 @@
       "label": "Technik"
     },
     "home": {
-      "label": "Haus"
+      "label": "Haus & Garten"
     },
     "beauty": {
       "label": "Beauty"
@@ -1453,7 +1454,37 @@
       "cars": "Autos",
       "motorcycles": "Motorräder",
       "trucks": "LKW",
-      "parts": "Teile"
+      "parts": "Teile",
+      "furniture": "Möbel",
+      "decor": "Deko",
+      "kitchen": "Küche",
+      "garden": "Garten",
+      "appliances": "Haushaltsgeräte",
+      "lighting": "Beleuchtung"
+    },
+    "cares": {
+      "label": "Spenden"
+    }
+  },
+  "home": {
+    "cityPrompt": "In welcher Stadt bist du?",
+    "chooseCity": "Stadt wählen",
+    "search": "Suchen",
+    "cart": "Warenkorb",
+    "hooks": {
+      "eats": "Schnelle Lieferung",
+      "shop": "Niedrige Preise",
+      "estates": "Geprüfte Immobilien",
+      "auto": "Vertrauenswürdige Händler"
+    },
+    "cares": {
+      "tagline": "Rumänen spenden für Rumänien. Hilf einer Familie oder einem kleinen Unternehmen.",
+      "badge": "0% Provision"
+    },
+    "sections": {
+      "trending": "🔥 Im Trend",
+      "nearby": "📍 In deiner Nähe",
+      "forYou": "✨ Für dich"
     }
   }
 }

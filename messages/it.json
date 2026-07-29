@@ -1301,7 +1301,8 @@
       "order": "Order",
       "book": "Book",
       "contact": "Contact",
-      "call": "Call"
+      "call": "Call",
+      "donate": "Donate"
     },
     "shop": {
       "label": "Shop"
@@ -1313,7 +1314,7 @@
       "label": "Tech"
     },
     "home": {
-      "label": "Home"
+      "label": "Home & Garden"
     },
     "beauty": {
       "label": "Beauty"
@@ -1453,7 +1454,37 @@
       "cars": "Cars",
       "motorcycles": "Motorcycles",
       "trucks": "Trucks",
-      "parts": "Parts"
+      "parts": "Parts",
+      "furniture": "Furniture",
+      "decor": "Decor",
+      "kitchen": "Kitchen",
+      "garden": "Garden",
+      "appliances": "Appliances",
+      "lighting": "Lighting"
+    },
+    "cares": {
+      "label": "Donations"
+    }
+  },
+  "home": {
+    "cityPrompt": "What city are you in?",
+    "chooseCity": "Choose city",
+    "search": "Search",
+    "cart": "Cart",
+    "hooks": {
+      "eats": "Fast delivery",
+      "shop": "Low prices",
+      "estates": "Verified homes",
+      "auto": "Trusted dealers"
+    },
+    "cares": {
+      "tagline": "Romanians donate for Romania. Help a family or a small business.",
+      "badge": "0% commission"
+    },
+    "sections": {
+      "trending": "🔥 Trending now",
+      "nearby": "📍 Near you",
+      "forYou": "✨ For you"
     }
   }
 }

@@ -1437,7 +1437,8 @@
       "order": "Comandă",
       "book": "Rezervă",
       "contact": "Contactează",
-      "call": "Cheamă"
+      "call": "Cheamă",
+      "donate": "Donează"
     },
     "shop": {
       "label": "Produse"
@@ -1449,7 +1450,7 @@
       "label": "Electronice"
     },
     "home": {
-      "label": "Casă"
+      "label": "Casă & Grădină"
     },
     "beauty": {
       "label": "Frumusețe"
@@ -1589,7 +1590,37 @@
       "cars": "Mașini",
       "motorcycles": "Motociclete",
       "trucks": "Camioane",
-      "parts": "Piese auto"
+      "parts": "Piese auto",
+      "furniture": "Mobilă",
+      "decor": "Decor",
+      "kitchen": "Bucătărie",
+      "garden": "Grădină",
+      "appliances": "Electrocasnice",
+      "lighting": "Iluminat"
+    },
+    "cares": {
+      "label": "Donații"
+    }
+  },
+  "home": {
+    "cityPrompt": "În ce oraș ești?",
+    "chooseCity": "Alege orașul",
+    "search": "Caută",
+    "cart": "Coș",
+    "hooks": {
+      "eats": "Livrare rapidă",
+      "shop": "Prețuri mici",
+      "estates": "Case verificate",
+      "auto": "Dealeri de încredere"
+    },
+    "cares": {
+      "tagline": "Românii donează pentru România. Ajută o familie sau un business mic.",
+      "badge": "Comision 0%"
+    },
+    "sections": {
+      "trending": "🔥 În trend acum",
+      "nearby": "📍 Lângă tine",
+      "forYou": "✨ Pentru tine"
     }
   }
 }

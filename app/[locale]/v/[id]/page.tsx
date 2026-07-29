@@ -7,33 +7,33 @@ import VerticalClient from "./VerticalClient";
 export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
-  return VERTICAL_CATALOG.map((v) => ({ id: v.id }));
+    return VERTICAL_CATALOG.map((v) => ({ id: v.id }));
 }
 
 export async function generateMetadata({
-  params,
+    params,
 }: {
-  params: Promise<{ id: string; locale: string }>;
+    params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const { id, locale } = await params;
-  const v = getVertical(id);
-  if (!v) return { title: "Swypik" };
-  const t = await getTranslations({ locale, namespace: "verticals" });
-  const label = t(`${v.labelKey}.label`);
-  return {
-    title: `${v.brand} — ${label} | Swypik`,
-    description: `${label} pe Swypik: descoperă prin video, comandă în câteva secunde.`,
-  };
+    const { id, locale } = await params;
+    const v = getVertical(id);
+    if (!v) return { title: "Swypik" };
+    const t = await getTranslations({ locale, namespace: "verticals" });
+    const label = t(`${v.labelKey}.label`);
+    return {
+        title: `${v.brand} — ${label} | Swypik`,
+        description: `${label} pe Swypik: descoperă prin video, comandă în câteva secunde.`,
+    };
 }
 
 export default async function VerticalPage({
-  params,
+    params,
 }: {
-  params: Promise<{ id: string; locale: string }>;
+    params: Promise<{ id: string; locale: string }>;
 }) {
-  const { id } = await params;
-  const vertical = getVertical(id);
-  if (!vertical) notFound();
+    const { id } = await params;
+    const vertical = getVertical(id);
+    if (!vertical) notFound();
 
-  return <VerticalClient vertical={vertical} />;
+    return <VerticalClient vertical={vertical} />;
 }
