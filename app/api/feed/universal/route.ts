@@ -40,6 +40,7 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const verticalId = url.searchParams.get("vertical")?.trim() || null;
+    const subSlug = url.searchParams.get("sub")?.trim() || null;
     const country = url.searchParams.get("country")?.trim().toUpperCase() || null;
     const city = url.searchParams.get("city")?.trim() || null;
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 10, 1), 30);
@@ -53,7 +54,12 @@ export async function GET(req: Request) {
       if (!v) {
         return NextResponse.json({ success: false, error: "Verticală necunoscută." }, { status: 400 });
       }
-      taxonomyRoots = [v.taxonomyRoot];
+      // Subcategoria restrânge la un nod copil (validat contra catalogului).
+      if (subSlug && v.subcategories?.some((s) => s.slug === subSlug)) {
+        taxonomyRoots = [`${v.taxonomyRoot}/${subSlug}`];
+      } else {
+        taxonomyRoots = [v.taxonomyRoot];
+      }
     }
 
     const params: unknown[] = [];

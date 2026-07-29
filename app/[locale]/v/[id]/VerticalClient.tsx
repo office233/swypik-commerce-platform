@@ -42,11 +42,13 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState<string | null>(null);
+  const [sub, setSub] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const qs = new URLSearchParams({ vertical: vertical.id, limit: "12" });
+      if (sub) qs.set("sub", sub);
       if (city) qs.set("city", city);
       const res = await fetch(`/api/feed/universal?${qs}`);
       const data = await res.json();
@@ -54,7 +56,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
     } finally {
       setLoading(false);
     }
-  }, [vertical.id, city]);
+  }, [vertical.id, city, sub]);
 
   useEffect(() => {
     void load();
@@ -115,6 +117,40 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
           activeId={vertical.id}
           onSelect={(id) => router.push(id ? `/v/${id}` : "/")}
         />
+        {/* Subcategoriile verticalei — chip-uri în culoarea verticalei */}
+        {vertical.subcategories && vertical.subcategories.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-none px-4 pb-2.5 snap-x">
+            <button
+              type="button"
+              onClick={() => setSub(null)}
+              aria-pressed={sub === null}
+              style={sub === null ? { backgroundColor: vertical.accent } : undefined}
+              className={`shrink-0 snap-start rounded-full px-3.5 h-8 text-xs font-bold transition active:scale-95 ${
+                sub === null ? "text-white" : "bg-white/80 text-[#6E6E80]"
+              }`}
+            >
+              {t("all")}
+            </button>
+            {vertical.subcategories.map((s) => {
+              const active = sub === s.slug;
+              return (
+                <button
+                  key={s.slug}
+                  type="button"
+                  onClick={() => setSub(active ? null : s.slug)}
+                  aria-pressed={active}
+                  style={active ? { backgroundColor: vertical.accent } : undefined}
+                  className={`shrink-0 snap-start inline-flex items-center gap-1 rounded-full px-3.5 h-8 text-xs font-bold transition active:scale-95 ${
+                    active ? "text-white" : "bg-white/80 text-[#6E6E80]"
+                  }`}
+                >
+                  <span aria-hidden>{s.emoji}</span>
+                  {t(`${s.labelKey}` as never)}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {/* Feed */}
