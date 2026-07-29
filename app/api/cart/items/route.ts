@@ -72,7 +72,7 @@ export async function POST(req: Request) {
           mpVariantId = rows[0].id;
           if (rows[0].price_cents) priceCents = Number(rows[0].price_cents);
         }
-      } catch {}
+      } catch { }
     }
 
     if (!title) title = "Produs";

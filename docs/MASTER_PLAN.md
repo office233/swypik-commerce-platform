@@ -361,7 +361,7 @@ deploy.sh idempotent (pull + migrate + build + restart)
 - Inlocuieste 286 `console.log` cu `lib/logger.ts`
 - Reduce 297 `: any` (typecheck strict pe fisiere noi)
 - Renumeroteaza migrari ambigue `20260513_0008_*`
-- Inchide port 18789/18790 (openclaw) sau bind 127.0.0.1
+- Porturi 18789/18790 inchise (gateway AI eliminat 2026-07-23)
 - E2E tests Playwright: onboarding, feed, save, checkout, upload, live, paid, drops, groupbuy
 - Pre-commit hooks (lint + typecheck + format)
 
