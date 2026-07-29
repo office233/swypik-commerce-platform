@@ -40,11 +40,19 @@ export async function POST(req: Request) {
 
     try {
       const { rows } = await dbQuery<any>(
-        `SELECT id, title, price_cents, currency, image_url
+        `SELECT id, title, price_cents, currency, image_url, listing_type
          FROM marketplace_products WHERE id::text = $1 OR external_product_id = $1 LIMIT 1`,
         [productId],
       );
       if (rows[0]) {
+        // Anunțurile (imobiliare/auto/servicii) nu se cumpără prin coș —
+        // au formular de contact în loc de checkout.
+        if (rows[0].listing_type === "listing") {
+          return NextResponse.json(
+            { success: false, error: "Acest anunț nu poate fi adăugat în coș. Folosește formularul de contact." },
+            { status: 400 },
+          );
+        }
         mpId = rows[0].id;
         if (!title) title = rows[0].title;
         if (!priceCents && rows[0].price_cents) priceCents = Number(rows[0].price_cents);

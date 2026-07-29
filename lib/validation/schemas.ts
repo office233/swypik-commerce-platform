@@ -230,6 +230,40 @@ export const SellerProductCreateSchema = z.object({
   variants: z.array(SellerVariantSchema).max(50).optional(),
 });
 
+/**
+ * Universal Marketplace — listing (anunț) pentru verticale fără checkout:
+ * imobiliare, auto, servicii. Prețul e opțional (ex: "la cerere"), stocul lipsește,
+ * iar câmpurile specifice verticalei intră în `vertical_attributes`
+ * (validate contra lib/verticals/registry.ts).
+ */
+export const ListingCreateSchema = z.object({
+  title: z.string().trim().min(3, "Titlu prea scurt (min 3)").max(200),
+  description: z.string().trim().max(10_000).optional(),
+  taxonomy_node_slug: z.string().trim().min(1, "Categorie obligatorie").max(120),
+  price: z.coerce.number().finite().nonnegative().max(1_000_000_000).optional(),
+  currency: z.enum(["RON", "EUR", "USD"]).default("EUR"),
+  image_urls: z.array(z.string().url().max(2048)).max(20).optional(),
+  vertical_attributes: z.record(z.string(), z.unknown()).optional(),
+  location_country: z.string().trim().length(2).toUpperCase().optional(),
+  location_city: z.string().trim().max(120).optional(),
+  location_lat: z.coerce.number().min(-90).max(90).optional(),
+  location_lng: z.coerce.number().min(-180).max(180).optional(),
+  contact_phone: z.string().trim().max(32).optional(),
+  contact_email: z.string().trim().email().max(254).optional(),
+});
+
+/** Formular de contact pe un anunț (generează lead). */
+export const InquiryCreateSchema = z.object({
+  product_id: z.string().uuid("product_id invalid"),
+  name: z.string().trim().min(2, "Nume prea scurt").max(120),
+  email: z.string().trim().email().max(254).optional(),
+  phone: z.string().trim().min(5).max(32).optional(),
+  message: z.string().trim().min(5, "Mesaj prea scurt").max(2000),
+}).refine((d) => Boolean(d.email || d.phone), {
+  message: "Trebuie să lași un email sau un telefon",
+  path: ["email"],
+});
+
 export const SellerProductClassifySchema = z.object({
   title: z.string().trim().min(3).max(200),
   description: z.string().trim().max(2000).optional(),
