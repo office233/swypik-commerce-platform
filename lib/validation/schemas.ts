@@ -264,6 +264,83 @@ export const InquiryCreateSchema = z.object({
   path: ["email"],
 });
 
+// ────────────────────────────────────────────────────────────────────────────
+// Servicii locale: curieri, comenzi food, rezervări cazare
+// ────────────────────────────────────────────────────────────────────────────
+
+const VEHICLE_TYPES = ["foot", "bike", "scooter", "motorcycle", "car", "van"] as const;
+
+export const CourierApplySchema = z.object({
+  kind: z.enum(["courier", "driver"]).default("courier"),
+  full_name: z.string().trim().min(3, "Nume prea scurt").max(120),
+  phone: z.string().trim().min(5, "Telefon invalid").max(32),
+  email: z.string().trim().email().max(254).optional(),
+  vehicle_type: z.enum(VEHICLE_TYPES).default("bike"),
+  vehicle_plate: z.string().trim().max(16).optional(),
+  city: z.string().trim().min(2, "Orașul e obligatoriu").max(120),
+  country: z.string().trim().length(2).toUpperCase().default("RO"),
+  documents: z.record(z.string(), z.string().url().max(2048)).optional(),
+});
+
+export const CourierUpdateSchema = z.object({
+  phone: z.string().trim().min(5).max(32).optional(),
+  email: z.string().trim().email().max(254).optional(),
+  vehicle_type: z.enum(VEHICLE_TYPES).optional(),
+  vehicle_plate: z.string().trim().max(16).optional(),
+  city: z.string().trim().min(2).max(120).optional(),
+  documents: z.record(z.string(), z.string().url().max(2048)).optional(),
+});
+
+export const CourierStatusSchema = z.object({
+  online: z.boolean(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+});
+
+const LocalOrderItemSchema = z.object({
+  menu_item_id: z.string().uuid(),
+  qty: z.number().int().min(1).max(99),
+  /** id-urile opțiunilor alese; prețul se recalculează server-side din DB */
+  option_ids: z.array(z.string().max(64)).max(30).optional(),
+  notes: z.string().trim().max(300).optional(),
+});
+
+export const LocalOrderCreateSchema = z.object({
+  merchant_id: z.string().uuid("merchant_id invalid"),
+  items: z.array(LocalOrderItemSchema).min(1, "Coșul e gol").max(50),
+  customer_name: z.string().trim().min(2).max(120),
+  customer_phone: z.string().trim().min(5).max(32),
+  delivery_address: z.string().trim().min(5, "Adresă prea scurtă").max(500),
+  delivery_lat: z.coerce.number().min(-90).max(90).optional(),
+  delivery_lng: z.coerce.number().min(-180).max(180).optional(),
+  delivery_notes: z.string().trim().max(500).optional(),
+  payment_method: z.enum(["cash", "card_online", "card_courier"]).default("cash"),
+  tip_cents: z.number().int().min(0).max(100_000).default(0),
+});
+
+export const LocalOrderStatusSchema = z.object({
+  status: z.enum([
+    "accepted", "preparing", "ready", "picked_up", "delivering", "delivered", "cancelled", "rejected",
+  ]),
+  reason: z.string().trim().max(300).optional(),
+});
+
+export const StayBookingCreateSchema = z.object({
+  product_id: z.string().uuid(),
+  check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dată invalidă"),
+  check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dată invalidă"),
+  guests_count: z.number().int().min(1).max(50).default(1),
+  guest_name: z.string().trim().min(2).max(120),
+  guest_email: z.string().trim().email().max(254).optional(),
+  guest_phone: z.string().trim().min(5).max(32).optional(),
+}).refine((d) => new Date(d.check_out) > new Date(d.check_in), {
+  message: "Check-out trebuie să fie după check-in",
+  path: ["check_out"],
+}).refine((d) => Boolean(d.guest_email || d.guest_phone), {
+  message: "Trebuie să lași un email sau un telefon",
+  path: ["guest_email"],
+});
+
 export const SellerProductClassifySchema = z.object({
   title: z.string().trim().min(3).max(200),
   description: z.string().trim().max(2000).optional(),

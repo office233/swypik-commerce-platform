@@ -183,6 +183,10 @@ export const RATE_LIMITS = {
   reviewHelpful: { limit: 30, window: 60 } as RateLimitConfig,        // toggle helpful
   ageVerifyStart: { limit: 3, window: 600 } as RateLimitConfig,       // Stripe Identity (expensive)
   inquiries: { limit: 5, window: 300 } as RateLimitConfig,            // listing contact form (per IP, anti-spam)
+  courierApply: { limit: 3, window: 3600 } as RateLimitConfig,        // courier onboarding (per IP)
+  courierStatus: { limit: 120, window: 60 } as RateLimitConfig,       // GPS ping ~10s while online
+  localOrders: { limit: 10, window: 300 } as RateLimitConfig,         // food orders per user
+  stayBookings: { limit: 5, window: 600 } as RateLimitConfig,         // booking attempts
 } as const;
 
 /**

@@ -41,3 +41,38 @@ export async function dbQuery<T = any>(text: string, params: unknown[] = []) {
 export function getDb() {
   return getPool();
 }
+
+/**
+ * Rulează un set de query-uri într-o singură tranzacție.
+ * Commit automat la succes, ROLLBACK la orice excepție.
+ *
+ *   const order = await withTransaction(async (q) => {
+ *     const { rows } = await q("INSERT INTO ... RETURNING id", [...]);
+ *     await q("UPDATE ... WHERE id = $1", [rows[0].id]);
+ *     return rows[0];
+ *   });
+ */
+export async function withTransaction<T>(
+  fn: (query: <R = any>(text: string, params?: unknown[]) => Promise<{ rows: R[]; rowCount: number }>) => Promise<T>,
+): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const query = async <R = any>(text: string, params: unknown[] = []) => {
+      const res = await client.query(text, params);
+      return res as { rows: R[]; rowCount: number };
+    };
+    const result = await fn(query);
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      /* connection may already be dead */
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
