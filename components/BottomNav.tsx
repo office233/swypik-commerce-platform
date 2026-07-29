@@ -22,8 +22,9 @@ export default function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const hiddenPaths = ["/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/product"];
-  // Home owns its own bottom nav (ChatInterface) with richer actions; avoid double-bar.
-  const isHidden = pathname === "/" || hiddenPaths.some((p) => pathname.startsWith(p));
+  // Bara internă din ChatInterface a fost eliminată (2026-07-29) —
+  // BottomNav e acum SINGURA navigare, inclusiv pe homepage.
+  const isHidden = hiddenPaths.some((p) => pathname.startsWith(p));
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.body.style.paddingBottom = isHidden
@@ -77,11 +78,10 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               onClick={() => haptic("tap")}
-              className={`relative mx-auto flex flex-col items-center justify-center gap-0.5 w-full h-12 rounded-xl transition-all ${
-                isActive
+              className={`relative mx-auto flex flex-col items-center justify-center gap-0.5 w-full h-12 rounded-xl transition-all ${isActive
                   ? "text-[#0D0D0D] dark:text-white"
                   : "text-[#52525B] hover:text-[#0D0D0D] dark:text-[#A1A1AA] dark:hover:text-white"
-              }`}
+                }`}
             >
               <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
               <span className={`text-[10px] leading-tight ${isActive ? "font-bold" : "font-medium"}`}>
