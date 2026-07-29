@@ -210,6 +210,9 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt).*)",
+    // Exclude TOATE fișierele statice cu extensie (favicon.svg, icoane PWA,
+    // manifest, imagini, video) — altfel middleware-ul i18n le prefixează
+    // cu locale și Next.js returnează 404 pentru ele.
+    "/((?!_next/static|_next/image|.*\\.[\\w]+$).*)",
   ],
 };
