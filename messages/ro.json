@@ -1428,5 +1428,115 @@
     "itemNotificari": "Notificări",
     "itemSeDeconnect": "Se deconectează…",
     "itemDeconnect": "Deconectează-te"
+  },
+  "verticals": {
+    "railLabel": "Categorii",
+    "all": "Tot",
+    "actions": {
+      "addToCart": "Adaugă în coș",
+      "order": "Comandă",
+      "book": "Rezervă",
+      "contact": "Contactează",
+      "call": "Cheamă"
+    },
+    "shop": {
+      "label": "Produse"
+    },
+    "fashion": {
+      "label": "Modă"
+    },
+    "tech": {
+      "label": "Electronice"
+    },
+    "home": {
+      "label": "Casă"
+    },
+    "beauty": {
+      "label": "Frumusețe"
+    },
+    "kids": {
+      "label": "Copii"
+    },
+    "pets": {
+      "label": "Animale"
+    },
+    "sports": {
+      "label": "Sport"
+    },
+    "farm": {
+      "label": "De la fermă"
+    },
+    "eats": {
+      "label": "Mâncare"
+    },
+    "market": {
+      "label": "Alimente"
+    },
+    "pharma": {
+      "label": "Farmacie"
+    },
+    "flowers": {
+      "label": "Flori"
+    },
+    "drinks": {
+      "label": "Băuturi"
+    },
+    "estates": {
+      "label": "Imobiliare"
+    },
+    "auto": {
+      "label": "Auto"
+    },
+    "rentals": {
+      "label": "Închirieri"
+    },
+    "stays": {
+      "label": "Cazări"
+    },
+    "trips": {
+      "label": "Excursii"
+    },
+    "events": {
+      "label": "Evenimente"
+    },
+    "fly": {
+      "label": "Zboruri"
+    },
+    "beautypro": {
+      "label": "Salon"
+    },
+    "health": {
+      "label": "Sănătate"
+    },
+    "fit": {
+      "label": "Fitness"
+    },
+    "service": {
+      "label": "Service auto"
+    },
+    "pro": {
+      "label": "Meseriași"
+    },
+    "learn": {
+      "label": "Cursuri"
+    },
+    "care": {
+      "label": "Curățenie"
+    },
+    "biz": {
+      "label": "Business"
+    },
+    "go": {
+      "label": "Transport"
+    },
+    "send": {
+      "label": "Curierat"
+    },
+    "move": {
+      "label": "Mutări"
+    },
+    "jobs": {
+      "label": "Joburi"
+    }
   }
 }

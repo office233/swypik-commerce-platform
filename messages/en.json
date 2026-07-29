@@ -1292,5 +1292,115 @@
     "step2Body": "Connect your clip to a marketplace product to generate tracking links.",
     "step3Title": "Earn 5% commission",
     "step3Body": "Get 5% commission automatically on every sale generated through your clips."
+  },
+  "verticals": {
+    "railLabel": "Categories",
+    "all": "All",
+    "actions": {
+      "addToCart": "Add to cart",
+      "order": "Order",
+      "book": "Book",
+      "contact": "Contact",
+      "call": "Call"
+    },
+    "shop": {
+      "label": "Shop"
+    },
+    "fashion": {
+      "label": "Fashion"
+    },
+    "tech": {
+      "label": "Tech"
+    },
+    "home": {
+      "label": "Home"
+    },
+    "beauty": {
+      "label": "Beauty"
+    },
+    "kids": {
+      "label": "Kids"
+    },
+    "pets": {
+      "label": "Pets"
+    },
+    "sports": {
+      "label": "Sports"
+    },
+    "farm": {
+      "label": "Farm"
+    },
+    "eats": {
+      "label": "Food"
+    },
+    "market": {
+      "label": "Groceries"
+    },
+    "pharma": {
+      "label": "Pharmacy"
+    },
+    "flowers": {
+      "label": "Flowers"
+    },
+    "drinks": {
+      "label": "Drinks"
+    },
+    "estates": {
+      "label": "Real Estate"
+    },
+    "auto": {
+      "label": "Cars"
+    },
+    "rentals": {
+      "label": "Rentals"
+    },
+    "stays": {
+      "label": "Stays"
+    },
+    "trips": {
+      "label": "Trips"
+    },
+    "events": {
+      "label": "Events"
+    },
+    "fly": {
+      "label": "Flights"
+    },
+    "beautypro": {
+      "label": "Salon"
+    },
+    "health": {
+      "label": "Health"
+    },
+    "fit": {
+      "label": "Fitness"
+    },
+    "service": {
+      "label": "Auto Service"
+    },
+    "pro": {
+      "label": "Pros"
+    },
+    "learn": {
+      "label": "Courses"
+    },
+    "care": {
+      "label": "Cleaning"
+    },
+    "biz": {
+      "label": "Business"
+    },
+    "go": {
+      "label": "Rides"
+    },
+    "send": {
+      "label": "Courier"
+    },
+    "move": {
+      "label": "Moving"
+    },
+    "jobs": {
+      "label": "Jobs"
+    }
   }
 }

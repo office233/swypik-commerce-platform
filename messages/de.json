@@ -1292,5 +1292,115 @@
     "step2Body": "Verbinde das Video mit einem Produkt aus dem Marketplace, um Tracking-Links zu generieren.",
     "step3Title": "Du erhältst 5% Provision",
     "step3Body": "Du verdienst automatisch 5% Provision bei jedem Verkauf durch deine Videos."
+  },
+  "verticals": {
+    "railLabel": "Kategorien",
+    "all": "Alle",
+    "actions": {
+      "addToCart": "In den Warenkorb",
+      "order": "Bestellen",
+      "book": "Buchen",
+      "contact": "Kontakt",
+      "call": "Rufen"
+    },
+    "shop": {
+      "label": "Shop"
+    },
+    "fashion": {
+      "label": "Mode"
+    },
+    "tech": {
+      "label": "Technik"
+    },
+    "home": {
+      "label": "Haus"
+    },
+    "beauty": {
+      "label": "Beauty"
+    },
+    "kids": {
+      "label": "Kinder"
+    },
+    "pets": {
+      "label": "Haustiere"
+    },
+    "sports": {
+      "label": "Sport"
+    },
+    "farm": {
+      "label": "Bauernhof"
+    },
+    "eats": {
+      "label": "Essen"
+    },
+    "market": {
+      "label": "Lebensmittel"
+    },
+    "pharma": {
+      "label": "Apotheke"
+    },
+    "flowers": {
+      "label": "Blumen"
+    },
+    "drinks": {
+      "label": "Getränke"
+    },
+    "estates": {
+      "label": "Immobilien"
+    },
+    "auto": {
+      "label": "Autos"
+    },
+    "rentals": {
+      "label": "Vermietung"
+    },
+    "stays": {
+      "label": "Unterkünfte"
+    },
+    "trips": {
+      "label": "Ausflüge"
+    },
+    "events": {
+      "label": "Events"
+    },
+    "fly": {
+      "label": "Flüge"
+    },
+    "beautypro": {
+      "label": "Salon"
+    },
+    "health": {
+      "label": "Gesundheit"
+    },
+    "fit": {
+      "label": "Fitness"
+    },
+    "service": {
+      "label": "Werkstatt"
+    },
+    "pro": {
+      "label": "Handwerker"
+    },
+    "learn": {
+      "label": "Kurse"
+    },
+    "care": {
+      "label": "Reinigung"
+    },
+    "biz": {
+      "label": "Business"
+    },
+    "go": {
+      "label": "Fahrten"
+    },
+    "send": {
+      "label": "Kurier"
+    },
+    "move": {
+      "label": "Umzug"
+    },
+    "jobs": {
+      "label": "Jobs"
+    }
   }
 }

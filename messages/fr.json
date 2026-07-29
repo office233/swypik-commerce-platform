@@ -1292,5 +1292,115 @@
     "step2Body": "Associe ta vidéo à un produit pour générer des liens de suivi.",
     "step3Title": "Tu touches 5% de commission",
     "step3Body": "Tu touches automatiquement 5% de commission sur chaque vente générée par tes vidéos."
+  },
+  "verticals": {
+    "railLabel": "Categories",
+    "all": "All",
+    "actions": {
+      "addToCart": "Add to cart",
+      "order": "Order",
+      "book": "Book",
+      "contact": "Contact",
+      "call": "Call"
+    },
+    "shop": {
+      "label": "Shop"
+    },
+    "fashion": {
+      "label": "Fashion"
+    },
+    "tech": {
+      "label": "Tech"
+    },
+    "home": {
+      "label": "Home"
+    },
+    "beauty": {
+      "label": "Beauty"
+    },
+    "kids": {
+      "label": "Kids"
+    },
+    "pets": {
+      "label": "Pets"
+    },
+    "sports": {
+      "label": "Sports"
+    },
+    "farm": {
+      "label": "Farm"
+    },
+    "eats": {
+      "label": "Food"
+    },
+    "market": {
+      "label": "Groceries"
+    },
+    "pharma": {
+      "label": "Pharmacy"
+    },
+    "flowers": {
+      "label": "Flowers"
+    },
+    "drinks": {
+      "label": "Drinks"
+    },
+    "estates": {
+      "label": "Real Estate"
+    },
+    "auto": {
+      "label": "Cars"
+    },
+    "rentals": {
+      "label": "Rentals"
+    },
+    "stays": {
+      "label": "Stays"
+    },
+    "trips": {
+      "label": "Trips"
+    },
+    "events": {
+      "label": "Events"
+    },
+    "fly": {
+      "label": "Flights"
+    },
+    "beautypro": {
+      "label": "Salon"
+    },
+    "health": {
+      "label": "Health"
+    },
+    "fit": {
+      "label": "Fitness"
+    },
+    "service": {
+      "label": "Auto Service"
+    },
+    "pro": {
+      "label": "Pros"
+    },
+    "learn": {
+      "label": "Courses"
+    },
+    "care": {
+      "label": "Cleaning"
+    },
+    "biz": {
+      "label": "Business"
+    },
+    "go": {
+      "label": "Rides"
+    },
+    "send": {
+      "label": "Courier"
+    },
+    "move": {
+      "label": "Moving"
+    },
+    "jobs": {
+      "label": "Jobs"
+    }
   }
 }

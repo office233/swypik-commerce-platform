@@ -1292,5 +1292,115 @@
     "step2Body": "Vincula el vídeo a un producto del marketplace para generar enlaces de seguimiento.",
     "step3Title": "Gana 5% de comisión",
     "step3Body": "Por cada venta generada a través de tus vídeos, ganas automáticamente una comisión del 5%."
+  },
+  "verticals": {
+    "railLabel": "Categories",
+    "all": "All",
+    "actions": {
+      "addToCart": "Add to cart",
+      "order": "Order",
+      "book": "Book",
+      "contact": "Contact",
+      "call": "Call"
+    },
+    "shop": {
+      "label": "Shop"
+    },
+    "fashion": {
+      "label": "Fashion"
+    },
+    "tech": {
+      "label": "Tech"
+    },
+    "home": {
+      "label": "Home"
+    },
+    "beauty": {
+      "label": "Beauty"
+    },
+    "kids": {
+      "label": "Kids"
+    },
+    "pets": {
+      "label": "Pets"
+    },
+    "sports": {
+      "label": "Sports"
+    },
+    "farm": {
+      "label": "Farm"
+    },
+    "eats": {
+      "label": "Food"
+    },
+    "market": {
+      "label": "Groceries"
+    },
+    "pharma": {
+      "label": "Pharmacy"
+    },
+    "flowers": {
+      "label": "Flowers"
+    },
+    "drinks": {
+      "label": "Drinks"
+    },
+    "estates": {
+      "label": "Real Estate"
+    },
+    "auto": {
+      "label": "Cars"
+    },
+    "rentals": {
+      "label": "Rentals"
+    },
+    "stays": {
+      "label": "Stays"
+    },
+    "trips": {
+      "label": "Trips"
+    },
+    "events": {
+      "label": "Events"
+    },
+    "fly": {
+      "label": "Flights"
+    },
+    "beautypro": {
+      "label": "Salon"
+    },
+    "health": {
+      "label": "Health"
+    },
+    "fit": {
+      "label": "Fitness"
+    },
+    "service": {
+      "label": "Auto Service"
+    },
+    "pro": {
+      "label": "Pros"
+    },
+    "learn": {
+      "label": "Courses"
+    },
+    "care": {
+      "label": "Cleaning"
+    },
+    "biz": {
+      "label": "Business"
+    },
+    "go": {
+      "label": "Rides"
+    },
+    "send": {
+      "label": "Courier"
+    },
+    "move": {
+      "label": "Moving"
+    },
+    "jobs": {
+      "label": "Jobs"
+    }
   }
 }
