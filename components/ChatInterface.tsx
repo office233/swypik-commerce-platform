@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Bookmark, ChevronDown, ChevronRight, ClipboardList, Compass, Flame, Grid3x3, Home, LogOut, Menu, MessageCircle, Package, Plus, Search, Send, Shield, ShoppingCart, SlidersHorizontal, Sparkles, Star, Tag, Trophy, Truck, Upload, User, X, Zap } from "lucide-react";
 import ProductFeed from "./ProductFeed";
+import VerticalRail from "./verticals/VerticalRail";
 import { THEME, commerceBadgeClass, translateCategory } from "@/lib/ui/theme";
 import { Link } from "@/lib/i18n/navigation";
 
@@ -175,6 +176,7 @@ export default function ChatInterface({
     } catch {}
   }, []);
   const [input, setInput] = useState("");
+  const [activeVertical, setActiveVertical] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [sessionId, setSessionId] = useState("");
@@ -516,6 +518,18 @@ export default function ChatInterface({
   };
 
   return <main className={`min-h-screen ${THEME.classes.appBg}`}><div className={`relative mx-auto min-h-screen w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl app-container ${THEME.classes.pageBg}`}>{activeTab !== "feed" && <header className="sticky top-0 z-30 border-b border-[#E5E5E5] bg-white/95 px-4 py-3 backdrop-blur-xl safe-top"><div className="flex items-center justify-between h-12"><button type="button" onClick={() => { setActiveTab("home"); setCatBrowsing(false); setExpandedCat(null); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-2" aria-label={t("inapoiAcasa")}><span className="text-2xl font-black text-[#0D0D0D] tracking-tight">Swypik</span></button><div className="flex items-center gap-2"><a href="/cart" aria-label={t("cosulMeu")} className="relative grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] text-white active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><ShoppingCart size={18} />{cartCount > 0 && <span className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-[#7C3AED] px-1 text-[9px] font-black text-white leading-none ring-2 ring-[#0D0D0D]">{cartCount > 99 ? "99+" : cartCount}</span>}</a></div></div></header>}
+    {/* Bara de verticale — feed-first: user-ul nu caută, îi propunem noi */}
+    {activeTab === "home" && (
+      <div className="sticky top-[73px] z-20 border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xl">
+        <VerticalRail
+          activeId={activeVertical}
+          onSelect={(id) => {
+            setActiveVertical(id);
+            if (id) router.push(`/v/${id}`);
+          }}
+        />
+      </div>
+    )}
     {/* Slide-out Menu */}
     {showMenu && <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Meniu navigare" onClick={() => setShowMenu(false)}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
