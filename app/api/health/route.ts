@@ -7,7 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { checkR2 } from "@/lib/health";
+import { checkR2, checkEmail } from "@/lib/health";
 
 const APP_VERSION = "0.1.0";
 
@@ -60,6 +60,19 @@ export async function GET() {
     };
   } catch (err) {
     services.storage = { ok: false, status: "error", error: String(err) };
+  }
+
+  // --- d. Email (Resend sau SMTP) ---
+  try {
+    const mail = await checkEmail();
+    services.email = {
+      ok: mail.status === "ok",
+      status: mail.status,
+      latency_ms: mail.latency_ms,
+      ...mail.detail,
+    };
+  } catch (err) {
+    services.email = { ok: false, status: "error", error: String(err) };
   }
 
   const status = services.database === "error" ? "degraded" : "healthy";

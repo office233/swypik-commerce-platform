@@ -93,7 +93,7 @@ export async function checkR2(): Promise<HealthResult> {
       region: firstEnv("S3_REGION", "R2_REGION", "AWS_REGION") || "auto",
       endpoint,
       credentials: { accessKeyId, secretAccessKey },
-    forcePathStyle: true,
+      forcePathStyle: true,
     });
     const { latency_ms } = await withLatency(() =>
       withTimeout(client.send(new HeadBucketCommand({ Bucket: bucket })), 2_000)
@@ -105,6 +105,30 @@ export async function checkR2(): Promise<HealthResult> {
 }
 
 export async function checkQueue(): Promise<HealthResult> {
+  return _checkQueue();
+}
+
+/** Provider email activ + verificare conexiune (SMTP face verify real). */
+export async function checkEmail(): Promise<HealthResult> {
+  const start = Date.now();
+  try {
+    const { verifyTransport } = await import("@/lib/email/transport");
+    const res = await withTimeout(verifyTransport(), 5000);
+    const latency_ms = Date.now() - start;
+    if (!res.ok) {
+      return {
+        status: res.provider === "none" ? "degraded" : "error",
+        latency_ms,
+        detail: { provider: res.provider, ...(res.error ? { error: res.error } : { reason: "not_configured" }) },
+      };
+    }
+    return { status: "ok", latency_ms, detail: { provider: res.provider } };
+  } catch (err) {
+    return { status: "error", latency_ms: Date.now() - start, detail: { error: (err as Error).message } };
+  }
+}
+
+async function _checkQueue(): Promise<HealthResult> {
   const queueName = process.env.VIDEO_QUEUE_NAME || process.env.REDIS_STREAM_VIDEO_JOBS || "video:jobs";
   const failedName = process.env.VIDEO_FAILED_STREAM || `${queueName}:failed`;
 

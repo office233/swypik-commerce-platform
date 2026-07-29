@@ -8,7 +8,7 @@
  * If no API key is configured, emails are logged to console (dev mode).
  */
 
-import { Resend } from "resend";
+import { sendMail, activeProvider } from "./transport";
 import { createHmac } from "node:crypto";
 import { isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
@@ -47,12 +47,9 @@ async function isUnsubscribed(email: string): Promise<boolean> {
 }
 
 const FROM_EMAIL = process.env.EMAIL_FROM || "Swypik <onboarding@resend.dev>";
-const resendKey = process.env.RESEND_API_KEY;
 
-let resend: Resend | null = null;
-function getResend() {
-  if (!resend && resendKey) resend = new Resend(resendKey);
-  return resend;
+function emailReady(): boolean {
+  return activeProvider() !== "none";
 }
 
 function escapeHtml(value: unknown): string {
@@ -104,7 +101,7 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
     <p style="color:#666;font-size:12px;">Acest cod expiră în 15 minute. Nu-l oferi nimănui.</p>
   </div>`;
 
-  if (!getResend()) {
+  if (!emailReady()) {
     // Dev fallback — auth route returns devOtp; suppress noisy console dump in prod.
     if (process.env.NODE_ENV !== "production") {
       log.warn({ to: maskEmail(email), token }, "MAGIC LINK OTP (dev mode — no RESEND_API_KEY)");
@@ -115,8 +112,7 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
   }
 
   try {
-    await getResend()!.emails.send({
-      from: FROM_EMAIL,
+    await sendMail({
       to: email,
       subject: "Codul tău de acces Swypik",
       html,
@@ -319,34 +315,31 @@ export async function sendEmail(params: { to: string; subject: string; html: str
     ? params.html.replace("</body>", `${unsubscribeFooter}</body>`)
     : params.html + unsubscribeFooter;
 
-  const client = getResend();
-
-  if (!client) {
-    log.warn({ to: maskEmail(params.to), subject: params.subject }, "email skipped — RESEND_API_KEY not configured (dev mode)");
+  if (!emailReady()) {
+    log.warn({ to: maskEmail(params.to), subject: params.subject }, "email skipped — niciun provider configurat (dev mode)");
     return true; // Don't fail in dev
   }
 
   try {
     const marketingHeaders = params.marketing
       ? {
-          "List-Unsubscribe": `<${oneClickUrl}>, <${mailtoUrl}>`,
-          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        }
+        "List-Unsubscribe": `<${oneClickUrl}>, <${mailtoUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      }
       : undefined;
-    const { data, error } = await client.emails.send({
-      from: FROM_EMAIL,
+    const ok = await sendMail({
       to: params.to,
       subject: params.subject,
       html: finalHtml,
       ...(marketingHeaders ? { headers: marketingHeaders } : {}),
     });
 
-    if (error) {
-      log.error({ err: error, to: maskEmail(params.to) }, "email send failed");
+    if (!ok) {
+      log.error({ to: maskEmail(params.to) }, "email send failed");
       return false;
     }
 
-    log.info({ to: maskEmail(params.to), provider_id: data?.id }, "email sent");
+    log.info({ to: maskEmail(params.to) }, "email sent");
     return true;
   } catch (e: any) {
     log.error({ err: e, to: maskEmail(params.to) }, "email send error");
@@ -520,10 +513,9 @@ export async function sendAbandonedCartEmail(
         return `
       <tr>
         <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;vertical-align:middle">
-          ${
-            image
-              ? `<img src="${image}" alt="${title}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;display:block" />`
-              : `<div style="width:56px;height:56px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px">🛍️</div>`
+          ${image
+            ? `<img src="${image}" alt="${title}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;display:block" />`
+            : `<div style="width:56px;height:56px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px">🛍️</div>`
           }
         </td>
         <td style="padding:12px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333;vertical-align:middle">
