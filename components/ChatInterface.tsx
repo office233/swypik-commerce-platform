@@ -157,6 +157,14 @@ export default function ChatInterface({
 
   useEffect(() => {
     try {
+      // Schema v2: invalidăm istoricul vechi (conținea produse AliExpress
+      // rămase în localStorage după golirea catalogului).
+      const SCHEMA = "v2";
+      if (localStorage.getItem("aicv_chat_schema") !== SCHEMA) {
+        localStorage.removeItem("aicv_chat");
+        localStorage.setItem("aicv_chat_schema", SCHEMA);
+        return;
+      }
       const saved = localStorage.getItem("aicv_chat");
       if (saved) {
         const parsed = JSON.parse(saved);
