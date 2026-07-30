@@ -187,6 +187,7 @@ export const RATE_LIMITS = {
   courierStatus: { limit: 120, window: 60 } as RateLimitConfig,       // GPS ping ~10s while online
   localOrders: { limit: 10, window: 300 } as RateLimitConfig,         // food orders per user
   stayBookings: { limit: 5, window: 600 } as RateLimitConfig,         // booking attempts
+  donations: { limit: 10, window: 600 } as RateLimitConfig,           // Swypik Cares (per IP)
 } as const;
 
 /**

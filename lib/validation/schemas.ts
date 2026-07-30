@@ -325,6 +325,118 @@ export const LocalOrderStatusSchema = z.object({
   reason: z.string().trim().max(300).optional(),
 });
 
+// ── Comercianți locali (restaurante, magazine, farmacii) ────────────────────
+
+const MERCHANT_KINDS = ["restaurant", "grocery", "pharmacy", "flowers", "other"] as const;
+const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+/** { "mon": [["09:00","22:00"]], ... } — max 4 intervale/zi */
+const OpeningHoursSchema = z
+  .record(
+    z.enum(DAY_KEYS),
+    z.array(z.tuple([z.string().regex(TIME_RE, "Format HH:MM"), z.string().regex(TIME_RE, "Format HH:MM")])).max(4),
+  )
+  .optional();
+
+export const MerchantCreateSchema = z.object({
+  kind: z.enum(MERCHANT_KINDS).default("restaurant"),
+  name: z.string().trim().min(2, "Nume prea scurt").max(160),
+  description: z.string().trim().max(2000).optional(),
+  cuisine_types: z.array(z.string().trim().max(40)).max(10).optional(),
+  phone: z.string().trim().min(5, "Telefon invalid").max(32),
+  email: z.string().trim().email().max(254).optional(),
+  address: z.string().trim().min(5, "Adresă prea scurtă").max(400),
+  location_country: z.string().trim().length(2).toUpperCase().default("RO"),
+  location_city: z.string().trim().min(2, "Orașul e obligatoriu").max(120),
+  location_lat: z.coerce.number().min(-90).max(90).optional(),
+  location_lng: z.coerce.number().min(-180).max(180).optional(),
+  delivery_radius_km: z.coerce.number().min(0.5).max(100).optional(),
+  min_order_cents: z.number().int().min(0).max(1_000_000).optional(),
+  delivery_fee_cents: z.number().int().min(0).max(100_000).optional(),
+  avg_prep_minutes: z.number().int().min(1).max(240).optional(),
+  opening_hours: OpeningHoursSchema,
+  image_url: z.string().url().max(2048).optional(),
+});
+
+export const MerchantUpdateSchema = z.object({
+  merchant_id: z.string().uuid("merchant_id invalid"),
+  name: z.string().trim().min(2).max(160).optional(),
+  description: z.string().trim().max(2000).optional(),
+  cuisine_types: z.array(z.string().trim().max(40)).max(10).optional(),
+  phone: z.string().trim().min(5).max(32).optional(),
+  address: z.string().trim().min(5).max(400).optional(),
+  location_lat: z.coerce.number().min(-90).max(90).optional(),
+  location_lng: z.coerce.number().min(-180).max(180).optional(),
+  delivery_radius_km: z.coerce.number().min(0.5).max(100).optional(),
+  min_order_cents: z.number().int().min(0).max(1_000_000).optional(),
+  delivery_fee_cents: z.number().int().min(0).max(100_000).optional(),
+  avg_prep_minutes: z.number().int().min(1).max(240).optional(),
+  opening_hours: OpeningHoursSchema,
+  image_url: z.string().url().max(2048).optional(),
+  is_open_override: z.boolean().nullable().optional(),
+});
+
+/** Opțiune de meniu: [{name:"Mărime", required:true, max:1, choices:[{name:"Mare", price_cents:500}]}] */
+const MenuOptionSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  required: z.boolean().optional(),
+  max: z.number().int().min(1).max(20).optional(),
+  choices: z
+    .array(
+      z.object({
+        id: z.string().trim().max(64).optional(),
+        name: z.string().trim().min(1).max(80),
+        price_cents: z.number().int().min(0).max(100_000).optional(),
+      }),
+    )
+    .max(30),
+});
+
+export const MenuCategoryCreateSchema = z.object({
+  merchant_id: z.string().uuid(),
+  name: z.string().trim().min(1, "Nume obligatoriu").max(120),
+  sort_order: z.number().int().min(0).max(9999).optional(),
+});
+
+export const MenuItemCreateSchema = z.object({
+  merchant_id: z.string().uuid(),
+  category_id: z.string().uuid().optional(),
+  name: z.string().trim().min(2, "Nume prea scurt").max(160),
+  description: z.string().trim().max(1000).optional(),
+  price: z.coerce.number().min(0).max(1_000_000),
+  currency: z.enum(["RON", "EUR", "USD"]).default("RON"),
+  image_url: z.string().url().max(2048).optional(),
+  options: z.array(MenuOptionSchema).max(10).optional(),
+  allergens: z.array(z.string().trim().max(40)).max(20).optional(),
+  sort_order: z.number().int().min(0).max(9999).optional(),
+});
+
+export const MenuItemUpdateSchema = z.object({
+  item_id: z.string().uuid(),
+  name: z.string().trim().min(2).max(160).optional(),
+  description: z.string().trim().max(1000).optional(),
+  price: z.coerce.number().min(0).max(1_000_000).optional(),
+  image_url: z.string().url().max(2048).optional(),
+  options: z.array(MenuOptionSchema).max(10).optional(),
+  allergens: z.array(z.string().trim().max(40)).max(20).optional(),
+  is_available: z.boolean().optional(),
+  sort_order: z.number().int().min(0).max(9999).optional(),
+});
+
+// ── Swypik Cares: donații ────────────────────────────────────────────────────
+
+export const DonationCreateSchema = z.object({
+  campaign_id: z.string().uuid("campaign_id invalid"),
+  /** suma în unități întregi de monedă (RON), min 1, max 50.000 */
+  amount: z.coerce.number().min(1, "Minim 1 leu").max(50_000, "Pentru sume mari, contactează-ne"),
+  donor_name: z.string().trim().min(2).max(120).optional(),
+  donor_email: z.string().trim().email().max(254).optional(),
+  message: z.string().trim().max(500).optional(),
+  is_anonymous: z.boolean().optional(),
+  source: z.enum(["direct", "checkout_roundup", "recurring"]).optional(),
+});
+
 export const StayBookingCreateSchema = z.object({
   product_id: z.string().uuid(),
   check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dată invalidă"),
