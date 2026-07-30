@@ -36,6 +36,11 @@ interface FeedItem {
     vertical: { id: string; emoji: string; accent: string; mode: string; actionKey: string };
 }
 
+/** Verticale cu pagină proprie (flux complet), în loc de feed generic. */
+const DEDICATED_PAGES: Record<string, string> = {
+  eats: "/food",
+};
+
 export default function VerticalClient({ vertical }: { vertical: Vertical }) {
     const t = useTranslations("verticals");
     const router = useRouter();
@@ -59,8 +64,13 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
     }, [vertical.id, city, sub]);
 
     useEffect(() => {
-        void load();
-    }, [load]);
+    const dedicated = DEDICATED_PAGES[vertical.id];
+    if (dedicated) {
+      router.replace(dedicated);
+      return;
+    }
+    void load();
+  }, [load, vertical.id, router]);
 
     // Verticalele locale au nevoie de oraș ca să aibă sens.
     useEffect(() => {
