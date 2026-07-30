@@ -47,3 +47,9 @@ MEMORY.md
 build.log
 build.ok
 tsc_out.txt
+
+# Artefacte de build ale agentilor paraleli (NEXT_DIST_DIR custom)
+.next-*/
+*.tsx.new
+build_*.log
+knip_out.txt
