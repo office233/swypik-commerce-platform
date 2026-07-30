@@ -104,9 +104,8 @@ export default function AnalyticsClient() {
             <button
               key={r.value}
               onClick={() => setRange(r.value)}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap snap-start transition ${
-                range === r.value ? "bg-[#0D0D0D] text-white" : "bg-white text-[#0D0D0D] border border-[#E5E5E5] hover:bg-[#F7F7F8]"
-              }`}
+              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap snap-start transition ${range === r.value ? "bg-[#0D0D0D] text-white" : "bg-white text-[#0D0D0D] border border-[#E5E5E5] hover:bg-[#F7F7F8]"
+                }`}
             >
               {r.label}
             </button>

@@ -17,24 +17,24 @@ export const dynamic = "force-dynamic";
  */
 
 const DistributeSchema = z.object({
-  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "format asteptat YYYY-MM"),
-  poolCents: z.number().int().min(0).max(1_000_000_000),
+    month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "format asteptat YYYY-MM"),
+    poolCents: z.number().int().min(0).max(1_000_000_000),
 });
 
 export const GET = withErrorHandling(async function GET(req: Request) {
-  const auth = await requireAuth(req, ["admin"]);
-  if (auth instanceof NextResponse) return auth;
+    const auth = await requireAuth(req, ["admin"]);
+    if (auth instanceof NextResponse) return auth;
 
-  const { rows } = await dbQuery<{
-    id: string;
-    month: string;
-    pool_cents: string;
-    status: string;
-    distributed_at: string | null;
-    payouts: string;
-    paid_cents: string;
-  }>(
-    `SELECT p.id, p.month::text AS month, p.pool_cents::text, p.status,
+    const { rows } = await dbQuery<{
+        id: string;
+        month: string;
+        pool_cents: string;
+        status: string;
+        distributed_at: string | null;
+        payouts: string;
+        paid_cents: string;
+    }>(
+        `SELECT p.id, p.month::text AS month, p.pool_cents::text, p.status,
             p.distributed_at,
             COUNT(fp.id)::text AS payouts,
             COALESCE(SUM(fp.amount_cents) FILTER (WHERE fp.status = 'paid'), 0)::text AS paid_cents
@@ -43,36 +43,36 @@ export const GET = withErrorHandling(async function GET(req: Request) {
       GROUP BY p.id
       ORDER BY p.month DESC
       LIMIT 24`,
-  );
+    );
 
-  return NextResponse.json({
-    pools: rows.map((r) => ({
-      id: r.id,
-      month: r.month,
-      poolCents: Number(r.pool_cents),
-      status: r.status,
-      distributedAt: r.distributed_at,
-      payouts: Number(r.payouts),
-      paidCents: Number(r.paid_cents),
-    })),
-  });
+    return NextResponse.json({
+        pools: rows.map((r) => ({
+            id: r.id,
+            month: r.month,
+            poolCents: Number(r.pool_cents),
+            status: r.status,
+            distributedAt: r.distributed_at,
+            payouts: Number(r.payouts),
+            paidCents: Number(r.paid_cents),
+        })),
+    });
 });
 
 export const POST = withErrorHandling(async function POST(req: Request) {
-  const auth = await requireAuth(req, ["admin"]);
-  if (auth instanceof NextResponse) return auth;
+    const auth = await requireAuth(req, ["admin"]);
+    if (auth instanceof NextResponse) return auth;
 
-  const parsed = DistributeSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "invalid_body", details: parsed.error.flatten() },
-      { status: 400 },
+    const parsed = DistributeSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+        return NextResponse.json(
+            { error: "invalid_body", details: parsed.error.flatten() },
+            { status: 400 },
+        );
+    }
+
+    const result = await distributeCreatorFund(
+        `${parsed.data.month}-01`,
+        parsed.data.poolCents,
     );
-  }
-
-  const result = await distributeCreatorFund(
-    `${parsed.data.month}-01`,
-    parsed.data.poolCents,
-  );
-  return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json({ ok: true, ...result });
 });

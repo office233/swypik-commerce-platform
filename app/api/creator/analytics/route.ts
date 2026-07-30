@@ -183,9 +183,9 @@ async function GET_impl(req: Request) {
   const totalCountryRows = countriesQ.rows.reduce((acc, r) => acc + Number(r.cnt), 0);
   const audienceTopCountries = totalCountryRows > 0
     ? countriesQ.rows.map((r) => ({
-        country: r.country,
-        percentage: Math.round((Number(r.cnt) / totalCountryRows) * 100),
-      }))
+      country: r.country,
+      percentage: Math.round((Number(r.cnt) / totalCountryRows) * 100),
+    }))
     : [];
 
   const audienceAgeBuckets: { bucket: string; percentage: number }[] = [];
