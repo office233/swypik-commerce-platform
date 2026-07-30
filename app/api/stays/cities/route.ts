@@ -1,0 +1,10 @@
+/** GET /api/stays/cities?q=bra — autocomplete orașe pentru cazări. */
+import { NextResponse } from "next/server";
+import { searchCities } from "@/lib/stays/cities";
+
+export const runtime = "nodejs";
+
+export async function GET(req: Request) {
+    const q = new URL(req.url).searchParams.get("q") ?? "";
+    return NextResponse.json({ cities: searchCities(q) });
+}

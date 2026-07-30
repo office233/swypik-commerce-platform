@@ -41,6 +41,7 @@ const DEDICATED_PAGES: Record<string, string> = {
     eats: "/food",
     go: "/go",
     fly: "/fly",
+    stays: "/stays",
 };
 
 export default function VerticalClient({ vertical }: { vertical: Vertical }) {
