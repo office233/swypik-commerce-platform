@@ -90,7 +90,7 @@ export default function OfferCard({ post, onOpen, priority = false }: Props) {
                     <p className="truncate text-[11px] text-[#6E6E80]">{post.category}</p>
                 </div>
                 {post.discountPercent > 0 && (
-                    <span className="shrink-0 rounded-full bg-red-500 px-2.5 py-1 text-[11px] font-extrabold text-white">
+                    <span className="shrink-0 rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-extrabold text-white">
                         -{post.discountPercent}%
                     </span>
                 )}
@@ -122,7 +122,7 @@ export default function OfferCard({ post, onOpen, priority = false }: Props) {
                         {post.price.toFixed(2)} {post.currency}
                     </span>
                     {post.oldPrice > post.price && (
-                        <span className="text-[13px] font-semibold text-[#A1A1AA] line-through">
+                        <span className="text-[13px] font-semibold text-[#6B6B74] line-through">
                             {post.oldPrice.toFixed(2)}
                         </span>
                     )}
