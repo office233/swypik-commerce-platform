@@ -153,12 +153,15 @@ Fără el, restaurantele nu-și pot gestiona nimic.
 
 # Ordinea recomandată
 
-**Ziua 1** — B1 (email) + B2 (produse) → platforma devine vie
+> Decizie (30 iul): **emailul (B1) se lasă LA URMĂ** — fluxurile se construiesc și se
+> testează fără el (emailul e no-op în lipsa cheilor, nu blochează nimic tehnic).
+
+**Ziua 1** — B2 (produse) → feed-ul are conținut
 **Zilele 2-4** — P2 (șablon lead, 8 verticale) + P4 (Cares)
 **Zilele 5-7** — A4 (admin moderare) + A1 (panou merchant)
 **Săptămâna 2** — P1 (order), P3 (booking), A2 (PWA curier), B3 (Stripe)
 **Săptămâna 3** — calitate: teste, try/catch, monitorizare
-**Săptămâna 4+** — ERP multi-tenant
+**La final** — B1 (email) + ERP multi-tenant
 
 ---
 

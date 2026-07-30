@@ -1,0 +1,17 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: swypik-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "swypik"
+      MINIO_ROOT_PASSWORD: "0213ea9511886daf7d291719ba72a7c0baea7da1202f06f0"
+    volumes:
+      - swypik_minio_data:/data
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    restart: unless-stopped
+
+volumes:
+  swypik_minio_data:
