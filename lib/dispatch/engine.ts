@@ -216,6 +216,18 @@ export async function acceptOffer(jobOrOrderId: string, courierId: string): Prom
       return { ok: false as const, error: "Oferta a expirat.", code: 410 };
     }
 
+    // Curierul nu poate avea două joburi active simultan. Lock pe rândul
+    // curierului serializează accept-urile concurente ale aceluiași curier.
+    await q(`SELECT id FROM couriers WHERE id = $1 FOR UPDATE`, [courierId]);
+    const { rows: busy } = await q(
+      `SELECT id FROM dispatch_jobs
+        WHERE assigned_courier_id = $1 AND status = 'assigned'`,
+      [courierId],
+    );
+    if (busy.length) {
+      return { ok: false as const, error: "Ai deja o livrare activă.", code: 409 };
+    }
+
     await q(
       `UPDATE dispatch_offers SET response = 'accepted', responded_at = now() WHERE id = $1`,
       [offer[0].id],
