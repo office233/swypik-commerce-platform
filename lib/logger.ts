@@ -61,8 +61,17 @@ const devTransport: LoggerOptions["transport"] = {
   },
 };
 
-export const logger: Logger = isProd
-  ? pino(baseOptions)
-  : pino({ ...baseOptions, transport: devTransport });
+/**
+ * pino-pretty rulează într-un worker thread. Sub `next dev` (webpack) worker-ul
+ * nu-și găsește chunk-urile ("Cannot find module vendor-chunks/lib/worker.js")
+ * și moare cu "the worker has exited", corupând .next la fiecare log.
+ * De aceea transportul pretty se activează doar explicit, cu PINO_PRETTY=1
+ * (util în scripturi/workeri Node rulați direct, nu în serverul Next).
+ */
+const usePretty = !isProd && process.env.PINO_PRETTY === "1";
+
+export const logger: Logger = usePretty
+  ? pino({ ...baseOptions, transport: devTransport })
+  : pino(baseOptions);
 
 export default logger;

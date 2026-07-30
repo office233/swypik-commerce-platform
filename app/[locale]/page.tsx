@@ -116,6 +116,13 @@ export default async function Home() {
         <h2>{t("calitatepretExcelent")}</h2>
         <h2>Top apreciate</h2>
       </header>
+      {/* Swypik Fly — entry point vizibil pe home */}
+      <a
+        href="/fly"
+        className="fixed right-4 top-16 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-lg transition active:scale-95"
+      >
+        ✈️ Fly
+      </a>
       <ChatInterface
         initialTrending={trending.products}
         initialBestValue={bestValue.products}
