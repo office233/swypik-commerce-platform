@@ -1685,5 +1685,29 @@
     "categories": "Categorii",
     "allCategories": "Toate categoriile",
     "all": "Toate"
+  },
+  "shell": {
+    "discoverFeed": "Descoperă în feed",
+    "discoverFeedSub": "Vezi clipuri și produse noi cât aștepți",
+    "discoverAfterDelivery": "Ți-a plăcut? Descoperă mai multe în feed",
+    "openFeed": "Deschide feedul",
+    "myModes": "Modurile mele",
+    "modeBuyer": "Cumpărător",
+    "modeBuyerSub": "Feed & cumpărături",
+    "modeSeller": "Vânzător",
+    "modeSellerSub": "Dashboard seller",
+    "modeCreator": "Creator",
+    "modeCreatorSub": "Publică clipuri",
+    "modeCourier": "Curier / Șofer",
+    "modeCourierSub": "Livrări și curse",
+    "courierPending": "În verificare",
+    "courierApproved": "Aprobat",
+    "courierRejected": "Respins",
+    "becomeCourier": "Devino curier",
+    "waze": "Waze",
+    "gmaps": "Google Maps",
+    "bgWarning": "Ține aplicația deschisă (în prim-plan) pentru a primi comenzi — iOS oprește GPS-ul în fundal.",
+    "soundOn": "Sunet la ofertă: pornit",
+    "soundOff": "Sunet la ofertă: oprit"
   }
 }

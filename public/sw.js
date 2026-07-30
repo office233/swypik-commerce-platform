@@ -5,7 +5,7 @@
  * Înregistrat de components/pwa/ServiceWorkerRegistrar.tsx.
  */
 
-const CACHE_NAME = "swypik-shell-v2";
+const CACHE_NAME = "swypik-shell-v3";
 const SHELL_ASSETS = [
   "/",
   "/offline.html",
@@ -80,7 +80,21 @@ self.addEventListener("push", (event) => {
     data: { url: data.url || "/", ...(data.data || {}) },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      // Anunță ferestrele deschise (ex: PWA curier) ca să reacționeze instant,
+      // fără să aștepte următorul polling.
+      self.clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((clients) => {
+          for (const client of clients) {
+            client.postMessage({ type: "push", payload: data });
+          }
+        })
+        .catch(() => {}),
+    ]),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

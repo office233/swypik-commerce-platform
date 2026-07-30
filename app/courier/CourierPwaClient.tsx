@@ -3,10 +3,14 @@
 /**
  * PWA curier: toggle online/offline, GPS periodic (~10s),
  * ofertă de comandă cu countdown 45s accept/refuz, link navigare Google Maps.
+ * + sunet la ofertă nouă, ascultare push (SW postMessage) pentru reacție
+ * instant, deep-link Waze, avertisment tab în fundal (iOS) și heartbeat
+ * de siguranță (>60s fără poziție trimisă → re-trigger).
  * Suportă AMBELE tipuri de job: livrări (local_orders) și curse Swypik Go
  * (rides) — serverul trimite `kind: 'delivery' | 'ride'` pe fiecare ofertă.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import EarningsTab from "./EarningsTab";
 
 type Offer = {
@@ -31,7 +35,62 @@ function mapsLink(address: string): string {
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
 }
 
+function wazeLink(address: string): string {
+    return `https://waze.com/ul?q=${encodeURIComponent(address)}&navigate=yes`;
+}
+
+/** Butoane navigare Google Maps + Waze pentru o adresă. */
+function NavButtons({ address, gmapsLabel, wazeLabel }: { address: string; gmapsLabel: string; wazeLabel: string }) {
+    return (
+        <span className="flex shrink-0 gap-1">
+            <a
+                href={mapsLink(address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
+            >
+                {gmapsLabel}
+            </a>
+            <a
+                href={wazeLink(address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded bg-cyan-100 px-3 py-1 text-xs font-medium text-cyan-700"
+            >
+                {wazeLabel}
+            </a>
+        </span>
+    );
+}
+
+/** Beep scurt dublu prin WebAudio — nu necesită fișier audio. */
+function playOfferSound(): void {
+    try {
+        const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const beep = (start: number) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.001, ctx.currentTime + start);
+            gain.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + 0.35);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(ctx.currentTime + start);
+            osc.stop(ctx.currentTime + start + 0.4);
+        };
+        beep(0);
+        beep(0.5);
+        setTimeout(() => void ctx.close().catch(() => {}), 1500);
+    } catch {
+        // audio indisponibil — ignorăm
+    }
+}
+
 export default function CourierPwaClient() {
+    const t = useTranslations("shell");
     const [online, setOnline] = useState(false);
     const [tab, setTab] = useState<"jobs" | "earnings">("jobs");
     const [busy, setBusy] = useState(false);
@@ -41,8 +100,13 @@ export default function CourierPwaClient() {
     const [activeDelivery, setActiveDelivery] = useState<Offer | null>(null);
     const [activeRide, setActiveRide] = useState<Offer | null>(null);
     const [rideStep, setRideStep] = useState<RideStep>("accepted");
+    const [soundOn, setSoundOn] = useState(true);
+    const [hiddenWhileOnline, setHiddenWhileOnline] = useState(false);
     const coords = useRef<{ lat: number; lng: number } | null>(null);
     const seenOffers = useRef<Set<string>>(new Set());
+    const soundOnRef = useRef(true);
+    const lastHeartbeatAt = useRef(0);
+    useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
 
     // GPS watch
     useEffect(() => {
@@ -89,7 +153,9 @@ export default function CourierPwaClient() {
                 setSecondsLeft(Math.max(1, Math.min(OFFER_SECONDS, Math.floor(msLeft / 1000))));
                 setOffer(fresh);
                 if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.([200, 100, 200]);
+                if (soundOnRef.current) playOfferSound();
             }
+            lastHeartbeatAt.current = Date.now();
         } catch {
             // rețea — reîncercăm
         }
@@ -99,6 +165,42 @@ export default function CourierPwaClient() {
         if (!online) return;
         void heartbeat(true);
         const t = setInterval(() => void heartbeat(true), 10_000);
+        return () => clearInterval(t);
+    }, [online, heartbeat]);
+
+    // Push instant: SW-ul trimite postMessage la orice push primit —
+    // declanșăm imediat un heartbeat ca să luăm oferta fără să așteptăm polling-ul.
+    useEffect(() => {
+        if (!online || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+        const onMsg = (ev: MessageEvent) => {
+            const d = ev.data as { type?: string } | null;
+            if (d?.type === "push") void heartbeat(true);
+        };
+        navigator.serviceWorker.addEventListener("message", onMsg);
+        return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+    }, [online, heartbeat]);
+
+    // Vizibilitate: la revenirea în prim-plan re-trigger heartbeat dacă a
+    // trecut >60s de la ultima poziție trimisă; banner când tab-ul e în fundal.
+    useEffect(() => {
+        if (!online || typeof document === "undefined") return;
+        const onVis = () => {
+            const hidden = document.visibilityState === "hidden";
+            setHiddenWhileOnline(hidden);
+            if (!hidden && Date.now() - lastHeartbeatAt.current > 60_000) void heartbeat(true);
+        };
+        document.addEventListener("visibilitychange", onVis);
+        onVis();
+        return () => document.removeEventListener("visibilitychange", onVis);
+    }, [online, heartbeat]);
+
+    // Heartbeat de siguranță: dacă din orice motiv nu s-a trimis poziție >60s
+    // cât suntem online, re-trigger imediat.
+    useEffect(() => {
+        if (!online) return;
+        const t = setInterval(() => {
+            if (Date.now() - lastHeartbeatAt.current > 60_000) void heartbeat(true);
+        }, 15_000);
         return () => clearInterval(t);
     }, [online, heartbeat]);
 
@@ -195,6 +297,14 @@ export default function CourierPwaClient() {
                     Câștiguri
                 </a>
                 <button
+                    onClick={() => setSoundOn((s) => !s)}
+                    aria-label={soundOn ? t("soundOn") : t("soundOff")}
+                    title={soundOn ? t("soundOn") : t("soundOff")}
+                    className="rounded-full border px-3 py-2 text-xs"
+                >
+                    {soundOn ? "🔔" : "🔕"}
+                </button>
+                <button
                     onClick={() => void toggleOnline()}
                     disabled={busy}
                     className={`rounded-full px-5 py-2 text-sm font-bold text-white transition ${online ? "bg-green-600" : "bg-gray-400"
@@ -204,6 +314,12 @@ export default function CourierPwaClient() {
                 </button>
                 </div>
             </header>
+
+            {online && hiddenWhileOnline && (
+                <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                    ⚠️ {t("bgWarning")}
+                </div>
+            )}
 
                 <nav className="grid grid-cols-2 gap-2">
                     <button
@@ -289,26 +405,12 @@ export default function CourierPwaClient() {
                         <div className="flex items-center justify-between gap-2">
                             <span>🏪 {activeDelivery.merchant_name}</span>
                             {activeDelivery.pickup_address && (
-                                <a
-                                    href={mapsLink(activeDelivery.pickup_address)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
-                                >
-                                    Navighează
-                                </a>
+                                <NavButtons address={activeDelivery.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                             )}
                         </div>
                         <div className="flex items-center justify-between gap-2">
                             <span>🏠 {activeDelivery.delivery_address}</span>
-                            <a
-                                href={mapsLink(activeDelivery.delivery_address)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="rounded bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
-                            >
-                                Navighează
-                            </a>
+                            <NavButtons address={activeDelivery.delivery_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                         </div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-3">
@@ -335,26 +437,12 @@ export default function CourierPwaClient() {
                         <div className="flex items-center justify-between gap-2">
                             <span>🟢 {activeRide.pickup_address ?? "Punct de ridicare"}</span>
                             {activeRide.pickup_address && (
-                                <a
-                                    href={mapsLink(activeRide.pickup_address)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
-                                >
-                                    Navighează
-                                </a>
+                                <NavButtons address={activeRide.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                             )}
                         </div>
                         <div className="flex items-center justify-between gap-2">
                             <span>🔴 {activeRide.delivery_address}</span>
-                            <a
-                                href={mapsLink(activeRide.delivery_address)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="rounded bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
-                            >
-                                Navighează
-                            </a>
+                            <NavButtons address={activeRide.delivery_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                         </div>
                     </div>
                     <div className="mt-4 grid grid-cols-1 gap-3">

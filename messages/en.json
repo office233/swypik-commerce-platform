@@ -1549,5 +1549,29 @@
     "categories": "Categories",
     "allCategories": "All categories",
     "all": "All"
+  },
+  "shell": {
+    "discoverFeed": "Discover the feed",
+    "discoverFeedSub": "Watch new clips and products while you wait",
+    "discoverAfterDelivery": "Enjoyed it? Discover more in the feed",
+    "openFeed": "Open feed",
+    "myModes": "My modes",
+    "modeBuyer": "Buyer",
+    "modeBuyerSub": "Feed & shopping",
+    "modeSeller": "Seller",
+    "modeSellerSub": "Seller dashboard",
+    "modeCreator": "Creator",
+    "modeCreatorSub": "Publish clips",
+    "modeCourier": "Courier / Driver",
+    "modeCourierSub": "Deliveries and rides",
+    "courierPending": "Under review",
+    "courierApproved": "Approved",
+    "courierRejected": "Rejected",
+    "becomeCourier": "Become a courier",
+    "waze": "Waze",
+    "gmaps": "Google Maps",
+    "bgWarning": "Keep the app open (foreground) to receive orders — iOS stops background GPS.",
+    "soundOn": "Offer sound: on",
+    "soundOff": "Offer sound: off"
   }
 }
