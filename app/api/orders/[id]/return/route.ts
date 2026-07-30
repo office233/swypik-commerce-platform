@@ -112,7 +112,7 @@ export async function POST(
     logger.info({ order_id: order.id, photos_count: evidenceUrls.length }, "[Return Request] received");
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, "[Return Request Error]");
     return NextResponse.json(
       { error: "Eroare internă. Încearcă din nou." },

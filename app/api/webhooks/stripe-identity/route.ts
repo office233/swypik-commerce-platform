@@ -60,8 +60,8 @@ export async function POST(req: Request) {
   try {
     const body = await getRawBody(req);
     event = getStripe().webhooks.constructEvent(body, sig, secret);
-  } catch (err: any) {
-    console.error("[stripe-identity webhook] signature verification failed:", err.message);
+  } catch (err: unknown) {
+    console.error("[stripe-identity webhook] signature verification failed:", err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -154,8 +154,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[stripe-identity webhook] handler error:", err);
-    return NextResponse.json({ error: err?.message || "Handler error" }, { status: 500 });
+    return NextResponse.json({ error: (err instanceof Error && err.message) || "Handler error" }, { status: 500 });
   }
 }

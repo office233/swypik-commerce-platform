@@ -23,7 +23,7 @@ export async function GET(req: Request) {
   const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
 
   let whereClause = "";
-  const params: any[] = [];
+  const params: string[] = [];
 
   if (status) {
     params.push(status);
@@ -51,7 +51,16 @@ export async function GET(req: Request) {
     params
   );
 
-  const formattedOrders = orders.map((o: any) => {
+  interface AdminOrderRow {
+    id: string;
+    status: string;
+    total_ron: string;
+    metadata: Record<string, unknown> | null;
+    created_at: string;
+    fulfilled_at: string | null;
+    item_count: string;
+  }
+  const formattedOrders = (orders as AdminOrderRow[]).map((o) => {
     const meta = o.metadata || {};
     return {
       id: o.id,
@@ -88,8 +97,8 @@ export async function PATCH(req: Request) {
     const { orderId, status, trackingNumber, trackingUrl, fulfillmentStatus, notes } = parsed.data;
 
     const updates: string[] = [];
-    const params: any[] = [orderId];
-    const metaUpdates: Record<string, any> = {};
+    const params: string[] = [orderId];
+    const metaUpdates: Record<string, unknown> = {};
 
     if (status) {
       params.push(status);
@@ -131,7 +140,7 @@ export async function PATCH(req: Request) {
     }
 
     return NextResponse.json({ success: true, order: rows[0] });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, "[Admin Orders PATCH]");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }

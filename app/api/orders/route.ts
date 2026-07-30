@@ -20,7 +20,7 @@ export async function GET() {
       [userId]
     );
     return NextResponse.json({ orders: rows });
-  } catch (e: any) {
+  } catch (e: unknown) {
     logger.error({ err: e }, "GET /api/orders failed");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

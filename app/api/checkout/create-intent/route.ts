@@ -198,7 +198,7 @@ export async function POST(req: Request) {
       await idempotencySet(`checkout:${idempotencyKey}`, responsePayload, 300);
     }
     return NextResponse.json(responsePayload);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, "[Create Intent Error]");
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
   }

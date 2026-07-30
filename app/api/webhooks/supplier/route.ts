@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
   // ── 2. Process webhook payload ──
   try {
-    let body: any;
+    let body: { external_order_id?: string; status?: string; tracking_number?: string };
     try {
       body = rawBody ? JSON.parse(rawBody) : {};
     } catch {
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, "[Supplier Webhook] POST Error:");
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },

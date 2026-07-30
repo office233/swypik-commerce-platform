@@ -27,7 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Invalid order id" }, { status: 400 });
   }
 
-  let body: any;
+  let body: { action?: unknown; reason?: unknown };
   try { body = await req.json(); } catch { body = {}; }
   const action = String(body?.action || "").toLowerCase();
   const reason = String(body?.reason || "").slice(0, 500).trim();
@@ -35,7 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "action must be approve|block" }, { status: 400 });
   }
 
-  const { rows } = await dbQuery<{ id: string; status: string; metadata: any; total_cents: number; currency: string }>(
+  const { rows } = await dbQuery<{ id: string; status: string; metadata: Record<string, unknown> | null; total_cents: number; currency: string }>(
     `SELECT id::text, status, metadata, total_cents, currency
        FROM commerce_orders WHERE id = $1 LIMIT 1`,
     [orderId],

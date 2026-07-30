@@ -319,9 +319,11 @@ export async function POST(req: Request) {
       itemCount: checkoutItems.reduce((s, i) => s + i.quantity, 0),
       currency: "RON",
     });
-  } catch (error: any) {
-    console.error("[Checkout] Error:", error?.message, error?.stack);
-    logCheckoutEvent("checkout_fail", { error: error?.message });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error("[Checkout] Error:", msg, stack);
+    logCheckoutEvent("checkout_fail", { error: msg });
     return NextResponse.json(
       { success: false, error: "Nu am putut iniția checkout-ul. Încearcă din nou." },
       { status: 500 }

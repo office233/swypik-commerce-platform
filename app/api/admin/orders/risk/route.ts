@@ -21,7 +21,7 @@ type OrderRow = {
   currency: string;
   total_cents: number;
   created_at: string;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   buyer_email: string | null;
   buyer_phone: string | null;
   buyer_email_verified_at: string | null;
@@ -32,6 +32,21 @@ type OrderRow = {
   prior_chargebacks_lost: number;
 };
 
+interface RiskAddress {
+  line1?: string | null;
+  address_line_1?: string | null;
+  country?: string | null;
+}
+
+interface OrderRiskMetadata {
+  shipping_address?: RiskAddress;
+  billing_address?: RiskAddress;
+  items?: unknown[];
+  item_count?: number | string;
+  checkout_ip_country?: string | null;
+  [key: string]: unknown;
+}
+
 async function GET_impl(req: Request) {
   const ok = (await hasAdminSession()) || isAdminRequest(req);
   if (!ok) return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
@@ -41,7 +56,7 @@ async function GET_impl(req: Request) {
   const minScore = Number(url.searchParams.get("minScore") ?? "0");
 
   const conditions: string[] = ["co.created_at > now() - interval '90 days'"];
-  const args: any[] = [];
+  const args: string[] = [];
   if (statusFilter) {
     args.push(statusFilter);
     conditions.push(`co.status = $${args.length}`);
@@ -75,7 +90,7 @@ async function GET_impl(req: Request) {
   );
 
   const enriched = rows.map((o) => {
-    const md = o.metadata || {};
+    const md = (o.metadata || {}) as OrderRiskMetadata;
     const ship = md.shipping_address || {};
     const bill = md.billing_address || {};
     const items = Array.isArray(md.items) ? md.items : [];

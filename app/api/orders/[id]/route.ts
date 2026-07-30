@@ -91,7 +91,7 @@ export async function GET(
       createdAt: order.created_at,
       fulfilledAt: order.fulfilled_at,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, "[Order Lookup]");
     return NextResponse.json({ error: "Nu am putut încărca această comandă." }, { status: 500 });
   }

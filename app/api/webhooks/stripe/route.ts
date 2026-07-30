@@ -52,10 +52,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing signature" }, { status: 400 });
     }
     event = getStripe().webhooks.constructEvent(rawBody, signature, webhookSecret);
-  } catch (err: any) {
-    console.error("[Stripe Webhook] Signature verification failed:", err.message);
+  } catch (err: unknown) {
+    console.error("[Stripe Webhook] Signature verification failed:", err instanceof Error ? err.message : String(err));
     await logCheckoutEvent("webhook_fail", {
-      error: err.message || "Signature verification failed",
+      error: (err instanceof Error && err.message) || "Signature verification failed",
       payload: { stage: "signature" },
     });
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       logger.info(`[Stripe Webhook] duplicate stripe event, skipping: ${event.id} (${event.type})`);
       return NextResponse.json({ received: true, duplicate: true });
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ err }, `[Stripe Webhook] idempotency claim failed for ${event.id}`);
     // Returning 500 lets Stripe retry; do NOT proceed without a successful claim.
     return NextResponse.json({ error: "Idempotency claim failed" }, { status: 500 });
@@ -289,10 +289,11 @@ export async function POST(req: Request) {
       default:
         logger.info({ event_type: event.type, event_id: event.id }, "[Stripe Webhook] unhandled event");
     }
-  } catch (err: any) {
-    console.error("[Stripe Webhook] Handler failed:", err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Stripe Webhook] Handler failed:", msg);
     await logCheckoutEvent("webhook_fail", {
-      error: err.message || "Webhook handler failed",
+      error: msg || "Webhook handler failed",
       payload: { stage: "handler", eventType: event.type, eventId: event.id },
     });
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
@@ -327,7 +328,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   }
 
   const shipping = intent.shipping;
-  let shippingAddress: any = null;
+  let shippingAddress: Record<string, string | null | undefined> | null = null;
   if (shipping) {
     shippingAddress = {
       name: shipping.name,
@@ -399,7 +400,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
         title: string;
         quantity: number;
         unit_amount_cents: number;
-        metadata: any;
+        metadata: Record<string, unknown> | null;
       }>(
         `SELECT product_id::text AS product_id, title, quantity, unit_amount_cents, metadata
            FROM commerce_order_items WHERE order_id = $1`,
@@ -432,7 +433,7 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
     buyer_user_id: string | null;
     currency: string;
     total_cents: number;
-    metadata: any;
+    metadata: Record<string, unknown> | null;
     buyer_email: string | null;
     buyer_phone: string | null;
     buyer_email_verified_at: string | null;
@@ -468,7 +469,19 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
   const o = rows[0];
   if (!o) return;
 
-  const md = o.metadata || {};
+  interface RiskAddress {
+    line1?: string | null;
+    address_line_1?: string | null;
+    country?: string | null;
+  }
+  const md = (o.metadata || {}) as {
+    shipping_address?: RiskAddress;
+    billing_address?: RiskAddress;
+    items?: unknown[];
+    item_count?: number | string;
+    checkout_ip_country?: string | null;
+    [key: string]: unknown;
+  };
   const ship = md.shipping_address || {};
   const bill = md.billing_address || {};
   const items = Array.isArray(md.items) ? md.items : [];
@@ -702,7 +715,7 @@ async function maybeSendOrderConfirmation(orderId: string) {
     orderLookupToken: metadata.order_lookup_token,
     customerEmail,
     customerName: metadata.shipping_address?.name || "",
-    items: itemRows.map((r: any) => ({ title: r.title, quantity: r.quantity, price: Number(r.price) })),
+    items: (itemRows as Array<{ title: string; quantity: number; price: string }>).map((r) => ({ title: r.title, quantity: r.quantity, price: Number(r.price) })),
     totalRon: Number(order.total_cents || 0) / 100,
     shippingAddress: metadata.shipping_address || undefined,
   });

@@ -100,10 +100,10 @@ export async function POST(
       keyPrefix: `returns/${id}`,
     });
     return NextResponse.json({ ok: true, ...result });
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ err }, "[Return Photo Upload] failed");
     return NextResponse.json(
-      { error: err?.message || "Eroare la încărcarea fotografiei." },
+      { error: (err instanceof Error && err.message) || "Eroare la încărcarea fotografiei." },
       { status: 400 }
     );
   }
