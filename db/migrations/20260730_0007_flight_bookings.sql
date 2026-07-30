@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS flight_bookings (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         uuid NOT NULL REFERENCES users(id),
-    provider        text NOT NULL CHECK (provider IN ('duffel','kiwi')),
+    provider        text NOT NULL CHECK (provider IN ('duffel','kiwi','amadeus')),
     provider_offer_id  text NOT NULL,
     provider_order_id  text,
     booking_ref     text,                      -- PNR / cod rezervare

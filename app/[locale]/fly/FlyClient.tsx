@@ -14,7 +14,7 @@ type Segment = { origin: string; destination: string; departAt: string; arriveAt
 type Slice = { origin: string; destination: string; durationMinutes?: number; segments: Segment[] };
 type Offer = {
   token: string;
-  provider: "duffel" | "kiwi";
+  provider: "duffel" | "kiwi" | "amadeus";
   totalCents: number;
   currency: string;
   slices: Slice[];
@@ -276,7 +276,7 @@ export default function FlyClient() {
                 </div>
               ))}
               <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-2 dark:border-neutral-800">
-                <span className="text-xs text-neutral-500">{o.carrierName || o.carrier} · {o.provider === "duffel" ? "emitere instant" : "via Kiwi"}</span>
+                <span className="text-xs text-neutral-500">{o.carrierName || o.carrier} · {o.provider === "duffel" ? "emitere instant" : o.provider === "amadeus" ? "via Amadeus" : "via Kiwi"}</span>
                 <span className="text-lg font-extrabold text-sky-600 dark:text-sky-400">{eur(o.totalCents, o.currency)}</span>
               </div>
             </button>
