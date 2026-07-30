@@ -140,6 +140,22 @@ export async function GET(req: Request) {
     try {
         const url = new URL(req.url);
         const productId = url.searchParams.get("product_id");
+        // Fără product_id: rezervările clientului logat.
+        if (!productId && url.searchParams.get("mine") === "1") {
+            const session = await getAuthSession().catch(() => null);
+            if (!session) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+            const { rows } = await dbQuery(
+                `SELECT b.id::text, b.check_in::text, b.check_out::text, b.guests_count,
+                        b.total_cents, b.currency, b.status, b.payment_status, b.created_at::text,
+                        p.title, p.image_url, p.location_city
+                   FROM stay_bookings b
+                   JOIN marketplace_products p ON p.id = b.product_id
+                  WHERE b.guest_user_id = $1
+                  ORDER BY b.created_at DESC LIMIT 50`,
+                [session.userId],
+            );
+            return NextResponse.json({ success: true, bookings: rows });
+        }
         if (!productId) {
             return NextResponse.json({ success: false, error: "product_id lipsă." }, { status: 400 });
         }

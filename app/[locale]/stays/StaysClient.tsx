@@ -251,7 +251,7 @@ export default function StaysClient() {
                     <p className="mb-3 text-xs text-neutral-500">verificate de echipa Swypik · plată securizată</p>
                     <div className="space-y-3">
                         {local.map((l) => (
-                            <div key={l.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                            <a key={l.id} href={`/stays/${l.id}`} className="block overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition active:scale-[0.99] dark:border-neutral-800 dark:bg-neutral-900">
                                 {l.image_url && (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img src={l.image_url} alt={l.title} className="h-40 w-full object-cover" loading="lazy" />
@@ -272,7 +272,7 @@ export default function StaysClient() {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                         ))}
                     </div>
                 </div>
