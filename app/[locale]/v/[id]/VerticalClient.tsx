@@ -40,6 +40,7 @@ interface FeedItem {
 const DEDICATED_PAGES: Record<string, string> = {
     eats: "/food",
     go: "/go",
+    fly: "/fly",
 };
 
 export default function VerticalClient({ vertical }: { vertical: Vertical }) {
