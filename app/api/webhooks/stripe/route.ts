@@ -567,6 +567,14 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   logger.info({ session_id: session.id }, "[Stripe Webhook] checkout completed");
 
+  // Swypik Fly: bilet de avion — fulfill separat, nu intră în commerce_orders.
+  const flyBookingId = session.metadata?.fly_booking_id;
+  if (flyBookingId) {
+    const { fulfillFlightBooking } = await import("@/lib/fly/booking");
+    await fulfillFlightBooking(flyBookingId);
+    return;
+  }
+
   const stripe = getStripe();
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
     limit: 20,
