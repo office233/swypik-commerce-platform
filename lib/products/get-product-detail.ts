@@ -291,8 +291,10 @@ export async function getProductDetail(
             OR ($3::text IS NOT NULL AND p.category = $3)
           )
         ORDER BY
-          COALESCE(p.orders_count_int, 0) DESC,
-          COALESCE(p.rating_numeric, 0) DESC,
+          COALESCE(NULLIF(p.metadata->>'orders_count', '')::numeric,
+                   NULLIF(p.metadata->>'ae_orders', '')::numeric, 0) DESC,
+          COALESCE(NULLIF(p.metadata->>'rating', '')::numeric,
+                   NULLIF(p.metadata->>'ae_rating', '')::numeric, 0) DESC,
           p.updated_at DESC
         LIMIT 8
       `,
@@ -300,7 +302,7 @@ export async function getProductDetail(
     ),
     taxonomyNodeSlugEarly
       ? dbQuery(
-          `WITH RECURSIVE chain AS (
+        `WITH RECURSIVE chain AS (
              SELECT slug, parent_slug, 0 AS depth FROM taxonomy_nodes WHERE slug = $1
              UNION ALL
              SELECT n.slug, n.parent_slug, c.depth + 1 FROM taxonomy_nodes n JOIN chain c ON n.slug = c.parent_slug
@@ -309,8 +311,8 @@ export async function getProductDetail(
            FROM chain c
            LEFT JOIN taxonomy_translations t ON t.node_slug = c.slug AND t.locale = 'ro'
            ORDER BY c.depth DESC`,
-          [taxonomyNodeSlugEarly],
-        ).catch(() => ({ rows: [] }))
+        [taxonomyNodeSlugEarly],
+      ).catch(() => ({ rows: [] }))
       : Promise.resolve({ rows: [] }),
   ]);
 
