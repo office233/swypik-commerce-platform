@@ -7,7 +7,7 @@
  * afișăm noul preț și cerem reconfirmare.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plane, ArrowRight, Loader2, Users, CalendarDays, Wallet, CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
 
 type Segment = { origin: string; destination: string; departAt: string; arriveAt: string; carrier: string; carrierName?: string; flightNumber?: string };
@@ -25,7 +25,8 @@ type Offer = {
 
 type Passenger = { givenName: string; familyName: string; bornOn: string; type: "adult" };
 
-const eur = (cents: number, currency = "EUR") =>
+// Prețurile vin deja în RON de la server; formatăm în lei (ro-RO).
+const eur = (cents: number, currency = "RON") =>
     new Intl.NumberFormat("ro-RO", { style: "currency", currency, maximumFractionDigits: 2 }).format(cents / 100);
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" });
@@ -34,11 +35,16 @@ const dur = (min?: number) => (min ? `${Math.floor(min / 60)}h ${min % 60}m` : "
 
 /** Logo companie aeriană după codul IATA (CDN public Duffel). */
 const airlineLogo = (iata: string) =>
-  `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${iata}.svg`;
+    `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${iata}.svg`;
 
-/** Imagine de fundal pentru destinație (Unsplash Source, fără cheie). */
-const destinationPhoto = (iata: string) =>
-  `https://source.unsplash.com/800x400/?${encodeURIComponent(iata)},city,travel`;
+type Deal = {
+    iata: string;
+    city: string;
+    country: string;
+    image: string;
+    fromCents: number | null;
+    currency: string;
+};
 
 export default function FlyClient() {
     const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -52,11 +58,27 @@ export default function FlyClient() {
     const [passengers, setPassengers] = useState<Passenger[]>([]);
     const [contact, setContact] = useState({ email: "", phone: "" });
     const [booking, setBooking] = useState(false);
-  const [filter, setFilter] = useState<"all" | "direct" | "cheap" | "fast">("all");
+    const [filter, setFilter] = useState<"all" | "direct" | "cheap" | "fast">("all");
     const [priceNotice, setPriceNotice] = useState<string | null>(null);
     const [success, setSuccess] = useState<{ bookingRef: string | null } | null>(null);
 
-    const search = useCallback(async () => {
+    // Destinații populare cu prețuri "de la" — cârligul care vinde.
+    // Randat doar după mount: `today`/`Date` diferă între server și client
+    // și ar provoca hydration mismatch (secțiunea ar dispărea).
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    const [deals, setDeals] = useState<Deal[] | null>(null);
+    useEffect(() => {
+        fetch("/api/fly/deals?origin=OTP")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((j) => j && setDeals(j.deals))
+            .catch(() => { });
+    }, []);
+
+    const search = useCallback(async (destOverride?: string, departOverride?: string) => {
+        const destination = (destOverride ?? form.destination).trim().toUpperCase();
+        const departDate = departOverride ?? form.departDate;
+        if (destOverride) setForm((f) => ({ ...f, destination, departDate }));
         setLoading(true);
         setError(null);
         setOffers(null);
@@ -68,8 +90,8 @@ export default function FlyClient() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     origin: form.origin.trim().toUpperCase(),
-                    destination: form.destination.trim().toUpperCase(),
-                    departDate: form.departDate,
+                    destination,
+                    departDate,
                     returnDate: form.returnDate || null,
                     adults: form.adults,
                 }),
@@ -167,7 +189,7 @@ export default function FlyClient() {
                 </div>
                 <div>
                     <h1 className="text-xl font-bold">Swypik Fly</h1>
-                    <p className="text-xs text-neutral-500">Zboruri la preț net + 2€. Fără comisioane ascunse.</p>
+                    <p className="text-xs text-neutral-500">Zboruri la preț net + 10 lei. Prețuri în lei, fără comisioane ascunse.</p>
                 </div>
             </header>
 
@@ -225,7 +247,7 @@ export default function FlyClient() {
                         </select>
                     </label>
                     <button
-                        onClick={search}
+                        onClick={() => search()}
                         disabled={loading || form.origin.length !== 3 || form.destination.length !== 3}
                         className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2.5 font-semibold text-white shadow disabled:opacity-40"
                     >
@@ -252,9 +274,68 @@ export default function FlyClient() {
                 </div>
             )}
 
+            {/* Destinații populare — poze + prețuri "de la", ca să vândă singure */}
+            {mounted && !offers && !selected && !loading && (
+                <div className="mt-6">
+                    <div className="mb-3 flex items-end justify-between">
+                        <h2 className="text-lg font-bold">Destinații populare din București</h2>
+                        <span className="text-[10px] text-neutral-400">prețuri live, actualizate zilnic</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        {(deals ?? Array.from({ length: 6 }, () => null)).map((d, i) =>
+                            d ? (
+                                <button
+                                    key={d.iata}
+                                    onClick={() => search(d.iata)}
+                                    className="group relative aspect-[4/3] overflow-hidden rounded-2xl text-left shadow-sm transition active:scale-[0.98]"
+                                >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={d.image}
+                                        alt={d.city}
+                                        className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                        loading={i < 4 ? "eager" : "lazy"}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                                        <p className="text-sm font-bold text-white drop-shadow">{d.city}</p>
+                                        <p className="text-[10px] text-white/80">{d.country}</p>
+                                        {d.fromCents !== null && (
+                                            <p className="mt-1 inline-block rounded-full bg-white/95 px-2 py-0.5 text-xs font-extrabold text-sky-700">
+                                                de la {eur(d.fromCents, d.currency)}
+                                            </p>
+                                        )}
+                                    </div>
+                                </button>
+                            ) : (
+                                <div key={i} className="aspect-[4/3] animate-pulse rounded-2xl bg-neutral-200 dark:bg-neutral-800" />
+                            ),
+                        )}
+                    </div>
+                    <p className="mt-3 text-center text-[10px] text-neutral-400">
+                        Atinge o destinație și vezi toate zborurile — prețul final, fără taxe ascunse.
+                    </p>
+                </div>
+            )}
+
             {/* Rezultate */}
             {offers && !selected && (
                 <div className="mt-5 space-y-3">
+                    {/* Hero destinație — poza vinde */}
+                    {(() => {
+                        const deal = deals?.find((d) => d.iata === form.destination.toUpperCase());
+                        return deal ? (
+                            <div className="relative h-32 overflow-hidden rounded-2xl">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={deal.image} alt={deal.city} className="absolute inset-0 h-full w-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                <div className="absolute bottom-3 left-4">
+                                    <p className="text-xl font-extrabold text-white drop-shadow">{deal.city}</p>
+                                    <p className="text-xs text-white/85">{form.origin.toUpperCase()} → {deal.iata} · {form.departDate}</p>
+                                </div>
+                            </div>
+                        ) : null;
+                    })()}
                     <div className="flex items-center gap-2 overflow-x-auto pb-1">
                         {([
                             ["all", `Toate (${offers.length})`],
@@ -274,16 +355,16 @@ export default function FlyClient() {
                     <p className="text-xs text-neutral-500">{offers.length} zboruri găsite · totalul include tot, fără costuri ascunse</p>
                     {offers.length === 0 && <p className="rounded-xl bg-neutral-100 p-4 text-sm dark:bg-neutral-800">Niciun zbor pe ruta/data aleasă.</p>}
                     {(filter === "direct"
-            ? offers.filter((o) => o.stops === 0)
-            : filter === "cheap"
-              ? [...offers].sort((a, b) => a.totalCents - b.totalCents).slice(0, 20)
-              : filter === "fast"
-                ? [...offers].sort(
-                    (a, b) =>
-                      (a.slices[0]?.durationMinutes ?? 9999) - (b.slices[0]?.durationMinutes ?? 9999),
-                  ).slice(0, 20)
-                : offers
-          ).map((o) => (
+                        ? offers.filter((o) => o.stops === 0)
+                        : filter === "cheap"
+                            ? [...offers].sort((a, b) => a.totalCents - b.totalCents).slice(0, 20)
+                            : filter === "fast"
+                                ? [...offers].sort(
+                                    (a, b) =>
+                                        (a.slices[0]?.durationMinutes ?? 9999) - (b.slices[0]?.durationMinutes ?? 9999),
+                                ).slice(0, 20)
+                                : offers
+                    ).map((o) => (
                         <button
                             key={o.token}
                             onClick={() => startCheckout(o)}

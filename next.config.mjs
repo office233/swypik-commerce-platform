@@ -38,6 +38,7 @@ const cspReportOnly = `
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: process.env.NEXT_BUILD_STANDALONE === "1" ? "standalone" : undefined,
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   eslint: {
     ignoreDuringBuilds: false,

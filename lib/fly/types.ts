@@ -41,6 +41,8 @@ export type FlightOffer = {
     offerId: string;
     /** Cost real la furnizor, în cenți. */
     providerTotalCents: number;
+    /** Moneda în care ne facturează furnizorul (EUR/GBP/USD…). */
+    providerCurrency: string;
     /** Markup Swypik aplicat (cenți). */
     markupCents: number;
     /** Ce plătește clientul (cenți). */

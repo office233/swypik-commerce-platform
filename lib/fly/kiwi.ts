@@ -58,6 +58,7 @@ function mapItinerary(it: any, currency: string): FlightOffer {
         provider: "kiwi",
         offerId: it.booking_token,
         providerTotalCents,
+        providerCurrency: currency,
         markupCents: markup,
         totalCents: providerTotalCents + markup,
         currency,

@@ -27,6 +27,31 @@ const PROVIDERS: FlightProvider[] = [duffelProvider, kiwiProvider];
 const CACHE_TTL_SECONDS = 15 * 60;
 const cacheKey = (token: string) => `fly:offer:${token}`;
 
+/**
+ * Fallback in-memory pentru cazul în care Redis lipsește (dev) sau pică.
+ * Fără el, checkout-ul ar răspunde mereu "ofertă expirată".
+ * În producdev cu mai multe instanțe, Redis rămâne sursa principală.
+ */
+const memCache = new Map<string, { offer: FlightOffer; expiresAt: number }>();
+
+function memSet(token: string, offer: FlightOffer): void {
+    memCache.set(token, { offer, expiresAt: Date.now() + CACHE_TTL_SECONDS * 1000 });
+    if (memCache.size > 5000) {
+        const now = Date.now();
+        for (const [k, v] of memCache) if (v.expiresAt < now) memCache.delete(k);
+    }
+}
+
+function memGet(token: string): FlightOffer | null {
+    const hit = memCache.get(token);
+    if (!hit) return null;
+    if (hit.expiresAt < Date.now()) {
+        memCache.delete(token);
+        return null;
+    }
+    return hit.offer;
+}
+
 export function activeProviders(): FlightProvider[] {
     return PROVIDERS.filter((p) => p.isConfigured());
 }
@@ -80,23 +105,27 @@ export async function searchFlights(params: FlightSearchParams): Promise<SearchR
 }
 
 export async function cacheOffer(token: string, offer: FlightOffer): Promise<void> {
+    memSet(token, offer);
+    if (!process.env.REDIS_URL) return; // dev fără Redis — doar memorie
     try {
         const redis = getRedis();
         await redis.set(cacheKey(token), JSON.stringify(offer), "EX", CACHE_TTL_SECONDS);
     } catch (err) {
-        logger.warn({ err }, "fly: offer cache write failed");
+        logger.warn({ err }, "fly: offer cache write failed (fallback memorie)");
     }
 }
 
 export async function getCachedOffer(token: string): Promise<FlightOffer | null> {
-    try {
-        const redis = getRedis();
-        const raw = await redis.get(cacheKey(token));
-        return raw ? (JSON.parse(raw) as FlightOffer) : null;
-    } catch (err) {
-        logger.warn({ err }, "fly: offer cache read failed");
-        return null;
+    if (process.env.REDIS_URL) {
+        try {
+            const redis = getRedis();
+            const raw = await redis.get(cacheKey(token));
+            if (raw) return JSON.parse(raw) as FlightOffer;
+        } catch (err) {
+            logger.warn({ err }, "fly: offer cache read failed (fallback memorie)");
+        }
     }
+    return memGet(token);
 }
 
 function providerFor(id: ProviderId): FlightProvider {

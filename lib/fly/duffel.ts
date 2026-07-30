@@ -6,6 +6,7 @@
  * Prețuri: total_amount este string decimal → convertit în cenți.
  */
 import { logger } from "@/lib/logger";
+import { toRonCents, DISPLAY_CURRENCY } from "./fx";
 import {
     CreateOrderInput,
     CreateOrderResult,
@@ -42,9 +43,13 @@ function minutesBetween(a: string, b: string): number {
     return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 60000);
 }
 
-function mapOffer(o: any): FlightOffer {
+async function mapOffer(o: any): Promise<FlightOffer> {
     const providerTotalCents = toCents(o.total_amount);
     const markup = markupCents();
+    const providerCurrency = o.total_currency ?? "EUR";
+    // Afișăm și încasăm totul în RON: cost furnizor convertit + markup (2€ → RON).
+    const ronTotal = await toRonCents(providerTotalCents, providerCurrency);
+    const ronMarkup = await toRonCents(markup, "EUR");
     const slices = (o.slices ?? []).map((s: any) => ({
         origin: s.origin?.iata_code ?? "",
         destination: s.destination?.iata_code ?? "",
@@ -67,9 +72,10 @@ function mapOffer(o: any): FlightOffer {
         provider: "duffel",
         offerId: o.id,
         providerTotalCents,
-        markupCents: markup,
-        totalCents: providerTotalCents + markup,
-        currency: o.total_currency ?? "EUR",
+        providerCurrency,
+        markupCents: ronMarkup,
+        totalCents: ronTotal + ronMarkup,
+        currency: DISPLAY_CURRENCY,
         slices,
         stops,
         carrier: o.owner?.iata_code ?? "",
@@ -125,7 +131,7 @@ export const duffelProvider: FlightProvider = {
             return [];
         }
         const offers: any[] = r.data.offers ?? [];
-        return offers.slice(0, params.maxResults ?? 200).map(mapOffer);
+        return Promise.all(offers.slice(0, params.maxResults ?? 200).map(mapOffer));
     },
 
     async priceCheck(offer: FlightOffer): Promise<PriceCheckResult> {
@@ -133,7 +139,7 @@ export const duffelProvider: FlightProvider = {
         if (!r.ok || !r.data) {
             return { ok: false, reason: r.status === 404 ? "expired" : "provider_error" };
         }
-        const fresh = mapOffer(r.data);
+        const fresh = await mapOffer(r.data);
         if (fresh.expiresAt && new Date(fresh.expiresAt).getTime() < Date.now()) {
             return { ok: false, reason: "expired" };
         }
@@ -165,7 +171,8 @@ export const duffelProvider: FlightProvider = {
                     {
                         type: "balance",
                         amount: (input.offer.providerTotalCents / 100).toFixed(2),
-                        currency: input.offer.currency,
+                        // Plătim furnizorul în moneda LUI (EUR/GBP…), nu în RON-ul afișat clientului.
+                        currency: input.offer.providerCurrency ?? input.offer.currency,
                     },
                 ],
             },
