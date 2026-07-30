@@ -85,7 +85,7 @@ export default function MyModes() {
       badgeTone: status === "approved" ? "ok" : status === "rejected" ? "bad" : "warn",
     });
   }
-  // Fără profil de curier nu afișăm modul (nu există încă pagină de înrolare în app).
+  const hasAnyPartnerMode = Boolean(me?.sellerId) || Boolean(courier);
 
   const toneClass = (tone?: Mode["badgeTone"]) =>
     tone === "ok"
@@ -126,6 +126,14 @@ export default function MyModes() {
           );
         })}
       </ul>
+      {!hasAnyPartnerMode && (
+        <Link
+          href="/join"
+          className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 py-3 text-sm font-black text-white/70 transition hover:border-white/40 hover:text-white"
+        >
+          + {t("becomePartner")}
+        </Link>
+      )}
     </section>
   );
 }

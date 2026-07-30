@@ -338,7 +338,38 @@ function LoginForm({ nextPath }: { nextPath: string }) {
           privacy: (c) => <Link href="/privacy" className="inline-block min-h-[44px] py-2.5 underline hover:text-white/70 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded">{c}</Link>,
         })}
       </p>
+
+      <PartnerLinks />
     </section>
+  );
+}
+
+/** Intrări către înrolarea ca partener: vânzător, flotă Go, flotă Food. */
+function PartnerLinks() {
+  const t = useTranslations("join");
+  const items = [
+    { href: "/become-a-seller", label: t("navSeller"), emoji: "🏪" },
+    { href: "/join/fleet?kind=driver", label: t("navGo"), emoji: "🚕" },
+    { href: "/join/fleet?kind=courier", label: t("navFood"), emoji: "🛵" },
+  ];
+  return (
+    <div className="mt-6 border-t border-white/10 pt-5">
+      <p className="text-center text-[11px] font-extrabold uppercase tracking-widest text-white/40">
+        {t("partnerHeading")}
+      </p>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {items.map((i) => (
+          <Link
+            key={i.href}
+            href={i.href}
+            className="flex flex-col items-center gap-1 rounded-2xl bg-white/5 px-2 py-3 text-center text-[11px] font-bold text-white/80 transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
+          >
+            <span className="text-lg" aria-hidden>{i.emoji}</span>
+            {i.label}
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -595,6 +626,8 @@ function SignupWizard({ nextPath }: { nextPath: string }) {
           privacy: (c) => <Link href="/privacy" className="inline-block min-h-[44px] py-2.5 underline hover:text-white/70 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none rounded">{c}</Link>,
         })}
       </p>
+
+      <PartnerLinks />
     </section>
   );
 }
