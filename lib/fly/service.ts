@@ -12,7 +12,7 @@ import { getRedis } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { duffelProvider } from "./duffel";
 import { kiwiProvider } from "./kiwi";
-import { amadeusProvider } from "./amadeus";
+import { travelpayoutsProvider } from "./travelpayouts";
 import {
   CreateOrderInput,
   CreateOrderResult,
@@ -23,7 +23,7 @@ import {
   ProviderId,
 } from "./types";
 
-const PROVIDERS: FlightProvider[] = [duffelProvider, kiwiProvider, amadeusProvider];
+const PROVIDERS: FlightProvider[] = [duffelProvider, kiwiProvider, travelpayoutsProvider];
 const CACHE_TTL_SECONDS = 15 * 60;
 const cacheKey = (token: string) => `fly:offer:${token}`;
 

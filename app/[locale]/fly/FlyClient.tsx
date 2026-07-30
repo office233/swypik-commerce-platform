@@ -14,13 +14,14 @@ type Segment = { origin: string; destination: string; departAt: string; arriveAt
 type Slice = { origin: string; destination: string; durationMinutes?: number; segments: Segment[] };
 type Offer = {
   token: string;
-  provider: "duffel" | "kiwi" | "amadeus";
+  provider: "duffel" | "kiwi" | "travelpayouts";
   totalCents: number;
   currency: string;
   slices: Slice[];
   stops: number;
   carrier: string;
   carrierName?: string;
+  raw?: { deepLink?: string };
 };
 
 type Passenger = { givenName: string; familyName: string; bornOn: string; type: "adult" };
@@ -76,6 +77,11 @@ export default function FlyClient() {
   }, [form]);
 
   const startCheckout = (offer: Offer) => {
+    if (offer.provider === "travelpayouts") {
+      // Low-cost: rezervarea se face la partener prin link afiliat (comision Swypik).
+      if (offer.raw?.deepLink) window.open(offer.raw.deepLink, "_blank", "noopener");
+      return;
+    }
     setSelected(offer);
     setPriceNotice(null);
     setSuccess(null);
@@ -276,7 +282,7 @@ export default function FlyClient() {
                 </div>
               ))}
               <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-2 dark:border-neutral-800">
-                <span className="text-xs text-neutral-500">{o.carrierName || o.carrier} · {o.provider === "duffel" ? "emitere instant" : o.provider === "amadeus" ? "via Amadeus" : "via Kiwi"}</span>
+                <span className="text-xs text-neutral-500">{o.carrierName || o.carrier} · {o.provider === "duffel" ? "emitere instant" : o.provider === "travelpayouts" ? "rezervare la partener" : "via Kiwi"}</span>
                 <span className="text-lg font-extrabold text-sky-600 dark:text-sky-400">{eur(o.totalCents, o.currency)}</span>
               </div>
             </button>
