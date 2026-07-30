@@ -5,9 +5,10 @@
  * Înregistrat de components/pwa/ServiceWorkerRegistrar.tsx.
  */
 
-const CACHE_NAME = "swypik-shell-v1";
+const CACHE_NAME = "swypik-shell-v2";
 const SHELL_ASSETS = [
   "/",
+  "/offline.html",
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
@@ -52,7 +53,12 @@ self.addEventListener("fetch", (event) => {
         }
         return res;
       })
-      .catch(() => caches.match(req).then((hit) => hit || caches.match("/")))
+      .catch(() =>
+        caches
+          .match(req)
+          .then((hit) => hit || caches.match("/offline.html"))
+          .then((hit) => hit || caches.match("/")),
+      )
       .then((res) => res || Response.error()),
   );
 });
