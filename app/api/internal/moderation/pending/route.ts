@@ -84,7 +84,7 @@ export async function GET(req: Request) {
 
         if (type === "all" || type === "courier") {
             const { rows } = await dbQuery<any>(
-                `SELECT id, user_id, vehicle_type, verification_status, created_at,
+                `SELECT id, user_id, full_name, vehicle_type, verification_status, created_at,
                         phone, city
                    FROM couriers
                   WHERE verification_status IN ('pending', 'in_review')
@@ -93,7 +93,7 @@ export async function GET(req: Request) {
             );
             for (const r of rows) {
                 items.push({
-                    type: "courier", id: String(r.id), name: `Curier ${String(r.id).slice(0, 8)}`,
+                    type: "courier", id: String(r.id), name: r.full_name || `Curier ${String(r.id).slice(0, 8)}`,
                     status: r.verification_status, created_at: r.created_at,
                     detail: { user_id: r.user_id, vehicle_type: r.vehicle_type, phone: r.phone, city: r.city },
                 });
@@ -102,8 +102,8 @@ export async function GET(req: Request) {
 
         if (type === "all" || type === "cause") {
             const { rows } = await dbQuery<any>(
-                `SELECT id, title, verification_status, created_at, category,
-                        beneficiary_name, target_amount_cents
+                `SELECT id, name, verification_status, created_at, kind,
+                        legal_id, contact_name, contact_email
                    FROM donation_causes
                   WHERE verification_status IN ('pending', 'in_review')
                   ORDER BY created_at ASC LIMIT $1`,
@@ -111,11 +111,11 @@ export async function GET(req: Request) {
             );
             for (const r of rows) {
                 items.push({
-                    type: "cause", id: String(r.id), name: r.title,
+                    type: "cause", id: String(r.id), name: r.name,
                     status: r.verification_status, created_at: r.created_at,
                     detail: {
-                        category: r.category, beneficiary: r.beneficiary_name,
-                        target_amount_cents: r.target_amount_cents,
+                        kind: r.kind, legal_id: r.legal_id,
+                        contact_name: r.contact_name, contact_email: r.contact_email,
                     },
                 });
             }
