@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 import { getRedis } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { duffelProvider } from "./duffel";
+import { getRouteMarkupRonCents } from "./repricing";
 import { kiwiProvider } from "./kiwi";
 
 import {
@@ -92,7 +93,23 @@ export async function searchFlights(params: FlightSearchParams): Promise<SearchR
         if (!existing || o.totalCents < existing.totalCents) best.set(k, o);
     }
 
-    const sorted = [...best.values()].sort((a, b) => a.totalCents - b.totalCents);
+    // Repricing: dacă avem marjă redusă pe rută (piața ne-a bătut), o aplicăm
+    // în locul marjei standard — clientul vede direct prețul mai mic.
+    let adjusted = [...best.values()];
+    try {
+        const override = await getRouteMarkupRonCents(params.origin, params.destination);
+        if (override !== null) {
+            adjusted = adjusted.map((o) => ({
+                ...o,
+                totalCents: o.totalCents - o.markupCents + override,
+                markupCents: override,
+            }));
+        }
+    } catch (err) {
+        logger.warn({ err }, "fly: route markup lookup failed (marja standard)");
+    }
+
+    const sorted = adjusted.sort((a, b) => a.totalCents - b.totalCents);
     const withTokens = await Promise.all(
         sorted.slice(0, params.maxResults ?? 200).map(async (o) => {
             const token = randomUUID();
@@ -142,7 +159,33 @@ export async function priceCheck(token: string): Promise<PriceCheckResult & { to
     const cached = await getCachedOffer(token);
     if (!cached) return { ok: false, reason: "expired", token };
     const result = await providerFor(cached.provider).priceCheck(cached);
-    if (result.ok && result.offer) await cacheOffer(token, result.offer);
+    if (result.ok && result.offer) {
+        // Păstrăm marja pe rută (repricing) și la revalidare, altfel clientul
+        // ar vedea artificial "prețul a crescut" la checkout.
+        try {
+            const slice = result.offer.slices[0];
+            const override = slice
+                ? await getRouteMarkupRonCents(slice.origin, slice.destination)
+                : null;
+            if (override !== null && result.offer.markupCents !== override) {
+                const adjusted = {
+                    ...result.offer,
+                    totalCents: result.offer.totalCents - result.offer.markupCents + override,
+                    markupCents: override,
+                };
+                const delta = adjusted.totalCents - cached.totalCents;
+                await cacheOffer(token, adjusted);
+                return {
+                    ...result,
+                    offer: adjusted,
+                    deltaCents: delta,
+                    reason: delta !== 0 ? "price_changed" : undefined,
+                    token,
+                };
+            }
+        } catch { /* marja standard */ }
+        await cacheOffer(token, result.offer);
+    }
     return { ...result, token };
 }
 

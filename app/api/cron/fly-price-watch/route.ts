@@ -16,6 +16,7 @@ import { timingSafeEqual } from "crypto";
 import { duffelProvider } from "@/lib/fly/duffel";
 import { getMarketMin, isMarketConfigured } from "@/lib/fly/market";
 import { POPULAR_DESTINATIONS } from "@/lib/fly/destinations";
+import { setRouteMarkup, clearRouteMarkup, minMarkupRonCents } from "@/lib/fly/repricing";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ async function GET_impl(req: NextRequest) {
             const departDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
             let scanned = 0;
             let beaten = 0;
+            let repriced = 0;
             const alerts: string[] = [];
 
             for (const d of POPULAR_DESTINATIONS) {
@@ -94,6 +96,24 @@ async function GET_impl(req: NextRequest) {
                         const msg = `${ORIGIN}→${d.iata}: noi ${(ourMin! / 100).toFixed(2)} RON vs piață ${(market!.minCents / 100).toFixed(2)} RON (+${(delta / 100).toFixed(2)})`;
                         alerts.push(msg);
                         logger.warn({ route: `${ORIGIN}-${d.iata}`, delta }, `fly price-watch: BĂTUȚI — ${msg}`);
+
+                        // REPRICING AUTOMAT: scădem marja cât să fim cu 1 leu
+                        // sub piață, dar niciodată sub marja minimă.
+                        const standardMarkup = offers[0]?.markupCents ?? 0;
+                        const neededMarkup = standardMarkup - delta - 100; // -1 leu sub piață
+                        const newMarkup = Math.max(minMarkupRonCents(), neededMarkup);
+                        if (newMarkup < standardMarkup) {
+                            await setRouteMarkup(ORIGIN, d.iata, newMarkup, `beaten_by_market:${market!.source}`);
+                            repriced++;
+                            logger.info(
+                                { route: `${ORIGIN}-${d.iata}`, newMarkup },
+                                `fly price-watch: REPRICED — marjă ${(newMarkup / 100).toFixed(2)} RON`,
+                            );
+                        }
+                    } else if (delta !== null && delta <= 0) {
+                        // Suntem mai ieftini — dacă există override vechi, îl ștergem
+                        // treptat (revenim la marja standard doar dacă avem >5 lei avans).
+                        if (delta <= -500) await clearRouteMarkup(ORIGIN, d.iata);
                     }
                 } catch (err) {
                     logger.warn({ err, dest: d.iata }, "fly price-watch: scan failed for route");
@@ -103,6 +123,7 @@ async function GET_impl(req: NextRequest) {
             return {
                 scanned,
                 beaten,
+                repriced,
                 market_configured: isMarketConfigured(),
                 depart_date: departDate,
                 alerts,
