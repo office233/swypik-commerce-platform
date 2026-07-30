@@ -27,6 +27,7 @@ import { RideStatusPatchSchema } from "@/lib/validation/rides";
 import { parseBody } from "@/lib/validation/schemas";
 import { settleRide } from "@/lib/payments/mobility";
 import { captureRidePayment, cancelRideAuthorization } from "@/lib/payments/mobility-stripe";
+import { sendPushToUser } from "@/lib/push/send";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -47,7 +48,7 @@ export async function PATCH(
   const body = await req.json().catch(() => null);
   const parsed = parseBody(RideStatusPatchSchema, body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-  const { status: to, reason } = parsed.data;
+  const { status: to, reason, cancel_reason: cancelReason } = parsed.data;
 
   const ride = await loadRide(id);
   if (!ride) return NextResponse.json({ error: "Cursa nu există." }, { status: 404 });
@@ -85,7 +86,8 @@ export async function PATCH(
         `UPDATE rides
             SET status='completed', completed_at = now(), updated_at = now(),
                 final_fare_cents = $2, distance_km = $3, duration_min = $4,
-                fare_breakdown = $5
+                fare_breakdown = $5,
+                share_expires_at = now() + interval '1 hour'
           WHERE id = $1`,
         [id, fare.final_fare_cents, fare.distance_km, fare.duration_min, JSON.stringify(fare.breakdown)],
       );
@@ -113,12 +115,15 @@ export async function PATCH(
     // cancelled
     const zone = await findZone(fresh.city, "ride", fresh.vehicle_class).catch(() => null);
     const fee = role === "rider" ? cancelFeeCents(fresh, zone) : 0;
+    // Motivul: cod structurat (enum) + eventual text liber pentru 'other'.
+    const reasonText = [cancelReason, reason].filter(Boolean).join(": ") || null;
     await q(
       `UPDATE rides
           SET status='cancelled', cancelled_at = now(), updated_at = now(),
-              cancel_reason = $2, cancelled_by = $3, cancel_fee_cents = $4
+              cancel_reason = $2, cancelled_by = $3, cancel_fee_cents = $4,
+              share_expires_at = now() + interval '1 hour'
         WHERE id = $1`,
-      [id, reason ?? null, role === "admin" ? "system" : role, fee],
+      [id, reasonText, role === "admin" ? "system" : role, fee],
     );
     await q(
       `UPDATE dispatch_jobs SET status = 'cancelled', updated_at = now()
@@ -149,6 +154,15 @@ export async function PATCH(
       cancelRideAuthorization(id).catch((err) =>
         log.warn({ err, rideId: id }, "cancel ride authorization failed"),
       );
+    }
+
+    // Push best-effort către rider la 'arriving' (șoferul a ajuns la pickup).
+    if (result.status === "arriving" && ride.rider_user_id) {
+      void sendPushToUser(ride.rider_user_id, {
+        title: "Șoferul a ajuns 🚗",
+        body: "Te așteaptă la punctul de plecare.",
+        url: `/go/${id}`,
+      }).catch((err) => log.warn({ err, rideId: id }, "push arriving failed"));
     }
 
   await publishRideEvent(ride, { type: "status", ride_id: id, ...result });
