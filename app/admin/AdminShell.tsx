@@ -35,6 +35,7 @@ import {
   LogOut,
   ChevronLeft,
   Truck,
+  BedDouble,
 } from "lucide-react";
 
 type NavItem = {
@@ -87,6 +88,7 @@ const sections: NavSection[] = [
       { href: "/admin/creators", label: "Creators", icon: UserCheck },
       { href: "/admin/sellers", label: "Selleri", icon: Briefcase },
       { href: "/admin/applications", label: "Aplicații", icon: FileText },
+      { href: "/admin/hosts", label: "Gazde Stays", icon: BedDouble },
       { href: "/admin/fleet", label: "Flotă", icon: Truck },
     ],
   },
