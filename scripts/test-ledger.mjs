@@ -121,30 +121,30 @@ try {
     `SELECT balance_cents FROM wallet_balances WHERE user_id=$1`, [userId]);
   assert(Number(rows[0].balance_cents) === 500, `sold = 500 după creditare idempotentă (e ${rows[0].balance_cents})`);
 
-  // 2. 20 creditări concurente cu ref-uri diferite × 100 cents
+  // 2. 100 creditări concurente cu ref-uri diferite × 100 cents
   await Promise.all(
-    Array.from({ length: 20 }, () =>
+    Array.from({ length: 100 }, () =>
       applyEntry("credit", { userId, amountCents: 100, refType: "test_reward", refId: randomUUID() }),
     ),
   );
   ({ rows } = await pool.query(
     `SELECT balance_cents FROM wallet_balances WHERE user_id=$1`, [userId]));
-  assert(Number(rows[0].balance_cents) === 2500, `sold = 2500 după 20 creditări concurente (e ${rows[0].balance_cents})`);
+  assert(Number(rows[0].balance_cents) === 10_500, `sold = 10500 după 100 creditări concurente (e ${rows[0].balance_cents})`);
 
   // 3. Debit valid + debit peste sold
   const d1 = await applyEntry("debit", { userId, amountCents: 2000, refType: "test_spend", refId: randomUUID() });
   assert(d1.alreadyApplied === false, "debit 2000 acceptat");
-  const d2 = await applyEntry("debit", { userId, amountCents: 10_000, refType: "test_spend", refId: randomUUID() });
+  const d2 = await applyEntry("debit", { userId, amountCents: 100_000, refType: "test_spend", refId: randomUUID() });
   assert(d2.error === "insufficient_funds", "debit peste sold refuzat");
   ({ rows } = await pool.query(
     `SELECT balance_cents FROM wallet_balances WHERE user_id=$1`, [userId]));
-  assert(Number(rows[0].balance_cents) === 500, `sold final = 500 (e ${rows[0].balance_cents})`);
+  assert(Number(rows[0].balance_cents) === 8_500, `sold final = 8500 (e ${rows[0].balance_cents})`);
 
   // 4. Ledger-ul e consistent: sum(credit)-sum(debit) == sold
   ({ rows } = await pool.query(
     `SELECT COALESCE(SUM(CASE WHEN kind='credit' THEN amount_cents ELSE -amount_cents END),0) AS s
        FROM wallet_ledger_entries WHERE user_id=$1`, [userId]));
-  assert(Number(rows[0].s) === 500, "suma ledger == sold");
+  assert(Number(rows[0].s) === 8_500, "suma ledger == sold");
 } finally {
   await pool.query(`DELETE FROM users WHERE id=$1`, [userId]); // cascade curăță wallet+ledger
   await pool.end();
