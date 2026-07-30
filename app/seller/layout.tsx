@@ -6,6 +6,8 @@ const sellerNavItems = [
   { href: "/seller", icon: "📊", label: "Dashboard" },
   { href: "/seller/products", icon: "📦", label: "Produsele mele" },
   { href: "/seller/orders", icon: "🛍️", label: "Comenzi" },
+  { href: "/seller/merchant", icon: "🍕", label: "Local & livrări" },
+  { href: "/seller/cazari", icon: "🏠", label: "Cazări" },
   { href: "/seller/payouts", icon: "💰", label: "Payouts" },
   { href: "/seller/returns", icon: "↩️", label: "Retururi" },
   { href: "/seller/settings", icon: "⚙️", label: "Setări" },

@@ -55,7 +55,7 @@ export async function POST(req: Request) {
         let offers: unknown[] = [];
         if (d.online) {
             const { rows: pending } = await dbQuery(
-                `SELECT o.id AS offer_id, o.expires_at, lo.order_number, lo.delivery_address,
+                `SELECT o.id AS offer_id, o.order_id, o.expires_at, lo.order_number, lo.delivery_address,
                 m.name AS merchant_name, m.address AS pickup_address,
                 lo.delivery_fee_cents, lo.currency
            FROM dispatch_offers o

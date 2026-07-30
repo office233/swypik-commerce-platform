@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { isEnabledClient } from "@/lib/feature-flags-client";
+import SelenaAssistant from "./SelenaAssistant";
 
 type RecentOrder = {
   orderId: string;
@@ -113,6 +114,8 @@ export default function SellerDashboardPage() {
           </button>
         </div>
       )}
+
+      <SelenaAssistant />
 
       {isEnabledClient('stripeConnect') && !loading && !error && !data.stripeConnected && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-r-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

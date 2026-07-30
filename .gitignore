@@ -43,3 +43,6 @@ playwright/.cache/
 MEMORY.md
 .cache/
 .backups/
+
+build.log
+build.ok
