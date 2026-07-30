@@ -7,10 +7,12 @@
  * GET  /api/rides — istoric curse ale riderului logat (paginat).
  */
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { estimate } from "@/lib/pricing/engine";
+import { resolveRideCity, NoZoneError } from "@/lib/rides/city";
 import { createJob } from "@/lib/dispatch/engine";
 import { RideCreateSchema } from "@/lib/validation/rides";
 import { parseBody } from "@/lib/validation/schemas";
@@ -50,9 +52,11 @@ export async function POST(req: Request) {
     }
 
     let est;
+    let city: string;
     try {
+        city = await resolveRideCity(input.pickup, input.vehicle_class, input.country);
         est = await estimate({
-            city: input.city,
+            city,
             country: input.country,
             kind: "ride",
             vehicle_class: input.vehicle_class,
@@ -60,9 +64,9 @@ export async function POST(req: Request) {
             dropoff: { lat: input.dropoff.lat, lng: input.dropoff.lng },
         });
     } catch (err) {
-        if ((err as Error).message === "no_zone") {
+        if (err instanceof NoZoneError || (err as Error).message === "no_zone") {
             return NextResponse.json(
-                { error: "Swypik Go nu e încă disponibil în orașul tău." },
+                { error: "Swypik Go nu e disponibil încă în zona ta.", code: "no_zone" },
                 { status: 422 },
             );
         }
@@ -76,12 +80,12 @@ export async function POST(req: Request) {
         dropoff_address, dropoff_lat, dropoff_lng,
         status, estimated_fare_cents, currency,
         distance_km, duration_min, surge_multiplier, fare_breakdown,
-        payment_method)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'requested',$10,$11,$12,$13,$14,$15,$16)
+          payment_method, share_token)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'requested',$10,$11,$12,$13,$14,$15,$16,$17)
      RETURNING id`,
         [
             session.userId,
-            input.city,
+            city,
             input.vehicle_class,
             input.pickup.address,
             input.pickup.lat,
@@ -96,6 +100,7 @@ export async function POST(req: Request) {
             est.breakdown.surge_multiplier,
             JSON.stringify(est.breakdown),
             input.payment_method,
+            randomBytes(16).toString("hex"),
         ],
     );
     const rideId = rows[0].id;
@@ -104,7 +109,7 @@ export async function POST(req: Request) {
     const { job, offered } = await createJob({
         kind: "ride",
         rideId,
-        city: input.city,
+        city,
         pickupLat: input.pickup.lat,
         pickupLng: input.pickup.lng,
     });

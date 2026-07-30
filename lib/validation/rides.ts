@@ -30,7 +30,9 @@ export const RideEstimateSchema = z.object({
   pickup: PointSchema,
   dropoff: PointSchema,
   vehicle_class: z.enum(VEHICLE_CLASSES).default("economy"),
-  city: z.string().trim().min(2).max(120).default("București"),
+  // city NU mai vine de la client — e derivat server-side din pickup
+  // (reverse geocoding). Îl acceptăm în body doar pentru compat, dar îl ignorăm.
+  city: z.string().trim().max(120).optional(),
   country: z.string().trim().length(2).default("RO"),
 });
 
@@ -42,6 +44,9 @@ export const RideCreateSchema = RideEstimateSchema.extend({
 export const RideStatusPatchSchema = z.object({
   status: z.enum(["arriving", "in_progress", "completed", "cancelled"]),
   reason: z.string().trim().max(300).optional(),
+  cancel_reason: z
+    .enum(["wait_too_long", "wrong_address", "driver_not_coming", "changed_mind", "other"])
+    .optional(),
 });
 
 export const RideRatingSchema = z.object({
