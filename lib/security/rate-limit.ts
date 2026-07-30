@@ -188,6 +188,9 @@ export const RATE_LIMITS = {
   localOrders: { limit: 10, window: 300 } as RateLimitConfig,         // food orders per user
   stayBookings: { limit: 5, window: 600 } as RateLimitConfig,         // booking attempts
   donations: { limit: 10, window: 600 } as RateLimitConfig,           // Swypik Cares (per IP)
+    rideEstimate: { limit: 60, window: 60 } as RateLimitConfig,         // estimare tarif Go (re-estimări la drag pe hartă)
+    rideCreate: { limit: 10, window: 300 } as RateLimitConfig,          // creare curse per user
+    rideAction: { limit: 60, window: 60 } as RateLimitConfig,           // tranziții status / rating / anulare
 } as const;
 
 /**
