@@ -1,4 +1,5 @@
 import { dbQuery } from "@/lib/db";
+import { getCreatorBadges, type CreatorBadges } from "@/lib/social/creator-badges";
 
 export type UserProfileQuery = <T = any>(
   text: string,
@@ -20,6 +21,20 @@ export type PublicUserVideo = {
   publishedAt: string | null;
 };
 
+export type CreatorLink = {
+  label: string;
+  url: string;
+};
+
+export type PromotedProduct = {
+  id: string;
+  title: string;
+  imageUrl: string | null;
+  priceCents: number | null;
+  currency: string;
+  productUrl: string | null;
+};
+
 export type PublicUserProfile = {
   profile: {
     id: string;
@@ -31,6 +46,8 @@ export type PublicUserProfile = {
     isVerified: boolean;
     isFollowing: boolean;
     isOwnProfile: boolean;
+    links: CreatorLink[];
+    categories: string[];
   };
   stats: {
     videos: number;
@@ -40,6 +57,8 @@ export type PublicUserProfile = {
     likes: number;
     comments: number;
   };
+  badges: CreatorBadges;
+  promotedProducts: PromotedProduct[];
   videos: PublicUserVideo[];
 };
 
@@ -63,6 +82,18 @@ type ProfileRow = {
   total_likes: number | string | null;
   total_comments: number | string | null;
   is_following: boolean | null;
+  website_url: string | null;
+  social_links: Record<string, unknown> | null;
+  cp_category: string | null;
+};
+
+type PromotedProductRow = {
+  id: string;
+  title: string | null;
+  image_url: string | null;
+  price_cents: number | string | null;
+  currency: string | null;
+  product_url: string | null;
 };
 
 type VideoRow = {
@@ -116,6 +147,9 @@ export async function getPublicUserProfile(
        COALESCE(NULLIF(u.avatar_url, ''), NULLIF(cp.avatar_url, '')) AS avatar_url,
        COALESCE(NULLIF(u.bio, ''), NULLIF(cp.bio, '')) AS bio,
        COALESCE(u.is_verified, cp.verification_status = 'verified', false) AS is_verified,
+      cp.website_url,
+      cp.social_links,
+      cp.category AS cp_category,
        (SELECT COUNT(*)
           FROM videos v
          WHERE v.creator_id = u.id
@@ -196,6 +230,35 @@ export async function getPublicUserProfile(
     [row.id, limit]
   );
 
+  const [{ rows: productRows }, { rows: interestRows }, badges] = await Promise.all([
+    query<PromotedProductRow>(
+      `SELECT DISTINCT ON (p.id)
+         p.id,
+         p.title,
+         p.image_url,
+         p.price_cents,
+         p.currency,
+         p.product_url
+       FROM creator_product_links cpl
+       JOIN marketplace_products p ON p.id = cpl.product_id
+       WHERE cpl.creator_id = $1
+         AND cpl.status = 'active'
+         AND p.status = 'active'
+       ORDER BY p.id, cpl.created_at DESC
+       LIMIT 12`,
+      [row.id]
+    ),
+    query<{ topic: string }>(
+      `SELECT topic
+         FROM user_interests
+        WHERE user_id = $1
+        ORDER BY weight DESC, topic ASC
+        LIMIT 8`,
+      [row.id]
+    ),
+    getCreatorBadges(row.id, { verified: Boolean(row.is_verified), query }),
+  ]);
+
   const displayName = row.display_name || row.username || "User";
   const isOwnProfile = viewerUserId === row.id;
 
@@ -210,6 +273,10 @@ export async function getPublicUserProfile(
       isVerified: Boolean(row.is_verified),
       isFollowing: isOwnProfile ? false : Boolean(row.is_following),
       isOwnProfile,
+      links: buildCreatorLinks(row.website_url, row.social_links),
+      categories: interestRows
+        .map((r) => String(r.topic || "").trim())
+        .filter((t) => t.length > 0),
     },
     stats: {
       videos: toNonNegativeInt(row.video_count),
@@ -219,7 +286,46 @@ export async function getPublicUserProfile(
       likes: toNonNegativeInt(row.total_likes),
       comments: toNonNegativeInt(row.total_comments),
     },
+    badges,
+    promotedProducts: productRows.map(mapPromotedProductRow),
     videos: videoRows.map(mapVideoRow),
+  };
+}
+
+function buildCreatorLinks(
+  websiteUrl: string | null,
+  socialLinks: Record<string, unknown> | null
+): CreatorLink[] {
+  const links: CreatorLink[] = [];
+  const seen = new Set<string>();
+
+  const push = (label: string, url: unknown) => {
+    const value = String(url ?? "").trim();
+    if (!value || seen.has(value)) return;
+    if (!/^https?:\/\//i.test(value)) return;
+    seen.add(value);
+    links.push({ label, url: value });
+  };
+
+  push("Website", websiteUrl);
+  if (socialLinks && typeof socialLinks === "object") {
+    for (const [key, value] of Object.entries(socialLinks)) {
+      const label = key.trim();
+      if (!label) continue;
+      push(label.charAt(0).toUpperCase() + label.slice(1), value);
+    }
+  }
+  return links.slice(0, 8);
+}
+
+function mapPromotedProductRow(row: PromotedProductRow): PromotedProduct {
+  return {
+    id: row.id,
+    title: String(row.title ?? "").trim() || "Produs",
+    imageUrl: emptyToNull(row.image_url),
+    priceCents: row.price_cents === null ? null : toNonNegativeInt(row.price_cents),
+    currency: String(row.currency ?? "USD").trim() || "USD",
+    productUrl: emptyToNull(row.product_url),
   };
 }
 

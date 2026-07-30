@@ -66,7 +66,7 @@ export default async function UserProfilePage({ params }: Props) {
 
   if (!data) notFound();
 
-  const { profile, stats, videos } = data;
+  const { profile, stats, videos, badges, promotedProducts } = data;
 
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white mobile-page-bottom">
@@ -94,8 +94,40 @@ export default async function UserProfilePage({ params }: Props) {
           </div>
           <p className="text-sm text-white/60 mb-4">{profile.handle}</p>
 
+          <CreatorBadgesRow badges={badges} />
+
           {profile.bio && (
             <p className="max-w-sm text-sm leading-5 text-white/70 mb-4">{profile.bio}</p>
+          )}
+
+          {profile.links.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+              {profile.links.map((link) => (
+                <a
+                  key={link.url}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-bold text-white/80 hover:bg-white/10"
+                >
+                  <Share2 size={12} />
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          )}
+
+          {profile.categories.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
+              {profile.categories.map((cat) => (
+                <span
+                  key={cat}
+                  className="rounded-full bg-white/[0.07] px-2.5 py-0.5 text-[11px] font-bold text-white/55"
+                >
+                  #{cat}
+                </span>
+              ))}
+            </div>
           )}
 
           <ProfileStatsAndActions
@@ -106,6 +138,39 @@ export default async function UserProfilePage({ params }: Props) {
           />
         </div>
       </div>
+
+      {promotedProducts.length > 0 && (
+        <section className="mx-auto max-w-md px-4 pb-2">
+          <h2 className="mb-3 text-lg font-black text-white">Produse promovate</h2>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {promotedProducts.map((product) => (
+              <a
+                key={product.id}
+                href={product.productUrl || `/product/${encodeURIComponent(product.id)}`}
+                target={product.productUrl ? "_blank" : undefined}
+                rel={product.productUrl ? "noopener noreferrer nofollow" : undefined}
+                className="w-32 shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] p-2 hover:bg-white/[0.08]"
+              >
+                <div className="mb-2 aspect-square overflow-hidden rounded-xl bg-[#1A1A1A]">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt={product.title} className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-white/20">
+                      <Film size={22} strokeWidth={1.5} />
+                    </div>
+                  )}
+                </div>
+                <p className="line-clamp-2 text-xs font-bold text-white/85">{product.title}</p>
+                {product.priceCents !== null && (
+                  <p className="mt-1 text-xs font-black text-[#EC4899]">
+                    {(product.priceCents / 100).toFixed(2)} {product.currency}
+                  </p>
+                )}
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-md pb-10">
         <div className="mb-6 flex items-center justify-between gap-4">
@@ -152,6 +217,39 @@ export default async function UserProfilePage({ params }: Props) {
 
 async function getCurrentViewerUserId() {
   return getOptionalSocialUserId();
+}
+
+function CreatorBadgesRow({ badges }: { badges: PublicUserProfile["badges"] }) {
+  const items: { key: string; label: string; className: string }[] = [];
+  if (badges.verified) {
+    items.push({ key: "verified", label: "Verificat", className: "border-[#EC4899]/40 bg-[#EC4899]/10 text-[#EC4899]" });
+  }
+  if (badges.topSeller) {
+    items.push({ key: "top_seller", label: "Top Seller", className: "border-amber-400/40 bg-amber-400/10 text-amber-300" });
+  }
+  if (badges.level !== "none") {
+    const levelStyles: Record<string, { label: string; className: string }> = {
+      bronze: { label: "Bronze", className: "border-orange-700/50 bg-orange-700/15 text-orange-300" },
+      silver: { label: "Silver", className: "border-slate-300/40 bg-slate-300/10 text-slate-200" },
+      gold: { label: "Gold", className: "border-yellow-400/50 bg-yellow-400/10 text-yellow-300" },
+    };
+    const style = levelStyles[badges.level];
+    if (style) items.push({ key: `level_${badges.level}`, label: `Creator ${style.label}`, className: style.className });
+  }
+  if (items.length === 0) return null;
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5">
+      {items.map((item) => (
+        <span
+          key={item.key}
+          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-black ${item.className}`}
+        >
+          <BadgeCheck size={12} />
+          {item.label}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function Avatar({ profile }: { profile: PublicUserProfile["profile"] }) {
