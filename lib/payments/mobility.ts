@@ -28,6 +28,7 @@
 import { dbQuery } from "@/lib/db";
 import { creditUser, debitUser } from "@/lib/wallet/ledger";
 import { computeSplit, type MoneySplit } from "@/lib/pricing/split";
+import { recordCommission } from "@/lib/payments/platform-account";
 import { logger } from "@/lib/logger";
 
 const log = logger.child({ mod: "payments/mobility" });
@@ -136,6 +137,15 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
     }
   }
 
+  // Comisionul platformei — intrare pe contul tehnic (idempotent pe ride id).
+  await recordCommission({
+    refType: "commission_ride",
+    refId: ride.id,
+    amountCents: split.platform_cents,
+    description: `Comision cursă #${ride.id.slice(0, 8)}`,
+    metadata: { split, payment: isCash ? "cash" : "card", gmv_cents: fare + ride.tip_cents },
+  });
+
   await dbQuery(`UPDATE rides SET settled_at = COALESCE(settled_at, now()) WHERE id = $1`, [rideId]);
   log.info({ rideId, isCash, split, kind: result.ledger_kind, amount: result.ledger_amount_cents }, "ride settled");
   return result;
@@ -233,6 +243,19 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
       );
     }
   }
+
+  // Comisionul platformei — intrare pe contul tehnic (idempotent pe order id).
+  await recordCommission({
+    refType: "commission_order",
+    refId: order.id,
+    amountCents: split.platform_cents,
+    description: `Comision comandă #${order.id.slice(0, 8)}`,
+    metadata: {
+      split,
+      payment: isCash ? "cash" : "card",
+      gmv_cents: order.subtotal_cents + order.delivery_fee_cents + order.tip_cents,
+    },
+  });
 
   await dbQuery(`UPDATE local_orders SET settled_at = COALESCE(settled_at, now()) WHERE id = $1`, [orderId]);
   log.info({ orderId, isCash, split, kind: result.ledger_kind, amount: result.ledger_amount_cents }, "order settled");
