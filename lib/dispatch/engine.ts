@@ -373,3 +373,12 @@ export async function getJobForOrder(orderId: string): Promise<DispatchJob | nul
   );
   return rows[0] ?? null;
 }
+
+/** Jobul activ al unei curse (dacă există). */
+export async function getJobForRide(rideId: string): Promise<DispatchJob | null> {
+  const { rows } = await dbQuery<DispatchJob>(
+    `SELECT * FROM dispatch_jobs WHERE ride_id = $1 ORDER BY created_at DESC LIMIT 1`,
+    [rideId],
+  );
+  return rows[0] ?? null;
+}

@@ -45,6 +45,11 @@ export default function HomeVerticals({ className = "" }: { className?: string }
 
     const go = (id: string) => {
         haptic("tap");
+        // Verticalele cu experiență dedicată au ruta lor proprie.
+        if (id === "go") {
+            router.push("/go");
+            return;
+        }
         router.push(`/v/${id}`);
     };
 
