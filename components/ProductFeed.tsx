@@ -18,11 +18,13 @@ import {
 import dynamic from "next/dynamic";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { isCurrency } from "@/lib/i18n/config";
 
 // Heavy client-only components — lazy-load to keep initial bundle small.
 const CommentsSheet = dynamic(() => import("./social/CommentsSheet"), { ssr: false });
 import {
   trackEvent as trackFeedEvent,
+  trackWatchTime,
   flushWatchTime,
   resetWatchTime,
 } from "@/lib/feed/track";
@@ -327,6 +329,132 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     sendFeedEvent("video_impression", product, { position: currentIdx });
   }, [currentIdx, products, sendFeedEvent]);
 
+  // ── CONTRACT DE EVENIMENTE (lib/feed/track.ts) ─────────────────────────
+  // video_view: DOAR dupa >=3s de redare activa (VIEW_MIN_MS=3000).
+  // watch_time: incremental, prin trackWatchTime pe timeupdate.
+  const VIEW_MIN_MS = 3000;
+  const qualifiedViewRef = useRef(new Set<string>());
+  const lastTimeUpdateRef = useRef<Record<string, number>>({});
+  const activeWatchMsRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    const product = products[currentIdx];
+    if (!product) return;
+    const videoEl = videoMapRef.current[product.id];
+    if (!videoEl) return;
+
+    const key = product.id;
+    lastTimeUpdateRef.current[key] = 0;
+
+    const onTimeUpdate = () => {
+      const nowMs = videoEl.currentTime * 1000;
+      const prevMs = lastTimeUpdateRef.current[key] ?? 0;
+      const deltaMs = nowMs - prevMs;
+      lastTimeUpdateRef.current[key] = nowMs;
+      // Ignora seek-uri / loop restart (delta negativ sau sarituri mari).
+      if (deltaMs <= 0 || deltaMs > 2000) return;
+
+      const videoId = videoEventId(product);
+      if (!videoId) return;
+
+      // watch_time incremental (batched intern in lib/feed/track).
+      trackWatchTime(videoId, deltaMs);
+
+      // video_view dupa >=3s cumulat de redare activa, o data per clip.
+      activeWatchMsRef.current[key] = (activeWatchMsRef.current[key] ?? 0) + deltaMs;
+      if (
+        !qualifiedViewRef.current.has(key) &&
+        activeWatchMsRef.current[key] >= VIEW_MIN_MS
+      ) {
+        qualifiedViewRef.current.add(key);
+        sendFeedEvent("video_view", product, {
+          position: currentIdx,
+          watchMs: Math.trunc(activeWatchMsRef.current[key]),
+        });
+      }
+    };
+
+    videoEl.addEventListener("timeupdate", onTimeUpdate);
+    return () => {
+      videoEl.removeEventListener("timeupdate", onTimeUpdate);
+      const videoId = videoEventId(product);
+      if (videoId) flushWatchTime(videoId);
+    };
+  }, [currentIdx, products, sendFeedEvent]);
+
+  // ── Overlay "vezi produsul" la timestamp (video_product_links) ────────
+  type OverlayTag = {
+    product_id: string;
+    start_ms: number | null;
+    end_ms: number | null;
+    label: string | null;
+    title: string;
+    image_url: string | null;
+    price_cents: number | null;
+    currency: string;
+  };
+  const [overlayTags, setOverlayTags] = useState<Record<string, OverlayTag[]>>({});
+  const [activeOverlay, setActiveOverlay] = useState<OverlayTag | null>(null);
+  const overlayFetchedRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    const product = products[currentIdx];
+    if (!product) return;
+    const videoId = videoEventId(product);
+    if (!videoId || overlayFetchedRef.current.has(videoId)) return;
+    overlayFetchedRef.current.add(videoId);
+    fetch(`/api/videos/${videoId}/products`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { tags?: OverlayTag[] } | null) => {
+        if (data?.tags?.length) {
+          setOverlayTags((prev) => ({ ...prev, [product.id]: data.tags ?? [] }));
+        }
+      })
+      .catch(() => {});
+  }, [currentIdx, products]);
+
+  useEffect(() => {
+    const product = products[currentIdx];
+    if (!product) {
+      setActiveOverlay(null);
+      return;
+    }
+    const tags = overlayTags[product.id];
+    const videoEl = videoMapRef.current[product.id];
+    if (!tags?.length || !videoEl) {
+      setActiveOverlay(null);
+      return;
+    }
+    const onTick = () => {
+      const posMs = videoEl.currentTime * 1000;
+      const match = tags.find((tag) => {
+        const start = tag.start_ms ?? 0;
+        const end = tag.end_ms ?? Number.POSITIVE_INFINITY;
+        return posMs >= start && posMs <= end;
+      });
+      setActiveOverlay((prev) => (prev?.product_id === match?.product_id ? prev : match ?? null));
+    };
+    videoEl.addEventListener("timeupdate", onTick);
+    onTick();
+    return () => videoEl.removeEventListener("timeupdate", onTick);
+  }, [currentIdx, products, overlayTags]);
+
+  // ── Double-tap like ────────────────────────────────────────────────────
+  const lastTapRef = useRef<{ at: number; id: string } | null>(null);
+  const handleMediaTap = (product: FeedProduct) => {
+    const now = Date.now();
+    const prev = lastTapRef.current;
+    lastTapRef.current = { at: now, id: product.id };
+    if (prev && prev.id === product.id && now - prev.at < 350) {
+      lastTapRef.current = null;
+      if (!likes[product.id]) toggleLike(product);
+      else {
+        setHeartBurst(product.id);
+        setTimeout(() => setHeartBurst(null), 900);
+      }
+    }
+  };
+
   // skip_fast detection: when the user swipes to the next card in under 1s
   // since the previous card became active, emit `skip_fast` on the previous
   // card. This is the strongest negative signal for the ranker.
@@ -459,7 +587,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
         const hasWorkingVideo = Boolean(product.video && !videoErrors[product.id]);
         return (
           <div key={product.id} data-feed-idx={idx} className="feed-card">
-            <div className="feed-media">
+            <div className="feed-media" onClick={() => handleMediaTap(product)}>
               {posterImage ? (
                 <Image
                   src={posterImage}
@@ -507,6 +635,43 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
               <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
                 <Heart className="animate-like-burst text-[#EF4444]" size={100} fill="currentColor" />
               </div>
+            )}
+
+            {idx === currentIdx && activeOverlay && (
+              <button
+                type="button"
+                onClick={() => {
+                  sendFeedEvent("product_click", product, {
+                    position: currentIdx,
+                    overlay_product_id: activeOverlay.product_id,
+                  });
+                  router.push(`/product/${activeOverlay.product_id}`);
+                }}
+                style={tapAction}
+                className="absolute left-3 top-20 z-20 flex max-w-[70%] items-center gap-2 rounded-2xl bg-black/60 px-3 py-2 text-left backdrop-blur-md transition-transform active:scale-[0.97]"
+                aria-label={`Vezi produsul ${activeOverlay.title}`}
+              >
+                {activeOverlay.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={activeOverlay.image_url}
+                    alt=""
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                  />
+                )}
+                <span className="min-w-0">
+                  <span className="block truncate text-xs font-bold text-white">
+                    {activeOverlay.label || activeOverlay.title}
+                  </span>
+                  <span className="block text-[11px] font-black text-[#34D399]">
+                    {activeOverlay.price_cents != null
+                      ? formatPrice(activeOverlay.price_cents, {
+                          sourceCurrency: isCurrency(activeOverlay.currency) ? activeOverlay.currency : "RON",
+                        })
+                      : "Vezi produsul"}
+                  </span>
+                </span>
+              </button>
             )}
 
             <div className="absolute bottom-48 right-3 z-20 flex flex-col items-center gap-4">

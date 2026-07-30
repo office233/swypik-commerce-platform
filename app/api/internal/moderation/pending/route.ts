@@ -8,8 +8,9 @@
  *   courier  — curieri (verificare documente)
  *   cause    — donation_causes (verificare ONG/beneficiar)
  *   developer — developer_accounts (platforma de apps)
+ *   video    — clipuri incarcate de creatori (moderation_status='pending_review')
  *
- * Query: ?type=seller|merchant|courier|cause|developer|all (default all), ?limit=100
+ * Query: ?type=seller|merchant|courier|cause|developer|video|all (default all), ?limit=100
  */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export interface PendingItem {
-    type: "seller" | "merchant" | "courier" | "cause" | "developer";
+    type: "seller" | "merchant" | "courier" | "cause" | "developer" | "video";
     id: string;
     name: string;
     status: string;
@@ -135,6 +136,31 @@ export async function GET(req: Request) {
                     type: "developer", id: String(r.id), name: r.company,
                     status: r.status, created_at: r.created_at,
                     detail: { website: r.website, email: r.email },
+                });
+            }
+        }
+
+        if (type === "all" || type === "video") {
+            const { rows } = await dbQuery<any>(
+                `SELECT v.id, v.title, v.moderation_status, v.created_at,
+                        v.duration_ms, v.thumbnail_url, v.creator_id,
+                        u.email AS creator_email
+                   FROM videos v
+                   LEFT JOIN users u ON u.id = v.creator_id
+                  WHERE v.moderation_status = 'pending_review'
+                  ORDER BY v.created_at ASC LIMIT $1`,
+                [limit]
+            );
+            for (const r of rows) {
+                items.push({
+                    type: "video", id: String(r.id), name: r.title,
+                    status: r.moderation_status, created_at: r.created_at,
+                    detail: {
+                        creator_id: r.creator_id,
+                        creator_email: r.creator_email,
+                        duration_ms: r.duration_ms,
+                        thumbnail_url: r.thumbnail_url,
+                    },
                 });
             }
         }

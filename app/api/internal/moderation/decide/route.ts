@@ -1,7 +1,7 @@
 /**
  * POST /api/internal/moderation/decide — aproba/respinge o cerere.
  *
- * Body: { type: seller|merchant|courier|cause|developer, id, decision: approve|reject,
+ * Body: { type: seller|merchant|courier|cause|developer|video, id, decision: approve|reject,
  *         reason?, erp_api_key? }
  *
  * Pentru seller + approve: ERP-ul trimite erp_api_key generat de el →
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const schema = z.object({
-    type: z.enum(["seller", "merchant", "courier", "cause", "developer"]),
+    type: z.enum(["seller", "merchant", "courier", "cause", "developer", "video"]),
     id: z.string().min(1),
     decision: z.enum(["approve", "reject"]),
     reason: z.string().max(1000).optional(),
@@ -95,6 +95,19 @@ export async function POST(req: Request) {
                                 [id, approve ? "approved" : "rejected"]
                         );
                         updated = rowCount ?? 0;
+            } else if (type === "video") {
+                // Aprobare: clipul devine vizibil in feed. Respingere: ramane
+                // ascuns si primeste motivul in metadata (creatorul il vede in dashboard).
+                const { rowCount } = await dbQuery(
+                    `UPDATE videos
+                        SET moderation_status = $2,
+                            metadata = COALESCE(metadata, '{}'::jsonb)
+                                       || jsonb_build_object('moderation_reason', $3::text),
+                            updated_at = NOW()
+                      WHERE id = $1 AND moderation_status = 'pending_review'`,
+                    [id, approve ? "approved" : "rejected", reason ?? ""]
+                );
+                updated = rowCount ?? 0;
         }
 
         if (updated === 0) {

@@ -60,6 +60,8 @@ export default function UploadClient() {
   const [productResults, setProductResults] = useState<{ id: string; title: string; image_url?: string }[]>([]);
   const [productId, setProductId] = useState<string | null>(null);
   const [productTitle, setProductTitle] = useState<string | null>(null);
+  // Secunda la care apare overlay-ul "vezi produsul" in player.
+  const [overlaySeconds, setOverlaySeconds] = useState("0");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduledAt, setScheduledAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -260,6 +262,15 @@ export default function UploadClient() {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || "Eroare salvare.");
       }
+      // Overlay "vezi produsul" la timestamp — video_product_links (placement='overlay').
+      if (productId) {
+        const startMs = Math.max(0, Math.round((parseFloat(overlaySeconds) || 0) * 1000));
+        await fetch(`/api/creator/videos/${videoId}/product-tags`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tags: [{ product_id: productId, start_ms: startMs, end_ms: null }] }),
+        }).catch(() => {});
+      }
       if (mode === "publish") router.push("/creator/videos");
       else router.push("/creator/drafts");
     } catch (err: any) {
@@ -372,6 +383,8 @@ export default function UploadClient() {
               setProductId(null);
               setProductTitle(null);
             }}
+            overlaySeconds={overlaySeconds}
+            setOverlaySeconds={setOverlaySeconds}
             scheduleOpen={scheduleOpen}
             setScheduleOpen={setScheduleOpen}
             scheduledAt={scheduledAt}
@@ -627,6 +640,8 @@ function Step3(props: {
   productTitle: string | null;
   selectProduct: (p: { id: string; title: string }) => void;
   clearProduct: () => void;
+  overlaySeconds: string;
+  setOverlaySeconds: (v: string) => void;
   scheduleOpen: boolean;
   setScheduleOpen: (v: boolean) => void;
   scheduledAt: string;
@@ -660,6 +675,8 @@ function Step3(props: {
     productTitle,
     selectProduct,
     clearProduct,
+    overlaySeconds,
+    setOverlaySeconds,
     scheduleOpen,
     setScheduleOpen,
     scheduledAt,
@@ -757,16 +774,32 @@ function Step3(props: {
       <div>
         <label className="text-sm font-bold text-white/70 mb-2 block">{t("tagProdusOptional")}</label>
         {productId ? (
-          <div className="bg-white/5 border border-[#A855F7]/40 rounded-xl px-4 py-3 flex items-center justify-between">
-            <span className="text-sm font-bold truncate">{productTitle}</span>
-            <button
-              type="button"
-              onClick={clearProduct}
-              className="p-1.5 rounded-full hover:bg-white/10"
-              aria-label={t("eliminaProdus")}
-            >
-              <X size={14} />
-            </button>
+          <div className="space-y-2">
+            <div className="bg-white/5 border border-[#A855F7]/40 rounded-xl px-4 py-3 flex items-center justify-between">
+              <span className="text-sm font-bold truncate">{productTitle}</span>
+              <button
+                type="button"
+                onClick={clearProduct}
+                className="p-1.5 rounded-full hover:bg-white/10"
+                aria-label={t("eliminaProdus")}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-xs text-white/50 whitespace-nowrap" htmlFor="overlay-seconds">
+                Overlay &bdquo;vezi produsul&rdquo; la secunda
+              </label>
+              <input
+                id="overlay-seconds"
+                type="number"
+                min={0}
+                step={1}
+                value={overlaySeconds}
+                onChange={(e) => setOverlaySeconds(e.target.value)}
+                className="w-24 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#A855F7]"
+              />
+            </div>
           </div>
         ) : (
           <>

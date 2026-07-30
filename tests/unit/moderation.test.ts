@@ -71,10 +71,36 @@ describe("GET /api/internal/moderation/pending", () => {
     expect(String(dbQuery.mock.calls[0][0])).toContain("couriers");
   });
 
-  it("queries all four tables for type=all", async () => {
+  // seller, merchant, courier, cause, developer, video
+  it("queries all six tables for type=all", async () => {
     dbQuery.mockResolvedValue({ rows: [], rowCount: 0 });
     await pendingGET(pendingReq("?type=all"));
-    expect(dbQuery).toHaveBeenCalledTimes(4);
+    expect(dbQuery).toHaveBeenCalledTimes(6);
+  });
+
+  it("maps pending videos into normalized pending items", async () => {
+    dbQuery.mockResolvedValue({
+      rows: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          title: "Unboxing",
+          moderation_status: "pending_review",
+          created_at: "2026-07-30T00:00:00Z",
+          duration_ms: 12000,
+          thumbnail_url: "https://cdn/x.jpg",
+          creator_id: "22222222-2222-4222-8222-222222222222",
+          creator_email: "c@swypik.ro",
+        },
+      ],
+      rowCount: 1,
+    });
+    const res = await pendingGET(pendingReq("?type=video"));
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(dbQuery).toHaveBeenCalledTimes(1);
+    expect(String(dbQuery.mock.calls[0][0])).toContain("moderation_status = 'pending_review'");
+    expect(json.items[0]).toMatchObject({ type: "video", name: "Unboxing", status: "pending_review" });
+    expect(json.items[0].detail.duration_ms).toBe(12000);
   });
 
   it("caps limit at 500", async () => {
@@ -167,6 +193,28 @@ describe("POST /api/internal/moderation/decide", () => {
   });
 
   it("returns 404 when nothing was updated (already decided)", async () => {
+    dbQuery.mockResolvedValue({ rows: [], rowCount: 0 });
+    const res = await decidePOST(decideReq({ type: "seller", id: "9", decision: "approve" }));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("not_found_or_already_decided");
+  });
+
+  it("approves a pending video", async () => {
+    dbQuery.mockResolvedValue({ rows: [], rowCount: 1 });
+    const res = await decidePOST(decideReq({ type: "video", id: "v1", decision: "approve" }));
+    expect(res.status).toBe(200);
+    expect(String(dbQuery.mock.calls[0][0])).toContain("UPDATE videos");
+    expect(dbQuery.mock.calls[0][1]).toEqual(["v1", "approved", ""]);
+  });
+
+  it("rejects a video with a reason", async () => {
+    dbQuery.mockResolvedValue({ rows: [], rowCount: 1 });
+    const res = await decidePOST(decideReq({ type: "video", id: "v2", decision: "reject", reason: "continut interzis" }));
+    expect(res.status).toBe(200);
+    expect(dbQuery.mock.calls[0][1]).toEqual(["v2", "rejected", "continut interzis"]);
+  });
+
+  it("legacy: returns 404 when nothing was updated", async () => {
     dbQuery.mockResolvedValue({ rows: [], rowCount: 0 });
     const res = await decidePOST(decideReq({ type: "seller", id: "9", decision: "approve" }));
     expect(res.status).toBe(404);

@@ -179,9 +179,9 @@ async function createLocalUploadSession(input: CreatorUploadInput) {
       `
       INSERT INTO videos (
         id, creator_id, title, description, visibility, status,
-        product_refs, tags, metadata, audio_track_id, created_at, updated_at
+          moderation_status, product_refs, tags, metadata, audio_track_id, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, 'draft', 'uploading', $5::jsonb, $6::text[], $7::jsonb, $8, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, 'draft', 'uploading', 'pending_review', $5::jsonb, $6::text[], $7::jsonb, $8, NOW(), NOW())
       `,
       [
         videoId,

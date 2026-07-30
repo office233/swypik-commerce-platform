@@ -46,6 +46,7 @@ async function run(req: Request) {
       WHERE scheduled_publish_at IS NOT NULL
         AND scheduled_publish_at <= now()
         AND status <> 'deleted'
+          AND COALESCE(moderation_status, 'approved') = 'approved'
       RETURNING id, title, description`,
   );
   for (const r of rows) autoEmbedVideo(r.id, r.title, r.description);
