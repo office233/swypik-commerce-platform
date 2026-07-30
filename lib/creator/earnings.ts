@@ -1,4 +1,7 @@
-export const CREATOR_COMMISSION_RATE_BPS = 500;
+/** Comision creator în basis points. Configurabil prin env CREATOR_COMMISSION_BPS (default 500 = 5%). */
+const envBps = Number(process.env.CREATOR_COMMISSION_BPS);
+export const CREATOR_COMMISSION_RATE_BPS =
+  Number.isFinite(envBps) && envBps > 0 && envBps <= 10_000 ? Math.trunc(envBps) : 500;
 
 export type CreatorEarningsInput = {
   totalVideos: number;
