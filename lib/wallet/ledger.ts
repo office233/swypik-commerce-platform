@@ -90,7 +90,9 @@ async function apply(kind: "credit" | "debit", args: ApplyArgs): Promise<LedgerR
 
     const delta = kind === "credit" ? amountCents : -amountCents;
     const newBalance = balance + delta;
-      if (newBalance < 0 && !allowNegative) {
+    // Doar debitele pot fi refuzate: un CREDIT mărește mereu soldul, deci e
+    // permis și pe sold negativ (stinge datoria de comision cash).
+    if (kind === "debit" && newBalance < 0 && !allowNegative) {
       throw new InsufficientFundsError(balance, amountCents);
     }
 
