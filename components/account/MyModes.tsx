@@ -94,7 +94,7 @@ export default function MyModes() {
   if (hostApp) {
     const s = hostApp.status;
     modes.push({
-      href: s === "approved" ? "/stays" : "/join/host",
+      href: s === "approved" ? "/stays/manage" : "/join/host",
       icon: BedDouble,
       title: "Gazdă Stays",
       sub: hostApp.property_name,

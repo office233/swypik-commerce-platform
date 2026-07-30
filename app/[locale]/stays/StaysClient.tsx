@@ -90,6 +90,16 @@ export default function StaysClient() {
     const [results, setResults] = useState<StayResult[] | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [local, setLocal] = useState<any[]>([]);
+
+    // Cazările gazdelor Swypik — mereu vizibile (inventar propriu, fără Duffel).
+    useEffect(() => {
+        const q = city ? `?city=${encodeURIComponent(city.name)}` : "";
+        fetch(`/api/stays/local${q}`)
+            .then((r) => (r.ok ? r.json() : { listings: [] }))
+            .then((j) => setLocal(j.listings ?? []))
+            .catch(() => setLocal([]));
+    }, [city]);
 
     const search = async () => {
         if (!city) return;
@@ -230,6 +240,42 @@ export default function StaysClient() {
                     <Users size={14} className="mr-1 inline" />
                     Cazări din 1M+ proprietăți, cu plata direct pe Swypik.
                 </p>
+            )}
+
+            {/* Cazări de la gazde Swypik — inventar propriu, live indiferent de Duffel */}
+            {local.length > 0 && (
+                <div className="mt-8">
+                    <h2 className="text-lg font-bold">
+                        Cazări de la gazde Swypik {city ? `în ${city.name}` : ""}
+                    </h2>
+                    <p className="mb-3 text-xs text-neutral-500">verificate de echipa Swypik · plată securizată</p>
+                    <div className="space-y-3">
+                        {local.map((l) => (
+                            <div key={l.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                                {l.image_url && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={l.image_url} alt={l.title} className="h-40 w-full object-cover" loading="lazy" />
+                                )}
+                                <div className="p-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <h3 className="truncate font-bold">{l.title}</h3>
+                                            <p className="text-xs text-neutral-500">
+                                                {l.location_city} · până la {l.max_guests ?? "?"} oaspeți
+                                            </p>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
+                                                {lei(l.price_cents)}
+                                            </div>
+                                            <div className="text-xs text-neutral-500">/ noapte</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             )}
         </div>
     );
