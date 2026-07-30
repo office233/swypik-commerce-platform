@@ -1,7 +1,13 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import ActivityClient from "./ActivityClient";
 
 export const dynamic = "force-dynamic";
 
-export default function OrdersRedirect() {
-  redirect("/account/orders");
+export const metadata: Metadata = {
+  title: "Comenzile mele — Swypik",
+  description: "Comenzile tale Eats și cursele Go, într-o singură listă.",
+};
+
+export default function OrdersPage() {
+  return <ActivityClient />;
 }

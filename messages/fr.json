@@ -19,6 +19,8 @@
     "language": "Langue"
   },
   "nav": {
+    "eats": "Eats",
+    "go": "Go",
     "home": "Accueil",
     "shop": "Boutique",
     "explore": "Explorer",

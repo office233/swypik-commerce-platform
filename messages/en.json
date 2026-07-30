@@ -20,6 +20,8 @@
   },
   "nav": {
     "home": "Home",
+    "eats": "Eats",
+    "go": "Go",
     "shop": "Shop",
     "explore": "Explore",
     "reels": "Reels",
