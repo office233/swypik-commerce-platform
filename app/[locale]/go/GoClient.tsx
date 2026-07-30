@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 import { haptic } from "@/lib/haptic";
 
@@ -19,9 +20,9 @@ const RoutePolyline = dynamic(() => import("@/components/map/RoutePolyline"), { 
 const BUCHAREST = { lat: 44.4268, lng: 26.1025 };
 
 const CLASSES = [
-  { id: "economy", label: "Economy", emoji: "🚗", hint: "cel mai ieftin" },
-  { id: "comfort", label: "Comfort", emoji: "🚙", hint: "mai spațios" },
-  { id: "van", label: "Van", emoji: "🚐", hint: "până la 6 locuri" },
+  { id: "economy", labelKey: "classEconomy", emoji: "🚗", hintKey: "hintEconomy" },
+  { id: "comfort", labelKey: "classComfort", emoji: "🚙", hintKey: "hintComfort" },
+  { id: "van", labelKey: "classVan", emoji: "🚐", hintKey: "hintVan" },
 ] as const;
 
 type Estimate = {
@@ -35,6 +36,7 @@ type Estimate = {
 export default function GoClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("go");
   const [pickup, setPickup] = useState<AddressResult | null>(null);
   const [dropoff, setDropoff] = useState<AddressResult | null>(null);
   const [vehicleClass, setVehicleClass] = useState<(typeof CLASSES)[number]["id"]>("economy");
@@ -58,18 +60,25 @@ export default function GoClient() {
   useEffect(() => {
     if (!navigator.geolocation || pickup) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        setPickup((p) =>
-          p ?? {
-            address: "Locația mea",
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          },
-        ),
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setPickup((p) => p ?? { address: t("myLocation"), lat, lng });
+        // Adresa lizibilă, best-effort, prin proxy-ul intern de reverse geocoding.
+        void fetch(`/api/geo/reverse?lat=${lat}&lng=${lng}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d: { result?: { address?: string } } | null) => {
+            const address = d?.result?.address;
+            if (address) {
+              setPickup((p) => (p && p.lat === lat && p.lng === lng ? { ...p, address } : p));
+            }
+          })
+          .catch(() => undefined);
+      },
       () => undefined,
       { enableHighAccuracy: true, timeout: 5000 },
     );
-  }, [pickup]);
+  }, [pickup, t]);
 
   const fetchEstimates = useCallback(async () => {
     if (!pickup || !dropoff) return;
@@ -88,7 +97,10 @@ export default function GoClient() {
             const data = await res.json();
             out[c.id] = data.estimate;
           } else if (res.status === 401) {
-            setError("Trebuie să fii logat ca să comanzi o cursă.");
+            setError(t("estimateError"));
+            out[c.id] = null;
+          } else if (res.status === 422) {
+            setError(t("noZone"));
             out[c.id] = null;
           } else {
             const data = await res.json().catch(() => ({}));
@@ -124,7 +136,7 @@ export default function GoClient() {
         return;
       }
       if (!res.ok) {
-        setError(data.error ?? "Nu am putut crea cursa.");
+        setError(res.status === 422 ? t("noZone") : (data.error ?? t("orderError")));
         return;
       }
       router.push(`/go/${data.ride_id}`);
@@ -160,16 +172,16 @@ export default function GoClient() {
 
       {/* Panou comandă */}
       <div className="z-10 rounded-t-3xl bg-white p-4 pb-6 shadow-[0_-8px_24px_rgba(0,0,0,.08)]">
-        <h1 className="mb-3 text-lg font-extrabold tracking-tight">Swypik Go 🚕</h1>
+        <h1 className="mb-3 text-lg font-extrabold tracking-tight">{t("title")} 🚕</h1>
         <div className="space-y-2">
           <AddressAutocomplete
-            placeholder="De unde te luăm?"
+            placeholder={t("pickupPlaceholder")}
             value={pickup?.address}
             onSelect={setPickup}
             icon={<span className="text-sm">🟢</span>}
           />
           <AddressAutocomplete
-            placeholder="Unde mergi?"
+            placeholder={t("dropoffPlaceholder")}
             value={dropoff?.address}
             onSelect={setDropoff}
             icon={<span className="text-sm">🔴</span>}
@@ -193,7 +205,7 @@ export default function GoClient() {
               }`}
             >
               <div className="text-xl">{c.emoji}</div>
-              <div className="text-[13px] font-bold">{c.label}</div>
+              <div className="text-[13px] font-bold">{t(c.labelKey)}</div>
               <div className={`text-[12px] ${vehicleClass === c.id ? "text-neutral-300" : "text-neutral-500"}`}>
                 {loading ? "…" : fmt(estimates[c.id])}
               </div>
@@ -201,9 +213,14 @@ export default function GoClient() {
           ))}
         </div>
 
+        {selected ? (
+          <p className="mt-2 text-center text-[12px] text-neutral-500">
+            {t("eta", { min: selected.duration_min, km: selected.distance_km.toFixed(1) })}
+          </p>
+        ) : null}
         {selected && Number(selected.breakdown?.surge_multiplier) > 1 ? (
           <p className="mt-2 text-center text-[12px] font-semibold text-amber-600">
-            ⚡ Cerere mare — tarif ×{Number(selected.breakdown.surge_multiplier).toFixed(2)}
+            ⚡ {t("surge", { mult: Number(selected.breakdown.surge_multiplier).toFixed(2) })}
           </p>
         ) : null}
         {error ? <p className="mt-2 text-center text-[13px] text-red-600">{error}</p> : null}
@@ -215,10 +232,10 @@ export default function GoClient() {
           className="mt-3 w-full rounded-2xl bg-neutral-900 py-4 text-[15px] font-extrabold text-white disabled:opacity-40"
         >
           {ordering
-            ? "Se creează cursa…"
+            ? t("ordering")
             : selected
-              ? `Comandă • ${fmt(selected)} (~${selected.duration_min} min)`
-              : "Comandă"}
+              ? t("order", { price: fmt(selected) })
+              : t("orderNoPrice")}
         </button>
       </div>
     </div>
