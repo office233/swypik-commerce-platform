@@ -1521,5 +1521,33 @@
       "work": "Jobs",
       "social": "Community"
     }
+  },
+  "homeFeed": {
+    "sort": {
+      "popular": "Popular",
+      "new": "New",
+      "discount": "Big discount"
+    },
+    "filters": "Filters",
+    "price": "Price",
+    "min": "Min",
+    "max": "Max",
+    "minDiscount": "Min discount",
+    "minRating": "Min rating",
+    "apply": "Apply",
+    "reset": "Reset",
+    "close": "Close",
+    "like": "Like",
+    "comment": "Comment",
+    "share": "Share",
+    "view": "View",
+    "comingSoon": "Coming soon",
+    "error": "Couldn't load offers.",
+    "retry": "Retry",
+    "empty": "No offers match your filters.",
+    "shares": "{count} shares",
+    "categories": "Categories",
+    "allCategories": "All categories",
+    "all": "All"
   }
 }

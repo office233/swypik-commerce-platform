@@ -1657,5 +1657,33 @@
       "work": "Joburi",
       "social": "Comunitate"
     }
+  },
+  "homeFeed": {
+    "sort": {
+      "popular": "Populare",
+      "new": "Noi",
+      "discount": "Reducere mare"
+    },
+    "filters": "Filtre",
+    "price": "Preț",
+    "min": "Min",
+    "max": "Max",
+    "minDiscount": "Reducere minimă",
+    "minRating": "Rating minim",
+    "apply": "Aplică",
+    "reset": "Resetează",
+    "close": "Închide",
+    "like": "Îmi place",
+    "comment": "Comentează",
+    "share": "Distribuie",
+    "view": "Vezi",
+    "comingSoon": "În curând",
+    "error": "Nu am putut încărca ofertele.",
+    "retry": "Reîncearcă",
+    "empty": "Nicio ofertă pentru filtrele alese.",
+    "shares": "{count} distribuiri",
+    "categories": "Categorii",
+    "allCategories": "Toate categoriile",
+    "all": "Toate"
   }
 }

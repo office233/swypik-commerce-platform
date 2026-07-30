@@ -1521,5 +1521,33 @@
       "work": "Jobs",
       "social": "Community"
     }
+  },
+  "homeFeed": {
+    "sort": {
+      "popular": "Populaires",
+      "new": "Nouveaux",
+      "discount": "Grosse remise"
+    },
+    "filters": "Filtres",
+    "price": "Prix",
+    "min": "Min",
+    "max": "Max",
+    "minDiscount": "Remise minimale",
+    "minRating": "Note minimale",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "close": "Fermer",
+    "like": "J'aime",
+    "comment": "Commenter",
+    "share": "Partager",
+    "view": "Voir",
+    "comingSoon": "Bientôt disponible",
+    "error": "Impossible de charger les offres.",
+    "retry": "Réessayer",
+    "empty": "Aucune offre pour ces filtres.",
+    "shares": "{count} partages",
+    "categories": "Catégories",
+    "allCategories": "Toutes les catégories",
+    "all": "Toutes"
   }
 }

@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bot, Bookmark, ChevronDown, ChevronRight, ClipboardList, Compass, Flame, Home, LogOut, Menu, MessageCircle, Package, Plus, Search, Send, Shield, ShoppingCart, SlidersHorizontal, Sparkles, Star, Tag, Trophy, Truck, Upload, User, X, Zap} from "lucide-react";
+import { Bot, Bookmark, ChevronDown, ChevronRight, ClipboardList, Compass, Flame, Home, LogOut, Menu, MessageCircle, Package, Plus, Search, Send, Shield, ShoppingCart, SlidersHorizontal, Sparkles, Star, Tag, Trophy, Truck, Upload, User, X, Zap } from "lucide-react";
 import ProductFeed from "./ProductFeed";
-import HomeVerticals from "./verticals/HomeVerticals";
-import CaresBanner from "./home/CaresBanner";
+import OffersFeed from "./home/OffersFeed";
+import CategorySidebar from "./home/CategorySidebar";
+import type { OfferPost } from "@/lib/types/feed";
 import { THEME, commerceBadgeClass, translateCategory } from "@/lib/ui/theme";
 import { Link } from "@/lib/i18n/navigation";
 
@@ -145,11 +146,13 @@ async function fetchSocialFeed(offset: number, seed: number) {
 export default function ChatInterface({
   initialTrending = [],
   initialBestValue = [],
-  initialTopRated = []
+  initialTopRated = [],
+  initialOffers = []
 }: {
   initialTrending?: ChatProduct[],
   initialBestValue?: ChatProduct[],
-  initialTopRated?: ChatProduct[]
+  initialTopRated?: ChatProduct[],
+  initialOffers?: OfferPost[]
 }) {
   const t = useTranslations("chatInterface");
   const router = useRouter();
@@ -184,6 +187,29 @@ export default function ChatInterface({
   const [feedProducts, setFeedProducts] = useState<ChatProduct[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ChatProduct | null>(null);
+  const openOfferProduct = useCallback((post: OfferPost) => {
+    setSelectedProduct({
+      id: post.id,
+      title: post.title,
+      description: post.title,
+      benefits: [],
+      whyBuy: "",
+      warnings: [],
+      dealLabel: post.discountPercent > 0 ? `-${post.discountPercent}%` : "AI Pick",
+      price: post.price,
+      oldPrice: post.oldPrice,
+      discountPercent: post.discountPercent,
+      rating: post.rating || 4.7,
+      orders: post.orders || 0,
+      deliveryDays: 7,
+      images: [post.image],
+      hasVideo: false,
+      category: post.category,
+      categoryId: post.categoryId,
+      gradient: "from-orange-500 to-pink-500",
+      qualityScore: 8,
+    } as unknown as ChatProduct);
+  }, []);
   const [lastShownProducts, setLastShownProducts] = useState<ChatProduct[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isMounted, setIsMounted] = useState(false);
@@ -201,6 +227,7 @@ export default function ChatInterface({
   const [upsellProduct, setUpsellProduct] = useState<ChatProduct | null>(null);
   const [showBundleSheet, setShowBundleSheet] = useState(false);
   const [categoryTree, setCategoryTree] = useState<any[]>([]);
+  const [homeCategory, setHomeCategory] = useState<string | null>(null);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [expandedMid, setExpandedMid] = useState<string | null>(null);
   const [activeSub, setActiveSub] = useState<string | null>(null);
@@ -578,15 +605,23 @@ export default function ChatInterface({
     </div>}
     <section className={activeTab === "feed" ? "h-[100dvh]" : "min-h-[calc(100dvh-132px)] pb-20"} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {activeTab === "home" && (
-        <div className="px-4 pt-4">
-          {/* Verticalele Swypik — accesul principal, primul lucru vizibil */}
-          <HomeVerticals className="mb-4" />
-          <CaresBanner className="mb-4" />
-          {searchLoading ? <ProductCarousel title={`Se caută rezultate...`} isLoading={true} /> : searchResults.length > 0 && <ProductCarousel title={`Rezultate (${searchResults.length})`} products={searchResults} />}
-          <TrendingHero />
-          <ProductCarousel title="✨ Alegerile creatorilor (populare)" products={topRatedProducts.slice(0, 10)} />
-          <ProductCarousel title={t("calitatepretExcelent")} products={bestValueProducts.slice(0, 20)} />
-          <ProductCarousel title="⭐ Top apreciate (4.7+)" products={topRatedProducts.slice(10, 30)} />
+        <div className="px-2 pt-2 sm:px-4 sm:pt-4">
+          {searchLoading ? <div className="px-2"><ProductCarousel title={`Se caută rezultate...`} isLoading={true} /></div> : searchResults.length > 0 && <div className="px-2"><ProductCarousel title={`Rezultate (${searchResults.length})`} products={searchResults} /></div>}
+          {/* Feed social: sidebar categorii + feed poze/oferte, stil Facebook */}
+          <div className="mx-auto flex max-w-4xl items-start gap-2 sm:gap-4">
+            <CategorySidebar
+              categories={categoryTree}
+              activeCategory={homeCategory}
+              onSelectCategory={setHomeCategory}
+            />
+            <div className="min-w-0 flex-1 lg:max-w-xl">
+              <OffersFeed
+                initialItems={initialOffers}
+                category={homeCategory}
+                onOpenProduct={openOfferProduct}
+              />
+            </div>
+          </div>
         </div>
       )}
       {activeTab === "chat" && <div className="px-4 pt-4"><div className="space-y-4">{(messages.length === 0 ? [AI_WELCOME] : messages).map((m) => <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}><div className={`inline-block max-w-[88%] rounded-2xl px-4 py-3 text-sm font-medium ${m.role === "user" ? "bg-[#0D0D0D] text-white" : "bg-[#F7F7F8] text-[#0D0D0D] border border-[#E5E5E5]"}`}>{m.role === "assistant" && <div className="mb-1 flex items-center gap-1 text-xs font-bold text-[#0D0D0D]"><Bot size={13} /> Asistent Shopping AI</div>}<p className="whitespace-pre-wrap">{m.content}</p></div>{m.role === "assistant" && <><ProductCarousel title={t("recomandatePentruTine")} products={m.products} />{(m.bundleProducts?.length || 0) > 0 && <div className="mt-3 rounded-2xl border border-[#0D0D0D]/30 bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] p-4"><div className="flex items-center justify-between mb-3"><p className="text-xs font-black uppercase tracking-widest text-[#0D0D0D]">{t("bundleAiCompleteazaSetul")}</p><p className="text-xs font-bold text-[#6E6E80]">{(() => { const t = (m.bundleProducts || []).reduce((s, p) => s + p.price, 0); const o = (m.bundleProducts || []).reduce((s, p) => s + (p.oldPrice || p.price), 0); return o > t ? `Economisești ${Math.round(o - t)} lei` : `Total: ${Math.round(t)} lei`; })()}</p></div><div className="space-y-2">{(m.bundleProducts || []).map(bp => <div key={bp.id} className="flex items-center gap-3 rounded-xl bg-white/80 p-2.5 border border-[#E5E5E5]/50"><Image src={bp.images?.[0] || ""} alt="" width={48} height={48} className="h-12 w-12 rounded-lg object-cover shrink-0" /><div className="flex-1 min-w-0"><p className="text-xs font-bold text-[#0D0D0D] truncate">{bp.title}</p><p className="text-xs font-bold text-[#0D0D0D]">{bp.price} lei {bp.oldPrice > bp.price && <span className="text-[#A1A1AA] line-through ml-1">{bp.oldPrice}</span>}</p></div><button type="button" onClick={() => addToCart(bp)} className="shrink-0 rounded-lg bg-[#0D0D0D] px-2.5 py-1.5 text-[10px] font-black text-white active:scale-90 transition-transform">{t("cos")}</button></div>)}</div><button type="button" onClick={() => { (m.bundleProducts || []).forEach(bp => addToCart(bp)); setToastMessage("🎁 Tot bundle-ul adăugat!"); setTimeout(() => setToastMessage(""), 2500); }} className="mt-3 w-full rounded-xl bg-[#0D0D0D] py-3 text-xs font-black text-white active:scale-95 transition-transform"><ShoppingCart size={13} className="inline mr-1.5" />{t("adaugaTotBundleul")} {Math.round((m.bundleProducts || []).reduce((s, p) => s + p.price, 0))} lei</button></div>}{(m.products?.length || 0) > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{[{ label: "🔄 Arată altele", query: "arată-mi altceva" }, { label: "💰 Mai ieftin", query: "vreau mai ieftin" }, { label: "⭐ Top calitate", query: "arată-mi doar top calitate" }, { label: "🆕 Mai noi", query: "arată-mi produse mai noi" }, { label: "⚖️ Compară top 2", query: "compară primele 2 produse" }].map(chip => <button type="button" key={chip.label} onClick={() => sendMessage(chip.query)} className="rounded-full bg-white border border-[#E5E5E5] px-3 py-1.5 text-[11px] font-bold text-[#6E6E80] hover:border-[#0D0D0D] hover:text-[#0D0D0D] active:scale-95 transition-all">{chip.label}</button>)}</div>}</>}</div>)}{isLoading && <div className="rounded-xl bg-[#F7F7F8] p-3 text-sm font-medium text-[#6E6E80] border border-[#E5E5E5]">{t("aiAnalizeazaSiCauta")}</div>}{messages.length > 0 && !isLoading && <button type="button" onClick={() => { setMessages([]); try { localStorage.removeItem("aicv_chat"); } catch { } }} className="mx-auto block text-[10px] font-bold text-[#A1A1AA] hover:text-[#6E6E80] mt-2">{t("stergeConversatia")}</button>}<div ref={messagesEndRef} /></div></div>}

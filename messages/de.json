@@ -1521,5 +1521,33 @@
       "work": "Jobs",
       "social": "Gemeinschaft"
     }
+  },
+  "homeFeed": {
+    "sort": {
+      "popular": "Beliebt",
+      "new": "Neu",
+      "discount": "Stark reduziert"
+    },
+    "filters": "Filter",
+    "price": "Preis",
+    "min": "Min",
+    "max": "Max",
+    "minDiscount": "Mindestrabatt",
+    "minRating": "Mindestbewertung",
+    "apply": "Anwenden",
+    "reset": "Zurücksetzen",
+    "close": "Schließen",
+    "like": "Gefällt mir",
+    "comment": "Kommentieren",
+    "share": "Teilen",
+    "view": "Ansehen",
+    "comingSoon": "Bald verfügbar",
+    "error": "Angebote konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Keine Angebote für diese Filter.",
+    "shares": "{count} Mal geteilt",
+    "categories": "Kategorien",
+    "allCategories": "Alle Kategorien",
+    "all": "Alle"
   }
 }

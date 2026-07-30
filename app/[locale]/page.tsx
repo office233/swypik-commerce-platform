@@ -1,5 +1,7 @@
 import ChatInterface from "@/components/ChatInterface";
 import { searchProducts } from "@/lib/db/product-queries";
+import { dbQuery } from "@/lib/db";
+import type { OfferPost } from "@/lib/types/feed";
 import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
@@ -50,6 +52,7 @@ const getHomeProductSections = unstable_cache(
     let trending = emptyResult;
     let bestValue = emptyResult;
     let topRated = emptyResult;
+    let offers: OfferPost[] = [];
 
     try {
       [trending, bestValue, topRated] = await Promise.all([
@@ -61,15 +64,58 @@ const getHomeProductSections = unstable_cache(
       console.error("[Home] Failed to load initial products:", error);
     }
 
-    return { trending, bestValue, topRated };
+    try {
+      const feedResult = await withTimeout(
+        searchProducts({ mode: "trending", sort: "popular", limit: 36 }),
+        8000,
+        emptyResult,
+      );
+      const candidates = feedResult.products
+        .filter((p: any) => {
+          const img = Array.isArray(p.images) ? p.images[0] : undefined;
+          return p.hasValidPrice && typeof img === "string" && /^https?:\/\//.test(img);
+        })
+        .slice(0, 12);
+      const ids = candidates.map((p: any) => String(p.id));
+      let statsMap = new Map<string, { like: number; share: number }>();
+      if (ids.length) {
+        const { rows } = await dbQuery(
+          `SELECT product_id, like_count, share_count FROM product_stats WHERE product_id = ANY($1::uuid[])`,
+          [ids],
+        ).catch(() => ({ rows: [] as any[] }));
+        statsMap = new Map(rows.map((r: any) => [String(r.product_id), { like: Number(r.like_count) || 0, share: Number(r.share_count) || 0 }]));
+      }
+      offers = candidates.map((p: any) => ({
+        id: String(p.id),
+        title: p.title,
+        image: p.images[0],
+        price: p.price,
+        oldPrice: p.oldPrice,
+        discountPercent: p.discountPercent ?? 0,
+        currency: "RON",
+        rating: p.rating ?? 0,
+        orders: p.orders ?? 0,
+        brand: p.vendor || p.category || "Swypik",
+        category: p.category || "General",
+        categoryId: p.categoryId,
+        shipFree: Boolean(p.shipFree),
+        likeCount: statsMap.get(String(p.id))?.like ?? 0,
+        shareCount: statsMap.get(String(p.id))?.share ?? 0,
+        viewerLiked: false,
+      }));
+    } catch (error) {
+      console.error("[Home] Failed to load offers feed:", error);
+    }
+
+    return { trending, bestValue, topRated, offers };
   },
-  ["home-product-sections-v1"],
+  ["home-product-sections-v2"],
   { revalidate: 120 },
 );
 
 export default async function Home() {
   const t = await getTranslations("page");
-  const { trending, bestValue, topRated } = await getHomeProductSections();
+  const { trending, bestValue, topRated, offers } = await getHomeProductSections();
 
   const websiteJsonLd = {
     "@context": "https://schema.org",
@@ -120,6 +166,7 @@ export default async function Home() {
         initialTrending={trending.products}
         initialBestValue={bestValue.products}
         initialTopRated={topRated.products}
+        initialOffers={offers}
       />
     </>
   );
