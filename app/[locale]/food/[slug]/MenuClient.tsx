@@ -11,6 +11,7 @@ import Image from "next/image";
 import { ArrowLeft, Clock, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { isOpenNow } from "@/lib/merchants/hours";
+import EatsPaymentModal from "@/components/payments/EatsPaymentModal";
 
 const ACCENT = "#2DBE60";
 
@@ -67,6 +68,8 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
   const [placing, setPlacing] = useState(false);
   const [placed, setPlaced] = useState<{ order_number: string } | null>(null);
   const [error, setError] = useState("");
+  const [payMethod, setPayMethod] = useState<"cash" | "card_online">("cash");
+  const [cardPay, setCardPay] = useState<{ client_secret: string; amount_cents: number; order: { order_number: string } } | null>(null);
 
   // formular livrare
   const [name, setName] = useState("");
@@ -154,12 +157,27 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           customer_phone: phone,
           delivery_address: address,
           delivery_notes: notes || undefined,
-          payment_method: "cash",
+          payment_method: payMethod,
         }),
       });
       const data = await res.json();
       if (!data.success) {
         setError(data.error || "Eroare la plasarea comenzii.");
+        return;
+      }
+      // Card online: comanda e plasată, dar plata se confirmă în modal.
+      if (payMethod === "card_online") {
+        if (data.payment?.client_secret) {
+          setCardPay({
+            client_secret: data.payment.client_secret,
+            amount_cents: data.payment.amount_cents,
+            order: data.order,
+          });
+          setCart([]);
+          localStorage.removeItem(cartKey);
+          return;
+        }
+        setError(data.payment_error || "Inițializarea plății a eșuat.");
         return;
       }
       setPlaced(data.order);
@@ -169,6 +187,26 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
       setPlacing(false);
     }
   };
+
+  // ── modal plată card ──
+  if (cardPay) {
+    return (
+      <EatsPaymentModal
+        clientSecret={cardPay.client_secret}
+        amountCents={cardPay.amount_cents}
+        onSuccess={() => {
+          setPlaced(cardPay.order);
+          setCardPay(null);
+        }}
+        onCancel={() => {
+          // Comanda rămâne plasată cu plata pending — merchantul o vede
+          // doar după plată sau o poate refuza; clientul poate reveni.
+          setPlaced(cardPay.order);
+          setCardPay(null);
+        }}
+      />
+    );
+  }
 
   // ── ecran de confirmare ──
   if (placed) {
@@ -444,7 +482,22 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
 
             {error && <p className="mt-3 text-sm font-bold text-red-600">{error}</p>}
 
-            <p className="mt-3 text-center text-xs text-[#6E6E80]">💵 Plata: cash la livrare (plata cu cardul vine în curând)</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPayMethod("cash")}
+                className={`h-11 rounded-xl border text-sm font-bold ${payMethod === "cash" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
+              >
+                💵 Cash la livrare
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayMethod("card_online")}
+                className={`h-11 rounded-xl border text-sm font-bold ${payMethod === "card_online" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
+              >
+                💳 Card online
+              </button>
+            </div>
 
             <button
               type="button"
