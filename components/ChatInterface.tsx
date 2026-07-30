@@ -228,6 +228,7 @@ export default function ChatInterface({
   const [showBundleSheet, setShowBundleSheet] = useState(false);
   const [categoryTree, setCategoryTree] = useState<any[]>([]);
   const [homeCategory, setHomeCategory] = useState<string | null>(null);
+  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [expandedMid, setExpandedMid] = useState<string | null>(null);
   const [activeSub, setActiveSub] = useState<string | null>(null);
@@ -542,7 +543,7 @@ export default function ChatInterface({
     );
   };
 
-  return <main className={`min-h-screen ${THEME.classes.appBg}`}><div className={`relative mx-auto min-h-screen w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl app-container ${THEME.classes.pageBg}`}>{activeTab !== "feed" && <header className="sticky top-0 z-30 border-b border-[#E5E5E5] bg-white/95 px-4 py-3 backdrop-blur-xl safe-top"><div className="flex items-center justify-between h-12"><button type="button" onClick={() => { setActiveTab("home"); setCatBrowsing(false); setExpandedCat(null); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-2" aria-label={t("inapoiAcasa")}><span className="text-2xl font-black text-[#0D0D0D] tracking-tight">Swypik</span></button><div className="flex items-center gap-2"><a href="/cart" aria-label={t("cosulMeu")} className="relative grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] text-white active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><ShoppingCart size={18} />{cartCount > 0 && <span className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-[#7C3AED] px-1 text-[9px] font-black text-white leading-none ring-2 ring-[#0D0D0D]">{cartCount > 99 ? "99+" : cartCount}</span>}</a></div></div></header>}
+  return <main className={`min-h-screen ${THEME.classes.appBg}`}><div className={`relative mx-auto min-h-screen w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl app-container ${THEME.classes.pageBg}`}>{activeTab !== "feed" && <header className="sticky top-0 z-30 border-b border-[#E5E5E5] bg-white/95 px-4 py-3 backdrop-blur-xl safe-top"><div className="flex items-center justify-between h-12"><div className="flex items-center gap-1"><button type="button" onClick={() => setCategoryDrawerOpen(true)} className="grid h-11 w-11 place-items-center rounded-full transition-transform hover:bg-[#F0F0F2] active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Categorii"><Menu size={22} className="text-[#0D0D0D]" /></button><button type="button" onClick={() => { setActiveTab("home"); setCatBrowsing(false); setExpandedCat(null); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-2" aria-label={t("inapoiAcasa")}><span className="text-2xl font-black text-[#0D0D0D] tracking-tight">Swypik</span></button></div><div className="flex items-center gap-2"><a href="/cart" aria-label={t("cosulMeu")} className="relative grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] text-white active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><ShoppingCart size={18} />{cartCount > 0 && <span className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-[#7C3AED] px-1 text-[9px] font-black text-white leading-none ring-2 ring-[#0D0D0D]">{cartCount > 99 ? "99+" : cartCount}</span>}</a></div></div></header>}
     {/* Slide-out Menu */}
     {showMenu && <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Meniu navigare" onClick={() => setShowMenu(false)}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -607,20 +608,20 @@ export default function ChatInterface({
       {activeTab === "home" && (
         <div className="px-2 pt-2 sm:px-4 sm:pt-4">
           {searchLoading ? <div className="px-2"><ProductCarousel title={`Se caută rezultate...`} isLoading={true} /></div> : searchResults.length > 0 && <div className="px-2"><ProductCarousel title={`Rezultate (${searchResults.length})`} products={searchResults} /></div>}
-          {/* Feed social: sidebar categorii + feed poze/oferte, stil Facebook */}
-          <div className="mx-auto flex max-w-4xl items-start gap-2 sm:gap-4">
-            <CategorySidebar
-              categories={categoryTree}
-              activeCategory={homeCategory}
-              onSelectCategory={setHomeCategory}
+          {/* Feed social centrat; categoriile stau in drawer-ul din ☰ (langa logo) */}
+          <CategorySidebar
+            categories={categoryTree}
+            activeCategory={homeCategory}
+            onSelectCategory={setHomeCategory}
+            open={categoryDrawerOpen}
+            onOpenChange={setCategoryDrawerOpen}
+          />
+          <div className="mx-auto min-w-0 max-w-xl">
+            <OffersFeed
+              initialItems={initialOffers}
+              category={homeCategory}
+              onOpenProduct={openOfferProduct}
             />
-            <div className="min-w-0 flex-1 lg:max-w-xl">
-              <OffersFeed
-                initialItems={initialOffers}
-                category={homeCategory}
-                onOpenProduct={openOfferProduct}
-              />
-            </div>
           </div>
         </div>
       )}

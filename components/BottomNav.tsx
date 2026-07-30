@@ -3,18 +3,18 @@
 import { useEffect } from "react";
 import { Link, usePathname } from "@/lib/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Home, UtensilsCrossed, Car, ReceiptText, User } from "lucide-react";
+import { Home, Compass, Plus, Inbox, User } from "lucide-react";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import { haptic } from "@/lib/haptic";
 
-type NavKey = "home" | "eats" | "go" | "orders" | "account";
+type NavKey = "home" | "explore" | "upload" | "inbox" | "account";
 type Item = { href: string; icon: typeof Home; key: NavKey; center?: boolean; flag?: "dm" | "pushNotifications" | "stripeConnect" | "returns" };
 
 const NAV_ITEMS: Item[] = [
   { href: "/", icon: Home, key: "home" },
-  { href: "/food", icon: UtensilsCrossed, key: "eats" },
-  { href: "/go", icon: Car, key: "go" },
-  { href: "/orders", icon: ReceiptText, key: "orders" },
+  { href: "/explore", icon: Compass, key: "explore" },
+  { href: "/reels/record", icon: Plus, key: "upload", center: true },
+  { href: "/inbox", icon: Inbox, key: "inbox" },
   { href: "/account", icon: User, key: "account" },
 ];
 
@@ -81,8 +81,8 @@ export default function BottomNav() {
               href={item.href}
               onClick={() => haptic("tap")}
               className={`relative mx-auto flex flex-col items-center justify-center gap-0.5 w-full h-12 rounded-xl transition-all ${isActive
-                  ? "text-[#0D0D0D] dark:text-white"
-                  : "text-[#52525B] hover:text-[#0D0D0D] dark:text-[#A1A1AA] dark:hover:text-white"
+                ? "text-[#0D0D0D] dark:text-white"
+                : "text-[#52525B] hover:text-[#0D0D0D] dark:text-[#A1A1AA] dark:hover:text-white"
                 }`}
             >
               <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
