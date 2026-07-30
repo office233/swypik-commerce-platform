@@ -18,7 +18,7 @@ const NON_LOCALIZED_PREFIXES = [
   "/api/",
   "/admin",
   "/seller",
-  "/auth/",
+  "/auth",
   "/onboarding",
   "/creator",
   "/feed.xml",
