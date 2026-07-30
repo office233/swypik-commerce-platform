@@ -66,7 +66,7 @@ function mapItinerary(it: any, currency: string): FlightOffer {
     carrier: it.airlines?.[0] ?? "",
     baggageIncluded: false,
     expiresAt: null,
-    raw: { deepLink: it.deep_link },
+    raw: {},
   };
 }
 
@@ -137,10 +137,11 @@ export const kiwiProvider: FlightProvider = {
 
   async createOrder(_input: CreateOrderInput): Promise<CreateOrderResult> {
     // Booking API Kiwi cere cont de booking aprobat (Zooz payments).
-    // Până la aprobare, rezervarea Kiwi se finalizează prin deep_link.
+    // Până la aprobare, ofertele Kiwi nu sunt rezervabile — clientul rămâne
+    // pe Swypik și alege o ofertă Duffel (emitere instant la noi).
     return {
       ok: false,
-      message: "Rezervarea directă Kiwi nu e activă încă — folosește oferta Duffel sau linkul Kiwi.",
+      message: "Această ofertă nu e rezervabilă momentan — alege o ofertă cu emitere instant.",
     };
   },
 };
