@@ -9,6 +9,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { CourierStatusSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { publishJobEvent } from "@/lib/dispatch/engine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,6 +64,28 @@ export async function POST(req: Request) {
                 );
             } catch (histErr) {
                 logger.error({ err: histErr }, "[couriers/status] history insert failed");
+            }
+
+            // Heartbeat GPS pentru clientul care își urmărește comanda:
+            // publicăm locația pe canalul job-ului asignat (SSE dispatch stream).
+            try {
+                const { rows: jobs } = await dbQuery(
+                    `SELECT id FROM dispatch_jobs
+                      WHERE assigned_courier_id = $1 AND status = 'assigned'`,
+                    [rows[0].id],
+                );
+                for (const j of jobs) {
+                    await publishJobEvent(j.id, {
+                        type: "location",
+                        lat: d.lat,
+                        lng: d.lng,
+                        speed_kmh: d.speed_kmh ?? null,
+                        heading: d.heading ?? null,
+                        at: new Date().toISOString(),
+                    });
+                }
+            } catch (pubErr) {
+                logger.error({ err: pubErr }, "[couriers/status] location publish failed");
             }
         }
 
