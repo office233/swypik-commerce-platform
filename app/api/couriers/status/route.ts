@@ -93,12 +93,21 @@ export async function POST(req: Request) {
         let offers: unknown[] = [];
         if (d.online) {
             const { rows: pending } = await dbQuery(
-                `SELECT o.id AS offer_id, o.order_id, o.expires_at, lo.order_number, lo.delivery_address,
-                m.name AS merchant_name, m.address AS pickup_address,
-                lo.delivery_fee_cents, lo.currency
+                // Ofertele pending includ AMBELE tipuri de job: livrări (local_orders)
+                // și curse Swypik Go (rides) — PWA-ul le distinge prin `kind`.
+                `SELECT o.id AS offer_id, j.kind, o.expires_at,
+                    o.order_id, j.ride_id,
+                        lo.order_number,
+                        COALESCE(lo.delivery_address, r.dropoff_address) AS delivery_address,
+                        COALESCE(m.name, 'Swypik Go')                    AS merchant_name,
+                        COALESCE(m.address, r.pickup_address)            AS pickup_address,
+                        COALESCE(lo.delivery_fee_cents, r.estimated_fare_cents) AS delivery_fee_cents,
+                        COALESCE(lo.currency, r.currency, 'RON')         AS currency
            FROM dispatch_offers o
-           JOIN local_orders lo ON lo.id = o.order_id
-           JOIN local_merchants m ON m.id = lo.merchant_id
+           JOIN dispatch_jobs j          ON j.id = o.job_id
+           LEFT JOIN local_orders lo     ON lo.id = o.order_id
+           LEFT JOIN local_merchants m   ON m.id = lo.merchant_id
+           LEFT JOIN rides r             ON r.id = j.ride_id
           WHERE o.courier_id = $1 AND o.response IS NULL AND o.expires_at > now()`,
                 [rows[0].id],
             );
