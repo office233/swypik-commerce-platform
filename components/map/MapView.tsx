@@ -14,7 +14,7 @@
  * (Leaflet atinge `window` la import).
  */
 import { useEffect } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -36,7 +36,18 @@ export type MapViewProps = {
   flyTo?: { lat: number; lng: number } | null;
   /** Când e setat, harta încadrează toate punctele. */
   fitBounds?: { lat: number; lng: number }[] | null;
+  /** Click pe hartă — folosit pentru ajustarea pinului de livrare. */
+  onMapClick?: (p: { lat: number; lng: number }) => void;
 };
+
+function ClickCapture({ onMapClick }: { onMapClick: (p: { lat: number; lng: number }) => void }) {
+  useMapEvents({
+    click(e) {
+      onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
+  });
+  return null;
+}
 
 function MapController({ flyTo, fitBounds }: Pick<MapViewProps, "flyTo" | "fitBounds">) {
   const map = useMap();
@@ -60,6 +71,7 @@ export default function MapView({
   children,
   flyTo,
   fitBounds,
+  onMapClick,
 }: MapViewProps) {
   return (
     <MapContainer
@@ -71,6 +83,7 @@ export default function MapView({
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <MapController flyTo={flyTo} fitBounds={fitBounds} />
+      {onMapClick && <ClickCapture onMapClick={onMapClick} />}
       {children}
     </MapContainer>
   );

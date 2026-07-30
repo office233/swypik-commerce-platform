@@ -8,13 +8,32 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Clock, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react";
+import dynamic from "next/dynamic";
+import { ArrowLeft, Clock, MapPin, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { isOpenNow } from "@/lib/merchants/hours";
 import EatsPaymentModal from "@/components/payments/EatsPaymentModal";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 
+const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
+const LiveMarker = dynamic(() => import("@/components/map/LiveMarker"), { ssr: false });
+
 const ACCENT = "#2DBE60";
+
+/** Adresă salvată (GET /api/users/me/addresses). */
+interface SavedAddress {
+  id: string;
+  label: string | null;
+  line1: string;
+  line2: string | null;
+  city: string;
+  lat: number | null;
+  lng: number | null;
+  details: string | null;
+  is_default: boolean;
+}
+
+const TIP_PRESETS = [0, 5, 10, 15] as const;
 
 interface MenuChoice { id?: string; name: string; price_cents?: number }
 interface MenuOption { name: string; required?: boolean; max?: number; choices?: MenuChoice[] }
@@ -80,6 +99,14 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
   const [notes, setNotes] = useState("");
   // taxă de livrare dinamică (zonă+distanță+surge) — quote de la server
   const [feeQuote, setFeeQuote] = useState<number | null>(null);
+    const [outOfRange, setOutOfRange] = useState(false);
+
+    // adrese salvate + pin ajustabil + bacșiș
+    const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+    const [saveAddress, setSaveAddress] = useState(false);
+    const [showPin, setShowPin] = useState(false);
+    const [tipPct, setTipPct] = useState<number>(0);
+    const [tipCustom, setTipCustom] = useState("");
 
   const cartKey = `swypik_food_cart_${merchant.id}`;
   const open = isOpenNow(merchant.opening_hours, merchant.is_open_override);
@@ -137,14 +164,44 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
       .then((r) => r.json())
       .then((d) => {
         if (d.success && typeof d.quote?.fee_cents === "number") setFeeQuote(d.quote.fee_cents);
+        setOutOfRange(Boolean(d?.quote?.out_of_range));
       })
       .catch(() => { /* rămâne fee-ul fix */ });
     return () => ctrl.abort();
   }, [addressCoords, merchant.id]);
 
+  // Adrese salvate — doar pentru userii logați; 401 => listă goală.
+  useEffect(() => {
+    if (!checkout) return;
+    fetch("/api/users/me/addresses", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const list: SavedAddress[] = d?.addresses ?? d?.data ?? [];
+        if (!Array.isArray(list) || list.length === 0) return;
+        setSavedAddresses(list);
+        const def = list.find((a) => a.is_default) ?? list[0];
+        if (def && !address) applySaved(def);
+      })
+      .catch(() => { /* guest checkout */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkout]);
+
+  const applySaved = (a: SavedAddress) => {
+    setAddress([a.line1, a.line2, a.city].filter(Boolean).join(", "));
+    if (a.lat != null && a.lng != null) setAddressCoords({ lat: a.lat, lng: a.lng });
+    if (a.details) setNotes(a.details);
+  };
+
   const subtotal = useMemo(() => cart.reduce((s, l) => s + l.unit_price_cents * l.qty, 0), [cart]);
   const deliveryFee = feeQuote ?? merchant.delivery_fee_cents;
-  const total = subtotal + (subtotal > 0 ? deliveryFee : 0);
+  const tipCents = useMemo(() => {
+    if (tipCustom.trim()) {
+      const v = Math.round(Number(tipCustom.replace(",", ".")) * 100);
+      return Number.isFinite(v) && v > 0 ? Math.min(v, 100_000) : 0;
+    }
+    return Math.round((subtotal * tipPct) / 100);
+  }, [tipCustom, tipPct, subtotal]);
+  const total = subtotal + (subtotal > 0 ? deliveryFee : 0) + tipCents;
   const fmtLei = (c: number) => `${(c / 100).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} lei`;
   const belowMin = subtotal > 0 && subtotal < merchant.min_order_cents;
 
@@ -206,12 +263,31 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           delivery_lng: addressCoords?.lng,
           delivery_notes: notes || undefined,
           payment_method: payMethod,
+          tip_cents: tipCents,
         }),
       });
       const data = await res.json();
       if (!data.success) {
         setError(data.error || "Eroare la plasarea comenzii.");
         return;
+      }
+      // Best-effort: salvează adresa pentru comenzile viitoare.
+      if (saveAddress && address) {
+        fetch("/api/users/me/addresses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            label: "Livrare",
+            recipient_name: name || "Client",
+            phone: phone || null,
+            line1: address.slice(0, 200),
+            city: merchant.location_city || "—",
+            postal_code: "000000",
+            lat: addressCoords?.lat ?? null,
+            lng: addressCoords?.lng ?? null,
+            details: notes || null,
+          }),
+        }).catch(() => { /* best-effort */ });
       }
       // Card online: comanda e plasată, dar plata se confirmă în modal.
       if (payMethod === "card_online") {
@@ -525,7 +601,11 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                 </div>
               ))}
               <div className="border-t border-[#E5E5E5] pt-2 text-sm">
-                <div className="flex justify-between text-[#6E6E80]"><span>Livrare</span><span>{deliveryFee === 0 ? "Gratuită" : fmtLei(deliveryFee)}</span></div>
+                <div className="flex justify-between text-[#6E6E80]"><span>Subtotal</span><span>{fmtLei(subtotal)}</span></div>
+                <div className="mt-1 flex justify-between text-[#6E6E80]"><span>Livrare</span><span>{deliveryFee === 0 ? "Gratuită" : fmtLei(deliveryFee)}</span></div>
+                {tipCents > 0 && (
+                  <div className="mt-1 flex justify-between text-[#6E6E80]"><span>Bacșiș curier</span><span>{fmtLei(tipCents)}</span></div>
+                )}
                 <div className="mt-1 flex justify-between font-black"><span>Total</span><span>{fmtLei(total)}</span></div>
               </div>
             </div>
@@ -533,15 +613,86 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
             <div className="mt-4 space-y-3">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Numele tău *" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
               <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon *" inputMode="tel" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+
+              {savedAddresses.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {savedAddresses.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => { haptic("tap"); applySaved(a); }}
+                      className="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1.5 text-xs font-bold text-[#0D0D0D]"
+                    >
+                      📍 {a.label || a.line1.slice(0, 24)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <AddressAutocomplete
                 placeholder="Adresa de livrare *"
                 value={address}
                 onSelect={(r: AddressResult) => {
                   setAddress(r.address);
                   setAddressCoords({ lat: r.lat, lng: r.lng });
+                  setShowPin(true);
                 }}
               />
-              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Mențiuni (opțional)" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+
+              {/* Pin ajustabil pe hartă — tap pe hartă mută punctul de livrare. */}
+              {showPin && addressCoords && (
+                <div className="overflow-hidden rounded-2xl border border-[#E5E5E5]">
+                  <MapView
+                    center={addressCoords}
+                    zoom={16}
+                    className="h-44 w-full"
+                    flyTo={addressCoords}
+                    onMapClick={(p) => { haptic("tap"); setAddressCoords(p); }}
+                  >
+                    <LiveMarker position={addressCoords} kind="dropoff" label="Livrare aici" />
+                  </MapView>
+                  <p className="flex items-center gap-1 bg-[#F7F7F8] px-3 py-1.5 text-[11px] text-[#6E6E80]">
+                    <MapPin size={12} /> Atinge harta ca să ajustezi pinul exact la ușa ta.
+                  </p>
+                </div>
+              )}
+
+              {outOfRange && (
+                <p className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                  Adresa pare în afara razei de livrare a restaurantului. Alege o adresă mai apropiată.
+                </p>
+              )}
+
+              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Instrucțiuni pentru curier (interfon, etaj…)" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+
+              <label className="flex items-center gap-2 text-xs font-medium text-[#6E6E80]">
+                <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="h-4 w-4 accent-[#2DBE60]" />
+                Salvează adresa pentru comenzile viitoare
+              </label>
+
+              {/* Bacșiș curier */}
+              <div>
+                <p className="mb-1.5 text-xs font-black uppercase tracking-wide text-[#6E6E80]">Bacșiș pentru curier</p>
+                <div className="flex gap-2">
+                  {TIP_PRESETS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => { haptic("tap"); setTipPct(p); setTipCustom(""); }}
+                      className={`h-10 flex-1 rounded-xl border text-sm font-bold ${!tipCustom && tipPct === p ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
+                    >
+                      {p === 0 ? "Fără" : `${p}%`}
+                    </button>
+                  ))}
+                  <input
+                    value={tipCustom}
+                    onChange={(e) => setTipCustom(e.target.value.replace(/[^\d.,]/g, ""))}
+                    placeholder="Lei"
+                    inputMode="decimal"
+                    className={`h-10 w-16 rounded-xl border px-2 text-center text-sm font-bold outline-none ${tipCustom ? "border-[#2DBE60]" : "border-[#E5E5E5]"}`}
+                  />
+                </div>
+              </div>
             </div>
 
             {error && <p className="mt-3 text-sm font-bold text-red-600">{error}</p>}
@@ -565,7 +716,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
 
             <button
               type="button"
-              disabled={placing || name.trim().length < 2 || phone.trim().length < 5 || address.trim().length < 5}
+              disabled={placing || outOfRange || name.trim().length < 2 || phone.trim().length < 5 || address.trim().length < 5}
               onClick={placeOrder}
               style={{ backgroundColor: ACCENT }}
               className="mt-3 h-13 w-full rounded-2xl py-3.5 text-sm font-black text-white transition active:scale-[0.98] disabled:opacity-50"
