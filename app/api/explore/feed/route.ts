@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { loadFeedWeights, type FeedWeights } from "@/lib/algo/scoring";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -156,21 +157,85 @@ function buildOrderClause(
   sort: SortMode,
   hasUser: boolean,
   hasSession: boolean,
+  equityExpr: string,
 ): string {
   const penalty = buildPenaltyExpr(hasUser, hasSession);
   const affinity = buildAffinityExpr(hasUser);
   switch (sort) {
     case "popular":
-      return `${ENGAGEMENT_EXPR} + ${penalty} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
+      return `${ENGAGEMENT_EXPR} + ${penalty} + ${equityExpr} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
     case "trending":
-      return `${TRENDING_EXPR} + ${penalty} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
+      return `${TRENDING_EXPR} + ${penalty} + ${equityExpr} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
     case "recent":
     default:
       // Real engagement (mat view) + freshness + personalization - repetition penalty + exploration jitter.
       // Final tie-breaker random() so videos with identical scores don't always
       // appear in the same order across requests.
-      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${penalty} + ${EXPLORATION_EXPR} DESC, v.published_at DESC NULLS LAST, random()`;
+      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${penalty} + ${equityExpr} + ${EXPLORATION_EXPR} DESC, v.published_at DESC NULLS LAST, random()`;
   }
+}
+
+/**
+ * REGULI DE DISTRIBUȚIE ECHITABILĂ (FRONT 3, cerință de business):
+ *  1. Boost clipuri < small_creator_hours (48h) de la creatori mici
+ *     (< small_creator_followers followers).
+ *  2. Plafon vizualizări/zi per business: peste daily_views_cap, clipurile
+ *     creatorului sunt retrogradate cu daily_cap_penalty pentru restul zilei.
+ *  3. Rotație: fiecare clip al aceluiași creator deja servit viewerului azi
+ *     penalizează cu rotation_penalty (nu domină aceiași creatori feedul).
+ * Ponderile vin din feed_weights / env — vezi lib/algo/scoring.ts.
+ */
+function buildEquityExpr(w: FeedWeights, hasViewer: boolean): string {
+  const n = (v: number) => (Number.isFinite(v) ? String(v) : "0");
+  const rotation = hasViewer
+    ? `- COALESCE(eq_rot.served_today, 0) * ${n(w.rotation_penalty)}`
+    : "";
+  return `(
+    CASE WHEN COALESCE(eq_cf.follower_count, 0) < ${n(w.small_creator_followers)}
+           AND COALESCE(v.published_at, v.created_at) > NOW() - INTERVAL '1 hour' * ${n(w.small_creator_hours)}
+         THEN ${n(w.small_creator_boost)} ELSE 0 END
+    - CASE WHEN COALESCE(eq_cap.views_today, 0) > ${n(w.daily_views_cap)}
+           THEN ${n(w.daily_cap_penalty)} ELSE 0 END
+    ${rotation}
+  )`;
+}
+
+function buildEquityJoins(
+  hasUser: boolean,
+  hasSession: boolean,
+  userParam: string,
+  sessionParam: string,
+): string {
+  const viewerConds: string[] = [];
+  if (hasUser) viewerConds.push(`fe_rot.actor_user_id = ${userParam}::uuid`);
+  if (hasSession) viewerConds.push(`fe_rot.session_id = ${sessionParam}`);
+  const rotationJoin =
+    viewerConds.length > 0
+      ? `LEFT JOIN LATERAL (
+        SELECT COUNT(DISTINCT fe_rot.video_id)::int AS served_today
+        FROM feed_events fe_rot
+        JOIN videos v_rot ON v_rot.id = fe_rot.video_id
+        WHERE v_rot.creator_id = v.creator_id
+          AND fe_rot.event_type IN ('impression', 'video_view')
+          AND fe_rot.occurred_at >= date_trunc('day', NOW())
+          AND (${viewerConds.join(" OR ")})
+      ) eq_rot ON true`
+      : "";
+  return `
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS follower_count
+        FROM follows f_eq
+        WHERE f_eq.following_user_id = v.creator_id
+      ) eq_cf ON true
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::bigint AS views_today
+        FROM feed_events fe_cap
+        JOIN videos v_cap ON v_cap.id = fe_cap.video_id
+        WHERE v_cap.creator_id = v.creator_id
+          AND fe_cap.event_type = 'video_view'
+          AND fe_cap.occurred_at >= date_trunc('day', NOW())
+      ) eq_cap ON true
+      ${rotationJoin}`;
 }
 
 function firstProductRefId(value: unknown): string | null {
@@ -407,7 +472,10 @@ export async function GET(request: NextRequest) {
       taxonomyParam = `$${queryParams.length}`;
     }
 
-    const orderClause = buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId));
+    const feedWeights = await loadFeedWeights();
+    const equityExpr = buildEquityExpr(feedWeights, Boolean(userId) || Boolean(viewerSessionId));
+    const equityJoins = buildEquityJoins(Boolean(userId), Boolean(viewerSessionId), userParam, sessionParam);
+    const orderClause = buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr);
     const scoreSelect =
       sort === "popular"
         ? `, ${ENGAGEMENT_EXPR} AS engagement_score`
@@ -584,6 +652,7 @@ export async function GET(request: NextRequest) {
         FROM user_pref WHERE slug = mp.taxonomy_node_slug
         LIMIT 1
       ) uca ON mp.id IS NOT NULL` : ``}
+      ${equityJoins}
       WHERE v.status = 'ready' AND v.is_hidden = false
         AND v.visibility = 'public'
         AND v.effective_label = 'safe'

@@ -97,8 +97,32 @@ async function GET_impl(req: Request) {
   const views = (evMap.video_view ?? 0) + (evMap.video_viewed ?? 0);
   const completions = evMap.completion ?? 0;
   const purchases = evMap.purchase ?? 0;
+  const productClicks = evMap.product_click ?? 0;
   const avgCompletionRate = views > 0 ? completions / views : 0;
   const conversionRate = views > 0 ? purchases / views : 0;
+  // CTR produse: click-uri pe produs raportate la views (FRONT 3, pct. 5).
+  const productCtr = views > 0 ? productClicks / views : 0;
+
+  // Câștiguri din atribuiri video → comenzi (video_attributions) + fond creator.
+  const attribQ = await dbQuery<{ cents: string; orders: string }>(
+    `SELECT COALESCE(SUM(va.commission_cents), 0)::text AS cents,
+            COUNT(DISTINCT va.order_id)::text AS orders
+       FROM video_attributions va
+      WHERE va.creator_id = $1
+        ${days ? `AND va.created_at >= now() - interval '${days} days'` : ""}`,
+    [creatorId],
+  );
+  const attributedSalesCents = Number(attribQ.rows[0]?.cents ?? "0");
+  const attributedOrders = Number(attribQ.rows[0]?.orders ?? "0");
+
+  const fundQ = await dbQuery<{ cents: string }>(
+    `SELECT COALESCE(SUM(p.amount_cents), 0)::text AS cents
+       FROM creator_fund_payouts p
+      WHERE p.creator_id = $1 AND p.status = 'paid'
+        ${days ? `AND p.created_at >= now() - interval '${days} days'` : ""}`,
+    [creatorId],
+  );
+  const creatorFundCents = Number(fundQ.rows[0]?.cents ?? "0");
 
   const topQ = await dbQuery<{
     id: string; title: string; thumbnail_url: string | null;
@@ -179,6 +203,11 @@ async function GET_impl(req: Request) {
       videosPublished: Number(s?.videos_published ?? "0"),
       avgCompletionRate,
       conversionRate,
+      productCtr,
+      productClicks,
+      attributedSalesCents,
+      attributedOrders,
+      creatorFundCents,
       followersGained,
     },
     topVideos,

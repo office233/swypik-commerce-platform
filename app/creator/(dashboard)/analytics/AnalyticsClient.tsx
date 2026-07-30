@@ -18,6 +18,9 @@ interface AnalyticsData {
     totalShares: number; totalSaves: number; totalEarningsCents: number;
     earningsCurrency: string; videosPublished: number;
     avgCompletionRate: number; conversionRate: number; followersGained: number;
+    productCtr: number; productClicks: number;
+    attributedSalesCents: number; attributedOrders: number;
+    creatorFundCents: number;
   };
   topVideos: Array<{
     id: string; title: string; thumbnail: string | null;
@@ -141,6 +144,21 @@ export default function AnalyticsClient() {
           <MetricCard label="Rata finalizare" value={`${(data.summary.avgCompletionRate * 100).toFixed(1)}%`} />
           <MetricCard label="Rata conversie" value={`${(data.summary.conversionRate * 100).toFixed(2)}%`} />
           <MetricCard label="Salvari" value={formatNumber(data.summary.totalSaves)} />
+        </div>
+      )}
+
+      {data && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard label="CTR produse" value={`${((data.summary.productCtr ?? 0) * 100).toFixed(2)}%`} />
+          <MetricCard label="Click-uri produse" value={formatNumber(data.summary.productClicks ?? 0)} />
+          <MetricCard
+            label="Vanzari atribuite"
+            value={fmt(data.summary.attributedSalesCents ?? 0, { sourceCurrency: data.summary.earningsCurrency as Currency })}
+          />
+          <MetricCard
+            label="Fond creatori"
+            value={fmt(data.summary.creatorFundCents ?? 0, { sourceCurrency: data.summary.earningsCurrency as Currency })}
+          />
         </div>
       )}
 

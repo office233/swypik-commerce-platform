@@ -11,6 +11,7 @@ import type Stripe from "stripe";
 import { persistConnectAccount } from "@/lib/stripe/connect";
 import crypto from "crypto";
 import { dispatchAppWebhook } from "@/lib/apps/webhooks";
+import { attributeOrder } from "@/lib/algo/attribution";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -372,6 +373,9 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     await evaluateFraudRisk(orderId).catch((e) =>
       logger.error({ err: e, orderId }, "[fraud-risk] evaluation failed"),
     );
+    await attributeOrder(orderId).catch((e) =>
+      logger.error({ err: e, orderId }, "[algo] video attribution failed"),
+    );
   }
 
   // Record payment transaction
@@ -393,6 +397,9 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
 
   await maybeSendOrderConfirmation(orderId);
   await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
+  await attributeOrder(orderId).catch((e) =>
+    logger.error({ err: e, orderId }, "[algo] video attribution failed"),
+  );
 
   if (transitionRows.length > 0) {
     try {
