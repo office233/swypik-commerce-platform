@@ -29,6 +29,11 @@ import { dbQuery } from "@/lib/db";
 import { creditUser, debitUser } from "@/lib/wallet/ledger";
 import { computeSplit, type MoneySplit } from "@/lib/pricing/split";
 import { recordCommission } from "@/lib/payments/platform-account";
+import { effectiveCommissionPct, recordTierRide } from "@/lib/drivers/tiers";
+import {
+  driverReferralDiscountCents,
+  payFirstRideBonusIfDue,
+} from "@/lib/drivers/referral";
 import { logger } from "@/lib/logger";
 
 const log = logger.child({ mod: "payments/mobility" });
@@ -72,6 +77,7 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
     id: string;
     status: string;
     driver_id: string | null;
+    rider_id: string | null;
     final_fare_cents: number | null;
     estimated_fare_cents: number | null;
     tip_cents: number;
@@ -79,7 +85,7 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
     pricing_zone_id: string | null;
     driver_user_id: string | null;
   }>(
-    `SELECT r.id, r.status, r.driver_id, r.final_fare_cents, r.estimated_fare_cents,
+    `SELECT r.id, r.status, r.driver_id, r.rider_id, r.final_fare_cents, r.estimated_fare_cents,
             COALESCE(r.tip_cents, 0)::int AS tip_cents, r.payment_method, r.pricing_zone_id,
             c.user_id AS driver_user_id
        FROM rides r
@@ -91,13 +97,27 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
   if (!ride || ride.status !== "completed" || !ride.driver_user_id) return null;
 
   const fare = ride.final_fare_cents ?? ride.estimated_fare_cents ?? 0;
-  const pct = await zonePercents(ride.pricing_zone_id);
+  // Founding Drivers: treapta șoferului (15/18/20% sau 0% în promo) primează;
+  // fallback pe procentul zonei pentru șoferii fără treaptă (date vechi).
+  const tierPct = ride.driver_id ? await effectiveCommissionPct(ride.driver_id) : null;
+  const pct = tierPct
+    ? { platform: tierPct.platform_pct, courier: tierPct.courier_pct }
+    : await zonePercents(ride.pricing_zone_id);
   const split = computeSplit({
     fee_cents: fare,
     tip_cents: ride.tip_cents,
     platform_commission_pct: pct.platform,
     courier_share_pct: pct.courier,
   });
+
+  // Referral șofer→client: 2% din tarif (max 15 RON) înapoi la client, plătit
+  // din comisionul platformei — cota șoferului NU scade.
+  const referralDiscount = ride.rider_id
+    ? Math.min(
+        await driverReferralDiscountCents(ride.rider_id, fare),
+        split.platform_cents,
+      )
+    : 0;
 
   const isCash = (ride.payment_method ?? "cash") === "cash";
   let result: SettleResult;
@@ -137,14 +157,40 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
     }
   }
 
+  // Reducerea de referral: creditată clientului în wallet (idempotent pe ride),
+  // suportată din comisionul platformei.
+  if (referralDiscount > 0 && ride.rider_id) {
+    await creditUser({
+      userId: ride.rider_id,
+      amountCents: referralDiscount,
+      refType: "driver_referral_discount",
+      refId: ride.id,
+      description: `Reducere referral cursă #${ride.id.slice(0, 8)}`,
+    });
+  }
+
   // Comisionul platformei — intrare pe contul tehnic (idempotent pe ride id).
   await recordCommission({
     refType: "commission_ride",
     refId: ride.id,
-    amountCents: split.platform_cents,
+    amountCents: split.platform_cents - referralDiscount,
     description: `Comision cursă #${ride.id.slice(0, 8)}`,
-    metadata: { split, payment: isCash ? "cash" : "card", gmv_cents: fare + ride.tip_cents },
+    metadata: {
+      split,
+      payment: isCash ? "cash" : "card",
+      gmv_cents: fare + ride.tip_cents,
+      tier: tierPct?.tier ?? null,
+      in_promo: tierPct?.in_promo ?? false,
+      referral_discount_cents: referralDiscount,
+    },
   });
+
+  // Founding Drivers: contorizează cursa pentru condiția de activitate și
+  // plătește bonusul de 5 RON la prima cursă a unui client invitat.
+  if (!result.alreadySettled) {
+    if (ride.driver_id) await recordTierRide(ride.driver_id);
+    if (ride.rider_id) await payFirstRideBonusIfDue(ride.rider_id);
+  }
 
   await dbQuery(`UPDATE rides SET settled_at = COALESCE(settled_at, now()) WHERE id = $1`, [rideId]);
   log.info({ rideId, isCash, split, kind: result.ledger_kind, amount: result.ledger_amount_cents }, "ride settled");

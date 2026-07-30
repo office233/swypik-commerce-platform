@@ -9,6 +9,8 @@ import { isAdminRequest } from "@/lib/security/admin-auth";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
+import { assignTierOnApproval, TIER_COMMISSION_PCT, PROMO_DAYS } from "@/lib/drivers/tiers";
+import { getOrCreateDriverCode } from "@/lib/drivers/referral";
 
 export const dynamic = "force-dynamic";
 
@@ -55,9 +57,37 @@ export async function PATCH(
         if (!rows.length) return NextResponse.json({ error: "not_found" }, { status: 404 });
         const courier = rows[0];
 
+        // La aprobare: atribuie treapta de comision (Founding Drivers) si codul
+        // de referral. Best-effort — o eroare aici nu trebuie sa blocheze aprobarea.
+        let tier: string | null = null;
+        let referralCode: string | null = null;
+        if (action === "approve") {
+            try {
+                const assigned = await assignTierOnApproval(id);
+                tier = assigned.tier;
+            } catch (err) {
+                logger.error({ err, courierId: id }, "[admin/fleet] assignTierOnApproval failed");
+            }
+            try {
+                referralCode = await getOrCreateDriverCode(id);
+            } catch (err) {
+                logger.error({ err, courierId: id }, "[admin/fleet] getOrCreateDriverCode failed");
+            }
+        }
+
         // Anunta aplicantul pe email (best-effort).
         if (courier.email && (action === "approve" || action === "reject")) {
             const kindLabel = courier.kind === "driver" ? "șofer Swypik Go" : "curier Swypik Food";
+            const tierPct = tier ? TIER_COMMISSION_PCT[tier as keyof typeof TIER_COMMISSION_PCT] : null;
+            const tierHtml =
+                tierPct !== null
+                    ? `<p><strong>Comisionul tău: 0% în primele ${PROMO_DAYS} de zile</strong>, apoi ${tierPct}% pe viață${
+                          tier === "founding15" ? " (Founding Driver — primii 500)" : ""
+                      }.</p>`
+                    : "";
+            const codeHtml = referralCode
+                ? `<p>Codul tău de invitație pentru clienți: <strong>${referralCode}</strong> — clienții noi primesc prima cursă la jumătate de preț, iar tu primești bonus.</p>`
+                : "";
             sendEmail({
                 to: courier.email,
                 subject:
@@ -66,12 +96,12 @@ export async function PATCH(
                         : `Aplicația ta de ${kindLabel} a fost respinsă`,
                 html:
                     action === "approve"
-                        ? `<h2>Bine ai venit în flota Swypik, ${courier.full_name}!</h2><p>Contul tău a fost verificat și aprobat. Intră în panou: <a href="https://swypik.com/courier">swypik.com/courier</a></p>`
+                        ? `<h2>Bine ai venit în flota Swypik, ${courier.full_name}!</h2><p>Contul tău a fost verificat și aprobat. Intră în panou: <a href="https://swypik.com/courier">swypik.com/courier</a></p>${tierHtml}${codeHtml}`
                         : `<h2>Salut, ${courier.full_name}</h2><p>Din păcate aplicația ta nu a fost aprobată momentan. Ne poți contacta pentru detalii.</p>`,
             }).catch((err) => logger.warn({ err }, "[admin/fleet] applicant email failed"));
         }
 
-        return NextResponse.json({ success: true, courier });
+        return NextResponse.json({ success: true, courier, tier, referral_code: referralCode });
     } catch (error) {
         logger.error({ err: error }, "[admin/fleet] PATCH error");
         return NextResponse.json({ error: "internal_error" }, { status: 500 });
