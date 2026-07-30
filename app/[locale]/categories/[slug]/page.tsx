@@ -14,6 +14,7 @@ import {
 } from "@/lib/i18n/config";
 import type { Metadata } from "next";
 import { formatCurrency } from "@/lib/i18n/currency";
+import { getRequestBaseUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +36,7 @@ const ACCENT = "#7C3AED";
 
 async function fetchHierarchy(locale: string): Promise<Node[]> {
   const h = await headers();
-  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
-  const proto = h.get("x-forwarded-proto") || "https";
-  const res = await fetch(`${proto}://${host}/api/categories?locale=${locale}`, {
+  const res = await fetch(`${getRequestBaseUrl(h)}/api/categories?locale=${locale}`, {
     cache: "no-store",
     headers: { cookie: h.get("cookie") || "" },
   });
@@ -48,9 +47,7 @@ async function fetchHierarchy(locale: string): Promise<Node[]> {
 
 async function fetchProducts(slug: string, locale: string): Promise<{ products: Product[]; total: number }> {
   const h = await headers();
-  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
-  const proto = h.get("x-forwarded-proto") || "https";
-  const url = `${proto}://${host}/api/products?taxonomy_node_slug=${encodeURIComponent(slug)}&limit=48&includeCount=1&locale=${locale}`;
+  const url = `${getRequestBaseUrl(h)}/api/products?taxonomy_node_slug=${encodeURIComponent(slug)}&limit=48&includeCount=1&locale=${locale}`;
   const res = await fetch(url, { cache: "no-store", headers: { cookie: h.get("cookie") || "" } });
   if (!res.ok) return { products: [], total: 0 };
   const data = await res.json();

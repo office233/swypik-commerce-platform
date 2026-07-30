@@ -9,10 +9,11 @@ import ExploreClient from "./ExploreClient";
 import LiveBadge from "@/components/live/LiveBadge";
 import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
+import { getAppBaseUrl, getRequestBaseUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE_URL = getAppBaseUrl();
 
 const META_BY_LOCALE: Record<string, { title: string; description: string }> = {
   ro: {
@@ -63,10 +64,8 @@ export async function generateMetadata(): Promise<Metadata> {
 async function fetchSeed(category: string): Promise<any[]> {
   try {
     const h = await headers();
-    const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
-    const proto = h.get("x-forwarded-proto") || "https";
     const qs = category ? `&taxonomy_node_slug=${encodeURIComponent(category)}` : "";
-    const res = await fetch(`${proto}://${host}/api/explore/feed?limit=30${qs}`, {
+    const res = await fetch(`${getRequestBaseUrl(h)}/api/explore/feed?limit=30${qs}`, {
       cache: "no-store",
       headers: { cookie: h.get("cookie") || "" },
     });

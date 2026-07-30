@@ -3,10 +3,11 @@ import { cookies, headers } from "next/headers";
 import type { Metadata } from "next";
 import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
+import { getAppBaseUrl, getRequestBaseUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE_URL = getAppBaseUrl();
 
 const CATEGORIES_META_BY_LOCALE: Record<string, { title: string; description: string }> = {
   ro: {
@@ -69,9 +70,7 @@ const ACCENT = "#7C3AED";
 async function fetchHierarchy(locale: string): Promise<Node[]> {
   try {
     const h = await headers();
-    const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
-    const proto = h.get("x-forwarded-proto") || "https";
-    const res = await fetch(`${proto}://${host}/api/categories?locale=${locale}`, {
+    const res = await fetch(`${getRequestBaseUrl(h)}/api/categories?locale=${locale}`, {
       cache: "no-store",
       headers: { cookie: h.get("cookie") || "" },
     });
