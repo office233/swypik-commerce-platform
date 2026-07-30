@@ -13,7 +13,7 @@ export async function getPartnerSeller(req: Request): Promise<PartnerSeller | nu
     const apiKey = req.headers.get("x-api-key");
     if (!apiKey || apiKey.length < 16) return null;
     const { rows } = await dbQuery<PartnerSeller>(
-        `SELECT id, display_name FROM sellers WHERE erp_api_key = $1 AND erp_connected = true LIMIT 1`,
+        `SELECT id, name AS display_name FROM sellers WHERE erp_api_key = $1 AND erp_connected = true LIMIT 1`,
         [apiKey]
     );
     return rows[0] ?? null;
