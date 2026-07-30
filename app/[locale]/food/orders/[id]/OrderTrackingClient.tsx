@@ -62,6 +62,7 @@ type Order = {
   courier: {
     id: string;
     name: string;
+    phone: string | null;
     vehicle_type: string;
     lat: number | null;
     lng: number | null;
@@ -303,6 +304,17 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
               <p className="truncate text-sm font-black">{order.courier.name}</p>
               <p className="text-xs text-[#6E6E80]">Curierul tău</p>
             </div>
+            {order.courier.phone && (
+              <a
+                href={`tel:${order.courier.phone}`}
+                onClick={() => haptic("tap")}
+                aria-label="Sună curierul"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white active:scale-95"
+                style={{ backgroundColor: ACCENT }}
+              >
+                <Phone size={16} />
+              </a>
+            )}
           </div>
         )}
 

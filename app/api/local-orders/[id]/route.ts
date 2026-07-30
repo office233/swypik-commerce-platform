@@ -36,6 +36,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
               m.location_lat AS merchant_lat, m.location_lng AS merchant_lng,
               m.seller_id AS merchant_seller_id, m.avg_prep_minutes,
               c.id AS courier_id, c.user_id AS courier_user_id, c.full_name AS courier_name,
+              c.phone AS courier_phone,
               c.vehicle_type AS courier_vehicle, c.current_lat AS courier_lat,
               c.current_lng AS courier_lng, c.location_updated_at AS courier_location_at,
               j.id AS dispatch_job_id, j.status AS dispatch_job_status
@@ -113,6 +114,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
                     ? {
                           id: o.courier_id,
                           name: o.courier_name,
+                          // Telefonul se dezvăluie doar cât timp livrarea e în curs.
+                          phone: ["ready", "picked_up", "delivering"].includes(o.status)
+                              ? o.courier_phone
+                              : null,
                           vehicle_type: o.courier_vehicle,
                           lat: o.courier_lat,
                           lng: o.courier_lng,
