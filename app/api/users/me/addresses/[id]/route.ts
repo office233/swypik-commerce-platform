@@ -17,6 +17,9 @@ const ALLOWED_FIELDS = [
   "region",
   "postal_code",
   "country_code",
+    "lat",
+    "lng",
+    "details",
 ] as const;
 
 async function PATCH_impl(req: Request, { params }: { params: Promise<{ id: string }> }) {

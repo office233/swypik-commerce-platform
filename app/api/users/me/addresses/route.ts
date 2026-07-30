@@ -19,6 +19,9 @@ type Address = {
   postal_code: string;
   country_code: string;
   is_default: boolean;
+    lat: number | null;
+    lng: number | null;
+    details: string | null;
   created_at: string;
 };
 
@@ -57,7 +60,7 @@ async function GET_impl() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { rows } = await dbQuery<Address>(
     `SELECT id, label, recipient_name, phone, line1, line2, city, region, postal_code,
-            country_code, is_default, created_at
+              country_code, is_default, lat, lng, details, created_at
      FROM user_addresses WHERE user_id = $1
      ORDER BY is_default DESC, created_at DESC`,
     [session.userId],
@@ -88,8 +91,8 @@ async function POST_impl(req: Request) {
 
   const { rows } = await dbQuery<{ id: string }>(
     `INSERT INTO user_addresses
-      (user_id, label, recipient_name, phone, line1, line2, city, region, postal_code, country_code, is_default)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        (user_id, label, recipient_name, phone, line1, line2, city, region, postal_code, country_code, is_default, lat, lng, details)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      RETURNING id`,
     [
       session.userId,
@@ -103,6 +106,9 @@ async function POST_impl(req: Request) {
       data.postal_code,
       data.country_code,
       isDefault,
+        data.lat ?? null,
+        data.lng ?? null,
+        data.details ?? null,
     ],
   );
   return NextResponse.json({ success: true, id: rows[0].id });
