@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ChevronRight, Home, Video, Store, Bike } from "lucide-react";
+import { ChevronRight, Home, Video, Store, Bike, BedDouble } from "lucide-react";
 
 type Me = {
   role?: string | null;
@@ -33,15 +33,17 @@ export default function MyModes() {
   const t = useTranslations("shell");
   const [me, setMe] = useState<Me | null>(null);
   const [courier, setCourier] = useState<CourierProfile | null>(null);
+  const [hostApp, setHostApp] = useState<{ status: string; property_name: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [resMe, resCourier] = await Promise.all([
+        const [resMe, resCourier, resHost] = await Promise.all([
           fetch("/api/auth/me").catch(() => null),
           fetch("/api/couriers").catch(() => null),
+          fetch("/api/hosts/apply").catch(() => null),
         ]);
         if (cancelled) return;
         if (resMe?.ok) {
@@ -51,6 +53,10 @@ export default function MyModes() {
         if (resCourier?.ok) {
           const d = await resCourier.json();
           setCourier(d?.courier ?? null);
+        }
+        if (resHost?.ok) {
+          const d = await resHost.json();
+          setHostApp(d?.applications?.[0] ?? null);
         }
       } finally {
         if (!cancelled) setLoaded(true);
@@ -85,7 +91,18 @@ export default function MyModes() {
       badgeTone: status === "approved" ? "ok" : status === "rejected" ? "bad" : "warn",
     });
   }
-  const hasAnyPartnerMode = Boolean(me?.sellerId) || Boolean(courier);
+  if (hostApp) {
+    const s = hostApp.status;
+    modes.push({
+      href: s === "approved" ? "/stays" : "/join/host",
+      icon: BedDouble,
+      title: "Gazdă Stays",
+      sub: hostApp.property_name,
+      badge: s === "approved" ? "Aprobat" : s === "rejected" ? "Respins" : s === "needs_info" ? "Documente" : "În verificare",
+      badgeTone: s === "approved" ? "ok" : s === "rejected" ? "bad" : "warn",
+    });
+  }
+  const hasAnyPartnerMode = Boolean(me?.sellerId) || Boolean(courier) || Boolean(hostApp);
 
   const toneClass = (tone?: Mode["badgeTone"]) =>
     tone === "ok"
@@ -126,14 +143,13 @@ export default function MyModes() {
           );
         })}
       </ul>
-      {!hasAnyPartnerMode && (
-        <Link
-          href="/join"
-          className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 py-3 text-sm font-black text-white/70 transition hover:border-white/40 hover:text-white"
-        >
-          + {t("becomePartner")}
-        </Link>
-      )}
+      {/* Mereu vizibil: cine e deja seller poate deveni și gazdă/curier. */}
+      <Link
+        href="/join"
+        className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 py-3 text-sm font-black text-white/70 transition hover:border-white/40 hover:text-white"
+      >
+        + {hasAnyPartnerMode ? "Adaugă alt mod partener" : t("becomePartner")}
+      </Link>
     </section>
   );
 }
