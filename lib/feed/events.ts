@@ -12,6 +12,9 @@
 
 import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
+
+let feedSaltWarned = false;
 
 export const FEED_EVENT_TYPES = [
   "video_view",
@@ -143,7 +146,16 @@ export function normalizeFeedEvent(
 /** Hash an IP address with a daily-rotating salt for privacy. */
 export function hashIp(ip: string | null | undefined): string | null {
   if (!ip || ip === "unknown") return null;
-  const salt = process.env.FEED_EVENT_IP_SALT || "swypik-feed-events";
+  let salt = process.env.FEED_EVENT_IP_SALT;
+  if (!salt) {
+    if (process.env.NODE_ENV === "production" && !feedSaltWarned) {
+      feedSaltWarned = true;
+      logger.warn(
+        "FEED_EVENT_IP_SALT lipsește în producție — hashing IP cu salt implicit predictibil. Setează FEED_EVENT_IP_SALT."
+      );
+    }
+    salt = "swypik-feed-events";
+  }
   return crypto.createHash("sha256").update(`${salt}:${ip}`).digest("hex").slice(0, 32);
 }
 

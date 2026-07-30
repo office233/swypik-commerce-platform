@@ -23,7 +23,15 @@ function maskEmail(e: string | null | undefined): string {
 }
 
 export function unsubscribeToken(email: string): string {
-  const secret = process.env.APP_ENCRYPTION_KEY || process.env.SESSION_SECRET || "swypik-unsubscribe-fallback";
+  let secret = process.env.APP_ENCRYPTION_KEY || process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      logger.error(
+        "APP_ENCRYPTION_KEY/SESSION_SECRET lipsesc în producție — tokenurile de unsubscribe folosesc un fallback NESIGUR. Setează APP_ENCRYPTION_KEY."
+      );
+    }
+    secret = "swypik-unsubscribe-fallback";
+  }
   return createHmac("sha256", secret).update(email.toLowerCase()).digest("hex").slice(0, 32);
 }
 

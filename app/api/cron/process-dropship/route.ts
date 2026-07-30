@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { timingSafeEqual } from "crypto";
+import { timingSafeEqual, randomUUID } from "crypto";
 import { placeDropshipOrder } from "@/lib/aliexpress/client";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 
@@ -30,7 +30,7 @@ async function handleGET(req: Request) {
     // ATOMIC CLAIM: mark pending items as "in-flight" with a lock token.
     // SKIP LOCKED prevents two concurrent crons from claiming the same row.
     // The claim is bounded by attempts < MAX_ATTEMPTS to avoid infinite retries.
-    const claimToken = `cron_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const claimToken = `cron_${Date.now()}_${randomUUID()}`;
     const claimedAt = new Date().toISOString();
 
     const { rows: pendingItems } = await dbQuery(

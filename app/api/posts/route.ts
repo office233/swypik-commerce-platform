@@ -21,6 +21,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { dbQuery, getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { moderateText } from "@/lib/moderation/moderateText";
@@ -269,7 +270,7 @@ function slugify(input: string): string {
 }
 
 function randomSuffix(len = 6): string {
-  return Math.random().toString(36).slice(2, 2 + len);
+  return randomBytes(Math.ceil(len / 2) + 1).toString("hex").slice(0, len);
 }
 
 export async function POST(req: Request) {

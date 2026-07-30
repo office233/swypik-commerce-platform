@@ -8,6 +8,7 @@
  * Doar cauzele cu verification_status='verified' pot crea/edita campanii.
  */
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -86,7 +87,10 @@ async function POST_impl(req: Request): Promise<Response> {
     `SELECT id FROM donation_campaigns WHERE slug = $1`,
     [base],
   );
-  const slug = existing.length > 0 ? `${base}-${Math.random().toString(36).slice(2, 7)}` : base;
+  const slug =
+    existing.length > 0
+      ? `${base}-${randomBytes(4).toString("hex").slice(0, 5)}`
+      : base;
 
   const { rows } = await dbQuery<{ id: string; slug: string }>(
     `INSERT INTO donation_campaigns

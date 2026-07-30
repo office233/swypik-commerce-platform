@@ -6,6 +6,7 @@
  * GET  /api/causes → cauzele userului logat (pentru panoul de cauze).
  */
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -62,7 +63,7 @@ async function POST_impl(req: Request): Promise<Response> {
 
   // slug unic — sufix scurt dacă e deja luat
   const base = slugify(d.name) || "cauza";
-  const suffix = Math.random().toString(36).slice(2, 7);
+  const suffix = randomBytes(4).toString("hex").slice(0, 5);
   const { rows: existing } = await dbQuery<{ id: string }>(
     `SELECT id FROM donation_causes WHERE slug = $1`,
     [base],
