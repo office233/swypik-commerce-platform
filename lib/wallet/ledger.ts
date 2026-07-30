@@ -46,6 +46,12 @@ type ApplyArgs = {
   refId: string;
   description?: string;
   metadata?: Record<string, unknown>;
+    /**
+     * Permite soldul negativ (folosit pentru datoria de comision la cash:
+     * curierul a încasat banii fizic, platforma își reține comisionul din
+     * câștigurile viitoare — soldul poate coborî sub zero).
+     */
+    allowNegative?: boolean;
 };
 
 const ENTRY_COLS = `id::text, user_id, kind, amount_cents::int8 AS amount_cents,
@@ -53,7 +59,7 @@ const ENTRY_COLS = `id::text, user_id, kind, amount_cents::int8 AS amount_cents,
        ref_type, ref_id, description, created_at::text`;
 
 async function apply(kind: "credit" | "debit", args: ApplyArgs): Promise<LedgerResult> {
-  const { userId, amountCents, refType, refId, description, metadata } = args;
+  const { userId, amountCents, refType, refId, description, metadata, allowNegative } = args;
   if (!Number.isInteger(amountCents) || amountCents <= 0) {
     throw new Error("amount_cents must be a positive integer");
   }
@@ -84,7 +90,7 @@ async function apply(kind: "credit" | "debit", args: ApplyArgs): Promise<LedgerR
 
     const delta = kind === "credit" ? amountCents : -amountCents;
     const newBalance = balance + delta;
-    if (newBalance < 0) {
+      if (newBalance < 0 && !allowNegative) {
       throw new InsufficientFundsError(balance, amountCents);
     }
 
