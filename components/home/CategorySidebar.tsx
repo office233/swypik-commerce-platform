@@ -41,6 +41,7 @@ function nodeSlug(c: CategoryNode): string {
 const VERTICALS = [
     { id: "food", brand: "Swypik Food", emoji: "🍔", href: "/food", accent: "#2DBE60" },
     { id: "fly", brand: "Swypik Fly", emoji: "✈️", href: "/fly", accent: "#1D4ED8" },
+    { id: "stays", brand: "Swypik Stays", emoji: "🏖️", href: "/stays", accent: "#0D9488" },
     { id: "go", brand: "Swypik Go", emoji: "🚕", href: "/go", accent: "#F59E0B" },
 ] as const;
 
