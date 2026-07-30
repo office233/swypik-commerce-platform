@@ -315,6 +315,21 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
           </div>
         </div>
 
+        {/* Deep link Go: cursă către adresa de livrare */}
+        {!cancelled && (
+          <a
+            href={`/go?dropoff=${encodeURIComponent(order.delivery_address)}${
+              order.delivery_lat != null && order.delivery_lng != null
+                ? `&dlat=${order.delivery_lat}&dlng=${order.delivery_lng}`
+                : ""
+            }`}
+            onClick={() => haptic("tap")}
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] bg-white text-sm font-bold active:scale-[0.98]"
+          >
+            🚗 Ai nevoie de o cursă? Swypik Go
+          </a>
+        )}
+
         {/* Sumar comandă */}
         <div className="rounded-2xl border border-[#E5E5E5] bg-white p-4">
           <h2 className="text-sm font-black">Comanda ta</h2>

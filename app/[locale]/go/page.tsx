@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import GoClient from "./GoClient";
+import PermissionsPrompt from "@/components/pwa/PermissionsPrompt";
 
 export const dynamic = "force-dynamic";
 
@@ -9,5 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function GoPage() {
-  return <GoClient />;
+  return (
+    <>
+      <GoClient />
+      <PermissionsPrompt vertical="go" />
+    </>
+  );
 }

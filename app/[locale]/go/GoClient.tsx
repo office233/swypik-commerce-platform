@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 import { haptic } from "@/lib/haptic";
 
@@ -34,6 +34,7 @@ type Estimate = {
 
 export default function GoClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pickup, setPickup] = useState<AddressResult | null>(null);
   const [dropoff, setDropoff] = useState<AddressResult | null>(null);
   const [vehicleClass, setVehicleClass] = useState<(typeof CLASSES)[number]["id"]>("economy");
@@ -41,6 +42,17 @@ export default function GoClient() {
   const [loading, setLoading] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Deep link din alte verticale: /go?dropoff=<adresă>&dlat=..&dlng=..
+  // (ex: din tracking Eats — „ai nevoie de o cursă?").
+  useEffect(() => {
+    const addr = searchParams.get("dropoff");
+    if (!addr) return;
+    const lat = Number.parseFloat(searchParams.get("dlat") ?? "");
+    const lng = Number.parseFloat(searchParams.get("dlng") ?? "");
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    setDropoff((d) => d ?? { address: addr, lat, lng });
+  }, [searchParams]);
 
   // Geolocalizare inițială best-effort → pickup implicit.
   useEffect(() => {

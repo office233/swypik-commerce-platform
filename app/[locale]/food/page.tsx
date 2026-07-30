@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import FoodClient from "./FoodClient";
+import PermissionsPrompt from "@/components/pwa/PermissionsPrompt";
 
 export const dynamic = "force-dynamic";
 
@@ -19,5 +20,10 @@ export async function generateMetadata({
 }
 
 export default function FoodPage() {
-  return <FoodClient />;
+  return (
+    <>
+      <FoodClient />
+      <PermissionsPrompt vertical="eats" />
+    </>
+  );
 }
