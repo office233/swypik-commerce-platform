@@ -117,7 +117,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     try {
       const stored = window.localStorage.getItem(MUTE_STORAGE_KEY);
       if (stored === "0") setIsMuted(false);
-    } catch {}
+    } catch { }
   }, []);
 
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
@@ -169,16 +169,16 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     const mapped = (map[eventType] || eventType) as any;
     try {
       trackFeedEvent(mapped, { video_id: videoId, metadata: data });
-    } catch {}
+    } catch { }
   }, []);
 
   const sendView = useCallback((videoId: string) => {
     if (viewedVideosRef.current.has(videoId)) return;
     viewedVideosRef.current.add(videoId);
     // legacy server counter
-    fetch(`/api/videos/${videoId}/view`, { method: "POST" }).catch(() => {});
+    fetch(`/api/videos/${videoId}/view`, { method: "POST" }).catch(() => { });
     // batched feed event
-    try { trackFeedEvent("video_view" as any, { video_id: videoId }); } catch {}
+    try { trackFeedEvent("video_view" as any, { video_id: videoId }); } catch { }
   }, []);
 
   useEffect(() => {
@@ -305,7 +305,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
             if (idx >= 0) setCurrentIndex(idx);
             if (videoEl) {
               videoEl.currentTime = 0;
-              videoEl.play().catch(() => {});
+              videoEl.play().catch(() => { });
             }
             trackEvent(videoId, "impression");
 
@@ -359,7 +359,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     if (activeProduct) {
       videoRefs.current.forEach((v) => v.pause());
     } else if (activeVideoId) {
-      videoRefs.current.get(activeVideoId)?.play().catch(() => {});
+      videoRefs.current.get(activeVideoId)?.play().catch(() => { });
     }
   }, [activeProduct, activeVideoId]);
 
@@ -368,7 +368,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     setIsMuted(prev => {
       const next = !prev;
       videoRefs.current.forEach((v) => { v.muted = next; });
-      try { window.localStorage.setItem(MUTE_STORAGE_KEY, next ? "1" : "0"); } catch {}
+      try { window.localStorage.setItem(MUTE_STORAGE_KEY, next ? "1" : "0"); } catch { }
       return next;
     });
   }, []);
@@ -488,9 +488,9 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     try {
       if (navigator.share) {
         channel = "native_share";
-        await navigator.share({ title: 'Swypik Video', url: shareUrl }).catch(() => {});
+        await navigator.share({ title: 'Swypik Video', url: shareUrl }).catch(() => { });
       } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(shareUrl).catch(() => {});
+        await navigator.clipboard.writeText(shareUrl).catch(() => { });
         setShareToast(t("linkCopiat"));
         setTimeout(() => setShareToast(null), 1800);
       }
@@ -505,7 +505,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       updateVideo(videoId, { shares: String(data.share_count ?? previousCount + 1) });
       trackEvent(videoId, "share", { channel });
       window.dispatchEvent(new CustomEvent('reward', { detail: { points: 15, msg: 'Share +15 XP' } }));
-    } catch {}
+    } catch { }
   }, [trackEvent, updateVideo, videos]);
 
   const handleFollow = useCallback(async (creatorId: string) => {
@@ -641,7 +641,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   return (
     <main className="explore-root" aria-label="Discover videos">
       <h1 className="sr-only">{t("descoperaVideoclipuriSwypik")}</h1>
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         :root { --feed-bottom-nav: 64px; --feed-safe-bottom: env(safe-area-inset-bottom, 0px); --feed-action-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 16px); --feed-content-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 12px); }
         .explore-root { position: fixed; inset: env(safe-area-inset-top, 0px) 0 0 0; background: #000; color: #fff; overflow: hidden; min-height: 100dvh; }
         .explore-root * { box-sizing: border-box; }
@@ -759,6 +760,27 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="feed-header" role="tablist" aria-label="Feed source">
+        <button
+          type="button"
+          className={`feed-tab ${feedSource === "following" ? "active" : ""}`}
+          role="tab"
+          aria-selected={feedSource === "following"}
+          onClick={() => setFeedSource("following")}
+        >
+          Following
+        </button>
+        <button
+          type="button"
+          className={`feed-tab ${feedSource === "foryou" ? "active" : ""}`}
+          role="tab"
+          aria-selected={feedSource === "foryou"}
+          onClick={() => setFeedSource("foryou")}
+        >
+          For You
+        </button>
       </div>
 
       <button className="mute-btn" onClick={toggleMute} aria-label={isMuted ? t("activeazaSunetul") : t("opresteSunetul")} aria-pressed={!isMuted}>
@@ -930,7 +952,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                       </button>
                       {video.creator?.id && !followingCreators.has(video.creator.id) ? (
                         <button type="button" className="cockpit-btn" onClick={() => handleFollow(video.creator?.id)}>
-                          
+
                           {t("urmareste")}
                         </button>
                       ) : (

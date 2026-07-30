@@ -54,11 +54,27 @@ export const SellerAuthBodySchema = z.object({
 export type SellerAuthBody = z.infer<typeof SellerAuthBodySchema>;
 
 // User profile PATCH.
+export const CreatorLinkSchema = z.object({
+  label: z.string().trim().min(1).max(30),
+  url: z.string().trim().url().max(500).refine((u) => /^https?:\/\//i.test(u), {
+    message: "Doar linkuri http(s)",
+  }),
+});
+
 export const UserProfilePatchSchema = z.object({
   display_name: z.string().trim().min(1).max(50).optional(),
   bio: z.string().trim().max(300).nullable().optional(),
   username: z.string().trim().toLowerCase().min(3).max(30).regex(/^[a-z0-9_]+$/, "username invalid").optional(),
-}).refine((b) => b.display_name !== undefined || b.bio !== undefined || b.username !== undefined, {
+  links: z.array(CreatorLinkSchema).max(8).optional(),
+  categories: z.array(
+    z.string().trim().toLowerCase().min(2).max(40).regex(/^[a-z0-9 _-]+$/, "categorie invalidă")
+  ).max(8).optional(),
+}).refine((b) =>
+  b.display_name !== undefined ||
+  b.bio !== undefined ||
+  b.username !== undefined ||
+  b.links !== undefined ||
+  b.categories !== undefined, {
   message: "Nimic de actualizat",
 });
 

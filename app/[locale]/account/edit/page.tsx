@@ -28,6 +28,9 @@ export default function EditProfilePage() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
+  const [categoriesText, setCategoriesText] = useState("");
+  const [socialLoaded, setSocialLoaded] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -62,6 +65,23 @@ export default function EditProfilePage() {
       cancelled = true;
     };
   }, [router]);
+
+  // Load public links + preferred categories
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/users/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { links?: { label: string; url: string }[]; categories?: string[] } | null) => {
+        if (cancelled || !data) return;
+        setLinks(Array.isArray(data.links) ? data.links.slice(0, 8) : []);
+        setCategoriesText(Array.isArray(data.categories) ? data.categories.join(", ") : "");
+        setSocialLoaded(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const onPickAvatar = useCallback(() => {
     fileInputRef.current?.click();
@@ -116,7 +136,7 @@ export default function EditProfilePage() {
       setError(null);
       setSaving(true);
 
-      const body: Record<string, string> = {};
+      const body: Record<string, unknown> = {};
       const trimmedName = displayName.trim();
       const trimmedUser = username.trim().toLowerCase();
       const trimmedBio = bio.trim();
@@ -124,6 +144,18 @@ export default function EditProfilePage() {
       if (trimmedName !== (me.display_name ?? "")) body.display_name = trimmedName;
       if (trimmedUser !== me.username) body.username = trimmedUser;
       if (trimmedBio !== (me.bio ?? "")) body.bio = trimmedBio;
+
+      if (socialLoaded) {
+        const cleanLinks = links
+          .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
+          .filter((l) => l.label && l.url);
+        body.links = cleanLinks;
+        body.categories = categoriesText
+          .split(",")
+          .map((c) => c.trim().toLowerCase())
+          .filter((c) => c.length >= 2)
+          .slice(0, 8);
+      }
 
       if (Object.keys(body).length === 0) {
         router.push("/account");
@@ -144,7 +176,7 @@ export default function EditProfilePage() {
         setSaving(false);
       }
     },
-    [bio, displayName, me, router, username]
+    [bio, categoriesText, displayName, links, me, router, socialLoaded, username]
   );
 
   const currentAvatar = avatarPreview || avatarUrl;
@@ -213,7 +245,7 @@ export default function EditProfilePage() {
             disabled={uploadingAvatar}
             className="text-sm font-semibold text-[#7C3AED] hover:underline disabled:opacity-50"
           >
-            
+
             {t("schimbaFotografia")}
           </button>
           <input
@@ -280,6 +312,64 @@ export default function EditProfilePage() {
           />
         </Field>
 
+        {/* Links publice */}
+        <Field label="Link-uri publice" hint={`${links.length}/8`}>
+          <div className="space-y-2">
+            {links.map((link, idx) => (
+              <div key={idx} className="flex gap-2">
+                <input
+                  type="text"
+                  value={link.label}
+                  onChange={(e) =>
+                    setLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, label: e.target.value } : l)))
+                  }
+                  maxLength={30}
+                  placeholder="Etichetă (ex: website)"
+                  className="w-32 min-h-[44px] rounded-xl bg-white/5 border border-white/10 px-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#7C3AED]"
+                />
+                <input
+                  type="url"
+                  value={link.url}
+                  onChange={(e) =>
+                    setLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, url: e.target.value } : l)))
+                  }
+                  maxLength={500}
+                  placeholder="https://..."
+                  className="flex-1 min-h-[44px] rounded-xl bg-white/5 border border-white/10 px-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#7C3AED]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setLinks((prev) => prev.filter((_, i) => i !== idx))}
+                  className="min-h-[44px] rounded-xl bg-white/10 px-3 text-sm font-bold text-white/70 hover:bg-white/15"
+                  aria-label="Șterge link"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {links.length < 8 && (
+              <button
+                type="button"
+                onClick={() => setLinks((prev) => [...prev, { label: "", url: "" }])}
+                className="min-h-[44px] w-full rounded-xl border border-dashed border-white/20 text-sm font-bold text-white/60 hover:bg-white/5"
+              >
+                + Adaugă link
+              </button>
+            )}
+          </div>
+        </Field>
+
+        {/* Categorii preferate */}
+        <Field label="Categorii preferate" hint="separate prin virgulă, max 8">
+          <input
+            type="text"
+            value={categoriesText}
+            onChange={(e) => setCategoriesText(e.target.value)}
+            placeholder="fashion, tech, fitness"
+            className="w-full min-h-[48px] rounded-xl bg-white/5 border border-white/10 px-4 text-base text-white placeholder:text-white/40 focus:outline-none focus:border-[#7C3AED]"
+          />
+        </Field>
+
         {error && (
           <div className="rounded-xl bg-red-500/15 border border-red-500/30 px-4 py-3 text-sm text-red-200">
             {error}
@@ -303,7 +393,7 @@ export default function EditProfilePage() {
             disabled={saving}
             className="flex-1 min-h-[48px] rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold disabled:opacity-50"
           >
-            
+
             {t("anuleaza")}
           </button>
           <button
@@ -313,7 +403,7 @@ export default function EditProfilePage() {
             className="flex-[2] min-h-[48px] rounded-xl bg-[#7C3AED] hover:bg-[#E0264A] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {saving && <Loader2 className="animate-spin" size={18} />}
-            
+
             {t("salveaza")}
           </button>
         </div>
