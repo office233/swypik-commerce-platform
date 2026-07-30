@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { DEFAULT_TIMEZONE } from "@/lib/config/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -42,11 +43,11 @@ export async function GET() {
          FROM user_daily_missions m
          JOIN daily_mission_templates t ON t.id = m.template_id
         WHERE m.user_id = $1
-          AND m.day = (now() AT TIME ZONE 'Europe/Bucharest')::date
+          AND m.day = (now() AT TIME ZONE $2)::date
         ORDER BY (m.claimed_at IS NOT NULL),
                  (m.completed_at IS NULL),
                  m.progress::numeric / NULLIF(m.target,0) DESC`,
-      [user.userId],
+      [user.userId, DEFAULT_TIMEZONE],
     );
 
     return NextResponse.json(

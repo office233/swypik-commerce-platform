@@ -9,6 +9,7 @@
 import { cookies, headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 import { routing } from "./routing";
+import { DEFAULT_TIMEZONE } from "@/lib/config/timezone";
 import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
@@ -73,6 +74,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
   return {
     locale,
     messages,
-    timeZone: "Europe/Bucharest",
+    timeZone: DEFAULT_TIMEZONE,
   };
 });
