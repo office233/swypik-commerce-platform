@@ -311,6 +311,8 @@ export const CourierStatusSchema = z.object({
   online: z.boolean(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
+  speed_kmh: z.coerce.number().min(0).max(300).optional(),
+  heading: z.coerce.number().min(0).lt(360).optional(),
 });
 
 const LocalOrderItemSchema = z.object({

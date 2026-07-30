@@ -51,6 +51,21 @@ export async function POST(req: Request) {
             );
         }
 
+        // Istoric GPS (retenție 30 zile — vezi migrarea
+        // 20260730_0003_courier_location_history.sql). Best-effort: nu
+        // blocăm răspunsul dacă insert-ul de istoric eșuează.
+        if (d.lat != null && d.lng != null) {
+            try {
+                await dbQuery(
+                    `INSERT INTO courier_location_history (courier_id, lat, lng, speed_kmh, heading)
+                     VALUES ($1, $2, $3, $4, $5)`,
+                    [rows[0].id, d.lat, d.lng, d.speed_kmh ?? null, d.heading ?? null],
+                );
+            } catch (histErr) {
+                logger.error({ err: histErr }, "[couriers/status] history insert failed");
+            }
+        }
+
         // Dacă tocmai a trecut online, îi returnăm ofertele pending.
         let offers: unknown[] = [];
         if (d.online) {
