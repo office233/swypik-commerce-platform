@@ -52,6 +52,7 @@ import EmailVerifyBanner from "@/components/auth/EmailVerifyBanner";
 import OnboardingGate from "@/components/onboarding/OnboardingGate";
 import PushPrompt from "@/components/notifications/PushPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
+import ServiceWorkerRegistrar from "@/components/pwa/ServiceWorkerRegistrar";
 import CookieBanner from "@/components/CookieBanner";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -68,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Swypik" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -141,6 +142,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PushPrompt />
             <InstallPrompt />
             <CookieBanner />
+            <ServiceWorkerRegistrar />
           </CurrencyProvider>
         </NextIntlClientProvider>
       </body>
