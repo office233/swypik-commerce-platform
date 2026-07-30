@@ -13,6 +13,7 @@ import { LocalOrderStatusSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 import { getJobForOrder, publishJobEvent } from "@/lib/dispatch/engine";
+import { settleLocalOrder } from "@/lib/payments/mobility";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -123,6 +124,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (status === "ready") {
             await maybeAutoDispatch(id, "ready");
         }
+
+            // FRONT R5 — la livrare: split-ul banilor în wallet ledger (idempotent).
+            if (status === "delivered") {
+                try {
+                    await settleLocalOrder(id);
+                } catch (err) {
+                    logger.error({ err, orderId: id }, "[local-orders/status] settlement failed");
+                }
+            }
 
         // Notifică stream-ul de dispatch la schimbări relevante pentru client.
         if (["picked_up", "delivering", "delivered", "cancelled"].includes(status)) {

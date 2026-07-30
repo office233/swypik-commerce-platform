@@ -25,6 +25,8 @@ import {
 } from "@/lib/rides/service";
 import { RideStatusPatchSchema } from "@/lib/validation/rides";
 import { parseBody } from "@/lib/validation/schemas";
+import { settleRide } from "@/lib/payments/mobility";
+import { captureRidePayment, cancelRideAuthorization } from "@/lib/payments/mobility-stripe";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -129,6 +131,25 @@ export async function PATCH(
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.code as number });
   }
+
+    // FRONT R5 — decontare la completed: capture card + split în wallet ledger.
+    if (result.status === "completed") {
+      try {
+        await captureRidePayment(id);
+      } catch (err) {
+        log.error({ err, rideId: id }, "capture ride payment failed (settlement continues)");
+      }
+      try {
+        await settleRide(id);
+      } catch (err) {
+        log.error({ err, rideId: id }, "settle ride failed");
+      }
+    } else if (result.status === "cancelled") {
+      // Eliberează pre-autorizarea Stripe dacă exista.
+      cancelRideAuthorization(id).catch((err) =>
+        log.warn({ err, rideId: id }, "cancel ride authorization failed"),
+      );
+    }
 
   await publishRideEvent(ride, { type: "status", ride_id: id, ...result });
   log.info({ rideId: id, to, role }, "ride status changed");
