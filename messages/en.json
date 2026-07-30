@@ -1724,6 +1724,8 @@
     "statusPending": "Under review",
     "franchisePendingNote": "Your application is under review. We'll contact you after approval.",
     "myDrivers": "My drivers",
-    "noDriversYet": "No drivers assigned yet. Swypik admin assigns approved drivers to your franchise."
+    "noDriversYet": "No drivers assigned yet. Swypik admin assigns approved drivers to your franchise.",
+    "foundingCounter": "Founding Driver seats left: {count} of 500",
+    "foundingDetail": "0% commission for the first 60 days, then 15% for life for the first 500 drivers. Next 2000: 18%. Standard: 20%."
   }
 }

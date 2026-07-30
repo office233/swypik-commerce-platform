@@ -8,6 +8,32 @@
 import Link from "next/link";
 import { ArrowRight, Store, Car, Bike, BadgeCheck, BedDouble, Building2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+
+/** Contor live pentru sloturile Founding Driver (15% pe viață, primii 500). */
+function FoundingCounter() {
+    const t = useTranslations("join");
+    const [left, setLeft] = useState<number | null>(null);
+    useEffect(() => {
+        fetch("/api/founding-slots")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => {
+                const total = Number(d?.slots?.founding_total ?? 500);
+                const taken = Number(d?.slots?.founding_taken ?? 0);
+                setLeft(Math.max(0, total - taken));
+            })
+            .catch(() => {});
+    }, []);
+    if (left === null || left <= 0) return null;
+    return (
+        <div className="mt-3 rounded-2xl bg-[#F59E0B]/10 px-4 py-3">
+            <p className="text-[13px] font-extrabold text-[#B45309]">
+                {t("foundingCounter", { count: left })}
+            </p>
+            <p className="mt-0.5 text-[12px] font-medium text-[#92400E]">{t("foundingDetail")}</p>
+        </div>
+    );
+}
 
 export default function JoinPage() {
     const t = useTranslations("join");
@@ -91,6 +117,7 @@ export default function JoinPage() {
                                         </li>
                                     ))}
                                 </ul>
+                                {c.href === "/join/fleet?kind=driver" && <FoundingCounter />}
                             </Link>
                         );
                     })}

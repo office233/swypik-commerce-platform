@@ -1860,6 +1860,8 @@
     "statusPending": "În verificare",
     "franchisePendingNote": "Aplicația ta e în verificare. Te contactăm după aprobare.",
     "myDrivers": "Șoferii mei",
-    "noDriversYet": "Niciun șofer alocat încă. Admin-ul Swypik alocă șoferii aprobați francizei tale."
+    "noDriversYet": "Niciun șofer alocat încă. Admin-ul Swypik alocă șoferii aprobați francizei tale.",
+    "foundingCounter": "Locuri Founding Driver ramase: {count} din 500",
+    "foundingDetail": "0% comision primele 60 de zile, apoi 15% pe viata pentru primii 500 de soferi. Urmatorii 2000: 18%. Standard: 20%."
   }
 }
