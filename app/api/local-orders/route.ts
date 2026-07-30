@@ -16,6 +16,7 @@ import { LocalOrderCreateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 import { resolveDeliveryFee } from "@/lib/pricing/delivery";
+import { createLocalOrderPaymentIntent } from "@/lib/payments/eats-stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -170,6 +171,28 @@ export async function POST(req: Request) {
 
         // Auto-dispatch la plasare, dacă merchantul are auto_dispatch_on='placed'.
         await maybeAutoDispatch(order.id, "placed");
+
+        // FRONT R5 — card online: PaymentIntent pe totalul calculat server-side.
+        if (d.payment_method === "card_online") {
+            try {
+                const pay = await createLocalOrderPaymentIntent(order.id);
+                return NextResponse.json({
+                    success: true,
+                    order,
+                    payment: pay
+                        ? { client_secret: pay.client_secret, amount_cents: pay.amount_cents }
+                        : null,
+                });
+            } catch (err) {
+                logger.error({ err, orderId: order.id }, "[local-orders] PI creation failed");
+                return NextResponse.json({
+                    success: true,
+                    order,
+                    payment: null,
+                    payment_error: "Inițializarea plății a eșuat — reîncearcă din comanda ta.",
+                });
+            }
+        }
 
         return NextResponse.json({ success: true, order });
     } catch (error: unknown) {

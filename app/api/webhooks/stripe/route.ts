@@ -9,6 +9,7 @@ import { scoreOrderRisk } from "@/lib/risk/order-fraud-score";
 import { notifyOps } from "@/lib/ops/alerts";
 import type Stripe from "stripe";
 import { persistConnectAccount } from "@/lib/stripe/connect";
+import { markLocalOrderPaid, markLocalOrderPaymentFailed } from "@/lib/payments/eats-stripe";
 import crypto from "crypto";
 import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 import { attributeOrder } from "@/lib/algo/attribution";
@@ -91,10 +92,36 @@ export async function POST(req: Request) {
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
         break;
       case "payment_intent.succeeded":
-        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+        {
+          const intent = event.data.object as Stripe.PaymentIntent;
+          // FRONT R5 — Eats: comenzi locale plătite cu Payment Element.
+          if (intent.metadata?.kind === "local_order" && intent.metadata?.local_order_id) {
+            await markLocalOrderPaid(intent.metadata.local_order_id, intent.id);
+          } else if (intent.metadata?.kind === "ride" && intent.metadata?.ride_id) {
+            // Go: succeeded vine la CAPTURE (mobility-stripe deja setează
+            // payment_status='captured' sincron; aici doar plasa de siguranță).
+            await dbQuery(
+              `UPDATE rides SET payment_status = 'captured', updated_at = now()
+                WHERE id = $1 AND payment_status IN ('unpaid', 'authorized')`,
+              [intent.metadata.ride_id],
+            );
+          } else {
+            await handlePaymentIntentSucceeded(intent);
+          }
+        }
         break;
       case "payment_intent.payment_failed": {
         const intent = event.data.object as Stripe.PaymentIntent;
+        if (intent.metadata?.kind === "local_order" && intent.metadata?.local_order_id) {
+          await markLocalOrderPaymentFailed(intent.metadata.local_order_id);
+        }
+        if (intent.metadata?.kind === "ride" && intent.metadata?.ride_id) {
+          await dbQuery(
+            `UPDATE rides SET payment_status = 'failed', updated_at = now()
+              WHERE id = $1 AND payment_status IN ('unpaid', 'authorized')`,
+            [intent.metadata.ride_id],
+          );
+        }
         logger.warn(`[Stripe Webhook] Payment failed: ${intent.id} - ${intent.last_payment_error?.message}`);
         await logCheckoutEvent("checkout_fail", {
           error: intent.last_payment_error?.message || "payment_intent.payment_failed",
@@ -322,7 +349,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   if (order.status !== "pending") {
     logger.info({ order_id: orderId, current_status: order.status }, "[Stripe Webhook] order already past pending; skipping paid transition");
     await maybeSendOrderConfirmation(orderId);
-  await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
+    await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
     return;
   }
   if (Number(order.total_cents) !== Number(intent.amount) || String(order.currency).toUpperCase() !== String(intent.currency).toUpperCase()) {
@@ -840,7 +867,7 @@ async function persistOrderItems(orderId: string, items: Array<{
            WHERE product_id = $2 AND sku = $3`,
           [item.quantity, String(pgId), String(skuId)]
         );
-      } catch(e) {
+      } catch (e) {
         logger.error({ err: e }, `[Stripe Webhook] Error deducting variant stock for product ${pgId} SKU ${skuId}`);
       }
     } else if (skuId) {
@@ -852,7 +879,7 @@ async function persistOrderItems(orderId: string, items: Array<{
           `UPDATE marketplace_product_variants SET inventory_quantity = GREATEST(0, inventory_quantity - $1) WHERE sku = $2`,
           [item.quantity, String(skuId)]
         );
-      } catch(e) {
+      } catch (e) {
         logger.error({ err: e }, `[Stripe Webhook] Error deducting variant stock for SKU ${skuId}`);
       }
     } else if (pgId) {
@@ -861,7 +888,7 @@ async function persistOrderItems(orderId: string, items: Array<{
           `UPDATE marketplace_products SET inventory_quantity = GREATEST(0, inventory_quantity - $1) WHERE id = $2`,
           [item.quantity, String(pgId)]
         );
-      } catch(e) {
+      } catch (e) {
         logger.error({ err: e }, `[Stripe Webhook] Error deducting product stock for ID ${pgId}`);
       }
     }
