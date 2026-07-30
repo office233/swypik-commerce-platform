@@ -156,6 +156,37 @@ async function main() {
   );
   check("tracking: merchant + curier + poziție + job", track.merchant_name === "Test Eats" && track.courier_name === "Curier Test" && track.courier_lat != null && track.job_id === job.id);
 
+    // ── 6. adrese salvate cu geo + instrucțiuni (migrarea 0016) ──
+    console.log("\n[5] Adrese salvate (geo + instrucțiuni)");
+    const { rows: [tUser] } = await pool.query(
+      `INSERT INTO users (email, username) VALUES ($1, $2) RETURNING id`,
+      [`${CITY}@test.local`, CITY.slice(0, 30)],
+    );
+    const { rows: [tAddr] } = await pool.query(
+      `INSERT INTO user_addresses (user_id, recipient_name, line1, city, postal_code, lat, lng, details, is_default)
+       VALUES ($1, 'Client Test', 'Str. Livrare 2', $2, '300001', 44.4512, 26.1234, 'Interfon 12, et. 3', true)
+       RETURNING lat, lng, details`,
+      [tUser.id, CITY],
+    );
+    check("lat/lng persistate pe adresă", Number(tAddr.lat) === 44.4512 && Number(tAddr.lng) === 26.1234);
+    check("instrucțiuni curier persistate", tAddr.details === "Interfon 12, et. 3");
+    await pool.query(`DELETE FROM user_addresses WHERE user_id=$1`, [tUser.id]);
+    await pool.query(`DELETE FROM users WHERE id=$1`, [tUser.id]);
+
+    // ── 7. raza de livrare (logica din POST /api/local-orders) ──
+    console.log("\n[6] Raza de livrare");
+    const haversineKm = (a, b) => {
+      const R = 6371, rad = (d) => (d * Math.PI) / 180;
+      const s = Math.sin(rad(b.lat - a.lat) / 2) ** 2 +
+        Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(s));
+    };
+    const mPos = { lat: 44.43, lng: 26.10 };
+    const inDist = haversineKm(mPos, { lat: 44.45, lng: 26.12 });
+    const outDist = haversineKm(mPos, { lat: 44.80, lng: 26.60 });
+    check(`adresa comenzii e în raza de 5 km (${inDist.toFixed(2)} km)`, inDist <= 5);
+    check(`adresa îndepărtată ar fi respinsă (${outDist.toFixed(1)} km > 5)`, outDist > 5);
+
   console.log(`\nRezultat: ${passed} passed, ${failed} failed`);
   return failed === 0;
 }
