@@ -1598,7 +1598,25 @@
     "doneFood": "We're reviewing your details and will activate your courier account.",
     "openPanel": "Open panel",
     "backHome": "Back home",
-    "back": "Back"
+    "back": "Back",
+    "franchiseTitle": "Fleet franchise",
+    "franchiseSub": "Operate the Swypik fleet in your city",
+    "frB1": "Manage drivers and couriers in your area",
+    "frB2": "Commission on every ride/delivery",
+    "frB3": "Dedicated management panel",
+    "franchiseVertical": "What do you want to operate",
+    "companyName": "Company name",
+    "contactName": "Contact person",
+    "doneFranchise": "We'll review your application and contact you for the contract.",
+    "fleetLoginNeeded": "Sign in to see your franchise panel.",
+    "noFranchiseTitle": "No franchise yet",
+    "noFranchiseSub": "Apply to operate the Swypik fleet in your city.",
+    "applyFranchise": "Apply for a franchise",
+    "statusActive": "Active",
+    "statusPending": "Under review",
+    "franchisePendingNote": "Your application is under review. We'll contact you after approval.",
+    "myDrivers": "My drivers",
+    "noDriversYet": "No drivers assigned yet. Swypik admin assigns approved drivers to your franchise."
   },
   "shell": {
     "becomePartner": "Partner werden"

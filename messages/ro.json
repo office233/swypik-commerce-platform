@@ -1842,6 +1842,24 @@
     "doneFood": "Verificăm datele și îți activăm contul de curier.",
     "openPanel": "Deschide panoul",
     "backHome": "Înapoi acasă",
-    "back": "Înapoi"
+    "back": "Înapoi",
+    "franchiseTitle": "Franciză de flotă",
+    "franchiseSub": "Operează flota Swypik în orașul tău",
+    "frB1": "Administrezi șoferii și curierii din zona ta",
+    "frB2": "Comision din fiecare cursă/livrare",
+    "frB3": "Panou dedicat de management",
+    "franchiseVertical": "Ce vrei să operezi",
+    "companyName": "Denumire firmă",
+    "contactName": "Persoană de contact",
+    "doneFranchise": "Analizăm aplicația și te contactăm pentru contract.",
+    "fleetLoginNeeded": "Intră în cont ca să vezi panoul de franciză.",
+    "noFranchiseTitle": "Nu ai încă o franciză",
+    "noFranchiseSub": "Aplică pentru a opera flota Swypik în orașul tău.",
+    "applyFranchise": "Aplică pentru franciză",
+    "statusActive": "Activ",
+    "statusPending": "În verificare",
+    "franchisePendingNote": "Aplicația ta e în verificare. Te contactăm după aprobare.",
+    "myDrivers": "Șoferii mei",
+    "noDriversYet": "Niciun șofer alocat încă. Admin-ul Swypik alocă șoferii aprobați francizei tale."
   }
 }

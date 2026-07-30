@@ -6,7 +6,7 @@
  * Linkat din pagina de autentificare și din profil.
  */
 import Link from "next/link";
-import { ArrowRight, Store, Car, Bike, BadgeCheck } from "lucide-react";
+import { ArrowRight, Store, Car, Bike, BadgeCheck, BedDouble, Building2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 export default function JoinPage() {
@@ -36,6 +36,22 @@ export default function JoinPage() {
             title: t("foodTitle"),
             sub: t("foodSub"),
             bullets: [t("foodB1"), t("foodB2"), t("foodB3")],
+        },
+        {
+            href: "/join/franchise",
+            icon: Building2,
+            accent: "#6D28D9",
+            title: t("franchiseTitle"),
+            sub: t("franchiseSub"),
+            bullets: [t("frB1"), t("frB2"), t("frB3")],
+        },
+        {
+            href: "/join/host",
+            icon: BedDouble,
+            accent: "#0D9488",
+            title: "Gazdă Swypik Stays",
+            sub: "Listează-ți pensiunea, cabana sau apartamentul",
+            bullets: ["Comision 10%, fără abonament", "Plată direct în contul tău", "Verificare și publicare în 1-3 zile"],
         },
     ];
 

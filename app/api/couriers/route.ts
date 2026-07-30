@@ -12,6 +12,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { getAuthSession } from "@/lib/auth/session";
 import { CourierApplySchema, CourierUpdateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { sendEmail } from "@/lib/email/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,6 +82,23 @@ export async function POST(req: Request) {
                 JSON.stringify(d.documents ?? {}),
             ],
         );
+
+        // Notifica ops/admin: aplicatie noua de verificat (best-effort).
+        const opsEmail = process.env.OPS_ALERT_EMAIL || process.env.SUPPORT_EMAIL;
+        if (opsEmail) {
+            const kindLabel = d.kind === "driver" ? "șofer Go" : "curier Food";
+            sendEmail({
+                to: opsEmail,
+                subject: `[Swypik] Aplicație nouă de ${kindLabel}: ${d.full_name} (${d.city})`,
+                html: `<h2>Aplicație nouă de ${kindLabel}</h2>
+<p><b>Nume:</b> ${d.full_name}<br/>
+<b>Telefon:</b> ${d.phone}<br/>
+<b>Email:</b> ${d.email ?? "—"}<br/>
+<b>Oraș:</b> ${d.city}<br/>
+<b>Vehicul:</b> ${d.vehicle_type}${d.vehicle_plate ? ` (${d.vehicle_plate})` : ""}</p>
+<p><a href="https://swypik.com/admin/fleet">Deschide panoul de verificare</a></p>`,
+            }).catch((err) => logger.warn({ err }, "[couriers] ops email failed"));
+        }
 
         return NextResponse.json({ success: true, courier: rows[0] });
     } catch (error: unknown) {
