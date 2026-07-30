@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, TrendingUp, Swords } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
+import MyModes from "@/components/account/MyModes";
 import { useTranslations } from "next-intl";
 
 type AccountPageClientProps = {
@@ -350,6 +351,9 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             </Link>
           </div>
         </section>
+
+        {/* Modurile mele — comutare rol (cumpărător/creator/seller/curier) */}
+        <MyModes />
 
         {/* Descoperă */}
         <section aria-label={t("descopera")} className="mb-6">
