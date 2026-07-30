@@ -7,8 +7,9 @@
  *   merchant — local_merchants (restaurant, farmacie, florarie…)
  *   courier  — curieri (verificare documente)
  *   cause    — donation_causes (verificare ONG/beneficiar)
+ *   developer — developer_accounts (platforma de apps)
  *
- * Query: ?type=seller|merchant|courier|cause|all (default all), ?limit=100
+ * Query: ?type=seller|merchant|courier|cause|developer|all (default all), ?limit=100
  */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export interface PendingItem {
-    type: "seller" | "merchant" | "courier" | "cause";
+    type: "seller" | "merchant" | "courier" | "cause" | "developer";
     id: string;
     name: string;
     status: string;
@@ -115,6 +116,25 @@ export async function GET(req: Request) {
                         category: r.category, beneficiary: r.beneficiary_name,
                         target_amount_cents: r.target_amount_cents,
                     },
+                });
+            }
+        }
+
+        if (type === "all" || type === "developer") {
+            const { rows } = await dbQuery<any>(
+                `SELECT d.id, d.company, d.website, d.status, d.created_at,
+                        u.email
+                   FROM developer_accounts d
+                   JOIN users u ON u.id = d.user_id
+                  WHERE d.status = 'pending'
+                  ORDER BY d.created_at ASC LIMIT $1`,
+                [limit]
+            );
+            for (const r of rows) {
+                items.push({
+                    type: "developer", id: String(r.id), name: r.company,
+                    status: r.status, created_at: r.created_at,
+                    detail: { website: r.website, email: r.email },
                 });
             }
         }

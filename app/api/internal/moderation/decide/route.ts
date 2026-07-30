@@ -1,7 +1,7 @@
 /**
  * POST /api/internal/moderation/decide — aproba/respinge o cerere.
  *
- * Body: { type: seller|merchant|courier|cause, id, decision: approve|reject,
+ * Body: { type: seller|merchant|courier|cause|developer, id, decision: approve|reject,
  *         reason?, erp_api_key? }
  *
  * Pentru seller + approve: ERP-ul trimite erp_api_key generat de el →
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const schema = z.object({
-    type: z.enum(["seller", "merchant", "courier", "cause"]),
+    type: z.enum(["seller", "merchant", "courier", "cause", "developer"]),
     id: z.string().min(1),
     decision: z.enum(["approve", "reject"]),
     reason: z.string().max(1000).optional(),
@@ -88,6 +88,13 @@ export async function POST(req: Request) {
                 [id, approve ? "verified" : "rejected"]
             );
             updated = rowCount ?? 0;
+                } else if (type === "developer") {
+                        const { rowCount } = await dbQuery(
+                                `UPDATE developer_accounts SET status = $2, updated_at = NOW()
+                                    WHERE id = $1 AND status = 'pending'`,
+                                [id, approve ? "approved" : "rejected"]
+                        );
+                        updated = rowCount ?? 0;
         }
 
         if (updated === 0) {

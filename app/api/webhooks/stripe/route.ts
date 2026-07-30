@@ -10,6 +10,7 @@ import { notifyOps } from "@/lib/ops/alerts";
 import type Stripe from "stripe";
 import { persistConnectAccount } from "@/lib/stripe/connect";
 import crypto from "crypto";
+import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -676,6 +677,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   await maybeSendOrderConfirmation(orderId);
   await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
+
+  // FRONT 4 — webhooks către apps terțe instalate (fire-and-forget)
+  {
+    const sellerIds = [...new Set(
+      items
+        .map((i) => (i.metadata && typeof i.metadata.seller_id === "string" ? i.metadata.seller_id : null))
+        .filter((s): s is string => Boolean(s))
+    )];
+    for (const sid of sellerIds) {
+      void dispatchAppWebhook("order.created", sid, {
+        order_id: orderId,
+        currency: String(session.currency || "ron").toUpperCase(),
+        total_cents: totalCents,
+        items: items
+          .filter((i) => i.metadata?.seller_id === sid)
+          .map((i) => ({ name: i.name, quantity: i.quantity, amount_total_cents: i.amountTotalCents })),
+      });
+    }
+  }
 
   logger.info({ order_id: orderId, session_id: session.id, total_ron: totalRon, items_count: items.length }, "[Stripe Webhook] order saved");
 

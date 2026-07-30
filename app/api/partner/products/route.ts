@@ -10,6 +10,7 @@ import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
 import { getPartnerSeller } from "../_lib/auth";
+import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,12 @@ export async function POST(req: Request) {
                 `UPDATE erp_product_mapping SET last_synced_at=NOW() WHERE seller_id=$1 AND erp_product_id=$2`,
                 [seller.id, p.external_id]
             );
+            void dispatchAppWebhook("product.updated", seller.id, {
+                product_id: existingId,
+                title: p.title,
+                price_cents: priceCents,
+                stock: p.stock,
+            });
             return NextResponse.json({ id: existingId, updated: true });
         }
 
@@ -91,6 +98,12 @@ export async function POST(req: Request) {
                DO UPDATE SET marketplace_product_id=EXCLUDED.marketplace_product_id, last_synced_at=NOW()`,
             [seller.id, p.external_id, p.sku ?? null, newId]
         );
+        void dispatchAppWebhook("product.updated", seller.id, {
+            product_id: newId,
+            title: p.title,
+            price_cents: priceCents,
+            stock: p.stock,
+        });
         return NextResponse.json({ id: newId, created: true }, { status: 201 });
     } catch (e) {
         logger.error({ sellerId: seller.id, err: e }, "partner product push failed");
