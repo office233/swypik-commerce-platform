@@ -218,6 +218,47 @@ async function main() {
     .query(`INSERT INTO ride_ratings (ride_id, rater_role, stars) VALUES ($1,'rider',1) ON CONFLICT (ride_id, rater_role) DO NOTHING RETURNING id`, [rideId]);
   check("rating dublu respins (UNIQUE)", dup.rows.length === 0);
 
+  console.log("\n— 7. GO POLISH: share token + anulare cu motiv + vehicul —");
+  // share_token: unic, expiră la final + 1h
+  const token = randomUUID().replace(/-/g, "");
+  await pool.query(`UPDATE rides SET share_token=$2, share_expires_at=now() + interval '1 hour' WHERE id=$1`, [rideId, token]);
+  const { rows: shared } = await pool.query(
+    `SELECT status, pickup_address FROM rides WHERE share_token=$1 AND (share_expires_at IS NULL OR share_expires_at > now())`,
+    [token],
+  );
+  check("share token rezolvă cursa", shared.length === 1);
+  const { rows: expired } = await pool.query(
+    `SELECT 1 FROM rides WHERE share_token=$1 AND share_expires_at > now() - interval '2 hours' AND share_expires_at <= now()`,
+    [token],
+  );
+  check("share token neexpirat încă", expired.length === 0);
+
+  // Anulare cu motiv structurat pe o a doua cursă
+  const { rows: ride2Rows } = await pool.query(
+    `INSERT INTO rides (rider_user_id, city, vehicle_class, pickup_address, pickup_lat, pickup_lng,
+                        dropoff_address, dropoff_lat, dropoff_lng, status,
+                        estimated_fare_cents, currency, payment_method)
+     VALUES ($1,$2,'economy','A 1',$3,$4,'B 2',$5,$6,'searching',$7,'RON','cash') RETURNING id`,
+    [riderId, CITY, PICKUP.lat, PICKUP.lng, DROPOFF.lat, DROPOFF.lng, estimatedFare],
+  );
+  const ride2 = ride2Rows[0].id;
+  await pool.query(
+    `UPDATE rides SET status='cancelled', cancelled_at=now(), cancel_reason=$2, cancelled_by='rider', cancel_fee_cents=0,
+            share_expires_at = now() + interval '1 hour'
+      WHERE id=$1`,
+    [ride2, "wait_too_long"],
+  );
+  const r2 = (await pool.query(`SELECT status, cancel_reason, cancelled_by, cancel_fee_cents FROM rides WHERE id=$1`, [ride2])).rows[0];
+  check("anulare cu motiv salvată", r2.status === "cancelled" && r2.cancel_reason === "wait_too_long" && r2.cancelled_by === "rider");
+  check("anulare înainte de accept = gratuită", Number(r2.cancel_fee_cents) === 0);
+
+  // Date vehicul șofer (migrarea 0019)
+  await pool.query(`UPDATE couriers SET vehicle_make='Dacia', vehicle_model='Logan', vehicle_color='alb' WHERE id=$1`, [driverId]);
+  const drv = (await pool.query(`SELECT vehicle_make, vehicle_model, vehicle_color, vehicle_plate FROM couriers WHERE id=$1`, [driverId])).rows[0];
+  check("vehicul complet expus riderului", drv.vehicle_make === "Dacia" && drv.vehicle_model === "Logan" && drv.vehicle_color === "alb" && !!drv.vehicle_plate);
+
+  await pool.query(`DELETE FROM rides WHERE id=$1`, [ride2]);
+
   // Curățenie
   await pool.query(`DELETE FROM ride_ratings WHERE ride_id=$1`, [rideId]);
   await pool.query(`DELETE FROM dispatch_offers WHERE job_id=$1`, [jobId]);
