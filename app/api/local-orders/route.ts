@@ -15,6 +15,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { LocalOrderCreateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 import { maybeAutoDispatch } from "@/lib/dispatch/auto";
+import { resolveDeliveryFee } from "@/lib/pricing/delivery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +51,8 @@ export async function POST(req: Request) {
 
         // Merchant activ + deschis
         const { rows: merchants } = await dbQuery(
-            `SELECT id, name, status, min_order_cents, delivery_fee_cents, is_open_override, avg_prep_minutes
+            `SELECT id, name, status, min_order_cents, delivery_fee_cents, is_open_override, avg_prep_minutes,
+                location_city, location_country, location_lat, location_lng
          FROM local_merchants WHERE id = $1`,
             [d.merchant_id],
         );
@@ -118,7 +120,12 @@ export async function POST(req: Request) {
             );
         }
 
-        const deliveryFee = merchant.delivery_fee_cents ?? 0;
+                // Taxă de livrare: dinamică (zonă + distanță + surge) cu fallback la fee fix.
+                const feeResult = await resolveDeliveryFee({
+                        merchant,
+                        dropoff: { lat: d.delivery_lat ?? null, lng: d.delivery_lng ?? null },
+                });
+                const deliveryFee = feeResult.fee_cents;
         const total = subtotal + deliveryFee + d.tip_cents;
 
         const order = await withTransaction(async (q) => {
@@ -127,11 +134,13 @@ export async function POST(req: Request) {
            merchant_id, customer_user_id, customer_name, customer_phone,
            delivery_address, delivery_lat, delivery_lng, delivery_notes,
            items, subtotal_cents, delivery_fee_cents, tip_cents, total_cents,
-           payment_method, estimated_delivery_at
+                     payment_method, estimated_delivery_at,
+                     delivery_distance_km, delivery_fee_breakdown, surge_multiplier, pricing_zone_id
          ) VALUES (
            $1, $2, $3, $4, $5, $6, $7, $8,
            $9::jsonb, $10, $11, $12, $13, $14,
-           now() + make_interval(mins => $15)
+                     now() + make_interval(mins => $15),
+                     $16, $17::jsonb, $18, $19
          )
          RETURNING id, order_number, status, total_cents, currency, estimated_delivery_at`,
                 [
@@ -150,6 +159,10 @@ export async function POST(req: Request) {
                     total,
                     d.payment_method,
                     (merchant.avg_prep_minutes ?? 20) + 25,
+                    feeResult.distance_km,
+                    feeResult.breakdown ? JSON.stringify(feeResult.breakdown) : null,
+                    feeResult.surge_multiplier,
+                    feeResult.zone_id,
                 ],
             );
             return rows[0];
