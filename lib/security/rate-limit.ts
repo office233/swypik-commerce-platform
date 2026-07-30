@@ -191,6 +191,7 @@ export const RATE_LIMITS = {
     rideEstimate: { limit: 60, window: 60 } as RateLimitConfig,         // estimare tarif Go (re-estimări la drag pe hartă)
     rideCreate: { limit: 10, window: 300 } as RateLimitConfig,          // creare curse per user
     rideAction: { limit: 60, window: 60 } as RateLimitConfig,           // tranziții status / rating / anulare
+      geoSearch: { limit: 30, window: 60 } as RateLimitConfig,           // proxy Nominatim (search + reverse, per IP)
 } as const;
 
 /**

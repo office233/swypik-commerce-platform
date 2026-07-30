@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * AddressAutocomplete — căutare de adrese cu Nominatim (OSM).
- * Fără cheie API (nu există Google Places key de client în proiect).
- * Debounce 400ms + limit 5, conform politicii de utilizare Nominatim.
+ * AddressAutocomplete — căutare de adrese prin proxy-ul intern /api/geo/search
+ * (Nominatim server-side cu cache Redis 24h + rate limit + User-Agent corect).
+ * Debounce 400ms + limit 5.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -11,6 +11,7 @@ export type AddressResult = {
   address: string;
   lat: number;
   lng: number;
+  city?: string | null;
 };
 
 export default function AddressAutocomplete({
@@ -48,16 +49,9 @@ export default function AddressAutocomplete({
     timer.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=ro&q=${encodeURIComponent(query)}`;
-        const res = await fetch(url, { headers: { Accept: "application/json" } });
-        const data: { display_name: string; lat: string; lon: string }[] = await res.json();
-        setResults(
-          data.map((d) => ({
-            address: d.display_name,
-            lat: Number(d.lat),
-            lng: Number(d.lon),
-          })),
-        );
+        const res = await fetch(`/api/geo/search?q=${encodeURIComponent(query)}`);
+        const data: { results?: AddressResult[] } = await res.json();
+        setResults(Array.isArray(data.results) ? data.results : []);
         setOpen(true);
       } catch {
         setResults([]);
