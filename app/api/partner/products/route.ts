@@ -45,6 +45,9 @@ export async function POST(req: Request) {
     }
     const p = parsed.data;
     const priceCents = Math.round(p.price * 100);
+    // marketplace_products nu are cantitate, ci inventory_status (enum).
+    const inventoryStatus =
+        p.stock <= 0 ? "out_of_stock" : p.stock < 5 ? "low_stock" : "in_stock";
 
     try {
         // Mapare existenta?
@@ -57,10 +60,10 @@ export async function POST(req: Request) {
         if (existingId) {
             await dbQuery(
                 `UPDATE marketplace_products
-                    SET title=$1, price_cents=$2, inventory_qty=$3, category=COALESCE($4, category),
+                    SET title=$1, price_cents=$2, inventory_status=$3, category=COALESCE($4, category),
                         description=COALESCE($5, description), updated_at=NOW()
                   WHERE id=$6 AND seller_id=$7`,
-                [p.title, priceCents, p.stock, p.category ?? null, p.description ?? null, existingId, seller.id]
+                [p.title, priceCents, inventoryStatus, p.category ?? null, p.description ?? null, existingId, seller.id]
             );
             await dbQuery(
                 `UPDATE erp_product_mapping SET last_synced_at=NOW() WHERE seller_id=$1 AND erp_product_id=$2`,
@@ -81,13 +84,12 @@ export async function POST(req: Request) {
         await dbQuery(
             `INSERT INTO marketplace_products
                (id, seller_id, title, slug, description, price_cents, currency, category,
-                status, inventory_qty, source_type, supplier_product_id, metadata)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9,'multi_erp',$10,$11)
-             ON CONFLICT (seller_id, slug) DO UPDATE
-               SET price_cents=EXCLUDED.price_cents, inventory_qty=EXCLUDED.inventory_qty, updated_at=NOW()`,
+                status, inventory_status, source_type, external_product_id, image_url, metadata)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9,'multi_erp',$10,$11,$12)`,
             [
                 newId, seller.id, p.title, slug, p.description ?? null, priceCents,
-                p.currency, p.category ?? null, p.stock, p.external_id,
+                p.currency, p.category ?? null, inventoryStatus, p.external_id,
+                p.image_urls?.[0] ?? null,
                 JSON.stringify({ sku: p.sku ?? null, image_urls: p.image_urls ?? [] }),
             ]
         );

@@ -86,13 +86,16 @@ export async function POST(_req: Request) {
                 const slugBase = p.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 70);
                 const slug = `${slugBase}-${p.sku || p.external_product_id}`.slice(0, 80);
                 const priceRon = Math.round(p.price_cents / 100 * 100) / 100;
+                // marketplace_products stocheaza disponibilitatea ca enum, nu cantitate.
+                const inventoryStatus =
+                    p.inventory_qty <= 0 ? "out_of_stock" : p.inventory_qty < 5 ? "low_stock" : "in_stock";
 
                 if (existingMpId) {
                     // Actualizeaza pret + stoc.
                     await dbQuery(
-                        `UPDATE marketplace_products SET price_cents=$1, inventory_qty=$2, updated_at=NOW()
+                        `UPDATE marketplace_products SET price_cents=$1, inventory_status=$2, updated_at=NOW()
              WHERE id=$3 AND seller_id=$4`,
-                        [p.price_cents, p.inventory_qty, existingMpId, sellerId]
+                        [p.price_cents, inventoryStatus, existingMpId, sellerId]
                     );
                     updated++;
                 } else {
@@ -101,13 +104,11 @@ export async function POST(_req: Request) {
                     await dbQuery(
                         `INSERT INTO marketplace_products
                (id, seller_id, title, slug, price_cents, currency, category,
-                status, inventory_qty, source_type, supplier_product_id, metadata)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,'active',$8,'meister_erp',$9,$10)
-             ON CONFLICT (seller_id, slug) DO UPDATE
-               SET price_cents=EXCLUDED.price_cents, inventory_qty=EXCLUDED.inventory_qty, updated_at=NOW()`,
+                status, inventory_status, source_type, external_product_id, metadata)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,'active',$8,'meister_erp',$9,$10)`,
                         [
                             newId, sellerId, p.title, slug, p.price_cents, p.currency || "RON",
-                            p.category, p.inventory_qty, p.external_product_id,
+                            p.category, inventoryStatus, p.external_product_id,
                             JSON.stringify({ sku: p.sku, barcode: p.barcode, unit: p.unit, vat_rate: p.vat_rate }),
                         ]
                     );
