@@ -2,10 +2,12 @@
 
 /**
  * /go/[id] — ecranul cursei live.
- *  - „caut șofer” cu animație cât timp status ∈ {requested, searching}
- *  - date șofer (nume, mașină, număr, rating) după accept
+ *  - „caut șofer" cu cerc pulsatoriu sincronizat cu valurile (2/5/10 km),
+ *    contor de timp și mesaje progresive
+ *  - date șofer (nume, marcă/model/culoare, număr, rating) după accept
  *  - poziție live pe hartă prin SSE (/api/rides/[id]/stream)
- *  - buton sună / anulează
+ *  - sună / copiază număr / share trip / SOS 112
+ *  - anulare cu motiv (dialog cu taxa de anulare dacă se aplică)
  *  - la 'completed': bon + rating
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,11 +37,17 @@ type Ride = {
     distance_km: string | null;
     fare_breakdown: Record<string, unknown> | null;
     cancel_fee_cents: number | null;
+    accepted_at: string | null;
+    created_at?: string;
+    share_token?: string | null;
 };
 
 type Driver = {
     full_name: string;
     vehicle_type: string;
+    vehicle_make: string | null;
+    vehicle_model: string | null;
+    vehicle_color: string | null;
     vehicle_plate: string | null;
     rating: string | null;
     phone?: string;
@@ -47,18 +55,25 @@ type Driver = {
     current_lng: number | null;
 };
 
-const STATUS_LABEL: Record<string, string> = {
-    requested: "Pregătim cursa…",
-    searching: "Căutăm un șofer în zonă…",
-    accepted: "Șoferul vine spre tine",
-    arriving: "Șoferul e aproape!",
-    in_progress: "Cursă în desfășurare",
-    completed: "Cursă finalizată",
-    cancelled: "Cursă anulată",
-};
+const CANCEL_REASONS = [
+    "wait_too_long",
+    "wrong_address",
+    "driver_not_coming",
+    "changed_mind",
+    "other",
+] as const;
+type CancelReason = (typeof CANCEL_REASONS)[number];
+
+/** Valurile dispatch: 2 km (0–45s), 5 km (45–90s), 10 km (90s+). */
+function waveForElapsed(sec: number): 1 | 2 | 3 {
+    if (sec < 45) return 1;
+    if (sec < 90) return 2;
+    return 3;
+}
 
 export default function RideClient({ rideId }: { rideId: string }) {
     const router = useRouter();
+    const t = useTranslations("go");
     const tShell = useTranslations("shell");
     const [ride, setRide] = useState<Ride | null>(null);
     const [driver, setDriver] = useState<Driver | null>(null);
@@ -66,24 +81,31 @@ export default function RideClient({ rideId }: { rideId: string }) {
     const [error, setError] = useState<string | null>(null);
     const [stars, setStars] = useState(0);
     const [rated, setRated] = useState(false);
-    const esRef = useRef<EventSource | null>(null);
+    const [elapsed, setElapsed] = useState(0);
+    const [cancelOpen, setCancelOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState<CancelReason | null>(null);
+    const [cancelOther, setCancelOther] = useState("");
+    const [cancelling, setCancelling] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const [shared, setShared] = useState(false);
+    const searchStartRef = useRef<number | null>(null);
 
     const refresh = useCallback(async () => {
         const res = await fetch(`/api/rides/${rideId}`, { cache: "no-store" });
         if (!res.ok) {
-            setError(res.status === 403 ? "Nu ai acces la această cursă." : "Cursa nu există.");
+            setError(res.status === 403 ? t("errors.noAccess") : t("errors.notFound"));
             return;
         }
         const data = await res.json();
         setRide(data.ride);
         setDriver(data.driver);
         if (data.driver?.current_lat != null) {
-            setDriverPos({ lat: data.driver.current_lat, lng: data.driver.current_lng });
+            setDriverPos({ lat: Number(data.driver.current_lat), lng: Number(data.driver.current_lng) });
         }
         if (Array.isArray(data.ratings) && data.ratings.some((r: { rater_role: string }) => r.rater_role === "rider")) {
             setRated(true);
         }
-    }, [rideId]);
+    }, [rideId, t]);
 
     useEffect(() => {
         void refresh();
@@ -92,37 +114,62 @@ export default function RideClient({ rideId }: { rideId: string }) {
     // SSE: status + poziție live.
     useEffect(() => {
         const es = new EventSource(`/api/rides/${rideId}/stream`);
-        esRef.current = es;
         es.onmessage = (ev) => {
             try {
                 const msg = JSON.parse(ev.data);
                 if (msg.type === "location" && msg.lat != null) {
                     setDriverPos({ lat: msg.lat, lng: msg.lng });
-                } else if (msg.type === "status" || msg.type === "snapshot") {
+                } else {
                     void refresh();
                 }
             } catch {
-                // ignore
+                // mesaj non-JSON — ignorăm
             }
-        };
-        es.onerror = () => {
-            // browserul reconectează singur
         };
         return () => es.close();
     }, [rideId, refresh]);
 
-    const cancel = async () => {
+    const searching = !!ride && ["requested", "searching"].includes(ride.status);
+
+    // Contor de timp pentru căutare (ancorat la created_at ca să supraviețuiască refresh-ului).
+    useEffect(() => {
+        if (!searching) {
+            searchStartRef.current = null;
+            return;
+        }
+        if (searchStartRef.current == null) {
+            const created = ride?.created_at ? Date.parse(ride.created_at) : Number.NaN;
+            searchStartRef.current = Number.isFinite(created) ? created : Date.now();
+        }
+        const iv = setInterval(() => {
+            setElapsed(Math.max(0, Math.floor((Date.now() - (searchStartRef.current ?? Date.now())) / 1000)));
+        }, 1000);
+        return () => clearInterval(iv);
+    }, [searching, ride?.created_at]);
+
+    const doCancel = async () => {
+        if (!cancelReason) return;
         haptic("tap");
-        if (!confirm("Sigur anulezi cursa?")) return;
-        const res = await fetch(`/api/rides/${rideId}/status`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "cancelled", reason: "rider_cancel" }),
-        });
-        if (res.ok) void refresh();
-        else {
-            const data = await res.json().catch(() => ({}));
-            setError(data.error ?? "Nu am putut anula.");
+        setCancelling(true);
+        try {
+            const res = await fetch(`/api/rides/${rideId}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    status: "cancelled",
+                    cancel_reason: cancelReason,
+                    reason: cancelReason === "other" ? cancelOther.trim() || undefined : undefined,
+                }),
+            });
+            if (res.ok) {
+                setCancelOpen(false);
+                void refresh();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                setError(data.error ?? t("cancel.error"));
+            }
+        } finally {
+            setCancelling(false);
         }
     };
 
@@ -137,26 +184,58 @@ export default function RideClient({ rideId }: { rideId: string }) {
         if (res.ok || res.status === 409) setRated(true);
     };
 
-    const searching = ride && ["requested", "searching"].includes(ride.status);
-    const active = ride && ["accepted", "arriving", "in_progress"].includes(ride.status);
+    const shareTrip = async () => {
+        if (!ride?.share_token) return;
+        haptic("tap");
+        const url = `${window.location.origin}/go/track/${ride.share_token}`;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: t("track.title"), url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                setShared(true);
+                setTimeout(() => setShared(false), 2000);
+            }
+        } catch {
+            // user a închis share sheet-ul
+        }
+    };
+
+    const copyPlate = async () => {
+        if (!driver?.vehicle_plate) return;
+        haptic("tap");
+        try {
+            await navigator.clipboard.writeText(driver.vehicle_plate);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // clipboard indisponibil
+        }
+    };
+
+    const active = !!ride && ["accepted", "arriving", "in_progress"].includes(ride.status);
     const done = ride?.status === "completed";
     const fmt = (c: number | null | undefined) =>
         c != null && ride ? `${(c / 100).toFixed(2)} ${ride.currency}` : "—";
 
-    const pickup = ride ? { lat: ride.pickup_lat, lng: ride.pickup_lng } : null;
-    const dropoff = ride ? { lat: ride.dropoff_lat, lng: ride.dropoff_lng } : null;
-    const bounds = useMemo(() => {
-        const pts = [pickup, dropoff, driverPos].filter(Boolean) as { lat: number; lng: number }[];
-        return pts.length >= 2 ? pts : null;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ride?.pickup_lat, ride?.dropoff_lat, driverPos?.lat, driverPos?.lng]);
+    // Taxa de anulare care s-ar aplica ACUM (aceeași regulă ca serverul:
+    // gratuit înainte de accept sau în primele 2 min după).
+    const cancelFeeNow = useMemo(() => {
+        if (!ride || !active || !ride.accepted_at) return 0;
+        if (Date.now() - Date.parse(ride.accepted_at) <= 2 * 60 * 1000) return 0;
+        const bd = ride.fare_breakdown as { cancel_fee_cents?: number } | null;
+        return bd?.cancel_fee_cents ?? 0;
+    }, [ride, active]);
+
+    const pickup = ride ? { lat: Number(ride.pickup_lat), lng: Number(ride.pickup_lng) } : null;
+    const dropoff = ride ? { lat: Number(ride.dropoff_lat), lng: Number(ride.dropoff_lng) } : null;
 
     if (error) {
         return (
             <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 p-6 text-center">
                 <p className="text-[15px] font-semibold">{error}</p>
                 <button onClick={() => router.push("/go")} className="rounded-2xl bg-neutral-900 px-6 py-3 text-white">
-                    Înapoi la Go
+                    {t("errors.backToGo")}
                 </button>
             </div>
         );
@@ -169,33 +248,77 @@ export default function RideClient({ rideId }: { rideId: string }) {
         );
     }
 
+    const wave = waveForElapsed(elapsed);
+    const carLabel = driver
+        ? [driver.vehicle_make, driver.vehicle_model, driver.vehicle_color].filter(Boolean).join(" ") ||
+          driver.vehicle_type
+        : "";
+
     return (
         <div className="relative flex h-[100dvh] flex-col bg-neutral-50">
             <div className="relative flex-1">
                 {pickup ? (
-                    <MapView center={pickup} fitBounds={bounds} className="absolute inset-0 z-0 h-full w-full">
-                        {pickup ? <LiveMarker position={pickup} kind="pickup" /> : null}
+                    <MapView center={pickup} className="absolute inset-0 z-0 h-full w-full">
+                        <LiveMarker position={pickup} kind="pickup" />
                         {dropoff ? <LiveMarker position={dropoff} kind="dropoff" /> : null}
                         {driverPos ? <LiveMarker position={driverPos} kind="driver" label={driver?.full_name} /> : null}
-                        {pickup && dropoff ? <RoutePolyline points={[pickup, dropoff]} /> : null}
+                        {dropoff ? <RoutePolyline points={[pickup, dropoff]} /> : null}
                     </MapView>
+                ) : null}
+
+                {/* Share + SOS — mereu accesibile cât timp cursa e activă */}
+                {searching || active ? (
+                    <div className="absolute right-3 top-3 z-[500] flex flex-col items-end gap-2">
+                        {ride.share_token ? (
+                            <button
+                                onClick={shareTrip}
+                                className="rounded-2xl bg-white/95 px-3 py-2 text-[12px] font-bold shadow-md"
+                            >
+                                {shared ? t("share.copied") : `📤 ${t("share.button")}`}
+                            </button>
+                        ) : null}
+                        <a
+                            href="tel:112"
+                            className="rounded-2xl bg-red-600 px-3 py-2 text-center text-[12px] font-extrabold text-white shadow-md"
+                        >
+                            🆘 {t("share.sos")}
+                        </a>
+                    </div>
                 ) : null}
             </div>
 
             <div className="z-10 rounded-t-3xl bg-white p-4 pb-6 shadow-[0_-8px_24px_rgba(0,0,0,.08)]">
-                <p className="text-center text-[15px] font-extrabold">{STATUS_LABEL[ride.status] ?? ride.status}</p>
+                <p className="text-center text-[15px] font-extrabold">
+                    {RIDE_STATUS_KEYS.includes(ride.status) ? t(`status.${ride.status}`) : ride.status}
+                </p>
 
                 {searching ? (
                     <div className="mt-4 flex flex-col items-center gap-3">
-                        <div className="relative h-16 w-16">
-                            <span className="absolute inset-0 animate-ping rounded-full bg-yellow-300 opacity-60" />
-                            <span className="absolute inset-2 flex items-center justify-center rounded-full bg-yellow-400 text-2xl">
+                        {/* Cerc pulsatoriu — ritmul crește cu valul de căutare (2/5/10 km) */}
+                        <div className="relative h-20 w-20">
+                            <span
+                                className="absolute inset-0 animate-ping rounded-full bg-yellow-300 opacity-60"
+                                style={{ animationDuration: `${(4 - wave) * 0.8}s` }}
+                            />
+                            <span
+                                className="absolute -inset-2 animate-ping rounded-full bg-yellow-200 opacity-30"
+                                style={{ animationDuration: `${(4 - wave) * 1.2}s` }}
+                            />
+                            <span className="absolute inset-3 flex items-center justify-center rounded-full bg-yellow-400 text-2xl">
                                 🚕
                             </span>
                         </div>
-                        <p className="text-[13px] text-neutral-500">Trimitem oferta șoferilor din apropiere…</p>
-                        <button onClick={cancel} className="mt-1 rounded-2xl border border-red-200 px-6 py-3 text-[14px] font-bold text-red-600">
-                            Anulează (gratuit)
+                        <p className="text-[13px] font-semibold text-neutral-700">{t(`search.wave${wave}`)}</p>
+                        <p className="text-[12px] tabular-nums text-neutral-400">{t("search.elapsed", { sec: elapsed })}</p>
+                        <button
+                            onClick={() => {
+                                haptic("tap");
+                                setCancelReason(null);
+                                setCancelOpen(true);
+                            }}
+                            className="mt-1 rounded-2xl border border-red-200 px-6 py-3 text-[14px] font-bold text-red-600"
+                        >
+                            {t("search.cancelFree")}
                         </button>
                     </div>
                 ) : null}
@@ -207,22 +330,43 @@ export default function RideClient({ rideId }: { rideId: string }) {
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-[15px] font-bold">{driver.full_name}</p>
                                 <p className="text-[13px] text-neutral-500">
-                                    {driver.vehicle_type} {driver.vehicle_plate ? `• ${driver.vehicle_plate}` : ""}
+                                    {carLabel}
                                     {driver.rating ? ` • ★ ${Number(driver.rating).toFixed(2)}` : ""}
                                 </p>
                             </div>
+                            {driver.vehicle_plate ? (
+                                <button
+                                    onClick={copyPlate}
+                                    className="rounded-lg bg-neutral-900 px-2 py-1 font-mono text-[13px] font-bold tracking-wider text-white"
+                                    title={t("driver.copyPlate")}
+                                >
+                                    {copied ? t("driver.copied") : driver.vehicle_plate}
+                                </button>
+                            ) : null}
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-2">
                             {driver.phone ? (
-                                <a href={`tel:${driver.phone}`} className="rounded-2xl bg-neutral-900 py-3 text-center text-[14px] font-bold text-white">
-                                    📞 Sună șoferul
+                                <a
+                                    href={`tel:${driver.phone}`}
+                                    className="rounded-2xl bg-neutral-900 py-3 text-center text-[14px] font-bold text-white"
+                                >
+                                    📞 {t("driver.call")}
                                 </a>
                             ) : (
-                                <span />
+                                <span className="rounded-2xl bg-neutral-100 py-3 text-center text-[14px] font-semibold text-neutral-500">
+                                    {fmt(ride.estimated_fare_cents)}
+                                </span>
                             )}
                             {ride.status !== "in_progress" ? (
-                                <button onClick={cancel} className="rounded-2xl border border-red-200 py-3 text-[14px] font-bold text-red-600">
-                                    Anulează
+                                <button
+                                    onClick={() => {
+                                        haptic("tap");
+                                        setCancelReason(null);
+                                        setCancelOpen(true);
+                                    }}
+                                    className="rounded-2xl border border-red-200 py-3 text-[14px] font-bold text-red-600"
+                                >
+                                    {t("cancel.confirm")}
                                 </button>
                             ) : (
                                 <span className="rounded-2xl bg-neutral-100 py-3 text-center text-[14px] font-semibold text-neutral-500">
@@ -233,28 +377,10 @@ export default function RideClient({ rideId }: { rideId: string }) {
                     </div>
                 ) : null}
 
-                {/* Cross-sell discret: cât aștepți/mergi, deschide feedul */}
-                {active && driver && ride.status === "in_progress" ? (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            haptic("tap");
-                            router.push(`/?utm_source=go&utm_medium=ride_in_progress&utm_campaign=cross_sell`);
-                        }}
-                        className="mt-3 flex w-full items-center justify-between rounded-2xl border border-neutral-200 p-3 text-left active:scale-[0.98]"
-                    >
-                        <span>
-                            <span className="block text-[14px] font-bold">{tShell("discoverFeed")}</span>
-                            <span className="block text-[12px] text-neutral-500">{tShell("discoverFeedSub")}</span>
-                        </span>
-                        <span aria-hidden>🎬</span>
-                    </button>
-                ) : null}
-
                 {done ? (
                     <div className="mt-3">
                         <div className="rounded-2xl border border-neutral-200 p-4 text-center">
-                            <p className="text-[13px] text-neutral-500">Total de plată</p>
+                            <p className="text-[13px] text-neutral-500">{t("receipt.total")}</p>
                             <p className="text-3xl font-extrabold">{fmt(ride.final_fare_cents ?? ride.estimated_fare_cents)}</p>
                             <p className="mt-1 text-[12px] text-neutral-500">
                                 {ride.distance_km ? `${Number(ride.distance_km).toFixed(1)} km` : ""}
@@ -263,10 +389,10 @@ export default function RideClient({ rideId }: { rideId: string }) {
                         </div>
                         {!rated ? (
                             <div className="mt-3 text-center">
-                                <p className="text-[14px] font-semibold">Cum a fost cursa?</p>
+                                <p className="text-[14px] font-semibold">{t("receipt.ratePrompt")}</p>
                                 <div className="mt-1 flex justify-center gap-1 text-3xl">
                                     {[1, 2, 3, 4, 5].map((s) => (
-                                        <button key={s} onClick={() => setStars(s)} aria-label={`${s} stele`}>
+                                        <button key={s} onClick={() => setStars(s)} aria-label={`${s}★`}>
                                             {s <= stars ? "⭐" : "☆"}
                                         </button>
                                     ))}
@@ -276,14 +402,17 @@ export default function RideClient({ rideId }: { rideId: string }) {
                                     disabled={!stars}
                                     className="mt-2 w-full rounded-2xl bg-neutral-900 py-3 text-[14px] font-bold text-white disabled:opacity-40"
                                 >
-                                    Trimite ratingul
+                                    {t("receipt.rateSend")}
                                 </button>
                             </div>
                         ) : (
-                            <p className="mt-3 text-center text-[13px] text-green-600">Mulțumim pentru rating! 💛</p>
+                            <p className="mt-3 text-center text-[13px] text-green-600">{t("receipt.rateThanks")}</p>
                         )}
-                        <button onClick={() => router.push("/go")} className="mt-3 w-full rounded-2xl border border-neutral-200 py-3 text-[14px] font-bold">
-                            Comandă altă cursă
+                        <button
+                            onClick={() => router.push("/go")}
+                            className="mt-3 w-full rounded-2xl border border-neutral-200 py-3 text-[14px] font-bold"
+                        >
+                            {t("receipt.another")}
                         </button>
                     </div>
                 ) : null}
@@ -291,14 +420,88 @@ export default function RideClient({ rideId }: { rideId: string }) {
                 {ride.status === "cancelled" ? (
                     <div className="mt-3 text-center">
                         {ride.cancel_fee_cents ? (
-                            <p className="text-[13px] text-neutral-500">Taxă de anulare: {fmt(ride.cancel_fee_cents)}</p>
-                        ) : null}
-                        <button onClick={() => router.push("/go")} className="mt-2 w-full rounded-2xl bg-neutral-900 py-3 text-[14px] font-bold text-white">
-                            Comandă altă cursă
+                            <p className="text-[13px] text-neutral-500">
+                                {t("receipt.cancelledFee", { fee: fmt(ride.cancel_fee_cents) })}
+                            </p>
+                        ) : (
+                            <p className="text-[13px] text-neutral-500">{t("receipt.cancelledFree")}</p>
+                        )}
+                        <button
+                            onClick={() => router.push("/go")}
+                            className="mt-3 w-full rounded-2xl border border-neutral-200 py-3 text-[14px] font-bold"
+                        >
+                            {t("receipt.another")}
                         </button>
                     </div>
                 ) : null}
             </div>
+
+            {/* Dialog anulare cu motiv */}
+            {cancelOpen ? (
+                <div className="fixed inset-0 z-[600] flex items-end bg-black/40" onClick={() => setCancelOpen(false)}>
+                    <div className="w-full rounded-t-3xl bg-white p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="text-[16px] font-extrabold">{t("cancel.title")}</h2>
+                        <div className="mt-3 space-y-2">
+                            {CANCEL_REASONS.map((r) => (
+                                <button
+                                    key={r}
+                                    onClick={() => {
+                                        haptic("tap");
+                                        setCancelReason(r);
+                                    }}
+                                    className={`w-full rounded-2xl border p-3 text-left text-[14px] font-semibold transition ${
+                                        cancelReason === r
+                                            ? "border-neutral-900 bg-neutral-900 text-white"
+                                            : "border-neutral-200 bg-white"
+                                    }`}
+                                >
+                                    {t(`cancel.${r}`)}
+                                </button>
+                            ))}
+                            {cancelReason === "other" ? (
+                                <textarea
+                                    value={cancelOther}
+                                    onChange={(e) => setCancelOther(e.target.value)}
+                                    maxLength={300}
+                                    rows={2}
+                                    placeholder={t("cancel.otherPlaceholder")}
+                                    className="w-full rounded-2xl border border-neutral-200 p-3 text-[14px]"
+                                />
+                            ) : null}
+                        </div>
+                        {cancelFeeNow > 0 ? (
+                            <p className="mt-3 text-center text-[13px] font-semibold text-amber-600">
+                                ⚠️ {t("cancel.feeWarning", { fee: fmt(cancelFeeNow) })}
+                            </p>
+                        ) : null}
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => setCancelOpen(false)}
+                                className="rounded-2xl border border-neutral-200 py-3 text-[14px] font-bold"
+                            >
+                                {t("cancel.keep")}
+                            </button>
+                            <button
+                                onClick={doCancel}
+                                disabled={!cancelReason || cancelling}
+                                className="rounded-2xl bg-red-600 py-3 text-[14px] font-bold text-white disabled:opacity-40"
+                            >
+                                {t("cancel.confirm")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }
+
+const RIDE_STATUS_KEYS = [
+    "requested",
+    "searching",
+    "accepted",
+    "arriving",
+    "in_progress",
+    "completed",
+    "cancelled",
+];
