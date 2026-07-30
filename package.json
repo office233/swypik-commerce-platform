@@ -13,6 +13,8 @@
     "typecheck": "tsc --noEmit --incremental false",
     "test:platform": "node tools/test-platform.mjs",
     "test:workers": "node tools/test-workers.mjs",
+    "test:dispatch": "node scripts/test-dispatch.mjs",
+    "worker:dispatch": "node scripts/dispatch-worker.mjs",
     "sync:catalog": "node scripts/sync-catalog.mjs",
     "ci": "npm run lint && npm run typecheck && npm run build && npm run test:platform && npm run test:workers",
     "ci:social": "npm run ci",
