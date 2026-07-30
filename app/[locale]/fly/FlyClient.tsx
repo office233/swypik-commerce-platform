@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plane, ArrowRight, Loader2, Users, CalendarDays, Wallet, CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
+import AirportInput from "./AirportInput";
 
 type Segment = { origin: string; destination: string; departAt: string; arriveAt: string; carrier: string; carrierName?: string; flightNumber?: string };
 type Slice = { origin: string; destination: string; durationMinutes?: number; segments: Segment[] };
@@ -196,24 +197,18 @@ export default function FlyClient() {
             {/* Formular căutare */}
             <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                 <div className="grid grid-cols-2 gap-3">
-                    <label className="text-xs font-medium text-neutral-500">
-                        De la (IATA)
-                        <input
-                            value={form.origin}
-                            onChange={(e) => setForm({ ...form, origin: e.target.value.toUpperCase().slice(0, 3) })}
-                            placeholder="OTP"
-                            className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-base font-semibold uppercase tracking-widest dark:border-neutral-700 dark:bg-neutral-800"
-                        />
-                    </label>
-                    <label className="text-xs font-medium text-neutral-500">
-                        Spre (IATA)
-                        <input
-                            value={form.destination}
-                            onChange={(e) => setForm({ ...form, destination: e.target.value.toUpperCase().slice(0, 3) })}
-                            placeholder="BCN"
-                            className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-base font-semibold uppercase tracking-widest dark:border-neutral-700 dark:bg-neutral-800"
-                        />
-                    </label>
+                    <AirportInput
+                        label="De la"
+                        value={form.origin}
+                        onChange={(iata) => setForm({ ...form, origin: iata })}
+                        placeholder="ex: București"
+                    />
+                    <AirportInput
+                        label="Spre"
+                        value={form.destination}
+                        onChange={(iata) => setForm({ ...form, destination: iata })}
+                        placeholder="ex: Barcelona"
+                    />
                     <label className="text-xs font-medium text-neutral-500">
                         <span className="flex items-center gap-1"><CalendarDays size={12} /> Plecare</span>
                         <input
