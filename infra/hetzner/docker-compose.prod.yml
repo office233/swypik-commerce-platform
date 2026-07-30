@@ -159,7 +159,10 @@ services:
     env_file:
       - .env.production
     ports:
-      - "127.0.0.1:5432:5432"
+      # 5432 e ocupat de meister-postgres pe acelasi host; aplicatia oricum
+      # se conecteaza prin reteaua Docker (host "postgres"), portul e doar
+      # pentru administrare de pe VPS.
+      - "127.0.0.1:5433:5432"
     shm_size: 2g
     command:
       - postgres
