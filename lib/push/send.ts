@@ -33,7 +33,7 @@ function ensureConfigured(): boolean {
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT || "mailto:contact@swypik.com";
   if (!publicKey || !privateKey) {
-    logger.warn("push.send: VAPID keys missing — push disabled");
+    logger.warn({}, "push.send: VAPID keys missing — push disabled");
     configured = false;
     return false;
   }
@@ -93,11 +93,10 @@ export async function sendPushToUser(
           result.revoked += 1;
         } else {
           result.failed += 1;
-          logger.error("push.send.failed", {
-            userId,
-            statusCode,
-            error: (err as Error).message,
-          });
+          logger.error(
+            { userId, statusCode, error: (err as Error).message },
+            "push.send.failed",
+          );
         }
       }
     }),

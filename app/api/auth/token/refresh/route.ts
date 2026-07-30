@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       [sess.id],
     );
 
-    logger.info("auth.token.refreshed", { userId: sess.user_id });
+    logger.info({ userId: sess.user_id }, "auth.token.refreshed");
 
     return NextResponse.json({
       success: true,
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       expires_at: inserted[0].expires_at,
     });
   } catch (err) {
-    logger.error("auth.token.refresh.error", { error: (err as Error).message });
+    logger.error({ error: (err as Error).message }, "auth.token.refresh.error");
     return NextResponse.json({ success: false, error: "internal_error" }, { status: 500 });
   }
 }

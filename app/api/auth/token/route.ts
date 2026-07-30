@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       [user.id, hashSessionToken(token), userAgent, JSON.stringify({ via: "token_login", ip })],
     );
 
-    logger.info("auth.token.issued", { userId: user.id });
+    logger.info({ userId: user.id }, "auth.token.issued");
 
     return NextResponse.json({
       success: true,
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
       user: { id: user.id, role: user.role ?? "shopper", email },
     });
   } catch (err) {
-    logger.error("auth.token.error", { error: (err as Error).message });
+    logger.error({ error: (err as Error).message }, "auth.token.error");
     return NextResponse.json(
       { success: false, error: "internal_error" },
       { status: 500 },

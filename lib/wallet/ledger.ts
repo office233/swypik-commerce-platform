@@ -127,14 +127,10 @@ async function apply(kind: "credit" | "debit", args: ApplyArgs): Promise<LedgerR
       [userId, newBalance],
     );
 
-    logger.info("wallet.ledger.applied", {
-      userId,
-      kind,
-      amountCents,
-      refType,
-      refId,
-      balanceAfter: newBalance,
-    });
+    logger.info(
+      { userId, kind, amountCents, refType, refId, balanceAfter: newBalance },
+      "wallet.ledger.applied",
+    );
 
     return { entry: inserted.rows[0], alreadyApplied: false };
   });

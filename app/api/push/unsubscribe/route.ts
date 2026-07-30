@@ -41,10 +41,10 @@ export async function POST(req: Request) {
       [parsed.data.endpoint, session.userId],
     );
 
-    logger.info("push.unsubscribe", { userId: session.userId, revoked: rowCount });
+    logger.info({ userId: session.userId, revoked: rowCount }, "push.unsubscribe");
     return NextResponse.json({ success: true, revoked: rowCount });
   } catch (err) {
-    logger.error("push.unsubscribe.error", { error: (err as Error).message });
+    logger.error({ error: (err as Error).message }, "push.unsubscribe.error");
     return NextResponse.json({ success: false, error: "internal_error" }, { status: 500 });
   }
 }

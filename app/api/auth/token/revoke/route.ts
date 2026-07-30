@@ -32,10 +32,10 @@ export async function POST(req: Request) {
       [hashSessionToken(token)],
     );
 
-    logger.info("auth.token.revoked", { revoked: rowCount });
+    logger.info({ revoked: rowCount }, "auth.token.revoked");
     return NextResponse.json({ success: true });
   } catch (err) {
-    logger.error("auth.token.revoke.error", { error: (err as Error).message });
+    logger.error({ error: (err as Error).message }, "auth.token.revoke.error");
     return NextResponse.json({ success: false, error: "internal_error" }, { status: 500 });
   }
 }

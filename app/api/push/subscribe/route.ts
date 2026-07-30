@@ -79,10 +79,10 @@ export async function POST(req: Request) {
       [session.userId, endpoint, keys.p256dh, keys.auth, platform],
     );
 
-    logger.info("push.subscribe", { userId: session.userId, platform });
+    logger.info({ userId: session.userId, platform }, "push.subscribe");
     return NextResponse.json({ success: true, id: rows[0]?.id ?? null });
   } catch (err) {
-    logger.error("push.subscribe.error", { error: (err as Error).message });
+    logger.error({ error: (err as Error).message }, "push.subscribe.error");
     return NextResponse.json({ success: false, error: "internal_error" }, { status: 500 });
   }
 }

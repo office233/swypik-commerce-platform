@@ -20,7 +20,8 @@ import pg from "pg";
 // -- load .env.local (minimal parser, no deps) --
 for (const f of [".env.local", ".env"]) {
   if (!existsSync(f)) continue;
-  for (const line of readFileSync(f, "utf8").split("\n")) {
+  for (const rawLine of readFileSync(f, "utf8").split("\n")) {
+    const line = rawLine.replace(/\r$/, "").trim();
     const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^"|"$/g, "");
   }
