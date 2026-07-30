@@ -281,6 +281,31 @@ export async function acceptOffer(jobOrOrderId: string, courierId: string): Prom
       status: "assigned",
       courier_id: courierId,
     });
+    // Push best-effort către rider: „Șofer găsit: {nume} • {mașină}".
+    if (result.rideId) {
+      void (async () => {
+        const { rows } = await dbQuery<{
+          rider_user_id: string | null;
+          full_name: string;
+          vehicle_make: string | null;
+          vehicle_model: string | null;
+          vehicle_plate: string | null;
+        }>(
+          `SELECT r.rider_user_id, c.full_name, c.vehicle_make, c.vehicle_model, c.vehicle_plate
+             FROM rides r JOIN couriers c ON c.id = $2
+            WHERE r.id = $1`,
+          [result.rideId, courierId],
+        );
+        const row = rows[0];
+        if (!row?.rider_user_id) return;
+        const car = [row.vehicle_make, row.vehicle_model].filter(Boolean).join(" ") || row.vehicle_plate || "";
+        await sendPushToUser(row.rider_user_id, {
+          title: `Șofer găsit: ${row.full_name}${car ? ` • ${car}` : ""}`,
+          body: "Urmărește cursa live în aplicație.",
+          url: `/go/${result.rideId}`,
+        });
+      })().catch(() => { /* best-effort */ });
+    }
   }
   return result;
 }
