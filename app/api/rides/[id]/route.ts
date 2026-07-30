@@ -30,7 +30,8 @@ export async function GET(
   let driver: Record<string, unknown> | null = null;
   if (ride.driver_id) {
     const { rows } = await dbQuery(
-      `SELECT full_name, vehicle_type, vehicle_plate, rating, phone,
+      `SELECT full_name, vehicle_type, vehicle_make, vehicle_model, vehicle_color,
+              vehicle_plate, rating, phone,
               current_lat, current_lng, location_updated_at
          FROM couriers WHERE id = $1`,
       [ride.driver_id],
