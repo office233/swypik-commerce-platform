@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Clock, MapPin, Star, Truck } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, ReceiptText, Star, Truck } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 
 const ACCENT = "#2DBE60"; // verdele Swypik Food

@@ -213,7 +213,7 @@ export async function GET(req: Request) {
         const { rows } = await dbQuery(
             `SELECT lo.id, lo.order_number, lo.status, lo.items, lo.total_cents, lo.currency,
               lo.payment_method, lo.placed_at, lo.estimated_delivery_at,
-              m.name AS merchant_name, m.image_url AS merchant_image,
+                            m.name AS merchant_name, m.slug AS merchant_slug, m.image_url AS merchant_image,
               c.full_name AS courier_name, c.current_lat AS courier_lat, c.current_lng AS courier_lng
          FROM local_orders lo
          JOIN local_merchants m ON m.id = lo.merchant_id

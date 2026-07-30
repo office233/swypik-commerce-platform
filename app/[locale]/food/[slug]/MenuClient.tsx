@@ -12,6 +12,7 @@ import { ArrowLeft, Clock, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-
 import { haptic } from "@/lib/haptic";
 import { isOpenNow } from "@/lib/merchants/hours";
 import EatsPaymentModal from "@/components/payments/EatsPaymentModal";
+import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 
 const ACCENT = "#2DBE60";
 
@@ -66,16 +67,19 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
   const [pickedOptions, setPickedOptions] = useState<string[]>([]);
   const [checkout, setCheckout] = useState(false);
   const [placing, setPlacing] = useState(false);
-  const [placed, setPlaced] = useState<{ order_number: string } | null>(null);
+  const [placed, setPlaced] = useState<{ id?: string; order_number: string } | null>(null);
   const [error, setError] = useState("");
   const [payMethod, setPayMethod] = useState<"cash" | "card_online">("cash");
-  const [cardPay, setCardPay] = useState<{ client_secret: string; amount_cents: number; order: { order_number: string } } | null>(null);
+  const [cardPay, setCardPay] = useState<{ client_secret: string; amount_cents: number; order: { id?: string; order_number: string } } | null>(null);
 
   // formular livrare
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [addressCoords, setAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [notes, setNotes] = useState("");
+  // taxă de livrare dinamică (zonă+distanță+surge) — quote de la server
+  const [feeQuote, setFeeQuote] = useState<number | null>(null);
 
   const cartKey = `swypik_food_cart_${merchant.id}`;
   const open = isOpenNow(merchant.opening_hours, merchant.is_open_override);
@@ -93,12 +97,54 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
     } catch { /* corupt — ignorăm */ }
   }, [merchant.id, cartKey]);
 
+  // Re-comandă: ?reorder=<order_id> — rehidratăm coșul din comanda veche.
+  // Prețurile din coș sunt oricum orientative; serverul recalculează la plasare.
+  useEffect(() => {
+    const reorderId = new URLSearchParams(window.location.search).get("reorder");
+    if (!reorderId) return;
+    fetch(`/api/local-orders/${reorderId}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.success || d.order?.merchant?.id !== merchant.id) return;
+        const lines: CartLine[] = (d.order.items ?? []).map(
+          (it: { menu_item_id: string; name: string; qty: number; unit_price_cents: number; options?: { id?: string; name: string }[] }) => ({
+            menu_item_id: it.menu_item_id,
+            name: it.name,
+            unit_price_cents: it.unit_price_cents,
+            qty: it.qty,
+            // serverul acceptă și numele opțiunii ca id (fallback în POST /api/local-orders)
+            option_ids: (it.options ?? []).map((o) => o.id ?? o.name).filter(Boolean) as string[],
+            option_names: (it.options ?? []).map((o) => o.name),
+          }),
+        );
+        if (lines.length) setCart(lines);
+      })
+      .catch(() => { /* fără reorder */ });
+  }, [merchant.id]);
+
   useEffect(() => {
     localStorage.setItem(cartKey, JSON.stringify(cart));
   }, [cart, cartKey]);
 
+  // Quote taxă de livrare când clientul alege adresa (aceeași logică ca serverul la plasare).
+  useEffect(() => {
+    if (!addressCoords) return;
+    const ctrl = new AbortController();
+    fetch(
+      `/api/merchants/${merchant.id}/delivery-quote?lat=${addressCoords.lat}&lng=${addressCoords.lng}`,
+      { signal: ctrl.signal },
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && typeof d.quote?.fee_cents === "number") setFeeQuote(d.quote.fee_cents);
+      })
+      .catch(() => { /* rămâne fee-ul fix */ });
+    return () => ctrl.abort();
+  }, [addressCoords, merchant.id]);
+
   const subtotal = useMemo(() => cart.reduce((s, l) => s + l.unit_price_cents * l.qty, 0), [cart]);
-  const total = subtotal + (subtotal > 0 ? merchant.delivery_fee_cents : 0);
+  const deliveryFee = feeQuote ?? merchant.delivery_fee_cents;
+  const total = subtotal + (subtotal > 0 ? deliveryFee : 0);
   const fmtLei = (c: number) => `${(c / 100).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} lei`;
   const belowMin = subtotal > 0 && subtotal < merchant.min_order_cents;
 
@@ -156,6 +202,8 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           customer_name: name,
           customer_phone: phone,
           delivery_address: address,
+          delivery_lat: addressCoords?.lat,
+          delivery_lng: addressCoords?.lng,
           delivery_notes: notes || undefined,
           payment_method: payMethod,
         }),
@@ -219,13 +267,22 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
             Numărul comenzii: <span className="font-black text-[#0D0D0D]">{placed.order_number}</span>
           </p>
           <p className="mt-1 text-sm text-[#6E6E80]">
-            {merchant.name} confirmă în câteva minute. Plata: cash la livrare.
+            {merchant.name} confirmă în câteva minute.
           </p>
+          {placed.id && (
+            <button
+              type="button"
+              onClick={() => router.push(`/food/orders/${placed.id}`)}
+              style={{ backgroundColor: ACCENT }}
+              className="mt-6 h-12 w-full rounded-xl px-6 text-sm font-bold text-white transition active:scale-95"
+            >
+              Urmărește comanda live
+            </button>
+          )}
           <button
             type="button"
             onClick={() => router.push("/food")}
-            style={{ backgroundColor: ACCENT }}
-            className="mt-6 h-12 rounded-xl px-6 text-sm font-bold text-white transition active:scale-95"
+            className="mt-3 h-12 rounded-xl border border-[#E5E5E5] px-6 text-sm font-bold text-[#0D0D0D] transition active:scale-95"
           >
             Înapoi la restaurante
           </button>
@@ -468,7 +525,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                 </div>
               ))}
               <div className="border-t border-[#E5E5E5] pt-2 text-sm">
-                <div className="flex justify-between text-[#6E6E80]"><span>Livrare</span><span>{merchant.delivery_fee_cents === 0 ? "Gratuită" : fmtLei(merchant.delivery_fee_cents)}</span></div>
+                <div className="flex justify-between text-[#6E6E80]"><span>Livrare</span><span>{deliveryFee === 0 ? "Gratuită" : fmtLei(deliveryFee)}</span></div>
                 <div className="mt-1 flex justify-between font-black"><span>Total</span><span>{fmtLei(total)}</span></div>
               </div>
             </div>
@@ -476,7 +533,14 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
             <div className="mt-4 space-y-3">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Numele tău *" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
               <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon *" inputMode="tel" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Adresa de livrare *" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+              <AddressAutocomplete
+                placeholder="Adresa de livrare *"
+                value={address}
+                onSelect={(r: AddressResult) => {
+                  setAddress(r.address);
+                  setAddressCoords({ lat: r.lat, lng: r.lng });
+                }}
+              />
               <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Mențiuni (opțional)" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
             </div>
 
