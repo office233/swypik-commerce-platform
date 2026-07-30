@@ -16,6 +16,7 @@ import { LocalOrderCreateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 import { resolveDeliveryFee } from "@/lib/pricing/delivery";
+import { haversineKm } from "@/lib/pricing/distance";
 import { createLocalOrderPaymentIntent } from "@/lib/payments/eats-stripe";
 
 export const runtime = "nodejs";
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
         // Merchant activ + deschis
         const { rows: merchants } = await dbQuery(
             `SELECT id, name, status, min_order_cents, delivery_fee_cents, is_open_override, avg_prep_minutes,
-                location_city, location_country, location_lat, location_lng
+                delivery_radius_km, location_city, location_country, location_lat, location_lng
          FROM local_merchants WHERE id = $1`,
             [d.merchant_id],
         );
@@ -127,6 +128,32 @@ export async function POST(req: Request) {
                         dropoff: { lat: d.delivery_lat ?? null, lng: d.delivery_lng ?? null },
                 });
                 const deliveryFee = feeResult.fee_cents;
+
+        // Raza de livrare — refuzăm comenzile din afara ariei acoperite.
+        const radiusKm = Number(merchant.delivery_radius_km ?? 0) || null;
+        if (
+            radiusKm != null &&
+            d.delivery_lat != null && d.delivery_lng != null &&
+            merchant.location_lat != null && merchant.location_lng != null
+        ) {
+            const distKm =
+                feeResult.distance_km ??
+                haversineKm(
+                    { lat: Number(merchant.location_lat), lng: Number(merchant.location_lng) },
+                    { lat: d.delivery_lat, lng: d.delivery_lng },
+                );
+            if (distKm > radiusKm) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: `Adresa este în afara razei de livrare (${radiusKm} km).`,
+                        code: "out_of_range",
+                    },
+                    { status: 400 },
+                );
+            }
+        }
+
         const total = subtotal + deliveryFee + d.tip_cents;
 
         const order = await withTransaction(async (q) => {
