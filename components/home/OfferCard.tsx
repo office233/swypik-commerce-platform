@@ -7,6 +7,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Heart, MessageCircle, Share2, ShoppingBag, Star } from "lucide-react";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
 import type { OfferPost } from "@/lib/types/feed";
@@ -82,7 +83,10 @@ export default function OfferCard({ post, onOpen, priority = false }: Props) {
                     {post.brand.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-bold text-[#0D0D0D]">{post.brand}</p>
+                    <p className="flex items-center gap-1 truncate text-[13px] font-bold text-[#0D0D0D]">
+                        <span className="truncate">{post.brand}</span>
+                        {post.sellerVerified && <VerifiedBadge size={14} className="shrink-0" />}
+                    </p>
                     <p className="truncate text-[11px] text-[#6E6E80]">{post.category}</p>
                 </div>
                 {post.discountPercent > 0 && (

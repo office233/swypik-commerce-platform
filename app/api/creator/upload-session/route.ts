@@ -503,8 +503,9 @@ async function ensureCreatorUser(creatorId: string) {
     e.status = 404;
     throw e;
   }
-  if (rows[0].role !== "creator" && rows[0].role !== "admin") {
-    const e = new UploadInputError("Creator role required. Apply at /become-a-creator.");
+  // Creatorii si sellerii (firme cu ERP/cont seller) pot posta clipuri.
+  if (rows[0].role !== "creator" && rows[0].role !== "seller" && rows[0].role !== "admin") {
+    const e = new UploadInputError("Creator or seller role required. Apply at /become-a-creator.");
     e.status = 403;
     throw e;
   }
@@ -605,7 +606,13 @@ async function fetchPlatform(path: string, init: RequestInit) {
 }
 
 function getPlatformApiBaseURL(): string {
-  const raw = process.env.GO_API_URL || "http://localhost:8080";
+  const raw =
+    process.env.GO_API_URL ||
+    (process.env.NODE_ENV !== "production" ? "http://localhost:8080" : "");
+  if (!raw) {
+    logger.error({ env: "GO_API_URL" }, "GO_API_URL nu este setat în producție — upload-session nu poate contacta platform API");
+    return "";
+  }
   return raw
     .replace(/\/api\/v1\/videos\/upload\/?$/, "")
     .replace(/\/v1\/videos\/upload\/?$/, "")

@@ -10,6 +10,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Star } from "lucide-react";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { getProductRatingMap } from "@/lib/reviews/aggregate";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
@@ -27,8 +28,17 @@ type Seller = {
   name: string | null;
   status: string;
   created_at: string;
+  is_verified: boolean | null;
+  user_id: string | null;
   business_details: Record<string, unknown> | null;
   metadata: Record<string, unknown> | null;
+};
+
+type SellerVideo = {
+  id: string;
+  slug: string | null;
+  title: string;
+  thumbnail_url: string | null;
 };
 
 type SellerProduct = {
@@ -43,7 +53,7 @@ type SellerProduct = {
 async function getSeller(id: string): Promise<Seller | null> {
   if (!UUID_RE.test(id)) return null;
   const result = await dbQuery<Seller>(
-    `SELECT id, name, status, created_at, business_details, metadata
+    `SELECT id, name, status, created_at, is_verified, user_id, business_details, metadata
        FROM sellers
       WHERE id = $1
         AND status IN ('approved', 'active')
@@ -62,6 +72,21 @@ async function getSellerProducts(id: string): Promise<SellerProduct[]> {
       ORDER BY created_at DESC
       LIMIT 24`,
     [id],
+  );
+  return result.rows;
+}
+
+async function getSellerVideos(userId: string | null): Promise<SellerVideo[]> {
+  if (!userId) return [];
+  const result = await dbQuery<SellerVideo>(
+    `SELECT id, slug, title, thumbnail_url
+       FROM videos
+      WHERE creator_id = $1
+        AND status = 'ready' AND visibility = 'public'
+        AND COALESCE(is_hidden, false) = false
+      ORDER BY created_at DESC
+      LIMIT 12`,
+    [userId],
   );
   return result.rows;
 }
@@ -122,9 +147,10 @@ export default async function SellerStorefrontPage({ params }: Props) {
   const seller = await getSeller(id);
   if (!seller) notFound();
 
-  const [products, stats] = await Promise.all([
+  const [products, stats, videos] = await Promise.all([
     getSellerProducts(seller.id),
     getSellerStats(seller.id),
+    getSellerVideos(seller.user_id),
   ]);
   const ratingMap = products.length > 0
     ? await getProductRatingMap(products.map((p) => p.id))
@@ -160,6 +186,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
               <h1 className="text-2xl font-black tracking-tight md:text-3xl">
                 {displayName}
               </h1>
+              {seller.is_verified && <VerifiedBadge size={22} />}
               {isVerified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#10A37F]/10 px-2.5 py-1 text-xs font-bold text-[#10A37F]">
                   
@@ -208,6 +235,35 @@ export default async function SellerStorefrontPage({ params }: Props) {
 
         {/* Products */}
         <section>
+          {videos.length > 0 && (
+            <div className="mb-8">
+              <h2 className="mb-4 text-lg font-black md:text-xl">Clipuri</h2>
+              <div className="grid grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6">
+                {videos.map((v) => (
+                  <Link
+                    key={v.id}
+                    href={`/video/${v.slug || v.id}`}
+                    className="group relative block aspect-[9/16] overflow-hidden rounded-xl border border-[#E5E5E5] bg-[#F7F7F8]"
+                  >
+                    {v.thumbnail_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={v.thumbnail_url}
+                        alt={v.title}
+                        className="h-full w-full object-cover transition group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-2xl text-[#C4C4C4]">🎬</div>
+                    )}
+                    <p className="absolute inset-x-0 bottom-0 line-clamp-2 bg-gradient-to-t from-black/70 to-transparent p-2 text-[11px] font-bold text-white">
+                      {v.title}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
           <h2 className="mb-4 text-lg font-black md:text-xl">Produse</h2>
           {products.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#E5E5E5] bg-[#F7F7F8] p-10 text-center">

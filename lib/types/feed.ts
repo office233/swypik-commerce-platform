@@ -16,6 +16,9 @@ export type OfferPost = {
     likeCount: number;
     shareCount: number;
     viewerLiked: boolean;
+    /** Bifa albastră — seller verificat (firmă cu ERP conectat sau validată manual). */
+    sellerVerified?: boolean;
+    sellerId?: string | null;
 };
 
 export type OffersFeedResponse = {

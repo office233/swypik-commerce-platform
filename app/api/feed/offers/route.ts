@@ -68,6 +68,7 @@ export async function GET(request: Request) {
         // Stats + like-ul viewer-ului
         let statsMap = new Map<string, { like: number; share: number }>();
         let likedSet = new Set<string>();
+        let sellerMap = new Map<string, { sellerId: string; verified: boolean; name: string | null }>();
         if (ids.length) {
             const { rows: statRows } = await dbQuery(
                 `SELECT product_id, like_count, share_count FROM product_stats WHERE product_id = ANY($1::uuid[])`,
@@ -75,6 +76,17 @@ export async function GET(request: Request) {
             );
             statsMap = new Map(
                 statRows.map((r: any) => [String(r.product_id), { like: Number(r.like_count) || 0, share: Number(r.share_count) || 0 }])
+            );
+            // Bifa albastra: seller-ul produsului, daca e verificat.
+            const { rows: sellerRows } = await dbQuery(
+                `SELECT p.id AS product_id, s.id AS seller_id, s.is_verified, s.name
+                     FROM marketplace_products p
+                     JOIN sellers s ON s.id = p.seller_id
+                    WHERE p.id = ANY($1::uuid[])`,
+                [ids]
+            ).catch(() => ({ rows: [] as any[] }));
+            sellerMap = new Map(
+                sellerRows.map((r: any) => [String(r.product_id), { sellerId: String(r.seller_id), verified: Boolean(r.is_verified), name: r.name ?? null }])
             );
             const viewerId = await getOptionalSocialUserId();
             if (viewerId) {
@@ -88,6 +100,7 @@ export async function GET(request: Request) {
 
         const items: OfferPost[] = page.map((p: any) => {
             const st = statsMap.get(String(p.id));
+            const seller = sellerMap.get(String(p.id));
             return {
                 id: String(p.id),
                 title: p.title,
@@ -98,13 +111,15 @@ export async function GET(request: Request) {
                 currency: "RON",
                 rating: p.rating ?? 0,
                 orders: p.orders ?? 0,
-                brand: p.vendor || p.category || "Swypik",
+                brand: seller?.name || p.vendor || p.category || "Swypik",
                 category: p.category || "General",
                 categoryId: p.categoryId,
                 shipFree: Boolean(p.shipFree),
                 likeCount: st?.like ?? 0,
                 shareCount: st?.share ?? 0,
                 viewerLiked: likedSet.has(String(p.id)),
+                sellerVerified: seller?.verified ?? false,
+                sellerId: seller?.sellerId ?? null,
             };
         });
 
