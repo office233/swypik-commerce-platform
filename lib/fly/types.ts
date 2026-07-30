@@ -92,7 +92,7 @@ export type CreateOrderResult = {
   message?: string;
 };
 
-export type ProviderId = "duffel" | "kiwi" | "travelpayouts";
+export type ProviderId = "duffel" | "kiwi";
 
 export interface FlightProvider {
   readonly id: ProviderId;

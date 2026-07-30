@@ -88,22 +88,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {process.env.FACEBOOK_DOMAIN_VERIFICATION ? (
           <meta name="facebook-domain-verification" content={process.env.FACEBOOK_DOMAIN_VERIFICATION} />
         ) : null}
-        {/*
-          Travelpayouts Drive — monetizează automat mențiunile de călătorie
-          (hoteluri, zboruri) din conținutul site-ului, cu marker-ul nostru
-          de afiliat. Se încarcă doar dacă NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_ID
-          e setat (deci nu în dev/preview).
-        */}
-        {process.env.NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_ID ? (
-          <script
-            data-noptimize="1"
-            data-cfasync="false"
-            data-wpfc-render="false"
-            dangerouslySetInnerHTML={{
-              __html: `(function(){var s=document.createElement("script");s.async=1;s.src="https://emrldco.com/${process.env.NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_ID}.js?t=${process.env.NEXT_PUBLIC_TRAVELPAYOUTS_TRS ?? ""}";document.head.appendChild(s);})();`,
-            }}
-          />
-        ) : null}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
