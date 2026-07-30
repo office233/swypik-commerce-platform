@@ -50,6 +50,10 @@ export default function HomeVerticals({ className = "" }: { className?: string }
             router.push("/go");
             return;
         }
+        if (id === "eats") {
+            router.push("/food");
+            return;
+        }
         router.push(`/v/${id}`);
     };
 
