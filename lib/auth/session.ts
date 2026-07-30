@@ -15,7 +15,7 @@
  */
 
 import crypto from "crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { dbQuery } from "@/lib/db";
 
 export const SESSION_COOKIE = "swypik_session";
@@ -146,6 +146,17 @@ export async function getAuthSession(): Promise<AuthSession | null> {
     if (user) return buildSession(user);
   }
 
+  // PWA / mobile clients: Authorization: Bearer <opaque token>.
+  // Same user_sessions table (kind='bearer'), checked AFTER the cookie so
+  // every existing cookie-based flow stays untouched. The admin
+  // `Bearer <ADMIN_SECRET>` flow lives in lib/auth/getAuthUser.ts and is
+  // unaffected: an ADMIN_SECRET will simply not match any session hash here.
+  const bearer = await getBearerToken();
+  if (bearer) {
+    const user = await loadUserBySessionToken(bearer);
+    if (user) return buildSession(user);
+  }
+
   if (process.env.NODE_ENV !== "production") {
     const legacy = store.get(LEGACY_CREATOR_COOKIE)?.value;
     if (legacy && UUID_RE.test(legacy)) {
@@ -155,6 +166,19 @@ export async function getAuthSession(): Promise<AuthSession | null> {
   }
 
   return null;
+}
+
+/** Extract a Bearer token from the incoming request headers (or null). */
+async function getBearerToken(): Promise<string | null> {
+  try {
+    const h = await headers();
+    const auth = h.get("authorization") || h.get("Authorization");
+    if (!auth || !auth.toLowerCase().startsWith("bearer ")) return null;
+    const token = auth.slice(7).trim();
+    return token.length >= 32 ? token : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Convenience: throws if not signed in, returns the session otherwise. */
