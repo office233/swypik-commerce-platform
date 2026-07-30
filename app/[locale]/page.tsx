@@ -78,12 +78,20 @@ const getHomeProductSections = unstable_cache(
         .slice(0, 12);
       const ids = candidates.map((p: any) => String(p.id));
       let statsMap = new Map<string, { like: number; share: number }>();
+      let sellerMap = new Map<string, { verified: boolean; name: string | null }>();
       if (ids.length) {
         const { rows } = await dbQuery(
           `SELECT product_id, like_count, share_count FROM product_stats WHERE product_id = ANY($1::uuid[])`,
           [ids],
         ).catch(() => ({ rows: [] as any[] }));
         statsMap = new Map(rows.map((r: any) => [String(r.product_id), { like: Number(r.like_count) || 0, share: Number(r.share_count) || 0 }]));
+        const { rows: sellerRows } = await dbQuery(
+          `SELECT p.id AS product_id, s.is_verified, s.name
+             FROM marketplace_products p JOIN sellers s ON s.id = p.seller_id
+            WHERE p.id = ANY($1::uuid[])`,
+          [ids],
+        ).catch(() => ({ rows: [] as any[] }));
+        sellerMap = new Map(sellerRows.map((r: any) => [String(r.product_id), { verified: Boolean(r.is_verified), name: r.name ?? null }]));
       }
       offers = candidates.map((p: any) => ({
         id: String(p.id),
@@ -95,13 +103,14 @@ const getHomeProductSections = unstable_cache(
         currency: "RON",
         rating: p.rating ?? 0,
         orders: p.orders ?? 0,
-        brand: p.vendor || p.category || "Swypik",
+        brand: sellerMap.get(String(p.id))?.name || p.vendor || p.category || "Swypik",
         category: p.category || "General",
         categoryId: p.categoryId,
         shipFree: Boolean(p.shipFree),
         likeCount: statsMap.get(String(p.id))?.like ?? 0,
         shareCount: statsMap.get(String(p.id))?.share ?? 0,
         viewerLiked: false,
+        sellerVerified: sellerMap.get(String(p.id))?.verified ?? false,
       }));
     } catch (error) {
       console.error("[Home] Failed to load offers feed:", error);
