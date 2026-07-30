@@ -52,22 +52,29 @@ export async function POST(req: Request) {
         }
 
         const { rows: products } = await dbQuery(
-            `SELECT id, title, currency, vertical_attributes, status, taxonomy_node_slug
+            `SELECT id, title, currency, vertical_attributes, status, taxonomy_node_slug,
+                    price_cents, metadata
          FROM marketplace_products
         WHERE id = $1 AND status = 'active'`,
             [d.product_id],
         );
         const p = products[0];
-        if (!p || !String(p.taxonomy_node_slug ?? "").startsWith("vacation-rentals")) {
+        const isStay =
+            String(p?.taxonomy_node_slug ?? "").startsWith("vacation-rentals") ||
+            (p?.metadata as any)?.vertical === "stays";
+        if (!p || !isStay) {
             return NextResponse.json({ success: false, error: "Cazarea nu există." }, { status: 404 });
         }
 
         const attrs = (p.vertical_attributes ?? {}) as Record<string, unknown>;
-        const basePerNight = Number(attrs.price_per_night);
+        // Listingurile gazdelor Swypik au price_cents; cele vechi price_per_night (lei).
+        const basePerNight = Number.isFinite(Number(attrs.price_per_night)) && Number(attrs.price_per_night) > 0
+            ? Number(attrs.price_per_night)
+            : (Number(p.price_cents) > 0 ? Number(p.price_cents) / 100 : NaN);
         if (!Number.isFinite(basePerNight) || basePerNight <= 0) {
             return NextResponse.json({ success: false, error: "Cazarea nu are preț configurat." }, { status: 409 });
         }
-        const maxGuests = Number(attrs.max_guests);
+        const maxGuests = Number(attrs.max_guests ?? (p.metadata as any)?.max_guests);
         if (Number.isFinite(maxGuests) && d.guests_count > maxGuests) {
             return NextResponse.json(
                 { success: false, error: `Maxim ${maxGuests} oaspeți pentru această cazare.` },
