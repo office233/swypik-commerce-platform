@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
@@ -5,7 +6,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-export async function DELETE(
+async function DELETE_impl(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -23,3 +24,5 @@ export async function DELETE(
   );
   return NextResponse.json({ restored: true });
 }
+
+export const DELETE = withErrorHandling(DELETE_impl);

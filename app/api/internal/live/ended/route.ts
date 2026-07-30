@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
@@ -15,7 +16,7 @@ function extractKey(path: string): string | null {
   return m ? m[1] : null;
 }
 
-export async function POST(req: NextRequest) {
+async function POST_impl(req: NextRequest) {
   if (!verifyInternal(req)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const form = await req.formData().catch(() => null);
   const json = form ? null : await req.json().catch(() => ({}));
@@ -30,3 +31,5 @@ export async function POST(req: NextRequest) {
   );
   return NextResponse.json({ ok: true });
 }
+
+export const POST = withErrorHandling(POST_impl);

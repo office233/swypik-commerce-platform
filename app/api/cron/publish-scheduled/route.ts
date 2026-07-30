@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * Cron Job: Publish scheduled videos.
  *
@@ -64,6 +65,9 @@ async function handlePOST(req: Request) {
   return run(req);
 }
 
-export async function GET(req: Request) { return runCron("publish-scheduled", () => handleGET(req as any)); }
+async function GET_impl(req: Request) { return runCron("publish-scheduled", () => handleGET(req as any)); }
 
-export async function POST(req: Request) { return runCron("publish-scheduled", () => handlePOST(req as any)); }
+async function POST_impl(req: Request) { return runCron("publish-scheduled", () => handlePOST(req as any)); }
+
+export const GET = withErrorHandling(GET_impl);
+export const POST = withErrorHandling(POST_impl);

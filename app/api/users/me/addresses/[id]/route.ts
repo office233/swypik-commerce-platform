@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
@@ -18,7 +19,7 @@ const ALLOWED_FIELDS = [
   "country_code",
 ] as const;
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function PATCH_impl(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const rl = await rateLimit("userAddresses", session.userId);
@@ -60,7 +61,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   return NextResponse.json({ success: true });
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function DELETE_impl(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const rl = await rateLimit("userAddresses", session.userId);
@@ -81,3 +82,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   }
   return NextResponse.json({ success: true });
 }
+
+export const PATCH = withErrorHandling(PATCH_impl);
+export const DELETE = withErrorHandling(DELETE_impl);

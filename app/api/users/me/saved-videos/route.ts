@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
@@ -20,7 +21,7 @@ type Row = {
   saved_at: string;
 };
 
-export async function GET(request: Request) {
+async function GET_impl(request: Request) {
   const user = await getAuthUser();
   if (!user.userId) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
@@ -73,3 +74,5 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ ok: true, videos, hasMore: rows.length === limit });
 }
+
+export const GET = withErrorHandling(GET_impl);

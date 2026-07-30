@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * Customer Orders API — backed by `users` + `user_sessions` tables
  * GET /api/auth/orders — list orders for authenticated customer
@@ -14,7 +15,7 @@ function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export async function GET() {
+async function GET_impl() {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(COOKIE_NAME)?.value;
   if (!sessionToken) {
@@ -82,3 +83,5 @@ export async function GET() {
 
   return NextResponse.json({ success: true, orders: enrichedOrders });
 }
+
+export const GET = withErrorHandling(GET_impl);

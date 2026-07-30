@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { dbQuery } from "@/lib/db";
@@ -184,7 +185,7 @@ async function run() {
   return out;
 }
 
-export async function GET(req: Request) {
+async function GET_impl(req: Request) {
   if (!authorize(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -194,6 +195,9 @@ export async function GET(req: Request) {
   });
 }
 
-export async function POST(req: Request) {
+async function POST_impl(req: Request) {
   return GET(req);
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const POST = withErrorHandling(POST_impl);

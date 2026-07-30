@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
@@ -12,7 +13,7 @@ function parseRange(value: string | null): Range {
   return "30d";
 }
 
-export async function GET(req: Request) {
+async function GET_impl(req: Request) {
   const auth = await getAuthUser();
   if (auth.role !== "creator" && auth.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -189,3 +190,5 @@ export async function GET(req: Request) {
 
   return NextResponse.json(body, { headers: { "Cache-Control": "private, no-store" } });
 }
+
+export const GET = withErrorHandling(GET_impl);

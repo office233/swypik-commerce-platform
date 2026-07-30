@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
@@ -51,7 +52,7 @@ function validate(body: Record<string, unknown>): { ok: true; data: Omit<Address
   };
 }
 
-export async function GET() {
+async function GET_impl() {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { rows } = await dbQuery<Address>(
@@ -64,7 +65,7 @@ export async function GET() {
   return NextResponse.json({ addresses: rows });
 }
 
-export async function POST(req: Request) {
+async function POST_impl(req: Request) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const rl = await rateLimit("userAddresses", session.userId);
@@ -106,3 +107,6 @@ export async function POST(req: Request) {
   );
   return NextResponse.json({ success: true, id: rows[0].id });
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const POST = withErrorHandling(POST_impl);

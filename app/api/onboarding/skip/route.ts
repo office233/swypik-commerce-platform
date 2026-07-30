@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
@@ -7,7 +8,7 @@ import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
  * Marchează utilizatorul ca având onboarding-ul finalizat fără a salva interese.
  * Folosit de butonul "Sari peste" pe pagina /onboarding.
  */
-export async function POST(req: Request) {
+async function POST_impl(req: Request) {
   const rl = await rateLimit("onboarding", getClientIP(req));
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
@@ -23,3 +24,5 @@ export async function POST(req: Request) {
 
   return response;
 }
+
+export const POST = withErrorHandling(POST_impl);

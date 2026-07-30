@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
@@ -15,7 +16,7 @@ function buildUrls(streamKey: string) {
   };
 }
 
-export async function POST(req: NextRequest) {
+async function POST_impl(req: NextRequest) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (session.role !== "creator" && session.role !== "admin" && session.role !== "seller") {
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   });
 }
 
-export async function GET(req: NextRequest) {
+async function GET_impl(req: NextRequest) {
   const url = new URL(req.url);
   const status = url.searchParams.get("status") || "live";
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 20), 1), 50);
@@ -70,3 +71,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ items: rows });
 }
+
+export const POST = withErrorHandling(POST_impl);
+export const GET = withErrorHandling(GET_impl);

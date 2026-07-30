@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
@@ -5,7 +6,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
+async function GET_impl(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -20,7 +21,7 @@ export async function GET(
   return NextResponse.json({ saved: rows.length > 0 });
 }
 
-export async function POST(
+async function POST_impl(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -41,7 +42,7 @@ export async function POST(
   return NextResponse.json({ saved: true, inserted: rows.length > 0 });
 }
 
-export async function DELETE(
+async function DELETE_impl(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -57,3 +58,7 @@ export async function DELETE(
   );
   return NextResponse.json({ saved: false });
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const POST = withErrorHandling(POST_impl);
+export const DELETE = withErrorHandling(DELETE_impl);

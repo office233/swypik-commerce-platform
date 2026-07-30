@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import {
@@ -8,7 +9,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function GET_impl(req: Request) {
   const url = new URL(req.url);
   const next = isSafeRedirect(url.searchParams.get("next"));
   const clientId = process.env.APPLE_CLIENT_ID;
@@ -42,3 +43,5 @@ export async function GET(req: Request) {
   );
   return res;
 }
+
+export const GET = withErrorHandling(GET_impl);

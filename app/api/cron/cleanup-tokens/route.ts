@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { runCron } from "@/lib/cron/runCron";
@@ -18,7 +19,7 @@ async function authorize(req: NextRequest) {
   return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
 }
 
-export async function GET(req: NextRequest) {
+async function GET_impl(req: NextRequest) {
   if (!(await authorize(req))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
@@ -37,3 +38,5 @@ export async function GET(req: NextRequest) {
     })
   );
 }
+
+export const GET = withErrorHandling(GET_impl);

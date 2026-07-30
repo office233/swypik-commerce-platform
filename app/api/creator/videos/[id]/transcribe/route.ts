@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * POST /api/creator/videos/[id]/transcribe
  *
@@ -11,7 +12,7 @@ import { getCreatorUserId } from "@/lib/creator/session";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function POST_impl(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const creatorId = await getCreatorUserId();
   if (!creatorId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,3 +25,5 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     { status: 503 },
   );
 }
+
+export const POST = withErrorHandling(POST_impl);

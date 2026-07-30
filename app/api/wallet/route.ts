@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
@@ -32,7 +33,7 @@ type ChallengeRow = {
   ends_at: string;
 };
 
-export async function GET() {
+async function GET_impl() {
   const user = await getAuthUser();
   if (!user.userId) {
     return NextResponse.json({ error: "unauth" }, { status: 401 });
@@ -104,3 +105,5 @@ export async function GET() {
     })),
   });
 }
+
+export const GET = withErrorHandling(GET_impl);

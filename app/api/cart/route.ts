@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * GET  /api/cart            → returns active cart for user (auth) or anon (cookie).
  * POST /api/cart/items      → handled by /items route.
@@ -10,7 +11,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
-export async function GET() {
+async function GET_impl() {
   const cart = await getOrCreateCart({ create: false });
   if (!cart) {
     return NextResponse.json({ items: [], subtotalCents: 0, currency: "RON" }, { headers: NO_STORE });
@@ -24,7 +25,7 @@ export async function GET() {
   return res;
 }
 
-export async function DELETE() {
+async function DELETE_impl() {
   const cart = await getOrCreateCart();
   if (cart) {
     const rl = await rateLimit("cartClear", cart.cartId);
@@ -33,3 +34,6 @@ export async function DELETE() {
   }
   return NextResponse.json({ success: true }, { headers: NO_STORE });
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const DELETE = withErrorHandling(DELETE_impl);

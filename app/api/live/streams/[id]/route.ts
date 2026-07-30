@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
@@ -6,7 +7,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function GET_impl(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID_RE.test(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   const { rows } = await dbQuery(
@@ -40,7 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json({ stream, items });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function PATCH_impl(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID_RE.test(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   const session = await getAuthSession();
@@ -72,3 +73,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   await dbQuery(`UPDATE live_streams SET ${fields.join(", ")} WHERE id = $${idx}`, values);
   return NextResponse.json({ ok: true });
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const PATCH = withErrorHandling(PATCH_impl);

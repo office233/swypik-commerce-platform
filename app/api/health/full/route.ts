@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextRequest, NextResponse } from "next/server";
 import { checkDb, checkRedis, checkR2, checkQueue } from "@/lib/health";
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
  * `{status:"ok"}` 200 (sufficient for uptime monitors) and DOES NOT
  * expose internal infrastructure details.
  */
-export async function GET(req: NextRequest) {
+async function GET_impl(req: NextRequest) {
   const want =
     process.env.INTERNAL_HEALTH_SECRET ||
     process.env.INTERNAL_SECRET ||
@@ -60,3 +61,5 @@ export async function GET(req: NextRequest) {
     { status: overall === "error" ? 503 : 200 },
   );
 }
+
+export const GET = withErrorHandling(GET_impl);

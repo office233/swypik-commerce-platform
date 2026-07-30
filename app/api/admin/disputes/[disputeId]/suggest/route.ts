@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * Admin: derive suggested evidence fields from the order linked to a dispute.
  * GET /api/admin/disputes/:disputeId/suggest
@@ -51,7 +52,7 @@ function pickShipping(meta: Record<string, any> | null): {
   return out;
 }
 
-export async function GET(
+async function GET_impl(
   _req: Request,
   { params }: { params: Promise<{ disputeId: string }> },
 ) {
@@ -147,3 +148,5 @@ export async function GET(
     },
   });
 }
+
+export const GET = withErrorHandling(GET_impl);

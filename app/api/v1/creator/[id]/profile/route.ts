@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * GENERATED-CONSUMER-NOTE
  * Versioned public API (v1) consumed by external clients. Proxies to the Go
@@ -15,7 +16,7 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(req: Request, context: RouteContext) {
+async function GET_impl(req: Request, context: RouteContext) {
   const snapshot = await getCreatorSnapshotForRequest(req, (await context.params).id);
   return NextResponse.json(
     {
@@ -29,3 +30,5 @@ export async function GET(req: Request, context: RouteContext) {
     }
   );
 }
+
+export const GET = withErrorHandling(GET_impl);

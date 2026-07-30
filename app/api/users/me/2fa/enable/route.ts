@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
@@ -7,7 +8,7 @@ import { TwoFactorTokenSchema, parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+async function POST_impl(req: Request) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const rl = await rateLimit("twoFactor", `enable:${session.userId}:${getClientIP(req)}`);
@@ -40,3 +41,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ success: true, backup_codes: codes });
 }
+
+export const POST = withErrorHandling(POST_impl);

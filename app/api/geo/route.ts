@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 export const runtime = "edge";
 
 const EU = new Set([
@@ -5,7 +6,7 @@ const EU = new Set([
   "LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","IS","LI","NO","CH","GB",
 ]);
 
-export async function GET(req: Request) {
+async function GET_impl(req: Request) {
   const h = req.headers;
   const country = (
     h.get("cf-ipcountry") ||
@@ -15,3 +16,5 @@ export async function GET(req: Request) {
   ).toUpperCase();
   return Response.json({ country, isEU: EU.has(country) });
 }
+
+export const GET = withErrorHandling(GET_impl);

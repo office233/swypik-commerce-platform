@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getOrCreateReferralCode } from "@/lib/referral/attribution";
@@ -11,7 +12,7 @@ function siteBase(req: Request): string {
   return `${url.protocol}//${url.host}`;
 }
 
-export async function GET(req: Request) {
+async function GET_impl(req: Request) {
   const auth = await getAuthUser();
   if (!auth?.userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
   });
 }
 
-export async function POST(req: Request) {
+async function POST_impl(req: Request) {
   const auth = await getAuthUser();
   if (!auth?.userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -42,3 +43,6 @@ export async function POST(req: Request) {
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   return GET(req);
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const POST = withErrorHandling(POST_impl);

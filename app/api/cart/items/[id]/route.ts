@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * PATCH /api/cart/items/[id]  body { quantity }
  * DELETE /api/cart/items/[id]
@@ -15,7 +16,7 @@ async function ownItem(cartId: string, itemId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function PATCH_impl(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const cart = await getOrCreateCart();
   if (!cart) return NextResponse.json({ error: "no_cart" }, { status: 404, headers: NO_STORE });
@@ -39,7 +40,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   return NextResponse.json({ success: true, items, subtotalCents, currency: cart.currency }, { headers: NO_STORE });
 }
 
-export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function DELETE_impl(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const cart = await getOrCreateCart();
   if (!cart) return NextResponse.json({ error: "no_cart" }, { status: 404, headers: NO_STORE });
@@ -51,3 +52,6 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   const subtotalCents = items.reduce((s, i) => s + i.priceCents * i.quantity, 0);
   return NextResponse.json({ success: true, items, subtotalCents, currency: cart.currency }, { headers: NO_STORE });
 }
+
+export const PATCH = withErrorHandling(PATCH_impl);
+export const DELETE = withErrorHandling(DELETE_impl);

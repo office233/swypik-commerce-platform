@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * POST /api/cart/merge — explicit merge of anon cart (cookie) into user cart.
  * Normally called automatically by /api/auth on login; this is a safety net.
@@ -10,7 +11,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
-export async function POST() {
+async function POST_impl() {
   const auth = await getAuthUser();
   if (!auth.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
 
@@ -23,3 +24,5 @@ export async function POST() {
   await mergeAnonCartToUser(token, auth.userId);
   return NextResponse.json({ success: true, merged: true }, { headers: NO_STORE });
 }
+
+export const POST = withErrorHandling(POST_impl);

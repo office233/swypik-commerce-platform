@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
@@ -16,12 +17,15 @@ function gated() {
   );
 }
 
-export async function POST(req: Request) {
+async function POST_impl(req: Request) {
   const rl = await rateLimit("visualSearch", getClientIP(req));
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   return gated();
 }
 
-export async function GET() {
+async function GET_impl() {
   return gated();
 }
+
+export const POST = withErrorHandling(POST_impl);
+export const GET = withErrorHandling(GET_impl);

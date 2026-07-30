@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { proxyToSocialApi } from "@/lib/social/proxy";
 
@@ -49,22 +50,28 @@ async function handle(req: Request, context: RouteContext) {
   return fallback(req, socialPath);
 }
 
-export async function GET(req: Request, context: RouteContext) {
+async function GET_impl(req: Request, context: RouteContext) {
   return handle(req, context);
 }
 
-export async function POST(req: Request, context: RouteContext) {
+async function POST_impl(req: Request, context: RouteContext) {
   return handle(req, context);
 }
 
-export async function PUT(req: Request, context: RouteContext) {
+async function PUT_impl(req: Request, context: RouteContext) {
   return handle(req, context);
 }
 
-export async function PATCH(req: Request, context: RouteContext) {
+async function PATCH_impl(req: Request, context: RouteContext) {
   return handle(req, context);
 }
 
-export async function DELETE(req: Request, context: RouteContext) {
+async function DELETE_impl(req: Request, context: RouteContext) {
   return handle(req, context);
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const POST = withErrorHandling(POST_impl);
+export const PUT = withErrorHandling(PUT_impl);
+export const PATCH = withErrorHandling(PATCH_impl);
+export const DELETE = withErrorHandling(DELETE_impl);

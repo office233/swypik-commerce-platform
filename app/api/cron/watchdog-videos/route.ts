@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { runCron } from "@/lib/cron/runCron";
@@ -120,7 +121,7 @@ async function runWatchdog() {
   };
 }
 
-export async function GET(req: Request) {
+async function GET_impl(req: Request) {
   if (!(await authorize(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -130,6 +131,9 @@ export async function GET(req: Request) {
   });
 }
 
-export async function POST(req: Request) {
+async function POST_impl(req: Request) {
   return GET(req);
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const POST = withErrorHandling(POST_impl);

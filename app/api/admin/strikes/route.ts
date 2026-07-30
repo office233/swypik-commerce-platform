@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * GET  /api/admin/strikes        — list highest-risk users
  * GET  /api/admin/strikes?userId=<uuid> — strike history for one user
@@ -12,7 +13,7 @@ import { requireAuth } from "@/lib/auth/getAuthUser";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function GET_impl(req: Request) {
   const auth = await requireAuth(req, ["admin"]);
   if (auth instanceof NextResponse) return auth;
 
@@ -58,7 +59,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ users: rows });
 }
 
-export async function POST(req: Request) {
+async function POST_impl(req: Request) {
   const auth = await requireAuth(req, ["admin"]);
   if (auth instanceof NextResponse) return auth;
 
@@ -90,3 +91,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, userId: rows[0].user_id });
 }
+
+export const GET = withErrorHandling(GET_impl);
+export const POST = withErrorHandling(POST_impl);

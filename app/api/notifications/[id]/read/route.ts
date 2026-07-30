@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
@@ -5,7 +6,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
+async function POST_impl(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -32,3 +33,5 @@ export async function POST(
 
   return NextResponse.json({ ok: true, updated: rowCount });
 }
+
+export const POST = withErrorHandling(POST_impl);

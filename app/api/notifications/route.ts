@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
@@ -19,7 +20,7 @@ type Row = {
   created_at: string;
 };
 
-export async function GET(request: Request) {
+async function GET_impl(request: Request) {
   const userId = await getOptionalSocialUserId();
   if (!userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -65,3 +66,5 @@ export async function GET(request: Request) {
     unreadCount: Number(unreadRows[0]?.count || "0"),
   });
 }
+
+export const GET = withErrorHandling(GET_impl);

@@ -1,3 +1,4 @@
+import { withErrorHandling } from "@/lib/api-handler";
 /**
  * Admin: list orders with fraud risk scoring.
  *
@@ -31,7 +32,7 @@ type OrderRow = {
   prior_chargebacks_lost: number;
 };
 
-export async function GET(req: Request) {
+async function GET_impl(req: Request) {
   const ok = (await hasAdminSession()) || isAdminRequest(req);
   if (!ok) return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
 
@@ -134,3 +135,5 @@ export async function GET(req: Request) {
 
   return NextResponse.json({ success: true, summary, orders: filtered });
 }
+
+export const GET = withErrorHandling(GET_impl);
