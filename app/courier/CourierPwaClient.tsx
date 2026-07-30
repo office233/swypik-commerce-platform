@@ -7,6 +7,7 @@
  * (rides) — serverul trimite `kind: 'delivery' | 'ride'` pe fiecare ofertă.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import EarningsTab from "./EarningsTab";
 
 type Offer = {
     offer_id: string;
@@ -32,6 +33,7 @@ function mapsLink(address: string): string {
 
 export default function CourierPwaClient() {
     const [online, setOnline] = useState(false);
+    const [tab, setTab] = useState<"jobs" | "earnings">("jobs");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [offer, setOffer] = useState<Offer | null>(null);
@@ -172,6 +174,12 @@ export default function CourierPwaClient() {
         });
         if (!res.ok) return;
         if (status === "completed") {
+                // Cursele cash: marchează încasarea (serverul refuză politicos la card).
+                void fetch(`/api/rides/${activeRide.ride_id}/pay`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "collect_cash" }),
+                }).catch(() => { });
             setActiveRide(null);
         } else {
             setRideStep(status);
@@ -192,6 +200,24 @@ export default function CourierPwaClient() {
                 </button>
             </header>
 
+                <nav className="grid grid-cols-2 gap-2">
+                    <button
+                        onClick={() => setTab("jobs")}
+                        className={`rounded-lg py-2 text-sm font-semibold ${tab === "jobs" ? "bg-black text-white" : "bg-white border"}`}
+                    >
+                        Comenzi
+                    </button>
+                    <button
+                        onClick={() => setTab("earnings")}
+                        className={`rounded-lg py-2 text-sm font-semibold ${tab === "earnings" ? "bg-black text-white" : "bg-white border"}`}
+                    >
+                        Câștiguri
+                    </button>
+                </nav>
+
+                {tab === "earnings" && <EarningsTab />}
+
+                {tab === "jobs" && <>
             {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
             {!online && !activeDelivery && !activeRide && (
@@ -354,6 +380,7 @@ export default function CourierPwaClient() {
                     </div>
                 </div>
             )}
+                </>}
         </div>
     );
 }

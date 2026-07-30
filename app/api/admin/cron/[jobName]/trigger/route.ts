@@ -14,6 +14,7 @@ const ALLOWED: Record<string, "GET" | "POST"> = {
   "abandoned-cart": "POST",
   "process-dropship": "POST",
   "process-payouts": "POST",
+  "reconcile-wallets": "POST",
   "suspend-unverified": "GET",
   "swyp-view-milestones": "GET",
   "sync-dropship-status": "POST",
