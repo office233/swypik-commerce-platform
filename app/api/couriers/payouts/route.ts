@@ -18,7 +18,10 @@ export const dynamic = "force-dynamic";
 
 const log = logger.child({ route: "couriers/payouts" });
 
-const MIN_PAYOUT_CENTS = 5000; // 50 RON
+/** Prag minim configurabil prin env (default 50 RON). */
+const MIN_PAYOUT_CENTS = Number(process.env.PAYOUT_MIN_CENTS) > 0
+  ? Math.trunc(Number(process.env.PAYOUT_MIN_CENTS))
+  : 5000;
 
 export async function GET() {
   const session = await getAuthSession();
@@ -76,9 +79,9 @@ export async function POST(req: Request) {
 
   // Creăm cererea, apoi debităm soldul cu ref pe id-ul cererii (idempotent).
   const { rows: created } = await dbQuery<{ id: string }>(
-    `INSERT INTO payout_requests (user_id, amount_cents, iban)
-     VALUES ($1, $2, $3) RETURNING id`,
-    [session.userId, amount, iban],
+    `INSERT INTO payout_requests (user_id, courier_id, amount_cents, iban)
+     VALUES ($1, $2, $3, $4) RETURNING id`,
+    [session.userId, courierRows[0].id, amount, iban],
   );
   const payoutId = created[0].id;
 

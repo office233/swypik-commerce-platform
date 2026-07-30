@@ -81,6 +81,19 @@ export async function GET() {
 
   const balance_cents = await getBalanceCents(session.userId);
 
+  // Lista ultimelor livrări/curse cu suma per fiecare (din ledger).
+  const { rows: entries } = await dbQuery(
+    `SELECT e.id::text, e.kind, e.amount_cents::int8 AS amount_cents, e.ref_type, e.ref_id,
+            e.description, e.created_at,
+            (e.metadata -> 'split' ->> 'tip_cents')::bigint AS tip_cents
+       FROM wallet_ledger_entries e
+      WHERE e.user_id = $1
+        AND e.ref_type IN ('ride', 'order', 'payout', 'payout_refund')
+      ORDER BY e.created_at DESC
+      LIMIT 50`,
+    [session.userId],
+  );
+
   const { rows: payouts } = await dbQuery(
     `SELECT id, amount_cents::int8 AS amount_cents, status, requested_at, resolved_at
        FROM payout_requests
@@ -93,6 +106,7 @@ export async function GET() {
   return NextResponse.json({
     balance_cents,
     periods,
+    entries,
     payouts,
     currency: "RON",
   });
