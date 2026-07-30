@@ -3,19 +3,17 @@
 import { useEffect } from "react";
 import { Link, usePathname } from "@/lib/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Home, Compass, Plus, Inbox, User, CarFront, UtensilsCrossed } from "lucide-react";
+import { Home, Compass, Plus, Inbox, User } from "lucide-react";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import { haptic } from "@/lib/haptic";
 
-type NavKey = "home" | "explore" | "upload" | "inbox" | "account" | "go" | "eats";
+type NavKey = "home" | "explore" | "upload" | "inbox" | "account";
 type Item = { href: string; icon: typeof Home; key: NavKey; center?: boolean; flag?: "dm" | "pushNotifications" | "stripeConnect" | "returns" };
 
 const NAV_ITEMS: Item[] = [
   { href: "/", icon: Home, key: "home" },
   { href: "/explore", icon: Compass, key: "explore" },
-  { href: "/go", icon: CarFront, key: "go" },
   { href: "/reels/record", icon: Plus, key: "upload", center: true },
-  { href: "/food", icon: UtensilsCrossed, key: "eats" },
   { href: "/inbox", icon: Inbox, key: "inbox" },
   { href: "/account", icon: User, key: "account" },
 ];
@@ -43,7 +41,7 @@ export default function BottomNav() {
       data-testid="bottom-nav" className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-[#E5E5E5] dark:border-[#1F1F1F] shadow-[0_-2px_20px_rgba(0,0,0,0.05)]"
       style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
     >
-      <div className="mx-auto max-w-lg grid grid-cols-7 items-center px-2 pt-1.5 pb-1">
+      <div className="mx-auto max-w-lg grid grid-cols-5 items-center px-2 pt-1.5 pb-1">
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
