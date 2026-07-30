@@ -34,6 +34,89 @@
     "messages": "Messages",
     "notifications": "Notifications"
   },
+  "go": {
+    "title": "Swypik Go",
+    "pickupPlaceholder": "Where from?",
+    "dropoffPlaceholder": "Where to?",
+    "myLocation": "Use my location",
+    "classEconomy": "Economy",
+    "classComfort": "Comfort",
+    "classVan": "Van",
+    "hintEconomy": "cheapest",
+    "hintComfort": "more spacious",
+    "hintVan": "up to 6 seats",
+    "surge": "High demand — fare ×{mult}",
+    "order": "Order • {price}",
+    "orderNoPrice": "Order",
+    "ordering": "Creating your ride…",
+    "noZone": "Swypik Go isn't available in your area yet.",
+    "estimateError": "Couldn't estimate the fare.",
+    "orderError": "Couldn't create the ride.",
+    "eta": "~{min} min • {km} km",
+    "status": {
+      "requested": "Preparing your ride…",
+      "searching": "Looking for a driver nearby…",
+      "accepted": "Your driver is on the way",
+      "arriving": "Your driver is almost there!",
+      "in_progress": "Ride in progress",
+      "completed": "Ride completed",
+      "cancelled": "Ride cancelled"
+    },
+    "search": {
+      "wave1": "Searching drivers nearby (2 km)…",
+      "wave2": "Expanding the search (5 km)…",
+      "wave3": "Searching the whole city (10 km)…",
+      "elapsed": "{sec} sec",
+      "sending": "Sending your request to nearby drivers…",
+      "cancelFree": "Cancel (free)"
+    },
+    "driver": {
+      "call": "Call driver",
+      "copyPlate": "Copy plate",
+      "copied": "Copied!",
+      "rating": "★ {rating}"
+    },
+    "cancel": {
+      "title": "Why are you cancelling?",
+      "wait_too_long": "Waiting too long",
+      "wrong_address": "Wrong address",
+      "driver_not_coming": "Driver isn't coming",
+      "changed_mind": "Changed my mind",
+      "other": "Other reason",
+      "otherPlaceholder": "Tell us what happened…",
+      "feeWarning": "A cancellation fee of {fee} applies.",
+      "confirm": "Cancel ride",
+      "keep": "Keep ride",
+      "error": "Couldn't cancel."
+    },
+    "share": {
+      "button": "Share trip",
+      "copied": "Link copied!",
+      "sos": "SOS 112"
+    },
+    "receipt": {
+      "total": "Total to pay",
+      "ratePrompt": "How was your ride?",
+      "rateSend": "Send rating",
+      "rateThanks": "Thanks for rating! 💛",
+      "another": "Order another ride",
+      "cancelledFee": "Cancellation fee: {fee}",
+      "cancelledFree": "Free cancellation."
+    },
+    "track": {
+      "title": "Swypik Go ride",
+      "loading": "Loading…",
+      "expired": "This link has expired or doesn't exist.",
+      "searching": "Looking for a driver…",
+      "withDriver": "Driver: {name}",
+      "finished": "The ride has ended."
+    },
+    "errors": {
+      "noAccess": "You don't have access to this ride.",
+      "notFound": "Ride not found.",
+      "backToGo": "Back to Go"
+    }
+  },
   "auth": {
     "login": "Sign in",
     "logout": "Sign out",

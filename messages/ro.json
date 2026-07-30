@@ -34,6 +34,89 @@
     "messages": "Mesaje",
     "notifications": "Notificări"
   },
+  "go": {
+    "title": "Swypik Go",
+    "pickupPlaceholder": "De unde pleci?",
+    "dropoffPlaceholder": "Unde mergi?",
+    "myLocation": "Folosește locația mea",
+    "classEconomy": "Economy",
+    "classComfort": "Comfort",
+    "classVan": "Van",
+    "hintEconomy": "cel mai ieftin",
+    "hintComfort": "mai spațios",
+    "hintVan": "până la 6 locuri",
+    "surge": "Cerere mare — tarif ×{mult}",
+    "order": "Comandă • {price}",
+    "orderNoPrice": "Comandă",
+    "ordering": "Se creează cursa…",
+    "noZone": "Swypik Go nu e disponibil încă în zona ta.",
+    "estimateError": "Nu am putut estima tariful.",
+    "orderError": "Nu am putut crea cursa.",
+    "eta": "~{min} min • {km} km",
+    "status": {
+      "requested": "Pregătim cursa…",
+      "searching": "Căutăm un șofer în zonă…",
+      "accepted": "Șoferul vine spre tine",
+      "arriving": "Șoferul e aproape!",
+      "in_progress": "Cursă în desfășurare",
+      "completed": "Cursă finalizată",
+      "cancelled": "Cursă anulată"
+    },
+    "search": {
+      "wave1": "Căutăm șoferi în apropiere (2 km)…",
+      "wave2": "Extindem căutarea (5 km)…",
+      "wave3": "Căutăm în tot orașul (10 km)…",
+      "elapsed": "{sec} sec",
+      "sending": "Trimitem oferta șoferilor din apropiere…",
+      "cancelFree": "Anulează (gratuit)"
+    },
+    "driver": {
+      "call": "Sună șoferul",
+      "copyPlate": "Copiază numărul",
+      "copied": "Copiat!",
+      "rating": "★ {rating}"
+    },
+    "cancel": {
+      "title": "De ce anulezi?",
+      "wait_too_long": "Aștept prea mult",
+      "wrong_address": "Am greșit adresa",
+      "driver_not_coming": "Șoferul nu vine",
+      "changed_mind": "M-am răzgândit",
+      "other": "Alt motiv",
+      "otherPlaceholder": "Spune-ne ce s-a întâmplat…",
+      "feeWarning": "Se aplică o taxă de anulare de {fee}.",
+      "confirm": "Anulează cursa",
+      "keep": "Păstrează cursa",
+      "error": "Nu am putut anula."
+    },
+    "share": {
+      "button": "Distribuie cursa",
+      "copied": "Link copiat!",
+      "sos": "SOS 112"
+    },
+    "receipt": {
+      "total": "Total de plată",
+      "ratePrompt": "Cum a fost cursa?",
+      "rateSend": "Trimite ratingul",
+      "rateThanks": "Mulțumim pentru rating! 💛",
+      "another": "Comandă altă cursă",
+      "cancelledFee": "Taxă de anulare: {fee}",
+      "cancelledFree": "Anulare gratuită."
+    },
+    "track": {
+      "title": "Cursă Swypik Go",
+      "loading": "Se încarcă…",
+      "expired": "Link-ul a expirat sau nu există.",
+      "searching": "Se caută un șofer…",
+      "withDriver": "Șofer: {name}",
+      "finished": "Cursa s-a încheiat."
+    },
+    "errors": {
+      "noAccess": "Nu ai acces la această cursă.",
+      "notFound": "Cursa nu există.",
+      "backToGo": "Înapoi la Go"
+    }
+  },
   "auth": {
     "login": "Autentificare",
     "logout": "Ieșire",
