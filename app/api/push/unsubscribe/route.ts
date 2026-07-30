@@ -1,38 +1,50 @@
+/**
+ * POST /api/push/unsubscribe
+ * Body: { endpoint }
+ * Marchează tokenul ca revocat (soft delete — păstrăm istoricul).
+ */
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { dbQuery } from "@/lib/db";
-import { getOptionalSocialUserId } from "@/lib/social/session";
-import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
-  if (!isEnabled("pushNotifications")) return frozenResponse("pushNotifications");
+const UnsubscribeSchema = z.object({
+  endpoint: z.string().trim().url().max(2048),
+});
 
-  const userId = await getOptionalSocialUserId();
-  if (!userId) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const rl = await rateLimit("pushSubscribe", userId);
-  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
-
-  let body: { endpoint?: unknown };
+export async function POST(req: Request) {
   try {
-    body = (await request.json()) as { endpoint?: unknown };
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    const session = await getAuthSession();
+    if (!session?.userId) {
+      return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+    }
+
+    const rl = await rateLimit("pushSubscribe", session.userId);
+    if (!rl.success) {
+      return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
+    }
+
+    const raw = await req.json().catch(() => null);
+    const parsed = UnsubscribeSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: "invalid_input" }, { status: 400 });
+    }
+
+    const { rowCount } = await dbQuery(
+      `UPDATE user_push_tokens SET revoked_at = now()
+        WHERE endpoint = $1 AND user_id = $2 AND revoked_at IS NULL`,
+      [parsed.data.endpoint, session.userId],
+    );
+
+    logger.info("push.unsubscribe", { userId: session.userId, revoked: rowCount });
+    return NextResponse.json({ success: true, revoked: rowCount });
+  } catch (err) {
+    logger.error("push.unsubscribe.error", { error: (err as Error).message });
+    return NextResponse.json({ success: false, error: "internal_error" }, { status: 500 });
   }
-
-  const endpoint = typeof body.endpoint === "string" ? body.endpoint.trim() : "";
-  if (!endpoint) {
-    return NextResponse.json({ error: "missing_endpoint" }, { status: 400 });
-  }
-
-  const result = await dbQuery(
-    `DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2`,
-    [endpoint, userId]
-  );
-
-  return NextResponse.json({ ok: true, removed: result.rowCount ?? 0 });
 }
