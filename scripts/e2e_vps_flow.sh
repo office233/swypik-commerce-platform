@@ -11,6 +11,8 @@ EMAIL="e2e-test-${TS}@swypik.com"
 step(){ echo; echo "===== $1 ====="; }
 
 step "1. APPLY SELLER"
+# rate limit: 3 cereri / 10 min — golim cheia ca sa putem re-rula
+docker exec swypik-prod-redis-1 redis-cli --scan --pattern 'rl:*applySeller*' | while read -r k; do docker exec swypik-prod-redis-1 redis-cli del "$k" >/dev/null; done
 APPLY=$(curl -s -X POST $SWY/api/apply-seller -H 'Content-Type: application/json' -d "{\"companyName\":\"Test Business E2E SRL\",\"cui\":\"RO99887766\",\"email\":\"$EMAIL\",\"phone\":\"+40712345678\",\"productType\":\"electronice\"}")
 echo "$APPLY"
 
