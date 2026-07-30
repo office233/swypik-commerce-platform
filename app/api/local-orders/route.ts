@@ -14,6 +14,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { LocalOrderCreateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -153,6 +154,9 @@ export async function POST(req: Request) {
             );
             return rows[0];
         });
+
+        // Auto-dispatch la plasare, dacă merchantul are auto_dispatch_on='placed'.
+        await maybeAutoDispatch(order.id, "placed");
 
         return NextResponse.json({ success: true, order });
     } catch (error: unknown) {

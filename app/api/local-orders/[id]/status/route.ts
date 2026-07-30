@@ -11,6 +11,8 @@ import { getAuthSession } from "@/lib/auth/session";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { LocalOrderStatusSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { maybeAutoDispatch } from "@/lib/dispatch/auto";
+import { getJobForOrder, publishJobEvent } from "@/lib/dispatch/engine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -116,6 +118,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (!updated.ok) {
             return NextResponse.json({ success: false, error: updated.error }, { status: updated.code });
         }
+
+        // Auto-dispatch când comanda devine 'ready' (dacă merchantul are setarea).
+        if (status === "ready") {
+            await maybeAutoDispatch(id, "ready");
+        }
+
+        // Notifică stream-ul de dispatch la schimbări relevante pentru client.
+        if (["picked_up", "delivering", "delivered", "cancelled"].includes(status)) {
+            const job = await getJobForOrder(id);
+            if (job) {
+                await publishJobEvent(job.id, { type: "status", status });
+            }
+        }
+
         return NextResponse.json({ success: true, order: updated.order });
     } catch (error: unknown) {
         logger.error({ err: error }, "[local-orders/status] error");
