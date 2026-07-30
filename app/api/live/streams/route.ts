@@ -8,8 +8,12 @@ import { rateLimit } from "@/lib/security/rate-limit";
 export const dynamic = "force-dynamic";
 
 function buildUrls(streamKey: string) {
-  const host = process.env.LIVE_RTMP_HOST || "swypik.com";
-  const publicHost = process.env.LIVE_HLS_HOST || "swypik.com";
+  const isProd = process.env.NODE_ENV === "production";
+  const host = process.env.LIVE_RTMP_HOST || (isProd ? "" : "swypik.com");
+  const publicHost = process.env.LIVE_HLS_HOST || (isProd ? "" : "swypik.com");
+  if (!host || !publicHost) {
+    console.error("[live/streams] LIVE_RTMP_HOST/LIVE_HLS_HOST lipsesc în producție — URL-urile de stream vor fi invalide");
+  }
   return {
     rtmp_url: `rtmp://${host}:1935/live/${streamKey}`,
     hls_url: `https://${publicHost}/hls/live/${streamKey}/index.m3u8`,

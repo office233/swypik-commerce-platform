@@ -10,7 +10,21 @@
  * Multiple keys for round-robin: comma-separated in STUDIAI_API_KEYS.
  */
 
-const BASE_URL = process.env.STUDIAI_BASE_URL || "https://ai.studiai.ro/v1";
+import { logger } from "@/lib/logger";
+
+const DEV_BASE_URL = "https://ai.studiai.ro/v1";
+const BASE_URL = (() => {
+  const v = process.env.STUDIAI_BASE_URL;
+  if (v) return v;
+  if (process.env.NODE_ENV === "production") {
+    logger.error(
+      { env: "STUDIAI_BASE_URL" },
+      "STUDIAI_BASE_URL nu este setat în producție — apelurile LLM vor eșua până la configurare"
+    );
+    return "";
+  }
+  return DEV_BASE_URL;
+})();
 const DEFAULT_MODEL = process.env.STUDIAI_MODEL || "claude-opus-4-7";
 
 function getKeys(): string[] {
@@ -51,6 +65,7 @@ export function isStudiAIConfigured(): boolean {
 export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Promise<string> {
   const key = pickKey();
   if (!key) throw new Error("STUDIAI_API_KEY missing");
+  if (!BASE_URL) throw new Error("STUDIAI_BASE_URL missing (required in production)");
 
   const body: Record<string, unknown> = {
     model: opts.model || DEFAULT_MODEL,
