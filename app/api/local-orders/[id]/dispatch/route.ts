@@ -13,6 +13,7 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { logger } from "@/lib/logger";
+import { sendPushToUser } from "@/lib/push/send";
 import {
     createJob,
     acceptOffer,
@@ -110,13 +111,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         const { rows } = await dbQuery(
             `SELECT lo.order_number, lo.delivery_address, lo.delivery_lat, lo.delivery_lng,
-              lo.customer_name, lo.customer_phone, lo.items, lo.total_cents, lo.payment_method,
+              lo.customer_name, lo.customer_phone, lo.customer_user_id, lo.items, lo.total_cents, lo.payment_method,
               m.name AS merchant_name, m.address AS pickup_address,
               m.location_lat AS pickup_lat, m.location_lng AS pickup_lng
          FROM local_orders lo JOIN local_merchants m ON m.id = lo.merchant_id
         WHERE lo.id = $1`,
             [id],
         );
+
+        // Push best-effort către client: curier găsit.
+        const row = rows[0];
+        if (row?.customer_user_id) {
+            sendPushToUser(row.customer_user_id, {
+                title: "Curier găsit 🛵",
+                body: `${row.merchant_name} · Un curier a preluat livrarea comenzii tale.`,
+                url: `/food/orders/${id}`,
+                tag: `eats-order-${id}`,
+            }).catch((err) => logger.warn({ err, orderId: id }, "[dispatch] push failed"));
+        }
 
         return NextResponse.json({ success: true, accepted: true, delivery: rows[0] });
     } catch (error: unknown) {

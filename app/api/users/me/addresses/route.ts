@@ -51,6 +51,9 @@ function validate(body: Record<string, unknown>): { ok: true; data: Omit<Address
       postal_code,
       country_code,
       is_default: Boolean(body.is_default),
+        lat: body.lat != null && Number.isFinite(Number(body.lat)) ? Number(body.lat) : null,
+        lng: body.lng != null && Number.isFinite(Number(body.lng)) ? Number(body.lng) : null,
+        details: body.details ? String(body.details).trim().slice(0, 500) || null : null,
     },
   };
 }

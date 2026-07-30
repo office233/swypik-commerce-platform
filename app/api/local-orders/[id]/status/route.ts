@@ -14,6 +14,7 @@ import { logger } from "@/lib/logger";
 import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 import { getJobForOrder, publishJobEvent } from "@/lib/dispatch/engine";
 import { settleLocalOrder } from "@/lib/payments/mobility";
+import { sendPushToUser } from "@/lib/push/send";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,18 @@ const TIMESTAMP_COL: Record<string, string> = {
     ready: "ready_at",
     picked_up: "picked_up_at",
     delivered: "delivered_at",
+};
+
+/** Mesaje push către client la schimbarea statusului (best-effort). */
+const PUSH_TEXT: Record<string, { title: string; body: string }> = {
+    accepted: { title: "Comanda a fost acceptată ✅", body: "Restaurantul ți-a confirmat comanda." },
+    rejected: { title: "Comanda a fost refuzată ❌", body: "Restaurantul nu poate onora comanda. Nu ai fost taxat." },
+    preparing: { title: "Se prepară 🍳", body: "Comanda ta este în preparare." },
+    ready: { title: "Comanda e gata 🛍️", body: "Căutăm un curier pentru livrare." },
+    picked_up: { title: "Curierul a preluat comanda 🛵", body: "Comanda e pe drum spre tine." },
+    delivering: { title: "În livrare 🚚", body: "Curierul se apropie de adresa ta." },
+    delivered: { title: "Livrată! 🎉", body: "Poftă bună! Poți lăsa o recenzie din istoric." },
+    cancelled: { title: "Comandă anulată", body: "Comanda a fost anulată." },
 };
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -72,7 +85,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         const updated = await withTransaction(async (q) => {
             const { rows } = await q(
-                `SELECT lo.id, lo.status, lo.courier_id, m.seller_id
+                `SELECT lo.id, lo.status, lo.courier_id, lo.customer_user_id, lo.order_number, m.seller_id, m.name AS merchant_name
            FROM local_orders lo JOIN local_merchants m ON m.id = lo.merchant_id
           WHERE lo.id = $1 FOR UPDATE`,
                 [id],
@@ -113,7 +126,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                     [o.courier_id],
                 );
             }
-            return { ok: true as const, order: res[0] };
+            return {
+                ok: true as const,
+                order: res[0],
+                customerUserId: o.customer_user_id as string | null,
+                merchantName: o.merchant_name as string,
+            };
         });
 
         if (!updated.ok) {
@@ -140,6 +158,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             if (job) {
                 await publishJobEvent(job.id, { type: "status", status });
             }
+        }
+
+        // Push către client — best-effort, nu blochează răspunsul.
+        const push = PUSH_TEXT[status];
+        if (push && updated.customerUserId) {
+            sendPushToUser(updated.customerUserId, {
+                title: push.title,
+                body: `${updated.merchantName} · ${push.body}`,
+                url: `/food/orders/${id}`,
+                tag: `eats-order-${id}`,
+            }).catch((err) => logger.warn({ err, orderId: id }, "[local-orders/status] push failed"));
         }
 
         return NextResponse.json({ success: true, order: updated.order });
