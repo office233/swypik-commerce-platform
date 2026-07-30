@@ -41,18 +41,25 @@ export async function getMarketMin(
     const token = process.env.TRAVELPAYOUTS_TOKEN;
     if (!token) return null;
 
-    const url =
-        `${API}?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}` +
-        `&departure_at=${encodeURIComponent(departDate)}&currency=ron&limit=30&sorting=price&one_way=true&token=${encodeURIComponent(token)}`;
-
-    try {
+    const fetchRows = async (departureAt: string): Promise<any[]> => {
+        const url =
+            `${API}?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}` +
+            `&departure_at=${encodeURIComponent(departureAt)}&currency=ron&limit=30&sorting=price&one_way=true&token=${encodeURIComponent(token)}`;
         const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
         if (!r.ok) {
             logger.warn({ status: r.status, origin, destination }, "fly market: HTTP error");
-            return null;
+            return [];
         }
         const j = (await r.json()) as { success?: boolean; data?: any[] };
-        const rows = j.data ?? [];
+        return j.data ?? [];
+    };
+
+    try {
+        // Întâi ziua exactă; cache-ul lor nu are mereu fiecare zi, deci
+        // fallback pe luna întreagă (minimul lunii = comparație mai dură cu
+        // noi, deci nu riscăm să ne credem ieftini pe nedrept).
+        let rows = await fetchRows(departDate);
+        if (!rows.length) rows = await fetchRows(departDate.slice(0, 7));
         if (!rows.length) return null;
 
         let best: { price: number; airline: string | null } | null = null;
