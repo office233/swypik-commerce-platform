@@ -16,8 +16,10 @@ const CACHE_TTL_MS = process.env.NODE_ENV === "production" ? 5 * 60 * 1000 : 0;
 let cache: { map: Map<string, number>; loadedAt: number } | null = null;
 
 export function minMarkupRonCents(): number {
-    const v = Number(process.env.FLY_MARKUP_MIN_CENTS ?? 300);
-    return Number.isFinite(v) && v >= 0 ? Math.round(v) : 300;
+    // Podea 12 lei: acoperă Stripe (~7,5 lei pe un bilet mediu) + TVA pe marjă
+    // + impozite și lasă profit. Sub asta repricing-ul NU coboară.
+    const v = Number(process.env.FLY_MARKUP_MIN_CENTS ?? 1200);
+    return Number.isFinite(v) && v >= 0 ? Math.round(v) : 1200;
 }
 
 async function loadMap(): Promise<Map<string, number>> {

@@ -64,7 +64,14 @@ export async function POST(req: Request) {
             currency: "EUR",
             maxResults: 200,
         });
-        return NextResponse.json(result);
+        // Public: DOAR prețul final. Costul furnizorului și marja Swypik sunt
+        // interne — nu se expun niciodată în API (vizibile altfel în DevTools).
+        return NextResponse.json({
+            ...result,
+            offers: result.offers.map(
+                ({ providerTotalCents, markupCents, providerCurrency, raw, ...pub }) => pub,
+            ),
+        });
     } catch (err) {
         logger.error({ err, route: "/api/fly/search" }, "fly search failed");
         return NextResponse.json({ error: "Căutarea a eșuat. Reîncearcă." }, { status: 502 });

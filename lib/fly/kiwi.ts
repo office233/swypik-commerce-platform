@@ -14,7 +14,7 @@ import {
     FlightProvider,
     FlightSearchParams,
     PriceCheckResult,
-    markupCents,
+    computeMarkupRonCents,
     toCents,
 } from "./types";
 
@@ -28,7 +28,9 @@ function toKiwiDate(iso: string): string {
 
 function mapItinerary(it: any, currency: string): FlightOffer {
     const providerTotalCents = toCents(it.price);
-    const markup = markupCents();
+    // NOTĂ: Kiwi e inactiv (fără chei). La reactivare, prețul trebuie trecut
+    // prin FX→RON ca la Duffel; până atunci aplicăm procentul direct.
+    const markup = computeMarkupRonCents(providerTotalCents);
     const outbound = (it.route ?? []).filter((r: any) => r.return === 0);
     const inbound = (it.route ?? []).filter((r: any) => r.return === 1);
     const toSlice = (legs: any[]) =>

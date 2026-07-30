@@ -14,7 +14,7 @@ import {
     FlightProvider,
     FlightSearchParams,
     PriceCheckResult,
-    markupCents,
+    computeMarkupRonCents,
     toCents,
 } from "./types";
 
@@ -45,11 +45,10 @@ function minutesBetween(a: string, b: string): number {
 
 async function mapOffer(o: any): Promise<FlightOffer> {
     const providerTotalCents = toCents(o.total_amount);
-    const markup = markupCents();
     const providerCurrency = o.total_currency ?? "EUR";
-    // Afișăm și încasăm totul în RON: cost furnizor convertit + markup (2€ → RON).
+    // Afișăm și încasăm totul în RON: cost furnizor convertit + marjă procentuală.
     const ronTotal = await toRonCents(providerTotalCents, providerCurrency);
-    const ronMarkup = await toRonCents(markup, "EUR");
+    const ronMarkup = computeMarkupRonCents(ronTotal);
     const slices = (o.slices ?? []).map((s: any) => ({
         origin: s.origin?.iata_code ?? "",
         destination: s.destination?.iata_code ?? "",

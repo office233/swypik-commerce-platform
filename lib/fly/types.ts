@@ -104,10 +104,32 @@ export interface FlightProvider {
     createOrder(input: CreateOrderInput): Promise<CreateOrderResult>;
 }
 
-/** Markup fix Swypik pe bilet (cenți). Vezi FLY_MARKUP_CENTS. */
-export function markupCents(): number {
-    const v = Number(process.env.FLY_MARKUP_CENTS ?? 200);
-    return Number.isFinite(v) && v >= 0 ? Math.round(v) : 200;
+/**
+ * Marja Swypik — PROCENT din costul biletului + prag minim, gândită să
+ * acopere Stripe (~2% + 1,3 lei pe TOT biletul), TVA pe marjă (regim special
+ * agenții art. 311), impozit pe profit și dividende, și să rămână profit.
+ *
+ * Env:
+ *   FLY_MARKUP_PCT        — procent din preț (default 8)
+ *   FLY_MARKUP_MIN_CENTS  — marjă minimă în cenți-EUR echivalent la nivel de
+ *                           provider (folosită de repricing drept podea)
+ *   FLY_MARKUP_FLOOR_RON  — prag minim în bani RON (default 1500 = 15 lei)
+ */
+export function markupPct(): number {
+    const v = Number(process.env.FLY_MARKUP_PCT ?? 10);
+    return Number.isFinite(v) && v >= 0 ? v : 10;
+}
+
+/** Podea de marjă în bani RON (sub asta nu coborâm nici la bilete de 100 lei). */
+export function markupFloorRonCents(): number {
+    const v = Number(process.env.FLY_MARKUP_FLOOR_RON ?? 1500);
+    return Number.isFinite(v) && v >= 0 ? Math.round(v) : 1500;
+}
+
+/** Marja în bani RON pentru un cost de bilet dat (deja convertit în RON). */
+export function computeMarkupRonCents(ticketRonCents: number): number {
+    const pct = Math.round((ticketRonCents * markupPct()) / 100);
+    return Math.max(markupFloorRonCents(), pct);
 }
 
 /** Suma decimală a providerului ("123.45") → cenți. */

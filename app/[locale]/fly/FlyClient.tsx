@@ -190,7 +190,7 @@ export default function FlyClient() {
                 </div>
                 <div>
                     <h1 className="text-xl font-bold">Swypik Fly</h1>
-                    <p className="text-xs text-neutral-500">Zboruri la preț net + 10 lei. Prețuri în lei, fără comisioane ascunse.</p>
+                    <p className="text-xs text-neutral-500">Prețul afișat e prețul final. În lei, fără taxe ascunse la plată.</p>
                 </div>
             </header>
 
