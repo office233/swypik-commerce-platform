@@ -458,6 +458,85 @@ export const SellerProductClassifySchema = z.object({
   description: z.string().trim().max(2000).optional(),
 });
 
+// ── FRONT 8 ────────────────────────────────────────────────────────────────
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_HHMM_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+/** POST /api/stays/availability — gazda blochează/deblochează zile + preț. */
+export const StayAvailabilitySchema = z.object({
+  product_id: z.string().uuid(),
+  days: z.array(z.object({
+    day: z.string().regex(DATE_RE, "Dată invalidă (YYYY-MM-DD)"),
+    is_available: z.boolean().default(false),
+    price_cents_override: z.number().int().min(0).max(100_000_000).nullable().optional(),
+  })).min(1, "Minim o zi").max(366, "Maxim 366 de zile per cerere"),
+});
+
+/** POST /api/causes — înregistrare beneficiar/ONG. */
+export const CauseRegisterSchema = z.object({
+  kind: z.enum(["ngo", "family", "small_business", "community", "emergency"]).default("ngo"),
+  name: z.string().trim().min(3, "Nume prea scurt").max(200),
+  description: z.string().trim().max(4000).optional(),
+  legal_id: z.string().trim().max(64).optional(),
+  documents: z.record(z.string(), z.string().url().max(2048)).optional(),
+  contact_name: z.string().trim().min(2).max(120),
+  contact_email: z.string().trim().email().max(254),
+  contact_phone: z.string().trim().min(5).max(32).optional(),
+  location_country: z.string().trim().length(2).toUpperCase().default("RO"),
+  location_city: z.string().trim().max(120).optional(),
+  image_url: z.string().url().max(2048).optional(),
+});
+
+const BudgetLineSchema = z.object({
+  label: z.string().trim().min(2).max(200),
+  amount_cents: z.number().int().min(0).max(1_000_000_000),
+});
+
+/** POST /api/campaigns/manage — creare campanie (cauză verificată). */
+export const CampaignCreateSchema = z.object({
+  cause_id: z.string().uuid(),
+  title: z.string().trim().min(5, "Titlu prea scurt").max(200),
+  story: z.string().trim().max(10_000).optional(),
+  goal_cents: z.number().int().min(100, "Țintă minimă 1 RON").max(1_000_000_000),
+  currency: z.string().trim().length(3).toUpperCase().default("RON"),
+  budget_breakdown: z.array(BudgetLineSchema).max(50).optional(),
+  ends_at: z.string().datetime({ offset: true }).optional(),
+  image_url: z.string().url().max(2048).optional(),
+  video_id: z.string().uuid().optional(),
+});
+
+/** PATCH /api/campaigns/manage — editare campanie. */
+export const CampaignUpdateSchema = z.object({
+  campaign_id: z.string().uuid(),
+  title: z.string().trim().min(5).max(200).optional(),
+  story: z.string().trim().max(10_000).optional(),
+  goal_cents: z.number().int().min(100).max(1_000_000_000).optional(),
+  budget_breakdown: z.array(BudgetLineSchema).max(50).optional(),
+  ends_at: z.string().datetime({ offset: true }).nullable().optional(),
+  image_url: z.string().url().max(2048).nullable().optional(),
+  video_id: z.string().uuid().nullable().optional(),
+  status: z.enum(["draft", "active", "closed"]).optional(),
+});
+
+/** POST /api/bookings/slots — rezervare pe ore. */
+export const BookingSlotCreateSchema = z.object({
+  product_id: z.string().uuid(),
+  slot_date: z.string().regex(DATE_RE, "Dată invalidă (YYYY-MM-DD)"),
+  start_time: z.string().regex(TIME_HHMM_RE, "Oră invalidă (HH:MM)"),
+  end_time: z.string().regex(TIME_HHMM_RE, "Oră invalidă (HH:MM)"),
+  customer_name: z.string().trim().min(2).max(120),
+  customer_phone: z.string().trim().min(5).max(32).optional(),
+  customer_email: z.string().trim().email().max(254).optional(),
+  notes: z.string().trim().max(1000).optional(),
+}).refine((d) => d.end_time > d.start_time, {
+  message: "Ora de final trebuie să fie după cea de start",
+  path: ["end_time"],
+}).refine((d) => Boolean(d.customer_phone || d.customer_email), {
+  message: "Trebuie să lași un telefon sau un email",
+  path: ["customer_phone"],
+});
+
 /**
  * Helper: parse a request body with a zod schema. Returns either the parsed
  * data or a NextResponse-friendly error payload (use it as { error, status: 400 }).
