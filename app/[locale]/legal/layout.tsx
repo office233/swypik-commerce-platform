@@ -8,6 +8,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
           <Link href="/legal/terms" className="underline">Termeni</Link>
           <Link href="/legal/privacy" className="underline">Confidentialitate</Link>
           <Link href="/legal/cookies" className="underline">Cookie-uri</Link>
+          <Link href="/legal/anpc" className="underline">Protecția consumatorului (ANPC)</Link>
           <Link href="/" className="underline">Inapoi acasa</Link>
         </div>
       </div>
