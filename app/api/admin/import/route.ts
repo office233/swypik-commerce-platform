@@ -127,7 +127,24 @@ export async function POST(req: Request) {
       );
     }
 
+    // DoS guard: cap payload size and row count.
+    const MAX_CSV_BYTES = 5 * 1024 * 1024; // 5 MB
+    const MAX_CSV_ROWS = 5000;
+    if (Buffer.byteLength(csvText, "utf8") > MAX_CSV_BYTES) {
+      return NextResponse.json(
+        { success: false, imported: 0, errors: [{ row: 0, reason: "CSV too large (max 5 MB)." }] },
+        { status: 413 }
+      );
+    }
+
     const rows = parseCsv(csvText);
+
+    if (rows.length > MAX_CSV_ROWS) {
+      return NextResponse.json(
+        { success: false, imported: 0, errors: [{ row: 0, reason: `Too many rows (max ${MAX_CSV_ROWS}).` }] },
+        { status: 413 }
+      );
+    }
 
     if (rows.length === 0) {
       return NextResponse.json(

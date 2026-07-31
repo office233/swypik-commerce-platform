@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { deriveOrderStatus } from "@/lib/commerce/order-status";
 import { isAdminRequest } from "@/lib/security/admin-auth";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -19,6 +20,13 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
+    // Anti brute-force on lookup tokens: 30 lookups/min per IP
+    const ip = getClientIP(req);
+    const { success: allowed } = await rateLimit("order-lookup", ip, { limit: 30, window: 60 });
+    if (!allowed) {
+      return NextResponse.json({ error: "Prea multe încercări." }, { status: 429 });
+    }
+
     const url = new URL(req.url);
     const token = url.searchParams.get("token") || "";
     const isAdmin = await isAdminRequest(req);

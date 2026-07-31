@@ -180,6 +180,27 @@ export async function POST(req: Request) {
     const rawItems = body.items || body.products || (body.product ? [body.product] : []);
     const customer = body.customer;
 
+    // Anti card-testing: secondary limits beyond per-IP
+    const customerEmail = typeof customer?.email === "string" ? customer.email.trim().toLowerCase() : "";
+    if (customerEmail) {
+      const { success: emailAllowed } = await rateLimit("checkout-email", customerEmail, { limit: 15, window: 3600 });
+      if (!emailAllowed) {
+        logCheckoutEvent("checkout_rate_limited_email", { clientIp: ip });
+        return NextResponse.json(
+          { success: false, error: "Prea multe încercări. Așteaptă un moment." },
+          { status: 429 }
+        );
+      }
+    }
+    const { success: globalAllowed } = await rateLimit("checkout-global", "all", { limit: 300, window: 60 });
+    if (!globalAllowed) {
+      logCheckoutEvent("checkout_rate_limited_global", { clientIp: ip });
+      return NextResponse.json(
+        { success: false, error: "Sistem ocupat. Reîncearcă în câteva momente." },
+        { status: 429 }
+      );
+    }
+
     // Validate
     if (!Array.isArray(rawItems) || rawItems.length === 0) {
       return NextResponse.json({ success: false, error: "missing_items" }, { status: 400 });

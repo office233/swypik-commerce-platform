@@ -27,6 +27,9 @@ function usernameFromSeed(prefix: string, seed: string): string {
 function getAnonSigningKey(): string {
   const key = process.env.APP_ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || "";
   if (!key) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("APP_ENCRYPTION_KEY missing — refusing to sign anon sessions with fallback key in production");
+    }
     // Last-resort dev fallback. Production MUST set APP_ENCRYPTION_KEY.
     return "swypik-dev-anon-fallback-key";
   }
