@@ -31,9 +31,18 @@ async function GET_impl(req: NextRequest) {
       const r2 = await dbQuery(
         "DELETE FROM user_sessions WHERE expires_at < NOW() - INTERVAL '30 days'"
       ).catch(() => ({ rowCount: 0 } as any));
+      // GDPR: IP-ul și user-agent-ul sunt date personale — le anonimizăm după
+      // 90 de zile chiar dacă sesiunea încă e validă (verificare flotă/fraudă
+      // are sens doar pe termen scurt).
+      const r3 = await dbQuery(
+        `UPDATE user_sessions SET ip_address = NULL, user_agent = NULL
+          WHERE created_at < NOW() - INTERVAL '90 days'
+            AND (ip_address IS NOT NULL OR user_agent IS NOT NULL)`
+      ).catch(() => ({ rowCount: 0 } as any));
       return {
         tokens_deleted: r1.rowCount ?? 0,
         sessions_deleted: r2.rowCount ?? 0,
+        sessions_anonymized: r3.rowCount ?? 0,
       };
     })
   );
