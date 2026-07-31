@@ -12,11 +12,12 @@ const CODE_RE = /^[A-Z0-9]{3,16}$/i;
 export async function GET(req: Request, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const clean = String(code ?? "").trim().toUpperCase();
-  // Derivă baza din request (env-urile NEXT_PUBLIC_* nu există la runtime în container).
-  const reqUrl = new URL(req.url);
-  const host = req.headers.get("x-forwarded-host") ?? reqUrl.host;
+  // Derivă baza din request (env-urile NEXT_PUBLIC_* nu există la runtime în
+  // container, iar req.url conține adresa internă 0.0.0.0:3000).
+  const hdrHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
   const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const base = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
+  const safeHost = hdrHost && !/^(0\.0\.0\.0|127\.|localhost)/.test(hdrHost) ? hdrHost : null;
+  const base = safeHost ? `${proto}://${safeHost}` : "https://swypik.com";
   if (!CODE_RE.test(clean)) {
     return NextResponse.redirect(new URL("/", base), 302);
   }
