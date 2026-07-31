@@ -21,7 +21,7 @@ import { dbQuery, withTransaction } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 export type SwypParty =
-    | { pool: "rewards" | "ecosystem" | "company" | "team" | "reserve" }
+    | { pool: "rewards" | "ecosystem" | "company" | "team" | "reserve" | "staking" }
     | { userId: string };
 
 export type SwypLedgerEntry = {

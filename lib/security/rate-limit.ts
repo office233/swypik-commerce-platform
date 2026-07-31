@@ -194,6 +194,7 @@ export const RATE_LIMITS = {
   geoSearch: { limit: 30, window: 60 } as RateLimitConfig,           // proxy Nominatim (search + reverse, per IP)
   swypMining: { limit: 10, window: 60 } as RateLimitConfig,          // start/claim sesiune mining SWYP
   swypWithdraw: { limit: 3, window: 300 } as RateLimitConfig,        // retrageri on-chain (operațiune scumpă)
+  swypStake: { limit: 10, window: 300 } as RateLimitConfig,          // stake/unstake SWYP
 } as const;
 
 /**
