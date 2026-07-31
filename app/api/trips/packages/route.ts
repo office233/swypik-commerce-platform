@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { getRedis } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { POPULAR_DESTINATIONS } from "@/lib/fly/destinations";
-import { isStaysConfigured } from "@/lib/stays/duffel";
+import { isExternalStaysConfigured } from "@/lib/stays/provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ export async function GET(req: Request) {
         nights: TRIP_NIGHTS[d.iata] ?? 4,
         flightFromCents: d.fromCents, // preț final RON, dus, markup inclus
         currency: "RON",
-        staysAvailable: isStaysConfigured() && false, // TODO: true la activarea Duffel Stays
+        staysAvailable: isExternalStaysConfigured() && false, // TODO: true la activarea furnizorului (RateHawk/Duffel)
         departDate,
     }));
 

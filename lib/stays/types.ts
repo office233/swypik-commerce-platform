@@ -3,6 +3,9 @@
  * Swypik e merchant of record, marja (10% + podea) se adaugă peste, totul în RON.
  */
 
+/** Furnizori suportați pentru cazări externe. */
+export type StayProviderId = "duffel" | "ratehawk";
+
 export type StaySearchParams = {
     /** Coordonate centru căutare (oraș). */
     lat: number;
@@ -15,7 +18,7 @@ export type StaySearchParams = {
 };
 
 export type StayResult = {
-    provider: "duffel";
+    provider: StayProviderId;
     /** id rezultat căutare (folosit la fetch rates). */
     searchResultId: string;
     accommodationId: string;

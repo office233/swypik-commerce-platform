@@ -48,6 +48,7 @@ type Deal = {
 };
 
 export default function FlyClient() {
+    const t = useTranslations("flyPage");
     const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
     const [form, setForm] = useState({ origin: "OTP", destination: "", departDate: today, returnDate: "", adults: 1 });
     const [loading, setLoading] = useState(false);
@@ -98,7 +99,7 @@ export default function FlyClient() {
                 }),
             });
             const json = await res.json();
-            if (!res.ok) throw new Error(json.error ?? "Căutarea a eșuat");
+            if (!res.ok) throw new Error(json.error ?? t("searchFailed"));
             setOffers(json.offers ?? []);
         } catch (e: any) {
             setError(e.message);
@@ -130,13 +131,13 @@ export default function FlyClient() {
                     body: JSON.stringify({ token: selected.token }),
                 });
                 const pcJson = await pc.json();
-                if (!pc.ok || !pcJson.ok) throw new Error(pcJson.message ?? "Oferta a expirat. Reia căutarea.");
+                if (!pc.ok || !pcJson.ok) throw new Error(pcJson.message ?? t("offerExpired"));
                 if (pcJson.priceChanged) {
                     setSelected({ ...selected, totalCents: pcJson.totalCents });
                     setPriceNotice(
                         pcJson.deltaCents > 0
-                            ? `Prețul a crescut cu ${eur(pcJson.deltaCents)} — noul total: ${eur(pcJson.totalCents)}. Apasă din nou pentru a confirma.`
-                            : `Veste bună: prețul a scăzut! Noul total: ${eur(pcJson.totalCents)}. Apasă din nou pentru a confirma.`,
+                            ? t("priceUp", { delta: eur(pcJson.deltaCents), total: eur(pcJson.totalCents) })
+                            : t("priceDown", { total: eur(pcJson.totalCents) }),
                     );
                     return;
                 }
@@ -156,11 +157,11 @@ export default function FlyClient() {
                 const json = await res.json();
                 if (res.status === 409 && json.code === "price_changed") {
                     setSelected({ ...selected, totalCents: json.newTotalCents });
-                    setPriceNotice(`Prețul s-a schimbat: noul total e ${eur(json.newTotalCents)}. Apasă din nou pentru a confirma.`);
+                    setPriceNotice(t("priceChanged", { total: eur(json.newTotalCents) }));
                     return;
                 }
-                if (res.status === 401) throw new Error("Autentifică-te pentru a rezerva (contul tău Swypik).");
-                if (!res.ok) throw new Error(json.error ?? "Rezervarea a eșuat");
+                if (res.status === 401) throw new Error(t("authRequired"));
+                if (!res.ok) throw new Error(json.error ?? t("bookingFailed"));
                 if (json.checkoutUrl) {
                     window.location.href = json.checkoutUrl;
                     return;
@@ -190,7 +191,7 @@ export default function FlyClient() {
                 </div>
                 <div>
                     <h1 className="text-xl font-bold">Swypik Fly</h1>
-                    <p className="text-xs text-neutral-500">Prețul afișat e prețul final. În lei, fără taxe ascunse la plată.</p>
+                    <p className="text-xs text-neutral-500">{t("finalPriceNote")}</p>
                 </div>
             </header>
 
@@ -198,19 +199,19 @@ export default function FlyClient() {
             <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                 <div className="grid grid-cols-2 gap-3">
                     <AirportInput
-                        label="De la"
+                        label={t("fromLabel")}
                         value={form.origin}
                         onChange={(iata) => setForm({ ...form, origin: iata })}
-                        placeholder="ex: București"
+                        placeholder={t("fromPlaceholder")}
                     />
                     <AirportInput
-                        label="Spre"
+                        label={t("toLabel")}
                         value={form.destination}
                         onChange={(iata) => setForm({ ...form, destination: iata })}
-                        placeholder="ex: Barcelona"
+                        placeholder={t("toPlaceholder")}
                     />
                     <label className="text-xs font-medium text-neutral-500">
-                        <span className="flex items-center gap-1"><CalendarDays size={12} /> Plecare</span>
+                        <span className="flex items-center gap-1"><CalendarDays size={12} /> {t("departure")}</span>
                         <input
                             type="date"
                             min={today}
@@ -220,7 +221,7 @@ export default function FlyClient() {
                         />
                     </label>
                     <label className="text-xs font-medium text-neutral-500">
-                        <span className="flex items-center gap-1"><CalendarDays size={12} /> Întoarcere (opțional)</span>
+                        <span className="flex items-center gap-1"><CalendarDays size={12} /> {t("returnOptional")}</span>
                         <input
                             type="date"
                             min={form.departDate}
@@ -230,14 +231,14 @@ export default function FlyClient() {
                         />
                     </label>
                     <label className="text-xs font-medium text-neutral-500">
-                        <span className="flex items-center gap-1"><Users size={12} /> Pasageri</span>
+                        <span className="flex items-center gap-1"><Users size={12} /> {t("passengers")}</span>
                         <select
                             value={form.adults}
                             onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })}
                             className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
                         >
                             {[1, 2, 3, 4, 5, 6].map((n) => (
-                                <option key={n} value={n}>{n} {n === 1 ? "adult" : "adulți"}</option>
+                                <option key={n} value={n}>{n} {n === 1 ? t("adult") : t("adults")}</option>
                             ))}
                         </select>
                     </label>
@@ -247,7 +248,7 @@ export default function FlyClient() {
                         className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2.5 font-semibold text-white shadow disabled:opacity-40"
                     >
                         {loading ? <Loader2 size={18} className="animate-spin" /> : <Plane size={18} />}
-                        Caută
+                        {t("search")}
                     </button>
                 </div>
             </div>
@@ -262,9 +263,9 @@ export default function FlyClient() {
                 <div className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-4 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                     <CheckCircle2 size={20} className="mt-0.5 shrink-0" />
                     <div>
-                        <p className="font-semibold">Bilet emis! ✈️</p>
-                        {success.bookingRef && <p className="text-sm">Cod rezervare (PNR): <b>{success.bookingRef}</b></p>}
-                        <p className="mt-1 text-xs">Detaliile au fost trimise pe email. Poftă bună în drum spre aeroport — vezi Swypik Eats 😉</p>
+                        <p className="font-semibold">{t("ticketIssued")}</p>
+                        {success.bookingRef && <p className="text-sm">{t("bookingRef")}: <b>{success.bookingRef}</b></p>}
+                        <p className="mt-1 text-xs">{t("detailsSent")}</p>
                     </div>
                 </div>
             )}
@@ -273,8 +274,8 @@ export default function FlyClient() {
             {mounted && !offers && !selected && !loading && (
                 <div className="mt-6">
                     <div className="mb-3 flex items-end justify-between">
-                        <h2 className="text-lg font-bold">Destinații populare din București</h2>
-                        <span className="text-[10px] text-neutral-400">prețuri live, actualizate zilnic</span>
+                        <h2 className="text-lg font-bold">{t("popularFrom", { city: "București" })}</h2>
+                        <span className="text-[10px] text-neutral-400">{t("livePrices")}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         {(deals ?? Array.from({ length: 6 }, () => null)).map((d, i) =>
@@ -297,7 +298,7 @@ export default function FlyClient() {
                                         <p className="text-[10px] text-white/80">{d.country}</p>
                                         {d.fromCents !== null && (
                                             <p className="mt-1 inline-block rounded-full bg-white/95 px-2 py-0.5 text-xs font-extrabold text-sky-700">
-                                                de la {eur(d.fromCents, d.currency)}
+                                                {t("fromPrice", { price: eur(d.fromCents, d.currency) })}
                                             </p>
                                         )}
                                     </div>
@@ -308,7 +309,7 @@ export default function FlyClient() {
                         )}
                     </div>
                     <p className="mt-3 text-center text-[10px] text-neutral-400">
-                        Atinge o destinație și vezi toate zborurile — prețul final, fără taxe ascunse.
+                        {t("tapDestination")}
                     </p>
                 </div>
             )}
@@ -333,10 +334,10 @@ export default function FlyClient() {
                     })()}
                     <div className="flex items-center gap-2 overflow-x-auto pb-1">
                         {([
-                            ["all", `Toate (${offers.length})`],
-                            ["direct", "Doar directe"],
-                            ["cheap", "Top ieftine"],
-                            ["fast", "Top rapide"],
+                            ["all", t("filterAll", { count: offers.length })],
+                            ["direct", t("filterDirect")],
+                            ["cheap", t("filterCheap")],
+                            ["fast", t("filterFast")],
                         ] as const).map(([k, label]) => (
                             <button
                                 key={k}
@@ -347,8 +348,8 @@ export default function FlyClient() {
                             </button>
                         ))}
                     </div>
-                    <p className="text-xs text-neutral-500">{offers.length} zboruri găsite · totalul include tot, fără costuri ascunse</p>
-                    {offers.length === 0 && <p className="rounded-xl bg-neutral-100 p-4 text-sm dark:bg-neutral-800">Niciun zbor pe ruta/data aleasă.</p>}
+                    <p className="text-xs text-neutral-500">{t("flightsFound", { count: offers.length })}</p>
+                    {offers.length === 0 && <p className="rounded-xl bg-neutral-100 p-4 text-sm dark:bg-neutral-800">{t("noFlights")}</p>}
                     {(filter === "direct"
                         ? offers.filter((o) => o.stops === 0)
                         : filter === "cheap"
@@ -377,7 +378,7 @@ export default function FlyClient() {
                                             <ArrowRight size={12} className="absolute -top-1.5 right-0 text-neutral-400" />
                                         </div>
                                         <p className="text-[10px] text-neutral-400">
-                                            {s.segments.length - 1 === 0 ? "direct" : `${s.segments.length - 1} escală`}
+                                            {s.segments.length - 1 === 0 ? t("direct") : t("stops", { count: s.segments.length - 1 })}
                                         </p>
                                     </div>
                                     <div className="text-center">
@@ -396,7 +397,7 @@ export default function FlyClient() {
                                         loading="lazy"
                                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                                     />
-                                    {o.carrierName || o.carrier} · {o.provider === "duffel" ? "emitere instant ⚡" : "via Kiwi"}
+                                    {o.carrierName || o.carrier} · {o.provider === "duffel" ? t("instantIssue") : t("viaKiwi")}
                                 </span>
                                 <span className="text-lg font-extrabold text-sky-600 dark:text-sky-400">{eur(o.totalCents, o.currency)}</span>
                             </div>
@@ -409,27 +410,27 @@ export default function FlyClient() {
             {selected && (
                 <div className="mt-5 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                     <div className="mb-3 flex items-center justify-between">
-                        <h2 className="font-bold">Pasageri & plată</h2>
-                        <button onClick={() => setSelected(null)} className="text-xs text-neutral-500 underline">înapoi la rezultate</button>
+                        <h2 className="font-bold">{t("passengersPayment")}</h2>
+                        <button onClick={() => setSelected(null)} className="text-xs text-neutral-500 underline">{t("backToResults")}</button>
                     </div>
 
                     {passengers.map((p, i) => (
                         <div key={i} className="mb-3 grid grid-cols-2 gap-2">
-                            <p className="col-span-2 text-xs font-medium text-neutral-500">Pasager {i + 1} (ca în pașaport/CI)</p>
+                            <p className="col-span-2 text-xs font-medium text-neutral-500">{t("passengerN", { n: i + 1 })}</p>
                             <input
-                                placeholder="Prenume"
+                                placeholder={t("firstName")}
                                 value={p.givenName}
                                 onChange={(e) => setPassengers(passengers.map((x, j) => (j === i ? { ...x, givenName: e.target.value } : x)))}
                                 className="rounded-xl border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
                             />
                             <input
-                                placeholder="Nume"
+                                placeholder={t("lastName")}
                                 value={p.familyName}
                                 onChange={(e) => setPassengers(passengers.map((x, j) => (j === i ? { ...x, familyName: e.target.value } : x)))}
                                 className="rounded-xl border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
                             />
                             <label className="col-span-2 text-xs text-neutral-500">
-                                Data nașterii
+                                {t("birthDate")}
                                 <input
                                     type="date"
                                     value={p.bornOn}
@@ -442,14 +443,14 @@ export default function FlyClient() {
 
                     <div className="grid grid-cols-2 gap-2">
                         <input
-                            placeholder="Email contact"
+                            placeholder={t("contactEmail")}
                             type="email"
                             value={contact.email}
                             onChange={(e) => setContact({ ...contact, email: e.target.value })}
                             className="rounded-xl border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
                         />
                         <input
-                            placeholder="Telefon"
+                            placeholder={t("phone")}
                             value={contact.phone}
                             onChange={(e) => setContact({ ...contact, phone: e.target.value })}
                             className="rounded-xl border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
@@ -461,7 +462,7 @@ export default function FlyClient() {
                     )}
 
                     <div className="mt-4 flex items-center justify-between">
-                        <span className="text-sm text-neutral-500">Total de plată</span>
+                        <span className="text-sm text-neutral-500">{t("totalToPay")}</span>
                         <span className="text-2xl font-extrabold">{eur(selected.totalCents, selected.currency)}</span>
                     </div>
 
@@ -482,7 +483,7 @@ export default function FlyClient() {
                         </button>
                     </div>
                     <p className="mt-2 text-center text-[10px] text-neutral-400">
-                        Prețul e reverificat live la furnizor înainte de plată. Emitere instant pentru ofertele Duffel.
+                        {t("priceRecheck")}
                     </p>
                 </div>
             )}

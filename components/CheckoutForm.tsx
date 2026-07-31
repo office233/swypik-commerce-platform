@@ -146,7 +146,7 @@ export default function CheckoutForm() {
       if (target?.id) {
         await fetch(`/api/cart/items/${target.id}`, { method: "DELETE", credentials: "include" });
       }
-    } catch {}
+    } catch { }
   };
 
   const updateQuantity = async (index: number, newQty: number) => {
@@ -169,7 +169,7 @@ export default function CheckoutForm() {
           body: JSON.stringify({ quantity: newQty }),
         });
       }
-    } catch {}
+    } catch { }
   };
 
   if (isInitializing) {
@@ -200,37 +200,37 @@ export default function CheckoutForm() {
 
   const elementsOptions: StripeElementsOptions = clientSecret
     ? {
-        clientSecret,
-        appearance: {
-          theme: "stripe",
-          variables: {
-            colorPrimary: "#10A37F",
-            colorBackground: "#ffffff",
-            colorText: "#0D0D0D",
-            colorDanger: "#EF4444",
-            fontFamily: "'Inter', system-ui, sans-serif",
-            spacingUnit: "4px",
-            borderRadius: "12px",
+      clientSecret,
+      appearance: {
+        theme: "stripe",
+        variables: {
+          colorPrimary: "#10A37F",
+          colorBackground: "#ffffff",
+          colorText: "#0D0D0D",
+          colorDanger: "#EF4444",
+          fontFamily: "'Inter', system-ui, sans-serif",
+          spacingUnit: "4px",
+          borderRadius: "12px",
+        },
+        rules: {
+          ".Input": {
+            border: "1px solid #E5E5E5",
+            boxShadow: "none",
+            padding: "12px 16px",
           },
-          rules: {
-            ".Input": {
-              border: "1px solid #E5E5E5",
-              boxShadow: "none",
-              padding: "12px 16px",
-            },
-            ".Input:focus": {
-              border: "1px solid #10A37F",
-              boxShadow: "0 0 0 1px #10A37F",
-            },
-            ".Label": {
-              fontWeight: "600",
-              fontSize: "13px",
-              marginBottom: "6px",
-            },
+          ".Input:focus": {
+            border: "1px solid #10A37F",
+            boxShadow: "0 0 0 1px #10A37F",
+          },
+          ".Label": {
+            fontWeight: "600",
+            fontSize: "13px",
+            marginBottom: "6px",
           },
         },
-        locale: (["de", "en", "es", "fr", "it", "pt", "ro"].includes(locale) ? locale : "auto") as StripeElementsOptions["locale"],
-      }
+      },
+      locale: (["de", "en", "es", "fr", "it", "pt", "ro"].includes(locale) ? locale : "auto") as StripeElementsOptions["locale"],
+    }
     : {};
 
   return (

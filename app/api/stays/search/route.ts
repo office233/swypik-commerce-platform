@@ -5,7 +5,11 @@
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { searchStays, StaysAccessError, isStaysConfigured } from "@/lib/stays/duffel";
+import {
+    searchExternalStays,
+    StaysAccessError,
+    isExternalStaysConfigured,
+} from "@/lib/stays/provider";
 import { cityBySlug } from "@/lib/stays/cities";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
@@ -39,12 +43,12 @@ export async function POST(req: Request) {
     if (new Date(p.checkOut) <= new Date(p.checkIn)) {
         return NextResponse.json({ error: "Check-out trebuie să fie după check-in" }, { status: 400 });
     }
-    if (!isStaysConfigured()) {
+    if (!isExternalStaysConfigured()) {
         return NextResponse.json({ error: "Serviciul de cazări nu e configurat" }, { status: 503 });
     }
 
     try {
-        const results = await searchStays({
+        const results = await searchExternalStays({
             lat: city.lat,
             lng: city.lng,
             checkIn: p.checkIn,

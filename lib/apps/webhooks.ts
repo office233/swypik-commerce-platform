@@ -31,6 +31,12 @@ interface TargetApp {
   secret_hash: string;
 }
 
+const RETRY_DELAYS_MS = [2000, 8000];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function deliver(target: TargetApp, event: AppWebhookEvent, body: string): Promise<void> {
   const signature = crypto
     .createHmac("sha256", target.secret_hash)
@@ -39,33 +45,43 @@ async function deliver(target: TargetApp, event: AppWebhookEvent, body: string):
 
   let statusCode: number | null = null;
   let error: string | null = null;
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(target.webhook_url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Swypik-Event": event,
-        "X-Swypik-Signature": `sha256=${signature}`,
-      },
-      body,
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    statusCode = res.status;
-  } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
+  let attempts = 0;
+
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    if (attempt > 0) await sleep(RETRY_DELAYS_MS[attempt - 1]);
+    attempts = attempt + 1;
+    statusCode = null;
+    error = null;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(target.webhook_url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Swypik-Event": event,
+          "X-Swypik-Signature": `sha256=${signature}`,
+        },
+        body,
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      statusCode = res.status;
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+    const retriable = error !== null || (statusCode !== null && statusCode >= 500);
+    if (!retriable) break;
   }
 
   await dbQuery(
-    `INSERT INTO app_webhook_deliveries (app_id, install_id, event, status_code, error)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [target.app_id, target.install_id, event, statusCode, error],
+    `INSERT INTO app_webhook_deliveries (app_id, install_id, event, status_code, error, attempts)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [target.app_id, target.install_id, event, statusCode, error, attempts],
   ).catch((e) => logger.error({ err: e }, "[app-webhooks] delivery log failed"));
 
   if (error || (statusCode !== null && statusCode >= 400)) {
-    logger.warn({ app_id: target.app_id, event, statusCode, error }, "[app-webhooks] delivery failed");
+    logger.warn({ app_id: target.app_id, event, statusCode, error, attempts }, "[app-webhooks] delivery failed");
   }
 }
 

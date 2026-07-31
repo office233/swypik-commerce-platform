@@ -29,6 +29,14 @@ type App = {
   install_count: number;
 };
 
+type Delivery = {
+  event: string;
+  status_code: number | null;
+  error: string | null;
+  attempts: number;
+  created_at: string;
+};
+
 const ALL_SCOPES = [
   "read_products",
   "write_products",
@@ -57,6 +65,17 @@ export default function DevelopersClient() {
 
   // secret afișat o singură dată
   const [freshSecret, setFreshSecret] = useState<{ appName: string; clientId?: string; secret: string } | null>(null);
+
+  // editare app existent
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editWebhookUrl, setEditWebhookUrl] = useState("");
+
+  // livrări webhook
+  const [deliveriesFor, setDeliveriesFor] = useState<string | null>(null);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [deliveriesLoading, setDeliveriesLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -137,6 +156,52 @@ export default function DevelopersClient() {
       body: JSON.stringify({ status: "review" }),
     });
     void load();
+  }
+
+  function startEdit(app: App) {
+    setEditingId(app.id);
+    setEditName(app.name);
+    setEditDescription(app.description ?? "");
+    setEditWebhookUrl(app.webhook_url ?? "");
+  }
+
+  async function saveEdit(app: App) {
+    const res = await fetch(`/api/developers/apps/${app.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editName,
+        description: editDescription || null,
+        webhook_url: editWebhookUrl || null,
+      }),
+    });
+    if (res.ok) {
+      setEditingId(null);
+      void load();
+    } else {
+      setError("Salvarea a eșuat. Verifică datele (webhook trebuie să fie URL valid).");
+    }
+  }
+
+  async function loadDeliveries(app: App) {
+    if (deliveriesFor === app.id) {
+      setDeliveriesFor(null);
+      setDeliveries([]);
+      return;
+    }
+    setDeliveriesFor(app.id);
+    setDeliveriesLoading(true);
+    try {
+      const res = await fetch(`/api/developers/apps/${app.id}/deliveries`);
+      if (res.ok) {
+        const data = await res.json();
+        setDeliveries(data.deliveries ?? []);
+      } else {
+        setDeliveries([]);
+      }
+    } finally {
+      setDeliveriesLoading(false);
+    }
   }
 
   function toggleScope(s: string) {
@@ -241,12 +306,66 @@ export default function DevelopersClient() {
               <p className="mt-2 text-xs text-gray-500">
                 Client ID: <code className="font-mono">{app.oauth_client_id}</code> · Instalări: {app.install_count} · Scopes: {app.scopes.join(", ") || "—"}
               </p>
-              <div className="mt-3 flex gap-2 text-sm">
+              <div className="mt-3 flex flex-wrap gap-2 text-sm">
                 <button className="rounded border px-3 py-1" onClick={() => void rotateSecret(app)}>Regenerează secret</button>
                 {app.status === "draft" && (
                   <button className="rounded border px-3 py-1" onClick={() => void submitReview(app)}>Trimite spre publicare</button>
                 )}
+                <button className="rounded border px-3 py-1" onClick={() => (editingId === app.id ? setEditingId(null) : startEdit(app))}>
+                  {editingId === app.id ? "Anulează editarea" : "Editează"}
+                </button>
+                <button className="rounded border px-3 py-1" onClick={() => void loadDeliveries(app)}>
+                  {deliveriesFor === app.id ? "Ascunde livrările" : "Livrări webhook"}
+                </button>
               </div>
+
+              {editingId === app.id && (
+                <div className="mt-3 space-y-2 rounded border p-3">
+                  <input className="w-full rounded border p-2" placeholder="Nume *" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <textarea className="w-full rounded border p-2" placeholder="Descriere" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+                  <input className="w-full rounded border p-2" placeholder="Webhook URL (https://…)" value={editWebhookUrl} onChange={(e) => setEditWebhookUrl(e.target.value)} />
+                  <button
+                    className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40"
+                    disabled={editName.trim().length < 2}
+                    onClick={() => void saveEdit(app)}
+                  >
+                    Salvează
+                  </button>
+                </div>
+              )}
+
+              {deliveriesFor === app.id && (
+                <div className="mt-3 rounded border p-3">
+                  {deliveriesLoading && <p className="text-sm text-gray-500">Se încarcă livrările…</p>}
+                  {!deliveriesLoading && deliveries.length === 0 && (
+                    <p className="text-sm text-gray-500">Nicio livrare webhook încă.</p>
+                  )}
+                  {!deliveriesLoading && deliveries.length > 0 && (
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b text-gray-500">
+                          <th className="py-1 pr-2">Event</th>
+                          <th className="py-1 pr-2">Status</th>
+                          <th className="py-1 pr-2">Încercări</th>
+                          <th className="py-1">Dată</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deliveries.map((d, i) => (
+                          <tr key={i} className="border-b last:border-0">
+                            <td className="py-1 pr-2 font-mono">{d.event}</td>
+                            <td className={`py-1 pr-2 ${d.error || (d.status_code ?? 0) >= 400 ? "text-red-600" : "text-green-700"}`}>
+                              {d.status_code ?? d.error ?? "—"}
+                            </td>
+                            <td className="py-1 pr-2">{d.attempts}</td>
+                            <td className="py-1">{new Date(d.created_at).toLocaleString("ro-RO")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </section>

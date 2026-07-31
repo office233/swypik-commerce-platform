@@ -666,7 +666,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                 </p>
               )}
 
-              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Instrucțiuni pentru curier (interfon, etaj…)" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("notesPlaceholder")} className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
 
               <label className="flex items-center gap-2 text-xs font-medium text-[#6E6E80]">
                 <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="h-4 w-4 accent-[#2DBE60]" />
