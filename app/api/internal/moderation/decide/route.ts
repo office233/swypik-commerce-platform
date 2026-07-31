@@ -13,6 +13,7 @@ import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { verifyInternal, forbidden } from "../../_lib/auth";
+import { notifyFollowersNewPost } from "@/lib/notifications/dispatch";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -108,6 +109,21 @@ export async function POST(req: Request) {
                     [id, approve ? "approved" : "rejected", reason ?? ""]
                 );
                 updated = rowCount ?? 0;
+
+                if (updated > 0 && approve) {
+                    const { rows: vRows } = await dbQuery<{ creator_id: string; title: string | null }>(
+                        `SELECT creator_id, title FROM videos WHERE id = $1`,
+                        [id]
+                    );
+                    const v = vRows[0];
+                    if (v?.creator_id) {
+                        notifyFollowersNewPost(v.creator_id, id, {
+                            title: v.title ? `Clip nou: ${v.title}` : undefined,
+                        }).catch((e) =>
+                            logger.warn({ err: e, videoId: id }, "new_post fan-out failed")
+                        );
+                    }
+                }
         }
 
         if (updated === 0) {

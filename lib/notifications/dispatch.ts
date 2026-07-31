@@ -18,7 +18,8 @@ export type NotificationType =
   | "share"
   | "commission"
   | "system"
-  | "upload_processed";
+  | "upload_processed"
+  | "new_post";
 
 export type NotifyInput = {
   type: NotificationType;
@@ -39,6 +40,7 @@ const TITLES: Record<NotificationType, string> = {
   commission: "Comision nou",
   system: "Notificare",
   upload_processed: "Videoclipul tău este gata",
+  new_post: "Clip nou de la un creator urmărit",
 };
 
 export async function notifyUser(
@@ -92,6 +94,7 @@ export async function notifyUser(
     comment: "push_comments",
     reply: "push_comments",
     follow: "push_follows",
+    new_post: "push_follows",
     commission: "push_sales",
   };
   const prefCol = prefMap[input.type];
@@ -133,4 +136,42 @@ export async function notifyUser(
       [notificationId],
     ).catch((e) => console.warn("[notifyUser] mark suppressed failed:", (e as Error)?.message));
   }
+}
+
+/**
+ * Fan-out "new_post" catre followers unui creator (batch, best-effort).
+ * Limitat la cei mai recenti `maxFollowers` ca sa nu blocheze requestul.
+ */
+export async function notifyFollowersNewPost(
+  creatorUserId: string,
+  videoId: string,
+  opts?: { title?: string; maxFollowers?: number },
+): Promise<number> {
+  const limit = Math.min(Math.max(opts?.maxFollowers ?? 500, 1), 5000);
+  const { rows } = await dbQuery<{ follower_user_id: string }>(
+    `SELECT follower_user_id FROM follows
+      WHERE following_user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2`,
+    [creatorUserId, limit],
+  );
+  let sent = 0;
+  for (const r of rows) {
+    try {
+      await notifyUser(r.follower_user_id, {
+        type: "new_post",
+        actorUserId: creatorUserId,
+        targetType: "video",
+        targetId: videoId,
+        payload: {
+          title: opts?.title || TITLES.new_post,
+          url: `/v/${videoId}`,
+        },
+      });
+      sent++;
+    } catch (e) {
+      console.warn("[notifyFollowersNewPost] failed:", (e as Error)?.message);
+    }
+  }
+  return sent;
 }
