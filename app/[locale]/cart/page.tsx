@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ArrowLeft, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Package, ShoppingCart, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -169,7 +169,7 @@ export default function CartPage() {
                     {item.image ? (
                       <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
+                      <div className="w-full h-full flex items-center justify-center"><Package size={28} className="text-[#6E6E80]" /></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
