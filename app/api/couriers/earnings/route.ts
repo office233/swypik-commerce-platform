@@ -12,6 +12,7 @@
  * cererile de payout recente.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { getBalanceCents } from "@/lib/wallet/ledger";
@@ -25,7 +26,7 @@ function emptyBucket(): Bucket {
   return { eats_cents: 0, go_cents: 0, tips_cents: 0, net_cents: 0 };
 }
 
-export async function GET() {
+export const GET = withErrorHandling(async function GET() {
   const session = await getAuthSession();
   if (!session?.userId) {
     return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
@@ -110,4 +111,4 @@ export async function GET() {
     payouts,
     currency: "RON",
   });
-}
+});

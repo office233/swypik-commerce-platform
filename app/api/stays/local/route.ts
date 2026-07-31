@@ -4,12 +4,13 @@
  * plată la rezervare, nu se adaugă peste — gazda își asumă prețul final).
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export const GET = withErrorHandling(async function GET(req: Request) {
     const url = new URL(req.url);
     const city = url.searchParams.get("city")?.trim() || null;
 
@@ -31,4 +32,4 @@ export async function GET(req: Request) {
         params,
     );
     return NextResponse.json({ listings: rows });
-}
+});

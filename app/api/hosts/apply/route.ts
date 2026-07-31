@@ -13,6 +13,7 @@
  * GET /api/hosts/apply — statusul aplicației userului curent.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
@@ -92,7 +93,7 @@ const schema = z
         }
     });
 
-export async function POST(req: Request) {
+export const POST = withErrorHandling(async function POST(req: Request) {
     const rl = await rateLimit("hosts:apply", getClientIP(req), { limit: 5, window: 3600 });
     if (!rl.success) {
         return NextResponse.json({ error: "Prea multe încercări. Reîncearcă mai târziu." }, { status: 429 });
@@ -165,9 +166,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true, applicationId: rows[0].id, status: "pending" });
-}
+});
 
-export async function GET() {
+export const GET = withErrorHandling(async function GET() {
     const session = await getAuthSession().catch(() => null);
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { rows } = await dbQuery(
@@ -176,4 +177,4 @@ export async function GET() {
         [session.userId],
     );
     return NextResponse.json({ applications: rows });
-}
+});

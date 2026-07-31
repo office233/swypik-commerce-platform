@@ -2,6 +2,7 @@
  * GET /api/rides/[id] — detaliu cursă (rider, șoferul atribuit sau admin).
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
@@ -10,7 +11,7 @@ import { loadRide, resolveRole } from "@/lib/rides/service";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(
+export const GET = withErrorHandling(async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -49,4 +50,4 @@ export async function GET(
   );
 
   return NextResponse.json({ ride, driver, ratings, role });
-}
+});

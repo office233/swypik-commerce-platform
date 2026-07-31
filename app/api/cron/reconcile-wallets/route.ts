@@ -14,6 +14,7 @@
  * Frecvență recomandată: zilnic (ex. 04:00).
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { timingSafeEqual } from "node:crypto";
 import { dbQuery } from "@/lib/db";
 import { runCron } from "@/lib/cron/runCron";
@@ -121,9 +122,9 @@ async function handle(req: Request) {
   return NextResponse.json({ success: true, ...result });
 }
 
-export async function GET(req: Request) {
+export const GET = withErrorHandling(async function GET(req: Request) {
   return handle(req);
-}
-export async function POST(req: Request) {
+});
+export const POST = withErrorHandling(async function POST(req: Request) {
   return handle(req);
-}
+});

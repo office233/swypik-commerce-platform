@@ -6,6 +6,7 @@
  * ajustare de marjă). Autentificare: admin session sau Bearer admin token.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminToken } from "@/lib/security/admin-auth";
 
@@ -18,7 +19,7 @@ async function isAdmin(req: Request): Promise<boolean> {
     return hasAdminSession();
 }
 
-export async function GET(req: Request) {
+export const GET = withErrorHandling(async function GET(req: Request) {
     if (!(await isAdmin(req))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -61,4 +62,4 @@ export async function GET(req: Request) {
             noMarketData: routes.filter((r) => r.marketRon === null).length,
         },
     });
-}
+});

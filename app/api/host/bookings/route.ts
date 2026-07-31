@@ -4,13 +4,14 @@
  * să-l poată suna) și starea plății.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withErrorHandling(async function GET() {
     const session = await getAuthSession().catch(() => null);
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -27,4 +28,4 @@ export async function GET() {
         [session.userId],
     );
     return NextResponse.json({ bookings: rows });
-}
+});

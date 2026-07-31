@@ -4,6 +4,7 @@
  * driver → notează riderul. Un singur rating per rol per cursă.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
@@ -14,7 +15,7 @@ import { parseBody } from "@/lib/validation/schemas";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(
+export const POST = withErrorHandling(async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -66,4 +67,4 @@ export async function POST(
   }
 
   return NextResponse.json({ ok: true }, { status: 201 });
-}
+});

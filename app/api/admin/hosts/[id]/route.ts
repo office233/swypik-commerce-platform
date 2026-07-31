@@ -7,6 +7,7 @@
  * reject / needs_info → cer motiv (audit).
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminToken } from "@/lib/security/admin-auth";
@@ -26,7 +27,7 @@ const schema = z.object({
     note: z.string().max(1000).optional(),
 });
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withErrorHandling(async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     if (!(await isAdmin(req))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -56,4 +57,4 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     logger.info({ applicationId: id, action }, "host application reviewed");
     return NextResponse.json({ ok: true, status });
-}
+});

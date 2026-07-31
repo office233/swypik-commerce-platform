@@ -9,6 +9,7 @@
  * Publicarea (status='active') e permisă doar cu poză + preț + oraș setate.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
@@ -36,7 +37,7 @@ async function approvedApplication(userId: string) {
     return rows[0] ?? null;
 }
 
-export async function GET() {
+export const GET = withErrorHandling(async function GET() {
     const session = await getAuthSession().catch(() => null);
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -50,7 +51,7 @@ export async function GET() {
     );
     const app = await approvedApplication(session.userId);
     return NextResponse.json({ approved: Boolean(app), listings: rows });
-}
+});
 
 const createSchema = z.object({
     title: z.string().min(5).max(140),
@@ -60,7 +61,7 @@ const createSchema = z.object({
     maxGuests: z.number().int().min(1).max(50).optional(),
 });
 
-export async function POST(req: Request) {
+export const POST = withErrorHandling(async function POST(req: Request) {
     const session = await getAuthSession().catch(() => null);
     if (!session) return NextResponse.json({ error: "Autentifică-te mai întâi." }, { status: 401 });
 
@@ -109,4 +110,4 @@ export async function POST(req: Request) {
     );
     logger.info({ listingId: rows[0].id, host: session.userId }, "host listing created (draft)");
     return NextResponse.json({ ok: true, listingId: rows[0].id, status: "draft" });
-}
+});

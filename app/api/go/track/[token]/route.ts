@@ -6,13 +6,14 @@
  * share_expires_at (final cursă + 1h).
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(
+export const GET = withErrorHandling(async function GET(
   req: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
@@ -70,4 +71,4 @@ export async function GET(
     dropoff: { address: ride.dropoff_address, lat: Number(ride.dropoff_lat), lng: Number(ride.dropoff_lng) },
     driver,
   });
-}
+});

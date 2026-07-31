@@ -4,6 +4,7 @@
  * Prețul e mereu calculat server-side.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { quoteStay } from "@/lib/stays/booking";
 
 export const runtime = "nodejs";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export async function GET(req: Request) {
+export const GET = withErrorHandling(async function GET(req: Request) {
     const sp = new URL(req.url).searchParams;
     const productId = sp.get("productId") ?? "";
     const checkIn = sp.get("checkIn") ?? "";
@@ -32,4 +33,4 @@ export async function GET(req: Request) {
         totalCents: q.totalCents,
         currency: q.currency,
     });
-}
+});

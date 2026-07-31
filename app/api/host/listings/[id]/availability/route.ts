@@ -10,6 +10,7 @@
  * Autorizare: doar proprietarul listingului.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
@@ -28,7 +29,7 @@ async function ownsListing(id: string, userId: string): Promise<boolean> {
     return rows.length > 0;
 }
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withErrorHandling(async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getAuthSession().catch(() => null);
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { id } = await params;
@@ -65,7 +66,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         pricedDays: priced.rows,
         bookedRanges: booked.rows,
     });
-}
+});
 
 const postSchema = z.object({
     dates: z.array(z.string().regex(DATE)).min(1).max(366),
@@ -73,7 +74,7 @@ const postSchema = z.object({
     priceCentsOverride: z.number().int().min(2000).max(100000000).nullable().optional(),
 });
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withErrorHandling(async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getAuthSession().catch(() => null);
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { id } = await params;
@@ -115,4 +116,4 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     );
 
     return NextResponse.json({ ok: true, updated: dates.length });
-}
+});

@@ -8,6 +8,7 @@
  * Publicarea cere poză + preț + oraș — altfel listingul ar apărea gol în /stays.
  */
 import { NextResponse } from "next/server";
+import { withErrorHandling } from "@/lib/api-handler";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
@@ -38,7 +39,7 @@ async function ownedListing(id: string, userId: string) {
     return rows[0] ?? null;
 }
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withErrorHandling(async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getAuthSession().catch(() => null);
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { id } = await params;
@@ -86,9 +87,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     if (d.action) logger.info({ listingId: id, action: d.action }, "host listing status changed");
     return NextResponse.json({ ok: true, status: rows[0].status });
-}
+});
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withErrorHandling(async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getAuthSession().catch(() => null);
     if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { id } = await params;
@@ -107,4 +108,4 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     await dbQuery(`DELETE FROM marketplace_products WHERE id = $1::uuid AND metadata->>'host_user_id' = $2`, [id, session.userId]);
     return NextResponse.json({ ok: true });
-}
+});
