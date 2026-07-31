@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ChevronRight, Home, Video, Store, Bike, BedDouble } from "lucide-react";
+import { ChevronRight, Home, Video, Store, Bike, BedDouble, Building2 } from "lucide-react";
 
 type Me = {
   role?: string | null;
@@ -34,16 +34,18 @@ export default function MyModes() {
   const [me, setMe] = useState<Me | null>(null);
   const [courier, setCourier] = useState<CourierProfile | null>(null);
   const [hostApp, setHostApp] = useState<{ status: string; property_name: string } | null>(null);
+  const [franchise, setFranchise] = useState<{ status: string; company_name: string; city: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [resMe, resCourier, resHost] = await Promise.all([
+        const [resMe, resCourier, resHost, resFranchise] = await Promise.all([
           fetch("/api/auth/me").catch(() => null),
           fetch("/api/couriers").catch(() => null),
           fetch("/api/hosts/apply").catch(() => null),
+          fetch("/api/fleet-partners").catch(() => null),
         ]);
         if (cancelled) return;
         if (resMe?.ok) {
@@ -57,6 +59,10 @@ export default function MyModes() {
         if (resHost?.ok) {
           const d = await resHost.json();
           setHostApp(d?.applications?.[0] ?? null);
+        }
+        if (resFranchise?.ok) {
+          const d = await resFranchise.json();
+          setFranchise(d?.partner ?? null);
         }
       } finally {
         if (!cancelled) setLoaded(true);
@@ -102,7 +108,18 @@ export default function MyModes() {
       badgeTone: s === "approved" ? "ok" : s === "rejected" ? "bad" : "warn",
     });
   }
-  const hasAnyPartnerMode = Boolean(me?.sellerId) || Boolean(courier) || Boolean(hostApp);
+  if (franchise) {
+    const s = franchise.status;
+    modes.push({
+      href: "/fleet",
+      icon: Building2,
+      title: "Franciză de flotă",
+      sub: `${franchise.company_name} · ${franchise.city}`,
+      badge: s === "active" ? "Activă" : s === "rejected" ? "Respinsă" : s === "suspended" ? "Suspendată" : "În verificare",
+      badgeTone: s === "active" ? "ok" : s === "rejected" || s === "suspended" ? "bad" : "warn",
+    });
+  }
+  const hasAnyPartnerMode = Boolean(me?.sellerId) || Boolean(courier) || Boolean(hostApp) || Boolean(franchise);
 
   const toneClass = (tone?: Mode["badgeTone"]) =>
     tone === "ok"

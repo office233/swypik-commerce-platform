@@ -29,12 +29,15 @@ type Driver = {
     active: boolean;
 };
 
+type Stats = { rides_30d: number; revenue_30d_cents: number; commission_30d_cents: number };
+
 export default function FleetPartnerClient() {
     const t = useTranslations("join");
     const [loading, setLoading] = useState(true);
     const [unauthorized, setUnauthorized] = useState(false);
     const [partner, setPartner] = useState<Partner | null>(null);
     const [drivers, setDrivers] = useState<Driver[]>([]);
+    const [stats, setStats] = useState<Stats | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -44,6 +47,7 @@ export default function FleetPartnerClient() {
                 const data = await res.json();
                 setPartner(data.partner);
                 setDrivers(data.drivers ?? []);
+                setStats(data.stats ?? null);
             } finally {
                 setLoading(false);
             }
@@ -107,6 +111,47 @@ export default function FleetPartnerClient() {
                     <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-[13px] font-semibold text-amber-800">
                         {t("franchisePendingNote")}
                     </p>
+                )}
+
+                {partner.status === "active" && (
+                    <div className="mt-6 grid grid-cols-3 gap-3">
+                        <div className="rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-black/5">
+                            <p className="text-2xl font-black text-[#0D0D0D]">{stats?.rides_30d ?? 0}</p>
+                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#A1A1AA]">Curse 30 zile</p>
+                        </div>
+                        <div className="rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-black/5">
+                            <p className="text-2xl font-black text-[#0D0D0D]">
+                                {((stats?.revenue_30d_cents ?? 0) / 100).toFixed(0)}
+                            </p>
+                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#A1A1AA]">Volum RON</p>
+                        </div>
+                        <div className="rounded-2xl bg-violet-50 p-4 text-center shadow-sm ring-1 ring-violet-200">
+                            <p className="text-2xl font-black text-violet-700">
+                                {((stats?.commission_30d_cents ?? 0) / 100).toFixed(0)}
+                            </p>
+                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-violet-500">
+                                Comisionul tău ({((partner.commission_bps ?? 0) / 100).toFixed(1)}%)
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {partner.status === "active" && (
+                    <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+                        <p className="text-[13px] font-bold text-[#0D0D0D]">Recrutează pentru flota ta</p>
+                        <p className="mt-1 text-[12px] text-[#6E6E80]">
+                            Trimite acest link candidaților din {partner.city}. Aplicațiile ajung la Swypik pentru verificare,
+                            iar la aprobare îi alocăm francizei tale.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <a href="/join/fleet?kind=driver" className="rounded-xl bg-amber-500 px-3 py-2 text-[12px] font-bold text-white">
+                                🚕 Link șoferi Go
+                            </a>
+                            <a href="/join/fleet?kind=courier" className="rounded-xl bg-green-600 px-3 py-2 text-[12px] font-bold text-white">
+                                🛵 Link curieri Food
+                            </a>
+                        </div>
+                    </div>
                 )}
 
                 <section className="mt-8">

@@ -38,6 +38,9 @@
   "exclude": [
     "node_modules",
     "scripts",
-    "workers"
+    "workers",
+    ".next-dev*",
+    ".next-verify",
+    ".next-build"
   ]
 }
