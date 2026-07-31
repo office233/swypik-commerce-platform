@@ -14,6 +14,7 @@ import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 import { attributeOrder } from "@/lib/algo/attribution";
 
 import { logger } from "@/lib/logger";
+import { onOrderPaid } from "@/lib/swyp/hooks";
 export const dynamic = "force-dynamic";
 
 async function getRawBody(req: Request): Promise<Buffer> {
@@ -401,6 +402,8 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     await attributeOrder(orderId).catch((e) =>
       logger.error({ err: e, orderId }, "[algo] video attribution failed"),
     );
+    // SWYP: referral validat la prima comandă plătită (best-effort, nu blochează).
+    await onOrderPaid(orderId, intent.id);
   }
 
   // Record payment transaction
@@ -717,6 +720,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   await maybeSendOrderConfirmation(orderId);
 
   // FRONT 4 — webhooks către apps terțe instalate (fire-and-forget)
+  // SWYP: referral validat la prima comandă plătită (idempotent în ledger).
+  await onOrderPaid(orderId, String(session.payment_intent || `checkout_${session.id}`));
+
   {
     const sellerIds = [...new Set(
       items
