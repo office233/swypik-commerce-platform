@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { X, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
+import { VERTICAL_CATALOG as VERTICALS } from "@/lib/verticals/catalog";
 
 export type CategoryNode = {
     id?: string | number;
@@ -38,13 +39,30 @@ function nodeSlug(c: CategoryNode): string {
     return String(c.tag ?? c.slug ?? c.id ?? c.name);
 }
 
-const VERTICALS = [
-    { id: "food", brand: "Swypik Food", emoji: "🍔", href: "/food", accent: "#2DBE60" },
-    { id: "fly", brand: "Swypik Fly", emoji: "✈️", href: "/fly", accent: "#1D4ED8" },
-    { id: "stays", brand: "Swypik Stays", emoji: "🏖️", href: "/stays", accent: "#0D9488" },
-    { id: "go", brand: "Swypik Go", emoji: "🚕", href: "/go", accent: "#F59E0B" },
-    { id: "pay", brand: "Swypik Pay", emoji: "🪙", href: "/pay", accent: "#F5A623" },
-] as const;
+/**
+ * Verticalele cu pagină dedicată (rută proprie). Restul catalogului se
+ * deschide prin /v/<id> — vezi VERTICAL_GROUPS mai jos.
+ */
+const DEDICATED_HREF: Record<string, string> = {
+    eats: "/food",
+    fly: "/fly",
+    stays: "/stays",
+    go: "/go",
+    pay: "/pay",
+};
+
+/** Etichete pentru grupurile din catalog (ordinea de afișare). */
+const GROUP_LABELS: { id: string; label: string }[] = [
+    { id: "local", label: "Local & livrare" },
+    { id: "travel", label: "Călătorii" },
+    { id: "mobility", label: "Transport" },
+    { id: "shop", label: "Cumpărături" },
+    { id: "property", label: "Imobiliare & auto" },
+    { id: "services", label: "Servicii" },
+    { id: "work", label: "Muncă" },
+    { id: "finance", label: "Finanțe" },
+    { id: "social", label: "Comunitate" },
+];
 
 /** Emoji fallback pe categorii marketplace frecvente. */
 function categoryEmoji(name: string): string {
@@ -92,10 +110,27 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
         onSelectCategory(slug);
     };
 
-    const verticalItems = VERTICALS.map((v) => ({
-        ...v,
-        label: tv(`${v.id === "food" ? "eats" : v.id}.label`),
-    }));
+    /**
+     * Toate verticalele din catalog, grupate. Cele cu pagină dedicată merg
+     * direct la ruta lor; restul, prin /v/<id>.
+     */
+    const groupedVerticals = GROUP_LABELS.map((g) => ({
+        ...g,
+        items: VERTICALS.filter((v) => v.group === g.id).map((v) => ({
+            id: v.id,
+            brand: v.brand,
+            emoji: v.emoji,
+            accent: v.accent,
+            href: DEDICATED_HREF[v.id] ?? `/v/${v.id}`,
+            label: (() => {
+                try {
+                    return tv(`${v.id}.label`);
+                } catch {
+                    return v.brand.replace("Swypik ", "");
+                }
+            })(),
+        })),
+    })).filter((g) => g.items.length > 0);
 
     if (!mounted || !open) return null;
 
@@ -120,30 +155,36 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
-                    <p className="pb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">Serviciile Swypik</p>
-                    {/* Carduri colorate, stil /join */}
-                    <div className="space-y-2.5">
-                        {verticalItems.map((v) => (
-                            <button
-                                key={v.id}
-                                type="button"
-                                onClick={() => goVertical(v.href)}
-                                className="group flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
-                            >
-                                <span
-                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl"
-                                    style={{ backgroundColor: `${v.accent}1A` }}
-                                >
-                                    {v.emoji}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                    <span className="block text-[15px] font-extrabold text-[#0D0D0D]">{v.brand}</span>
-                                    <span className="block text-[12px] font-semibold text-[#6E6E80]">{v.label}</span>
-                                </span>
-                                <ChevronRight size={18} className="shrink-0 text-[#C4C4CC] transition group-hover:translate-x-0.5" style={{ color: v.accent }} />
-                            </button>
-                        ))}
-                    </div>
+                    {/* Toate verticalele, grupate; carduri colorate stil /join */}
+                    {groupedVerticals.map((g, gi) => (
+                        <div key={g.id} className={gi > 0 ? "mt-5" : ""}>
+                            <p className="pb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">
+                                {g.label}
+                            </p>
+                            <div className="space-y-2.5">
+                                {g.items.map((v) => (
+                                    <button
+                                        key={v.id}
+                                        type="button"
+                                        onClick={() => goVertical(v.href)}
+                                        className="group flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+                                    >
+                                        <span
+                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl"
+                                            style={{ backgroundColor: `${v.accent}1A` }}
+                                        >
+                                            {v.emoji}
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block text-[15px] font-extrabold text-[#0D0D0D]">{v.brand}</span>
+                                            <span className="block text-[12px] font-semibold text-[#6E6E80]">{v.label}</span>
+                                        </span>
+                                        <ChevronRight size={18} className="shrink-0 transition group-hover:translate-x-0.5" style={{ color: v.accent }} />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
 
                     <p className="pb-2 pt-6 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">{t("categories")}</p>
 
