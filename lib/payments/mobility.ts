@@ -35,7 +35,13 @@ import {
     payFirstRideBonusIfDue,
 } from "@/lib/drivers/referral";
 import { awardSwyp } from "@/lib/swyp/rewards";
-import { fundBacking } from "@/lib/swyp/valuation";
+import {
+    fundBacking,
+    getSwypRate,
+    unitsToCents,
+    redeemSwypForPayment,
+} from "@/lib/swyp/valuation";
+import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
 import { logger } from "@/lib/logger";
 
 const log = logger.child({ mod: "payments/mobility" });
@@ -86,10 +92,11 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
         payment_method: string | null;
         pricing_zone_id: string | null;
         driver_user_id: string | null;
+        swyp_paid_cents: number;
     }>(
         `SELECT r.id, r.status, r.driver_id, r.rider_user_id AS rider_id, r.final_fare_cents, r.estimated_fare_cents,
             COALESCE(r.tip_cents, 0)::int AS tip_cents, r.payment_method, r.pricing_zone_id,
-            c.user_id AS driver_user_id
+            c.user_id AS driver_user_id, COALESCE(r.swyp_paid_cents, 0)::int AS swyp_paid_cents
        FROM rides r
        LEFT JOIN couriers c ON c.id = r.driver_id
       WHERE r.id = $1`,
@@ -99,6 +106,34 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
     if (!ride || ride.status !== "completed" || !ride.driver_user_id) return null;
 
     const fare = ride.final_fare_cents ?? ride.estimated_fare_cents ?? 0;
+
+    // Plată hibridă cu SWYP (swyp_paid_cents = -1 → intenție exprimată la comandă):
+    // acoperim cât permit soldul, cursul și fondul de acoperire, LA CURSUL DE ACUM.
+    // Restul tarifului merge pe metoda de bază (cash/card). Idempotent per cursă.
+    if (ride.rider_id && ride.swyp_paid_cents === -1 && fare > 0) {
+        let covered = 0;
+        try {
+            const rate = await getSwypRate();
+            if (rate.rate_microcents_per_unit > 0n) {
+                const balanceUnits = await getSwypBalanceUnits(ride.rider_id);
+                const maxFromBalance = Number(unitsToCents(balanceUnits, rate));
+                const want = Math.min(fare, maxFromBalance);
+                if (want > 0) {
+                    const redeemed = await redeemSwypForPayment({
+                        userId: ride.rider_id,
+                        cents: want,
+                        refType: "ride_swyp",
+                        refId: ride.id,
+                    });
+                    if (redeemed.ok) covered = redeemed.cents_covered;
+                }
+            }
+        } catch (err) {
+            log.warn({ err, rideId: ride.id }, "swyp hybrid payment failed — falling back to base method");
+        }
+        await dbQuery(`UPDATE rides SET swyp_paid_cents = $1 WHERE id = $2`, [covered, ride.id]);
+        ride.swyp_paid_cents = covered;
+    }
     // Founding Drivers: treapta șoferului (15/18/20% sau 0% în promo) primează;
     // fallback pe procentul zonei pentru șoferii fără treaptă (date vechi).
     const tierPct = ride.driver_id ? await effectiveCommissionPct(ride.driver_id) : null;
@@ -125,8 +160,11 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
     let result: SettleResult;
 
     if (isCash) {
-        // Șoferul are toți banii → îi debităm comisionul platformei (datorie).
-        const debt = split.platform_cents;
+        // Șoferul a încasat cash doar partea neacoperită de SWYP (fondul a
+        // plătit restul către platformă) → datoria lui scade cu partea SWYP.
+        // Dacă SWYP a acoperit mai mult decât comisionul, platforma îi
+        // datorează diferența (debit negativ → credit).
+        const debt = split.platform_cents - Math.max(0, ride.swyp_paid_cents);
         if (debt > 0) {
             const r = await debitUser({
                 userId: ride.driver_user_id,
@@ -134,10 +172,20 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
                 refType: "ride",
                 refId: ride.id,
                 description: `Comision platformă cursă cash #${ride.id.slice(0, 8)}`,
-                metadata: { split, payment: "cash" },
+                metadata: { split, payment: "cash", swyp_paid_cents: ride.swyp_paid_cents },
                 allowNegative: true,
             });
             result = { settled: true, alreadySettled: r.alreadyApplied, split, ledger_amount_cents: debt, ledger_kind: "debit" };
+        } else if (debt < 0) {
+            const r = await creditUser({
+                userId: ride.driver_user_id,
+                amountCents: -debt,
+                refType: "ride",
+                refId: ride.id,
+                description: `Diferență cursă plătită cu SWYP #${ride.id.slice(0, 8)}`,
+                metadata: { split, payment: "cash+swyp", swyp_paid_cents: ride.swyp_paid_cents },
+            });
+            result = { settled: true, alreadySettled: r.alreadyApplied, split, ledger_amount_cents: -debt, ledger_kind: "credit" };
         } else {
             result = { settled: true, alreadySettled: false, split, ledger_amount_cents: 0, ledger_kind: "none" };
         }

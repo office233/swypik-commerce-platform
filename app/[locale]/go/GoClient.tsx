@@ -44,6 +44,23 @@ export default function GoClient() {
   const [loading, setLoading] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useSwyp, setUseSwyp] = useState(false);
+  const [swypInfo, setSwypInfo] = useState<{ ronPerSwyp: number; balanceSwyp: number } | null>(null);
+
+  // Cursul + soldul SWYP: opțiunea de plată apare doar dacă moneda are
+  // acoperire reală (curs > 0) și userul are sold.
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/swyp/rate").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/swyp/wallet").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ])
+      .then(([rate, bal]) => {
+        const ron = Number(rate?.ron_per_swyp ?? 0);
+        const balance = Number(bal?.balanceUnits ?? 0) / 100; // 100 subunități = 1 SWYP
+        if (ron > 0 && balance > 0) setSwypInfo({ ronPerSwyp: ron, balanceSwyp: balance });
+      })
+      .catch(() => {});
+  }, []);
 
   // Deep link din alte verticale: /go?dropoff=<adresă>&dlat=..&dlng=..
   // (ex: din tracking Eats — „ai nevoie de o cursă?").
@@ -128,7 +145,13 @@ export default function GoClient() {
       const res = await fetch("/api/rides", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pickup, dropoff, vehicle_class: vehicleClass, payment_method: "cash" }),
+        body: JSON.stringify({
+          pickup,
+          dropoff,
+          vehicle_class: vehicleClass,
+          payment_method: "cash",
+          use_swyp: useSwyp && !!swypInfo,
+        }),
       });
       const data = await res.json();
       if (res.status === 409 && data.ride_id) {
@@ -224,6 +247,36 @@ export default function GoClient() {
           </p>
         ) : null}
         {error ? <p className="mt-2 text-center text-[13px] text-red-600">{error}</p> : null}
+
+        {swypInfo ? (
+          <button
+            type="button"
+            onClick={() => setUseSwyp((v) => !v)}
+            aria-pressed={useSwyp}
+            className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+              useSwyp ? "border-neutral-900 bg-neutral-50" : "border-neutral-200"
+            }`}
+          >
+            <span>
+              <span className="block text-[14px] font-bold">{t("paySwyp")}</span>
+              <span className="block text-[12px] text-neutral-500">
+                {t("swypBalance", {
+                  swyp: swypInfo.balanceSwyp.toFixed(0),
+                  lei: (swypInfo.balanceSwyp * swypInfo.ronPerSwyp).toFixed(2),
+                })}
+              </span>
+            </span>
+            <span
+              className={`h-6 w-11 shrink-0 rounded-full p-0.5 transition ${
+                useSwyp ? "bg-neutral-900" : "bg-neutral-300"
+              }`}
+            >
+              <span
+                className={`block h-5 w-5 rounded-full bg-white transition ${useSwyp ? "translate-x-5" : ""}`}
+              />
+            </span>
+          </button>
+        ) : null}
 
         <button
           type="button"

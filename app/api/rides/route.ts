@@ -74,14 +74,16 @@ export async function POST(req: Request) {
     }
 
     const { rows } = await dbQuery<{ id: string }>(
+        // use_swyp: intenția de plată hibridă — acoperim la decontare cât permite
+        // soldul și cursul de ATUNCI; aici doar estimăm pentru UI (informativ).
         `INSERT INTO rides
        (rider_user_id, city, vehicle_class,
         pickup_address, pickup_lat, pickup_lng,
         dropoff_address, dropoff_lat, dropoff_lng,
         status, estimated_fare_cents, currency,
         distance_km, duration_min, surge_multiplier, fare_breakdown,
-          payment_method, share_token)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'requested',$10,$11,$12,$13,$14,$15,$16,$17)
+                    payment_method, share_token, swyp_paid_cents)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'requested',$10,$11,$12,$13,$14,$15,$16,$17,$18)
      RETURNING id`,
         [
             session.userId,
@@ -101,6 +103,7 @@ export async function POST(req: Request) {
             JSON.stringify(est.breakdown),
             input.payment_method,
             randomBytes(16).toString("hex"),
+            input.use_swyp ? -1 : 0, // -1 = "vrea SWYP", suma reală se fixează la decontare
         ],
     );
     const rideId = rows[0].id;

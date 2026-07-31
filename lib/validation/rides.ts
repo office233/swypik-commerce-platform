@@ -38,6 +38,8 @@ export const RideEstimateSchema = z.object({
 
 export const RideCreateSchema = RideEstimateSchema.extend({
   payment_method: z.enum(["cash", "card", "wallet"]).default("cash"),
+  /** Plată hibridă: acoperă cât se poate din tarif cu SWYP, restul prin payment_method. */
+  use_swyp: z.boolean().default(false),
   notes: z.string().trim().max(500).optional(),
 });
 

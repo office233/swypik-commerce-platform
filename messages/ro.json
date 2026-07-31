@@ -115,7 +115,9 @@
       "noAccess": "Nu ai acces la această cursă.",
       "notFound": "Cursa nu există.",
       "backToGo": "Înapoi la Go"
-    }
+    },
+    "paySwyp": "Plateste cu SWYP",
+    "swypBalance": "Sold: {swyp} SWYP (aprox. {lei} lei) - acoperim cat se poate din cursa"
   },
   "auth": {
     "login": "Autentificare",

@@ -115,7 +115,9 @@
       "noAccess": "You don't have access to this ride.",
       "notFound": "Ride not found.",
       "backToGo": "Back to Go"
-    }
+    },
+    "paySwyp": "Pay with SWYP",
+    "swypBalance": "Balance: {swyp} SWYP (about {lei} lei) - covers as much of the ride as possible"
   },
   "auth": {
     "login": "Sign in",
