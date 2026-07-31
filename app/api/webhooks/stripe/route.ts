@@ -8,6 +8,7 @@ import { scoreOrderRisk } from "@/lib/risk/order-fraud-score";
 import { notifyOps } from "@/lib/ops/alerts";
 import type Stripe from "stripe";
 import { persistConnectAccount } from "@/lib/stripe/connect";
+import { refundSwypForUnpaidOrder, refundSwypForRefundedCharge } from "@/lib/swyp/refund";
 import { markLocalOrderPaid, markLocalOrderPaymentFailed } from "@/lib/payments/eats-stripe";
 import crypto from "crypto";
 import { dispatchAppWebhook } from "@/lib/apps/webhooks";
@@ -127,6 +128,12 @@ export async function POST(req: Request) {
             [intent.metadata.ride_id],
           );
         }
+        // SWYP: eșec DEFINITIV (intent anulat) → recreditează integral partea
+        // SWYP. Un simplu card declinat (requires_payment_method) mai poate fi
+        // reîncercat de client — pentru abandon există cronul de reclaim.
+        if (intent.status === "canceled") {
+          await reclaimSwypForDeadIntent(intent.id, event.type);
+        }
         logger.warn(`[Stripe Webhook] Payment failed: ${intent.id} - ${intent.last_payment_error?.message}`);
         await logCheckoutEvent("checkout_fail", {
           error: intent.last_payment_error?.message || "payment_intent.payment_failed",
@@ -173,6 +180,35 @@ export async function POST(req: Request) {
 
           // SWYP: revocă recompensele acordate pentru plata refundată.
           await onPaymentRefunded(pi);
+
+          // SWYP: recreditează partea plătită efectiv în SWYP la comenzile
+          // hibride, proporțional cu partea de card refundată. Idempotent
+          // după ref (swyp_refund_charge:<charge_id>:<amount_refunded>);
+          // aruncă la eroare → Stripe reîncearcă eventul.
+          {
+            const { rows: swypOrders } = await dbQuery<{ id: string; swyp_paid_cents: number }>(
+              `SELECT id, COALESCE(swyp_paid_cents, 0)::int AS swyp_paid_cents
+                 FROM commerce_orders
+                WHERE (metadata->>'paymentIntentId' = $1
+                       OR metadata->>'payment_intent_id' = $1
+                       OR metadata->>'stripe_payment_intent' = $1)
+                  AND COALESCE(swyp_paid_cents, 0) > 0`,
+              [pi]
+            );
+            for (const so of swypOrders) {
+              const res = await refundSwypForRefundedCharge({
+                orderId: so.id,
+                chargeId: charge.id,
+                amountRefunded: charge.amount_refunded || 0,
+                amountTotal: charge.amount || 0,
+              });
+              if (res.credited) {
+                logger.info(
+                  `[Stripe Webhook] SWYP refunded for hybrid order ${so.id}: ${res.units} units / ${res.cents} cents (charge ${charge.id})`
+                );
+              }
+            }
+          }
 
           try {
             const { rows: oRows } = await dbQuery<{ id: string; currency: string; total_cents: number; customer_email: string | null; user_email: string | null }>(
@@ -226,8 +262,12 @@ export async function POST(req: Request) {
                   OR co.metadata->>'sessionId' = $1
                   OR co.metadata->>'stripe_session_id' = $1
                   OR co.metadata->>'stripe_payment_intent' = $1)`,
-          [objId, event.type]
+           [objId, event.type]
         );
+        // SWYP: intentul nu se mai poate plăti niciodată → recreditează
+        // integral partea debitată la create-intent. Idempotent după
+        // (swyp_refund_intent, <obj_id>).
+        await reclaimSwypForDeadIntent(objId, event.type);
         break;
       }
       case "charge.dispute.created":
@@ -321,6 +361,37 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+/**
+ * SWYP: intent mort (canceled / expired / async payment failed) → găsește
+ * comenzile neplătite cu parte SWYP debitată și recreditează integral.
+ * Idempotent după (swyp_refund_intent, <obj_id>) în ledger.
+ */
+async function reclaimSwypForDeadIntent(objId: string, eventType: string) {
+  const { rows } = await dbQuery<{ id: string }>(
+    `SELECT id FROM commerce_orders
+      WHERE (metadata->>'paymentIntentId' = $1
+             OR metadata->>'payment_intent_id' = $1
+             OR metadata->>'sessionId' = $1
+             OR metadata->>'stripe_session_id' = $1
+             OR metadata->>'stripe_payment_intent' = $1)
+        AND status IN ('pending', 'cancelled', 'failed')
+        AND COALESCE(swyp_paid_cents, 0) > 0
+        AND metadata->>'swyp_refunded_at' IS NULL`,
+    [objId]
+  );
+  for (const row of rows) {
+    const res = await refundSwypForUnpaidOrder({
+      orderId: row.id,
+      refType: "swyp_refund_intent",
+      refId: objId,
+      reason: eventType,
+    });
+    if (res.credited) {
+      logger.info(`[Stripe Webhook] SWYP reclaimed for unpaid order ${row.id} (${eventType}, ${objId})`);
+    }
+  }
 }
 
 async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
