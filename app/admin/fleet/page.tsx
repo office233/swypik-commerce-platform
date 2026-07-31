@@ -4,7 +4,7 @@
  */
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
-import FleetActions from "./FleetActions";
+import FleetActions, { PartnerActions } from "./FleetActions";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +62,9 @@ export default async function AdminFleetPage() {
     ]);
 
     const pending = couriers.filter((c) => c.verification_status === "pending");
+    const activeCount = couriers.filter((c) => c.verification_status === "approved" && c.active).length;
+    const inactiveCount = couriers.filter((c) => c.verification_status === "approved" && !c.active).length;
+    const rejectedCount = couriers.filter((c) => c.verification_status === "rejected").length;
 
     return (
         <div className="p-6">
@@ -73,6 +76,12 @@ export default async function AdminFleetPage() {
                     </span>
                 )}
             </h1>
+            <div className="mt-3 flex flex-wrap gap-2 text-[12px] font-bold">
+                <span className="rounded-full bg-green-100 px-3 py-1 text-green-700">{activeCount} activi</span>
+                <span className="rounded-full bg-gray-200 px-3 py-1 text-gray-600">{inactiveCount} suspendați</span>
+                <span className="rounded-full bg-red-100 px-3 py-1 text-red-600">{rejectedCount} respinși</span>
+                <span className="rounded-full bg-black/5 px-3 py-1 text-[#6E6E80]">{couriers.length} total</span>
+            </div>
 
             <section className="mt-6">
                 <h2 className="mb-3 text-lg font-extrabold">Aplicații șoferi & curieri</h2>
@@ -115,6 +124,7 @@ export default async function AdminFleetPage() {
                                         <FleetActions
                                             courierId={c.id}
                                             status={c.verification_status}
+                                            active={c.active}
                                             partners={partners.filter((p) => p.status === "active" && p.city.toLowerCase() === c.city.toLowerCase())}
                                         />
                                     </td>
@@ -139,6 +149,7 @@ export default async function AdminFleetPage() {
                                 <th className="px-4 py-3">Vertical</th>
                                 <th className="px-4 py-3">Șoferi</th>
                                 <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3">Acțiuni</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -153,10 +164,13 @@ export default async function AdminFleetPage() {
                                             {p.status}
                                         </span>
                                     </td>
+                                    <td className="px-4 py-3">
+                                        <PartnerActions partnerId={p.id} status={p.status} />
+                                    </td>
                                 </tr>
                             ))}
                             {partners.length === 0 && (
-                                <tr><td colSpan={5} className="px-4 py-8 text-center text-[#A1A1AA]">Nicio franciză încă. Aplicațiile vin din /join/franchise.</td></tr>
+                                <tr><td colSpan={6} className="px-4 py-8 text-center text-[#A1A1AA]">Nicio franciză încă. Aplicațiile vin din /join/franchise.</td></tr>
                             )}
                         </tbody>
                     </table>

@@ -49,6 +49,14 @@ export async function PATCH(
                       SET active=false, updated_at=now()
                     WHERE id=$1
                 RETURNING id, kind, full_name, email, verification_status`;
+        } else if (action === "reactivate") {
+            sql = `UPDATE couriers
+                      SET active=true, updated_at=now()
+                    WHERE id=$1 AND verification_status='approved'
+                RETURNING id, kind, full_name, email, verification_status`;
+        } else if (action === "delete") {
+            sql = `DELETE FROM couriers WHERE id=$1
+                RETURNING id, kind, full_name, email, verification_status`;
         } else {
             return NextResponse.json({ error: "invalid_action" }, { status: 400 });
         }
@@ -81,9 +89,8 @@ export async function PATCH(
             const tierPct = tier ? TIER_COMMISSION_PCT[tier as keyof typeof TIER_COMMISSION_PCT] : null;
             const tierHtml =
                 tierPct !== null
-                    ? `<p><strong>Comisionul tău: 0% în primele ${PROMO_DAYS} de zile</strong>, apoi ${tierPct}% pe viață${
-                          tier === "founding15" ? " (Founding Driver — primii 500)" : ""
-                      }.</p>`
+                    ? `<p><strong>Comisionul tău: 0% în primele ${PROMO_DAYS} de zile</strong>, apoi ${tierPct}% pe viață${tier === "founding15" ? " (Founding Driver — primii 500)" : ""
+                    }.</p>`
                     : "";
             const codeHtml = referralCode
                 ? `<p>Codul tău de invitație pentru clienți: <strong>${referralCode}</strong> — clienții noi primesc prima cursă la jumătate de preț, iar tu primești bonus.</p>`
