@@ -10,6 +10,7 @@
  *  - plata efectivă = swypTransfer din pool-ul 'rewards' → user (idempotent).
  */
 import { dbQuery } from "@/lib/db";
+import { getSwypRate, centsToUnits } from "./valuation";
 import { logger } from "@/lib/logger";
 import { swypTransfer, type SwypTransferResult } from "./ledger";
 
@@ -30,6 +31,8 @@ export type AwardArgs = {
     refId: string;
     /** Obligatoriu când regula are requires_paid_tx: referința plății reale. */
     paidTxRef?: string;
+    /** Valoarea tranzacției în cents — pentru regulile cu pct_of_value_bps. */
+    valueCents?: number;
     /** Suprascrie suma regulii (ex. mining cu rată pe sesiune). */
     amountUnitsOverride?: bigint;
     metadata?: Record<string, unknown>;
@@ -45,13 +48,15 @@ type Rule = {
     daily_cap_units: string | null;
     requires_paid_tx: boolean;
     enabled: boolean;
+    pct_of_value_bps: number | null;
 };
 
 export async function awardSwyp(args: AwardArgs): Promise<AwardResult> {
     const { userId, action, refId, paidTxRef, metadata } = args;
 
     const { rows } = await dbQuery<Rule>(
-        `SELECT action, amount_units::text, daily_cap_units::text, requires_paid_tx, enabled
+        `SELECT action, amount_units::text, daily_cap_units::text, requires_paid_tx, enabled,
+            pct_of_value_bps
        FROM swyp_emission_rules WHERE action = $1`,
         [action],
     );
@@ -63,7 +68,22 @@ export async function awardSwyp(args: AwardArgs): Promise<AwardResult> {
         return { awarded: false, reason: "paid_tx_required" };
     }
 
-    const amount = args.amountUnitsOverride ?? BigInt(rule.amount_units);
+    // Suma: override explicit > procent din valoarea tranzacției (dacă regula
+    // are pct_of_value_bps și cursul are acoperire) > suma fixă a regulii.
+    // Procentual = cashback constant pentru client și curs auto-stabil: emitem
+    // valoare echivalentă cu ce intră în fond, indiferent de mărimea cursei.
+    let amount = args.amountUnitsOverride ?? null;
+    if (amount === null && rule.pct_of_value_bps && args.valueCents && args.valueCents > 0) {
+        const targetCents = BigInt(Math.floor((args.valueCents * rule.pct_of_value_bps) / 10_000));
+        if (targetCents > 0n) {
+            const rate = await getSwypRate();
+            const units = centsToUnits(targetCents, rate); // 0 dacă fondul e gol
+            if (units > 0n) amount = units;
+        }
+    }
+    // Bootstrap: fără acoperire (curs 0) nu se poate converti — suma fixă.
+    if (amount === null) amount = BigInt(rule.amount_units);
+    if (amount <= 0n) return { awarded: false, reason: "rule_disabled" };
 
     // Cap zilnic — calculat din ledger (sursa adevărului).
     if (rule.daily_cap_units !== null) {

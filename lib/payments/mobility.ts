@@ -93,10 +93,12 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
         pricing_zone_id: string | null;
         driver_user_id: string | null;
         swyp_paid_cents: number;
+        fare_breakdown: Record<string, unknown> | null;
     }>(
         `SELECT r.id, r.status, r.driver_id, r.rider_user_id AS rider_id, r.final_fare_cents, r.estimated_fare_cents,
             COALESCE(r.tip_cents, 0)::int AS tip_cents, r.payment_method, r.pricing_zone_id,
-            c.user_id AS driver_user_id, COALESCE(r.swyp_paid_cents, 0)::int AS swyp_paid_cents
+            c.user_id AS driver_user_id, COALESCE(r.swyp_paid_cents, 0)::int AS swyp_paid_cents,
+            r.fare_breakdown
        FROM rides r
        LEFT JOIN couriers c ON c.id = r.driver_id
       WHERE r.id = $1`,
@@ -243,9 +245,14 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
 
         // Acoperirea SWYP: un procent din comisionul NET intră în fondul care
         // dă valoare monedei. Fără încasări reale, cursul rămâne 0.
+        // În perioada promo (comision 0%) baza e booking fee-ul — singura
+        // parte care rămâne mereu a platformei — altfel fondul ar stagna 60 zile.
         try {
+            const bookingFee = Number(
+                (ride.fare_breakdown as { booking_fee_cents?: number } | null)?.booking_fee_cents ?? 0,
+            );
             await fundBacking({
-                commissionCents: split.platform_cents - referralDiscount,
+                commissionCents: Math.max(split.platform_cents - referralDiscount, bookingFee),
                 refType: "ride",
                 refId: ride.id,
             });
@@ -263,6 +270,7 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
                     action: "go_ride_completed",
                     refId: ride.id,
                     paidTxRef: ride.id,
+                    valueCents: fare,
                     metadata: { fare_cents: fare, payment: isCash ? "cash" : "card" },
                 });
             } catch (err) {
@@ -393,6 +401,7 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
                 action: "eats_delivery_on_time",
                 refId: order.id,
                 paidTxRef: order.id,
+                valueCents: order.subtotal_cents,
                 metadata: { subtotal_cents: order.subtotal_cents, payment: isCash ? "cash" : "card" },
             });
         } catch (err) {
