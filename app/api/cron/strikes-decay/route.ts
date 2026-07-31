@@ -81,7 +81,7 @@ export async function POST(req: Request) {
   }
 }
 
-/** Alias GET — orchestratorul zilnic apeleazã prin GET, ca restul joburilor. */
+/** Alias GET â€” orchestratorul zilnic apeleazÄƒ prin GET, ca restul joburilor. */
 export async function GET(req: Request) {
   return POST(req);
 }
