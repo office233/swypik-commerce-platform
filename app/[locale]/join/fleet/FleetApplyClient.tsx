@@ -98,6 +98,7 @@ export default function FleetApplyClient() {
 
     return (
         <PartnerLanding
+            accent={isGo ? "#F59E0B" : "#2DBE60"}
             portalLabel={isGo ? "Swypik Go · Șoferi" : "Swypik Food · Curieri"}
             headline={isGo ? t("goHero1") : t("foodHero1")}
             headlineMuted={isGo ? t("goHero2") : t("foodHero2")}
@@ -115,6 +116,44 @@ export default function FleetApplyClient() {
                         { title: t("foodF1t"), description: t("foodF1d") },
                         { title: t("foodF2t"), description: t("foodF2d") },
                         { title: t("foodF3t"), description: t("foodF3d") },
+                    ]
+            }
+            stepsTitle={t("howItWorks")}
+            steps={
+                isGo
+                    ? [
+                        { title: t("goS1t"), description: t("goS1d") },
+                        { title: t("goS2t"), description: t("goS2d") },
+                        { title: t("goS3t"), description: t("goS3d") },
+                        { title: t("goS4t"), description: t("goS4d") },
+                    ]
+                    : [
+                        { title: t("foodS1t"), description: t("foodS1d") },
+                        { title: t("foodS2t"), description: t("foodS2d") },
+                        { title: t("foodS3t"), description: t("foodS3d") },
+                        { title: t("foodS4t"), description: t("foodS4d") },
+                    ]
+            }
+            earningsTitle={isGo ? t("earningsTitleGo") : t("earningsTitleFood")}
+            earningsParagraphs={
+                isGo
+                    ? [t("goE1"), t("goE2"), t("goE3")]
+                    : [t("foodE1"), t("foodE2"), t("foodE3")]
+            }
+            faqTitle={t("faqTitle")}
+            faqs={
+                isGo
+                    ? [
+                        { q: t("goQ1"), a: t("goA1") },
+                        { q: t("goQ2"), a: t("goA2") },
+                        { q: t("goQ3"), a: t("goA3") },
+                        { q: t("goQ4"), a: t("goA4") },
+                    ]
+                    : [
+                        { q: t("foodQ1"), a: t("foodA1") },
+                        { q: t("foodQ2"), a: t("foodA2") },
+                        { q: t("foodQ3"), a: t("foodA3") },
+                        { q: t("foodQ4"), a: t("foodA4") },
                     ]
             }
             formTitle={isGo ? t("goFormTitle") : t("foodFormTitle")}

@@ -73,6 +73,7 @@ export default function FranchiseApplyClient() {
 
     return (
         <PartnerLanding
+            accent="#6D28D9"
             portalLabel="Swypik · Francize"
             headline={t("frHero1")}
             headlineMuted={t("frHero2")}
@@ -83,6 +84,22 @@ export default function FranchiseApplyClient() {
                 { title: t("frF1t"), description: t("frF1d") },
                 { title: t("frF2t"), description: t("frF2d") },
                 { title: t("frF3t"), description: t("frF3d") },
+            ]}
+            stepsTitle={t("howItWorks")}
+            steps={[
+                { title: t("frS1t"), description: t("frS1d") },
+                { title: t("frS2t"), description: t("frS2d") },
+                { title: t("frS3t"), description: t("frS3d") },
+                { title: t("frS4t"), description: t("frS4d") },
+            ]}
+            earningsTitle={t("earningsTitleFr")}
+            earningsParagraphs={[t("frE1"), t("frE2"), t("frE3")]}
+            faqTitle={t("faqTitle")}
+            faqs={[
+                { q: t("frQ1"), a: t("frA1") },
+                { q: t("frQ2"), a: t("frA2") },
+                { q: t("frQ3"), a: t("frA3") },
+                { q: t("frQ4"), a: t("frA4") },
             ]}
             formTitle={t("franchiseTitle")}
             formSubtitle={t("franchiseSub")}
