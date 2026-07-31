@@ -22,7 +22,7 @@ export type FulfillmentResult = {
 /** Marchează comanda ca preluată în procesare manuală. */
 export async function fulfillOrder(orderId: string): Promise<FulfillmentResult> {
     const { rows } = await dbQuery<{ id: string; status: string }>(
-        `UPDATE orders
+                `UPDATE commerce_orders
         SET status = 'processing', updated_at = now()
       WHERE id = $1 AND status IN ('paid', 'pending_fulfillment')
       RETURNING id, status`,
@@ -42,9 +42,12 @@ export async function updateOrderTracking(
     trackingUrl?: string,
 ): Promise<boolean> {
     const { rows } = await dbQuery(
-        `UPDATE orders
-        SET tracking_number = $2,
-            tracking_url = COALESCE($3, tracking_url),
+        `UPDATE commerce_orders
+        SET metadata = COALESCE(metadata, '{}'::jsonb)
+            || jsonb_build_object('tracking_number', $2::text)
+            || CASE WHEN $3::text IS NOT NULL
+                THEN jsonb_build_object('tracking_url', $3::text)
+                ELSE '{}'::jsonb END,
             status = 'shipped',
             updated_at = now()
       WHERE id = $1
@@ -57,10 +60,11 @@ export async function updateOrderTracking(
 /** Anulează comanda (motivul se păstrează în metadata). */
 export async function cancelOrder(orderId: string, reason?: string): Promise<boolean> {
     const { rows } = await dbQuery(
-        `UPDATE orders
+        `UPDATE commerce_orders
         SET status = 'cancelled',
             metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('cancel_reason', $2::text),
-            updated_at = now()
+            updated_at = now(),
+            cancelled_at = now()
       WHERE id = $1 AND status NOT IN ('delivered', 'cancelled')
       RETURNING id`,
         [orderId, reason ?? null],
