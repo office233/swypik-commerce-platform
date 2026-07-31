@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger";
 import { rateLimit, idempotencyGet, idempotencySet, clientIp } from "@/lib/rate-limit";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { CheckoutCreateIntentSchema, parseBody } from "@/lib/validation/schemas";
+import { applySwypToTotal } from "@/lib/swyp/hybrid-payment";
 function parseQuantity(value: unknown) {
   const quantity = Number(value);
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) return null;
@@ -154,7 +155,7 @@ export async function POST(req: Request) {
           Math.round(item.price * 100),
           Math.round(item.price * item.quantity * 100),
           JSON.stringify({
-            source: "aliexpress",
+            source: "manual",
             product_id: item.productId,
             pg_id: item.pgId,
             ae_product_id: item.aeProductId,
@@ -169,16 +170,44 @@ export async function POST(req: Request) {
     }
 
     const stripe = getStripe();
+
+    // ── Plată hibridă cu SWYP ────────────────────────────────────────────
+    // Acoperim din SWYP cât permit soldul, cursul, fondul și plafonul (50%),
+    // iar restul merge pe card. Idempotent după orderId; dacă ceva nu merge,
+    // `applySwypToTotal` întoarce totalul neatins — vânzarea nu se blochează.
+    const swypRequestedCents = parsed.data.swypCents ?? 0;
+    const wantsSwyp = swypRequestedCents > 0 || Boolean(parsed.data.useSwyp);
+    const { swypCents, remainingCents } = wantsSwyp && uid
+      ? await applySwypToTotal({
+          userId: uid,
+          totalCents,
+          requestedCents: swypRequestedCents,
+          refType: "commerce_order",
+          refId: orderId,
+        })
+      : { swypCents: 0, remainingCents: totalCents };
+
+    if (swypCents > 0) {
+      await dbQuery(
+        `UPDATE commerce_orders
+            SET swyp_paid_cents = $2, total_cents = $3,
+                metadata = metadata || jsonb_build_object('swyp_paid_cents', $2::int)
+          WHERE id = $1`,
+        [orderId, swypCents, remainingCents],
+      );
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalCents,
+      amount: remainingCents,
       currency: "ron",
       automatic_payment_methods: {
         enabled: true,
       },
       metadata: {
         orderId: orderId,
-        expectedAmount: String(totalCents),
+        expectedAmount: String(remainingCents),
         expectedCurrency: "RON",
+        swypPaidCents: String(swypCents),
       }
     });
 
@@ -193,6 +222,8 @@ export async function POST(req: Request) {
       totalRon,
       orderId,
       orderLookupToken,
+      swypPaidCents: swypCents,
+      cardAmountCents: remainingCents,
     };
     if (idempotencyKey) {
       await idempotencySet(`checkout:${idempotencyKey}`, responsePayload, 300);

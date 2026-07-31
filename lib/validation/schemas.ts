@@ -20,6 +20,10 @@ export const CheckoutItemSchema = z.object({
 export const CheckoutCreateIntentSchema = z.object({
   products: z.array(CheckoutItemSchema).min(1, "Coșul este gol.").max(50, "Maxim 50 produse per comandă."),
   idempotencyKey: z.string().max(128).optional(),
+  /** Plată hibridă: cât din total se acoperă cu SWYP (cenți). */
+  swypCents: z.number().int().min(0).max(10_000_000).optional(),
+  /** Alternativ: „folosește maximul posibil din SWYP”. */
+  useSwyp: z.boolean().optional(),
 });
 
 export type CheckoutCreateIntentInput = z.infer<typeof CheckoutCreateIntentSchema>;
