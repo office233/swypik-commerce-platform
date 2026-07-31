@@ -15,13 +15,6 @@ export const CRON_JOBS: CronJob[] = [
     schedule: "La fiecare 4h",
   },
   {
-    name: "process-dropship",
-    endpoint: "/api/cron/process-dropship",
-    method: "POST",
-    description: "Procesează comenzile dropship pendente.",
-    schedule: "La fiecare 15 min",
-  },
-  {
     name: "process-payouts",
     endpoint: "/api/cron/process-payouts",
     method: "POST",
@@ -34,12 +27,5 @@ export const CRON_JOBS: CronJob[] = [
     method: "GET",
     description: "Suspendă conturi neverificate după grace period.",
     schedule: "Zilnic",
-  },
-  {
-    name: "sync-dropship-status",
-    endpoint: "/api/cron/sync-dropship-status",
-    method: "POST",
-    description: "Sincronizează status comenzi dropship cu furnizorul.",
-    schedule: "La fiecare oră",
   },
 ];

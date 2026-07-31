@@ -76,7 +76,6 @@ const sections: NavSection[] = [
       { href: "/admin/returns", label: "Returns", icon: Undo2 },
       { href: "/admin/refunds", label: "Refunds", icon: Coins },
       { href: "/admin/disputes", label: "Disputes", icon: Shield },
-      { href: "/admin/ae-cancel", label: "AE Cancel", icon: PackageX },
       { href: "/admin/marketplace", label: "Marketplace", icon: Store },
       { href: "/admin/reviews", label: "Reviews", icon: Star },
     ],

@@ -33,9 +33,9 @@ beforeEach(() => {
 });
 
 describe("routeOrder (dispatch comenzi)", () => {
-  it("routes items without seller_id to aliexpress", async () => {
+  it("routes items without seller_id to manual queue", async () => {
     const plan = await routeOrder("o1", [item()]);
-    expect(plan.aliexpress).toHaveLength(1);
+    expect(plan.manual).toHaveLength(1);
     expect(Object.keys(plan.localSellers)).toHaveLength(0);
   });
 
@@ -45,16 +45,16 @@ describe("routeOrder (dispatch comenzi)", () => {
       item({ productId: "p2", metadata: { seller_id: "s1", source: "local" } }),
       item({ productId: "p3", metadata: { seller_id: "s2", source: "local" } }),
     ]);
-    expect(plan.aliexpress).toHaveLength(0);
+    expect(plan.manual).toHaveLength(0);
     expect(Object.keys(plan.localSellers).sort()).toEqual(["s1", "s2"]);
     expect(plan.localSellers["s1"]).toHaveLength(2);
   });
 
-  it("sets pending_dropship status for aliexpress items", async () => {
+  it("sets pending status for items without seller (manual processing)", async () => {
     await routeOrder("o1", [item()]);
     const updateCall = dbQuery.mock.calls.find((c) => String(c[0]).includes("commerce_order_items"));
     expect(updateCall).toBeDefined();
-    expect(updateCall![1][0]).toBe("pending_dropship");
+    expect(updateCall![1][0]).toBe("pending");
   });
 
   it("sets pending_seller_action + computes 10% commission for local items", async () => {
@@ -101,6 +101,6 @@ describe("routeOrder (dispatch comenzi)", () => {
   it("survives db errors on status updates and still returns the plan", async () => {
     dbQuery.mockRejectedValue(new Error("db down"));
     const plan = await routeOrder("o1", [item()]);
-    expect(plan.aliexpress).toHaveLength(1);
+    expect(plan.manual).toHaveLength(1);
   });
 });

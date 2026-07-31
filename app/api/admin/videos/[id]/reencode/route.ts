@@ -3,9 +3,9 @@ import { dbQuery } from "@/lib/db";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
 import {
-  enqueueAeVideoPipeline,
+  enqueueVideoPipeline,
   findExternalSourceUrlForVideo,
-} from "@/lib/video/ae-pipeline";
+} from "@/lib/video/pipeline";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * POST /api/admin/videos/[id]/reencode
  *
  * Re-process an EXISTING video by pulling its source from an external URL
- * (typically the AliExpress CDN .mp4 still referenced by `videos.playback_url`)
+ * (de regulă .mp4-ul extern la care mai pointează `videos.playback_url`)
  * through the hybrid pipeline:
  *   download → FFmpeg → HLS → R2 → UPDATE videos.playback_url / thumbnail_url.
  *
@@ -70,7 +70,7 @@ export async function POST(
       );
     }
 
-    const result = await enqueueAeVideoPipeline({
+    const result = await enqueueVideoPipeline({
       sourceUrl,
       existingVideoId: videoId,
       title: rows[0].title || undefined,

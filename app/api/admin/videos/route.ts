@@ -4,7 +4,7 @@ import { dbQuery } from "@/lib/db";
 
 import { requireAuth } from "@/lib/auth/getAuthUser";
 import { notifyVideoApproved, notifyVideoRejected } from "@/lib/email/creator-notifications";
-import { enqueueAeVideoPipeline } from "@/lib/video/ae-pipeline";
+import { enqueueVideoPipeline } from "@/lib/video/pipeline";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -317,19 +317,18 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: "Reprocessing queued" });
       }
 
-      case "import_ae": {
-        // Route a NEW AliExpress video through the hybrid pipeline:
-        // (no direct DB INSERT of playback_url='https://video.aliexpress-media...').
-        // The body for this action carries the AE payload — `videoId` is unused.
+      case "import_url": {
+        // Procesarea unui video NOU dintr-un URL extern prin pipeline-ul hibrid
+        // (download → FFmpeg → HLS → storage). `videoId` e ignorat aici.
         const sourceUrl: string | undefined = body.sourceUrl || body.source_url || body.video_url;
         if (!sourceUrl) {
           return NextResponse.json(
-            { error: "import_ae requires sourceUrl" },
+            { error: "import_url requires sourceUrl" },
             { status: 400 }
           );
         }
 
-        const result = await enqueueAeVideoPipeline({
+        const result = await enqueueVideoPipeline({
           sourceUrl,
           title: body.title,
           description: body.description,
@@ -341,7 +340,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             success: true,
-            message: "AE video import queued",
+            message: "Video import queued",
             ...result,
           },
           { status: 202 }

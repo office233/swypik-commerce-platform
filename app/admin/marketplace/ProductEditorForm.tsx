@@ -32,7 +32,7 @@ type ProductEditorFormProps = {
 
 const statusOptions = ["draft", "active", "out_of_stock", "archived", "disabled"];
 const inventoryOptions = ["unknown", "in_stock", "low_stock", "out_of_stock", "preorder"];
-const sourceOptions = ["manual", "seller", "affiliate", "aliexpress", "other"];
+const sourceOptions = ["manual", "seller", "affiliate", "multi_erp", "other"];
 
 export default function ProductEditorForm({ mode, action, product, notice }: ProductEditorFormProps) {
   const isEdit = mode === "edit";
@@ -87,11 +87,10 @@ export default function ProductEditorForm({ mode, action, product, notice }: Pro
 
         {notice ? (
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm ${
-              notice.type === "success"
+            className={`rounded-2xl border px-4 py-3 text-sm ${notice.type === "success"
                 ? "border-neutral-100 bg-neutral-100 text-neutral-900"
                 : "border-red-200 bg-red-50 text-red-900"
-            }`}
+              }`}
           >
             <div className="flex items-start gap-2">
               {notice.type === "success" ? (

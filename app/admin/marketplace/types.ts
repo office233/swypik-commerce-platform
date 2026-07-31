@@ -38,7 +38,6 @@ export const STATUS_OPTIONS = [
 
 export const SOURCE_OPTIONS = [
   { value: "all", label: "Toate sursele" },
-  { value: "aliexpress", label: "AliExpress" },
-  { value: "cj", label: "CJ Dropshipping" },
+  { value: "multi_erp", label: "Multi-ERP" },
   { value: "local_seller", label: "Local Seller" },
 ] as const;

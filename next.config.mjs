@@ -8,7 +8,7 @@ const cspHeader = `
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
-  media-src 'self' blob: https://media.swypik.com https://*.aliexpress-media.com https://video.aliexpress-media.com;
+    media-src 'self' blob: https://media.swypik.com;
   connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
   frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
@@ -23,7 +23,7 @@ const cspReportOnly = `
   script-src 'self' https://js.stripe.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
-  media-src 'self' blob: https://media.swypik.com https://*.aliexpress-media.com https://video.aliexpress-media.com;
+  media-src 'self' blob: https://media.swypik.com;
   connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
   frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
@@ -52,14 +52,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'https', hostname: '*.alicdn.com' },
-      { protocol: 'https', hostname: 'ae01.alicdn.com' },
-      { protocol: 'https', hostname: 'ae04.alicdn.com' },
-      { protocol: 'https', hostname: 'cf.cjdropshipping.com' },
-      { protocol: 'https', hostname: '*.cjdropshipping.com' },
       { protocol: 'https', hostname: 'cdn.swypik.com' },
       { protocol: 'https', hostname: 'media.swypik.com' },
-      { protocol: 'https', hostname: '*.aliexpress-media.com' },
     ],
   },
   // ─── Cloudflare + Performance Headers ───

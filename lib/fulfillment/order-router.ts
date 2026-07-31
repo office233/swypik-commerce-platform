@@ -16,17 +16,19 @@ export type OrderItem = {
 };
 
 export type FulfillmentPlan = {
-  aliexpress: OrderItem[];
+  /** Iteme fără seller — necesită procesare manuală de către admin. */
+  manual: OrderItem[];
   localSellers: Record<string, OrderItem[]>;
 };
 
 /**
- * routeOrder routes the items from a completed order to the correct suppliers.
- * Separates items into "aliexpress" (dropshipping) and "localSellers" (by seller_id).
+ * routeOrder direcționează itemele unei comenzi plătite: către selleri
+ * (pending_seller_action) sau, fără seller, către coada manuală a adminului.
+ * Nu mai există dropshipping/furnizori externi.
  */
 export async function routeOrder(orderId: string, items: OrderItem[]): Promise<FulfillmentPlan> {
   const plan: FulfillmentPlan = {
-    aliexpress: [],
+    manual: [],
     localSellers: {},
   };
 
@@ -34,16 +36,16 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
 
   for (const item of items) {
     const sellerId = item.metadata?.seller_id;
-    const source = item.metadata?.source || "aliexpress";
+    const source = item.metadata?.source || "manual";
 
     if (sellerId) {
       if (!plan.localSellers[sellerId]) plan.localSellers[sellerId] = [];
       plan.localSellers[sellerId].push(item);
     } else {
-      plan.aliexpress.push(item);
+      plan.manual.push(item);
     }
 
-    const sourceStatus = sellerId ? 'pending_seller_action' : 'pending_dropship';
+    const sourceStatus = sellerId ? 'pending_seller_action' : 'pending';
 
     // Build a unique key matching the row inserted by persistOrderItems()
     // in webhooks/stripe/route.ts: external_line_item_id = "${pgId}:${skuId || 'default'}".

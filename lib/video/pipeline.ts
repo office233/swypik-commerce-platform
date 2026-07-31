@@ -1,9 +1,8 @@
 /**
- * lib/video/ae-pipeline.ts
+ * lib/video/pipeline.ts
  *
  * Creates a video processing job that pulls a source from an external URL
- * (e.g. https://video.aliexpress-media.com/.../.mp4) through the same
- * pipeline used by creator uploads:
+ * through the same pipeline used by creator uploads:
  *
  *     external URL  ─►  video_upload_sessions (source_url)
  *                  ─►  videos (status='processing', playback_url=NULL)
@@ -15,9 +14,8 @@
  * to R2, and finally UPDATEs `videos.playback_url` / `videos.thumbnail_url`
  * + status='ready' (handled by workers/video-worker/video_worker/db.py).
  *
- * This module is the single entry point shared by:
- *   - admin AE import (POST /api/admin/videos action=import_ae)
- *   - admin re-encode  (POST /api/admin/videos/[id]/reencode)
+ * Entry point for admin flows that (re)process a video from a source URL,
+ * e.g. POST /api/admin/videos/[id]/reencode.
  */
 
 import { randomUUID } from "node:crypto";
@@ -28,11 +26,11 @@ import { buildProcessVideoJobPayload } from "@/lib/video/upload-session";
 
 const SYSTEM_CREATOR_ID = "00000000-0000-0000-0000-000000000001";
 
-export type AePipelineInput = {
+export type VideoPipelineInput = {
   sourceUrl: string;
   title?: string;
   description?: string;
-  productRefs?: Array<{ product_id?: string; ae_product_id?: string | number }>;
+  productRefs?: Array<{ product_id?: string }>;
   tags?: string[];
   /** If provided, attach the job to this existing video (re-encode flow). */
   existingVideoId?: string;
@@ -42,7 +40,7 @@ export type AePipelineInput = {
   metadata?: Record<string, unknown>;
 };
 
-export type AePipelineResult = {
+export type VideoPipelineResult = {
   videoId: string;
   sessionId: string;
   assetId: string;
@@ -61,7 +59,7 @@ export type AePipelineResult = {
  * - When `existingVideoId` is given (re-encode), the video row is reused and
  *   its status is flipped back to 'processing'.
  */
-export async function enqueueAeVideoPipeline(input: AePipelineInput): Promise<AePipelineResult> {
+export async function enqueueVideoPipeline(input: VideoPipelineInput): Promise<VideoPipelineResult> {
   if (!input.sourceUrl || !/^https?:\/\//i.test(input.sourceUrl)) {
     throw new Error("sourceUrl must be an http(s) URL");
   }
@@ -81,7 +79,7 @@ export async function enqueueAeVideoPipeline(input: AePipelineInput): Promise<Ae
 
   const baseMetadata = {
     ...(input.metadata || {}),
-    source: "aliexpress_import",
+    source: "external_import",
     source_url: input.sourceUrl,
     raw_object_key: rawObjectKey,
     upload_session_id: sessionId,
@@ -220,8 +218,7 @@ export async function enqueueAeVideoPipeline(input: AePipelineInput): Promise<Ae
  * Lookup helper used by the re-encode route. Returns the best candidate
  * external URL for a video — checks (in order):
  *   1. `videos.metadata.source_url`
- *   2. `videos.playback_url` if it points at an aliexpress-media host
- *   3. matching `ae_products.video_url` via `videos.product_refs[].ae_product_id`
+ *   2. `videos.playback_url` dacă e un URL http(s) extern
  */
 export async function findExternalSourceUrlForVideo(videoId: string): Promise<string | null> {
   const { rows } = await dbQuery<{
@@ -239,25 +236,7 @@ export async function findExternalSourceUrlForVideo(videoId: string): Promise<st
   const fromMeta = metadata && typeof metadata === "object" ? (metadata as any).source_url : null;
   if (typeof fromMeta === "string" && /^https?:\/\//i.test(fromMeta)) return fromMeta;
 
-  if (row.playback_url && /aliexpress|alicdn|alibaba/i.test(row.playback_url)) {
-    return row.playback_url;
-  }
-
-  const refs = typeof row.product_refs === "string" ? safeJson(row.product_refs) : row.product_refs;
-  if (Array.isArray(refs)) {
-    for (const ref of refs) {
-      const aeId = ref?.ae_product_id ?? ref?.aeProductId;
-      if (aeId) {
-        const { rows: ae } = await dbQuery<{ video_url: string | null }>(
-          `SELECT video_url FROM ae_products WHERE ae_product_id::text = $1 LIMIT 1`,
-          [String(aeId)]
-        );
-        if (ae[0]?.video_url) return ae[0].video_url;
-      }
-    }
-  }
-
-  // Fallback: even if playback_url isn't on AE host, treat it as source if it's https.
+  // Fallback: playback_url extern e folosit direct ca sursă.
   if (row.playback_url && /^https?:\/\//i.test(row.playback_url)) return row.playback_url;
   return null;
 }
