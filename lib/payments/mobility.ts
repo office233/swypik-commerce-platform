@@ -35,6 +35,7 @@ import {
     payFirstRideBonusIfDue,
 } from "@/lib/drivers/referral";
 import { awardSwyp } from "@/lib/swyp/rewards";
+import { fundBacking } from "@/lib/swyp/valuation";
 import { logger } from "@/lib/logger";
 
 const log = logger.child({ mod: "payments/mobility" });
@@ -192,6 +193,18 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
         if (ride.driver_id) await recordTierRide(ride.driver_id);
         if (ride.rider_id) await payFirstRideBonusIfDue(ride.rider_id);
 
+        // Acoperirea SWYP: un procent din comisionul NET intră în fondul care
+        // dă valoare monedei. Fără încasări reale, cursul rămâne 0.
+        try {
+            await fundBacking({
+                commissionCents: split.platform_cents - referralDiscount,
+                refType: "ride",
+                refId: ride.id,
+            });
+        } catch (err) {
+            log.warn({ err, rideId: ride.id }, "swyp backing (ride) failed");
+        }
+
         // Cashback în SWYP pentru client (regula go_ride_completed, cu cap
         // zilnic și anti-sybil: doar pe curse plătite efectiv). Best-effort —
         // o eroare la recompensă nu trebuie să blocheze decontarea banilor.
@@ -336,6 +349,19 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
             });
         } catch (err) {
             log.warn({ err, orderId: order.id }, "swyp cashback (order) failed");
+        }
+    }
+
+    // Acoperirea SWYP din comisionul comenzii (același mecanism ca la curse).
+    if (!result.alreadySettled) {
+        try {
+            await fundBacking({
+                commissionCents: split.platform_cents,
+                refType: "order",
+                refId: order.id,
+            });
+        } catch (err) {
+            log.warn({ err, orderId: order.id }, "swyp backing (order) failed");
         }
     }
 
