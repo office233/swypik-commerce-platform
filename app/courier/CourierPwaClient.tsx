@@ -293,6 +293,9 @@ export default function CourierPwaClient() {
             <header className="flex items-center justify-between">
                 <h1 className="text-lg font-bold">Swypik Curier</h1>
                 <div className="flex items-center gap-2">
+                <a href="/courier/code" className="rounded-full border px-3 py-2 text-xs font-semibold">
+                    Codul meu
+                </a>
                 <a href="/courier/earnings" className="rounded-full border px-3 py-2 text-xs font-semibold">
                     Câștiguri
                 </a>
