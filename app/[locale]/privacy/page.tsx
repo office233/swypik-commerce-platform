@@ -68,7 +68,7 @@ export default function PrivacyPage() {
             </div>
 
             <p className="mt-10 border-t border-neutral-200 pt-4 text-xs text-neutral-400 dark:border-neutral-800">
-                MEISTER COM S.R.L. · privacy@swypik.com · Autoritatea de supraveghere: ANSPDCP (www.dataprotection.ro)
+                Swypik Technology · privacy@swypik.com · Autoritatea de supraveghere: ANSPDCP (www.dataprotection.ro)
             </p>
         </main>
     );

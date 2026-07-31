@@ -27,7 +27,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         id: "operator",
         title: "1. Cine suntem",
         body: [
-            "Swypik este operat de MEISTER COM S.R.L., societate înregistrată în România. Suntem „operator de date” în sensul Regulamentului (UE) 2016/679 (GDPR) pentru datele descrise mai jos.",
+            "Swypik este operat de Swypik Technology, societate înregistrată în România. Suntem „operator de date” în sensul Regulamentului (UE) 2016/679 (GDPR) pentru datele descrise mai jos.",
             "Pentru orice întrebare privind datele tale personale, scrie-ne la privacy@swypik.com. Îți răspundem în cel mult 30 de zile.",
         ],
     },

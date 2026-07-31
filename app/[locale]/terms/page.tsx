@@ -68,7 +68,7 @@ export default function TermsPage() {
             </div>
 
             <p className="mt-10 border-t border-neutral-200 pt-4 text-xs text-neutral-400 dark:border-neutral-800">
-                MEISTER COM S.R.L. · suport@swypik.com · ANPC: www.anpc.ro · SOL: ec.europa.eu/consumers/odr
+                Swypik Technology · suport@swypik.com · ANPC: www.anpc.ro · SOL: ec.europa.eu/consumers/odr
             </p>
         </main>
     );

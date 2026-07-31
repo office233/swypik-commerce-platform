@@ -195,21 +195,41 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                     </div>
                 </div>
 
-                {/* Footer legal — aplicația nu are footer clasic de site,
-                    deci linkurile obligatorii (Legea 365/2002, Reg. UE 524/2013)
-                    stau aici și în pagina de profil. */}
-                <div className="mt-6 border-t border-black/5 px-1 pb-8 pt-4">
-                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-semibold text-[#6E6E80]">
-                        <button type="button" onClick={() => goVertical("/terms")} className="underline-offset-2 hover:underline">Termeni</button>
-                        <button type="button" onClick={() => goVertical("/privacy")} className="underline-offset-2 hover:underline">Confidențialitate</button>
-                        <button type="button" onClick={() => goVertical("/legal/cookies")} className="underline-offset-2 hover:underline">Cookie-uri</button>
-                        <button type="button" onClick={() => goVertical("/legal/anpc")} className="underline-offset-2 hover:underline">ANPC</button>
+                {/* Footer legal — mobil-first: ținte de atins mari (44px),
+                    grid 2 coloane, safe-area pentru iPhone. Linkurile SAL/SOL
+                    sunt obligatorii (Reg. UE 524/2013). */}
+                <div className="mt-6 border-t border-black/5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
+                    <div className="grid grid-cols-2 gap-2">
+                        {[
+                            { label: "Termeni", href: "/terms" },
+                            { label: "Confidențialitate", href: "/privacy" },
+                            { label: "Cookie-uri", href: "/legal/cookies" },
+                            { label: "ANPC · Protecția consumatorului", href: "/legal/anpc" },
+                        ].map((l) => (
+                            <button
+                                key={l.href}
+                                type="button"
+                                onClick={() => goVertical(l.href)}
+                                className="flex min-h-[44px] items-center justify-center rounded-xl bg-black/[0.04] px-3 text-center text-[12px] font-bold text-[#3C3C43] transition active:scale-[0.97]"
+                            >
+                                {l.label}
+                            </button>
+                        ))}
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noreferrer" className="text-[11px] text-[#A1A1AA] underline underline-offset-2">Soluționarea alternativă a litigiilor (SAL)</a>
-                        <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer" className="text-[11px] text-[#A1A1AA] underline underline-offset-2">Platforma SOL (UE)</a>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                        <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noreferrer"
+                            className="flex min-h-[40px] items-center justify-center rounded-xl px-3 text-center text-[11px] font-semibold text-[#6E6E80] underline-offset-2 active:scale-[0.97]">
+                            SAL — litigii
+                        </a>
+                        <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer"
+                            className="flex min-h-[40px] items-center justify-center rounded-xl px-3 text-center text-[11px] font-semibold text-[#6E6E80] underline-offset-2 active:scale-[0.97]">
+                            SOL — platforma UE
+                        </a>
                     </div>
-                    <p className="mt-3 text-[11px] text-[#C4C4CC]">© {new Date().getFullYear()} MEISTER COM S.R.L. · suport@swypik.com</p>
+                    <p className="mt-4 text-center text-[11px] leading-relaxed text-[#A1A1AA]">
+                        © {new Date().getFullYear()} Swypik Technology
+                        <span className="block">suport@swypik.com</span>
+                    </p>
                 </div>
             </div>
         </div>,

@@ -29,7 +29,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: "parti",
         title: "1. Cine suntem și ce accepți",
         body: [
-            "Swypik este o platformă online operată de MEISTER COM S.R.L. („Swypik”, „noi”). Prin crearea unui cont sau prin plasarea unei comenzi, accepți acești Termeni. Dacă nu ești de acord cu ei, te rugăm să nu folosești platforma.",
+            "Swypik este o platformă online operată de Swypik Technology („Swypik”, „noi”). Prin crearea unui cont sau prin plasarea unei comenzi, accepți acești Termeni. Dacă nu ești de acord cu ei, te rugăm să nu folosești platforma.",
             "Acești Termeni se completează cu Politica de confidențialitate și cu Politica de cookie-uri.",
         ],
     },

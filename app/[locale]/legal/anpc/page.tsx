@@ -99,7 +99,7 @@ export default function AnpcPage() {
             <div className="mt-8 rounded-xl bg-neutral-50 p-4 text-sm dark:bg-neutral-900">
                 <p className="font-semibold">Operatorul platformei</p>
                 <p className="mt-1 text-neutral-600 dark:text-neutral-400">
-                    MEISTER COM S.R.L. · suport@swypik.com
+                    Swypik Technology · suport@swypik.com
                 </p>
                 <p className="mt-2 flex flex-wrap gap-3 text-xs">
                     <Link href="/terms" className="underline">Termeni și Condiții</Link>

@@ -412,7 +412,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             <a href="/legal/anpc" className="underline-offset-2 hover:underline">ANPC</a>
             <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">SOL (UE)</a>
           </div>
-          <p className="mt-2 text-[11px] text-[#C4C4CC]">© {new Date().getFullYear()} MEISTER COM S.R.L. · suport@swypik.com</p>
+          <p className="mt-2 text-[11px] text-[#C4C4CC]">© {new Date().getFullYear()} Swypik Technology · suport@swypik.com</p>
         </div>
 
       </div>
