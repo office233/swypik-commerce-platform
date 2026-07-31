@@ -2,16 +2,25 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { APP_URL } from "@/lib/app-url";
 
-export const metadata: Metadata = {
-  title: "Ajutor — Swypik",
-  description: "Întrebări frecvente și sprijin pentru cumpărători și creatori Swypik.",
-  alternates: {
-    canonical: `${APP_URL}/help`,
-    languages: languagesForMetadata("/help"),
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  return {
+    title: t("helpTitle"),
+    description: t("helpDescription"),
+    alternates: {
+      canonical: `${APP_URL}/help`,
+      languages: languagesForMetadata("/help"),
+    },
+  };
+}
 
 const FAQ_KEYS = ["cumpar", "livrare", "retur", "creator", "plati"] as const;
 

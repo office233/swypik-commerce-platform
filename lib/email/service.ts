@@ -14,6 +14,7 @@ import { isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { APP_URL } from "@/lib/app-url";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 const log = logger.child({ service: "email" });
 
@@ -307,7 +308,7 @@ export async function sendEmail(params: { to: string; subject: string; html: str
     return true;
   }
 
-  const supportEmail = process.env.SUPPORT_EMAIL || "support@swypik.com";
+  const supportEmail = SUPPORT_EMAIL;
   const oneClickUrl = unsubscribeUrl(params.to);
   const mailtoUrl = `mailto:${supportEmail}?subject=${encodeURIComponent("Dezabonare Swypik")}&body=${encodeURIComponent(`Te rog dezaboneaza ${params.to} de la emailurile Swypik.`)}`;
   const safeUnsubscribeUrl = escapeHtml(oneClickUrl);
@@ -650,7 +651,7 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<boo
           <a href="${accountUrl}" style="display:inline-block;background:#0D0D0D;color:white;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;margin:4px">⚙️ Contul tău</a>
         </div>
         <p style="font-size:13px;color:#666;line-height:1.6">
-          Dacă ai întrebări, scrie-ne oricând la <a href="mailto:support@swypik.com" style="color:#7C3AED">support@swypik.com</a>.
+          Dacă ai întrebări, scrie-ne oricând la <a href="mailto:${SUPPORT_EMAIL}" style="color:#7C3AED">${SUPPORT_EMAIL}</a>.
         </p>
       </div>
       <div style="padding:24px 32px;background:#f8f9fa;text-align:center;border-top:1px solid #eee">
@@ -701,7 +702,7 @@ export async function sendRefundEmail(
         </div>
       </div>
       <div style="padding:24px 32px;background:#f8f9fa;text-align:center;border-top:1px solid #eee">
-        <p style="margin:0;font-size:12px;color:#999">Swypik — Întrebări? <a href="mailto:support@swypik.com" style="color:#7C3AED">support@swypik.com</a></p>
+        <p style="margin:0;font-size:12px;color:#999">Swypik — Întrebări? <a href="mailto:${SUPPORT_EMAIL}" style="color:#7C3AED">${SUPPORT_EMAIL}</a></p>
       </div>
     </div>
   </body>

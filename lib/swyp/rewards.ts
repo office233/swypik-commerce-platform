@@ -33,6 +33,9 @@ export type AwardArgs = {
     paidTxRef?: string;
     /** Valoarea tranzacției în cents — pentru regulile cu pct_of_value_bps. */
     valueCents?: number;
+    /** Cenții EFECTIV intrați în fondul de acoperire pentru această tranzacție
+     *  — pentru regulile cu pct_of_funded_bps (emisie legată de încasări). */
+    fundedCents?: number;
     /** Suprascrie suma regulii (ex. mining cu rată pe sesiune). */
     amountUnitsOverride?: bigint;
     metadata?: Record<string, unknown>;
@@ -49,6 +52,7 @@ type Rule = {
     requires_paid_tx: boolean;
     enabled: boolean;
     pct_of_value_bps: number | null;
+    pct_of_funded_bps: number | null;
 };
 
 export async function awardSwyp(args: AwardArgs): Promise<AwardResult> {
@@ -56,7 +60,7 @@ export async function awardSwyp(args: AwardArgs): Promise<AwardResult> {
 
     const { rows } = await dbQuery<Rule>(
         `SELECT action, amount_units::text, daily_cap_units::text, requires_paid_tx, enabled,
-            pct_of_value_bps
+            pct_of_value_bps, pct_of_funded_bps
        FROM swyp_emission_rules WHERE action = $1`,
         [action],
     );
@@ -73,6 +77,19 @@ export async function awardSwyp(args: AwardArgs): Promise<AwardResult> {
     // Procentual = cashback constant pentru client și curs auto-stabil: emitem
     // valoare echivalentă cu ce intră în fond, indiferent de mărimea cursei.
     let amount = args.amountUnitsOverride ?? null;
+    // Prioritate 1: emisie legată de banii EFECTIV intrați în fond (raritate:
+    // se emite doar o fracțiune din acoperire; fond neplătit = zero emisie).
+    if (amount === null && rule.pct_of_funded_bps && args.fundedCents !== undefined) {
+        if (args.fundedCents <= 0) return { awarded: false, reason: "rule_disabled" };
+        const targetCents = BigInt(Math.floor((args.fundedCents * rule.pct_of_funded_bps) / 10_000));
+        if (targetCents > 0n) {
+            const rate = await getSwypRate();
+            const units = centsToUnits(targetCents, rate);
+            if (units > 0n) amount = units;
+        }
+        // Bootstrap doar aici: fond alimentat dar curs încă 0 (prima tranzacție)
+        if (amount === null) amount = BigInt(rule.amount_units);
+    }
     if (amount === null && rule.pct_of_value_bps && args.valueCents && args.valueCents > 0) {
         const targetCents = BigInt(Math.floor((args.valueCents * rule.pct_of_value_bps) / 10_000));
         if (targetCents > 0n) {

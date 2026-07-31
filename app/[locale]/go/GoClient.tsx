@@ -59,7 +59,7 @@ export default function GoClient() {
         const balance = Number(bal?.balanceUnits ?? 0) / 100; // 100 subunități = 1 SWYP
         if (ron > 0 && balance > 0) setSwypInfo({ ronPerSwyp: ron, balanceSwyp: balance });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Deep link din alte verticale: /go?dropoff=<adresă>&dlat=..&dlng=..
@@ -221,11 +221,10 @@ export default function GoClient() {
                 haptic("tap");
                 setVehicleClass(c.id);
               }}
-              className={`rounded-2xl border p-3 text-center transition ${
-                vehicleClass === c.id
+              className={`rounded-2xl border p-3 text-center transition ${vehicleClass === c.id
                   ? "border-neutral-900 bg-neutral-900 text-white"
                   : "border-neutral-200 bg-white"
-              }`}
+                }`}
             >
               <div className="text-xl">{c.emoji}</div>
               <div className="text-[13px] font-bold">{t(c.labelKey)}</div>
@@ -253,9 +252,8 @@ export default function GoClient() {
             type="button"
             onClick={() => setUseSwyp((v) => !v)}
             aria-pressed={useSwyp}
-            className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
-              useSwyp ? "border-neutral-900 bg-neutral-50" : "border-neutral-200"
-            }`}
+            className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${useSwyp ? "border-neutral-900 bg-neutral-50" : "border-neutral-200"
+              }`}
           >
             <span>
               <span className="block text-[14px] font-bold">{t("paySwyp")}</span>
@@ -267,9 +265,8 @@ export default function GoClient() {
               </span>
             </span>
             <span
-              className={`h-6 w-11 shrink-0 rounded-full p-0.5 transition ${
-                useSwyp ? "bg-neutral-900" : "bg-neutral-300"
-              }`}
+              className={`h-6 w-11 shrink-0 rounded-full p-0.5 transition ${useSwyp ? "bg-neutral-900" : "bg-neutral-300"
+                }`}
             >
               <span
                 className={`block h-5 w-5 rounded-full bg-white transition ${useSwyp ? "translate-x-5" : ""}`}

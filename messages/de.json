@@ -1785,5 +1785,42 @@
   },
   "shell": {
     "becomePartner": "Partner werden"
+  },
+  "meta": {
+    "homeTitle": "Swypik — Einkaufen per Video | KI-Marktplatz",
+    "homeDescription": "Entdecke und kaufe Produkte über kurze Videos. Trends, beste Angebote und KI-Empfehlungen, alles auf Swypik.",
+    "homeOgTitle": "Swypik — Einkaufen per Video",
+    "homeOgDescription": "KI-gestützter Video-Marktplatz. Trendprodukte, Angebote und Top-Empfehlungen — alles per Video.",
+    "goTitle": "Swypik Go — Fahrt in der Stadt",
+    "goDescription": "Bestelle in Sekunden ein Auto. Festpreis, verifizierter Fahrer, Live-Tracking.",
+    "aboutTitle": "Über Swypik — Einkaufen per Video",
+    "aboutDescription": "Swypik ist der Marktplatz, auf dem du Produkte über kurze Videos entdeckst — mit KI-Empfehlungen und lokalen Creators.",
+    "helpTitle": "Hilfe — Swypik",
+    "helpDescription": "Häufige Fragen und Support für Swypik-Käufer und -Creator.",
+    "battlesTitle": "Battles — Swypik Arena",
+    "battlesDescription": "Video-Duelle zwischen Creators: stimme ab, unterstütze deinen Favoriten und gewinne Belohnungen.",
+    "missionsTitle": "Missionen — Swypik Creators",
+    "missionsDescription": "Bezahlte Missionen für Creators: filmen, veröffentlichen und Belohnungen verdienen.",
+    "sellerTitle": "{name} — Swypik",
+    "sellerDescription": "Entdecke die Produkte von {name} auf Swypik.",
+    "sellerNotFound": "Verkäufer nicht gefunden — Swypik"
+  },
+  "battlesPage": {
+    "subtitle": "Produkt gegen Produkt. Stimme für deinen Favoriten, verdiene SWYP.",
+    "sortHot": "🔥 Hot",
+    "sortNew": "🆕 Neu",
+    "sortEnding": "⏰ Enden bald",
+    "empty": "Keine aktiven Battles. Sei der Erste!",
+    "createOne": "Erstelle eins",
+    "votes": "{count} Stimmen",
+    "permanent": "Dauerhaft",
+    "ended": "Beendet"
+  },
+  "missionsPage": {
+    "subtitle": "Bezahlte Briefings für Creators. Verdiene SWYP + Bounty pro Verkauf.",
+    "empty": "Gerade keine aktiven Missionen. Schau bald wieder vorbei!",
+    "perSale": "/Verkauf",
+    "noDeadline": "Ohne Frist",
+    "ended": "Beendet"
   }
 }

@@ -85,8 +85,25 @@ export async function fundBacking(args: {
 }): Promise<number> {
     if (args.commissionCents <= 0) return 0;
     const pct = await backingPct();
-    const amount = Math.floor((args.commissionCents * pct) / 100);
+    let amount = Math.floor((args.commissionCents * pct) / 100);
     if (amount <= 0) return 0;
+
+    // Plafon lunar: costul SWYP e predictibil — fondul nu primește peste cap,
+    // iar fără alimentare nu se emite nimic (emisia e legată de fond).
+    const { rows: capRow } = await dbQuery<{ value: unknown }>(
+        `SELECT value FROM platform_config WHERE key = 'swyp_backing_monthly_cap_cents'`,
+    );
+    const cap = Number(capRow[0]?.value ?? 0);
+    if (cap > 0) {
+        const { rows: used } = await dbQuery<{ total: string }>(
+            `SELECT COALESCE(SUM(amount_cents), 0)::text AS total
+                 FROM swyp_backing_ledger
+                WHERE direction = 'in' AND created_at >= date_trunc('month', now())`,
+        );
+        const remaining = cap - Number(used[0]?.total ?? 0);
+        if (remaining <= 0) return 0;
+        amount = Math.min(amount, remaining);
+    }
 
     return withTransaction(async (q) => {
         const ins = await q(

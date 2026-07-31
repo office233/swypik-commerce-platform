@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import GoClient from "./GoClient";
 import PermissionsPrompt from "@/components/pwa/PermissionsPrompt";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Swypik Go — cursă în oraș",
-  description: "Cheamă o mașină în câteva secunde. Preț fix, șofer verificat, urmărire live.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  return { title: t("goTitle"), description: t("goDescription") };
+}
 
 export default function GoPage() {
   return (

@@ -2030,5 +2030,42 @@
     "sellerFormSub": "Completează detaliile companiei tale, iar echipa noastră te va contacta.",
     "earningsTitleHost": "Cât păstrezi ca gazdă",
     "earningsTitleSeller": "De ce vinzi mai bine pe Swypik"
+  },
+  "meta": {
+    "homeTitle": "Swypik — Cumpără prin Video | Marketplace cu AI",
+    "homeDescription": "Descoperă și cumpără produse prin clipuri video. Produse în trend, cele mai bune oferte și recomandări AI, totul pe Swypik.",
+    "homeOgTitle": "Swypik — Cumpără prin Video",
+    "homeOgDescription": "Marketplace video cu AI. Produse în trend, oferte și recomandări — totul prin video.",
+    "goTitle": "Swypik Go — cursă în oraș",
+    "goDescription": "Cheamă o mașină în câteva secunde. Preț fix, șofer verificat, urmărire live.",
+    "aboutTitle": "Despre Swypik — Cumpără prin video",
+    "aboutDescription": "Swypik este marketplace-ul unde descoperi produse prin clipuri scurte, cu recomandări AI și creatori locali.",
+    "helpTitle": "Ajutor — Swypik",
+    "helpDescription": "Întrebări frecvente și sprijin pentru cumpărători și creatori Swypik.",
+    "battlesTitle": "Battles — Swypik Arena",
+    "battlesDescription": "Dueluri video între creatori: votează, susține-ți favoritul și câștigă recompense.",
+    "missionsTitle": "Misiuni — Swypik Creators",
+    "missionsDescription": "Misiuni plătite pentru creatori: filmează, publică și câștigă din recompense.",
+    "sellerTitle": "{name} — Swypik",
+    "sellerDescription": "Descoperă produsele vândute de {name} pe Swypik.",
+    "sellerNotFound": "Vânzător negăsit — Swypik"
+  },
+  "battlesPage": {
+    "subtitle": "Versus între produse. Votează preferatul, câștigă SWYP.",
+    "sortHot": "🔥 Hot",
+    "sortNew": "🆕 Noi",
+    "sortEnding": "⏰ Se închid",
+    "empty": "Niciun battle activ. Ești primul!",
+    "createOne": "Creează unul",
+    "votes": "{count} voturi",
+    "permanent": "Permanent",
+    "ended": "Încheiat"
+  },
+  "missionsPage": {
+    "subtitle": "Brief-uri plătite pentru creatori. Câștigi SWYP + bounty per vânzare.",
+    "empty": "Nu sunt mission-uri active acum. Revino curând!",
+    "perSale": "/vânzare",
+    "noDeadline": "Fără termen",
+    "ended": "Încheiat"
   }
 }

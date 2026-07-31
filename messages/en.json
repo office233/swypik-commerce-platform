@@ -1894,5 +1894,42 @@
     "sellerFormSub": "Fill in your company details and our team will contact you.",
     "earningsTitleHost": "What you keep as a host",
     "earningsTitleSeller": "Why you sell better on Swypik"
+  },
+  "meta": {
+    "homeTitle": "Swypik — Shop by Video | AI Marketplace",
+    "homeDescription": "Discover and buy products through short videos. Trending items, best deals and AI-powered picks, all on Swypik.",
+    "homeOgTitle": "Swypik — Shop by Video",
+    "homeOgDescription": "AI-powered video marketplace. Trending products, best deals and top picks — all through video.",
+    "goTitle": "Swypik Go — ride in the city",
+    "goDescription": "Get a car in seconds. Fixed price, verified driver, live tracking.",
+    "aboutTitle": "About Swypik — Shop by video",
+    "aboutDescription": "Swypik is the marketplace where you discover products through short videos, with AI recommendations and local creators.",
+    "helpTitle": "Help — Swypik",
+    "helpDescription": "Frequently asked questions and support for Swypik shoppers and creators.",
+    "battlesTitle": "Battles — Swypik Arena",
+    "battlesDescription": "Video duels between creators: vote, back your favorite and earn rewards.",
+    "missionsTitle": "Missions — Swypik Creators",
+    "missionsDescription": "Paid missions for creators: film, publish and earn rewards.",
+    "sellerTitle": "{name} — Swypik",
+    "sellerDescription": "Discover products sold by {name} on Swypik.",
+    "sellerNotFound": "Seller not found — Swypik"
+  },
+  "battlesPage": {
+    "subtitle": "Product versus product. Vote your favorite, earn SWYP.",
+    "sortHot": "🔥 Hot",
+    "sortNew": "🆕 New",
+    "sortEnding": "⏰ Ending",
+    "empty": "No active battles. Be the first!",
+    "createOne": "Create one",
+    "votes": "{count} votes",
+    "permanent": "Permanent",
+    "ended": "Ended"
+  },
+  "missionsPage": {
+    "subtitle": "Paid briefs for creators. Earn SWYP + a bounty per sale.",
+    "empty": "No active missions right now. Check back soon!",
+    "perSale": "/sale",
+    "noDeadline": "No deadline",
+    "ended": "Ended"
   }
 }

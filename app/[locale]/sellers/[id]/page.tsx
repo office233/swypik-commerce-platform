@@ -17,7 +17,7 @@ import { dbQuery } from "@/lib/db";
 import { getTranslations } from "next-intl/server";
 import { formatMoneyCents } from "@/lib/i18n/currency";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = { params: Promise<{ id: string; locale: string }> };
 
 export const dynamic = "force-dynamic";
 
@@ -130,13 +130,14 @@ function formatPrice(cents: number | null, currency: string): string {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
   const seller = await getSeller(id);
-  if (!seller) return { title: "Vânzător negăsit — Swypik" };
+  if (!seller) return { title: t("sellerNotFound") };
   const name = getDisplayName(seller);
   return {
-    title: `${name} — Swypik`,
-    description: `Descoperă produsele vândute de ${name} pe Swypik.`,
+    title: t("sellerTitle", { name }),
+    description: t("sellerDescription", { name }),
   };
 }
 

@@ -1785,5 +1785,42 @@
   },
   "shell": {
     "becomePartner": "Conviértete en socio"
+  },
+  "meta": {
+    "homeTitle": "Swypik — Compra por Video | Marketplace con IA",
+    "homeDescription": "Descubre y compra productos a través de videos cortos. Tendencias, mejores ofertas y recomendaciones con IA, todo en Swypik.",
+    "homeOgTitle": "Swypik — Compra por Video",
+    "homeOgDescription": "Marketplace de video con IA. Productos en tendencia, ofertas y selecciones — todo por video.",
+    "goTitle": "Swypik Go — viaje por la ciudad",
+    "goDescription": "Pide un coche en segundos. Precio fijo, conductor verificado, seguimiento en vivo.",
+    "aboutTitle": "Sobre Swypik — Compra por video",
+    "aboutDescription": "Swypik es el marketplace donde descubres productos mediante videos cortos, con recomendaciones de IA y creadores locales.",
+    "helpTitle": "Ayuda — Swypik",
+    "helpDescription": "Preguntas frecuentes y soporte para compradores y creadores de Swypik.",
+    "battlesTitle": "Battles — Swypik Arena",
+    "battlesDescription": "Duelos de video entre creadores: vota, apoya a tu favorito y gana recompensas.",
+    "missionsTitle": "Misiones — Swypik Creators",
+    "missionsDescription": "Misiones pagadas para creadores: graba, publica y gana recompensas.",
+    "sellerTitle": "{name} — Swypik",
+    "sellerDescription": "Descubre los productos vendidos por {name} en Swypik.",
+    "sellerNotFound": "Vendedor no encontrado — Swypik"
+  },
+  "battlesPage": {
+    "subtitle": "Producto contra producto. Vota tu favorito, gana SWYP.",
+    "sortHot": "🔥 Hot",
+    "sortNew": "🆕 Nuevos",
+    "sortEnding": "⏰ Por cerrar",
+    "empty": "No hay battles activos. ¡Sé el primero!",
+    "createOne": "Crea uno",
+    "votes": "{count} votos",
+    "permanent": "Permanente",
+    "ended": "Finalizado"
+  },
+  "missionsPage": {
+    "subtitle": "Briefs pagados para creadores. Gana SWYP + bounty por venta.",
+    "empty": "No hay misiones activas ahora. ¡Vuelve pronto!",
+    "perSale": "/venta",
+    "noDeadline": "Sin plazo",
+    "ended": "Finalizada"
   }
 }

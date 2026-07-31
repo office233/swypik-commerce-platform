@@ -1785,5 +1785,42 @@
   },
   "shell": {
     "becomePartner": "Diventa partner"
+  },
+  "meta": {
+    "homeTitle": "Swypik — Acquista tramite Video | Marketplace con IA",
+    "homeDescription": "Scopri e acquista prodotti attraverso brevi video. Tendenze, migliori offerte e consigli IA, tutto su Swypik.",
+    "homeOgTitle": "Swypik — Acquista tramite Video",
+    "homeOgDescription": "Marketplace video con IA. Prodotti di tendenza, offerte e selezioni — tutto tramite video.",
+    "goTitle": "Swypik Go — corsa in città",
+    "goDescription": "Chiama un'auto in pochi secondi. Prezzo fisso, autista verificato, tracciamento live.",
+    "aboutTitle": "Chi è Swypik — Acquista tramite video",
+    "aboutDescription": "Swypik è il marketplace dove scopri prodotti tramite brevi video, con consigli IA e creator locali.",
+    "helpTitle": "Aiuto — Swypik",
+    "helpDescription": "Domande frequenti e supporto per acquirenti e creator Swypik.",
+    "battlesTitle": "Battles — Swypik Arena",
+    "battlesDescription": "Duelli video tra creator: vota, sostieni il tuo preferito e vinci premi.",
+    "missionsTitle": "Missioni — Swypik Creators",
+    "missionsDescription": "Missioni retribuite per creator: gira, pubblica e guadagna premi.",
+    "sellerTitle": "{name} — Swypik",
+    "sellerDescription": "Scopri i prodotti venduti da {name} su Swypik.",
+    "sellerNotFound": "Venditore non trovato — Swypik"
+  },
+  "battlesPage": {
+    "subtitle": "Prodotto contro prodotto. Vota il tuo preferito, guadagna SWYP.",
+    "sortHot": "🔥 Hot",
+    "sortNew": "🆕 Nuovi",
+    "sortEnding": "⏰ In chiusura",
+    "empty": "Nessun battle attivo. Sii il primo!",
+    "createOne": "Creane uno",
+    "votes": "{count} voti",
+    "permanent": "Permanente",
+    "ended": "Concluso"
+  },
+  "missionsPage": {
+    "subtitle": "Brief retribuiti per creator. Guadagna SWYP + bounty per vendita.",
+    "empty": "Nessuna missione attiva al momento. Torna presto!",
+    "perSale": "/vendita",
+    "noDeadline": "Senza scadenza",
+    "ended": "Conclusa"
   }
 }
