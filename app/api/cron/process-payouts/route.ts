@@ -34,6 +34,7 @@
 import { NextResponse } from "next/server";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
+import { CREATOR_COMMISSION_BPS, applyBps } from "@/lib/config/commerce";
 import { getStripe } from "@/lib/stripe/checkout";
 import { timingSafeEqual } from "crypto";
 import { runCron } from "@/lib/cron/runCron";
@@ -183,6 +184,20 @@ async function handleGET(req: Request) {
         );
         continue;
       }
+      // FIX 2026-07-31: scriem intentia INAINTE de transfer. La crash intre
+      // transfer si UPDATE-ul final, reconciliem dupa idempotency key (Stripe
+      // returneaza acelasi transfer la retry) iar starea 'transfer_initiated'
+      // e vizibila in DB in loc sa para ca item-ul n-a fost atins.
+      await dbQuery(
+        `UPDATE commerce_order_items
+           SET metadata = coalesce(metadata, '{}'::jsonb)
+                        || jsonb_build_object(
+                             'seller_payout_status', 'transfer_initiated',
+                             'seller_idempotency_key', $2::text
+                           )
+         WHERE id = $1`,
+        [item.item_id, `swypik:seller-payout:${item.item_id}`]
+      );
       const transfer = await stripe.transfers.create(
         {
           amount: item.seller_payout_cents,
@@ -254,8 +269,19 @@ async function handleGET(req: Request) {
     }
 
     try {
-      const creatorPayoutCents = Math.max(1, Math.round(item.commissionable_cents * 0.05)); // 5% commission
+      const creatorPayoutCents = Math.max(1, applyBps(item.commissionable_cents, CREATOR_COMMISSION_BPS));
 
+      // Intentie pre-transfer (vezi comentariul din bucla seller).
+      await dbQuery(
+        `UPDATE commerce_order_items
+           SET metadata = coalesce(metadata, '{}'::jsonb)
+                        || jsonb_build_object(
+                             'creator_payout_status', 'transfer_initiated',
+                             'creator_idempotency_key', $2::text
+                           )
+         WHERE id = $1`,
+        [item.item_id, `swypik:creator-payout:${item.item_id}`]
+      );
       const transfer = await stripe.transfers.create(
         {
           amount: creatorPayoutCents,

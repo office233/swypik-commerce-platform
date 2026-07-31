@@ -47,6 +47,7 @@ export const viewport: Viewport = {
 };
 
 import BottomNav from "@/components/BottomNav";
+import FxRatesLoader from "@/components/i18n/FxRatesLoader";
 import EmailVerifyBanner from "@/components/auth/EmailVerifyBanner";
 import OnboardingGate from "@/components/onboarding/OnboardingGate";
 import PushPrompt from "@/components/notifications/PushPrompt";
@@ -131,6 +132,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CurrencyProvider initial={currency}>
+            <FxRatesLoader />
             <EmailVerifyBanner />
             <OnboardingGate />
             <div id="main-content" style={{ minHeight: '100dvh' }}>

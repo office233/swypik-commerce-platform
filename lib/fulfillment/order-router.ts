@@ -1,4 +1,5 @@
 import { dbQuery } from "@/lib/db";
+import { PLATFORM_COMMISSION_BPS, applyBps } from "@/lib/config/commerce";
 import { sendSellerNewOrderAlert } from "@/lib/email/service";
 import { logger } from "@/lib/logger";
 
@@ -67,7 +68,7 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
     if (source === "local" || sourceStatus === 'pending_seller_action') {
       const unit_amount_cents = Math.round(item.price * 100);
       const gross_amount_cents = unit_amount_cents * item.quantity;
-      const swypik_commission_cents = Math.round(gross_amount_cents * 0.10);
+      const swypik_commission_cents = applyBps(gross_amount_cents, PLATFORM_COMMISSION_BPS);
       const seller_payout_cents = gross_amount_cents - swypik_commission_cents;
 
       if (!item.metadata) item.metadata = {};

@@ -362,9 +362,15 @@ function transformProduct(
   const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
   const rawPriceCents = Number(row.price_cents);
   const hasValidPrice = Number.isFinite(rawPriceCents) && rawPriceCents > 0;
-  const price = hasValidPrice ? rawPriceCents / 100 : 29;
+  // FIX 2026-07-31: nu mai inventam pret. Produsele fara pret primeau 29 RON
+  // si puteau fi cumparate la acest pret fictiv. Acum raman 0 si sunt
+  // filtrate din listari (hasValidPrice) / afisate ca "pret indisponibil".
+  const price = hasValidPrice ? rawPriceCents / 100 : 0;
   const oldPriceCents = Number(row.compare_at_price_cents) || 0;
-  const oldPrice = oldPriceCents > 0 ? oldPriceCents / 100 : Math.round(price * 1.5);
+  // FIX 2026-07-31: pretul vechi era fabricat (price * 1.5) => reducere falsa
+  // afisata pe produse care nu au fost niciodata mai scumpe. Practica
+  // sanctionabila (OUG 34/2014, Directiva Omnibus). Acum: doar pret real.
+  const oldPrice = oldPriceCents > 0 ? oldPriceCents / 100 : 0;
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
   const seed = hashCode(`mp_${row.id}`);
 
@@ -415,7 +421,10 @@ function transformProduct(
   const category = safeCategoryLabel(firstNonEmpty(taxLabels.leaf, taxLabels.subcategory, productType, leafCategory, rootCategory), title, rootCategory);
   const categoryId = toNumber(metadata.ae_category_id, row.ae_category_id, metadata.ae_root_category_id, row.ae_root_id);
   const orders = toNumber(metadata.orders_count, row.ae_orders_count, 0) || 0;
-  const rating = Number((toNumber(metadata.rating, row.ae_rating, 4.5) || 4.5).toFixed(1));
+  // FIX 2026-07-31: rating-ul default 4.5 era fals — produsele fara nicio
+  // recenzie apareau cu 4.5 stele si urcau artificial in sortarea "top rated".
+  // Acum 0 = fara rating; UI-ul trebuie sa ascunda stelele cand rating === 0.
+  const rating = Number((toNumber(metadata.rating, row.ae_rating, 0) || 0).toFixed(1));
   const deliveryDays = toNumber(
     getMetadataValue(metadata, "shipping.days_min"),
     metadata.ship_days_min,
@@ -621,7 +630,14 @@ function buildSearchFilters(filters: ProductFilters) {
     locale,
   } = filters;
 
-  const where = ["p.status = 'active'", "COALESCE(p.is_adult, false) = false", "p.effective_label = 'safe'"];
+  // FIX 2026-07-31: excludem produsele fara pret valid direct din SQL —
+  // inainte primeau pretul fictiv de 29 RON si apareau in toate listarile.
+  const where = [
+    "p.status = 'active'",
+    "COALESCE(p.is_adult, false) = false",
+    "p.effective_label = 'safe'",
+    "COALESCE(p.price_cents, 0) > 0",
+  ];
   const params: unknown[] = [];
   let paramIndex = 1;
 

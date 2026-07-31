@@ -703,8 +703,8 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 </div>
                 <h2 className="line-clamp-2 text-[15px] font-black leading-snug text-white drop-shadow-lg">{product.title}</h2>
                 <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
-                  <span><Star size={11} className="mr-0.5 inline text-[#B45309]" fill="currentColor" />{product.rating.toFixed(1)}</span>
-                  <span>{product.isEstimatedSocial ? "Popular" : `${product.orders.toLocaleString()}+ vândute`}</span>
+                  {product.rating > 0 && <span><Star size={11} className="mr-0.5 inline text-[#B45309]" fill="currentColor" />{product.rating.toFixed(1)}</span>}
+                  <span>{product.isEstimatedSocial || product.orders === 0 ? "Popular" : `${product.orders.toLocaleString()}+ vândute`}</span>
                   <span><Truck size={11} className="mr-0.5 inline" />{product.deliveryDays}z</span>
                 </div>
               </div>
