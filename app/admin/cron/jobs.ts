@@ -36,13 +36,6 @@ export const CRON_JOBS: CronJob[] = [
     schedule: "Zilnic",
   },
   {
-    name: "swyp-view-milestones",
-    endpoint: "/api/cron/swyp-view-milestones",
-    method: "GET",
-    description: "Recompense SWYP pentru milestone-uri view.",
-    schedule: "La fiecare oră",
-  },
-  {
     name: "sync-dropship-status",
     endpoint: "/api/cron/sync-dropship-status",
     method: "POST",

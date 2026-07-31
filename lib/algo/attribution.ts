@@ -8,7 +8,7 @@
  *   pentru un clip al creatorului produsului).
  * - distributeCreatorFund(month, poolCents): distribuie pool-ul lunar
  *   proporțional cu watch-time-ul calificat (evenimente watch_time cu
- *   watch_ms >= fund_min_watch_ms). Payout prin wallet_apply() → wallet_ledger
+ *   watch_ms >= fund_min_watch_ms). Payout prin creditUser() → wallet_ledger_entries
  *   (kind='coins', reason='creator_fund'), cu prag minim de retragere.
  */
 
@@ -198,16 +198,16 @@ export async function distributeCreatorFund(
       if (payoutRes.rowCount === 0) continue; // deja procesat
 
       if (meetsThreshold && amount > 0) {
-        // wallet_apply scrie și în wallet_ledger (append-only audit).
-        await q(
-          `SELECT wallet_apply($1, 'coins', $2, 'creator_fund', 'creator_fund_payout', $3, $4::jsonb)`,
-          [
-            c.creator_id,
-            amount,
-            payoutRes.rows[0].id,
-            JSON.stringify({ month, qualified_watch_ms: ms }),
-          ]
-        );
+        // Bani reali (cenți) → ledger-ul financiar, idempotent pe payout id.
+        const { creditUser } = await import("@/lib/wallet/ledger");
+        await creditUser({
+          userId: c.creator_id,
+          amountCents: amount,
+          refType: "creator_fund_payout",
+          refId: payoutRes.rows[0].id,
+          description: `Creator fund ${month}`,
+          metadata: { month, qualified_watch_ms: ms },
+        });
         paid += 1;
       } else {
         belowThreshold += 1;

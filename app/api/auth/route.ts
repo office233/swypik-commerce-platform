@@ -514,10 +514,6 @@ export async function POST(req: Request) {
           `INSERT INTO notification_preferences (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
           [userId],
         );
-        await dbQuery(
-          `INSERT INTO swyp_wallets (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
-          [userId],
-        );
       } catch (err) {
         console.warn('[auth/signup_password] default rows insert failed:', (err as Error).message);
       }

@@ -17,11 +17,6 @@ import { dbQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-const REWARD_XP_WINNER_VOTER = 15;
-const REWARD_COINS_WINNER_VOTER = 5;
-const REWARD_XP_AUTHOR = 100;
-const REWARD_COINS_AUTHOR = 50;
-const REWARD_REP_AUTHOR = 1.5;
 
 async function authorize(req: Request) {
   const authHeader = req.headers.get("authorization");
@@ -100,10 +95,7 @@ export async function POST(req: Request) {
         );
         summary.closed += 1;
 
-        // Reward the post author (skill-based prize for hosting a winning battle).
-        await dbQuery(`SELECT wallet_apply($1, 'xp', $2, 'battle_host', 'post', $3)`, [b.author_user_id, REWARD_XP_AUTHOR, b.id]);
-        await dbQuery(`SELECT wallet_apply($1, 'coins', $2, 'battle_host', 'post', $3)`, [b.author_user_id, REWARD_COINS_AUTHOR, b.id]);
-        await dbQuery(`SELECT wallet_apply($1, 'reputation', $2::numeric, 'battle_host', 'post', $3)`, [b.author_user_id, REWARD_REP_AUTHOR, b.id]);
+        // XP/coins rewards removed together with the points system.
         summary.authorsAwarded += 1;
 
         await dbQuery(
@@ -113,16 +105,12 @@ export async function POST(req: Request) {
         );
         summary.notifications += 1;
 
-        // Reward all voters who picked the winning option.
+        // Count winning voters (rewards removed; kept for notifications/metrics).
         const { rows: voters } = await dbQuery<{ user_id: string }>(
           `SELECT user_id::text FROM community_post_votes
             WHERE post_id = $1 AND option_key = $2`,
           [b.id, winner.option_key],
         );
-        for (const v of voters) {
-          await dbQuery(`SELECT wallet_apply($1, 'xp', $2, 'battle_vote_win', 'post', $3)`, [v.user_id, REWARD_XP_WINNER_VOTER, b.id]);
-          await dbQuery(`SELECT wallet_apply($1, 'coins', $2, 'battle_vote_win', 'post', $3)`, [v.user_id, REWARD_COINS_WINNER_VOTER, b.id]);
-        }
         summary.votersAwarded += voters.length;
 
         // Notify losers — "ai fost depășit"

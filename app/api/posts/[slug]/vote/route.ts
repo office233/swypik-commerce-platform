@@ -5,7 +5,7 @@
  *
  *   Auth user:  persists in community_post_votes (PK = post_id, user_id).
  *               Switching options updates the row (decrements old, increments new).
- *               Awards +5 coins via reward_events (action='arena_vote'), daily cap 10 votes (50 coins).
+ *               Points rewards removed; referral attribution still tracked.
  *
  *   Anon user:  sets `swypik_anon` cookie if missing, persists in anon_post_votes.
  *               No reward (anon has no wallet); recorded for ledger-at-signup attribution.
@@ -26,8 +26,6 @@ import { PostVoteSchema, parseBody } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
 const REWARD_ACTION = "arena_vote";
-const REWARD_POINTS = 5;
-const DAILY_CAP_VOTES = 10; // ⇒ 50 coins/day from voting
 
 type PostRow = { id: string; status: string; is_adult: boolean };
 type ItemRow = { option_key: string };
@@ -161,32 +159,12 @@ export async function POST(
       );
     }
 
-    // Reward (auth users only, new votes only, daily cap)
-    let rewarded = 0;
-    if (userId && isNew) {
-      const cap = await client.query<{ c: string }>(
-        `SELECT COUNT(*)::text AS c FROM reward_events
-          WHERE user_id=$1 AND action=$2 AND created_at > date_trunc('day', now())`,
-        [userId, REWARD_ACTION],
-      );
-      const todayCount = Number(cap.rows[0]?.c ?? "0");
-      if (todayCount < DAILY_CAP_VOTES) {
-        await client.query(
-          `INSERT INTO reward_events (user_id, action, points_awarded, source_type, source_id, metadata)
-           VALUES ($1, $2, $3, 'community_post', $4, jsonb_build_object('optionKey', $5::text, 'slug', $6::text))`,
-          [userId, REWARD_ACTION, REWARD_POINTS, post.id, optionKey, slug],
-        );
-        // Wallet balance is reconciled by AFTER INSERT trigger
-        // trg_reward_events_credit_wallet (migration 0012).
-        rewarded = REWARD_POINTS;
-      }
-    }
+    // Points rewards removed together with the SWYP points system.
+    const rewarded = 0;
 
     await client.query("COMMIT");
 
-    // Best-effort: if this is the invitee's first authenticated vote,
-    // award their referrer (+50). Runs outside the vote TX so failure here
-    // never blocks the vote response.
+    // Referral attribution is still validated (tracking only, no points payout).
     if (userId && isNew) {
       try {
         await tryValidateReferral(userId, REWARD_ACTION);

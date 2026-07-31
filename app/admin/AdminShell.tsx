@@ -99,7 +99,6 @@ const sections: NavSection[] = [
     items: [
       { href: "/admin/videos", label: "Videos", icon: Video },
       { href: "/admin/moderation", label: "Moderare", icon: ShieldAlert },
-      { href: "/admin/challenges", label: "Challenges", icon: Trophy },
       { href: "/admin/comments", label: "Comments", icon: MessageSquare, comingSoon: true },
       { href: "/admin/audio", label: "Audio", icon: Music2, comingSoon: true },
       { href: "/admin/hashtags", label: "Hashtags", icon: Hash, comingSoon: true },
@@ -196,11 +195,10 @@ function SidebarContent({
                     key={item.href}
                     href={item.href}
                     onClick={onNavigate}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition ${
-                      active
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition ${active
                         ? "bg-white/15 text-white"
                         : "text-white/60 hover:text-white hover:bg-white/10"
-                    }`}
+                      }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     <span className="flex-1 truncate">{item.label}</span>

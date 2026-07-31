@@ -557,9 +557,6 @@ export default function ChatInterface({
           <Link href="/explore" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Compass size={18} className="text-[#0D0D0D]" /> Feed
           </Link>
-          <Link href="/challenges" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
-            <Trophy size={18} className="text-[#F59E0B]" /> Challenges
-          </Link>
           <Link href="/onboarding" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Sparkles size={18} className="text-[#8B5CF6]" /> Alege interese
           </Link>
@@ -584,9 +581,6 @@ export default function ChatInterface({
           </Link>
           <Link href="/upload" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Upload size={18} className="text-[#6E6E80]" />  {t("incarcaClip")}
-          </Link>
-          <Link href="/creator/rewards" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
-            <Trophy size={18} className="text-[#F59E0B]" /> SWYP Points
           </Link>
           <Link href="/creator/videos" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] hover:bg-[#F7F7F8] transition">
             <Flame size={18} className="text-[#EF4444]" /> Clipurile mele

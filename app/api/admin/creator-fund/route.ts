@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * POST /api/admin/creator-fund          — distribuie fondul pentru o lună
  *   body: { month: "2026-07", poolCents: 500000 }
  *
- * Payout-urile ajung în wallet_ledger prin wallet_apply() (kind='coins',
+ * Payout-urile ajung în wallet_ledger_entries prin creditUser() (cenți,
  * reason='creator_fund'), cu prag minim (feed_weights.fund_payout_min_cents).
  */
 

@@ -22,7 +22,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
   const [activeTab, setActiveTab] = useState<"videos" | "orders" | "saved">("videos");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [challengesCount, setChallengesCount] = useState<number | null>(null);
-  
+
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [devOtp, setDevOtp] = useState<string | null>(null);
@@ -49,25 +49,6 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         console.error("No videos found", e);
       }
 
-      try {
-        const resWallet = await fetch("/api/wallet");
-        if (resWallet.ok) {
-          const dw = await resWallet.json();
-          if (typeof dw.balance === "number") setWalletBalance(dw.balance);
-        }
-      } catch (e) {
-        console.error("wallet fetch failed", e);
-      }
-
-      try {
-        const resCh = await fetch("/api/challenges");
-        if (resCh.ok) {
-          const dc = await resCh.json();
-          if (Array.isArray(dc.challenges)) setChallengesCount(dc.challenges.length);
-        }
-      } catch (e) {
-        console.error("challenges fetch failed", e);
-      }
     } catch (e) {
       console.error(e);
     }
@@ -205,7 +186,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
         <div className="max-w-sm mx-auto px-6 pt-24">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-black mb-2">Verificare</h1>
-            <p className="text-white/60">{t("codulAFostTrimis")} <br/><b className="text-white">{email}</b></p>
+            <p className="text-white/60">{t("codulAFostTrimis")} <br /><b className="text-white">{email}</b></p>
           </div>
 
           {devOtp && (
@@ -289,68 +270,18 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           </div>
 
           <div className="flex gap-3 w-full">
-            <Link 
-              href="/upload" 
+            <Link
+              href="/upload"
               className="flex-1 bg-[#7C3AED] hover:bg-[#E0264A] text-white py-3 min-h-[44px] rounded-lg font-bold flex items-center justify-center gap-2 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
             >
               <Plus size={18} />  {t("publica")}
             </Link>
             <Link href="/account/edit" className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 min-h-[44px] flex items-center justify-center rounded-lg font-bold text-center transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-              
+
               {t("editeaza")}
             </Link>
           </div>
         </div>
-
-        {/* Coins & Provocari */}
-        <section aria-label="Coins si provocari" className="mb-6">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-sm font-black uppercase tracking-wider text-white/70">{t("coinsProvocari")}</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Link
-              href="/wallet"
-              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#7C3AED]/20 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#7C3AED]/60 transition active:scale-[0.98]"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-9 h-9 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center">
-                  <Coins size={18} className="text-[#FBBF24]" aria-hidden />
-                </div>
-                <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
-              </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Portofel SWYP</p>
-              <p className="mt-1 text-xl font-black text-white">
-                {walletBalance === null ? (
-                  <span className="inline-block h-5 w-16 rounded bg-white/10 animate-pulse align-middle" aria-label={t("seIncarca")} />
-                ) : (
-                  <>{walletBalance.toLocaleString("ro-RO")} <span className="text-xs text-white/50 font-bold">coins</span></>
-                )}
-              </p>
-              <p className="mt-1 text-xs text-[#7C3AED] font-bold">Vezi portofel →</p>
-            </Link>
-
-            <Link
-              href="/challenges"
-              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#EC4899]/20 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#EC4899]/60 transition active:scale-[0.98]"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-9 h-9 rounded-xl bg-[#EC4899]/20 flex items-center justify-center">
-                  <Trophy size={18} className="text-[#EC4899]" aria-hidden />
-                </div>
-                <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
-              </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">{t("provocariActive")}</p>
-              <p className="mt-1 text-xl font-black text-white">
-                {challengesCount === null ? (
-                  <span className="inline-block h-5 w-10 rounded bg-white/10 animate-pulse align-middle" aria-label={t("seIncarca2")} />
-                ) : (
-                  <>{challengesCount} <span className="text-xs text-white/50 font-bold">{challengesCount === 1 ? "activă" : "active"}</span></>
-                )}
-              </p>
-              <p className="mt-1 text-xs text-[#EC4899] font-bold">{t("veziProvocari")}</p>
-            </Link>
-          </div>
-        </section>
 
         {/* Modurile mele — comutare rol (cumpărător/creator/seller/curier) */}
         <MyModes />
@@ -395,21 +326,21 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
 
         {/* Tabs */}
         <div className="flex border-b border-white/10 mb-1">
-          <button 
+          <button
             onClick={() => setActiveTab("videos")}
             className={`flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 text-xs font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "videos" ? "border-white text-white" : "border-transparent text-white/50"}`}
           >
             <Grid size={18} />
             <span>Clipuri</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("saved")}
             className={`flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 text-xs font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "saved" ? "border-white text-white" : "border-transparent text-white/50"}`}
           >
             <Bookmark size={18} />
             <span>Salvate</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("orders")}
             className={`flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 text-xs font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "orders" ? "border-white text-white" : "border-transparent text-white/50"}`}
           >

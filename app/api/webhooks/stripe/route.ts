@@ -3,7 +3,6 @@ import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery } from "@/lib/db";
 import { sendOrderConfirmation, sendRefundEmail } from "@/lib/email/service";
 import { routeOrder } from "@/lib/fulfillment/order-router";
-import { awardOrderSwyp } from "@/lib/swyp/order-rewards";
 import { logCheckoutEvent } from "@/lib/security/audit-log";
 import { scoreOrderRisk } from "@/lib/risk/order-fraud-score";
 import { notifyOps } from "@/lib/ops/alerts";
@@ -349,7 +348,6 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   if (order.status !== "pending") {
     logger.info({ order_id: orderId, current_status: order.status }, "[Stripe Webhook] order already past pending; skipping paid transition");
     await maybeSendOrderConfirmation(orderId);
-    await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
     return;
   }
   if (Number(order.total_cents) !== Number(intent.amount) || String(order.currency).toUpperCase() !== String(intent.currency).toUpperCase()) {
@@ -423,7 +421,6 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   );
 
   await maybeSendOrderConfirmation(orderId);
-  await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
   await attributeOrder(orderId).catch((e) =>
     logger.error({ err: e, orderId }, "[algo] video attribution failed"),
   );
@@ -718,7 +715,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   );
 
   await maybeSendOrderConfirmation(orderId);
-  await awardOrderSwyp(orderId).catch((e) => logger.error({ err: e }, "[swyp] award failed"));
 
   // FRONT 4 — webhooks către apps terțe instalate (fire-and-forget)
   {

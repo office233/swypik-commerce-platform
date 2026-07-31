@@ -46,7 +46,6 @@ export const viewport: Viewport = {
   themeColor: "#7C3AED",
 };
 
-import RewardFlash from "@/components/RewardFlash";
 import BottomNav from "@/components/BottomNav";
 import EmailVerifyBanner from "@/components/auth/EmailVerifyBanner";
 import OnboardingGate from "@/components/onboarding/OnboardingGate";
@@ -138,7 +137,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {children}
             </div>
             <BottomNav />
-            <RewardFlash />
             <PushPrompt />
             <InstallPrompt />
             <CookieBanner />

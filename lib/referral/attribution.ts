@@ -18,7 +18,6 @@ import { dbQuery, getDb } from "@/lib/db";
 
 const REF_COOKIE = "swypik_ref";
 const REF_MAX_AGE = 60 * 60 * 24 * 90; // 90 days
-const REFERRAL_REWARD_POINTS = 50;
 const REFERRAL_DAILY_CAP = 3; // validated referrals per referrer per day
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 
@@ -213,8 +212,8 @@ export async function attributeOnSignup({ inviteeUserId }: AttributeArgs): Promi
 /**
  * Called after a qualifying invitee action (first authenticated vote, share, etc.).
  * If invitee has an unvalidated attribution with score >= 0.5 and the referrer
- * hasn't reached the daily cap, validates and inserts a reward_events row
- * (wallet credit happens via trigger 0012).
+ * hasn't reached the daily cap, marks the attribution validated.
+ * (Points payout was removed with the SWYP points system.)
  */
 export async function tryValidateReferral(inviteeUserId: string, action: string): Promise<boolean> {
   const db = getDb();
@@ -253,19 +252,13 @@ export async function tryValidateReferral(inviteeUserId: string, action: string)
       return false;
     }
 
-    const reward = await client.query<{ id: string }>(
-      `INSERT INTO reward_events (user_id, action, points_awarded, source_type, source_id, metadata)
-       VALUES ($1, 'referral_validated', $2, 'user', $3, jsonb_build_object('validation_action', $4::text))
-       RETURNING id`,
-      [row.referrer_user_id, REFERRAL_REWARD_POINTS, inviteeUserId, action],
-    );
+    // Points payout removed with the SWYP points system — validation is tracking-only now.
     await client.query(
       `UPDATE referral_attributions
          SET validated_at = now(),
-             validation_action = $1,
-             reward_event_id = $2
-       WHERE invitee_user_id = $3`,
-      [action, reward.rows[0].id, inviteeUserId],
+             validation_action = $1
+       WHERE invitee_user_id = $2`,
+      [action, inviteeUserId],
     );
     await client.query("COMMIT");
     return true;

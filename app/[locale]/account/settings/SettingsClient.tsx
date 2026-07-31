@@ -52,7 +52,6 @@ export default function SettingsClient({ isAdmin = false, sellerStatus = null }:
       ? [{ href: "/become-a-seller", icon: Store, label: t("itemSellerPending") }]
       : [{ href: "/become-a-seller", icon: Store, label: t("itemDevinoSeller") }]),
     { href: "/account/edit", icon: UserCircle2, label: t("itemEditeaza") },
-    { href: "/wallet", icon: Wallet, label: t("itemWallet") },
     { href: "/account/orders", icon: ShoppingBag, label: t("itemComenzi") },
     { href: "/account/addresses", icon: MapPin, label: t("itemAdrese") },
     { href: "/account/security", icon: ShieldCheck, label: t("itemSecuritate") },
