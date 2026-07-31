@@ -1,61 +1,75 @@
+/**
+ * Politica de confidențialitate — randată din lib/legal/privacy-content.ts
+ * (sursă unică de adevăr, ținută sincron cu ce colectează efectiv platforma).
+ */
 import type { Metadata } from "next";
-import { useTranslations } from "next-intl";
-import { getTranslations } from "next-intl/server";
+import { PRIVACY_SECTIONS, PRIVACY_LAST_UPDATED } from "@/lib/legal/privacy-content";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("privacy");
-  return {
-    title: t("metaTitle"),
-    description: t("metaDescription"),
-  };
-}
+export const metadata: Metadata = {
+    title: "Politica de confidențialitate — Swypik",
+    description:
+        "Cum colectează, folosește și protejează Swypik datele tale personale: temeiuri legale, perioade de păstrare, drepturile tale GDPR.",
+};
 
 export default function PrivacyPage() {
-  const t = useTranslations("privacy");
-  // Sections 1-7 + 9 are regular title/body. Section 8 (DPO contact) has inline mailto.
-  const regularSections = [1, 2, 3, 4, 5, 6, 7, 9].map((n) => ({
-    title: t(`section${n}Title`),
-    body: t(`section${n}Body`),
-  }));
+    return (
+        <main className="mx-auto max-w-2xl px-4 pb-24 pt-8">
+            <h1 className="text-2xl font-black">Politica de confidențialitate</h1>
+            <p className="mt-1 text-sm text-neutral-500">Ultima actualizare: {PRIVACY_LAST_UPDATED}</p>
 
-  return (
-    <main className="min-h-screen bg-white text-[#0D0D0D]">
-      <div className="mx-auto max-w-2xl px-5 py-10 md:px-6 md:py-16 leading-relaxed">
-        <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          📄 {t("draftNotice")}
-        </div>
+            <p className="mt-4 rounded-xl bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-200">
+                Pe scurt: colectăm doar ce e necesar, criptăm ce e sensibil, nu vindem
+                datele nimănui și le poți controla oricând. Detaliile complete, mai jos.
+            </p>
 
-        <h1 className="mb-2 text-3xl font-black tracking-tight md:text-4xl">
-          {t("h1")}
-        </h1>
-        <p className="mb-10 text-sm text-[#6E6E80]">{t("lastUpdated")}</p>
+            <div className="mt-8 space-y-8">
+                {PRIVACY_SECTIONS.map((s) => (
+                    <section key={s.id} id={s.id}>
+                        <h2 className="text-lg font-bold">{s.title}</h2>
 
-        {regularSections.slice(0, 7).map((s, idx) => (
-          <section key={`pre-${idx}`} className="mb-8">
-            <h2 className="mb-3 text-xl font-bold">{s.title}</h2>
-            <p className="text-[15px] text-[#3C3C43] whitespace-pre-line">{s.body}</p>
-          </section>
-        ))}
+                        {s.body?.map((p, i) => (
+                            <p key={i} className="mt-2 text-[15px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                {p}
+                            </p>
+                        ))}
 
-        <section className="mb-8">
-          <h2 className="mb-3 text-xl font-bold">{t("section8Title")}</h2>
-          <p className="text-[15px] text-[#3C3C43] whitespace-pre-line">
-            {t("section8BodyPrefix")}{" "}
-            <a
-              className="font-semibold text-[#10A37F] underline"
-              href="mailto:privacy@swypik.com"
-            >
-              privacy@swypik.com
-            </a>
-            {t("section8BodySuffix")}
-          </p>
-        </section>
+                        {s.bullets && (
+                            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[15px] text-neutral-700 dark:text-neutral-300">
+                                {s.bullets.map((b, i) => <li key={i}>{b}</li>)}
+                            </ul>
+                        )}
 
-        <section className="mb-8">
-          <h2 className="mb-3 text-xl font-bold">{regularSections[7].title}</h2>
-          <p className="text-[15px] text-[#3C3C43] whitespace-pre-line">{regularSections[7].body}</p>
-        </section>
-      </div>
-    </main>
-  );
+                        {s.table && (
+                            <div className="mt-3 overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
+                                        <tr>
+                                            {s.table.headers.map((h) => (
+                                                <th key={h} className="px-3 py-2 font-bold">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                                        {s.table.rows.map((row, i) => (
+                                            <tr key={i}>
+                                                {row.map((cell, j) => (
+                                                    <td key={j} className={`px-3 py-2 ${j === 0 ? "font-medium" : "text-neutral-600 dark:text-neutral-400"}`}>
+                                                        {cell}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+                ))}
+            </div>
+
+            <p className="mt-10 border-t border-neutral-200 pt-4 text-xs text-neutral-400 dark:border-neutral-800">
+                MEISTER COM S.R.L. · privacy@swypik.com · Autoritatea de supraveghere: ANSPDCP (www.dataprotection.ro)
+            </p>
+        </main>
+    );
 }
