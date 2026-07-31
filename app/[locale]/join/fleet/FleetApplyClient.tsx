@@ -8,8 +8,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bike, Car, CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import PartnerLanding from "@/components/join/PartnerLanding";
 
 const VEHICLES: { value: string; labelKey: string }[] = [
     { value: "bike", labelKey: "vBike" },
@@ -96,23 +97,30 @@ export default function FleetApplyClient() {
     }
 
     return (
-        <main className="min-h-screen bg-[#FAFAFB] px-4 py-8">
-            <div className="mx-auto max-w-md">
-                <Link href="/join" className="text-[13px] font-bold text-[#6E6E80] hover:text-[#0D0D0D]">← {t("back")}</Link>
-                <div className="mt-4 flex items-center gap-3">
-                    <span
-                        className="flex h-12 w-12 items-center justify-center rounded-2xl"
-                        style={{ backgroundColor: isGo ? "#F59E0B1A" : "#2DBE601A" }}
-                    >
-                        {isGo ? <Car size={24} className="text-amber-500" /> : <Bike size={24} className="text-green-600" />}
-                    </span>
-                    <div>
-                        <h1 className="text-xl font-black text-[#0D0D0D]">{isGo ? t("goFormTitle") : t("foodFormTitle")}</h1>
-                        <p className="text-[13px] text-[#6E6E80]">{isGo ? t("goFormSub") : t("foodFormSub")}</p>
-                    </div>
-                </div>
-
-                <form onSubmit={submit} className="mt-6 space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+        <PartnerLanding
+            portalLabel={isGo ? "Swypik Go · Șoferi" : "Swypik Food · Curieri"}
+            headline={isGo ? t("goHero1") : t("foodHero1")}
+            headlineMuted={isGo ? t("goHero2") : t("foodHero2")}
+            subheadline={isGo ? t("goHeroSub") : t("foodHeroSub")}
+            ctaLabel={isGo ? t("goFormCta") : t("foodFormCta")}
+            whyTitle={t("whyUs")}
+            features={
+                isGo
+                    ? [
+                        { title: t("goF1t"), description: t("goF1d") },
+                        { title: t("goF2t"), description: t("goF2d") },
+                        { title: t("goF3t"), description: t("goF3d") },
+                    ]
+                    : [
+                        { title: t("foodF1t"), description: t("foodF1d") },
+                        { title: t("foodF2t"), description: t("foodF2d") },
+                        { title: t("foodF3t"), description: t("foodF3d") },
+                    ]
+            }
+            formTitle={isGo ? t("goFormTitle") : t("foodFormTitle")}
+            formSubtitle={isGo ? t("goFormSub") : t("foodFormSub")}
+        >
+                <form onSubmit={submit} className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
                     {error && (
                         <p className="rounded-xl bg-red-50 px-3 py-2 text-[13px] font-bold text-red-600">{error}</p>
                     )}
@@ -149,8 +157,7 @@ export default function FleetApplyClient() {
                     </button>
                     <p className="text-center text-[11px] text-[#A1A1AA]">{t("applyNote")}</p>
                 </form>
-            </div>
-        </main>
+        </PartnerLanding>
     );
 }
 

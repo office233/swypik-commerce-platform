@@ -344,31 +344,17 @@ function LoginForm({ nextPath }: { nextPath: string }) {
   );
 }
 
-/** Intrări către înrolarea ca partener: vânzător, flotă Go, flotă Food. */
+/** Un singur CTA către hub-ul de recrutare parteneri (/join). */
 function PartnerLinks() {
   const t = useTranslations("join");
-  const items = [
-    { href: "/become-a-seller", label: t("navSeller"), emoji: "🏪" },
-    { href: "/join/fleet?kind=driver", label: t("navGo"), emoji: "🚕" },
-    { href: "/join/fleet?kind=courier", label: t("navFood"), emoji: "🛵" },
-  ];
   return (
     <div className="mt-6 border-t border-white/10 pt-5">
-      <p className="text-center text-[11px] font-extrabold uppercase tracking-widest text-white/40">
-        {t("partnerHeading")}
-      </p>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {items.map((i) => (
-          <Link
-            key={i.href}
-            href={i.href}
-            className="flex flex-col items-center gap-1 rounded-2xl bg-white/5 px-2 py-3 text-center text-[11px] font-bold text-white/80 transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
-          >
-            <span className="text-lg" aria-hidden>{i.emoji}</span>
-            {i.label}
-          </Link>
-        ))}
-      </div>
+      <Link
+        href="/join"
+        className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
+      >
+        🤝 {t("becomePartnerBtn")}
+      </Link>
     </div>
   );
 }

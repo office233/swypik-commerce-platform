@@ -6,8 +6,9 @@
  */
 import { useState } from "react";
 import Link from "next/link";
-import { Building2, CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import PartnerLanding from "@/components/join/PartnerLanding";
 
 export default function FranchiseApplyClient() {
     const t = useTranslations("join");
@@ -71,20 +72,22 @@ export default function FranchiseApplyClient() {
     }
 
     return (
-        <main className="min-h-screen bg-[#FAFAFB] px-4 py-8">
-            <div className="mx-auto max-w-md">
-                <Link href="/join" className="text-[13px] font-bold text-[#6E6E80] hover:text-[#0D0D0D]">← {t("back")}</Link>
-                <div className="mt-4 flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100">
-                        <Building2 size={24} className="text-violet-600" />
-                    </span>
-                    <div>
-                        <h1 className="text-xl font-black text-[#0D0D0D]">{t("franchiseTitle")}</h1>
-                        <p className="text-[13px] text-[#6E6E80]">{t("franchiseSub")}</p>
-                    </div>
-                </div>
-
-                <form onSubmit={submit} className="mt-6 space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+        <PartnerLanding
+            portalLabel="Swypik · Francize"
+            headline={t("frHero1")}
+            headlineMuted={t("frHero2")}
+            subheadline={t("frHeroSub")}
+            ctaLabel={t("frFormCta")}
+            whyTitle={t("whyUs")}
+            features={[
+                { title: t("frF1t"), description: t("frF1d") },
+                { title: t("frF2t"), description: t("frF2d") },
+                { title: t("frF3t"), description: t("frF3d") },
+            ]}
+            formTitle={t("franchiseTitle")}
+            formSubtitle={t("franchiseSub")}
+        >
+                <form onSubmit={submit} className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
                     {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-[13px] font-bold text-red-600">{error}</p>}
                     <Field label={t("companyName")}>
                         <input required minLength={3} value={form.company_name} onChange={set("company_name")} className={inputCls} />
@@ -120,8 +123,7 @@ export default function FranchiseApplyClient() {
                     </button>
                     <p className="text-center text-[11px] text-[#A1A1AA]">{t("applyNote")}</p>
                 </form>
-            </div>
-        </main>
+        </PartnerLanding>
     );
 }
 

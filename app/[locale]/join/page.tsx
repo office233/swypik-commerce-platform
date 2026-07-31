@@ -22,7 +22,7 @@ function FoundingCounter() {
                 const taken = Number(d?.slots?.founding_taken ?? 0);
                 setLeft(Math.max(0, total - taken));
             })
-            .catch(() => {});
+            .catch(() => { });
     }, []);
     if (left === null || left <= 0) return null;
     return (
