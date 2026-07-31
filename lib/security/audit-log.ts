@@ -17,6 +17,8 @@ export type AuditEvent =
   | "checkout_success"
   | "checkout_fail"
   | "checkout_rate_limited"
+  | "checkout_rate_limited_email"
+  | "checkout_rate_limited_global"
   | "variant_lookup_fail"
   | "product_not_found"
   | "invalid_price"
