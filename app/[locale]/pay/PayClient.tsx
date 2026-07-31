@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2 } from "lucide-react";
+import { APP_URL } from "@/lib/app-url";
 
 type Mining = {
     active: boolean;
@@ -159,7 +160,7 @@ export default function PayClient() {
                         </div>
                         <button
                             onClick={async () => {
-                                await navigator.clipboard.writeText(wallet.address).catch(() => {});
+                                await navigator.clipboard.writeText(wallet.address).catch(() => { });
                                 setAddrCopied(true);
                                 setTimeout(() => setAddrCopied(false), 2000);
                             }}
@@ -244,7 +245,7 @@ export default function PayClient() {
 
                     <button
                         onClick={async () => {
-                            const url = shareUrl ?? "https://swypik.com";
+                            const url = shareUrl ?? APP_URL;
                             const text = `Minez SWYP pe Swypik — pornește și tu, e gratis: ${url}`;
                             if (navigator.share) {
                                 try { await navigator.share({ title: "Swypik Pay", text, url }); return; } catch { /* anulat */ }

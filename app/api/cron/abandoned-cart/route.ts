@@ -22,6 +22,7 @@ import { timingSafeEqual } from "crypto";
 
 import { logger } from "@/lib/logger";
 import { runCron } from "@/lib/cron/runCron";
+import { APP_URL } from "@/lib/app-url";
 export const dynamic = "force-dynamic";
 
 async function handleGET(req: Request) {
@@ -41,7 +42,7 @@ async function handleGET(req: Request) {
   }
 
   const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
+    APP_URL;
 
   try {
     const { rows: expiredRows } = await dbQuery(

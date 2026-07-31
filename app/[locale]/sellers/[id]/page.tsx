@@ -15,6 +15,7 @@ import { getProductRatingMap } from "@/lib/reviews/aggregate";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { getTranslations } from "next-intl/server";
+import { formatMoneyCents } from "@/lib/i18n/currency";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -125,9 +126,7 @@ function getLogo(seller: Seller): string | null {
 
 function formatPrice(cents: number | null, currency: string): string {
   if (cents == null) return "—";
-  const value = (cents / 100).toFixed(2);
-  const symbol = currency === "RON" ? "lei" : currency;
-  return `${value} ${symbol}`;
+  return formatMoneyCents(cents, currency);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -189,7 +188,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
               {seller.is_verified && <VerifiedBadge size={22} />}
               {isVerified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#10A37F]/10 px-2.5 py-1 text-xs font-bold text-[#10A37F]">
-                  
+
                   {t("vanzatorVerificat")}
                 </span>
               )}
@@ -218,7 +217,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
           </div>
           <div className="rounded-xl border border-[#E5E5E5] bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#6E6E80]">
-              
+
               {t("vanzari")}
             </p>
             <p className="mt-1 text-xl font-black md:text-2xl">—</p>
@@ -268,7 +267,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
           {products.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#E5E5E5] bg-[#F7F7F8] p-10 text-center">
               <p className="text-sm text-[#6E6E80]">
-                
+
                 {t("produseleAcestuiVanzatorVor")}
               </p>
             </div>
@@ -277,47 +276,47 @@ export default async function SellerStorefrontPage({ params }: Props) {
               {products.map((p) => {
                 const agg = ratingMap.get(p.id);
                 return (
-                <Link
-                  key={p.id}
-                  href={`/product/${p.id}`}
-                  className="group block overflow-hidden rounded-xl border border-[#E5E5E5] bg-white transition hover:border-[#0D0D0D]"
-                >
-                  <div className="relative aspect-square overflow-hidden bg-[#F7F7F8]">
-                    {p.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.image_url}
-                        alt={p.title}
-                        className="h-full w-full object-cover transition group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-3xl text-[#C4C4C4]">
-                        📦
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="line-clamp-2 text-sm font-semibold leading-snug">
-                      {p.title}
-                    </p>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <p className="text-sm font-black text-[#10A37F]">
-                        {formatPrice(p.price_cents, p.currency)}
-                      </p>
-                      {agg && agg.reviewCount > 0 && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E6E80]"
-                          aria-label={`Rating ${agg.avgRating.toFixed(1)} din 5 (${agg.reviewCount} recenzii)`}
-                        >
-                          <Star size={11} className="text-[#F59E0B]" fill="currentColor" />
-                          {agg.avgRating.toFixed(1)}
-                          <span className="text-[#A1A1AA]">({agg.reviewCount})</span>
-                        </span>
+                  <Link
+                    key={p.id}
+                    href={`/product/${p.id}`}
+                    className="group block overflow-hidden rounded-xl border border-[#E5E5E5] bg-white transition hover:border-[#0D0D0D]"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-[#F7F7F8]">
+                      {p.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.image_url}
+                          alt={p.title}
+                          className="h-full w-full object-cover transition group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-3xl text-[#C4C4C4]">
+                          📦
+                        </div>
                       )}
                     </div>
-                  </div>
-                </Link>
+                    <div className="p-3">
+                      <p className="line-clamp-2 text-sm font-semibold leading-snug">
+                        {p.title}
+                      </p>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <p className="text-sm font-black text-[#10A37F]">
+                          {formatPrice(p.price_cents, p.currency)}
+                        </p>
+                        {agg && agg.reviewCount > 0 && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E6E80]"
+                            aria-label={`Rating ${agg.avgRating.toFixed(1)} din 5 (${agg.reviewCount} recenzii)`}
+                          >
+                            <Star size={11} className="text-[#F59E0B]" fill="currentColor" />
+                            {agg.avgRating.toFixed(1)}
+                            <span className="text-[#A1A1AA]">({agg.reviewCount})</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
                 );
               })}
             </div>

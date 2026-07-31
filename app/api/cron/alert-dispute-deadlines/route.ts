@@ -10,6 +10,7 @@ import { dbQuery } from "@/lib/db";
 import { sendEmail } from "@/lib/email/service";
 import { runCron } from "@/lib/cron/runCron";
 import { logger } from "@/lib/logger";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +126,7 @@ async function handle(req: Request) {
           <tbody>${rowsHtml}</tbody>
         </table>
         <p style="margin-top:16px">
-          <a href="https://swypik.com/admin/disputes?status=needs_response"
+          <a href="${APP_URL}/admin/disputes?status=needs_response"
              style="background:#0D0D0D;color:#fff;padding:10px 16px;text-decoration:none;border-radius:8px;display:inline-block">
             Răspunde acum
           </a>

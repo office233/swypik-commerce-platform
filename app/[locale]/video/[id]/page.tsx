@@ -13,6 +13,7 @@ import { dbQuery } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { safeJsonLd } from "@/lib/seo/json-ld";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
+import { APP_URL } from "@/lib/app-url";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -58,7 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? video.description.replace(/<[^>]*>/g, " ").trim().slice(0, 155)
     : `Vizionează ${video.title} pe Swypik — social video commerce.`;
 
-  const canonical = `https://swypik.com/video/${id}`;
+  const canonical = `${APP_URL}/video/${id}`;
   const languages = languagesForMetadata(`/video/${id}`);
   return {
     title,
@@ -147,9 +148,9 @@ export default async function VideoPage({ params }: Props) {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Home", item: "https://swypik.com/" },
-              { "@type": "ListItem", position: 2, name: "Explore", item: "https://swypik.com/explore" },
-              { "@type": "ListItem", position: 3, name: (video.title || "Video").slice(0, 80), item: `https://swypik.com/video/${id}` },
+              { "@type": "ListItem", position: 1, name: "Home", item: `${APP_URL}/` },
+              { "@type": "ListItem", position: 2, name: "Explore", item: `${APP_URL}/explore` },
+              { "@type": "ListItem", position: 3, name: (video.title || "Video").slice(0, 80), item: `${APP_URL}/video/${id}` },
             ],
           }),
         }}

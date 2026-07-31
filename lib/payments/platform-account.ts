@@ -27,30 +27,30 @@ let cachedId: string | null = null;
  * (dacă env-ul indică un user inexistent, cădem pe id-ul din migrare).
  */
 export async function getPlatformUserId(): Promise<string> {
-  if (cachedId) return cachedId;
+    if (cachedId) return cachedId;
 
-  const candidate = process.env.PLATFORM_USER_ID?.trim() || DEFAULT_PLATFORM_USER_ID;
-  const { rows } = await dbQuery<{ id: string }>(
-    `SELECT id FROM users WHERE id = $1::uuid LIMIT 1`,
-    [candidate],
-  );
-  if (rows[0]) {
-    cachedId = rows[0].id;
-    return cachedId;
-  }
-
-  log.warn({ candidate }, "PLATFORM_USER_ID inexistent; folosesc id-ul din migrare");
-  const { rows: fallback } = await dbQuery<{ id: string }>(
-    `SELECT id FROM users WHERE id = $1::uuid LIMIT 1`,
-    [DEFAULT_PLATFORM_USER_ID],
-  );
-  if (!fallback[0]) {
-    throw new Error(
-      "Contul de platformă lipsește. Aplică db/migrations/20260730_0013_platform_account_connect.sql",
+    const candidate = process.env.PLATFORM_USER_ID?.trim() || DEFAULT_PLATFORM_USER_ID;
+    const { rows } = await dbQuery<{ id: string }>(
+        `SELECT id FROM users WHERE id = $1::uuid LIMIT 1`,
+        [candidate],
     );
-  }
-  cachedId = fallback[0].id;
-  return cachedId;
+    if (rows[0]) {
+        cachedId = rows[0].id;
+        return cachedId;
+    }
+
+    log.warn({ candidate }, "PLATFORM_USER_ID inexistent; folosesc id-ul din migrare");
+    const { rows: fallback } = await dbQuery<{ id: string }>(
+        `SELECT id FROM users WHERE id = $1::uuid LIMIT 1`,
+        [DEFAULT_PLATFORM_USER_ID],
+    );
+    if (!fallback[0]) {
+        throw new Error(
+            "Contul de platformă lipsește. Aplică db/migrations/20260730_0013_platform_account_connect.sql",
+        );
+    }
+    cachedId = fallback[0].id;
+    return cachedId;
 }
 
 /**
@@ -58,21 +58,21 @@ export async function getPlatformUserId(): Promise<string> {
  * amountCents <= 0 → no-op (comision zero e legitim, ex. promoții).
  */
 export async function recordCommission(args: {
-  refType: "commission_order" | "commission_ride";
-  refId: string;
-  amountCents: number;
-  description?: string;
-  metadata?: Record<string, unknown>;
+    refType: "commission_order" | "commission_ride";
+    refId: string;
+    amountCents: number;
+    description?: string;
+    metadata?: Record<string, unknown>;
 }): Promise<void> {
-  if (!Number.isInteger(args.amountCents) || args.amountCents <= 0) return;
+    if (!Number.isInteger(args.amountCents) || args.amountCents <= 0) return;
 
-  const platformUserId = await getPlatformUserId();
-  await creditUser({
-    userId: platformUserId,
-    amountCents: args.amountCents,
-    refType: args.refType,
-    refId: args.refId,
-    description: args.description ?? "Comision platformă",
-    metadata: args.metadata,
-  });
+    const platformUserId = await getPlatformUserId();
+    await creditUser({
+        userId: platformUserId,
+        amountCents: args.amountCents,
+        refType: args.refType,
+        refId: args.refId,
+        description: args.description ?? "Comision platformă",
+        metadata: args.metadata,
+    });
 }

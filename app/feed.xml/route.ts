@@ -1,10 +1,11 @@
 import { dbQuery } from "@/lib/db";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 600;
 export const runtime = "nodejs";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE = APP_URL;
 
 function escape(s: string): string {
   return (s || "")

@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { getDb } from "@/lib/db";
 import { sendEmail } from "@/lib/email/service";
+import { APP_URL } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -128,7 +129,7 @@ export async function POST(
             <h1 style="margin:0 0 12px;font-size:22px">Felicitari, @${handleStr}!</h1>
             <p>Aplicatia ta de creator pe Swypik a fost <strong>aprobata</strong>.</p>
             <p>Acum poti publica videoclipuri, primi urmaritori si accesa panoul de creator.</p>
-            <p style="margin-top:16px"><a href="https://swypik.com/creator" style="background:#0D0D0D;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Deschide panoul de creator</a></p>
+            <p style="margin-top:16px"><a href="${APP_URL}/creator" style="background:#0D0D0D;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Deschide panoul de creator</a></p>
             <p style="margin-top:24px;color:#666;font-size:12px">Daca nu ai cerut acest lucru, ignora acest email.</p>
           </div>
         `,

@@ -3,11 +3,12 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "node:crypto";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE_URL = APP_URL;
 const SITE_URL = BASE_URL.endsWith("/") ? BASE_URL : `${BASE_URL}/`;
 const BING_ENDPOINT = "https://ssl.bing.com/webmaster/api.svc/json/SubmitUrlBatch";
 

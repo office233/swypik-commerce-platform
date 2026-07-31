@@ -38,6 +38,7 @@ import {
   getAdminCookieName,
 } from "@/lib/security/admin-auth";
 import { CART_COOKIE, mergeAnonCartToUser } from "@/lib/cart/session";
+import { APP_URL } from "@/lib/app-url";
 
 const COOKIE_NAME = "swypik_session";
 const SELLER_COOKIE_NAME = "seller_session";
@@ -919,7 +920,7 @@ export async function POST(req: Request) {
            VALUES ($1, $2, now() + interval '1 hour')`,
         [userId, tokenHash],
       );
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://swypik.com";
+      const baseUrl = APP_URL;
       const resetUrl = `${baseUrl}/auth/reset?token=${rawToken}`;
       const firstName = userRows[0].first_name || "";
       const html = `

@@ -130,13 +130,12 @@ export default function AvailabilityCalendar({
                                         n.has(s) ? n.delete(s) : n.add(s);
                                         return n;
                                     })}
-                                    className={`aspect-square rounded-lg text-xs font-semibold transition ${
-                                        isBooked ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                                        : isPast ? "text-neutral-300 dark:text-neutral-700"
-                                        : isSel ? "bg-emerald-600 text-white"
-                                        : isBlocked ? "bg-red-100 text-red-700 line-through dark:bg-red-950 dark:text-red-300"
-                                        : "bg-neutral-50 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
-                                    }`}
+                                    className={`aspect-square rounded-lg text-xs font-semibold transition ${isBooked ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+                                            : isPast ? "text-neutral-300 dark:text-neutral-700"
+                                                : isSel ? "bg-emerald-600 text-white"
+                                                    : isBlocked ? "bg-red-100 text-red-700 line-through dark:bg-red-950 dark:text-red-300"
+                                                        : "bg-neutral-50 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                                        }`}
                                     title={isBooked ? "Rezervat" : isBlocked ? "Blocat" : "Liber"}
                                 >
                                     {d.getUTCDate()}

@@ -5,6 +5,7 @@
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { notifyOps } from "@/lib/ops/alerts";
+import { APP_URL } from "@/lib/app-url";
 
 export type UserFraudBlock = {
   blocked: boolean;
@@ -87,7 +88,7 @@ export async function maybeAutoBlockUser(args: {
     severity: "critical",
     title: `User AUTO-BLOCK ${args.userId.slice(0, 8)} — ${flagged} comenzi flagged`,
     detail: reason,
-    link: `https://swypik.com/admin/risk?status=paid`,
+    link: `${APP_URL}/admin/risk?status=paid`,
     payload: { userId: args.userId, flagged, orderIds },
     cooldownMin: 60,
   }).catch((e) => logger.warn({ err: e }, "[fraud-user-block] notify failed"));
@@ -142,7 +143,7 @@ export async function setUserFraudBlock(args: {
     severity: args.blocked ? "warning" : "info",
     title: `User ${args.blocked ? "BLOCK" : "UNBLOCK"} ${args.userId.slice(0, 8)}`,
     detail: args.reason,
-    link: `https://swypik.com/admin/risk?status=paid`,
+    link: `${APP_URL}/admin/risk?status=paid`,
     payload: { userId: args.userId, blocked: args.blocked },
     cooldownMin: 1,
   }).catch((e) => logger.warn({ err: e }, "[fraud-user-block] notify failed"));

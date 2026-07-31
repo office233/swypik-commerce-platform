@@ -8,6 +8,7 @@ import { isAdminRequest } from "@/lib/security/admin-auth";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export async function PATCH(
                         : `Aplicația de franciză ${partner.company_name} a fost respinsă`,
                 html:
                     action === "approve"
-                        ? `<h2>Bine ai venit în rețeaua Swypik!</h2><p>Franciza ta a fost aprobată. Intră în panou: <a href="https://swypik.com/fleet">swypik.com/fleet</a></p>`
+                        ? `<h2>Bine ai venit în rețeaua Swypik!</h2><p>Franciza ta a fost aprobată. Intră în panou: <a href="${APP_URL}/fleet">swypik.com/fleet</a></p>`
                         : `<h2>Salut</h2><p>Din păcate aplicația de franciză nu a fost aprobată momentan. Ne poți contacta pentru detalii.</p>`,
             }).catch((err) => logger.warn({ err }, "[admin/fleet-partners] email failed"));
         }

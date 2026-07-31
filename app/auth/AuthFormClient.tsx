@@ -249,18 +249,16 @@ function LoginForm({ nextPath }: { nextPath: string }) {
           <button
             type="button"
             onClick={() => setTab("password")}
-            className={`rounded-xl py-3 min-h-[44px] text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${
-              tab === "password" ? "bg-white text-black" : "text-white/60"
-            }`}
+            className={`rounded-xl py-3 min-h-[44px] text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${tab === "password" ? "bg-white text-black" : "text-white/60"
+              }`}
           >
             {t("parolaTab")}
           </button>
           <button
             type="button"
             onClick={() => setTab("otp")}
-            className={`rounded-xl py-3 min-h-[44px] text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${
-              tab === "otp" ? "bg-white text-black" : "text-white/60"
-            }`}
+            className={`rounded-xl py-3 min-h-[44px] text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${tab === "otp" ? "bg-white text-black" : "text-white/60"
+              }`}
           >
             {t("codEmail")}
           </button>
@@ -846,9 +844,8 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <div
           key={i}
-          className={`h-1.5 flex-1 rounded-full transition ${
-            i < step ? "bg-[#7C3AED]" : "bg-white/10"
-          }`}
+          className={`h-1.5 flex-1 rounded-full transition ${i < step ? "bg-[#7C3AED]" : "bg-white/10"
+            }`}
         />
       ))}
     </div>
@@ -908,10 +905,10 @@ function OAuthButtons({ nextPath }: { nextPath: string }) {
           aria-label={t("continuaCuGoogle")}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#4285F4" d="M21.6 12.227c0-.709-.064-1.39-.182-2.045H12v3.868h5.382a4.6 4.6 0 0 1-1.996 3.018v2.51h3.232c1.891-1.741 2.982-4.305 2.982-7.351z"/>
-            <path fill="#34A853" d="M12 22c2.7 0 4.964-.895 6.618-2.422l-3.232-2.51c-.895.6-2.041.955-3.386.955-2.605 0-4.81-1.759-5.595-4.122H3.064v2.59A9.996 9.996 0 0 0 12 22z"/>
-            <path fill="#FBBC05" d="M6.405 13.9a6.005 6.005 0 0 1 0-3.8V7.51H3.064a9.996 9.996 0 0 0 0 8.98l3.341-2.59z"/>
-            <path fill="#EA4335" d="M12 5.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C16.96 2.99 14.696 2 12 2A9.996 9.996 0 0 0 3.064 7.51l3.341 2.59C7.19 7.736 9.395 5.977 12 5.977z"/>
+            <path fill="#4285F4" d="M21.6 12.227c0-.709-.064-1.39-.182-2.045H12v3.868h5.382a4.6 4.6 0 0 1-1.996 3.018v2.51h3.232c1.891-1.741 2.982-4.305 2.982-7.351z" />
+            <path fill="#34A853" d="M12 22c2.7 0 4.964-.895 6.618-2.422l-3.232-2.51c-.895.6-2.041.955-3.386.955-2.605 0-4.81-1.759-5.595-4.122H3.064v2.59A9.996 9.996 0 0 0 12 22z" />
+            <path fill="#FBBC05" d="M6.405 13.9a6.005 6.005 0 0 1 0-3.8V7.51H3.064a9.996 9.996 0 0 0 0 8.98l3.341-2.59z" />
+            <path fill="#EA4335" d="M12 5.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C16.96 2.99 14.696 2 12 2A9.996 9.996 0 0 0 3.064 7.51l3.341 2.59C7.19 7.736 9.395 5.977 12 5.977z" />
           </svg>
           {t("continuaCuGoogle")}
         </a>)}
@@ -921,7 +918,7 @@ function OAuthButtons({ nextPath }: { nextPath: string }) {
           aria-label={t("continuaCuApple")}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M16.365 1.43c0 1.14-.4 2.218-1.198 3.222-.962 1.193-2.131 1.886-3.396 1.787a3.49 3.49 0 0 1-.027-.443c0-1.094.466-2.262 1.292-3.225C13.46.83 14.586.135 15.97 0c.027.144.038.289.038.443zM20.5 17.05c-.622 1.437-.92 2.078-1.722 3.348-1.12 1.77-2.7 3.97-4.658 3.987-1.74.016-2.188-1.13-4.55-1.117-2.362.013-2.854 1.137-4.595 1.121-1.958-.018-3.456-2.005-4.575-3.775C-2.85 14.97-3.18 9.31-1.058 6.342c1.504-2.105 3.876-3.336 6.105-3.336 2.27 0 3.696 1.247 5.572 1.247 1.819 0 2.926-1.249 5.548-1.249 1.987 0 4.094 1.085 5.594 2.96-4.916 2.69-4.117 9.717-1.262 11.086z"/>
+            <path d="M16.365 1.43c0 1.14-.4 2.218-1.198 3.222-.962 1.193-2.131 1.886-3.396 1.787a3.49 3.49 0 0 1-.027-.443c0-1.094.466-2.262 1.292-3.225C13.46.83 14.586.135 15.97 0c.027.144.038.289.038.443zM20.5 17.05c-.622 1.437-.92 2.078-1.722 3.348-1.12 1.77-2.7 3.97-4.658 3.987-1.74.016-2.188-1.13-4.55-1.117-2.362.013-2.854 1.137-4.595 1.121-1.958-.018-3.456-2.005-4.575-3.775C-2.85 14.97-3.18 9.31-1.058 6.342c1.504-2.105 3.876-3.336 6.105-3.336 2.27 0 3.696 1.247 5.572 1.247 1.819 0 2.926-1.249 5.548-1.249 1.987 0 4.094 1.085 5.594 2.96-4.916 2.69-4.117 9.717-1.262 11.086z" />
           </svg>
           {t("continuaCuApple")}
         </a>)}

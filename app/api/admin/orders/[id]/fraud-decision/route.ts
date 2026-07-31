@@ -15,6 +15,7 @@ import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminRequest } from "@/lib/security/admin-auth";
 import { notifyOps } from "@/lib/ops/alerts";
 import { logger } from "@/lib/logger";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +84,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     severity: action === "block" ? "warning" : "info",
     title: `Admin ${action.toUpperCase()} order ${orderId.slice(0, 8)} — ${(o.total_cents / 100).toFixed(2)} ${o.currency.toUpperCase()}`,
     detail: reason ? `Motiv: ${reason}` : "(fără motiv specificat)",
-    link: `https://swypik.com/admin/risk?status=${o.status}`,
+    link: `${APP_URL}/admin/risk?status=${o.status}`,
     payload: { orderId, action, score: decision.score },
     cooldownMin: 1,
   }).catch((e) => logger.warn({ err: e }, "[fraud-decision] notify failed"));

@@ -6,6 +6,7 @@ import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { getTranslations } from "next-intl/server";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
@@ -15,14 +16,14 @@ export const metadata: Metadata = {
   description:
     "Discover and buy products through curated video content. Browse trending items, best-value deals and top-rated picks with AI-powered recommendations on Swypik.",
   alternates: {
-    canonical: "https://swypik.com/",
+    canonical: `${APP_URL}/`,
     languages: languagesForMetadata("/"),
   },
   openGraph: {
     title: "Swypik — Cumpără prin Video",
     description:
       "AI-powered video marketplace. Trending products, best deals and top-rated picks — all through video.",
-    url: "https://swypik.com/",
+    url: `${APP_URL}/`,
     siteName: "Swypik",
     type: "website",
     locale: "ro_RO",
@@ -130,14 +131,14 @@ export default async function Home() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "Swypik",
-    url: "https://swypik.com/",
+    url: `${APP_URL}/`,
     description:
       "AI-powered video marketplace. Shop trending, best-value and top-rated products through curated video.",
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://swypik.com/search?q={search_term_string}",
+        urlTemplate: `${APP_URL}/search?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },
@@ -147,8 +148,8 @@ export default async function Home() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Swypik",
-    url: "https://swypik.com/",
-    logo: "https://swypik.com/icon.png",
+    url: `${APP_URL}/`,
+    logo: `${APP_URL}/icon.png`,
   };
 
   return (

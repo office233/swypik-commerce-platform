@@ -53,7 +53,7 @@ export default async function AdminFleetPage() {
 
     const [{ rows: couriers }, { rows: partners }] = await Promise.all([
         dbQuery<CourierRow>(
-                        `SELECT c.id, c.kind, c.full_name, c.phone, c.email, c.city, c.vehicle_type, c.vehicle_plate,
+            `SELECT c.id, c.kind, c.full_name, c.phone, c.email, c.city, c.vehicle_type, c.vehicle_plate,
                             c.verification_status, c.active, c.fleet_partner_id, c.created_at,
                             c.user_id::text, u.email AS login_email, c.is_online,
                             c.current_lat, c.current_lng, c.location_updated_at::text,

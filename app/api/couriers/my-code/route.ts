@@ -14,6 +14,7 @@ import {
   REFERRAL_FIRST_RIDE_BONUS_CENTS,
 } from "@/lib/drivers/referral";
 import { logger } from "@/lib/logger";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function GET() {
     const stats = await getDriverReferralStats(courierId);
     return NextResponse.json({
       code,
-      share_url: `https://swypik.com/r/${code}`,
+      share_url: `${APP_URL}/r/${code}`,
       stats,
       terms: {
         discount_pct: REFERRAL_DISCOUNT_PCT,

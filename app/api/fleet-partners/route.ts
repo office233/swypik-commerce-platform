@@ -11,6 +11,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { getAuthSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 <b>Contact:</b> ${d.contact_name} · ${d.phone} · ${d.email ?? "—"}<br/>
 <b>Oraș:</b> ${d.city}<br/>
 <b>Vertical:</b> ${d.vertical}</p>
-<p><a href="https://swypik.com/admin/fleet">Deschide panoul</a></p>`,
+<p><a href="${APP_URL}/admin/fleet">Deschide panoul</a></p>`,
             }).catch((err) => logger.warn({ err }, "[fleet-partners] ops email failed"));
         }
 

@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { dbQuery } from "@/lib/db";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { getTranslations } from "next-intl/server";
+import { APP_URL } from "@/lib/app-url";
 
 type PostMeta = {
   id: string;
@@ -97,7 +98,7 @@ export async function generateMetadata({
   const cta = FORMAT_CTA[post.format] ?? "Vezi pe Swypik";
   const title = `${cta}: ${post.title}`;
   const description = post.body?.slice(0, 160) || `${cta} pe Swypik — comunitatea decide.`;
-  const url = `https://swypik.com/b/${post.slug}`;
+  const url = `${APP_URL}/b/${post.slug}`;
   return {
     title,
     description,

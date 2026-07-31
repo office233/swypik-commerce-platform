@@ -15,6 +15,7 @@ import { attributeOrder } from "@/lib/algo/attribution";
 
 import { logger } from "@/lib/logger";
 import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/swyp/hooks";
+import { APP_URL } from "@/lib/app-url";
 export const dynamic = "force-dynamic";
 
 async function getRawBody(req: Request): Promise<Buffer> {
@@ -574,7 +575,7 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
         risk.recommendation +
         "\n\nSemnale: " +
         positives.map((f) => `${f.tag}+${f.delta}`).join(", "),
-      link: `https://swypik.com/admin/risk?status=paid&min=50`,
+      link: `${APP_URL}/admin/risk?status=paid&min=50`,
       payload: { orderId, score: risk.score, level: risk.level, factors: risk.factors },
       cooldownMin: 5, // o singură comandă, e ok să alertăm rapid
     });

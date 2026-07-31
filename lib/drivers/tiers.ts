@@ -24,9 +24,9 @@ export type CommissionTier = "founding15" | "early18" | "standard20";
 
 /** Comisionul platformei (%) pentru fiecare treaptă. */
 export const TIER_COMMISSION_PCT: Record<CommissionTier, number> = {
-  founding15: 15,
-  early18: 18,
-  standard20: 20,
+    founding15: 15,
+    early18: 18,
+    standard20: 20,
 };
 
 /** Zile de promo 0% comision de la aprobare. */
@@ -41,57 +41,57 @@ const DEFAULT_FOUNDING_SLOTS = 500;
 const DEFAULT_EARLY_SLOTS = 2000;
 
 export type TierSlots = {
-  founding_total: number;
-  founding_taken: number;
-  founding_left: number;
-  early_total: number;
-  early_taken: number;
-  early_left: number;
+    founding_total: number;
+    founding_taken: number;
+    founding_left: number;
+    early_total: number;
+    early_taken: number;
+    early_left: number;
 };
 
 async function configInt(key: string, fallback: number): Promise<number> {
-  try {
-    const { rows } = await dbQuery<{ value: unknown }>(
-      `SELECT value FROM platform_config WHERE key = $1`,
-      [key],
-    );
-    const n = Number(rows[0]?.value);
-    return Number.isFinite(n) && n > 0 ? Math.trunc(n) : fallback;
-  } catch {
-    return fallback;
-  }
+    try {
+        const { rows } = await dbQuery<{ value: unknown }>(
+            `SELECT value FROM platform_config WHERE key = $1`,
+            [key],
+        );
+        const n = Number(rows[0]?.value);
+        return Number.isFinite(n) && n > 0 ? Math.trunc(n) : fallback;
+    } catch {
+        return fallback;
+    }
 }
 
 /** Câte locuri mai sunt pe fiecare treaptă (pentru contorul public). */
 export async function getTierSlots(): Promise<TierSlots> {
-  const [foundingTotal, earlyTotal] = await Promise.all([
-    configInt("founding_slots_total", DEFAULT_FOUNDING_SLOTS),
-    configInt("early_slots_total", DEFAULT_EARLY_SLOTS),
-  ]);
-  const { rows } = await dbQuery<{ commission_tier: string; n: string }>(
-    `SELECT commission_tier, count(*)::text AS n
+    const [foundingTotal, earlyTotal] = await Promise.all([
+        configInt("founding_slots_total", DEFAULT_FOUNDING_SLOTS),
+        configInt("early_slots_total", DEFAULT_EARLY_SLOTS),
+    ]);
+    const { rows } = await dbQuery<{ commission_tier: string; n: string }>(
+        `SELECT commission_tier, count(*)::text AS n
        FROM couriers
       WHERE commission_tier IN ('founding15','early18')
       GROUP BY commission_tier`,
-  );
-  const taken = (t: string) => Number(rows.find((r) => r.commission_tier === t)?.n ?? 0);
-  const foundingTaken = taken("founding15");
-  const earlyTaken = taken("early18");
-  return {
-    founding_total: foundingTotal,
-    founding_taken: foundingTaken,
-    founding_left: Math.max(0, foundingTotal - foundingTaken),
-    early_total: earlyTotal,
-    early_taken: earlyTaken,
-    early_left: Math.max(0, earlyTotal - earlyTaken),
-  };
+    );
+    const taken = (t: string) => Number(rows.find((r) => r.commission_tier === t)?.n ?? 0);
+    const foundingTaken = taken("founding15");
+    const earlyTaken = taken("early18");
+    return {
+        founding_total: foundingTotal,
+        founding_taken: foundingTaken,
+        founding_left: Math.max(0, foundingTotal - foundingTaken),
+        early_total: earlyTotal,
+        early_taken: earlyTaken,
+        early_left: Math.max(0, earlyTotal - earlyTaken),
+    };
 }
 
 export type AssignResult = {
-  tier: CommissionTier;
-  /** true dacă șoferul avea deja o treaptă (no-op idempotent). */
-  alreadyAssigned: boolean;
-  promo_zero_until: string | null;
+    tier: CommissionTier;
+    /** true dacă șoferul avea deja o treaptă (no-op idempotent). */
+    alreadyAssigned: boolean;
+    promo_zero_until: string | null;
 };
 
 /**
@@ -103,52 +103,52 @@ export type AssignResult = {
  * aprobările concurente.
  */
 export async function assignTierOnApproval(courierId: string): Promise<AssignResult> {
-  const [foundingTotal, earlyTotal] = await Promise.all([
-    configInt("founding_slots_total", DEFAULT_FOUNDING_SLOTS),
-    configInt("early_slots_total", DEFAULT_EARLY_SLOTS),
-  ]);
-
-  return withTransaction(async (q) => {
-    // lock global de alocare — serializează aprobările concurente
-    await q(
-      `INSERT INTO platform_config (key, value) VALUES ('tier_assign_lock', 'true'::jsonb)
-       ON CONFLICT (key) DO NOTHING`,
-    );
-    await q(`SELECT 1 FROM platform_config WHERE key = 'tier_assign_lock' FOR UPDATE`);
-
-    const { rows: cur } = await q<{
-      commission_tier: string | null;
-      promo_zero_until: string | null;
-    }>(`SELECT commission_tier, promo_zero_until FROM couriers WHERE id = $1 FOR UPDATE`, [
-      courierId,
+    const [foundingTotal, earlyTotal] = await Promise.all([
+        configInt("founding_slots_total", DEFAULT_FOUNDING_SLOTS),
+        configInt("early_slots_total", DEFAULT_EARLY_SLOTS),
     ]);
-    if (!cur[0]) throw new Error(`courier_not_found: ${courierId}`);
-    if (cur[0].commission_tier) {
-      return {
-        tier: cur[0].commission_tier as CommissionTier,
-        alreadyAssigned: true,
-        promo_zero_until: cur[0].promo_zero_until,
-      };
-    }
 
-    const { rows: counts } = await q<{ commission_tier: string; n: string }>(
-      `SELECT commission_tier, count(*)::text AS n
+    return withTransaction(async (q) => {
+        // lock global de alocare — serializează aprobările concurente
+        await q(
+            `INSERT INTO platform_config (key, value) VALUES ('tier_assign_lock', 'true'::jsonb)
+       ON CONFLICT (key) DO NOTHING`,
+        );
+        await q(`SELECT 1 FROM platform_config WHERE key = 'tier_assign_lock' FOR UPDATE`);
+
+        const { rows: cur } = await q<{
+            commission_tier: string | null;
+            promo_zero_until: string | null;
+        }>(`SELECT commission_tier, promo_zero_until FROM couriers WHERE id = $1 FOR UPDATE`, [
+            courierId,
+        ]);
+        if (!cur[0]) throw new Error(`courier_not_found: ${courierId}`);
+        if (cur[0].commission_tier) {
+            return {
+                tier: cur[0].commission_tier as CommissionTier,
+                alreadyAssigned: true,
+                promo_zero_until: cur[0].promo_zero_until,
+            };
+        }
+
+        const { rows: counts } = await q<{ commission_tier: string; n: string }>(
+            `SELECT commission_tier, count(*)::text AS n
          FROM couriers
         WHERE commission_tier IN ('founding15','early18')
         GROUP BY commission_tier`,
-    );
-    const taken = (t: string) => Number(counts.find((r) => r.commission_tier === t)?.n ?? 0);
+        );
+        const taken = (t: string) => Number(counts.find((r) => r.commission_tier === t)?.n ?? 0);
 
-    let tier: CommissionTier;
-    if (taken("founding15") < foundingTotal) tier = "founding15";
-    else if (taken("early18") < earlyTotal) tier = "early18";
-    else tier = "standard20";
+        let tier: CommissionTier;
+        if (taken("founding15") < foundingTotal) tier = "founding15";
+        else if (taken("early18") < earlyTotal) tier = "early18";
+        else tier = "standard20";
 
-    const activityDeadline =
-      tier === "founding15" ? `now() + interval '${FOUNDING_ACTIVITY_WINDOW_DAYS} days'` : "NULL";
+        const activityDeadline =
+            tier === "founding15" ? `now() + interval '${FOUNDING_ACTIVITY_WINDOW_DAYS} days'` : "NULL";
 
-    const { rows: upd } = await q<{ promo_zero_until: string }>(
-      `UPDATE couriers
+        const { rows: upd } = await q<{ promo_zero_until: string }>(
+            `UPDATE couriers
           SET commission_tier = $2,
               tier_assigned_at = now(),
               promo_zero_until = now() + interval '${PROMO_DAYS} days',
@@ -156,22 +156,22 @@ export async function assignTierOnApproval(courierId: string): Promise<AssignRes
               tier_rides_count = 0
         WHERE id = $1
         RETURNING promo_zero_until`,
-      [courierId, tier],
-    );
+            [courierId, tier],
+        );
 
-    log.info({ courier_id: courierId, tier }, "tier assigned on approval");
-    return { tier, alreadyAssigned: false, promo_zero_until: upd[0]?.promo_zero_until ?? null };
-  });
+        log.info({ courier_id: courierId, tier }, "tier assigned on approval");
+        return { tier, alreadyAssigned: false, promo_zero_until: upd[0]?.promo_zero_until ?? null };
+    });
 }
 
 export type EffectiveCommission = {
-  /** Procentul de comision al platformei aplicat acum. */
-  platform_pct: number;
-  /** Cota șoferului = 100 - platform_pct. */
-  courier_pct: number;
-  tier: CommissionTier | null;
-  /** true dacă suntem în fereastra de promo 0%. */
-  in_promo: boolean;
+    /** Procentul de comision al platformei aplicat acum. */
+    platform_pct: number;
+    /** Cota șoferului = 100 - platform_pct. */
+    courier_pct: number;
+    tier: CommissionTier | null;
+    /** true dacă suntem în fereastra de promo 0%. */
+    in_promo: boolean;
 };
 
 /**
@@ -180,26 +180,26 @@ export type EffectiveCommission = {
  * pe zonă).
  */
 export async function effectiveCommissionPct(
-  courierId: string,
+    courierId: string,
 ): Promise<EffectiveCommission | null> {
-  const { rows } = await dbQuery<{
-    commission_tier: CommissionTier | null;
-    in_promo: boolean;
-  }>(
-    `SELECT commission_tier,
+    const { rows } = await dbQuery<{
+        commission_tier: CommissionTier | null;
+        in_promo: boolean;
+    }>(
+        `SELECT commission_tier,
             (promo_zero_until IS NOT NULL AND promo_zero_until > now()) AS in_promo
        FROM couriers WHERE id = $1`,
-    [courierId],
-  );
-  const row = rows[0];
-  if (!row || !row.commission_tier) return null;
-  const platform_pct = row.in_promo ? 0 : TIER_COMMISSION_PCT[row.commission_tier];
-  return {
-    platform_pct,
-    courier_pct: 100 - platform_pct,
-    tier: row.commission_tier,
-    in_promo: row.in_promo,
-  };
+        [courierId],
+    );
+    const row = rows[0];
+    if (!row || !row.commission_tier) return null;
+    const platform_pct = row.in_promo ? 0 : TIER_COMMISSION_PCT[row.commission_tier];
+    return {
+        platform_pct,
+        courier_pct: 100 - platform_pct,
+        tier: row.commission_tier,
+        in_promo: row.in_promo,
+    };
 }
 
 /**
@@ -208,21 +208,21 @@ export async function effectiveCommissionPct(
  * imediat (a îndeplinit condiția) și contorul repornește.
  */
 export async function recordTierRide(courierId: string): Promise<void> {
-  await dbQuery(
-    `UPDATE couriers
+    await dbQuery(
+        `UPDATE couriers
         SET tier_rides_count = tier_rides_count + 1
       WHERE id = $1`,
-    [courierId],
-  );
-  await dbQuery(
-    `UPDATE couriers
+        [courierId],
+    );
+    await dbQuery(
+        `UPDATE couriers
         SET tier_rides_count = 0,
             tier_activity_deadline = now() + interval '${FOUNDING_ACTIVITY_WINDOW_DAYS} days'
       WHERE id = $1
         AND commission_tier = 'founding15'
         AND tier_rides_count >= $2`,
-    [courierId, FOUNDING_MIN_RIDES],
-  );
+        [courierId, FOUNDING_MIN_RIDES],
+    );
 }
 
 /**
@@ -230,8 +230,8 @@ export async function recordTierRide(courierId: string): Promise<void> {
  * Rulat zilnic din cron. Returnează numărul de retrogradări.
  */
 export async function demoteInactiveFoundingDrivers(): Promise<number> {
-  const { rows } = await dbQuery<{ id: string }>(
-    `UPDATE couriers
+    const { rows } = await dbQuery<{ id: string }>(
+        `UPDATE couriers
         SET commission_tier = 'early18',
             tier_activity_deadline = NULL,
             tier_rides_count = 0
@@ -240,10 +240,10 @@ export async function demoteInactiveFoundingDrivers(): Promise<number> {
         AND tier_activity_deadline < now()
         AND tier_rides_count < $1
       RETURNING id`,
-    [FOUNDING_MIN_RIDES],
-  );
-  if (rows.length > 0) {
-    log.info({ count: rows.length }, "founding drivers demoted for inactivity");
-  }
-  return rows.length;
+        [FOUNDING_MIN_RIDES],
+    );
+    if (rows.length > 0) {
+        log.info({ count: rows.length }, "founding drivers demoted for inactivity");
+    }
+    return rows.length;
 }

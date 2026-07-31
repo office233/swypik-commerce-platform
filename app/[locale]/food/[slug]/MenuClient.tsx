@@ -12,6 +12,7 @@ import dynamic from "next/dynamic";
 import { ArrowLeft, Clock, MapPin, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { isOpenNow } from "@/lib/merchants/hours";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import EatsPaymentModal from "@/components/payments/EatsPaymentModal";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 
@@ -79,6 +80,7 @@ interface CartLine {
 
 export default function MenuClient({ merchant }: { merchant: Merchant }) {
   const router = useRouter();
+  const fmt = useFormatPrice();
   const [menu, setMenu] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -99,14 +101,14 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
   const [notes, setNotes] = useState("");
   // taxă de livrare dinamică (zonă+distanță+surge) — quote de la server
   const [feeQuote, setFeeQuote] = useState<number | null>(null);
-    const [outOfRange, setOutOfRange] = useState(false);
+  const [outOfRange, setOutOfRange] = useState(false);
 
-    // adrese salvate + pin ajustabil + bacșiș
-    const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
-    const [saveAddress, setSaveAddress] = useState(false);
-    const [showPin, setShowPin] = useState(false);
-    const [tipPct, setTipPct] = useState<number>(0);
-    const [tipCustom, setTipCustom] = useState("");
+  // adrese salvate + pin ajustabil + bacșiș
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [tipPct, setTipPct] = useState<number>(0);
+  const [tipCustom, setTipCustom] = useState("");
 
   const cartKey = `swypik_food_cart_${merchant.id}`;
   const open = isOpenNow(merchant.opening_hours, merchant.is_open_override);
@@ -202,7 +204,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
     return Math.round((subtotal * tipPct) / 100);
   }, [tipCustom, tipPct, subtotal]);
   const total = subtotal + (subtotal > 0 ? deliveryFee : 0) + tipCents;
-  const fmtLei = (c: number) => `${(c / 100).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} lei`;
+  const fmtLei = (c: number) => fmt(c);
   const belowMin = subtotal > 0 && subtotal < merchant.min_order_cents;
 
   const addToCart = useCallback((item: MenuItem, optionIds: string[]) => {
@@ -510,9 +512,8 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                             return [...cleaned, cid];
                           });
                         }}
-                        className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition active:scale-[0.98] ${
-                          active ? "text-white" : "border-[#E5E5E5] text-[#0D0D0D]"
-                        }`}
+                        className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition active:scale-[0.98] ${active ? "text-white" : "border-[#E5E5E5] text-[#0D0D0D]"
+                          }`}
                         style={active ? { backgroundColor: ACCENT, borderColor: ACCENT } : undefined}
                       >
                         <span>{c.name}</span>

@@ -4,6 +4,7 @@ import { getOptionalSocialUserId } from "@/lib/social/session";
 import { loadFeedWeights, type FeedWeights } from "@/lib/algo/scoring";
 
 import { logger } from "@/lib/logger";
+import { formatMoneyCents } from "@/lib/i18n/currency";
 export const dynamic = "force-dynamic";
 
 /**
@@ -258,7 +259,7 @@ function asNumber(value: unknown): number | null {
 
 function formatMoney(cents: number | null, currency: string): string | null {
   if (cents == null) return null;
-  return `${(cents / 100).toFixed(2)} ${currency}`;
+  return formatMoneyCents(cents, currency);
 }
 
 function toMediaProxyUrl(url: string | null): string | null {

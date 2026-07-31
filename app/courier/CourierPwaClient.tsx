@@ -83,7 +83,7 @@ function playOfferSound(): void {
         };
         beep(0);
         beep(0.5);
-        setTimeout(() => void ctx.close().catch(() => {}), 1500);
+        setTimeout(() => void ctx.close().catch(() => { }), 1500);
     } catch {
         // audio indisponibil — ignorăm
     }
@@ -276,12 +276,12 @@ export default function CourierPwaClient() {
         });
         if (!res.ok) return;
         if (status === "completed") {
-                // Cursele cash: marchează încasarea (serverul refuză politicos la card).
-                void fetch(`/api/rides/${activeRide.ride_id}/pay`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "collect_cash" }),
-                }).catch(() => { });
+            // Cursele cash: marchează încasarea (serverul refuză politicos la card).
+            void fetch(`/api/rides/${activeRide.ride_id}/pay`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "collect_cash" }),
+            }).catch(() => { });
             setActiveRide(null);
         } else {
             setRideStep(status);
@@ -293,28 +293,28 @@ export default function CourierPwaClient() {
             <header className="flex items-center justify-between">
                 <h1 className="text-lg font-bold">Swypik Curier</h1>
                 <div className="flex items-center gap-2">
-                <a href="/courier/code" className="rounded-full border px-3 py-2 text-xs font-semibold">
-                    Codul meu
-                </a>
-                <a href="/courier/earnings" className="rounded-full border px-3 py-2 text-xs font-semibold">
-                    Câștiguri
-                </a>
-                <button
-                    onClick={() => setSoundOn((s) => !s)}
-                    aria-label={soundOn ? t("soundOn") : t("soundOff")}
-                    title={soundOn ? t("soundOn") : t("soundOff")}
-                    className="rounded-full border px-3 py-2 text-xs"
-                >
-                    {soundOn ? "🔔" : "🔕"}
-                </button>
-                <button
-                    onClick={() => void toggleOnline()}
-                    disabled={busy}
-                    className={`rounded-full px-5 py-2 text-sm font-bold text-white transition ${online ? "bg-green-600" : "bg-gray-400"
-                        } disabled:opacity-50`}
-                >
-                    {online ? "● ONLINE" : "○ OFFLINE"}
-                </button>
+                    <a href="/courier/code" className="rounded-full border px-3 py-2 text-xs font-semibold">
+                        Codul meu
+                    </a>
+                    <a href="/courier/earnings" className="rounded-full border px-3 py-2 text-xs font-semibold">
+                        Câștiguri
+                    </a>
+                    <button
+                        onClick={() => setSoundOn((s) => !s)}
+                        aria-label={soundOn ? t("soundOn") : t("soundOff")}
+                        title={soundOn ? t("soundOn") : t("soundOff")}
+                        className="rounded-full border px-3 py-2 text-xs"
+                    >
+                        {soundOn ? "🔔" : "🔕"}
+                    </button>
+                    <button
+                        onClick={() => void toggleOnline()}
+                        disabled={busy}
+                        className={`rounded-full px-5 py-2 text-sm font-bold text-white transition ${online ? "bg-green-600" : "bg-gray-400"
+                            } disabled:opacity-50`}
+                    >
+                        {online ? "● ONLINE" : "○ OFFLINE"}
+                    </button>
                 </div>
             </header>
 
@@ -324,159 +324,159 @@ export default function CourierPwaClient() {
                 </div>
             )}
 
-                <nav className="grid grid-cols-2 gap-2">
-                    <button
-                        onClick={() => setTab("jobs")}
-                        className={`rounded-lg py-2 text-sm font-semibold ${tab === "jobs" ? "bg-black text-white" : "bg-white border"}`}
-                    >
-                        Comenzi
-                    </button>
-                    <button
-                        onClick={() => setTab("earnings")}
-                        className={`rounded-lg py-2 text-sm font-semibold ${tab === "earnings" ? "bg-black text-white" : "bg-white border"}`}
-                    >
-                        Câștiguri
-                    </button>
-                </nav>
+            <nav className="grid grid-cols-2 gap-2">
+                <button
+                    onClick={() => setTab("jobs")}
+                    className={`rounded-lg py-2 text-sm font-semibold ${tab === "jobs" ? "bg-black text-white" : "bg-white border"}`}
+                >
+                    Comenzi
+                </button>
+                <button
+                    onClick={() => setTab("earnings")}
+                    className={`rounded-lg py-2 text-sm font-semibold ${tab === "earnings" ? "bg-black text-white" : "bg-white border"}`}
+                >
+                    Câștiguri
+                </button>
+            </nav>
 
-                {tab === "earnings" && <EarningsTab />}
+            {tab === "earnings" && <EarningsTab />}
 
-                {tab === "jobs" && <>
-            {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            {tab === "jobs" && <>
+                {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-            {!online && !activeDelivery && !activeRide && (
-                <div className="rounded-xl border border-dashed p-8 text-center text-gray-400">
-                    Treci online ca să primești comenzi.
-                </div>
-            )}
-
-            {online && !offer && !activeDelivery && !activeRide && (
-                <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
-                    <div className="animate-pulse text-3xl">📡</div>
-                    <p className="mt-2 text-sm text-gray-500">Aștept comenzi… GPS-ul se trimite la 10s.</p>
-                </div>
-            )}
-
-            {offer && (
-                <div className="rounded-2xl border-2 border-blue-500 bg-white p-5 shadow-lg">
-                    <div className="flex items-center justify-between">
-                        <h2 className="font-bold">{offer.kind === "ride" ? "Cursă nouă! 🚕" : "Comandă nouă!"}</h2>
-                        <span
-                            className={`rounded-full px-3 py-1 font-mono text-lg font-bold ${secondsLeft <= 10 ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
-                                }`}
-                        >
-                            {secondsLeft}s
-                        </span>
+                {!online && !activeDelivery && !activeRide && (
+                    <div className="rounded-xl border border-dashed p-8 text-center text-gray-400">
+                        Treci online ca să primești comenzi.
                     </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded bg-gray-200">
-                        <div
-                            className="h-full bg-blue-500 transition-all duration-1000 ease-linear"
-                            style={{ width: `${(secondsLeft / OFFER_SECONDS) * 100}%` }}
-                        />
-                    </div>
-                    <dl className="mt-3 space-y-1 text-sm">
-                        {offer.order_number && (
-                            <div><dt className="inline font-medium">Comandă: </dt><dd className="inline font-mono">{offer.order_number}</dd></div>
-                        )}
-                        <div><dt className="inline font-medium">Ridicare: </dt><dd className="inline">{offer.merchant_name}{offer.pickup_address ? ` — ${offer.pickup_address}` : ""}</dd></div>
-                        <div><dt className="inline font-medium">{offer.kind === "ride" ? "Destinație: " : "Livrare: "}</dt><dd className="inline">{offer.delivery_address}</dd></div>
-                        <div><dt className="inline font-medium">{offer.kind === "ride" ? "Tarif estimat: " : "Câștig: "}</dt><dd className="inline font-bold">{(offer.delivery_fee_cents / 100).toFixed(2)} {offer.currency}</dd></div>
-                    </dl>
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                        <button
-                            onClick={() => void respond(false)}
-                            disabled={busy}
-                            className="rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 disabled:opacity-50"
-                        >
-                            Refuz
-                        </button>
-                        <button
-                            onClick={() => void respond(true)}
-                            disabled={busy}
-                            className="rounded-lg bg-green-600 py-3 font-semibold text-white disabled:opacity-50"
-                        >
-                            Accept
-                        </button>
-                    </div>
-                </div>
-            )}
+                )}
 
-            {activeDelivery && (
-                <div className="rounded-2xl border bg-white p-5 shadow-md">
-                    <h2 className="font-bold">Livrare în curs — {activeDelivery.order_number}</h2>
-                    <div className="mt-3 space-y-2 text-sm">
-                        <div className="flex items-center justify-between gap-2">
-                            <span>🏪 {activeDelivery.merchant_name}</span>
-                            {activeDelivery.pickup_address && (
-                                <NavButtons address={activeDelivery.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
-                            )}
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                            <span>🏠 {activeDelivery.delivery_address}</span>
-                            <NavButtons address={activeDelivery.delivery_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
-                        </div>
+                {online && !offer && !activeDelivery && !activeRide && (
+                    <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
+                        <div className="animate-pulse text-3xl">📡</div>
+                        <p className="mt-2 text-sm text-gray-500">Aștept comenzi… GPS-ul se trimite la 10s.</p>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                        <button
-                            onClick={() => void updateDelivery("picked_up")}
-                            className="rounded-lg bg-amber-500 py-3 text-sm font-semibold text-white"
-                        >
-                            Am ridicat
-                        </button>
-                        <button
-                            onClick={() => void updateDelivery("delivered")}
-                            className="rounded-lg bg-green-600 py-3 text-sm font-semibold text-white"
-                        >
-                            Am livrat
-                        </button>
-                    </div>
-                </div>
-            )}
+                )}
 
-            {activeRide && (
-                <div className="rounded-2xl border bg-white p-5 shadow-md">
-                    <h2 className="font-bold">Cursă în curs 🚕</h2>
-                    <div className="mt-3 space-y-2 text-sm">
-                        <div className="flex items-center justify-between gap-2">
-                            <span>🟢 {activeRide.pickup_address ?? "Punct de ridicare"}</span>
-                            {activeRide.pickup_address && (
-                                <NavButtons address={activeRide.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
-                            )}
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                            <span>🔴 {activeRide.delivery_address}</span>
-                            <NavButtons address={activeRide.delivery_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
-                        </div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-3">
-                        {rideStep === "accepted" && (
-                            <button
-                                onClick={() => void updateRide("arriving")}
-                                className="rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white"
+                {offer && (
+                    <div className="rounded-2xl border-2 border-blue-500 bg-white p-5 shadow-lg">
+                        <div className="flex items-center justify-between">
+                            <h2 className="font-bold">{offer.kind === "ride" ? "Cursă nouă! 🚕" : "Comandă nouă!"}</h2>
+                            <span
+                                className={`rounded-full px-3 py-1 font-mono text-lg font-bold ${secondsLeft <= 10 ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+                                    }`}
                             >
-                                Am pornit spre client
-                            </button>
-                        )}
-                        {rideStep === "arriving" && (
+                                {secondsLeft}s
+                            </span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded bg-gray-200">
+                            <div
+                                className="h-full bg-blue-500 transition-all duration-1000 ease-linear"
+                                style={{ width: `${(secondsLeft / OFFER_SECONDS) * 100}%` }}
+                            />
+                        </div>
+                        <dl className="mt-3 space-y-1 text-sm">
+                            {offer.order_number && (
+                                <div><dt className="inline font-medium">Comandă: </dt><dd className="inline font-mono">{offer.order_number}</dd></div>
+                            )}
+                            <div><dt className="inline font-medium">Ridicare: </dt><dd className="inline">{offer.merchant_name}{offer.pickup_address ? ` — ${offer.pickup_address}` : ""}</dd></div>
+                            <div><dt className="inline font-medium">{offer.kind === "ride" ? "Destinație: " : "Livrare: "}</dt><dd className="inline">{offer.delivery_address}</dd></div>
+                            <div><dt className="inline font-medium">{offer.kind === "ride" ? "Tarif estimat: " : "Câștig: "}</dt><dd className="inline font-bold">{(offer.delivery_fee_cents / 100).toFixed(2)} {offer.currency}</dd></div>
+                        </dl>
+                        <div className="mt-4 grid grid-cols-2 gap-3">
                             <button
-                                onClick={() => void updateRide("in_progress")}
+                                onClick={() => void respond(false)}
+                                disabled={busy}
+                                className="rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 disabled:opacity-50"
+                            >
+                                Refuz
+                            </button>
+                            <button
+                                onClick={() => void respond(true)}
+                                disabled={busy}
+                                className="rounded-lg bg-green-600 py-3 font-semibold text-white disabled:opacity-50"
+                            >
+                                Accept
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {activeDelivery && (
+                    <div className="rounded-2xl border bg-white p-5 shadow-md">
+                        <h2 className="font-bold">Livrare în curs — {activeDelivery.order_number}</h2>
+                        <div className="mt-3 space-y-2 text-sm">
+                            <div className="flex items-center justify-between gap-2">
+                                <span>🏪 {activeDelivery.merchant_name}</span>
+                                {activeDelivery.pickup_address && (
+                                    <NavButtons address={activeDelivery.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <span>🏠 {activeDelivery.delivery_address}</span>
+                                <NavButtons address={activeDelivery.delivery_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
+                            </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => void updateDelivery("picked_up")}
                                 className="rounded-lg bg-amber-500 py-3 text-sm font-semibold text-white"
                             >
-                                Clientul a urcat — pornește cursa
+                                Am ridicat
                             </button>
-                        )}
-                        {rideStep === "in_progress" && (
                             <button
-                                onClick={() => void updateRide("completed")}
+                                onClick={() => void updateDelivery("delivered")}
                                 className="rounded-lg bg-green-600 py-3 text-sm font-semibold text-white"
                             >
-                                Finalizează cursa
+                                Am livrat
                             </button>
-                        )}
+                        </div>
                     </div>
-                </div>
-            )}
-                </>}
+                )}
+
+                {activeRide && (
+                    <div className="rounded-2xl border bg-white p-5 shadow-md">
+                        <h2 className="font-bold">Cursă în curs 🚕</h2>
+                        <div className="mt-3 space-y-2 text-sm">
+                            <div className="flex items-center justify-between gap-2">
+                                <span>🟢 {activeRide.pickup_address ?? "Punct de ridicare"}</span>
+                                {activeRide.pickup_address && (
+                                    <NavButtons address={activeRide.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <span>🔴 {activeRide.delivery_address}</span>
+                                <NavButtons address={activeRide.delivery_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
+                            </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-3">
+                            {rideStep === "accepted" && (
+                                <button
+                                    onClick={() => void updateRide("arriving")}
+                                    className="rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white"
+                                >
+                                    Am pornit spre client
+                                </button>
+                            )}
+                            {rideStep === "arriving" && (
+                                <button
+                                    onClick={() => void updateRide("in_progress")}
+                                    className="rounded-lg bg-amber-500 py-3 text-sm font-semibold text-white"
+                                >
+                                    Clientul a urcat — pornește cursa
+                                </button>
+                            )}
+                            {rideStep === "in_progress" && (
+                                <button
+                                    onClick={() => void updateRide("completed")}
+                                    className="rounded-lg bg-green-600 py-3 text-sm font-semibold text-white"
+                                >
+                                    Finalizează cursa
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </>}
         </div>
     );
 }

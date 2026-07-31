@@ -14,6 +14,7 @@ import {
 import type { Metadata } from "next";
 import { formatCurrency } from "@/lib/i18n/currency";
 import { safeJsonLd } from "@/lib/seo/json-ld";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +79,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const current = path[path.length - 1];
   const title = `${current.name} — Swypik`;
   const description = `Cumpără ${current.name} pe Swypik. Mii de produse cu livrare rapidă, preț minim garantat și recenzii reale.`;
-  const url = `https://swypik.com/categories/${slug}`;
+  const url = `${APP_URL}/categories/${slug}`;
   return {
     title,
     description,
@@ -131,29 +132,29 @@ export default async function CategoryPage({
       <div className="mx-auto max-w-6xl px-4 py-6">
         {(() => {
           const breadcrumbItems = [
-            { "@type": "ListItem", position: 1, name: "Home", item: "https://swypik.com" },
-            { "@type": "ListItem", position: 2, name: labels.all, item: "https://swypik.com/categories" },
+            { "@type": "ListItem", position: 1, name: "Home", item: APP_URL },
+            { "@type": "ListItem", position: 2, name: labels.all, item: `${APP_URL}/categories` },
             ...path.map((n, i) => ({
               "@type": "ListItem",
               position: 3 + i,
               name: n.name,
-              item: `https://swypik.com/categories/${n.id}`,
+              item: `${APP_URL}/categories/${n.id}`,
             })),
           ];
           const itemListElement = products.slice(0, 24).map((p, i) => ({
             "@type": "ListItem",
             position: i + 1,
-            url: `https://swypik.com/product/${p.id}`,
+            url: `${APP_URL}/product/${p.id}`,
             name: p.title,
           }));
           const jsonLd = [
             {
               "@context": "https://schema.org",
               "@type": "CollectionPage",
-              "@id": `https://swypik.com/categories/${slug}#collection`,
+              "@id": `${APP_URL}/categories/${slug}#collection`,
               name: current.name,
-              url: `https://swypik.com/categories/${slug}`,
-              isPartOf: { "@id": "https://swypik.com/#website" },
+              url: `${APP_URL}/categories/${slug}`,
+              isPartOf: { "@id": `${APP_URL}/#website` },
               about: { "@type": "Thing", name: current.name },
               numberOfItems: total,
             },
@@ -161,7 +162,7 @@ export default async function CategoryPage({
             {
               "@context": "https://schema.org",
               "@type": "ItemList",
-              "@id": `https://swypik.com/categories/${slug}#items`,
+              "@id": `${APP_URL}/categories/${slug}#items`,
               numberOfItems: products.length,
               itemListElement,
             },

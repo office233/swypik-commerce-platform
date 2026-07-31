@@ -3,12 +3,14 @@ import { timingSafeEqual } from "crypto";
 import { dbQuery } from "@/lib/db";
 import { runCron } from "@/lib/cron/runCron";
 import { sendEmail, unsubscribeUrl } from "@/lib/email/service";
+import { APP_URL } from "@/lib/app-url";
+import { formatMoneyCents } from "@/lib/i18n/currency";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 function authorize(req: Request): boolean {
-  // Acceptă și x-cron-secret (standardul celorlalte joburi), și Bearer.
+  // AcceptÄ Č™i x-cron-secret (standardul celorlalte joburi), Č™i Bearer.
   const token =
     (req.headers.get("authorization") || "").replace("Bearer ", "") ||
     req.headers.get("x-cron-secret") ||
@@ -18,8 +20,6 @@ function authorize(req: Request): boolean {
   if (Buffer.byteLength(token) !== Buffer.byteLength(expected)) return false;
   return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
 }
-
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
 
 function escapeHtml(value: unknown): string {
   return String(value ?? "").replace(/[&<>"'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"} as Record<string,string>)[c] || c);
@@ -62,8 +62,7 @@ async function topVideosFromFollows(userId: string): Promise<DigestVideo[]> {
 
 function formatPrice(cents: number | null, currency: string): string {
   if (cents == null) return "";
-  const v = (cents / 100).toFixed(2);
-  return `${v} ${currency}`;
+  return formatMoneyCents(cents, currency);
 }
 
 function renderDigestHtml(opts: {
@@ -95,23 +94,23 @@ function renderDigestHtml(opts: {
       <li style="margin:8px 0">
         <a href="${escapeHtml(href)}" style="color:#0a0a0a;text-decoration:none">
           <b>${escapeHtml(v.title || "Video nou")}</b>
-          ${v.creator_name ? `<span style="color:#666"> — ${escapeHtml(v.creator_name)}</span>` : ""}
+          ${v.creator_name ? `<span style="color:#666"> â€” ${escapeHtml(v.creator_name)}</span>` : ""}
         </a>
       </li>`;
   }).join("");
 
   return `<!doctype html><html><body style="font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#0a0a0a;margin:0;padding:0">
   <div style="max-width:600px;margin:0 auto;padding:24px">
-    <h1 style="color:#7C3AED;font-size:24px;margin:0 0 8px">Swypik — Săptămâna ta</h1>
-    <p style="font-size:14px;color:#333;margin:0 0 24px">${greeting} Iată ce e nou în feed.</p>
+    <h1 style="color:#7C3AED;font-size:24px;margin:0 0 8px">Swypik â€” SÄptÄmĂ˘na ta</h1>
+    <p style="font-size:14px;color:#333;margin:0 0 24px">${greeting} IatÄ ce e nou Ă®n feed.</p>
 
     ${opts.products.length ? `
-      <h2 style="font-size:16px;margin:16px 0 8px">🔥 Produse trending</h2>
+      <h2 style="font-size:16px;margin:16px 0 8px">đź”Ą Produse trending</h2>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${productCards}</tr></table>
     ` : ""}
 
     ${opts.videos.length ? `
-      <h2 style="font-size:16px;margin:24px 0 8px">📹 De la creatorii tăi</h2>
+      <h2 style="font-size:16px;margin:24px 0 8px">đź“ą De la creatorii tÄi</h2>
       <ul style="padding-left:18px;margin:0">${videoItems}</ul>
     ` : ""}
 
@@ -119,7 +118,7 @@ function renderDigestHtml(opts: {
       <a href="${escapeHtml(APP_URL)}/explore" style="display:inline-block;background:#7C3AED;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px">Deschide Swypik</a>
     </div>
     <p style="font-size:11px;color:#999;text-align:center;margin-top:24px">
-      <a href="${escapeHtml(unsubUrl)}" style="color:#999">Dezabonează-te</a>
+      <a href="${escapeHtml(unsubUrl)}" style="color:#999">DezaboneazÄ-te</a>
     </p>
   </div>
 </body></html>`;
@@ -157,7 +156,7 @@ async function runDigest() {
       const html = renderDigestHtml({ email: u.email, displayName: u.display_name, products, videos });
       const ok = await sendEmail({
         to: u.email,
-        subject: "Swypik — Săptămâna ta în feed",
+        subject: "Swypik â€” SÄptÄmĂ˘na ta Ă®n feed",
         html,
         marketing: true,
       });

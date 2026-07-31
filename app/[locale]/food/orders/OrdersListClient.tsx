@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { haptic } from "@/lib/haptic";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 
 const ACCENT = "#2DBE60";
 
@@ -40,6 +41,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function OrdersListClient() {
   const router = useRouter();
+  const fmt = useFormatPrice();
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
 
@@ -53,7 +55,7 @@ export default function OrdersListClient() {
       .catch(() => setOrders([]));
   }, []);
 
-  const fmtLei = (c: number) => `${(c / 100).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} lei`;
+  const fmtLei = (c: number) => fmt(c);
 
   const reorder = (o: OrderRow) => {
     haptic("tap");

@@ -16,24 +16,24 @@ import { dbQuery } from "@/lib/db";
 const ALGO = "aes-256-gcm";
 
 function encryptionKey(): Buffer {
-  const secret = process.env.SWYP_WALLET_KEY || process.env.AUTH_SECRET;
-  if (!secret) throw new Error("SWYP_WALLET_KEY/AUTH_SECRET lipsește — nu pot cripta chei");
-  // derivare deterministă pe 32 bytes
-  return createHash("sha256").update(`swyp-wallet:${secret}`).digest();
+    const secret = process.env.SWYP_WALLET_KEY || process.env.AUTH_SECRET;
+    if (!secret) throw new Error("SWYP_WALLET_KEY/AUTH_SECRET lipsește — nu pot cripta chei");
+    // derivare deterministă pe 32 bytes
+    return createHash("sha256").update(`swyp-wallet:${secret}`).digest();
 }
 
 function encrypt(plain: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv(ALGO, encryptionKey(), iv);
-  const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-  return [iv.toString("base64"), cipher.getAuthTag().toString("base64"), enc.toString("base64")].join(":");
+    const iv = randomBytes(12);
+    const cipher = createCipheriv(ALGO, encryptionKey(), iv);
+    const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
+    return [iv.toString("base64"), cipher.getAuthTag().toString("base64"), enc.toString("base64")].join(":");
 }
 
 function decrypt(payload: string): string {
-  const [ivB64, tagB64, dataB64] = payload.split(":");
-  const decipher = createDecipheriv(ALGO, encryptionKey(), Buffer.from(ivB64, "base64"));
-  decipher.setAuthTag(Buffer.from(tagB64, "base64"));
-  return Buffer.concat([decipher.update(Buffer.from(dataB64, "base64")), decipher.final()]).toString("utf8");
+    const [ivB64, tagB64, dataB64] = payload.split(":");
+    const decipher = createDecipheriv(ALGO, encryptionKey(), Buffer.from(ivB64, "base64"));
+    decipher.setAuthTag(Buffer.from(tagB64, "base64"));
+    return Buffer.concat([decipher.update(Buffer.from(dataB64, "base64")), decipher.final()]).toString("utf8");
 }
 
 export type ChainWallet = { address: string; createdAt: string; exportedAt: string | null };
@@ -44,43 +44,43 @@ export type ChainWallet = { address: string; createdAt: string; exportedAt: stri
  * generează chei, una singură se salvează și ambele o folosesc pe aceea).
  */
 export async function getOrCreateChainWallet(userId: string): Promise<ChainWallet> {
-  const existing = await dbQuery<ChainWallet & { address: string }>(
-    `SELECT address, created_at::text AS "createdAt", exported_at::text AS "exportedAt"
+    const existing = await dbQuery<ChainWallet & { address: string }>(
+        `SELECT address, created_at::text AS "createdAt", exported_at::text AS "exportedAt"
        FROM swyp_chain_wallets WHERE user_id = $1`,
-    [userId],
-  );
-  if (existing.rows[0]) return existing.rows[0];
+        [userId],
+    );
+    if (existing.rows[0]) return existing.rows[0];
 
-  const pk = generatePrivateKey();
-  const account = privateKeyToAccount(pk);
-  await dbQuery(
-    `INSERT INTO swyp_chain_wallets (user_id, address, enc_privkey)
+    const pk = generatePrivateKey();
+    const account = privateKeyToAccount(pk);
+    await dbQuery(
+        `INSERT INTO swyp_chain_wallets (user_id, address, enc_privkey)
      VALUES ($1, $2, $3) ON CONFLICT (user_id) DO NOTHING`,
-    [userId, account.address, encrypt(pk)],
-  );
-  const { rows } = await dbQuery<ChainWallet>(
-    `SELECT address, created_at::text AS "createdAt", exported_at::text AS "exportedAt"
+        [userId, account.address, encrypt(pk)],
+    );
+    const { rows } = await dbQuery<ChainWallet>(
+        `SELECT address, created_at::text AS "createdAt", exported_at::text AS "exportedAt"
        FROM swyp_chain_wallets WHERE user_id = $1`,
-    [userId],
-  );
-  return rows[0];
+        [userId],
+    );
+    return rows[0];
 }
 
 /** Exportă cheia privată (o singură dată marcăm momentul, pentru audit). */
 export async function exportPrivateKey(userId: string): Promise<string | null> {
-  const { rows } = await dbQuery<{ enc_privkey: string }>(
-    `UPDATE swyp_chain_wallets SET exported_at = COALESCE(exported_at, now())
+    const { rows } = await dbQuery<{ enc_privkey: string }>(
+        `UPDATE swyp_chain_wallets SET exported_at = COALESCE(exported_at, now())
       WHERE user_id = $1 RETURNING enc_privkey`,
-    [userId],
-  );
-  return rows[0] ? decrypt(rows[0].enc_privkey) : null;
+        [userId],
+    );
+    return rows[0] ? decrypt(rows[0].enc_privkey) : null;
 }
 
 /** Cheia privată pentru semnare server-side (bridge). Uz intern. */
 export async function getPrivateKey(userId: string): Promise<string | null> {
-  const { rows } = await dbQuery<{ enc_privkey: string }>(
-    `SELECT enc_privkey FROM swyp_chain_wallets WHERE user_id = $1`,
-    [userId],
-  );
-  return rows[0] ? decrypt(rows[0].enc_privkey) : null;
+    const { rows } = await dbQuery<{ enc_privkey: string }>(
+        `SELECT enc_privkey FROM swyp_chain_wallets WHERE user_id = $1`,
+        [userId],
+    );
+    return rows[0] ? decrypt(rows[0].enc_privkey) : null;
 }

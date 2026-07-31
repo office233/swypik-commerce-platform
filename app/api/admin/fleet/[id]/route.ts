@@ -11,6 +11,7 @@ import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
 import { assignTierOnApproval, TIER_COMMISSION_PCT, PROMO_DAYS } from "@/lib/drivers/tiers";
 import { getOrCreateDriverCode } from "@/lib/drivers/referral";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +104,7 @@ export async function PATCH(
                         : `Aplicația ta de ${kindLabel} a fost respinsă`,
                 html:
                     action === "approve"
-                        ? `<h2>Bine ai venit în flota Swypik, ${courier.full_name}!</h2><p>Contul tău a fost verificat și aprobat. Intră în panou: <a href="https://swypik.com/courier">swypik.com/courier</a></p>${tierHtml}${codeHtml}`
+                        ? `<h2>Bine ai venit în flota Swypik, ${courier.full_name}!</h2><p>Contul tău a fost verificat și aprobat. Intră în panou: <a href="${APP_URL}/courier">swypik.com/courier</a></p>${tierHtml}${codeHtml}`
                         : `<h2>Salut, ${courier.full_name}</h2><p>Din păcate aplicația ta nu a fost aprobată momentan. Ne poți contacta pentru detalii.</p>`,
             }).catch((err) => logger.warn({ err }, "[admin/fleet] applicant email failed"));
         }

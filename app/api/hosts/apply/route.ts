@@ -20,6 +20,7 @@ import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { isValidCnp, ageFromCnp, encryptCnp, hashCnp } from "@/lib/identity/cnp";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
+import { APP_URL } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -159,7 +160,7 @@ export async function POST(req: Request) {
 <b>Locație:</b> ${d.city}, ${d.county}<br/>
 <b>Contact:</b> ${d.full_name} · ${d.phone} · ${d.email}<br/>
 <b>Formă juridică:</b> ${d.entity_type}${d.cui ? ` (${d.cui})` : ""}</p>
-<p><a href="https://swypik.com/admin/hosts">Deschide panoul de gazde</a></p>`,
+<p><a href="${APP_URL}/admin/hosts">Deschide panoul de gazde</a></p>`,
         }).catch((err) => logger.warn({ err }, "[hosts/apply] ops email failed"));
     }
 

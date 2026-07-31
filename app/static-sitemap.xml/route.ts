@@ -9,11 +9,12 @@
 import { isEnabled } from "@/lib/feature-flags";
 import { NextResponse } from "next/server";
 import { buildSitemapHreflangTags } from "@/lib/seo/hreflang";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE_URL = APP_URL;
 
 type Entry = {
   // canonical path (fără prefix de limbă, ex. "/explore", "/categories/fashion")

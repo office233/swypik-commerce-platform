@@ -10,8 +10,7 @@ import { dbQuery } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/service";
 import { logger } from "@/lib/logger";
-
-const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
+import { APP_URL } from "@/lib/app-url";
 
 function fmtDate(d: string): string {
     try {
@@ -86,7 +85,7 @@ export async function notifyHostNewBooking(bookingId: string): Promise<void> {
         if (!b?.hostUserId) return;
 
         const period = `${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}`;
-        const url = `${APP_URL()}/stays/manage`;
+        const url = `${APP_URL}/stays/manage`;
 
         await sendPushToUser(b.hostUserId, {
             title: "Rezervare nouă! 🎉",
@@ -151,7 +150,7 @@ export async function notifyGuestBookingConfirmed(bookingId: string): Promise<vo
                       <tr><td style="padding:4px 12px 4px 0">Total:</td><td><strong>${lei(b.totalCents)}</strong></td></tr>
                     </table>
                     <p style="margin-top:16px">Prețul afișat a fost prețul final — fără taxe ascunse.</p>
-                    <p><a href="${APP_URL()}/account" style="background:#0D9488;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Vezi rezervarea</a></p>
+                    <p><a href="${APP_URL}/account" style="background:#0D9488;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Vezi rezervarea</a></p>
                 `,
             }).catch((err) => logger.warn({ err, bookingId }, "stays: email client eșuat"));
         }
@@ -180,7 +179,7 @@ export async function notifyCancellation(
                 body: `${b.propertyTitle}: ${period}. ${refundTxt}`,
                 url: "/account",
                 tag: `stay-cancel-${bookingId}`,
-            }).catch(() => {});
+            }).catch(() => { });
         }
         if (b.guestEmail) {
             await sendEmail({
@@ -190,7 +189,7 @@ export async function notifyCancellation(
                        <p><strong>${b.propertyTitle}</strong> · ${period}</p>
                        <p>${refundTxt}</p>
                        ${cancelledBy === "host" ? "<p>Ne pare rău — gazda a anulat. Primești banii înapoi integral.</p>" : ""}`,
-            }).catch(() => {});
+            }).catch(() => { });
         }
 
         // Gazda
@@ -200,7 +199,7 @@ export async function notifyCancellation(
                 body: `${b.propertyTitle}: ${period}.`,
                 url: "/stays/manage",
                 tag: `stay-cancel-h-${bookingId}`,
-            }).catch(() => {});
+            }).catch(() => { });
             const email = await hostEmail(b.hostUserId);
             if (email) {
                 await sendEmail({
@@ -209,9 +208,9 @@ export async function notifyCancellation(
                     html: `<h2>Rezervare anulată</h2>
                            <p><strong>${b.propertyTitle}</strong> · ${period} · client: ${b.guestName}</p>
                            <p>${cancelledBy === "guest"
-                               ? `Clientul a anulat. Suma corespunzătoare refund-ului (${refundPct}%) a fost retrasă din portofelul tău.`
-                               : "Ai anulat rezervarea — clientul primește refund integral, iar suma încasată a fost retrasă din portofelul tău."}</p>`,
-                }).catch(() => {});
+                            ? `Clientul a anulat. Suma corespunzătoare refund-ului (${refundPct}%) a fost retrasă din portofelul tău.`
+                            : "Ai anulat rezervarea — clientul primește refund integral, iar suma încasată a fost retrasă din portofelul tău."}</p>`,
+                }).catch(() => { });
             }
         }
         logger.info({ bookingId, cancelledBy, refundPct }, "stays: notificări anulare trimise");

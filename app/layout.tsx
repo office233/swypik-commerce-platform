@@ -17,7 +17,7 @@ const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 const appUrl =
   rawAppUrl && !/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])/i.test(rawAppUrl)
     ? rawAppUrl
-    : "https://swypik.com";
+    : APP_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -54,6 +54,7 @@ import PushPrompt from "@/components/notifications/PushPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import ServiceWorkerRegistrar from "@/components/pwa/ServiceWorkerRegistrar";
 import CookieBanner from "@/components/CookieBanner";
+import { APP_URL } from "@/lib/app-url";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale;
@@ -96,26 +97,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               "@graph": [
                 {
                   "@type": "WebSite",
-                  "@id": "https://swypik.com/#website",
-                  "url": "https://swypik.com/",
+                  "@id": `${APP_URL}/#website`,
+                  "url": `${APP_URL}/`,
                   "name": "Swypik",
                   "description": "Video-first marketplace — discover products through short-form video.",
-                  "publisher": { "@id": "https://swypik.com/#organization" },
+                  "publisher": { "@id": `${APP_URL}/#organization` },
                   "potentialAction": {
                     "@type": "SearchAction",
                     "target": {
                       "@type": "EntryPoint",
-                      "urlTemplate": "https://swypik.com/search?q={search_term_string}"
+                      "urlTemplate": `${APP_URL}/search?q={search_term_string}`
                     },
                     "query-input": "required name=search_term_string"
                   }
                 },
                 {
                   "@type": "Organization",
-                  "@id": "https://swypik.com/#organization",
+                  "@id": `${APP_URL}/#organization`,
                   "name": "Swypik",
-                  "url": "https://swypik.com/",
-                  "logo": "https://swypik.com/apple-touch-icon.png",
+                  "url": `${APP_URL}/`,
+                  "logo": `${APP_URL}/apple-touch-icon.png`,
                   "sameAs": []
                 }
               ]

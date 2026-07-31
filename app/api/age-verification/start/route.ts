@@ -14,6 +14,7 @@ import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
 
     const stripe = getStripe();
 
-    const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL || "https://swypik.com";
+    const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL || APP_URL;
     const returnUrl = `${origin.replace(/\/$/, "")}/account/age-verification?status=processing`;
 
     const verification = await stripe.identity.verificationSessions.create({

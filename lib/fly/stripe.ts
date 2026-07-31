@@ -5,6 +5,7 @@
  */
 import { getStripe } from "@/lib/stripe/checkout";
 import { FlightOffer } from "./types";
+import { APP_URL } from "@/lib/app-url";
 
 export async function createFlightCheckoutSession(
     bookingId: string,
@@ -12,7 +13,7 @@ export async function createFlightCheckoutSession(
     customerEmail?: string,
 ): Promise<{ url: string; sessionId: string }> {
     const stripe = getStripe();
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
+    const baseUrl = APP_URL;
     const route = `${offer.slices[0]?.origin} → ${offer.slices[0]?.destination}`;
 
     const session = await stripe.checkout.sessions.create({

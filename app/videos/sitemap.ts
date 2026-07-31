@@ -5,11 +5,12 @@
 
 import { dbQuery } from "@/lib/db";
 import type { MetadataRoute } from "next";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE_URL = APP_URL;
 const MAX_VIDEOS = 45000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

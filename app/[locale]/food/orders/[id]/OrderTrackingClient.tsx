@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, ChefHat, Bike, MapPin, Phone, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
 const LiveMarker = dynamic(() => import("@/components/map/LiveMarker"), { ssr: false });
@@ -174,7 +175,8 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
         return null;
     }, [order, courierPos, isFinal]);
 
-    const fmtLei = (c: number) => `${(c / 100).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} lei`;
+    const fmt = useFormatPrice();
+    const fmtLei = (c: number) => fmt(c);
 
     if (error) {
         return (

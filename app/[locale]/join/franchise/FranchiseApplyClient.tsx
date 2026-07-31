@@ -104,42 +104,42 @@ export default function FranchiseApplyClient() {
             formTitle={t("franchiseTitle")}
             formSubtitle={t("franchiseSub")}
         >
-                <form onSubmit={submit} className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-                    {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-[13px] font-bold text-red-600">{error}</p>}
-                    <Field label={t("companyName")}>
-                        <input required minLength={3} value={form.company_name} onChange={set("company_name")} className={inputCls} />
-                    </Field>
-                    <Field label={`CUI (${t("optional")})`}>
-                        <input value={form.cui} onChange={set("cui")} className={inputCls} placeholder="RO12345678" />
-                    </Field>
-                    <Field label={t("contactName")}>
-                        <input required minLength={3} value={form.contact_name} onChange={set("contact_name")} className={inputCls} autoComplete="name" />
-                    </Field>
-                    <Field label={t("phone")}>
-                        <input required type="tel" minLength={5} value={form.phone} onChange={set("phone")} className={inputCls} autoComplete="tel" />
-                    </Field>
-                    <Field label={`${t("email")} (${t("optional")})`}>
-                        <input type="email" value={form.email} onChange={set("email")} className={inputCls} autoComplete="email" />
-                    </Field>
-                    <Field label={t("city")}>
-                        <input required minLength={2} value={form.city} onChange={set("city")} className={inputCls} />
-                    </Field>
-                    <Field label={t("franchiseVertical")}>
-                        <select value={form.vertical} onChange={set("vertical")} className={inputCls}>
-                            <option value="both">Go + Food</option>
-                            <option value="go">{t("goTitle")}</option>
-                            <option value="food">{t("foodTitle")}</option>
-                        </select>
-                    </Field>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full rounded-2xl bg-[#0D0D0D] py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
-                    >
-                        {loading ? <Loader2 size={18} className="mx-auto animate-spin" /> : t("apply")}
-                    </button>
-                    <p className="text-center text-[11px] text-[#A1A1AA]">{t("applyNote")}</p>
-                </form>
+            <form onSubmit={submit} className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+                {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-[13px] font-bold text-red-600">{error}</p>}
+                <Field label={t("companyName")}>
+                    <input required minLength={3} value={form.company_name} onChange={set("company_name")} className={inputCls} />
+                </Field>
+                <Field label={`CUI (${t("optional")})`}>
+                    <input value={form.cui} onChange={set("cui")} className={inputCls} placeholder="RO12345678" />
+                </Field>
+                <Field label={t("contactName")}>
+                    <input required minLength={3} value={form.contact_name} onChange={set("contact_name")} className={inputCls} autoComplete="name" />
+                </Field>
+                <Field label={t("phone")}>
+                    <input required type="tel" minLength={5} value={form.phone} onChange={set("phone")} className={inputCls} autoComplete="tel" />
+                </Field>
+                <Field label={`${t("email")} (${t("optional")})`}>
+                    <input type="email" value={form.email} onChange={set("email")} className={inputCls} autoComplete="email" />
+                </Field>
+                <Field label={t("city")}>
+                    <input required minLength={2} value={form.city} onChange={set("city")} className={inputCls} />
+                </Field>
+                <Field label={t("franchiseVertical")}>
+                    <select value={form.vertical} onChange={set("vertical")} className={inputCls}>
+                        <option value="both">Go + Food</option>
+                        <option value="go">{t("goTitle")}</option>
+                        <option value="food">{t("foodTitle")}</option>
+                    </select>
+                </Field>
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-2xl bg-[#0D0D0D] py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
+                >
+                    {loading ? <Loader2 size={18} className="mx-auto animate-spin" /> : t("apply")}
+                </button>
+                <p className="text-center text-[11px] text-[#A1A1AA]">{t("applyNote")}</p>
+            </form>
         </PartnerLanding>
     );
 }

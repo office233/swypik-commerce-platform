@@ -13,12 +13,13 @@
 import { dbQuery } from "@/lib/db";
 import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { NextResponse } from "next/server";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 const CHUNK_SIZE = 10000;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE_URL = APP_URL;
 
 function xmlEscape(s: string): string {
   return s

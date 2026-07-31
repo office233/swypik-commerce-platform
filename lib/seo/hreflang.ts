@@ -8,8 +8,9 @@
 //   - Restul locale-urilor: `${BASE}/{locale}${path}`
 //   - `path` trebuie să fie forma canonică (fără prefix), e.g. "/explore", "/product/123"
 import { LOCALES, DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { APP_URL } from "@/lib/app-url";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+const BASE_URL = APP_URL;
 
 // BCP-47 codes (Google hreflang acceptă atât "en" cât și "en-US"; folosim doar codul scurt).
 const HREFLANG_BY_LOCALE: Record<Locale, string> = {

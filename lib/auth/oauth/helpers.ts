@@ -7,6 +7,7 @@
 import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
 import { hashSessionToken } from "@/lib/auth/session";
+import { APP_URL } from "@/lib/app-url";
 
 const COOKIE_NAME = "swypik_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
@@ -161,7 +162,7 @@ export function getOAuthRedirectBase(): string {
   if (v) return v;
   if (process.env.NODE_ENV === "production") {
     console.error("[oauth] OAUTH_REDIRECT_BASE nu este setat în producție — fallback la https://swypik.com");
-    return "https://swypik.com";
+    return APP_URL;
   }
   return "http://localhost:3000";
 }

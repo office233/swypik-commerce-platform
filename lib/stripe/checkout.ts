@@ -6,6 +6,7 @@
  */
 
 import Stripe from "stripe";
+import { APP_URL } from "@/lib/app-url";
 
 let stripeInstance: Stripe | null = null;
 
@@ -49,7 +50,7 @@ export async function createCheckoutSession(
   }
 ): Promise<{ url: string; sessionId: string; expiresAt: number | null }> {
   const stripe = getStripe();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com";
+  const baseUrl = APP_URL;
 
   const lineItems = items.map((item) => ({
     price_data: {

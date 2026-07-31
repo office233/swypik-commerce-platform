@@ -92,29 +92,33 @@ export default async function CategoriesPage() {
     locale === "en"
       ? { title: "Categories", browse: "Browse", products: "products", empty: "No categories yet." }
       : locale === "de"
-      ? { title: "Kategorien", browse: "Durchsuchen", products: "Produkte", empty: "Noch keine Kategorien." }
-      : locale === "fr"
-      ? { title: "Catégories", browse: "Parcourir", products: "produits", empty: "Aucune catégorie pour l'instant." }
-      : { title: "Categorii", browse: "Răsfoiește", products: "produse", empty: "Nicio categorie încă." };
+        ? { title: "Kategorien", browse: "Durchsuchen", products: "Produkte", empty: "Noch keine Kategorien." }
+        : locale === "fr"
+          ? { title: "Catégories", browse: "Parcourir", products: "produits", empty: "Aucune catégorie pour l'instant." }
+          : { title: "Categorii", browse: "Răsfoiește", products: "produse", empty: "Nicio categorie încă." };
 
   return (
     <main className="min-h-screen text-neutral-900" style={{ backgroundColor: BG }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "CollectionPage",
-        name: labels.title,
-        url: `${BASE_URL}/categories`,
-        description: (CATEGORIES_META_BY_LOCALE[locale] ?? CATEGORIES_META_BY_LOCALE.ro).description,
-        hasPart: hierarchy.slice(0, 20).map((n) => ({ "@type": "Thing", name: n.name, url: `${BASE_URL}/categories/${n.id}` })),
-      }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Swypik", item: BASE_URL },
-          { "@type": "ListItem", position: 2, name: labels.title, item: `${BASE_URL}/categories` },
-        ],
-      }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: labels.title,
+          url: `${BASE_URL}/categories`,
+          description: (CATEGORIES_META_BY_LOCALE[locale] ?? CATEGORIES_META_BY_LOCALE.ro).description,
+          hasPart: hierarchy.slice(0, 20).map((n) => ({ "@type": "Thing", name: n.name, url: `${BASE_URL}/categories/${n.id}` })),
+        })
+      }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Swypik", item: BASE_URL },
+            { "@type": "ListItem", position: 2, name: labels.title, item: `${BASE_URL}/categories` },
+          ],
+        })
+      }} />
       <div className="mx-auto max-w-6xl px-4 py-8">
         <header className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">{labels.title}</h1>

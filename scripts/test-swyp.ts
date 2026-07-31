@@ -126,7 +126,7 @@ async function main() {
             await dbQuery(
                 `INSERT INTO referral_codes (user_id, code) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
                 [userId, `TST${Date.now()}`.slice(0, 12)],
-            ).catch(() => {});
+            ).catch(() => { });
             await dbQuery(
                 `INSERT INTO referral_attributions (invitee_user_id, referrer_user_id, anti_fraud_score, source)
                  VALUES ($1,$2,0.9,'test') ON CONFLICT DO NOTHING`,
@@ -147,8 +147,8 @@ async function main() {
             const balAgain = await getSwypBalanceUnits(userId);
             check("hook idempotent (fara dubla plata)", balAgain === balAfter, `${balAfter} -> ${balAgain}`);
 
-            await dbQuery(`DELETE FROM commerce_orders WHERE id = $1`, [ord[0].id]).catch(() => {});
-            await dbQuery(`DELETE FROM referral_attributions WHERE invitee_user_id = $1`, [inviteeId]).catch(() => {});
+            await dbQuery(`DELETE FROM commerce_orders WHERE id = $1`, [ord[0].id]).catch(() => { });
+            await dbQuery(`DELETE FROM referral_attributions WHERE invitee_user_id = $1`, [inviteeId]).catch(() => { });
         }
     } finally {
         // cleanup: returnează soldul în pool și șterge userul de test

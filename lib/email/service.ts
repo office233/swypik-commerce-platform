@@ -13,6 +13,7 @@ import { createHmac } from "node:crypto";
 import { isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { APP_URL } from "@/lib/app-url";
 
 const log = logger.child({ service: "email" });
 
@@ -36,7 +37,7 @@ export function unsubscribeToken(email: string): string {
 }
 
 export function unsubscribeUrl(email: string): string {
-  const base = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+  const base = APP_URL;
   const t = unsubscribeToken(email);
   return `${base}/api/unsubscribe?email=${encodeURIComponent(email)}&t=${t}`;
 }
@@ -286,7 +287,7 @@ export async function sendShippingNotification(data: OrderEmailData): Promise<bo
 }
 
 function orderTrackingUrl(data: OrderEmailData): string {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+  const appUrl = APP_URL;
   const lookup = data.orderLookupToken || data.orderId;
   return `${appUrl}/orders/${encodeURIComponent(lookup)}`;
 }
@@ -396,7 +397,7 @@ export async function sendSellerNewOrderAlert(sellerEmail: string, orderItems: a
           Loghează-te în dashboard să o expediezi!
         </p>
         <div style="text-align:center;margin-top:32px">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com"}/seller" 
+          <a href="${APP_URL}/seller" 
              style="display:inline-block;background:#0D0D0D;color:white;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none">
             🚀 Mergi la Dashboard
           </a>
@@ -438,7 +439,7 @@ export async function sendSellerApprovalEmail(email: string, name: string): Prom
         <p style="font-size:15px;color:#333;line-height:1.6;margin-bottom:32px;">
           Acum poți să îți adaugi produsele și să începi să vinzi pe platforma noastră.
         </p>
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com"}/seller/login" 
+        <a href="${APP_URL}/seller/login" 
            style="display:inline-block;background:#0D0D0D;color:white;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none">
           Autentifică-te aici
         </a>
@@ -627,7 +628,7 @@ export async function sendAbandonedCartEmail(
  * Welcome email (transactional — sent on signup, NOT gated by emailMarketing flag)
  */
 export async function sendWelcomeEmail(email: string, name: string): Promise<boolean> {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+  const appUrl = APP_URL;
   const safeName = escapeHtml(name || "acolo");
   const exploreUrl = escapeHtml(`${appUrl}/explore`);
   const accountUrl = escapeHtml(`${appUrl}/account`);
@@ -677,7 +678,7 @@ export async function sendRefundEmail(
   const amount = (Math.max(0, amountCents) / 100).toFixed(2);
   const safeCurrency = escapeHtml((currency || "RON").toUpperCase());
   const shortId = orderId.split("-")[0];
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+  const appUrl = APP_URL;
   const orderUrl = escapeHtml(`${appUrl}/orders/${encodeURIComponent(orderId)}`);
   const html = `
   <!DOCTYPE html>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Banknote, ExternalLink, CheckCircle2, AlertTriangle, Loader2, ArrowRightLeft } from "lucide-react";
+import { formatMoneyCents } from "@/lib/i18n/currency";
 
 type ConnectStatus = {
   accountId: string | null;
@@ -43,13 +44,7 @@ type TransferRow = {
   created_at: string;
 };
 
-function formatMoney(cents: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("ro-RO", { style: "currency", currency: (currency || "RON").toUpperCase() }).format((cents || 0) / 100);
-  } catch {
-    return `${((cents || 0) / 100).toFixed(2)} ${currency}`;
-  }
-}
+const formatMoney = (cents: number, currency: string) => formatMoneyCents(cents || 0, currency);
 
 const TRANSFER_STATUS_CLASS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",

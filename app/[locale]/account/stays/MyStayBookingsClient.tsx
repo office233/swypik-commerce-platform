@@ -52,7 +52,7 @@ export default function MyStayBookingsClient() {
         const msg =
             b.payment_status === "paid"
                 ? `Anulezi rezervarea?\n\nPrimești înapoi ${pct}% (${lei(Math.round((b.total_cents * pct) / 100))}) în wallet.` +
-                  (pct === 50 ? `\n\nAnulare gratuită doar cu cel puțin ${FREE_CANCEL_DAYS} zile înainte de check-in.` : "")
+                (pct === 50 ? `\n\nAnulare gratuită doar cu cel puțin ${FREE_CANCEL_DAYS} zile înainte de check-in.` : "")
                 : "Anulezi rezervarea (neplătită)?";
         if (!confirm(msg)) return;
 

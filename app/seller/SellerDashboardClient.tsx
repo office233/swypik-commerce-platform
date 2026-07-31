@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { isEnabledClient } from "@/lib/feature-flags-client";
+import { formatMoneyCents } from "@/lib/i18n/currency";
 import SelenaAssistant from "./SelenaAssistant";
 
 type RecentOrder = {
@@ -31,9 +32,7 @@ const emptyDashboard: DashboardData = {
   recentOrders: [],
 };
 
-function formatLeiFromCents(cents: number) {
-  return `${(Number(cents || 0) / 100).toFixed(2)} lei`;
-}
+const formatLeiFromCents = (cents: number) => formatMoneyCents(Number(cents || 0), "RON");
 
 export default function SellerDashboardPage() {
   const [data, setData] = useState<DashboardData>(emptyDashboard);

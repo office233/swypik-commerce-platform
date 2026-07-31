@@ -26,6 +26,7 @@ import StarRating from "@/components/reviews/StarRating";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { safeJsonLd } from "@/lib/seo/json-ld";
+import { APP_URL } from "@/lib/app-url";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -51,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       : `${product.title} — livrare rapidă. Cumpără de pe Swypik.`);
 
   // hreflang alternates from product_translations — uses localized slug per locale when present
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://swypik.com";
+  const baseUrl = APP_URL;
   const productUuid = (product?.id ?? id) as string;
   let languages: Record<string, string> | undefined;
   let canonicalUrl = `${baseUrl}/product/${productUuid}`;
@@ -218,7 +219,7 @@ export default async function ProductPage({ params }: Props) {
   let jsonLd = null;
   if (data) {
     const { product } = data as any;
-    const productUrl = `https://swypik.com/product/${product.id}`;
+    const productUrl = `${APP_URL}/product/${product.id}`;
     jsonLd = {
       "@context": "https://schema.org",
       "@type": "Product",
@@ -268,9 +269,9 @@ export default async function ProductPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: bcLabels.home, item: "https://swypik.com/" },
-      { "@type": "ListItem", position: 2, name: bcLabels.explore, item: "https://swypik.com/explore" },
-      { "@type": "ListItem", position: 3, name: data.product.title?.slice(0, 80) || "Product", item: `https://swypik.com/product/${data.product.id}` },
+      { "@type": "ListItem", position: 1, name: bcLabels.home, item: `${APP_URL}/` },
+      { "@type": "ListItem", position: 2, name: bcLabels.explore, item: `${APP_URL}/explore` },
+      { "@type": "ListItem", position: 3, name: data.product.title?.slice(0, 80) || "Product", item: `${APP_URL}/product/${data.product.id}` },
     ],
   } : null;
 

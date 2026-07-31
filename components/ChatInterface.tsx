@@ -16,6 +16,9 @@ import type { Product } from "@/types/product";
 import type { CartItem } from "@/types/cart";
 import { mergeIntoCart, buildCheckoutPayload, cartItemKey } from "@/types/cart";
 import { useTranslations } from "next-intl";
+import { APP_URL } from "@/lib/app-url";
+import ProductModal from "./chat/ProductModal";
+import { normalizeSocialFeedProducts, fetchSocialFeed, isSafeDirectVideoUrl } from "@/lib/chat/feed-normalize";
 
 type ChatProduct = Product; // alias for backwards compat within this file
 
@@ -39,109 +42,6 @@ Spune-mi ce cauți și eu:
 👗 "Outfit elegant pentru nuntă"
 🏠 "Apartament nou sub 2000 lei"`,
 };
-
-function firstString(...values: any[]) {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim()) return value;
-  }
-  return "";
-}
-
-function isSafeDirectVideoUrl(value?: string) {
-  if (!value) return false;
-  if (value.startsWith("/")) return true;
-
-  try {
-    const fallbackOrigin = "https://swypik.com";
-    const currentOrigin = typeof window === "undefined" ? fallbackOrigin : window.location.origin;
-    const parsed = new URL(value, currentOrigin);
-    return parsed.origin === currentOrigin;
-  } catch {
-    return false;
-  }
-}
-
-function firstNumber(...values: any[]) {
-  for (const value of values) {
-    const number = Number(value);
-    if (Number.isFinite(number) && number > 0) return number;
-  }
-  return 0;
-}
-
-function normalizeSocialFeedProducts(data: any): ChatProduct[] {
-  const rawItems = Array.isArray(data?.items) ? data.items : Array.isArray(data?.products) ? data.products : [];
-
-  return rawItems
-    .map((item: any) => {
-      const source = item?.product || item;
-      const title = firstString(source?.title, source?.product_title, item?.productTitle);
-      if (!title) return null;
-
-      const price = firstNumber(source.price, source.price_ron, source.priceRON, source.product_price);
-      const oldPrice = firstNumber(source.oldPrice, source.old_price_ron, source.oldPriceRON) || price;
-      const numericPgId = Number(source.pgId || source.productId || source.product_id || item.productId || item.product_id || source.id);
-      const videoUrl =
-        item?.video?.hlsUrl ||
-        item?.video?.mp4Url ||
-        item?.video?.url ||
-        item?.videoUrl ||
-        source.hls_url ||
-        source.video_url ||
-        source.video ||
-        undefined;
-      const imageUrl = firstString(
-        item?.video?.posterUrl,
-        source.poster_url,
-        source.thumbnail_url,
-        source.product_image,
-        source.image_url
-      );
-      const images = Array.isArray(source.images) && source.images.length
-        ? source.images
-        : imageUrl
-          ? [imageUrl]
-          : [];
-      const discountPercent =
-        Number(source.discountPercent) ||
-        (oldPrice > price && price > 0 ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0);
-
-      return {
-        ...source,
-        id: String(source.id || item.video_id || item.productId || item.product_id || item.id),
-        pgId: Number.isFinite(numericPgId) && numericPgId > 0 ? numericPgId : source.pgId,
-        aeProductId: source.aeProductId || source.ae_product_id,
-        description: source.description || title,
-        benefits: source.benefits || [],
-        dealLabel: source.dealLabel || "AI Pick",
-        whyBuy: source.whyBuy || "",
-        warnings: source.warnings || [],
-        title,
-        price,
-        oldPrice,
-        discountPercent,
-        rating: Number(source.rating) || 4.7,
-        orders: Number(source.orders) || Number(source.orders_count) || Number(source.view_count) || item?.stats?.orders || 0,
-        deliveryDays: Number(source.deliveryDays) || 7,
-        images,
-        video: videoUrl,
-        hasVideo: Boolean(videoUrl || source.hasVideo || source.video_url || source.hls_url),
-        category: source.category || "General",
-        categoryId: Number(source.categoryId || source.category_id) || undefined,
-        gradient: source.gradient || "from-orange-500 to-pink-500",
-        qualityScore: Number(source.qualityScore || source.rank_score) || 8,
-        likes: Number(source.likes) || Number(source.likes_count) || Number(source.like_count) || item?.stats?.likes,
-        commentCount: Number(source.commentCount) || Number(source.comment_count) || item?.stats?.comments,
-      } satisfies ChatProduct;
-    })
-    .filter(Boolean) as ChatProduct[];
-}
-
-async function fetchSocialFeed(offset: number, seed: number) {
-  const res = await fetch(`/api/v1/feed?limit=15&offset=${offset}&seed=${seed}`);
-  if (!res.ok) throw new Error("Social feed unavailable");
-  return normalizeSocialFeedProducts(await res.json());
-}
 
 export default function ChatInterface({
   initialTrending = [],
@@ -676,6 +576,3 @@ export default function ChatInterface({
     {showBundleSheet && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={() => setShowBundleSheet(false)}><div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#0D0D0D]">AI Bundle</p><h3 className="text-2xl font-black">Bundle complet</h3><p className="text-sm font-medium text-[#6E6E80]">Total: {Math.round(bundleTotal)} lei {bundleSavings > 0 ? `• economisești ${bundleSavings} lei` : ""}</p></div><button type="button" onClick={() => setShowBundleSheet(false)} aria-label={t("inchide3")}><X size={18} /></button></div><div className="mt-4 space-y-3">{bundleCandidates.map((p) => <div key={p.id} className="flex gap-3 rounded-2xl bg-[#F7F7F8] p-3 border border-[#E5E5E5]">{p.images?.[0] && <Image src={p.images[0]} alt="" width={64} height={64} className="h-16 w-16 rounded-xl object-cover" />}<div className="flex-1"><p className="line-clamp-2 text-sm font-bold">{p.title}</p><p className="text-sm font-bold text-[#0D0D0D]">{p.price} lei</p></div><button type="button" onClick={() => addToCart(p)} className="rounded-xl bg-[#0D0D0D] px-3 text-xs font-bold text-white">{t("cos2")}</button></div>)}</div></div></div>}
     {selectedProduct && <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={() => addToCart(selectedProduct)} />}{toastMessage && <div className="fixed left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#0D0D0D] px-5 py-2.5 text-sm font-bold text-white shadow-xl toast-position">{toastMessage}</div>}</div></main>;
 }
-
-
-function ProductModal({ product, onClose, onAddToCart }: { product: ChatProduct; onClose: () => void; onAddToCart: () => void }) { const t = useTranslations("chatInterface"); const insights: string[] = []; if (product.rating >= 4.7 && !product.isEstimatedSocial) insights.push(`⭐ Rating ${product.rating}/5 — calitate peste medie`); if (!product.isEstimatedSocial && product.orders >= 500) insights.push(`✅ ${product.orders.toLocaleString()}+ comenzi — seller de încredere`); else if (!product.isEstimatedSocial && product.orders >= 100) insights.push(`📦 ${product.orders}+ vândute — produs verificat`); if (product.discountPercent >= 20) insights.push(`💰 Reducere reală de ${product.discountPercent}% față de prețul standard`); if (product.qualityScore >= 9) insights.push('🏆 Best value în categoria sa'); if (product.deliveryDays <= 5) insights.push(`🚀 Livrare rapidă — ${product.deliveryDays} zile`); return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={onClose}><div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-white p-5" onClick={(e) => e.stopPropagation()}><div className="mb-3 flex justify-between"><span className="rounded-full bg-[#F7F7F8] px-3 py-1 text-xs font-bold text-[#6E6E80]">{product.category}</span><button type="button" onClick={onClose} aria-label={t("inchide4")}><X size={18} /></button></div>{product.images?.[0] && <Image src={product.images[0]} alt={product.title} width={640} height={640} className="h-64 w-full rounded-2xl object-cover" />}<h2 className="mt-4 text-2xl font-black text-[#0D0D0D]">{product.title}</h2><div className="mt-2 flex gap-3 text-sm font-medium text-[#6E6E80]"><span className="text-[#B45309]"><Star size={14} className="inline" fill="currentColor" /> {product.rating}</span>{product.socialProofLabel ? <span>{product.socialProofLabel}</span> : <span>Popular</span>}<span><Truck size={14} className="inline" /> {product.deliveryDays} zile</span></div><div className="mt-3"><span className="text-3xl font-black text-[#0D0D0D]">{product.price} lei</span>{product.oldPrice > product.price && <span className="ml-2 text-[#6E6E80] line-through">{product.oldPrice} lei</span>}</div>{insights.length > 0 && <div className="mt-4 rounded-2xl bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] border border-[#BBF7D0] p-4"><p className="text-xs font-black uppercase tracking-widest text-[#0D0D0D] mb-2">{t("deCeMeritaAi")}</p><div className="space-y-1.5">{insights.map((ins, i) => <p key={i} className="text-sm font-medium text-[#0D0D0D]">{ins}</p>)}</div></div>}<p className="mt-4 text-sm font-medium leading-relaxed text-[#6E6E80]">{product.description}</p><button type="button" onClick={onAddToCart} className={`mt-4 w-full rounded-xl py-4 font-bold ${THEME.classes.cartButton}`}>{t("adaugaInCos")} {product.price} lei</button><a href={`/product/${product.pgId || product.id}`} className="mt-2 block w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] py-3 text-center text-sm font-bold text-[#0D0D0D] hover:bg-[#ECECF1] transition-colors">Vezi toate detaliile →</a></div></div>; }

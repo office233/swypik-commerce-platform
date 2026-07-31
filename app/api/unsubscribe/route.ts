@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { unsubscribeToken } from "@/lib/email/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { APP_URL } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ async function handle(req: Request): Promise<Response> {
   }
 
   // GET → redirect la landing page-ul confirmation
-  const base = (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+  const base = APP_URL;
   return NextResponse.redirect(`${base}/unsubscribe?email=${encodeURIComponent(email)}`, { status: 303 });
 }
 

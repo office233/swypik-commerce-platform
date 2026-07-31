@@ -49,8 +49,8 @@ export default function SettingsClient({ isAdmin = false, sellerStatus = null }:
     ...(sellerStatus === "active" || sellerStatus === "approved"
       ? [{ href: "/seller", icon: Store, label: t("itemSeller") }]
       : sellerStatus === "pending"
-      ? [{ href: "/become-a-seller", icon: Store, label: t("itemSellerPending") }]
-      : [{ href: "/become-a-seller", icon: Store, label: t("itemDevinoSeller") }]),
+        ? [{ href: "/become-a-seller", icon: Store, label: t("itemSellerPending") }]
+        : [{ href: "/become-a-seller", icon: Store, label: t("itemDevinoSeller") }]),
     { href: "/account/edit", icon: UserCircle2, label: t("itemEditeaza") },
     { href: "/account/orders", icon: ShoppingBag, label: t("itemComenzi") },
     { href: "/account/addresses", icon: MapPin, label: t("itemAdrese") },

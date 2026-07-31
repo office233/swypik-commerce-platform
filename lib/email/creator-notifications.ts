@@ -11,9 +11,7 @@
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
 import { isEnabled } from "@/lib/feature-flags";
-
-const APP_URL = () =>
-  (process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com").replace(/\/$/, "");
+import { APP_URL } from "@/lib/app-url";
 
 /* ------------------------------------------------------------------ */
 /*  Shared HTML helpers                                                */
@@ -106,7 +104,7 @@ export async function notifyVideoApproved(
       <span style="color:#0D0D0D;font-weight:700">LIVE</span> în feed-ul Swypik! 🎉<br><br>
       Vei primi <strong>5% comision</strong> din fiecare vânzare generată prin clipul tău.
     </p>
-    ${ctaButton("Vezi clipurile tale →", `${APP_URL()}/creator/videos`)}`;
+    ${ctaButton("Vezi clipurile tale →", `${APP_URL}/creator/videos`)}`;
 
   return sendEmail({
     to: creatorEmail,
@@ -149,7 +147,7 @@ export async function notifyVideoRejected(
     <p style="font-size:14px;color:#666;line-height:1.6">
       Te rugăm să încarci o versiune nouă a clipului care respectă cerințele platformei.
     </p>
-    ${ctaButton("Încarcă clip nou →", `${APP_URL()}/upload`)}`;
+    ${ctaButton("Încarcă clip nou →", `${APP_URL}/upload`)}`;
 
   return sendEmail({
     to: creatorEmail,
@@ -191,7 +189,7 @@ export async function notifyPayoutSent(
     <p style="font-size:14px;color:#666;line-height:1.6;text-align:center">
       Continuă să creezi conținut excelent și câștigă mai mult!
     </p>
-    ${ctaButton("Vezi câștigurile →", `${APP_URL()}/creator/earnings`)}`;
+    ${ctaButton("Vezi câștigurile →", `${APP_URL}/creator/earnings`)}`;
 
   return sendEmail({
     to: creatorEmail,

@@ -202,7 +202,7 @@ export async function attributeOnSignup({ inviteeUserId }: AttributeArgs): Promi
     await client.query("COMMIT");
     return { attributed: true, referrerUserId, source: source ?? "anon_cookie", score };
   } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
+    await client.query("ROLLBACK").catch(() => { });
     return { attributed: false, reason: (err as Error).message };
   } finally {
     client.release();
@@ -263,7 +263,7 @@ export async function tryValidateReferral(inviteeUserId: string, action: string)
     await client.query("COMMIT");
     return true;
   } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
+    await client.query("ROLLBACK").catch(() => { });
     return false;
   } finally {
     client.release();

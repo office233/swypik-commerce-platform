@@ -159,43 +159,43 @@ export default function FleetApplyClient() {
             formTitle={isGo ? t("goFormTitle") : t("foodFormTitle")}
             formSubtitle={isGo ? t("goFormSub") : t("foodFormSub")}
         >
-                <form onSubmit={submit} className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-                    {error && (
-                        <p className="rounded-xl bg-red-50 px-3 py-2 text-[13px] font-bold text-red-600">{error}</p>
-                    )}
-                    <Field label={t("fullName")}>
-                        <input required minLength={3} value={form.full_name} onChange={set("full_name")} className={inputCls} autoComplete="name" />
+            <form onSubmit={submit} className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+                {error && (
+                    <p className="rounded-xl bg-red-50 px-3 py-2 text-[13px] font-bold text-red-600">{error}</p>
+                )}
+                <Field label={t("fullName")}>
+                    <input required minLength={3} value={form.full_name} onChange={set("full_name")} className={inputCls} autoComplete="name" />
+                </Field>
+                <Field label={t("phone")}>
+                    <input required type="tel" minLength={5} value={form.phone} onChange={set("phone")} className={inputCls} autoComplete="tel" />
+                </Field>
+                <Field label={`${t("email")} (${t("optional")})`}>
+                    <input type="email" value={form.email} onChange={set("email")} className={inputCls} autoComplete="email" />
+                </Field>
+                <Field label={t("city")}>
+                    <input required minLength={2} value={form.city} onChange={set("city")} className={inputCls} autoComplete="address-level2" />
+                </Field>
+                <Field label={t("vehicle")}>
+                    <select value={form.vehicle_type} onChange={set("vehicle_type")} className={inputCls}>
+                        {(isGo ? VEHICLES.filter((v) => ["car", "van"].includes(v.value)) : VEHICLES).map((v) => (
+                            <option key={v.value} value={v.value}>{t(v.labelKey)}</option>
+                        ))}
+                    </select>
+                </Field>
+                {["car", "van", "motorcycle"].includes(form.vehicle_type) && (
+                    <Field label={t("plate")}>
+                        <input value={form.vehicle_plate} onChange={set("vehicle_plate")} className={inputCls} placeholder="B 123 ABC" />
                     </Field>
-                    <Field label={t("phone")}>
-                        <input required type="tel" minLength={5} value={form.phone} onChange={set("phone")} className={inputCls} autoComplete="tel" />
-                    </Field>
-                    <Field label={`${t("email")} (${t("optional")})`}>
-                        <input type="email" value={form.email} onChange={set("email")} className={inputCls} autoComplete="email" />
-                    </Field>
-                    <Field label={t("city")}>
-                        <input required minLength={2} value={form.city} onChange={set("city")} className={inputCls} autoComplete="address-level2" />
-                    </Field>
-                    <Field label={t("vehicle")}>
-                        <select value={form.vehicle_type} onChange={set("vehicle_type")} className={inputCls}>
-                            {(isGo ? VEHICLES.filter((v) => ["car", "van"].includes(v.value)) : VEHICLES).map((v) => (
-                                <option key={v.value} value={v.value}>{t(v.labelKey)}</option>
-                            ))}
-                        </select>
-                    </Field>
-                    {["car", "van", "motorcycle"].includes(form.vehicle_type) && (
-                        <Field label={t("plate")}>
-                            <input value={form.vehicle_plate} onChange={set("vehicle_plate")} className={inputCls} placeholder="B 123 ABC" />
-                        </Field>
-                    )}
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full rounded-2xl bg-[#0D0D0D] py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
-                    >
-                        {loading ? <Loader2 size={18} className="mx-auto animate-spin" /> : t("apply")}
-                    </button>
-                    <p className="text-center text-[11px] text-[#A1A1AA]">{t("applyNote")}</p>
-                </form>
+                )}
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-2xl bg-[#0D0D0D] py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
+                >
+                    {loading ? <Loader2 size={18} className="mx-auto animate-spin" /> : t("apply")}
+                </button>
+                <p className="text-center text-[11px] text-[#A1A1AA]">{t("applyNote")}</p>
+            </form>
         </PartnerLanding>
     );
 }

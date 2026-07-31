@@ -17,6 +17,7 @@ import { FILTER_PRESETS, getFilter, type FilterId } from "@/lib/reels/filters";
 import { createFilteredStream } from "@/lib/reels/canvas-pipeline";
 import AudioPicker, { type AudioTrackDTO } from "@/components/reels/AudioPicker";
 import { useTranslations } from "next-intl";
+import { APP_URL } from "@/lib/app-url";
 
 const MAX_DURATION_MS = 60_000; // 60s pentru MVP
 const COUNTDOWN_OPTIONS = [0, 3, 10] as const;
@@ -388,7 +389,7 @@ export default function Recorder() {
               inputMode="url"
               value={productUrl}
               onChange={(e) => setProductUrl(e.target.value)}
-              placeholder="https://swypik.com/product/..."
+              placeholder={`${APP_URL}/product/...`}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white/30"
             />
           </div>

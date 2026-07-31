@@ -7,8 +7,9 @@
 import { getStripe } from "./checkout";
 import { dbQuery } from "@/lib/db";
 import type Stripe from "stripe";
+import { APP_URL } from "@/lib/app-url";
 
-const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL || "https://swypik.com";
+const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL || APP_URL;
 
 export type ConnectStatus = {
   accountId: string | null;

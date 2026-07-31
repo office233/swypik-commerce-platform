@@ -20,6 +20,7 @@ import crypto from "crypto";
 
 
 import { logger } from "@/lib/logger";
+import { APP_URL } from "@/lib/app-url";
 function parsePositiveInt(val: unknown, fallback: number, max: number): number {
   const n = Number(val);
   if (!Number.isInteger(n) || n < 1) return fallback;
@@ -134,8 +135,8 @@ async function persistOpenCheckoutSession(items: CheckoutItem[], sessionId: stri
         sessionId,
         currency,
         subtotalCents,
-        `${process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com"}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        process.env.NEXT_PUBLIC_APP_URL || "https://swypik.com",
+        `${APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        APP_URL,
         expiresAt || null,
         JSON.stringify(metadata),
       ]

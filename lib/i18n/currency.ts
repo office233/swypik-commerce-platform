@@ -52,3 +52,26 @@ export function formatPriceLegacy(
 ): string {
   return formatCurrency(Math.round(amount * 100), options);
 }
+
+/**
+ * Formatare pentru sume cu currency dinamic (din DB / Stripe), fără conversie FX.
+ * Folosit pe server (email-uri, API) sau când currency-ul nu e din CURRENCIES.
+ */
+export function formatMoneyCents(
+  cents: number | null | undefined,
+  currency: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  if (cents == null || !Number.isFinite(cents)) return "";
+  const cur = (currency || DEFAULT_CURRENCY).toUpperCase();
+  try {
+    return new Intl.NumberFormat(INTL_LOCALE[locale] ?? "ro-RO", {
+      style: "currency",
+      currency: cur,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(cents / 100);
+  } catch {
+    return `${(cents / 100).toFixed(2)} ${cur}`;
+  }
+}

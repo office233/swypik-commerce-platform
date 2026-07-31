@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { formatMoneyCents } from "@/lib/i18n/currency";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -113,13 +114,7 @@ function WalletIcon() {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function formatLei(cents: number): string {
-  const lei = cents / 100;
-  return lei.toLocaleString("ro-RO", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }) + " lei";
-}
+  const formatLei = (cents: number) => formatMoneyCents(cents, "RON");
 
 // ─── Skeleton loader ────────────────────────────────────────────────────────
 

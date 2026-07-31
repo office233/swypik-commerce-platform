@@ -5,6 +5,7 @@ import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
+import { APP_URL } from "@/lib/app-url";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
 <p><b>Firmă:</b> ${companyName}<br/><b>CUI:</b> ${cui}<br/>
 <b>Email:</b> ${normalizedEmail}<br/><b>Telefon:</b> ${phone}<br/>
 <b>Produse:</b> ${productType}</p>
-<p><a href="https://swypik.com/admin/sellers">Deschide panoul de vânzători</a></p>`,
+<p><a href="${APP_URL}/admin/sellers">Deschide panoul de vânzători</a></p>`,
       }).catch((err) => logger.warn({ err }, "[apply-seller] ops email failed"));
     }
 

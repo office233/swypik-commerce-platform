@@ -8,6 +8,7 @@
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { notifyOps } from "@/lib/ops/alerts";
+import { APP_URL } from "@/lib/app-url";
 
 const RECENT_IP_WINDOW_HOURS = 24;
 
@@ -210,7 +211,7 @@ export async function checkRecreationAndMaybeBlock(args: {
       severity: "critical",
       title: `Recreation auto-block ${args.userId.slice(0, 8)} (${match.signal})`,
       detail: `${block.reason}\nSignup path: ${args.signupPath}`,
-      link: `https://swypik.com/admin/risk?status=paid`,
+      link: `${APP_URL}/admin/risk?status=paid`,
       payload: { newUserId: args.userId, blockedUserId: match.blockedUserId, signal: match.signal },
       cooldownMin: 30,
     }).catch(() => {});

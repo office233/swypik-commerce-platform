@@ -7,6 +7,7 @@ import { persistConnectAccount } from "@/lib/stripe/connect";
 import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
+import { APP_URL } from "@/lib/app-url";
 export const dynamic = "force-dynamic";
 
 const RETURN_PATH = "/seller/payouts?stripe=connected";
@@ -15,7 +16,7 @@ const REFRESH_PATH = "/seller/payouts?stripe=refresh";
 function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL
     || process.env.NEXT_PUBLIC_SITE_URL
-    || "https://swypik.com";
+    || APP_URL;
 }
 
 export async function POST() {

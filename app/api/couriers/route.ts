@@ -13,6 +13,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { CourierApplySchema, CourierUpdateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
+import { APP_URL } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
 <b>Email:</b> ${d.email ?? "—"}<br/>
 <b>Oraș:</b> ${d.city}<br/>
 <b>Vehicul:</b> ${d.vehicle_type}${d.vehicle_plate ? ` (${d.vehicle_plate})` : ""}</p>
-<p><a href="https://swypik.com/admin/fleet">Deschide panoul de verificare</a></p>`,
+<p><a href="${APP_URL}/admin/fleet">Deschide panoul de verificare</a></p>`,
             }).catch((err) => logger.warn({ err }, "[couriers] ops email failed"));
         }
 

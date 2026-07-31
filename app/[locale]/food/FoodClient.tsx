@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Clock, MapPin, ReceiptText, Star, Truck } from "lucide-react";
 import { haptic } from "@/lib/haptic";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 
 const ACCENT = "#2DBE60"; // verdele Swypik Food
 const CITY_KEY = "swypik_city";
@@ -41,6 +42,7 @@ const CUISINES = [
 
 export default function FoodClient() {
   const router = useRouter();
+  const fmt = useFormatPrice();
   const [city, setCity] = useState<string | null>(null);
   const [cuisine, setCuisine] = useState<string | null>(null);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -77,7 +79,7 @@ export default function FoodClient() {
     }
   };
 
-  const fmtLei = (cents: number) => `${(cents / 100).toLocaleString("ro-RO")} lei`;
+  const fmtLei = (cents: number) => fmt(cents, { showDecimals: false });
 
   return (
     <div className="min-h-dvh bg-white pb-24">

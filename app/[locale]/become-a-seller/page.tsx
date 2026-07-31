@@ -54,7 +54,7 @@ function SellerForm() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus("loading");
-    
+
     const formData = new FormData(e.currentTarget);
     const data = {
       companyName: formData.get("companyName"),
@@ -97,11 +97,11 @@ function SellerForm() {
     <form onSubmit={handleSubmit} className="space-y-5 border border-[#E5E5E5] p-6 md:p-8 rounded-2xl bg-white">
       {status === "error" && (
         <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg">
-          
+
           {t("aAparutOEroare")}
         </div>
       )}
-      
+
       <div className="space-y-1.5">
         <label htmlFor="companyName" className="text-sm font-medium text-black block">
           Nume Companie
@@ -166,7 +166,7 @@ function SellerForm() {
 
       <div className="space-y-1.5">
         <label htmlFor="productType" className="text-sm font-medium text-black block">
-          
+
           {t("ceTipDeProduse")}
         </label>
         <textarea
