@@ -7,14 +7,14 @@
  *
  * Cheia trezoreriei stă DOAR pe server (env), nu în repo.
  */
-import { createPublicClient, createWalletClient, http, defineChain, parseUnits } from "viem";
+import { createPublicClient, createWalletClient, http, defineChain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 export const swypikChain = defineChain({
     id: 643366,
     name: "Swypik Chain",
     nativeCurrency: { name: "Swypik", symbol: "SWYP", decimals: 18 },
-    rpcUrls: { default: { http: [process.env.SWYP_CHAIN_RPC || "http://172.17.0.1:8545"] } },
+    rpcUrls: { default: { http: [process.env.SWYP_CHAIN_RPC || "http://swypik-chain-rpc:8545"] } },
     blockExplorers: { default: { name: "SwypikScan", url: "https://scan.swypik.com" } },
 });
 
@@ -28,9 +28,13 @@ function treasuryAccount() {
     return privateKeyToAccount(pk as `0x${string}`);
 }
 
-/** Subunități interne (1 SWYP = 100) → wei on-chain (1 SWYP = 1e18). */
+/**
+ * Subunități interne (1 SWYP = 100) → wei on-chain (1 SWYP = 1e18).
+ * Aritmetică exclusiv pe bigint: `Number(units)` ar pierde precizie peste
+ * 2^53, iar supply-ul total (10^12 subunități) e în acea zonă.
+ */
 export function unitsToWei(units: bigint): bigint {
-    return parseUnits((Number(units) / 100).toString(), 18);
+    return (units * 10n ** 18n) / 100n;
 }
 
 /**
@@ -42,7 +46,8 @@ export async function sendFromTreasury(to: `0x${string}`, units: bigint): Promis
     const wallet = createWalletClient({ account, chain: swypikChain, transport: http() });
     const hash = await wallet.sendTransaction({ to, value: unitsToWei(units) });
     // așteptăm includerea (blocuri la 5s) ca să putem afișa link de explorer valid
-    await publicClient().waitForTransactionReceipt({ hash, timeout: 30_000 });
+    const timeout = Number(process.env.SWYP_CHAIN_RECEIPT_TIMEOUT_MS ?? 30_000);
+    await publicClient().waitForTransactionReceipt({ hash, timeout });
     return hash;
 }
 

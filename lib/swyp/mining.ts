@@ -11,9 +11,30 @@
 import { dbQuery } from "@/lib/db";
 import { awardSwyp } from "./rewards";
 
-const SESSION_HOURS = 24;
-const STREAK_BONUS_PER_DAY = 0.1;
-const STREAK_BONUS_MAX = 1.0;
+/** Parametri economici — din DB, ca să poată fi ajustați fără deploy. */
+async function miningParams(): Promise<{
+    sessionHours: number;
+    streakBonusPerDay: number;
+    streakBonusMax: number;
+    graceHours: number;
+}> {
+    const { rows } = await dbQuery<{ key: string; value: unknown }>(
+        `SELECT key, value FROM platform_config
+            WHERE key IN ('swyp_mining_session_hours','swyp_streak_bonus_per_day_bps',
+                                        'swyp_streak_bonus_max_bps','swyp_streak_grace_hours')`,
+    );
+    const m = new Map(rows.map((r) => [r.key, Number(r.value)]));
+    const num = (k: string, d: number) => {
+        const v = m.get(k);
+        return Number.isFinite(v) && (v as number) > 0 ? (v as number) : d;
+    };
+    return {
+        sessionHours: num("swyp_mining_session_hours", 24),
+        streakBonusPerDay: num("swyp_streak_bonus_per_day_bps", 1000) / 10_000,
+        streakBonusMax: num("swyp_streak_bonus_max_bps", 10_000) / 10_000,
+        graceHours: num("swyp_streak_grace_hours", 48),
+    };
+}
 
 /** Numărul de halving-uri atinse, în funcție de câți utilizatori are rețeaua. */
 export async function getHalvingFactor(): Promise<{ users: number; halvings: number; factor: number }> {
@@ -44,15 +65,16 @@ export async function computeMiningRate(userId: string): Promise<{
     halvings: number;
     networkUsers: number;
 }> {
-    const [{ rows: ruleRows }, halving, streakDays] = await Promise.all([
+    const [{ rows: ruleRows }, halving, streakDays, params] = await Promise.all([
         dbQuery<{ amount_units: string; enabled: boolean }>(
             `SELECT amount_units::text, enabled FROM swyp_emission_rules WHERE action = 'mining_daily'`,
         ),
         getHalvingFactor(),
         getStreakDays(userId),
+        miningParams(),
     ]);
     const base = BigInt(ruleRows[0]?.amount_units ?? "0");
-    const streakBonus = Math.min(STREAK_BONUS_MAX, (streakDays - 1) * STREAK_BONUS_PER_DAY);
+    const streakBonus = Math.min(params.streakBonusMax, (streakDays - 1) * params.streakBonusPerDay);
     // aritmetică întreagă: base * factor * (1 + bonus), cu 4 zecimale de precizie
     const multiplier = BigInt(Math.round(halving.factor * (1 + streakBonus) * 10000));
     const rateUnits = (base * multiplier) / 10000n;
@@ -66,24 +88,20 @@ export async function computeMiningRate(userId: string): Promise<{
 
 /** Streak curent: nr. de zile consecutive cu sesiuni revendicate (min 1). */
 async function getStreakDays(userId: string): Promise<number> {
-    const { rows } = await dbQuery<{ claimed_at: string }>(
-        `SELECT claimed_at::text FROM swyp_mining_sessions
-      WHERE user_id = $1 AND claimed_at IS NOT NULL
-      ORDER BY claimed_at DESC LIMIT 1`,
-        [userId],
-    );
-    if (!rows[0]) return 1;
-    const last = new Date(rows[0].claimed_at);
-    const hoursSince = (Date.now() - last.getTime()) / 3_600_000;
-    // fereastră de grație: revendici în următoarele 48h ⇒ streak continuă
-    if (hoursSince > 48) return 1;
-    const { rows: streakRows } = await dbQuery<{ streak_days: number }>(
-        `SELECT streak_days FROM swyp_mining_sessions
-      WHERE user_id = $1 AND claimed_at IS NOT NULL
-      ORDER BY claimed_at DESC LIMIT 1`,
-        [userId],
-    );
-    return (streakRows[0]?.streak_days ?? 0) + 1;
+        // O singură interogare (înainte erau două identice) pentru ultima sesiune
+        // revendicată: ne trebuie și momentul, și streak-ul de atunci.
+        const { rows } = await dbQuery<{ claimed_at: string; streak_days: number }>(
+                `SELECT claimed_at::text, streak_days FROM swyp_mining_sessions
+                    WHERE user_id = $1 AND claimed_at IS NOT NULL
+                    ORDER BY claimed_at DESC LIMIT 1`,
+                [userId],
+        );
+        if (!rows[0]) return 1;
+        const { graceHours } = await miningParams();
+        const hoursSince = (Date.now() - new Date(rows[0].claimed_at).getTime()) / 3_600_000;
+        // fereastră de grație: revendici în interval ⇒ streak-ul continuă
+        if (hoursSince > graceHours) return 1;
+        return (rows[0].streak_days ?? 0) + 1;
 }
 
 export type MiningStatus = {
@@ -119,14 +137,14 @@ export async function getMiningStatus(userId: string): Promise<MiningStatus> {
     };
 }
 
-/** Pornește o sesiune de 24h. Idempotent: dacă există una activă, o returnează. */
+/** Pornește o sesiune de mining. Idempotent: dacă există una activă, o returnează. */
 export async function startMiningSession(userId: string): Promise<MiningStatus> {
-    const rate = await computeMiningRate(userId);
+    const [rate, params] = await Promise.all([computeMiningRate(userId), miningParams()]);
     await dbQuery(
         `INSERT INTO swyp_mining_sessions (user_id, ends_at, streak_days, rate_units)
-     VALUES ($1, now() + interval '${SESSION_HOURS} hours', $2, $3)
+     VALUES ($1, now() + ($4 || ' hours')::interval, $2, $3)
      ON CONFLICT (user_id) WHERE claimed_at IS NULL DO NOTHING`,
-        [userId, rate.streakDays, rate.rateUnits.toString()],
+        [userId, rate.streakDays, rate.rateUnits.toString(), String(params.sessionHours)],
     );
     return getMiningStatus(userId);
 }

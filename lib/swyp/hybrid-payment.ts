@@ -15,7 +15,7 @@
  */
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { getSwypRate, unitsToCents, redeemSwypForPayment } from "./valuation";
+import { getSwypRate, unitsToCents, centsToUnits, redeemSwypForPayment } from "./valuation";
 import { getSwypBalanceUnits } from "./ledger";
 
 const log = logger.child({ mod: "swyp/hybrid" });
@@ -54,11 +54,18 @@ export async function quoteSwypForTotal(userId: string, totalCents: number): Pro
       return { ...empty, balanceUnits: balanceUnits.toString() };
     }
     const capByPct = Math.floor((totalCents * pct) / 100);
-    const capByBalance = Number(unitsToCents(balanceUnits, rate));
+    // unitsToCents rotunjește în jos (conservator): userul nu poate acoperi
+    // mai mult decât valorează efectiv soldul lui.
+    const capByBalanceBig = unitsToCents(balanceUnits, rate);
+    // Number() e sigur aici: valoarea e plafonată de capByPct (cenți dintr-un
+    // coș real), nu de soldul brut care ar putea depăși 2^53.
+    const capByBalance = capByBalanceBig > BigInt(capByPct) ? capByPct : Number(capByBalanceBig);
     const maxCents = Math.max(0, Math.min(capByPct, capByBalance));
+    // câți SWYP costă efectiv suma afișată (nu tot soldul!)
+    const unitsNeeded = maxCents > 0 ? centsToUnits(BigInt(maxCents), rate) : 0n;
     return {
       maxCents,
-      units: maxCents > 0 ? String(Number(balanceUnits)) : "0",
+      units: unitsNeeded.toString(),
       balanceUnits: balanceUnits.toString(),
       maxPct: pct,
       unavailable: maxCents === 0,

@@ -66,7 +66,15 @@ export async function getOrCreateChainWallet(userId: string): Promise<ChainWalle
     return rows[0];
 }
 
-/** Exportă cheia privată (o singură dată marcăm momentul, pentru audit). */
+/**
+ * Exportă cheia privată în clar.
+ *
+ * ⚠️ NU expune această funcție într-un endpoint fără: (a) re-autentificare
+ * (parolă sau 2FA), (b) rate limit foarte strict (≤1/oră), (c) log de
+ * securitate. Cine obține valoarea returnată controlează definitiv fondurile
+ * utilizatorului — nu există revocare pe blockchain.
+ * În acest moment funcția NU e apelată din nicio rută (verificat la audit).
+ */
 export async function exportPrivateKey(userId: string): Promise<string | null> {
     const { rows } = await dbQuery<{ enc_privkey: string }>(
         `UPDATE swyp_chain_wallets SET exported_at = COALESCE(exported_at, now())
