@@ -28,6 +28,8 @@ const NON_LOCALIZED_PREFIXES = [
   "/videos/sitemap.xml",
   "/robots.txt",
   "/unsubscribe",
+  "/r",
+  "/courier",
 ];
 
 function isNonLocalized(pathname: string): boolean {
