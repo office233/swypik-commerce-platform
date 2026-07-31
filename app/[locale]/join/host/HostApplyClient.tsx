@@ -9,6 +9,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { BedDouble, CheckCircle2, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
+import { useTranslations } from "next-intl";
+import PartnerLanding from "@/components/join/PartnerLanding";
 
 const PROPERTY_TYPES = [
     { value: "apartament", label: "Apartament" },
@@ -26,6 +28,7 @@ const ENTITY_TYPES = [
 ];
 
 export default function HostApplyClient() {
+    const tj = useTranslations("join");
     const [form, setForm] = useState({
         full_name: "", phone: "", email: "",
         entity_type: "persoana_fizica", company_name: "", cui: "",
@@ -97,17 +100,38 @@ export default function HostApplyClient() {
     const label = "block text-xs font-medium text-neutral-500";
 
     return (
-        <main className="mx-auto max-w-lg px-4 pb-24 pt-6">
-            <header className="mb-5 flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600">
-                    <BedDouble size={20} className="text-white" />
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold">Devino gazdă pe Swypik</h1>
-                    <p className="text-xs text-neutral-500">Comision 10%, plată directă în cont. Fără abonament.</p>
-                </div>
-            </header>
-
+        <PartnerLanding
+            accent="#0D9488"
+            portalLabel="Swypik Stays · Gazde"
+            headline={tj("hostHero1")}
+            headlineMuted={tj("hostHero2")}
+            subheadline={tj("hostHeroSub")}
+            ctaLabel={tj("hostFormCta")}
+            whyTitle={tj("whyUs")}
+            features={[
+                { title: tj("hostF1t"), description: tj("hostF1d") },
+                { title: tj("hostF2t"), description: tj("hostF2d") },
+                { title: tj("hostF3t"), description: tj("hostF3d") },
+            ]}
+            stepsTitle={tj("howItWorks")}
+            steps={[
+                { title: tj("hostS1t"), description: tj("hostS1d") },
+                { title: tj("hostS2t"), description: tj("hostS2d") },
+                { title: tj("hostS3t"), description: tj("hostS3d") },
+                { title: tj("hostS4t"), description: tj("hostS4d") },
+            ]}
+            earningsTitle={tj("earningsTitleHost")}
+            earningsParagraphs={[tj("hostE1"), tj("hostE2"), tj("hostE3")]}
+            faqTitle={tj("faqTitle")}
+            faqs={[
+                { q: tj("hostQ1"), a: tj("hostA1") },
+                { q: tj("hostQ2"), a: tj("hostA2") },
+                { q: tj("hostQ3"), a: tj("hostA3") },
+                { q: tj("hostQ4"), a: tj("hostA4") },
+            ]}
+            formTitle={tj("hostFormTitle")}
+            formSubtitle={tj("hostFormSub")}
+        >
             <div className="mb-4 flex items-start gap-2 rounded-xl bg-sky-50 p-3 text-xs text-sky-800 dark:bg-sky-950 dark:text-sky-300">
                 <ShieldCheck size={16} className="mt-0.5 shrink-0" />
                 <span>
@@ -221,6 +245,6 @@ export default function HostApplyClient() {
                     {loading ? "Se trimite..." : "Trimite aplicația"}
                 </button>
             </form>
-        </main>
+        </PartnerLanding>
     );
 }

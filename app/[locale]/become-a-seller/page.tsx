@@ -4,91 +4,46 @@ import React from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import PartnerLanding from "@/components/join/PartnerLanding";
 
 export default function BecomeASellerPage() {
   const t = useTranslations("becomeaseller");
+  const tj = useTranslations("join");
   return (
-    <div className="min-h-screen bg-white text-black font-sans">
-      {/* Navigation */}
-      <nav className="border-b border-[#E5E5E5] px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="text-2xl font-bold tracking-tight text-black">
-          Swypik
-        </Link>
-        <div className="text-sm font-medium text-gray-500">B2B Portal</div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="px-6 py-20 md:py-32 max-w-4xl mx-auto text-center">
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
-          
-          {t("zeroBataiDeCap")}
-          <br className="hidden md:block" />
-          <span className="text-gray-400">  {t("expuiProduseleLaMii")}</span>
-        </h1>
-        <p className="text-lg md:text-xl text-gray-500 mb-10 max-w-2xl mx-auto">
-          
-          {t("transformatiStoculInVanzari")}
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
-            href="#apply"
-            className="px-8 py-4 bg-black text-white text-sm font-semibold rounded-full hover:bg-gray-800 transition-colors flex items-center gap-2"
-          >
-            
-            {t("aplicaAcum")} <ArrowRight className="w-4 h-4" />
-          </a>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="border-y border-[#E5E5E5] bg-gray-50/50">
-        <div className="max-w-5xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-6 h-6 text-black" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2">{t("vanzariAccelerate")}</h3>
-            <p className="text-sm text-gray-500">
-              
-              {t("produseleTaleSuntPromovate")}
-            </p>
-          </div>
-          <div className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-6 h-6 text-black" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2">{t("platformaAutonoma")}</h3>
-            <p className="text-sm text-gray-500">
-              
-              {t("totulEsteAutomatizatPreiei")}
-            </p>
-          </div>
-          <div className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-6 h-6 text-black" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2">{t("faraCosturiAscunse")}</h3>
-            <p className="text-sm text-gray-500">
-              
-              {t("transparentaTotalaAsupraComisioanelor")}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Application Form */}
-      <section id="apply" className="px-6 py-20 max-w-xl mx-auto">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold tracking-tight mb-3">Devino Seller Swypik</h2>
-          <p className="text-gray-500">
-            
-            {t("completeazaDetaliileCompanieiTale")}
-          </p>
-        </div>
-        
-        <SellerForm />
-      </section>
-    </div>
+    <PartnerLanding
+      accent="#7C3AED"
+      portalLabel="Swypik · Vânzători"
+      headline={t("zeroBataiDeCap")}
+      headlineMuted={t("expuiProduseleLaMii")}
+      subheadline={tj("sellerHeroSub")}
+      ctaLabel={t("aplicaAcum")}
+      whyTitle={tj("whyUs")}
+      features={[
+        { title: t("vanzariAccelerate"), description: tj("sellerF1d") },
+        { title: t("platformaAutonoma"), description: tj("sellerF2d") },
+        { title: t("faraCosturiAscunse"), description: tj("sellerF3d") },
+      ]}
+      stepsTitle={tj("howItWorks")}
+      steps={[
+        { title: tj("sellerS1t"), description: tj("sellerS1d") },
+        { title: tj("sellerS2t"), description: tj("sellerS2d") },
+        { title: tj("sellerS3t"), description: tj("sellerS3d") },
+        { title: tj("sellerS4t"), description: tj("sellerS4d") },
+      ]}
+      earningsTitle={tj("earningsTitleSeller")}
+      earningsParagraphs={[tj("sellerE1"), tj("sellerE2"), tj("sellerE3")]}
+      faqTitle={tj("faqTitle")}
+      faqs={[
+        { q: tj("sellerQ1"), a: tj("sellerA1") },
+        { q: tj("sellerQ2"), a: tj("sellerA2") },
+        { q: tj("sellerQ3"), a: tj("sellerA3") },
+        { q: tj("sellerQ4"), a: tj("sellerA4") },
+      ]}
+      formTitle={tj("sellerFormTitle")}
+      formSubtitle={t("completeazaDetaliileCompanieiTale")}
+    >
+      <SellerForm />
+    </PartnerLanding>
   );
 }
 
