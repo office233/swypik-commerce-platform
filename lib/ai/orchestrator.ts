@@ -302,19 +302,19 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
   const msg = message.toLowerCase().trim();
   const msgNorm = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const firstProduct = productContext[0];
-  
+
   // ─── Intent keywords ───
   const cartKeywords = ["adauga", "adaugă", "pune", "cos", "coș", "cumpar", "cumpăr", "iau", "vreau asta"];
   const checkoutKeywords = ["checkout", "finalizeaza", "finalizează", "platesc", "plătesc", "comanda", "comandă"];
   const greetKeywords = ["salut", "buna", "bună", "hello", "hey", "servus"];
-  
+
   if (cartKeywords.some((k) => msg.includes(k))) return { intent: "add_to_cart", reply: firstProduct ? `Perfect 🛒 Iti pun ${firstProduct.title} in cos. Iti recomand sa il iei cu inca un produs complementar.` : "Sigur 🛒 Alege produsul dorit si il punem imediat in cos.", productId: firstProduct?.id, productTitle: firstProduct?.title };
   if (checkoutKeywords.some((k) => msg.includes(k))) return { intent: "checkout", reply: "Perfect. Hai sa finalizam comanda cat mai simplu 🛒" };
   if (greetKeywords.some((k) => msg.includes(k))) {
     const topCats = getPopulatedCategoryNames(categories).slice(0, 3).join(", ") || "haine, accesorii";
     return { intent: "general_chat", reply: `Salut! ✨ Sunt asistentul tău de shopping. Avem produse în: ${topCats}. Spune-mi ce cauți și îți găsesc cele mai bune oferte!`, shouldAskFollowUp: true };
   }
-  
+
   // ─── Smart category detection from DB categories ───
   const RO_CAT_HINTS: Record<string, string[]> = {
     "gaming": ["Computer"], "setup": ["Computer"], "pc": ["Computer"], "laptop": ["Computer"],
@@ -344,7 +344,7 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
   // ─── Handle ambiguous queries ("vreau ceva frumos", "ce imi recomanzi") ───
   const isVague = /ceva|frumos|bun|recomanzi|recomanda|popular|trending|ce ai|ce aveti|orice|surprinde/.test(msgNorm);
   const hasSpecificKeyword = Object.keys(RO_CAT_HINTS).some(k => msgNorm.includes(k));
-  
+
   if (isVague && !hasSpecificKeyword && !matchedCategory) {
     const topCat = categories.length > 0 ? categories[0] : null;
     const topCatNames = getPopulatedCategoryNames(categories).slice(0, 4).join(", ");
@@ -368,7 +368,7 @@ function fallbackOrchestrate(message: string, productContext: any[] = [], shoppi
   const maxPriceMatch = message.match(/(?:sub|maxim|pana la)\s*(\d{2,5})/i);
   const maxPrice = maxPriceMatch ? Number(maxPriceMatch[1]) : undefined;
   const budgetText = maxPrice ? ` in bugetul tau de maxim ${maxPrice} lei` : (shoppingSession.budgetLabel ? ` in bugetul tau de ${shoppingSession.budgetLabel}` : "");
-  
+
   // Smart category-aware reply
   const populated = getPopulatedCategoryNames(categories);
   const categoryIsPopulated = matchedCategory ? populated.includes(matchedCategory) : true;

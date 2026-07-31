@@ -17,7 +17,30 @@ export async function GET(req: Request) {
     }
 
     // Multi-seller safe: include only this seller's items in total/items
-    const { rows } = await dbQuery(
+    type SellerOrderItem = {
+      item_id: string;
+      title: string;
+      quantity: number;
+      unit_amount_cents: number;
+      metadata: { tracking_number?: string; tracking_url?: string; seller_id?: string } | null;
+      source_status: string | null;
+    };
+    type SellerOrderRow = {
+      order_id: string;
+      order_status: string;
+      order_meta: {
+        tracking_number?: string;
+        tracking_url?: string;
+        latest_tracking_number?: string;
+        latest_tracking_url?: string;
+        return_reason?: string;
+        return_requested_at?: string;
+      } | null;
+      created_at: string;
+      total_cents: number;
+      items: SellerOrderItem[] | null;
+    };
+    const { rows } = await dbQuery<SellerOrderRow>(
       `SELECT
          co.id as order_id,
          co.status as order_status,
@@ -45,11 +68,11 @@ export async function GET(req: Request) {
       [sellerId]
     );
 
-    const orders = rows.map((row: any) => {
+    const orders = rows.map((row) => {
       const items = row.items || [];
-      const allFulfilled = items.length > 0 && items.every((i: any) => i.source_status === "fulfilled");
-      const itemTracking = items.find((i: any) => i.metadata?.tracking_number)?.metadata?.tracking_number;
-      const itemTrackingUrl = items.find((i: any) => i.metadata?.tracking_url)?.metadata?.tracking_url;
+      const allFulfilled = items.length > 0 && items.every((i) => i.source_status === "fulfilled");
+      const itemTracking = items.find((i) => i.metadata?.tracking_number)?.metadata?.tracking_number;
+      const itemTrackingUrl = items.find((i) => i.metadata?.tracking_url)?.metadata?.tracking_url;
 
       let status: string;
       if (row.order_status === "return_requested" || row.order_status === "refunded") {
@@ -104,7 +127,7 @@ export async function POST(req: Request) {
     const trackingNumber = tracking_number;
     const trackingUrl = tracking_url ?? `https://track24.net/?code=${encodeURIComponent(trackingNumber)}`;
 
-    const checkOrder = await dbQuery(
+    const checkOrder = await dbQuery<{ status: string }>(
       `SELECT co.status
        FROM commerce_orders co
        JOIN commerce_order_items coi ON co.id = coi.order_id
@@ -182,7 +205,7 @@ export async function POST(req: Request) {
       [order_id]
     );
     const remainingItems = Number(statusRes.rows[0]?.remaining_items || 0);
-    const orderMetadataPatch: Record<string, any> = {
+    const orderMetadataPatch: Record<string, string> = {
       fulfillment_status: remainingItems === 0 ? "shipped" : "partially_shipped",
       latest_tracking_number: trackingNumber,
       latest_tracking_url: trackingUrl,

@@ -136,8 +136,72 @@ const DETAIL_SELECT = `
   LEFT JOIN sellers s ON s.id = p.seller_id
 `;
 
-function metadataObject(value: unknown) {
-  return value && typeof value === "object" ? (value as Record<string, any>) : {};
+type Meta = Record<string, unknown>;
+
+type DetailRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  category: string | null;
+  brand: string | null;
+  taxonomy_node_slug: string | null;
+  supplier_product_id: string | null;
+  external_product_id: string | null;
+  price_cents: number | null;
+  compare_at_price_cents: number | null;
+  metadata: unknown;
+  updated_at: string;
+  ae_internal_id: number | null;
+  ae_product_id: string | null;
+  ae_title: string | null;
+  ae_title_ro: string | null;
+  product_type: string | null;
+  product_type_ro: string | null;
+  ae_brand: string | null;
+  min_price_usd: string | null;
+  video_url: string | null;
+  has_video: boolean | null;
+  rating: string | null;
+  rating_count: number | null;
+  orders_count: number | null;
+  ship_method: string | null;
+  ship_cost_usd: string | null;
+  ship_free: boolean | null;
+  ship_days_min: number | null;
+  ship_days_max: number | null;
+  ship_tracking: boolean | null;
+  delivery_date_desc: string | null;
+  available_stock: number | null;
+  neckline: string | null;
+  style: string | null;
+  fabric_type: string | null;
+  color: string | null;
+  colors: string[] | null;
+  sizes: string[] | null;
+  material: string | null;
+  pattern_type: string | null;
+  sleeve_style: string | null;
+  waistline: string | null;
+  season: string | null;
+  silhouette: string | null;
+  decoration: string | null;
+  gender: string | null;
+  store_name: string | null;
+  store_rating: string | null;
+  swypik_seller_id: string | null;
+  swypik_seller_name: string | null;
+  swypik_seller_status: string | null;
+  ae_category_id: string | null;
+  ae_category_name: string | null;
+  ae_category_name_ro: string | null;
+  ae_root_category_id: string | null;
+  ae_root_category_name: string | null;
+  ae_root_category_name_ro: string | null;
+};
+
+function metadataObject(value: unknown): Meta {
+  return value && typeof value === "object" ? (value as Meta) : {};
 }
 
 function firstString(...values: unknown[]) {
@@ -181,7 +245,7 @@ function asStringArray(value: unknown): string[] | null {
   return items.length > 0 ? items : null;
 }
 
-function buildImages(row: any, metadata: Record<string, any>) {
+function buildImages(row: { image_url: string | null }, metadata: Meta) {
   const result: string[] = [];
   if (typeof row.image_url === "string" && row.image_url) result.push(row.image_url);
 
@@ -208,7 +272,7 @@ export async function getProductDetail(
   // Cheap heuristic: if it's not a UUID and not purely numeric, treat as candidate slug too.
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  const { rows } = await dbQuery(
+  const { rows } = await dbQuery<DetailRow>(
     `
       ${DETAIL_SELECT}
       WHERE p.status = 'active'
@@ -252,13 +316,29 @@ export async function getProductDetail(
   const taxonomyNodeSlugEarly = typeof row.taxonomy_node_slug === "string" && row.taxonomy_node_slug ? row.taxonomy_node_slug : null;
 
   const [translationResult, variantResult, similarResult, taxonomyPathResult] = await Promise.all([
-    dbQuery<any>(
+    dbQuery<{
+      locale: string;
+      title: string | null;
+      description: string | null;
+      slug: string | null;
+      seo_title: string | null;
+      seo_description: string | null;
+    }>(
       `SELECT locale, title, description, slug, seo_title, seo_description
          FROM product_translations
         WHERE product_id = $1 AND locale = ANY($2::text[])`,
       [row.id, [locale, "en"]],
     ).catch(() => ({ rows: [] })),
-    dbQuery(
+    dbQuery<{
+      id: string;
+      sku_id: string;
+      title: string;
+      price_cents: number | null;
+      inventory_quantity: number | null;
+      attributes: unknown;
+      metadata: unknown;
+      status: string;
+    }>(
       `
         SELECT
           id::text AS id,
@@ -279,7 +359,7 @@ export async function getProductDetail(
       `,
       [row.id],
     ),
-    dbQuery(
+    dbQuery<DetailRow>(
       `
         ${DETAIL_SELECT}
         WHERE p.status = 'active'
@@ -301,7 +381,7 @@ export async function getProductDetail(
       [row.id, similarCategoryIdEarly, similarCategoryTextEarly],
     ),
     taxonomyNodeSlugEarly
-      ? dbQuery(
+      ? dbQuery<{ slug: string; label: string }>(
         `WITH RECURSIVE chain AS (
              SELECT slug, parent_slug, 0 AS depth FROM taxonomy_nodes WHERE slug = $1
              UNION ALL
@@ -319,8 +399,8 @@ export async function getProductDetail(
   // ---- Process translation result ----
   let translation: { title: string; description: string | null; seo_title: string | null; seo_description: string | null; slug: string | null } | null = null;
   const trs = translationResult.rows;
-  const preferred = trs.find((r: any) => r.locale === locale);
-  const fallback = trs.find((r: any) => r.locale === "en");
+  const preferred = trs.find((r) => r.locale === locale);
+  const fallback = trs.find((r) => r.locale === "en");
   const t = preferred ?? fallback;
   if (t) {
     translation = {
@@ -334,9 +414,9 @@ export async function getProductDetail(
 
   const titleRo = firstString(row.ae_title_ro, metadata.title_ro, row.title);
   const titleEn = firstString(row.ae_title, metadata.title_en, row.title) || row.title;
-  const title = translation?.title
+  const title = (translation?.title
     ? translation.title
-    : (locale === "ro" ? (titleRo || titleEn) : (titleEn || titleRo));
+    : (locale === "ro" ? (titleRo || titleEn) : (titleEn || titleRo))) as string;
 
   const category = cleanCategory(
     firstString(
@@ -367,7 +447,7 @@ export async function getProductDetail(
 
   const variantRows = variantResult.rows;
   const colorMap: Record<string, { image: string | null; sizes: Array<{ size: string; price: number; stock: number; skuId: string }> }> = {};
-  const variants = variantRows.map((variant: any) => {
+  const variants = variantRows.map((variant) => {
     const variantAttrs = metadataObject(variant.attributes);
     const variantMeta = metadataObject(variant.metadata);
     const color = firstString(variantAttrs.color, variantMeta.color);
@@ -406,7 +486,7 @@ export async function getProductDetail(
   });
 
   const similarRows = similarResult.rows;
-  const taxonomyPath: Array<{ slug: string; label: string }> = taxonomyPathResult.rows.map((r: any) => ({
+  const taxonomyPath: Array<{ slug: string; label: string }> = taxonomyPathResult.rows.map((r) => ({
     slug: String(r.slug),
     label: String(r.label),
   }));
@@ -471,10 +551,10 @@ export async function getProductDetail(
     colorMap,
     similar: (await (async () => {
       const { getProductRatingMap } = await import("@/lib/reviews/aggregate");
-      const ids = similarRows.map((r: any) => String(r.id));
+      const ids = similarRows.map((r) => String(r.id));
       const ratingMap = ids.length ? await getProductRatingMap(ids) : new Map();
       return similarRows
-        .map((similarRow: any) => {
+        .map((similarRow) => {
           const similarMetadata = metadataObject(similarRow.metadata);
           const similarPriceCents = firstNumber(similarRow.price_cents, 0) || 0;
           const similarCompareAtCents = firstNumber(similarRow.compare_at_price_cents, 0) || 0;
@@ -491,7 +571,7 @@ export async function getProductDetail(
             ratingCount: agg ? agg.reviewCount : 0,
           };
         })
-        .filter((item: any) => item.image);
+        .filter((item) => item.image);
     })()),
   };
 }

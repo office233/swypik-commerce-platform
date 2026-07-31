@@ -45,6 +45,50 @@ const BASE_PRODUCT_SELECT = `
   ) linked_video ON true
 `;
 
+type ProductMetadata = Record<string, unknown>;
+
+type ProductRow = {
+  id: string;
+  price_cents: number | null;
+  compare_at_price_cents: number | null;
+  metadata: ProductMetadata | null;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  category: string | null;
+  brand: string | null;
+  taxonomy_node_slug: string | null;
+  supplier_product_id: string | null;
+  external_product_id: string | null;
+  created_at: string;
+  updated_at: string;
+  ae_internal_id: number | null;
+  ae_product_id: string | null;
+  ae_title: string | null;
+  ae_title_ro: string | null;
+  ae_product_type: string | null;
+  ae_product_type_ro: string | null;
+  ae_orders_count: number | null;
+  ae_rating: string | null;
+  ae_ship_days_min: number | null;
+  ae_ship_days_max: number | null;
+  ae_ship_cost_usd: string | null;
+  ae_ship_free: boolean | null;
+  ae_video_url: string | null;
+  ae_has_video: boolean | null;
+  ae_store_name: string | null;
+  linked_video_id: string | null;
+  linked_video_playback_url: string | null;
+  linked_video_thumbnail_url: string | null;
+  linked_video_source_key: string | null;
+  ae_category_id: string | null;
+  ae_category_name: string | null;
+  ae_category_name_ro: string | null;
+  ae_root_id: string | null;
+  ae_root_name: string | null;
+  ae_root_name_ro: string | null;
+};
+
 const BASE_PRODUCT_COLUMNS = `
   SELECT
     p.id,
@@ -173,7 +217,7 @@ export type TaxonomyLabels = {
 export async function resolveTaxonomyLabels(slugs: string[], locale = "ro"): Promise<Map<string, TaxonomyLabels>> {
   const unique = Array.from(new Set(slugs.filter((s) => typeof s === "string" && s.length > 0)));
   if (unique.length === 0) return new Map();
-  const { rows } = await dbQuery(
+  const { rows } = await dbQuery<{ leaf_slug: string; node_slug: string; kind: string; label: string }>(
     `
       WITH RECURSIVE leaves AS (
         SELECT s AS leaf_slug FROM unnest($1::text[]) AS t(s)
@@ -245,10 +289,10 @@ function toBoolean(...values: unknown[]) {
   return undefined;
 }
 
-function getMetadataValue(metadata: any, path: string) {
-  return path.split(".").reduce((acc, key) => {
+function getMetadataValue(metadata: ProductMetadata, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, key) => {
     if (acc && typeof acc === "object" && key in acc) {
-      return acc[key];
+      return (acc as Record<string, unknown>)[key];
     }
     return undefined;
   }, metadata);
@@ -262,7 +306,7 @@ function hashCode(input: string): number {
   return Math.abs(hash);
 }
 
-function buildImages(row: any, metadata: any) {
+function buildImages(row: { image_url: string | null }, metadata: ProductMetadata) {
   const images: string[] = [];
   if (row.image_url) images.push(row.image_url);
   const extraImages = Array.isArray(metadata?.images) ? metadata.images : [];
@@ -274,7 +318,7 @@ function buildImages(row: any, metadata: any) {
   return images.slice(0, 6);
 }
 
-function firstMetadataVideoUrl(metadata: any) {
+function firstMetadataVideoUrl(metadata: ProductMetadata) {
   const direct = firstNonEmpty(
     metadata.video_url,
     metadata.ae_video_url,
@@ -287,11 +331,12 @@ function firstMetadataVideoUrl(metadata: any) {
   for (const entry of videos) {
     if (typeof entry === "string" && entry.trim()) return entry.trim();
     if (entry && typeof entry === "object") {
+      const rec = entry as Record<string, unknown>;
       const url = firstNonEmpty(
-        (entry as any).url,
-        (entry as any).video_url,
-        (entry as any).play_url,
-        (entry as any).media_url,
+        rec.url,
+        rec.video_url,
+        rec.play_url,
+        rec.media_url,
       );
       if (typeof url === "string" && url.trim()) return url.trim();
     }
@@ -327,14 +372,22 @@ export async function loadProductTranslations(
   const out = new Map<string, ProductTranslation>();
   const unique = Array.from(new Set(ids.filter(Boolean)));
   if (unique.length === 0) return out;
-  const { rows } = await dbQuery<any>(
+  const { rows } = await dbQuery<{
+    product_id: string;
+    locale: string;
+    title: string | null;
+    description: string | null;
+    slug: string | null;
+    seo_title: string | null;
+    seo_description: string | null;
+  }>(
     `SELECT product_id, locale, title, description, slug, seo_title, seo_description
        FROM product_translations
       WHERE product_id = ANY($1::uuid[]) AND locale = ANY($2::text[])`,
     [unique, [locale, "en"]],
   );
-  const preferred = new Map<string, any>();
-  const fallback = new Map<string, any>();
+  const preferred = new Map<string, (typeof rows)[number]>();
+  const fallback = new Map<string, (typeof rows)[number]>();
   for (const r of rows) {
     if (r.locale === locale) preferred.set(String(r.product_id), r);
     else fallback.set(String(r.product_id), r);
@@ -354,7 +407,7 @@ export async function loadProductTranslations(
 }
 
 function transformProduct(
-  row: any,
+  row: ProductRow,
   locale = "ro",
   taxonomyMap?: Map<string, TaxonomyLabels>,
   translationsMap?: Map<string, ProductTranslation>,
@@ -808,7 +861,7 @@ function buildOrderBy(sort?: ProductFilters["sort"], mode?: ProductFilters["mode
 
 export async function searchProducts(filters: ProductFilters = {}) {
   const { limit = 50, offset = 0, locale = "ro", sort, mode, search } = filters;
-  const includeCount = (filters as any).includeCount === true;
+  const includeCount = filters.includeCount === true;
   const { where, params, paramIndex } = buildSearchFilters(filters);
   const orderBy = buildOrderBy(sort, mode, search);
   const cappedLimit = Math.min(limit, 200);
@@ -827,7 +880,7 @@ export async function searchProducts(filters: ProductFilters = {}) {
   `;
 
   const queryParams = [...params, fetchLimit, offset];
-  const { rows } = await dbQuery(sql, queryParams);
+  const { rows } = await dbQuery<ProductRow>(sql, queryParams);
 
   let sliced = rows;
   let hasMore = false;
@@ -843,22 +896,22 @@ export async function searchProducts(filters: ProductFilters = {}) {
       ${BASE_PRODUCT_SELECT}
       WHERE ${where.join(" AND ")}
     `;
-    const { rows: countRows } = await dbQuery(countSql, params);
+    const { rows: countRows } = await dbQuery<{ total: number }>(countSql, params);
     total = Number(countRows[0]?.total || 0);
   }
 
   const slugList = sliced
-    .map((r: any) => (typeof r.taxonomy_node_slug === "string" ? r.taxonomy_node_slug : ""))
+    .map((r) => (typeof r.taxonomy_node_slug === "string" ? r.taxonomy_node_slug : ""))
     .filter((s: string) => s);
   const taxonomyMap = slugList.length > 0 ? await resolveTaxonomyLabels(slugList, locale) : undefined;
-  const idList = sliced.map((r: any) => String(r.id)).filter(Boolean);
+  const idList = sliced.map((r) => String(r.id)).filter(Boolean);
   const translationsMap = idList.length > 0 ? await loadProductTranslations(idList, locale) : undefined;
-  const products = sliced.map((row: any) => transformProduct(row, locale, taxonomyMap, translationsMap));
+  const products = sliced.map((row) => transformProduct(row, locale, taxonomyMap, translationsMap));
   return { products, total, offset, limit: cappedLimit, hasMore };
 }
 
 export async function getProductById(id: string, locale = "ro") {
-  const { rows } = await dbQuery(
+  const { rows } = await dbQuery<ProductRow>(
     `
       ${BASE_PRODUCT_COLUMNS}
       ${BASE_PRODUCT_SELECT}
@@ -881,7 +934,7 @@ export async function getProductById(id: string, locale = "ro") {
 }
 
 export async function getCheckoutProductById(id: string) {
-  const { rows } = await dbQuery(
+  const { rows } = await dbQuery<ProductRow & { seller_id: string | null; inventory_quantity: number | null }>(
     `
       SELECT p.*
       FROM marketplace_products p
@@ -935,7 +988,7 @@ export async function getCheckoutProductById(id: string) {
 }
 
 export async function getCategories(locale = "ro") {
-  const { rows } = await dbQuery(
+  const { rows } = await dbQuery<CategoryRow>(
     `
       SELECT
         COALESCE(
@@ -972,10 +1025,17 @@ export async function getCategories(locale = "ro") {
     `,
   );
 
-  return rows.map((row: any) => mapCategoryRow(row, locale));
+  return rows.map((row) => mapCategoryRow(row, locale));
 }
 
-function mapCategoryRow(row: any, locale = "ro") {
+type CategoryRow = {
+  name_en: string;
+  name_ro: string;
+  category_id: string;
+  count: number;
+};
+
+function mapCategoryRow(row: CategoryRow, locale = "ro") {
   const nameEn = cleanCategoryLabel(row.name_en);
 
   return {
@@ -1023,7 +1083,7 @@ export async function getCategoryHierarchy(locale = "ro") {
   // Walks ancestors via recursive CTE so counts roll up; labels resolved per
   // locale with English fallback. Falls back to legacy string columns if the
   // new tables are not yet populated.
-  const { rows } = await dbQuery(
+  const { rows } = await dbQuery<TaxonomyNodeRow>(
     `
       WITH RECURSIVE product_counts AS (
         SELECT taxonomy_node_slug AS slug, COUNT(*)::int AS direct_count
@@ -1066,7 +1126,7 @@ export async function getCategoryHierarchy(locale = "ro") {
 
   if (rows.length === 0) {
     // Legacy fallback for pre-migration environments / tests.
-    const legacy = await dbQuery(
+    const legacy = await dbQuery<LegacyHierarchyRow>(
       `
         SELECT
           COALESCE(NULLIF(p.taxonomy_department, ''), 'Other') AS department,
@@ -1087,8 +1147,28 @@ export async function getCategoryHierarchy(locale = "ro") {
   return buildTaxonomyNodeTree(rows);
 }
 
-function buildTaxonomyNodeTree(rows: any[]) {
-  const nodes = new Map<string, any>();
+type TaxonomyNodeRow = {
+  slug: string;
+  parent_slug: string | null;
+  kind: string;
+  sort_order: number | null;
+  label: string;
+  total: number;
+};
+
+type TaxonomyTreeNode = {
+  id: string;
+  name: string;
+  tag: string;
+  count: number;
+  kind: string;
+  _parent?: string | null;
+  _sort?: number;
+  children: TaxonomyTreeNode[];
+};
+
+function buildTaxonomyNodeTree(rows: TaxonomyNodeRow[]) {
+  const nodes = new Map<string, TaxonomyTreeNode>();
   for (const r of rows) {
     nodes.set(r.slug, {
       id: r.slug,
@@ -1101,18 +1181,18 @@ function buildTaxonomyNodeTree(rows: any[]) {
       children: [],
     });
   }
-  const roots: any[] = [];
+  const roots: TaxonomyTreeNode[] = [];
   for (const node of nodes.values()) {
     if (node._parent && nodes.has(node._parent)) {
-      nodes.get(node._parent).children.push(node);
+      nodes.get(node._parent)!.children.push(node);
     } else {
       roots.push(node);
     }
   }
   // Hide "Altele" bucket and noisy thin top-level nodes (<5 products) from nav.
   const filtered = roots.filter((r) => r.id !== 'other' && r.count >= 5);
-  const sortRec = (list: any[]) => {
-    list.sort((a, b) => (a._sort - b._sort) || (b.count - a.count) || a.name.localeCompare(b.name));
+  const sortRec = (list: TaxonomyTreeNode[]) => {
+    list.sort((a, b) => ((a._sort ?? 9999) - (b._sort ?? 9999)) || (b.count - a.count) || a.name.localeCompare(b.name));
     for (const n of list) {
       if (n.children.length) sortRec(n.children);
       delete n._parent;
@@ -1123,8 +1203,25 @@ function buildTaxonomyNodeTree(rows: any[]) {
   return filtered;
 }
 
-function buildCategoryHierarchy(rows: any[], locale = "ro") {
-  const roots: Record<string, any> = {};
+type LegacyHierarchyRow = {
+  department: string | null;
+  category: string | null;
+  subcategory: string | null;
+  leaf: string | null;
+  slug: string;
+  count: number;
+};
+
+type HierarchyNode = {
+  id: string;
+  name: string;
+  tag?: string;
+  count: number;
+  children?: HierarchyNode[];
+};
+
+function buildCategoryHierarchy(rows: LegacyHierarchyRow[], locale = "ro") {
+  const roots: Record<string, HierarchyNode> = {};
 
   for (const row of rows) {
     const department = cleanCategoryLabel(row.department, "Other");
@@ -1143,20 +1240,20 @@ function buildCategoryHierarchy(rows: any[], locale = "ro") {
 
     const count = Number(row.count) || 0;
     const categoryId = `${rootId}:${taxonomySlugPart(category)}`;
-    let categoryNode = roots[rootId].children.find((child: any) => child.id === categoryId);
+    let categoryNode = roots[rootId].children!.find((child) => child.id === categoryId);
     if (!categoryNode) {
       categoryNode = { id: categoryId, name: localizeTaxonomyLabel(category, locale), count: 0, children: [] };
-      roots[rootId].children.push(categoryNode);
+      roots[rootId].children!.push(categoryNode);
     }
 
     const subcategoryId = `${categoryId}:${taxonomySlugPart(subcategory)}`;
-    let subcategoryNode = categoryNode.children.find((child: any) => child.id === subcategoryId);
+    let subcategoryNode = categoryNode.children!.find((child) => child.id === subcategoryId);
     if (!subcategoryNode) {
       subcategoryNode = { id: subcategoryId, name: localizeTaxonomyLabel(subcategory, locale), count: 0, children: [] };
-      categoryNode.children.push(subcategoryNode);
+      categoryNode.children!.push(subcategoryNode);
     }
 
-    subcategoryNode.children.push({
+    subcategoryNode.children!.push({
       id: String(row.slug),
       name: localizeTaxonomyLabel(leaf, locale),
       tag: String(row.slug),
@@ -1167,22 +1264,24 @@ function buildCategoryHierarchy(rows: any[], locale = "ro") {
     roots[rootId].count += count;
   }
 
+  const byCountThenName = (left: HierarchyNode, right: HierarchyNode) =>
+    right.count - left.count || left.name.localeCompare(right.name);
   return Object.values(roots)
-    .map((root: any) => ({
+    .map((root) => ({
       ...root,
-      children: root.children
-        .map((category: any) => ({
+      children: root.children!
+        .map((category) => ({
           ...category,
-          children: category.children
-            .map((subcategory: any) => ({
+          children: category.children!
+            .map((subcategory) => ({
               ...subcategory,
-              children: subcategory.children.sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
+              children: subcategory.children!.sort(byCountThenName),
             }))
-            .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
+            .sort(byCountThenName),
         }))
-        .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name)),
+        .sort(byCountThenName),
     }))
-    .sort((left: any, right: any) => right.count - left.count || left.name.localeCompare(right.name));
+    .sort(byCountThenName);
 }
 
 export {

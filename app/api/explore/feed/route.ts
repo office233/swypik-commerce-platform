@@ -287,10 +287,10 @@ function scoreLabel(score: number): string {
   return "Risc ridicat";
 }
 
-function metadataNumber(metadata: any, keys: string[]): number | null {
+function metadataNumber(metadata: unknown, keys: string[]): number | null {
   if (!metadata || typeof metadata !== "object") return null;
   for (const key of keys) {
-    const value = metadata[key];
+    const value = (metadata as Record<string, unknown>)[key];
     const parsed = Number(value);
     if (Number.isFinite(parsed)) return parsed;
   }
@@ -329,7 +329,63 @@ function titleQualitySignals(title: string): { penalty: number; flags: string[] 
   return { penalty, flags };
 }
 
-function computeSwypikScoreDetails(row: any): { score: number; reasons: string[]; riskFlags: string[] } {
+type ExploreFeedRow = {
+  video_id: string;
+  creator_id: string | null;
+  title: string | null;
+  description: string | null;
+  playback_url: string | null;
+  thumbnail_url: string | null;
+  duration_ms: number | null;
+  product_refs: unknown;
+  view_count: number | null;
+  like_count: number | null;
+  save_count: number | null;
+  share_count: number | null;
+  comment_count: number | null;
+  creator_name: string | null;
+  creator_username: string | null;
+  creator_verified: boolean | null;
+  creator_avatar: string | null;
+  source_key: string | null;
+  asset_status: string | null;
+  mp_id: string | null;
+  mp_name: string | null;
+  mp_price_cents: number | null;
+  mp_image_url: string | null;
+  mp_currency: string | null;
+  mp_inventory_status: string | null;
+  mp_shipping_cost_cents: number | null;
+  mp_taxonomy_node_slug: string | null;
+  mp_is_adult: boolean | null;
+  mp_metadata: unknown;
+  product_placement: string | null;
+  worth_it_count: number;
+  not_worth_it_count: number;
+  viewer_product_vote: string | null;
+  at_id: string | null;
+  at_title: string | null;
+  at_artist: string | null;
+  at_image_url: string | null;
+  at_audio_url: string | null;
+  at_duration_s: number | string | null;
+  post_id: string | null;
+  post_slug: string | null;
+  post_format: string | null;
+  post_title: string | null;
+  post_vote_count: number | null;
+  post_ends_at: string | null;
+  mission_id: string | null;
+  mission_title: string | null;
+  mission_slug: string | null;
+  viewer_liked: boolean;
+  viewer_saved: boolean;
+  viewer_following: boolean;
+  engagement_score?: number;
+  trending_score?: number;
+};
+
+function computeSwypikScoreDetails(row: ExploreFeedRow): { score: number; reasons: string[]; riskFlags: string[] } {
   const metadata = row.mp_metadata || {};
   const productTitle = String(row.mp_name || "");
   const reasons: string[] = [];
@@ -456,7 +512,7 @@ export async function GET(request: NextRequest) {
     // Fetch extra rows when quality filtering is active so the default feed can
     // skip low-quality products without looking empty.
     const queryLimit = minSwypikScore > 1 ? Math.min(limit * 4 + 1, 200) : limit + 1;
-    const queryParams: any[] = [queryLimit, offset];
+    const queryParams: unknown[] = [queryLimit, offset];
     let userParam = "";
     let sessionParam = "";
     let taxonomyParam = "";
@@ -488,7 +544,7 @@ export async function GET(request: NextRequest) {
               AND COALESCE(mp.taxonomy_node_slug, '') !~* '(underwear|lingerie|swimwear)'
     ` : "";
 
-    const { rows } = await dbQuery(
+    const { rows } = await dbQuery<ExploreFeedRow>(
       `SELECT
         v.id          AS video_id,
         v.creator_id,
@@ -688,7 +744,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (rows.length > 0) {
-      const mappedVideos = rows.map((row: any) => {
+      const mappedVideos = rows.map((row) => {
         const productId = row.mp_id ? String(row.mp_id) : firstProductRefId(row.product_refs);
         const currency = String(row.mp_currency || "RON").trim().toUpperCase();
         const priceCents = asNumber(row.mp_price_cents);
@@ -790,7 +846,7 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      const qualityFilteredVideos = mappedVideos.filter((video: any) => {
+      const qualityFilteredVideos = mappedVideos.filter((video) => {
         if (!video.product?.id) return true;
         return Number(video.product.swypikScore || 0) >= minSwypikScore;
       });

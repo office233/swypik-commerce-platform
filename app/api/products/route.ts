@@ -146,23 +146,23 @@ export async function GET(req: Request) {
     // Minimal DTO for video mode (high-volume infinite scroll)
     const products = mode === "video"
       ? (result.products || []).map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          price: convertPrice(p.price),
-          priceRon: p.price,
-          oldPrice: p.oldPrice != null ? convertPrice(p.oldPrice) : null,
-          thumbnail: p.image || p.thumbnail || (Array.isArray(p.images) ? p.images[0] : null),
-          video: p.video || null,
-          hasVideo: Boolean(p.hasVideo || p.video),
-          videoId: p.videoId || null,
-          videoThumbnail: p.videoThumbnail || null,
-        }))
+        id: p.id,
+        title: p.title,
+        price: convertPrice(p.price),
+        priceRon: p.price,
+        oldPrice: p.oldPrice != null ? convertPrice(p.oldPrice) : null,
+        thumbnail: p.image || p.thumbnail || (Array.isArray(p.images) ? p.images[0] : null),
+        video: p.video || null,
+        hasVideo: Boolean(p.hasVideo || p.video),
+        videoId: p.videoId || null,
+        videoThumbnail: p.videoThumbnail || null,
+      }))
       : (result.products || []).map((p: any) => ({
-          ...p,
-          price: convertPrice(p.price),
-          priceRon: p.price,
-          oldPrice: p.oldPrice != null ? convertPrice(p.oldPrice) : (p.oldPrice ?? null),
-        }));
+        ...p,
+        price: convertPrice(p.price),
+        priceRon: p.price,
+        oldPrice: p.oldPrice != null ? convertPrice(p.oldPrice) : (p.oldPrice ?? null),
+      }));
 
     const nextOffset = (result.offset || 0) + (result.limit || limit);
     const hasMore = mode === "video"

@@ -53,7 +53,7 @@ export async function GET(request: Request) {
             maxPrice: num(sp.get("maxPrice")),
         });
 
-        const filtered = result.products.filter((p: any) => {
+        const filtered = result.products.filter((p) => {
             const img = Array.isArray(p.images) ? p.images[0] : undefined;
             if (!img || typeof img !== "string" || !/^https?:\/\//.test(img)) return false;
             if (!p.hasValidPrice) return false;
@@ -63,42 +63,43 @@ export async function GET(request: Request) {
         });
 
         const page = filtered.slice(0, limit);
-        const ids = page.map((p: any) => String(p.id));
+        const ids = page.map((p) => String(p.id));
 
         // Stats + like-ul viewer-ului
         let statsMap = new Map<string, { like: number; share: number }>();
         let likedSet = new Set<string>();
         let sellerMap = new Map<string, { sellerId: string; verified: boolean; name: string | null }>();
         if (ids.length) {
-            const { rows: statRows } = await dbQuery(
+            const { rows: statRows } = await dbQuery<{ product_id: string; like_count: number; share_count: number }>(
                 `SELECT product_id, like_count, share_count FROM product_stats WHERE product_id = ANY($1::uuid[])`,
                 [ids]
             );
             statsMap = new Map(
-                statRows.map((r: any) => [String(r.product_id), { like: Number(r.like_count) || 0, share: Number(r.share_count) || 0 }])
+                statRows.map((r) => [String(r.product_id), { like: Number(r.like_count) || 0, share: Number(r.share_count) || 0 }])
             );
             // Bifa albastra: seller-ul produsului, daca e verificat.
-            const { rows: sellerRows } = await dbQuery(
+            type SellerRow = { product_id: string; seller_id: string; is_verified: boolean; name: string | null };
+            const { rows: sellerRows } = await dbQuery<SellerRow>(
                 `SELECT p.id AS product_id, s.id AS seller_id, s.is_verified, s.name
                      FROM marketplace_products p
                      JOIN sellers s ON s.id = p.seller_id
                     WHERE p.id = ANY($1::uuid[])`,
                 [ids]
-            ).catch(() => ({ rows: [] as any[] }));
+            ).catch(() => ({ rows: [] as SellerRow[] }));
             sellerMap = new Map(
-                sellerRows.map((r: any) => [String(r.product_id), { sellerId: String(r.seller_id), verified: Boolean(r.is_verified), name: r.name ?? null }])
+                sellerRows.map((r) => [String(r.product_id), { sellerId: String(r.seller_id), verified: Boolean(r.is_verified), name: r.name ?? null }])
             );
             const viewerId = await getOptionalSocialUserId();
             if (viewerId) {
-                const { rows: likeRows } = await dbQuery(
+                const { rows: likeRows } = await dbQuery<{ product_id: string }>(
                     `SELECT product_id FROM likes WHERE user_id = $1 AND product_id = ANY($2::uuid[])`,
                     [viewerId, ids]
                 );
-                likedSet = new Set(likeRows.map((r: any) => String(r.product_id)));
+                likedSet = new Set(likeRows.map((r) => String(r.product_id)));
             }
         }
 
-        const items: OfferPost[] = page.map((p: any) => {
+        const items: OfferPost[] = page.map((p) => {
             const st = statsMap.get(String(p.id));
             const seller = sellerMap.get(String(p.id));
             return {

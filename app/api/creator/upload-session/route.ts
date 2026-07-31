@@ -312,8 +312,8 @@ async function completeLocalUploadSession(sessionId: string, creatorId: string) 
     content_type: string | null;
     byte_size: string | number | null;
     asset_id: string;
-    product_refs: any;
-    metadata: any;
+    product_refs: unknown;
+    metadata: Record<string, unknown> | null;
   }>(
     `
     SELECT
@@ -440,7 +440,21 @@ async function completeLocalUploadSession(sessionId: string, creatorId: string) 
 }
 
 async function getLocalUploadStatus(sessionId: string, creatorId: string) {
-  const { rows } = await dbQuery(
+  const { rows } = await dbQuery<{
+    session_id: string;
+    upload_status: string;
+    completed_at: string | null;
+    video_id: string;
+    video_status: string;
+    visibility: string;
+    playback_url: string | null;
+    thumbnail_url: string | null;
+    asset_id: string | null;
+    asset_status: string | null;
+    job_id: string | null;
+    job_status: string | null;
+    job_error: string | null;
+  }>(
     `
     SELECT
       vus.id AS session_id,
@@ -472,7 +486,7 @@ async function getLocalUploadStatus(sessionId: string, creatorId: string) {
     [sessionId, creatorId]
   );
 
-  const row: any = rows[0];
+  const row = rows[0];
   if (!row) return null;
 
   return {

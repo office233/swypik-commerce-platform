@@ -113,7 +113,21 @@ export async function listConversations(
   const limit = Math.min(Math.max(opts.limit ?? 30, 1), 100);
   const cursor = opts.cursor || null;
 
-  const { rows } = await dbQuery<any>(
+  const { rows } = await dbQuery<{
+    id: string;
+    kind: "dm" | "group";
+    last_message_at: string | null;
+    created_at: string;
+    peer_id: string | null;
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+    last_message_id: string | null;
+    last_sender_id: string | null;
+    last_body: string | null;
+    last_created_at: string | null;
+    unread_count: number;
+  }>(
     `WITH my_convs AS (
         SELECT cp.conversation_id, cp.last_read_at
           FROM conversation_participants cp
@@ -156,7 +170,7 @@ export async function listConversations(
     [userId, cursor, limit],
   );
 
-  return rows.map((r: any) => ({
+  return rows.map((r) => ({
     id: r.id,
     kind: r.kind,
     last_message_at: r.last_message_at,
@@ -172,9 +186,9 @@ export async function listConversations(
     last_message: r.last_message_id
       ? {
           id: r.last_message_id,
-          sender_id: r.last_sender_id,
-          body: r.last_body,
-          created_at: r.last_created_at,
+          sender_id: String(r.last_sender_id),
+          body: String(r.last_body ?? ""),
+          created_at: String(r.last_created_at),
         }
       : null,
     unread_count: Number(r.unread_count || 0),
@@ -188,15 +202,17 @@ export async function listMessages(
 ): Promise<MessageWithSender[]> {
   const ok = await assertParticipant(conversationId, viewerId);
   if (!ok) {
-    const err: any = new Error("Not a participant");
-    err.status = 403;
-    throw err;
+    throw Object.assign(new Error("Not a participant"), { status: 403 });
   }
 
   const limit = Math.min(Math.max(opts.limit ?? 30, 1), 100);
   const before = opts.beforeCursor || null;
 
-  const { rows } = await dbQuery<any>(
+  const { rows } = await dbQuery<MessageRow & {
+    sender_username: string | null;
+    sender_display_name: string | null;
+    sender_avatar_url: string | null;
+  }>(
     `SELECT m.id, m.conversation_id, m.sender_id, m.body, m.media_url,
             m.reply_to_message_id, m.status, m.metadata,
             m.created_at, m.updated_at,
@@ -214,7 +230,7 @@ export async function listMessages(
   );
 
   return rows
-    .map((r: any) => ({
+    .map((r) => ({
       id: r.id,
       conversation_id: r.conversation_id,
       sender_id: r.sender_id,
@@ -242,16 +258,12 @@ export async function sendMessage(
 ): Promise<MessageRow> {
   const body = (data.body || "").trim();
   if (!body || body.length > 4000) {
-    const err: any = new Error("Invalid message body");
-    err.status = 400;
-    throw err;
+    throw Object.assign(new Error("Invalid message body"), { status: 400 });
   }
 
   const ok = await assertParticipant(conversationId, senderId);
   if (!ok) {
-    const err: any = new Error("Not a participant");
-    err.status = 403;
-    throw err;
+    throw Object.assign(new Error("Not a participant"), { status: 403 });
   }
 
   const { rows } = await dbQuery<MessageRow>(
@@ -294,9 +306,7 @@ export async function markRead(
 ): Promise<{ last_read_at: string } | null> {
   const ok = await assertParticipant(conversationId, viewerId);
   if (!ok) {
-    const err: any = new Error("Not a participant");
-    err.status = 403;
-    throw err;
+    throw Object.assign(new Error("Not a participant"), { status: 403 });
   }
   const { rows } = await dbQuery<{ last_read_at: string }>(
     `UPDATE conversation_participants
