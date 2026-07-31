@@ -120,7 +120,13 @@
     "livrareGratuita": "💡 Spedizione gratuita",
     "toateComenzileAuLivrare": "Tutti gli ordini hanno spedizione gratuita su Swypik.",
     "finalizeazaComanda": "🔒 Completa l'ordine —",
-    "plataSecurizataPrinStripe": "Pagamento sicuro con Stripe • Spedizione gratuita"
+    "plataSecurizataPrinStripe": "Pagamento sicuro con Stripe • Spedizione gratuita",
+    "scade": "Diminuisci",
+    "magazin": "Negozio",
+    "confirmClear": "Sei sicuro di voler svuotare il carrello?",
+    "confirmRemove": "Sei sicuro di voler rimuovere questo prodotto dal carrello?",
+    "productCount": "{count, plural, one {# prodotto} other {# prodotti}}",
+    "perUnit": "{price} / pz"
   },
   "creator": {
     "drafts": "Bozze",
@@ -1975,5 +1981,39 @@
       "title": "Corsa Swypik Go",
       "withDriver": "Autista: {name}"
     }
+  },
+  "authForgot": {
+    "title": "Hai dimenticato la password?",
+    "subtitle": "Inserisci l'email del tuo account e ti invieremo un link per reimpostare la password.",
+    "doneMessage": "Se esiste un account associato a questa email, ti abbiamo inviato un link di reimpostazione. Controlla la posta in arrivo (e la cartella Spam). Il link scade tra 1 ora.",
+    "backToLogin": "Torna all'accesso",
+    "email": "Email",
+    "genericError": "Non siamo riusciti a elaborare la richiesta.",
+    "networkError": "Errore di rete.",
+    "sending": "Invio in corso...",
+    "submit": "Invia link di reimpostazione"
+  },
+  "notificationsPage": {
+    "title": "Notifiche",
+    "markAllRead": "Segna tutte come lette",
+    "loading": "Caricamento...",
+    "emptyTitle": "Ancora nessuna notifica",
+    "emptyBody": "Qui vedrai nuovi mi piace, commenti e follower.",
+    "justNow": "adesso",
+    "minutesShort": "{count}m",
+    "hoursShort": "{count}h",
+    "daysShort": "{count}g"
+  },
+  "permissionsPrompt": {
+    "eatsTitle": "Consegna più veloce",
+    "eatsLocation": "Usiamo la tua posizione per mostrarti i ristoranti nelle vicinanze e precompilare l'indirizzo di consegna.",
+    "eatsPush": "Le notifiche ti avvisano quando l'ordine viene accettato, ritirato dal corriere e consegnato.",
+    "goTitle": "Corse più semplici",
+    "goLocation": "Usiamo la tua posizione per impostare automaticamente il punto di partenza e mostrarti gli autisti vicini.",
+    "goPush": "Le notifiche ti avvisano quando un autista accetta la corsa e quando arriva.",
+    "close": "Chiudi",
+    "enabling": "Attivazione…",
+    "enable": "Attiva",
+    "later": "Più tardi"
   }
 }

@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { MapPin, Bell, X } from "lucide-react";
 import { haptic } from "@/lib/haptic";
+import { useTranslations } from "next-intl";
 
 const STORAGE_KEY = "swypik_perms_prompted_v1";
 
@@ -16,20 +17,8 @@ type Props = {
   vertical: "eats" | "go";
 };
 
-const COPY: Record<Props["vertical"], { title: string; location: string; push: string }> = {
-  eats: {
-    title: "Livrare mai rapidă",
-    location: "Folosim locația ca să-ți arătăm restaurantele din apropiere și să precompletăm adresa de livrare.",
-    push: "Notificările te anunță când comanda e acceptată, preluată de curier și livrată.",
-  },
-  go: {
-    title: "Curse mai simple",
-    location: "Folosim locația ca să setăm automat punctul de plecare și să-ți arătăm șoferii din jur.",
-    push: "Notificările te anunță când șoferul acceptă cursa și când ajunge la tine.",
-  },
-};
-
 export default function PermissionsPrompt({ vertical }: Props) {
+  const t = useTranslations("permissionsPrompt");
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -61,7 +50,10 @@ export default function PermissionsPrompt({ vertical }: Props) {
 
   if (!visible) return null;
 
-  const copy = COPY[vertical];
+  const copy =
+    vertical === "eats"
+      ? { title: t("eatsTitle"), location: t("eatsLocation"), push: t("eatsPush") }
+      : { title: t("goTitle"), location: t("goLocation"), push: t("goPush") };
 
   const dismiss = () => {
     try {
@@ -100,7 +92,7 @@ export default function PermissionsPrompt({ vertical }: Props) {
       <div className="mx-auto max-w-lg rounded-2xl border border-[#E5E5E5] dark:border-[#2A2A2A] bg-white dark:bg-[#111] shadow-xl p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <h2 className="text-sm font-bold">{copy.title}</h2>
-          <button type="button" aria-label="Închide" onClick={dismiss} className="text-[#A1A1AA] -mt-1 -mr-1 p-1">
+          <button type="button" aria-label={t("close")} onClick={dismiss} className="text-[#A1A1AA] -mt-1 -mr-1 p-1">
             <X size={16} />
           </button>
         </div>
@@ -119,14 +111,14 @@ export default function PermissionsPrompt({ vertical }: Props) {
             disabled={busy}
             className="flex-1 rounded-full bg-[#7C3AED] text-white py-2.5 text-sm font-semibold disabled:opacity-60"
           >
-            {busy ? "Se activează…" : "Activează"}
+            {busy ? t("enabling") : t("enable")}
           </button>
           <button
             type="button"
             onClick={dismiss}
             className="rounded-full border border-[#E5E5E5] dark:border-[#2A2A2A] px-4 py-2.5 text-sm font-medium"
           >
-            Mai târziu
+            {t("later")}
           </button>
         </div>
       </div>

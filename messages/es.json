@@ -120,7 +120,13 @@
     "livrareGratuita": "💡 Envío gratis",
     "toateComenzileAuLivrare": "Todos los pedidos tienen envío gratis en Swypik.",
     "finalizeazaComanda": "🔒 Finalizar pedido —",
-    "plataSecurizataPrinStripe": "Pago seguro con Stripe • Envío gratis"
+    "plataSecurizataPrinStripe": "Pago seguro con Stripe • Envío gratis",
+    "scade": "Disminuir",
+    "magazin": "Tienda",
+    "confirmClear": "¿Seguro que quieres vaciar el carrito?",
+    "confirmRemove": "¿Seguro que quieres eliminar este producto del carrito?",
+    "productCount": "{count, plural, one {# producto} other {# productos}}",
+    "perUnit": "{price} / ud."
   },
   "creator": {
     "drafts": "Borradores",
@@ -1975,5 +1981,39 @@
       "title": "Viaje Swypik Go",
       "withDriver": "Conductor: {name}"
     }
+  },
+  "authForgot": {
+    "title": "¿Olvidaste tu contraseña?",
+    "subtitle": "Introduce el email de tu cuenta y te enviaremos un enlace para restablecer tu contraseña.",
+    "doneMessage": "Si existe una cuenta asociada a este email, te hemos enviado un enlace de restablecimiento. Revisa tu bandeja de entrada (y la carpeta de Spam). El enlace caduca en 1 hora.",
+    "backToLogin": "Volver a iniciar sesión",
+    "email": "Email",
+    "genericError": "No pudimos procesar tu solicitud.",
+    "networkError": "Error de red.",
+    "sending": "Enviando...",
+    "submit": "Enviar enlace de restablecimiento"
+  },
+  "notificationsPage": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todas como leídas",
+    "loading": "Cargando...",
+    "emptyTitle": "Aún no hay notificaciones",
+    "emptyBody": "Aquí verás nuevos me gusta, comentarios y seguidores.",
+    "justNow": "ahora",
+    "minutesShort": "{count}m",
+    "hoursShort": "{count}h",
+    "daysShort": "{count}d"
+  },
+  "permissionsPrompt": {
+    "eatsTitle": "Entrega más rápida",
+    "eatsLocation": "Usamos tu ubicación para mostrarte restaurantes cercanos y rellenar tu dirección de entrega.",
+    "eatsPush": "Las notificaciones te avisan cuando tu pedido es aceptado, recogido por el repartidor y entregado.",
+    "goTitle": "Viajes más sencillos",
+    "goLocation": "Usamos tu ubicación para fijar automáticamente el punto de partida y mostrarte los conductores cercanos.",
+    "goPush": "Las notificaciones te avisan cuando un conductor acepta tu viaje y cuando llega.",
+    "close": "Cerrar",
+    "enabling": "Activando…",
+    "enable": "Activar",
+    "later": "Más tarde"
   }
 }

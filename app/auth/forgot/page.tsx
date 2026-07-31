@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("authForgot");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -22,12 +24,12 @@ export default function ForgotPasswordPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data?.error || "Nu am putut procesa cererea.");
+        setError(data?.error || t("genericError"));
       } else {
         setDone(true);
       }
     } catch {
-      setError("Eroare de rețea.");
+      setError(t("networkError"));
     } finally {
       setLoading(false);
     }
@@ -36,23 +38,21 @@ export default function ForgotPasswordPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black text-white px-4">
       <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold mb-2">Ai uitat parola?</h1>
-        <p className="text-white/60 text-sm mb-6">
-          Introdu emailul contului și îți trimitem un link pentru a-ți reseta parola.
-        </p>
+        <h1 className="text-2xl font-semibold mb-2">{t("title")}</h1>
+        <p className="text-white/60 text-sm mb-6">{t("subtitle")}</p>
         {done ? (
           <div className="space-y-4">
             <div className="bg-violet-500/10 border border-violet-500/30 rounded-lg p-4 text-sm">
-              Dacă există un cont asociat cu acest email, ți-am trimis un link de resetare. Verifică inbox-ul (și folderul Spam). Link-ul expiră în 1 oră.
+              {t("doneMessage")}
             </div>
             <Link href="/auth" className="block text-center text-violet-400 hover:underline text-sm">
-              Înapoi la autentificare
+              {t("backToLogin")}
             </Link>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4" noValidate>
             <label className="block">
-              <span className="block text-sm mb-1">Email</span>
+              <span className="block text-sm mb-1">{t("email")}</span>
               <input
                 type="email"
                 value={email}
@@ -68,10 +68,10 @@ export default function ForgotPasswordPage() {
               disabled={loading || !email.trim()}
               className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-lg py-2 font-medium"
             >
-              {loading ? "Se trimite..." : "Trimite link de resetare"}
+              {loading ? t("sending") : t("submit")}
             </button>
             <Link href="/auth" className="block text-center text-white/60 hover:underline text-sm">
-              Înapoi la autentificare
+              {t("backToLogin")}
             </Link>
           </form>
         )}

@@ -120,7 +120,13 @@
     "livrareGratuita": "💡 Envio grátis",
     "toateComenzileAuLivrare": "Todas as encomendas têm envio grátis na Swypik.",
     "finalizeazaComanda": "🔒 Finalizar encomenda —",
-    "plataSecurizataPrinStripe": "Pagamento seguro via Stripe • Envio grátis"
+    "plataSecurizataPrinStripe": "Pagamento seguro via Stripe • Envio grátis",
+    "scade": "Diminuir",
+    "magazin": "Loja",
+    "confirmClear": "Tens a certeza de que queres esvaziar o carrinho?",
+    "confirmRemove": "Tens a certeza de que queres remover este produto do carrinho?",
+    "productCount": "{count, plural, one {# produto} other {# produtos}}",
+    "perUnit": "{price} / un."
   },
   "creator": {
     "drafts": "Rascunhos",
@@ -1975,5 +1981,39 @@
       "title": "Viagem Swypik Go",
       "withDriver": "Motorista: {name}"
     }
+  },
+  "authForgot": {
+    "title": "Esqueceste-te da palavra-passe?",
+    "subtitle": "Introduz o email da tua conta e enviamos-te um link para repor a palavra-passe.",
+    "doneMessage": "Se existir uma conta associada a este email, enviámos-te um link de reposição. Verifica a tua caixa de entrada (e a pasta de Spam). O link expira em 1 hora.",
+    "backToLogin": "Voltar ao início de sessão",
+    "email": "Email",
+    "genericError": "Não foi possível processar o teu pedido.",
+    "networkError": "Erro de rede.",
+    "sending": "A enviar...",
+    "submit": "Enviar link de reposição"
+  },
+  "notificationsPage": {
+    "title": "Notificações",
+    "markAllRead": "Marcar todas como lidas",
+    "loading": "A carregar...",
+    "emptyTitle": "Ainda sem notificações",
+    "emptyBody": "Aqui verás novos gostos, comentários e seguidores.",
+    "justNow": "agora",
+    "minutesShort": "{count}m",
+    "hoursShort": "{count}h",
+    "daysShort": "{count}d"
+  },
+  "permissionsPrompt": {
+    "eatsTitle": "Entrega mais rápida",
+    "eatsLocation": "Usamos a tua localização para mostrar restaurantes próximos e preencher a morada de entrega.",
+    "eatsPush": "As notificações avisam-te quando o pedido é aceite, recolhido pelo estafeta e entregue.",
+    "goTitle": "Viagens mais simples",
+    "goLocation": "Usamos a tua localização para definir automaticamente o ponto de partida e mostrar os condutores próximos.",
+    "goPush": "As notificações avisam-te quando um condutor aceita a viagem e quando chega.",
+    "close": "Fechar",
+    "enabling": "A ativar…",
+    "enable": "Ativar",
+    "later": "Mais tarde"
   }
 }

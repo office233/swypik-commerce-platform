@@ -205,7 +205,13 @@
     "livrareGratuita": "💡 Livrare gratuită",
     "toateComenzileAuLivrare": "Toate comenzile au livrare gratuită pe Swypik.",
     "finalizeazaComanda": "🔒 Finalizează comanda —",
-    "plataSecurizataPrinStripe": "Plata securizată prin Stripe • Livrare gratuită"
+    "plataSecurizataPrinStripe": "Plata securizată prin Stripe • Livrare gratuită",
+    "scade": "Scade",
+    "magazin": "Magazin",
+    "confirmClear": "Ești sigur că vrei să golești coșul?",
+    "confirmRemove": "Ești sigur că vrei să ștergi acest produs din coș?",
+    "productCount": "{count, plural, one {# produs} few {# produse} other {# de produse}}",
+    "perUnit": "{price} / buc"
   },
   "creator": {
     "drafts": "Schițe",
@@ -1975,5 +1981,39 @@
     "perSale": "/vânzare",
     "noDeadline": "Fără termen",
     "ended": "Încheiat"
+  },
+  "authForgot": {
+    "title": "Ai uitat parola?",
+    "subtitle": "Introdu emailul contului și îți trimitem un link pentru a-ți reseta parola.",
+    "doneMessage": "Dacă există un cont asociat cu acest email, ți-am trimis un link de resetare. Verifică inbox-ul (și folderul Spam). Link-ul expiră în 1 oră.",
+    "backToLogin": "Înapoi la autentificare",
+    "email": "Email",
+    "genericError": "Nu am putut procesa cererea.",
+    "networkError": "Eroare de rețea.",
+    "sending": "Se trimite...",
+    "submit": "Trimite link de resetare"
+  },
+  "notificationsPage": {
+    "title": "Notificări",
+    "markAllRead": "Marchează toate citite",
+    "loading": "Se încarcă...",
+    "emptyTitle": "Nicio notificare încă",
+    "emptyBody": "Aici vei vedea aprecieri, comentarii și follow-uri noi.",
+    "justNow": "acum",
+    "minutesShort": "{count}m",
+    "hoursShort": "{count}h",
+    "daysShort": "{count}z"
+  },
+  "permissionsPrompt": {
+    "eatsTitle": "Livrare mai rapidă",
+    "eatsLocation": "Folosim locația ca să-ți arătăm restaurantele din apropiere și să precompletăm adresa de livrare.",
+    "eatsPush": "Notificările te anunță când comanda e acceptată, preluată de curier și livrată.",
+    "goTitle": "Curse mai simple",
+    "goLocation": "Folosim locația ca să setăm automat punctul de plecare și să-ți arătăm șoferii din jur.",
+    "goPush": "Notificările te anunță când șoferul acceptă cursa și când ajunge la tine.",
+    "close": "Închide",
+    "enabling": "Se activează…",
+    "enable": "Activează",
+    "later": "Mai târziu"
   }
 }

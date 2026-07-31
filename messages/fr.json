@@ -120,7 +120,13 @@
     "livrareGratuita": "💡 Livraison gratuite",
     "toateComenzileAuLivrare": "Toutes les commandes sont livrées gratuitement sur Swypik.",
     "finalizeazaComanda": "🔒 Valider la commande —",
-    "plataSecurizataPrinStripe": "Paiement sécurisé par Stripe • Livraison gratuite"
+    "plataSecurizataPrinStripe": "Paiement sécurisé par Stripe • Livraison gratuite",
+    "scade": "Diminuer",
+    "magazin": "Boutique",
+    "confirmClear": "Voulez-vous vraiment vider votre panier ?",
+    "confirmRemove": "Voulez-vous vraiment retirer ce produit du panier ?",
+    "productCount": "{count, plural, one {# produit} other {# produits}}",
+    "perUnit": "{price} / pièce"
   },
   "creator": {
     "drafts": "Brouillons",
@@ -1975,5 +1981,39 @@
       "title": "Course Swypik Go",
       "withDriver": "Chauffeur : {name}"
     }
+  },
+  "authForgot": {
+    "title": "Mot de passe oublié ?",
+    "subtitle": "Saisissez l'email de votre compte et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "doneMessage": "Si un compte est associé à cet email, nous vous avons envoyé un lien de réinitialisation. Vérifiez votre boîte de réception (et le dossier Spam). Le lien expire dans 1 heure.",
+    "backToLogin": "Retour à la connexion",
+    "email": "Email",
+    "genericError": "Nous n'avons pas pu traiter votre demande.",
+    "networkError": "Erreur réseau.",
+    "sending": "Envoi en cours...",
+    "submit": "Envoyer le lien de réinitialisation"
+  },
+  "notificationsPage": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "loading": "Chargement...",
+    "emptyTitle": "Aucune notification pour l'instant",
+    "emptyBody": "Vous verrez ici les nouveaux j'aime, commentaires et abonnements.",
+    "justNow": "à l'instant",
+    "minutesShort": "{count}min",
+    "hoursShort": "{count}h",
+    "daysShort": "{count}j"
+  },
+  "permissionsPrompt": {
+    "eatsTitle": "Livraison plus rapide",
+    "eatsLocation": "Nous utilisons votre position pour afficher les restaurants à proximité et préremplir votre adresse de livraison.",
+    "eatsPush": "Les notifications vous préviennent lorsque votre commande est acceptée, récupérée par le livreur et livrée.",
+    "goTitle": "Courses plus simples",
+    "goLocation": "Nous utilisons votre position pour définir automatiquement le point de départ et afficher les chauffeurs autour de vous.",
+    "goPush": "Les notifications vous préviennent lorsqu'un chauffeur accepte votre course et lorsqu'il arrive.",
+    "close": "Fermer",
+    "enabling": "Activation…",
+    "enable": "Activer",
+    "later": "Plus tard"
   }
 }

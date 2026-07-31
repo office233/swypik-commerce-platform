@@ -120,7 +120,13 @@
     "livrareGratuita": "💡 Kostenloser Versand",
     "toateComenzileAuLivrare": "Alle Bestellungen haben kostenlosen Versand auf Swypik.",
     "finalizeazaComanda": "🔒 Bestellung abschließen —",
-    "plataSecurizataPrinStripe": "Sichere Zahlung mit Stripe • Kostenloser Versand"
+    "plataSecurizataPrinStripe": "Sichere Zahlung mit Stripe • Kostenloser Versand",
+    "scade": "Verringern",
+    "magazin": "Shop",
+    "confirmClear": "Möchtest du den Warenkorb wirklich leeren?",
+    "confirmRemove": "Möchtest du dieses Produkt wirklich aus dem Warenkorb entfernen?",
+    "productCount": "{count, plural, one {# Produkt} other {# Produkte}}",
+    "perUnit": "{price} / Stück"
   },
   "creator": {
     "drafts": "Entwürfe",
@@ -1975,5 +1981,39 @@
       "title": "Swypik-Go-Fahrt",
       "withDriver": "Fahrer: {name}"
     }
+  },
+  "authForgot": {
+    "title": "Passwort vergessen?",
+    "subtitle": "Gib die E-Mail-Adresse deines Kontos ein und wir senden dir einen Link zum Zurücksetzen deines Passworts.",
+    "doneMessage": "Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir dir einen Link zum Zurücksetzen gesendet. Prüfe deinen Posteingang (und den Spam-Ordner). Der Link läuft in 1 Stunde ab.",
+    "backToLogin": "Zurück zur Anmeldung",
+    "email": "E-Mail",
+    "genericError": "Wir konnten deine Anfrage nicht verarbeiten.",
+    "networkError": "Netzwerkfehler.",
+    "sending": "Wird gesendet...",
+    "submit": "Link zum Zurücksetzen senden"
+  },
+  "notificationsPage": {
+    "title": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "loading": "Wird geladen...",
+    "emptyTitle": "Noch keine Benachrichtigungen",
+    "emptyBody": "Hier siehst du neue Likes, Kommentare und Follower.",
+    "justNow": "jetzt",
+    "minutesShort": "{count}min",
+    "hoursShort": "{count}Std",
+    "daysShort": "{count}T"
+  },
+  "permissionsPrompt": {
+    "eatsTitle": "Schnellere Lieferung",
+    "eatsLocation": "Wir nutzen deinen Standort, um Restaurants in der Nähe anzuzeigen und deine Lieferadresse vorauszufüllen.",
+    "eatsPush": "Benachrichtigungen informieren dich, wenn deine Bestellung angenommen, vom Kurier abgeholt und geliefert wird.",
+    "goTitle": "Einfachere Fahrten",
+    "goLocation": "Wir nutzen deinen Standort, um den Startpunkt automatisch festzulegen und Fahrer in deiner Nähe anzuzeigen.",
+    "goPush": "Benachrichtigungen informieren dich, wenn ein Fahrer deine Fahrt annimmt und wenn er ankommt.",
+    "close": "Schließen",
+    "enabling": "Wird aktiviert…",
+    "enable": "Aktivieren",
+    "later": "Später"
   }
 }

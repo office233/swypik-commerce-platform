@@ -205,7 +205,13 @@
     "livrareGratuita": "💡 Free shipping",
     "toateComenzileAuLivrare": "All orders ship free on Swypik.",
     "finalizeazaComanda": "🔒 Checkout —",
-    "plataSecurizataPrinStripe": "Secure payment via Stripe • Free shipping"
+    "plataSecurizataPrinStripe": "Secure payment via Stripe • Free shipping",
+    "scade": "Decrease",
+    "magazin": "Shop",
+    "confirmClear": "Are you sure you want to empty your cart?",
+    "confirmRemove": "Are you sure you want to remove this product from your cart?",
+    "productCount": "{count, plural, one {# product} other {# products}}",
+    "perUnit": "{price} / pc"
   },
   "creator": {
     "drafts": "Drafts",
@@ -1975,5 +1981,39 @@
     "itemSeller": "Seller Dashboard",
     "itemSellerPending": "Seller application under review",
     "itemWallet": "SWYP wallet"
+  },
+  "authForgot": {
+    "title": "Forgot your password?",
+    "subtitle": "Enter your account email and we'll send you a link to reset your password.",
+    "doneMessage": "If an account exists for this email, we've sent you a reset link. Check your inbox (and Spam folder). The link expires in 1 hour.",
+    "backToLogin": "Back to sign in",
+    "email": "Email",
+    "genericError": "We couldn't process your request.",
+    "networkError": "Network error.",
+    "sending": "Sending...",
+    "submit": "Send reset link"
+  },
+  "notificationsPage": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "loading": "Loading...",
+    "emptyTitle": "No notifications yet",
+    "emptyBody": "You'll see new likes, comments and follows here.",
+    "justNow": "now",
+    "minutesShort": "{count}m",
+    "hoursShort": "{count}h",
+    "daysShort": "{count}d"
+  },
+  "permissionsPrompt": {
+    "eatsTitle": "Faster delivery",
+    "eatsLocation": "We use your location to show nearby restaurants and pre-fill your delivery address.",
+    "eatsPush": "Notifications let you know when your order is accepted, picked up by the courier and delivered.",
+    "goTitle": "Easier rides",
+    "goLocation": "We use your location to set your pickup point automatically and show drivers around you.",
+    "goPush": "Notifications let you know when a driver accepts your ride and when they arrive.",
+    "close": "Close",
+    "enabling": "Enabling…",
+    "enable": "Enable",
+    "later": "Later"
   }
 }

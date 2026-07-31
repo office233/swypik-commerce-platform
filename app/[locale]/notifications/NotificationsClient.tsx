@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck } from "lucide-react";
 import TopBar from "@/components/TopBar";
+import { useTranslations } from "next-intl";
 
 type Notification = {
   id: string;
@@ -25,18 +26,20 @@ type FetchResponse = {
   unreadCount: number;
 };
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "acum";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}z`;
-}
-
 export default function NotificationsClient() {
+  const t = useTranslations("notificationsPage");
+
+  function timeAgo(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return t("justNow");
+    if (m < 60) return t("minutesShort", { count: m });
+    const h = Math.floor(m / 60);
+    if (h < 24) return t("hoursShort", { count: h });
+    const d = Math.floor(h / 24);
+    return t("daysShort", { count: d });
+  }
+
   const [items, setItems] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -95,7 +98,7 @@ export default function NotificationsClient() {
 
       <div className="mx-auto max-w-lg px-4 py-5 pb-24">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-black tracking-tight">Notificări</h1>
+          <h1 className="text-2xl font-black tracking-tight">{t("title")}</h1>
           <button
             type="button"
             onClick={markAll}
@@ -103,23 +106,21 @@ export default function NotificationsClient() {
             className="inline-flex items-center gap-1.5 rounded-full bg-[#0D0D0D] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#0E906F] disabled:opacity-40"
           >
             <CheckCheck className="h-3.5 w-3.5" />
-            Marchează toate citite
+            {t("markAllRead")}
           </button>
         </div>
 
         {loading ? (
           <div className="py-20 text-center text-sm text-[#6E6E80]">
-            Se încarcă...
+            {t("loading")}
           </div>
         ) : items.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#E5E5E5] bg-[#F9FAFB] px-6 py-16 text-center">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#0D0D0D]/10 text-[#0D0D0D]">
               <Bell className="h-6 w-6" />
             </div>
-            <h2 className="mt-4 text-base font-black">Nicio notificare încă</h2>
-            <p className="mt-1 text-sm text-[#6E6E80]">
-              Aici vei vedea aprecieri, comentarii și follow-uri noi.
-            </p>
+            <h2 className="mt-4 text-base font-black">{t("emptyTitle")}</h2>
+            <p className="mt-1 text-sm text-[#6E6E80]">{t("emptyBody")}</p>
           </div>
         ) : (
           <ul className="divide-y divide-[#F0F0F0] overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white shadow-sm">
