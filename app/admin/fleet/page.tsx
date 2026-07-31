@@ -21,6 +21,15 @@ type CourierRow = {
     active: boolean;
     fleet_partner_id: string | null;
     created_at: string;
+    // Cont + telemetrie
+    user_id: string | null;
+    login_email: string | null;
+    is_online: boolean;
+    current_lat: number | null;
+    current_lng: number | null;
+    location_updated_at: string | null;
+    last_ip: string | null;
+    last_seen_at: string | null;
 };
 
 type PartnerRow = {
@@ -44,10 +53,21 @@ export default async function AdminFleetPage() {
 
     const [{ rows: couriers }, { rows: partners }] = await Promise.all([
         dbQuery<CourierRow>(
-            `SELECT id, kind, full_name, phone, email, city, vehicle_type, vehicle_plate,
-              verification_status, active, fleet_partner_id, created_at
-         FROM couriers
-        ORDER BY (verification_status = 'pending') DESC, created_at DESC
+                        `SELECT c.id, c.kind, c.full_name, c.phone, c.email, c.city, c.vehicle_type, c.vehicle_plate,
+                            c.verification_status, c.active, c.fleet_partner_id, c.created_at,
+                            c.user_id::text, u.email AS login_email, c.is_online,
+                            c.current_lat, c.current_lng, c.location_updated_at::text,
+                                s.ip_address::text AS last_ip, s.last_seen_at
+                 FROM couriers c
+                 LEFT JOIN users u ON u.id = c.user_id
+                 LEFT JOIN LATERAL (
+                                SELECT ip_address, COALESCE(last_seen_at, created_at)::text AS last_seen_at
+                                FROM user_sessions
+                             WHERE user_id = c.user_id
+                                ORDER BY COALESCE(last_seen_at, created_at) DESC
+                             LIMIT 1
+                 ) s ON true
+                ORDER BY (c.verification_status = 'pending') DESC, c.created_at DESC
         LIMIT 100`,
         ),
         dbQuery<PartnerRow>(
@@ -92,8 +112,10 @@ export default async function AdminFleetPage() {
                                 <th className="px-4 py-3">Nume</th>
                                 <th className="px-4 py-3">Tip</th>
                                 <th className="px-4 py-3">Contact</th>
+                                <th className="px-4 py-3">Cont login</th>
                                 <th className="px-4 py-3">Oraș</th>
                                 <th className="px-4 py-3">Vehicul</th>
+                                <th className="px-4 py-3">Locație / IP</th>
                                 <th className="px-4 py-3">Status</th>
                                 <th className="px-4 py-3">Acțiuni</th>
                             </tr>
@@ -107,10 +129,42 @@ export default async function AdminFleetPage() {
                                         {c.phone}
                                         {c.email && <span className="block text-[11px] text-[#A1A1AA]">{c.email}</span>}
                                     </td>
+                                    <td className="px-4 py-3">
+                                        {c.user_id ? (
+                                            <>
+                                                <span className="text-[12px] font-medium">{c.login_email ?? "—"}</span>
+                                                <span className="block font-mono text-[10px] text-[#A1A1AA]" title="user_id">{c.user_id.slice(0, 8)}…</span>
+                                            </>
+                                        ) : (
+                                            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700" title="Aplicație trimisă fără cont — se leagă la primul login">
+                                                fără cont
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-3">{c.city}</td>
                                     <td className="px-4 py-3">
                                         {c.vehicle_type}
                                         {c.vehicle_plate && <span className="block text-[11px] text-[#A1A1AA]">{c.vehicle_plate}</span>}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {c.current_lat !== null && c.current_lng !== null ? (
+                                            <a
+                                                href={`https://www.openstreetmap.org/?mlat=${c.current_lat}&mlon=${c.current_lng}#map=16/${c.current_lat}/${c.current_lng}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-[12px] font-medium text-sky-600 underline"
+                                                title={c.location_updated_at ? `actualizat: ${c.location_updated_at}` : undefined}
+                                            >
+                                                {c.is_online ? "🟢" : "⚪"} {Number(c.current_lat).toFixed(4)}, {Number(c.current_lng).toFixed(4)}
+                                            </a>
+                                        ) : (
+                                            <span className="text-[11px] text-[#A1A1AA]">{c.is_online ? "🟢 online, fără GPS" : "— fără locație"}</span>
+                                        )}
+                                        {c.last_ip && (
+                                            <span className="block font-mono text-[10px] text-[#A1A1AA]" title={c.last_seen_at ? `ultima sesiune: ${c.last_seen_at}` : undefined}>
+                                                IP {c.last_ip}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_BADGE[c.verification_status] ?? "bg-gray-100 text-gray-600"}`}>

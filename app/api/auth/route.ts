@@ -124,14 +124,22 @@ async function issueSessionResponse(
   userId: string,
   normalizedEmail: string,
   nextPath: string | null,
+  req?: Request,
 ) {
   const sessionToken = generateToken();
   const sessionHash = hashSessionToken(sessionToken);
 
+  // Telemetrie sesiune (IP + user agent) — folosită în panourile admin
+  // (ex: /admin/fleet) pentru verificarea șoferilor/curierilor.
+  const ip = req ? getClientIP(req) : null;
+  const ua = req?.headers.get("user-agent")?.slice(0, 400) ?? null;
+
   await dbQuery(
-    `INSERT INTO user_sessions (user_id, session_token_hash, expires_at, metadata)
-     VALUES ($1, $2, now() + interval '30 days', $3::jsonb)`,
-    [userId, sessionHash, JSON.stringify({ type: "session" })],
+    `INSERT INTO user_sessions (user_id, session_token_hash, expires_at, metadata,
+                                ip_address, user_agent, last_seen_at)
+     VALUES ($1, $2, now() + interval '30 days', $3::jsonb, $4::inet, $5, now())`,
+    [userId, sessionHash, JSON.stringify({ type: "session" }),
+     ip && ip !== "unknown" ? ip : null, ua],
   );
   // Merge anonymous cart (if any) into this user's cart.
   try {
@@ -566,6 +574,7 @@ export async function POST(req: Request) {
         userId,
         normalizedEmail,
         typeof next === "string" ? next : null,
+        req,
       );
     }
 
@@ -647,6 +656,7 @@ export async function POST(req: Request) {
         user.id,
         normalizedEmail,
         typeof next === "string" ? next : null,
+        req,
       );
     }
 
@@ -689,7 +699,7 @@ export async function POST(req: Request) {
         }
 
         await getRedis().del(`2fa:pending:${tempToken}`);
-        return issueSessionResponse(payload.userId, payload.email, payload.next);
+        return issueSessionResponse(payload.userId, payload.email, payload.next, req);
       } catch (e) {
         console.warn("[auth] verify_2fa failed:", (e as Error).message);
         return NextResponse.json({ success: false, error: "Eroare la verificare." }, { status: 500 });
@@ -802,6 +812,7 @@ export async function POST(req: Request) {
         userId,
         normalizedEmail,
         typeof next === "string" ? next : null,
+        req,
       );
     }
 
