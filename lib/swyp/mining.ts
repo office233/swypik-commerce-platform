@@ -29,6 +29,14 @@ export async function getHalvingFactor(): Promise<{ users: number; halvings: num
   return { users, halvings, factor: 1 / 2 ** halvings };
 }
 
+/** Mineri reali: useri cu cel puțin o sesiune de mining (activă sau revendicată). */
+export async function getMinerCount(): Promise<number> {
+  const { rows } = await dbQuery<{ c: string }>(
+    `SELECT COUNT(DISTINCT user_id)::text AS c FROM swyp_mining_sessions`,
+  );
+  return Number(rows[0]?.c ?? "0");
+}
+
 /** Rata curentă (subunități/sesiune) pentru un user, cu halving + streak. */
 export async function computeMiningRate(userId: string): Promise<{
   rateUnits: bigint;
@@ -87,6 +95,7 @@ export type MiningStatus = {
   streakDays: number;
   halvings: number;
   networkUsers: number;
+  miners: number;
 };
 
 export async function getMiningStatus(userId: string): Promise<MiningStatus> {
@@ -95,7 +104,7 @@ export async function getMiningStatus(userId: string): Promise<MiningStatus> {
        FROM swyp_mining_sessions WHERE user_id = $1 AND claimed_at IS NULL LIMIT 1`,
     [userId],
   );
-  const rate = await computeMiningRate(userId);
+  const [rate, miners] = await Promise.all([computeMiningRate(userId), getMinerCount()]);
   const s = rows[0];
   return {
     active: Boolean(s),
@@ -106,6 +115,7 @@ export async function getMiningStatus(userId: string): Promise<MiningStatus> {
     streakDays: s?.streak_days ?? rate.streakDays,
     halvings: rate.halvings,
     networkUsers: rate.networkUsers,
+    miners,
   };
 }
 

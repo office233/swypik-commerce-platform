@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2 } from "lucide-react";
+import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2 } from "lucide-react";
 
 type Mining = {
   active: boolean;
@@ -24,6 +24,7 @@ type Mining = {
   streakDays: number;
   halvings: number;
   networkUsers: number;
+  miners: number;
 };
 
 type LedgerRow = {
@@ -59,6 +60,8 @@ export default function PayClient() {
   const [mining, setMining] = useState<Mining | null>(null);
   const [busy, setBusy] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     const [wRes, mRes] = await Promise.all([fetch("/api/swyp/wallet"), fetch("/api/swyp/mining")]);
@@ -67,6 +70,10 @@ export default function PayClient() {
     const m = await mRes.json();
     if (w.success) { setBalance(w.balanceUnits); setHistory(w.history); }
     if (m.success) setMining(m.mining);
+    fetch("/api/me/referral")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.shareUrl) setShareUrl(d.shareUrl); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => { load().catch(() => {}); }, [load]);
@@ -166,7 +173,7 @@ export default function PayClient() {
             </div>
             <div className="rounded-2xl bg-white/5 p-3">
               <Users size={14} className="mx-auto text-[#F5A623]" />
-              <p className="mt-1 text-sm font-black">{mining?.networkUsers?.toLocaleString("ro-RO") ?? "—"}</p>
+              <p className="mt-1 text-sm font-black">{mining?.miners?.toLocaleString("ro-RO") ?? "—"}</p>
               <p className="text-[10px] text-white/50">mineri în rețea</p>
             </div>
             <div className="rounded-2xl bg-white/5 p-3">
@@ -180,6 +187,23 @@ export default function PayClient() {
             Rata scade pe măsură ce rețeaua crește — cine minează devreme câștigă mai mult pe sesiune.
             Supply fix: 10 miliarde SWYP, verificabil public.
           </p>
+
+          <button
+            onClick={async () => {
+              const url = shareUrl ?? "https://swypik.com";
+              const text = `Minez SWYP pe Swypik — pornește și tu, e gratis: ${url}`;
+              if (navigator.share) {
+                try { await navigator.share({ title: "Swypik Pay", text, url }); return; } catch { /* anulat */ }
+              }
+              await navigator.clipboard.writeText(text).catch(() => {});
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2500);
+            }}
+            className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl bg-[#F5A623]/15 border border-[#F5A623]/40 px-4 py-3 font-black text-sm text-[#F5A623] active:scale-[0.98] transition"
+          >
+            <Share2 size={16} />
+            {copied ? "Link copiat! Trimite-l unui prieten" : "Invită un prieten → +50 SWYP la prima lui comandă"}
+          </button>
         </div>
       </section>
 
