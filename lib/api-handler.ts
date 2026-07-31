@@ -39,6 +39,10 @@ export function withErrorHandling<Args extends unknown[]>(
         { err, route, method: req?.method },
         "unhandled API route error",
       );
+      if (process.env.SENTRY_DSN) {
+        const Sentry = await import("@sentry/nextjs");
+        Sentry.captureException(err, { tags: { route, method: req?.method } });
+      }
       return NextResponse.json({ error: "internal_error" }, { status: 500 });
     }
   };

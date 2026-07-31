@@ -29,6 +29,7 @@
     "@aws-sdk/client-s3": "^3.1045.0",
     "@aws-sdk/s3-request-presigner": "^3.1045.0",
     "@google/generative-ai": "^0.21.0",
+    "@sentry/nextjs": "^10.69.0",
     "@stripe/react-stripe-js": "^6.3.0",
     "@stripe/stripe-js": "^9.4.0",
     "@types/bcryptjs": "^2.4.6",
