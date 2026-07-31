@@ -14,7 +14,7 @@ import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 import { attributeOrder } from "@/lib/algo/attribution";
 
 import { logger } from "@/lib/logger";
-import { onOrderPaid } from "@/lib/swyp/hooks";
+import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/swyp/hooks";
 export const dynamic = "force-dynamic";
 
 async function getRawBody(req: Request): Promise<Buffer> {
@@ -97,6 +97,8 @@ export async function POST(req: Request) {
           // FRONT R5 — Eats: comenzi locale plătite cu Payment Element.
           if (intent.metadata?.kind === "local_order" && intent.metadata?.local_order_id) {
             await markLocalOrderPaid(intent.metadata.local_order_id, intent.id);
+            // SWYP: prima comandă Eats plătită validează referralul clientului.
+            await onLocalOrderPaid(intent.metadata.local_order_id, intent.id);
           } else if (intent.metadata?.kind === "ride" && intent.metadata?.ride_id) {
             // Go: succeeded vine la CAPTURE (mobility-stripe deja setează
             // payment_status='captured' sincron; aici doar plasa de siguranță).
@@ -105,6 +107,8 @@ export async function POST(req: Request) {
                 WHERE id = $1 AND payment_status IN ('unpaid', 'authorized')`,
               [intent.metadata.ride_id],
             );
+            // SWYP: recompensă șofer + referral pasager.
+            await onRidePaid(intent.metadata.ride_id, intent.id);
           } else {
             await handlePaymentIntentSucceeded(intent);
           }

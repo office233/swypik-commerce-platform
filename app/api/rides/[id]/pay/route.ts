@@ -16,6 +16,7 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { loadRide, resolveRole } from "@/lib/rides/service";
 import { authorizeRidePayment } from "@/lib/payments/mobility-stripe";
 import { logger } from "@/lib/logger";
+import { onRidePaid } from "@/lib/swyp/hooks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,6 +104,9 @@ export async function POST(
         WHERE id = $1 AND payment_status IN ('unpaid', 'collected_cash')`,
       [id],
     );
+    // SWYP: cash-ul e o plată la fel de reală ca vizita cu cardul —
+    // recompensă șofer + validare referral pasager (idempotent în ledger).
+    await onRidePaid(id, `cash_ride_${id}`);
     return NextResponse.json({ payment_status: "collected_cash" });
   } catch (err) {
     log.error({ err, rideId: id, action }, "ride pay failed");

@@ -23,73 +23,109 @@ async function safe(label: string, fn: () => Promise<unknown>): Promise<void> {
 }
 
 /**
- * Comandă plătită → recompensează cumpărătorul și, dacă e prima lui comandă,
- * validează referral-ul și plătește invitatorul.
+ * Nucleul anti-fraudă al referralului.
  *
- * @param orderId  comanda tocmai trecută în 'paid'
- * @param paidTxRef  id-ul PaymentIntent Stripe (dovada plății)
+ * Se apelează la ORICE tranzacție reală plătită de un utilizator, indiferent
+ * de verticală (shop, cursă Go, mâncare Eats, cazare…). Prima dată când un
+ * invitat cheltuie bani reali, invitatorul primește bonusul — o singură dată,
+ * oricâte tranzacții ar urma.
+ *
+ * De ce nu poate fi furat:
+ *   • conturile fabricate nu produc nimic — nu ajung niciodată la o plată;
+ *   • mining-ul/înregistrarea NU declanșează bonusul (n-ar costa nimic);
+ *   • ca să fraudezi, ar trebui să plătești real cu cardul, iar comisionul
+ *     platformei pe acea tranzacție depășește valoarea bonusului.
+ *
+ * @param inviteeUserId  utilizatorul care tocmai a plătit
+ * @param paidTxRef      id-ul PaymentIntent Stripe (dovada plății)
+ * @param context        de unde a venit plata (pentru audit)
  */
+export async function onUserPaidTransaction(
+  inviteeUserId: string | null,
+  paidTxRef: string,
+  context: "shop_order" | "go_ride" | "eats_order" | "stay_booking" | "other",
+): Promise<void> {
+  if (!inviteeUserId) return; // plată ca oaspete — fără cont, fără referral
+  await safe(`paid_tx:${context}`, async () => {
+    // UPDATE ... WHERE validated_at IS NULL = poartă atomică: chiar dacă două
+    // plăți se confirmă simultan, o singură cerere primește rândul înapoi.
+    const { rows } = await dbQuery<{ referrer_user_id: string }>(
+      `UPDATE referral_attributions
+          SET validated_at = now(), validation_action = $2
+        WHERE invitee_user_id = $1 AND validated_at IS NULL
+        RETURNING referrer_user_id::text`,
+      [inviteeUserId, `first_paid:${context}`],
+    );
+    const referrerId = rows[0]?.referrer_user_id;
+    if (!referrerId) return; // n-a fost invitat de nimeni, sau deja validat
+
+    await awardSwyp({
+      userId: referrerId,
+      action: "referral_validated",
+      refId: inviteeUserId, // un singur bonus per invitat, pe viață
+      paidTxRef,
+      metadata: { invitee_user_id: inviteeUserId, context },
+    });
+    // total_validated e incrementat automat de trigger-ul
+    // trg_referral_attr_counters (migrarea 20260519_0013) la trecerea
+    // validated_at NULL → NOT NULL. Nu-l atingem aici, ar dubla contorul.
+    logger.info({ referrerId, inviteeId: inviteeUserId, context }, "swyp.referral.validated");
+  });
+}
+
+/** Comandă din Shop plătită → validează referralul cumpărătorului. */
 export async function onOrderPaid(orderId: string, paidTxRef: string): Promise<void> {
   await safe("order_paid", async () => {
-    const { rows } = await dbQuery<{ buyer_user_id: string | null; prior_paid: string }>(
-      `SELECT co.buyer_user_id::text,
-              (SELECT COUNT(*) FROM commerce_orders co2
-                WHERE co2.buyer_user_id = co.buyer_user_id
-                  AND co2.status IN ('paid','fulfilled','completed','shipped','delivered')
-                  AND co2.id <> co.id)::text AS prior_paid
-         FROM commerce_orders co WHERE co.id = $1`,
+    const { rows } = await dbQuery<{ buyer_user_id: string | null }>(
+      `SELECT buyer_user_id::text FROM commerce_orders WHERE id = $1`,
       [orderId],
     );
-    const buyerId = rows[0]?.buyer_user_id;
-    if (!buyerId) return; // comandă de oaspete — nimic de recompensat
+    await onUserPaidTransaction(rows[0]?.buyer_user_id ?? null, paidTxRef, "shop_order");
+  });
+}
 
-    const isFirstPaidOrder = Number(rows[0].prior_paid) === 0;
+/**
+ * Cursă Swypik Go plătită → recompensă pentru șofer + referral pentru pasager.
+ * Se apelează după confirmarea plății (card capturat sau cash încasat).
+ */
+export async function onRidePaid(rideId: string, paidTxRef: string): Promise<void> {
+  await safe("ride_paid", async () => {
+    const { rows } = await dbQuery<{ rider_user_id: string | null; driver_user_id: string | null }>(
+      `SELECT r.rider_user_id::text AS rider_user_id,
+              c.user_id::text  AS driver_user_id
+         FROM rides r
+         LEFT JOIN couriers c ON c.id = r.driver_id
+        WHERE r.id = $1`,
+      [rideId],
+    );
+    const row = rows[0];
+    if (!row) return;
 
-    // Referral: se validează DOAR la prima comandă plătită a invitatului.
-    // Aici se plătește invitatorul — fermele de conturi nu produc nimic
-    // pentru că nu ajung niciodată la o plată reală.
-    if (isFirstPaidOrder) {
-      const { rows: refRows } = await dbQuery<{ referrer_user_id: string }>(
-        `UPDATE referral_attributions
-            SET validated_at = now(), validation_action = 'first_paid_order'
-          WHERE invitee_user_id = $1 AND validated_at IS NULL
-          RETURNING referrer_user_id::text`,
-        [buyerId],
-      );
-      const referrerId = refRows[0]?.referrer_user_id;
-      if (referrerId) {
-        await awardSwyp({
-          userId: referrerId,
-          action: "referral_validated",
-          refId: buyerId, // un singur bonus per invitat, oricâte comenzi ar face
-          paidTxRef,
-          metadata: { invitee_user_id: buyerId, order_id: orderId },
-        });
-        // total_validated e incrementat automat de trigger-ul
-        // trg_referral_attr_counters (migrarea 20260519_0013) la trecerea
-        // validated_at NULL → NOT NULL. Nu-l atingem aici, ar dubla contorul.
-        logger.info({ referrerId, inviteeId: buyerId }, "swyp.referral.validated");
-      }
+    // Pasagerul: prima cursă plătită validează referralul.
+    await onUserPaidTransaction(row.rider_user_id, paidTxRef, "go_ride");
+
+    // Șoferul: recompensă per cursă (cu cap zilnic din swyp_emission_rules).
+    if (row.driver_user_id) {
+      await awardSwyp({
+        userId: row.driver_user_id,
+        action: "go_ride_completed",
+        refId: rideId,
+        paidTxRef,
+        metadata: { ride_id: rideId },
+      });
     }
   });
 }
 
-/** Cursă Swypik Go finalizată → recompensă pentru șofer. */
-export async function onRideCompleted(args: {
-  rideId: string;
-  driverUserId: string | null;
-  paidTxRef: string;
-}): Promise<void> {
-  if (!args.driverUserId) return;
-  await safe("ride_completed", () =>
-    awardSwyp({
-      userId: args.driverUserId!,
-      action: "go_ride_completed",
-      refId: args.rideId,
-      paidTxRef: args.paidTxRef,
-      metadata: { ride_id: args.rideId },
-    }),
-  );
+/** Comandă Eats plătită → referral pentru client. */
+export async function onLocalOrderPaid(orderId: string, paidTxRef: string): Promise<void> {
+  await safe("local_order_paid", async () => {
+    const { rows } = await dbQuery<{ customer_user_id: string | null }>(
+      `SELECT customer_user_id::text FROM local_orders WHERE id = $1`,
+      [orderId],
+    );
+    await onUserPaidTransaction(rows[0]?.customer_user_id ?? null, paidTxRef, "eats_order");
+  });
 }
 
 /** Livrare Eats finalizată la timp → recompensă pentru curier. */
