@@ -128,7 +128,38 @@ export async function fundBacking(args: {
 
 export type RedeemResult =
     | { ok: true; units_spent: bigint; cents_covered: number; already: boolean }
-    | { ok: false; reason: "no_rate" | "insufficient_swyp" | "insufficient_fund" };
+    | { ok: false; reason: "no_rate" | "insufficient_swyp" | "insufficient_fund" | "reserve_protection" };
+
+/**
+ * Rezerva anti-run: fondul nu poate coborî, prin redeem-uri, sub un procent
+ * (default 20%) din valoarea lui de la începutul lunii curente.
+ *
+ * De ce: dacă toți deținătorii ar plăti cu SWYP simultan, fondul s-ar goli și
+ * cursul s-ar prăbuși pentru cei rămași (bank run). Plafonul garantează că
+ * într-o lună se poate răscumpăra cel mult 80% din fond — restul rămâne
+ * acoperire pentru toți ceilalți. Configurabil: swyp_redeem_reserve_pct.
+ *
+ * Reconstruim valoarea de la începutul lunii din ledger (sursa adevărului):
+ *   fond_început_lună = sold_curent + ieșiri_luna_asta − intrări_luna_asta
+ */
+async function redeemFloorCents(currentBalance: bigint): Promise<bigint> {
+    const { rows: pctRow } = await dbQuery<{ value: unknown }>(
+        `SELECT value FROM platform_config WHERE key = 'swyp_redeem_reserve_pct'`,
+    );
+    const pct = Number(pctRow[0]?.value ?? 20);
+    if (!Number.isFinite(pct) || pct <= 0) return 0n;
+
+    const { rows } = await dbQuery<{ month_in: string; month_out: string }>(
+        `SELECT
+            COALESCE(SUM(amount_cents) FILTER (WHERE direction = 'in'),  0)::text AS month_in,
+            COALESCE(SUM(amount_cents) FILTER (WHERE direction = 'out'), 0)::text AS month_out
+           FROM swyp_backing_ledger
+          WHERE created_at >= date_trunc('month', now())`,
+    );
+    const monthStart = currentBalance + BigInt(rows[0].month_out) - BigInt(rows[0].month_in);
+    if (monthStart <= 0n) return 0n;
+    return (monthStart * BigInt(Math.round(pct))) / 100n;
+}
 
 /**
  * Plătește `cents` dintr-o tranzacție folosind SWYP-ul utilizatorului.
@@ -152,8 +183,19 @@ export async function redeemSwypForPayment(args: {
     const { rows: fund } = await dbQuery<{ balance_cents: string }>(
         `SELECT balance_cents FROM swyp_backing_fund WHERE id = 1`,
     );
-    if (BigInt(fund[0]?.balance_cents ?? "0") < BigInt(args.cents)) {
+    const balance = BigInt(fund[0]?.balance_cents ?? "0");
+    if (balance < BigInt(args.cents)) {
         return { ok: false, reason: "insufficient_fund" };
+    }
+
+    // Rezerva anti-run: redeem-ul nu poate duce fondul sub pragul lunar.
+    const floor = await redeemFloorCents(balance);
+    if (floor > 0n && balance - BigInt(args.cents) < floor) {
+        log.warn(
+            { balance: balance.toString(), floor: floor.toString(), cents: args.cents },
+            "swyp.redeem.reserve_protection",
+        );
+        return { ok: false, reason: "reserve_protection" };
     }
 
     try {

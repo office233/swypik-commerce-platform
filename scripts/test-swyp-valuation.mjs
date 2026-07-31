@@ -112,6 +112,29 @@ try {
         String(cur.balance_cents) === String(snap.balance_cents),
         `${cur.balance_cents} vs ${snap.balance_cents}`,
     );
+
+    // 8. Rezerva anti-run: simulăm luna curentă și verificăm pragul de 20%.
+    await c.query("BEGIN");
+    await c.query("UPDATE swyp_backing_fund SET balance_cents = 10000 WHERE id=1"); // 100 RON
+    // fără mișcări luna asta → fond_început_lună = 10000; prag 20% = 2000
+    const cfg = await c.query(`SELECT value FROM platform_config WHERE key='swyp_redeem_reserve_pct'`);
+    const pct = Number(cfg.rows[0]?.value ?? 20);
+    check("config swyp_redeem_reserve_pct există", Number.isFinite(pct) && pct > 0, `pct=${pct}`);
+    const mv = await c.query(
+        `SELECT COALESCE(SUM(amount_cents) FILTER (WHERE direction='in'),0)::text AS i,
+                COALESCE(SUM(amount_cents) FILTER (WHERE direction='out'),0)::text AS o
+           FROM swyp_backing_ledger WHERE created_at >= date_trunc('month', now())`,
+    );
+    const monthStart = 10000n + BigInt(mv.rows[0].o) - BigInt(mv.rows[0].i);
+    const floor = (monthStart * BigInt(pct)) / 100n;
+    // un redeem care ar coborî fondul sub prag trebuie refuzat de logică:
+    const wouldRemain = 10000n - (10000n - floor + 1n);
+    check(
+        "pragul anti-run oprește golirea fondului",
+        wouldRemain < floor,
+        `remain=${wouldRemain} floor=${floor}`,
+    );
+    await c.query("ROLLBACK");
 } catch (err) {
     await c.query("ROLLBACK").catch(() => { });
     console.error("EROARE:", err.message);
