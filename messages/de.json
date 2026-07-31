@@ -1304,7 +1304,8 @@
       "book": "Buchen",
       "contact": "Kontakt",
       "call": "Rufen",
-      "donate": "Spenden"
+      "donate": "Spenden",
+      "openWallet": "Öffnen"
     },
     "shop": {
       "label": "Shop"
@@ -1489,6 +1490,9 @@
     },
     "agro": {
       "label": "Landwirtschaft"
+    },
+    "pay": {
+      "label": "SWYP-Münze"
     }
   },
   "home": {
@@ -1500,7 +1504,8 @@
       "eats": "Schnelle Lieferung",
       "shop": "Niedrige Preise",
       "estates": "Geprüfte Immobilien",
-      "auto": "Vertrauenswürdige Händler"
+      "auto": "Vertrauenswürdige Händler",
+      "pay": "Täglich SWYP verdienen"
     },
     "cares": {
       "tagline": "Rumänen spenden für Rumänien. Hilf einer Familie oder einem kleinen Unternehmen.",
@@ -1519,7 +1524,8 @@
       "services": "Dienstleistungen",
       "mobility": "Transport",
       "work": "Jobs",
-      "social": "Gemeinschaft"
+      "social": "Gemeinschaft",
+      "finance": "Wallet & Münze"
     }
   },
   "homeFeed": {

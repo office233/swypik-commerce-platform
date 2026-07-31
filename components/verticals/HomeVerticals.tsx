@@ -21,7 +21,7 @@ import { liveVerticals, type Vertical } from "@/lib/verticals/catalog";
 const HERO_IDS = ["eats", "shop", "estates", "auto"];
 
 /** Ordinea grupelor sub eroi. */
-const GROUP_ORDER = ["local", "shop", "travel", "property", "services", "mobility", "work", "social"] as const;
+const GROUP_ORDER = ["local", "shop", "travel", "property", "services", "mobility", "work", "social", "finance"] as const;
 
 /** A doua culoare a gradientului — mai închisă, pentru adâncime. */
 const GRADIENT_TO: Record<string, string> = {
@@ -52,6 +52,10 @@ export default function HomeVerticals({ className = "" }: { className?: string }
         }
         if (id === "eats") {
             router.push("/food");
+            return;
+        }
+        if (id === "pay") {
+            router.push("/pay");
             return;
         }
         router.push(`/v/${id}`);

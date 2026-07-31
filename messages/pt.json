@@ -1304,7 +1304,8 @@
       "book": "Book",
       "contact": "Contact",
       "call": "Call",
-      "donate": "Donate"
+      "donate": "Donate",
+      "openWallet": "Abrir"
     },
     "shop": {
       "label": "Shop"
@@ -1489,6 +1490,9 @@
     },
     "agro": {
       "label": "Agriculture"
+    },
+    "pay": {
+      "label": "Moeda SWYP"
     }
   },
   "home": {
@@ -1500,7 +1504,8 @@
       "eats": "Fast delivery",
       "shop": "Low prices",
       "estates": "Verified homes",
-      "auto": "Trusted dealers"
+      "auto": "Trusted dealers",
+      "pay": "Ganhe SWYP diariamente"
     },
     "cares": {
       "tagline": "Romanians donate for Romania. Help a family or a small business.",
@@ -1519,7 +1524,8 @@
       "services": "Services",
       "mobility": "Transport",
       "work": "Jobs",
-      "social": "Community"
+      "social": "Community",
+      "finance": "Carteira & Moeda"
     }
   },
   "homeFeed": {
