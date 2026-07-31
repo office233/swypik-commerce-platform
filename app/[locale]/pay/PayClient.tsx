@@ -67,6 +67,9 @@ export default function PayClient() {
     const [copied, setCopied] = useState(false);
     const [wallet, setWallet] = useState<ChainWallet | null>(null);
     const [addrCopied, setAddrCopied] = useState(false);
+    const [withdrawBusy, setWithdrawBusy] = useState(false);
+    const [withdrawMsg, setWithdrawMsg] = useState<string | null>(null);
+    const [lastTxUrl, setLastTxUrl] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         const [wRes, mRes] = await Promise.all([fetch("/api/swyp/wallet"), fetch("/api/swyp/mining")]);
@@ -171,9 +174,58 @@ export default function PayClient() {
                         </button>
                         <p className="mt-2 text-[10px] leading-relaxed text-white/40">
                             Adresa ta reală pe blockchainul Swypik — creată automat, a ta pentru totdeauna.
-                            Aici vei putea retrage SWYP din aplicație (în curând) și îl vei vedea în orice
-                            portofel compatibil Ethereum.
+                            Retragi SWYP din aplicație direct aici și îl vezi în orice portofel compatibil
+                            Ethereum (MetaMask: RPC https://rpc.swypik.com, chain ID 643366).
                         </p>
+
+                        <button
+                            onClick={async () => {
+                                const amount = prompt("Câți SWYP retragi pe chain? (minim 1)");
+                                if (!amount) return;
+                                setWithdrawBusy(true);
+                                setWithdrawMsg(null);
+                                try {
+                                    const res = await fetch("/api/swyp/withdraw", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ amountSwyp: Number(amount.replace(",", ".")) }),
+                                    });
+                                    const data = await res.json();
+                                    if (data.success) {
+                                        setWithdrawMsg(`✓ Trimis on-chain!`);
+                                        setLastTxUrl(data.explorerUrl);
+                                        await load();
+                                    } else {
+                                        const reasons: Record<string, string> = {
+                                            insufficient_funds: "Sold insuficient.",
+                                            min_1_swyp: "Minim 1 SWYP.",
+                                            invalid_amount: "Sumă invalidă.",
+                                            rate_limited: "Prea multe retrageri — așteaptă câteva minute.",
+                                            chain_unavailable_refunded: "Chain indisponibil — suma a fost restituită.",
+                                        };
+                                        setWithdrawMsg(`✗ ${reasons[data.error] ?? data.error}`);
+                                    }
+                                } catch {
+                                    setWithdrawMsg("✗ Eroare de rețea.");
+                                } finally {
+                                    setWithdrawBusy(false);
+                                }
+                            }}
+                            disabled={withdrawBusy || balance === null || BigInt(balance ?? "0") < 100n}
+                            className="mt-3 w-full rounded-xl bg-[#F5A623] px-4 py-2.5 text-sm font-black text-black active:scale-[0.98] transition disabled:opacity-40"
+                        >
+                            {withdrawBusy ? "Se trimite on-chain…" : "⛓️ Retrage pe chain"}
+                        </button>
+                        {withdrawMsg && (
+                            <p className="mt-2 text-xs font-bold text-white/80">
+                                {withdrawMsg}{" "}
+                                {lastTxUrl && (
+                                    <a href={lastTxUrl} target="_blank" rel="noopener noreferrer" className="text-[#F5A623] underline">
+                                        vezi tranzacția în explorer →
+                                    </a>
+                                )}
+                            </p>
+                        )}
                     </div>
                 </section>
             )}
