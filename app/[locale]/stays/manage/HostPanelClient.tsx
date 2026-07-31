@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { BedDouble, Plus, Loader2, Eye, EyeOff, Trash2, AlertTriangle, ImageIcon, CalendarDays } from "lucide-react";
 import AvailabilityCalendar from "./AvailabilityCalendar";
+import HostBookings from "./HostBookings";
 
 type Listing = {
     id: string;
@@ -258,6 +259,8 @@ export default function HostPanelClient() {
                     </p>
                 )}
             </div>
+
+            {approved && <HostBookings />}
         </div>
     );
 }
