@@ -14,7 +14,7 @@ import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 import { attributeOrder } from "@/lib/algo/attribution";
 
 import { logger } from "@/lib/logger";
-import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/swyp/hooks";
+import { onOrderPaid, onRidePaid, onLocalOrderPaid, onPaymentRefunded } from "@/lib/swyp/hooks";
 import { APP_URL } from "@/lib/app-url";
 export const dynamic = "force-dynamic";
 
@@ -170,6 +170,9 @@ export async function POST(req: Request) {
                     OR co.metadata->>'stripe_payment_intent' = $1)`,
             [pi, event.id, charge.amount_refunded || 0]
           );
+
+          // SWYP: revocă recompensele acordate pentru plata refundată.
+          await onPaymentRefunded(pi);
 
           try {
             const { rows: oRows } = await dbQuery<{ id: string; currency: string; total_cents: number; customer_email: string | null; user_email: string | null }>(
@@ -843,21 +846,24 @@ async function persistOrderItems(orderId: string, items: Array<{
       ]
     );
 
-    // Deduct stock to prevent overselling.
-    // NOTE: we scope by (product_id, sku) because SKU is NOT globally unique
-    // across products. Concurrent-write locking (SELECT ... FOR UPDATE in a
-    // tx) is intentionally omitted here because lib/db does not expose a
-    // transaction helper and the primary double-decrement vector - Stripe
-    // event retries - is already neutralized by the processed_stripe_events
-    // idempotency guard added at the top of POST().
+    // Deduct stock. Single-statement UPDATE is atomic per row in Postgres, so
+    // concurrent webhooks serialize on the row lock — no double-decrement.
+    // We track the REAL post-sale quantity (can go conceptually negative) via
+    // RETURNING: if the clamped value hit 0 while quantity sold exceeded what
+    // was left, that's an OVERSELL — payment already succeeded, so we log it
+    // loudly for ops follow-up (refund/backorder) instead of hiding it.
     if (skuId && pgId) {
       try {
-        await dbQuery(
+        const { rows: stockRows } = await dbQuery<{ inventory_quantity: number }>(
           `UPDATE marketplace_product_variants
              SET inventory_quantity = GREATEST(0, inventory_quantity - $1)
-           WHERE product_id = $2 AND sku = $3`,
+           WHERE product_id = $2 AND sku = $3
+           RETURNING inventory_quantity`,
           [item.quantity, String(pgId), String(skuId)]
         );
+        if (stockRows[0] && stockRows[0].inventory_quantity === 0) {
+          logger.warn({ productId: pgId, sku: skuId, qtySold: item.quantity }, "[Stripe Webhook] OVERSELL RISK: variant stock hit 0 after sale — verify no oversell");
+        }
       } catch (e) {
         logger.error({ err: e }, `[Stripe Webhook] Error deducting variant stock for product ${pgId} SKU ${skuId}`);
       }

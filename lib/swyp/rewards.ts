@@ -12,7 +12,7 @@
 import { dbQuery } from "@/lib/db";
 import { getSwypRate, centsToUnits } from "./valuation";
 import { logger } from "@/lib/logger";
-import { swypTransfer, type SwypTransferResult } from "./ledger";
+import { swypTransfer, SwypDailyCapError, type SwypTransferResult } from "./ledger";
 
 export type SwypRewardAction =
     | "mining_daily"
@@ -102,32 +102,27 @@ export async function awardSwyp(args: AwardArgs): Promise<AwardResult> {
     if (amount === null) amount = BigInt(rule.amount_units);
     if (amount <= 0n) return { awarded: false, reason: "rule_disabled" };
 
-    // Cap zilnic — calculat din ledger (sursa adevărului).
-    if (rule.daily_cap_units !== null) {
-        const cap = BigInt(rule.daily_cap_units);
-        const { rows: sumRows } = await dbQuery<{ total: string }>(
-            `SELECT COALESCE(SUM(amount_units), 0)::text AS total
-         FROM swyp_ledger_entries
-        WHERE to_user_id = $1 AND kind = 'reward' AND ref_type = $2
-          AND created_at >= date_trunc('day', now())`,
-            [userId, `reward:${action}`],
-        );
-        if (BigInt(sumRows[0].total) + amount > cap) {
+    // Cap zilnic — verificat ATOMIC în swypTransfer (după FOR UPDATE pe soldul
+    // userului), nu aici: două cereri concurente nu mai pot depăși capul.
+    try {
+        const result = await swypTransfer({
+            from: { pool: "rewards" },
+            to: { userId },
+            amountUnits: amount,
+            kind: "reward",
+            refType: `reward:${action}`,
+            refId,
+            description: `SWYP reward: ${action}`,
+            metadata: { ...metadata, ...(paidTxRef ? { paid_tx_ref: paidTxRef } : {}) },
+            dailyCapUnits: rule.daily_cap_units !== null ? BigInt(rule.daily_cap_units) : undefined,
+        });
+        return { awarded: true, ...result };
+    } catch (err) {
+        if (err instanceof SwypDailyCapError) {
             return { awarded: false, reason: "daily_cap_reached" };
         }
+        throw err;
     }
-
-    const result = await swypTransfer({
-        from: { pool: "rewards" },
-        to: { userId },
-        amountUnits: amount,
-        kind: "reward",
-        refType: `reward:${action}`,
-        refId,
-        description: `SWYP reward: ${action}`,
-        metadata: { ...metadata, ...(paidTxRef ? { paid_tx_ref: paidTxRef } : {}) },
-    });
-    return { awarded: true, ...result };
 }
 
 /** Cheltuire SWYP (checkout, boost, tips): user → pool-ul rewards (circular, fără burn). */

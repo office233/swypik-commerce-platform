@@ -12,6 +12,7 @@
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { awardSwyp } from "./rewards";
+import { swypTransfer } from "./ledger";
 
 /** Rulează un hook fără să propage vreodată eroarea. */
 async function safe(label: string, fn: () => Promise<unknown>): Promise<void> {
@@ -163,4 +164,46 @@ export async function onOrderReviewed(args: {
             metadata: { order_id: args.orderId },
         }),
     );
+}
+
+/**
+ * Refund → revocă recompensele SWYP legate de plata respectivă.
+ *
+ * Găsește toate intrările de tip 'reward' din ledger care au fost acordate cu
+ * paid_tx_ref = paymentIntent-ul refundat și le întoarce în pool-ul 'rewards'.
+ * Idempotent: refId = id-ul intrării originale → un refund retrimis de Stripe
+ * nu debitează de două ori. Dacă userul a cheltuit deja SWYP-ul și soldul nu
+ * acoperă revocarea, logăm și lăsăm intrarea pentru reconciliere manuală —
+ * nu blocăm procesarea refundului.
+ */
+export async function onPaymentRefunded(paidTxRef: string): Promise<void> {
+    await safe("payment_refunded", async () => {
+        const { rows } = await dbQuery<{ id: string; to_user_id: string; amount_units: string; ref_type: string }>(
+            `SELECT id::text, to_user_id::text, amount_units::text, ref_type
+         FROM swyp_ledger_entries
+        WHERE kind = 'reward'
+          AND to_user_id IS NOT NULL
+          AND metadata->>'paid_tx_ref' = $1`,
+            [paidTxRef],
+        );
+        for (const entry of rows) {
+            try {
+                await swypTransfer({
+                    from: { userId: entry.to_user_id },
+                    to: { pool: "rewards" },
+                    amountUnits: BigInt(entry.amount_units),
+                    kind: "adjustment",
+                    refType: "reward_revoke",
+                    refId: entry.id, // idempotent per intrare originală
+                    description: `Revocare reward la refund (${entry.ref_type})`,
+                    metadata: { paid_tx_ref: paidTxRef, original_entry_id: entry.id },
+                });
+                logger.info({ entryId: entry.id, userId: entry.to_user_id }, "swyp.reward.revoked");
+            } catch (err) {
+                // Sold insuficient (userul a cheltuit deja) sau altă eroare —
+                // nu blocăm refundul; rămâne pentru reconciliere.
+                logger.error({ err, entryId: entry.id, paidTxRef }, "swyp.reward.revoke_failed");
+            }
+        }
+    });
 }

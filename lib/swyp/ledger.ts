@@ -44,6 +44,13 @@ export type SwypTransferResult = {
     alreadyApplied: boolean;
 };
 
+export class SwypDailyCapError extends Error {
+    constructor(public readonly refType: string, public readonly capUnits: bigint) {
+        super(`swyp_daily_cap_reached: refType=${refType} cap=${capUnits}`);
+        this.name = "SwypDailyCapError";
+    }
+}
+
 export class SwypInsufficientFundsError extends Error {
     constructor(
         public readonly party: string,
@@ -64,6 +71,9 @@ export type SwypTransferArgs = {
     refId: string;
     description?: string;
     metadata?: Record<string, unknown>;
+    /** Cap zilnic per destinatar (user) pentru acest refType. Verificat ÎN
+     *  tranzacție, după FOR UPDATE pe soldul userului → fără TOCTOU. */
+    dailyCapUnits?: bigint;
 };
 
 const ENTRY_COLS = `id::text, from_pool, from_user_id::text, to_pool, to_user_id::text,
@@ -80,7 +90,7 @@ function isPool(p: SwypParty): p is { pool: string } & SwypParty {
 export async function swypTransfer(args: SwypTransferArgs): Promise<SwypTransferResult> {
     const amount = BigInt(args.amountUnits);
     if (amount <= 0n) throw new Error("amount_units must be a positive integer");
-    const { from, to, kind, refType, refId, description, metadata } = args;
+    const { from, to, kind, refType, refId, description, metadata, dailyCapUnits } = args;
 
     return withTransaction(async (q) => {
         // 1. Idempotency check (în tx; duplicatele concurente se serializează pe UNIQUE).
@@ -118,6 +128,21 @@ export async function swypTransfer(args: SwypTransferArgs): Promise<SwypTransfer
                     [p.userId],
                 );
                 balances.set(`user:${p.userId}`, BigInt(r.rows[0].balance_units));
+            }
+        }
+
+        // 2b. Cap zilnic per destinatar — verificat DUPĂ lock (FOR UPDATE pe
+        //     soldul userului serializează cererile concurente către același user).
+        if (dailyCapUnits !== undefined && !isPool(to)) {
+            const capRows = await q<{ total: string }>(
+                `SELECT COALESCE(SUM(amount_units), 0)::text AS total
+           FROM swyp_ledger_entries
+          WHERE to_user_id = $1 AND kind = $2 AND ref_type = $3
+            AND created_at >= date_trunc('day', now())`,
+                [to.userId, kind, refType],
+            );
+            if (BigInt(capRows.rows[0].total) + amount > dailyCapUnits) {
+                throw new SwypDailyCapError(refType, dailyCapUnits);
             }
         }
 

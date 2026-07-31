@@ -42,13 +42,26 @@ export function unitsToWei(units: bigint): bigint {
  * Returnează hash-ul tranzacției după includere în bloc.
  */
 export async function sendFromTreasury(to: `0x${string}`, units: bigint): Promise<`0x${string}`> {
+    const hash = await submitFromTreasury(to, units);
+    await waitForChainReceipt(hash);
+    return hash;
+}
+
+/**
+ * Doar EMITE tranzacția (returnează hash-ul imediat, fără să aștepte
+ * includerea). Permite apelantului să persiste hash-ul înainte de wait —
+ * elimină fereastra de dublare la crash între emitere și confirmare.
+ */
+export async function submitFromTreasury(to: `0x${string}`, units: bigint): Promise<`0x${string}`> {
     const account = treasuryAccount();
     const wallet = createWalletClient({ account, chain: swypikChain, transport: http() });
-    const hash = await wallet.sendTransaction({ to, value: unitsToWei(units) });
-    // așteptăm includerea (blocuri la 5s) ca să putem afișa link de explorer valid
+    return wallet.sendTransaction({ to, value: unitsToWei(units) });
+}
+
+/** Așteaptă includerea în bloc (blocuri la 5s). */
+export async function waitForChainReceipt(hash: `0x${string}`): Promise<void> {
     const timeout = Number(process.env.SWYP_CHAIN_RECEIPT_TIMEOUT_MS ?? 30_000);
     await publicClient().waitForTransactionReceipt({ hash, timeout });
-    return hash;
 }
 
 /** Soldul on-chain al unei adrese, în wei. */

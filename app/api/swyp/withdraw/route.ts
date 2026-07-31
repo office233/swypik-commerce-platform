@@ -18,7 +18,7 @@ import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { swypTransfer, SwypInsufficientFundsError } from "@/lib/swyp/ledger";
 import { getOrCreateChainWallet } from "@/lib/swyp/wallet";
-import { sendFromTreasury } from "@/lib/swyp/chain";
+import { submitFromTreasury, waitForChainReceipt } from "@/lib/swyp/chain";
 
 export const dynamic = "force-dynamic";
 
@@ -72,9 +72,19 @@ export const POST = withErrorHandling(async (req: Request) => {
         throw err;
     }
 
-    // 2. Transfer on-chain din trezoreria REWARDS.
+    // 2. Transfer on-chain din trezoreria REWARDS — în DOI pași ca să nu
+    //    existe fereastră de dublare: (a) emitem tx și persistăm IMEDIAT
+    //    hash-ul cu status 'submitted'; (b) așteptăm confirmarea → 'sent'.
+    //    Dacă procesul moare după (a), retragerea rămâne 'submitted' cu
+    //    tx_hash salvat — NU se emite refund, reconcilierea verifică chain-ul.
+    let txHash: `0x${string}` | null = null;
     try {
-        const txHash = await sendFromTreasury(wallet.address as `0x${string}`, units);
+        txHash = await submitFromTreasury(wallet.address as `0x${string}`, units);
+        await dbQuery(
+            `UPDATE swyp_withdrawals SET status='submitted', tx_hash=$2 WHERE id=$1`,
+            [withdrawalId, txHash],
+        );
+        await waitForChainReceipt(txHash);
         await dbQuery(
             `UPDATE swyp_withdrawals SET status='sent', tx_hash=$2, completed_at=now() WHERE id=$1`,
             [withdrawalId, txHash],
@@ -87,7 +97,19 @@ export const POST = withErrorHandling(async (req: Request) => {
             address: wallet.address,
         });
     } catch (err) {
-        // 3. Eșec on-chain → restituie intern (idempotent pe refund:<id>).
+        // 3a. Tx EMISĂ dar neconfirmată în timeout → NU refund (banii pot fi
+        //     deja on-chain). Rămâne 'submitted'; reconcilierea decide.
+        if (txHash) {
+            logger.error({ err, withdrawalId, txHash }, "swyp.withdraw.receipt_timeout");
+            return NextResponse.json({
+                success: true,
+                pending: true,
+                txHash,
+                explorerUrl: `https://scan.swypik.com/tx/${txHash}`,
+                address: wallet.address,
+            });
+        }
+        // 3b. Emiterea a eșuat complet → restituie intern (idempotent pe <id>).
         logger.error({ err, withdrawalId }, "swyp.withdraw.chain_failed");
         await swypTransfer({
             from: { pool: "rewards" },
