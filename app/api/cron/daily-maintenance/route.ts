@@ -5,10 +5,17 @@
  * Rulare (crontab, o dată pe zi la 04:15):
  *   15 4 * * * curl -s -o /dev/null -H "x-cron-secret: $CRON_SECRET" https://swypik.com/api/cron/daily-maintenance
  *
- * Rulează în serie joburile zilnice idempotente. Fiecare e izolat la erori —
- * un job picat NU le oprește pe celelalte. Înainte, singurul job programat
- * zilnic era retrogradarea founding drivers; restul endpoint-urilor existau
- * în cod dar nu le apela nimeni.
+ * ATENȚIE — programarea principală o face `cron-worker`
+ * (infra/hetzner/cron-worker/run.sh): el rulează deja publish-scheduled,
+ * refresh-rank, watchdog-videos, embed-batch, classify-pending,
+ * process-payouts, refresh-fx, abandoned-cart, detect-trends, email-digest,
+ * suspend-unverified, strikes-decay și cleanup-tokens.
+ *
+ * Aici rulăm DOAR ce nu acoperă worker-ul, ca să nu dublăm execuțiile:
+ *   - retrogradarea founding drivers (inline)
+ *   - reconcile-wallets (verificare integritate ledger — lipsea complet)
+ *   - aggregate-video-stats (lipsea complet)
+ * Fiecare job e izolat la erori — unul picat NU le oprește pe celelalte.
  */
 import { NextResponse } from "next/server";
 import { demoteInactiveFoundingDrivers } from "@/lib/drivers/tiers";
@@ -19,16 +26,13 @@ export const maxDuration = 300;
 
 const log = logger.child({ mod: "cron/daily-maintenance" });
 
-/** Joburi delegate — apelate intern, cu același secret. */
+/**
+ * Joburi delegate — DOAR cele neacoperite de cron-worker.
+ * Înainte de a adăuga aici ceva, verifică infra/hetzner/cron-worker/run.sh.
+ */
 const DAILY_JOBS = [
-    "cleanup-tokens",       // tokene/sesiuni expirate + anonimizare IP (GDPR)
-    "reconcile-wallets",    // integritate ledger
-    "strikes-decay",        // expirare strikes moderare
-    "suspend-unverified",   // selleri neverificați
-    "abandoned-cart",       // emailuri coș abandonat
-    "refresh-fx",           // cursuri valutare
-    "aggregate-video-stats",
-    "detect-trends",
+    "reconcile-wallets",     // integritate ledger — nu era programat nicăieri
+    "aggregate-video-stats", // statistici video — nu era programat nicăieri
 ] as const;
 
 async function handle(req: Request) {
