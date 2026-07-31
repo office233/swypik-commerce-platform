@@ -56,6 +56,9 @@ while true; do
   if [ $((TICK % 300)) -lt 60 ]; then
     run_job publish-scheduled POST
     run_job refresh-rank POST
+    # Dispecerizarea curselor Go / livrarilor Food — fara asta comenzile
+    # raman neatribuite. (Adaugat 2026-07-31: ruta exista dar nu era programata.)
+    run_job dispatch-tick POST
   fi
   # Every 10 min
   if [ $((TICK % 600)) -lt 60 ]; then
@@ -76,6 +79,10 @@ while true; do
     run_job sync-dropship-status POST
     run_job swyp-view-milestones GET
     run_job refresh-fx GET
+    # Alerte operationale + agregari (adaugate 2026-07-31)
+    run_job alert-video-queue GET
+    run_job aggregate-video-stats POST
+    run_job fly-price-watch GET
   fi
   # Every 4 hours
   if [ $((TICK % 14400)) -lt 60 ]; then
@@ -96,6 +103,12 @@ while true; do
     run_job suspend-unverified GET
     run_job strikes-decay POST
     run_job cleanup-tokens GET
+    # Adaugate 2026-07-31 (rute existente, neprogramate)
+    run_job alert-dispute-deadlines GET
+    run_job reconcile-wallets POST
+    run_job battles/close POST
+    run_job indexnow GET
+    run_job bing-url-submit GET
   fi
 
   sleep 60

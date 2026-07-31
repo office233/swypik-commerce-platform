@@ -265,7 +265,9 @@ services:
       - .env.production
     depends_on:
       web-next:
-        condition: service_started
+        # FIX 2026-07-31: service_started pornea cronurile inainte ca Next sa
+        # raspunda -> primele apeluri esuau la fiecare boot/deploy.
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "test $(($(date +%s) - $(cat /tmp/cron-heartbeat 2>/dev/null || echo 0))) -lt 180 || exit 1"]
       interval: 60s
