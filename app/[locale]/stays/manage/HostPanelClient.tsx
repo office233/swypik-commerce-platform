@@ -6,7 +6,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BedDouble, Plus, Loader2, Eye, EyeOff, Trash2, AlertTriangle, ImageIcon } from "lucide-react";
+import { BedDouble, Plus, Loader2, Eye, EyeOff, Trash2, AlertTriangle, ImageIcon, CalendarDays } from "lucide-react";
+import AvailabilityCalendar from "./AvailabilityCalendar";
 
 type Listing = {
     id: string;
@@ -29,7 +30,24 @@ export default function HostPanelClient() {
     const [showForm, setShowForm] = useState(false);
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [calendarFor, setCalendarFor] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
     const [form, setForm] = useState({ title: "", description: "", price: "", imageUrl: "", maxGuests: 2 });
+
+    async function uploadPhoto(file: File) {
+        setUploading(true);
+        setError(null);
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            const r = await fetch("/api/host/upload", { method: "POST", credentials: "include", body: fd });
+            const j = await r.json();
+            if (!r.ok) { setError(j.error ?? "Încărcare eșuată"); return; }
+            setForm((f) => ({ ...f, imageUrl: j.url }));
+        } finally {
+            setUploading(false);
+        }
+    }
 
     const load = useCallback(async () => {
         try {
@@ -151,10 +169,25 @@ export default function HostPanelClient() {
                             <input required type="number" min={1} max={50} value={form.maxGuests} onChange={(e) => setForm({ ...form, maxGuests: Number(e.target.value) })} className={inp} />
                         </label>
                     </div>
-                    <label className={lbl}>Link poză (URL)
-                        <input type="url" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className={inp} placeholder="https://..." />
-                        <span className="mt-1 block text-[11px] text-neutral-400">Necesară pentru publicare. Upload direct vine curând.</span>
-                    </label>
+                    <div>
+                        <span className={lbl}>Poză</span>
+                        {form.imageUrl ? (
+                            <div className="mt-1 flex items-center gap-2">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={form.imageUrl} alt="Previzualizare" className="h-16 w-24 rounded-lg object-cover" />
+                                <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })}
+                                    className="text-xs font-semibold text-red-600">Schimbă</button>
+                            </div>
+                        ) : (
+                            <label className="mt-1 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 px-3 py-4 text-sm text-neutral-500 dark:border-neutral-700">
+                                {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+                                {uploading ? "Se încarcă..." : "Alege o poză (JPEG/PNG/WebP)"}
+                                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden"
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); }} />
+                            </label>
+                        )}
+                        <span className="mt-1 block text-[11px] text-neutral-400">Necesară pentru publicare.</span>
+                    </div>
                     <div className="flex gap-2">
                         <button type="submit" disabled={busy === "create"} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 font-semibold text-white disabled:opacity-40">
                             {busy === "create" ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Salvează
@@ -208,7 +241,14 @@ export default function HostPanelClient() {
                                     className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">
                                     <Trash2 size={14} /> Șterge
                                 </button>
+                                <button onClick={() => setCalendarFor(calendarFor === l.id ? null : l.id)}
+                                    className="flex items-center gap-1.5 rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                                    <CalendarDays size={14} /> Calendar
+                                </button>
                             </div>
+                            {calendarFor === l.id && (
+                                <AvailabilityCalendar listingId={l.id} onClose={() => setCalendarFor(null)} />
+                            )}
                         </div>
                     </div>
                 ))}

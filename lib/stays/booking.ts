@@ -14,6 +14,7 @@
  */
 import { dbQuery } from "@/lib/db";
 import { debitUser, creditUser, InsufficientFundsError } from "@/lib/wallet/ledger";
+import { notifyHostNewBooking, notifyGuestBookingConfirmed } from "./notifications";
 import { logger } from "@/lib/logger";
 
 export function commissionPct(): number {
@@ -206,5 +207,7 @@ export async function bookStayWithWallet(input: {
     }
 
     logger.info({ bookingId, totalCents: q.totalCents }, "stay booked (wallet)");
+    void notifyHostNewBooking(bookingId);
+    void notifyGuestBookingConfirmed(bookingId);
     return { ok: true, bookingId };
 }

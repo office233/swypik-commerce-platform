@@ -10,6 +10,7 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { debitUser, creditUser, InsufficientFundsError } from "@/lib/wallet/ledger";
 import { commissionPct } from "@/lib/stays/booking";
+import { notifyHostNewBooking, notifyGuestBookingConfirmed } from "@/lib/stays/notifications";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -79,5 +80,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     }
 
     logger.info({ bookingId: b.id, totalCents: b.total_cents }, "stay booking paid (wallet)");
+
+    // Notificări best-effort — nu blocăm răspunsul.
+    void notifyHostNewBooking(b.id);
+    void notifyGuestBookingConfirmed(b.id);
+
     return NextResponse.json({ ok: true, status: "confirmed" });
 }
