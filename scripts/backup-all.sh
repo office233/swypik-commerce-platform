@@ -62,6 +62,33 @@ tar czf "$DAY_DIR/config_${TS}.tar.gz" \
   /opt/swypik/app/infra/hetzner/.env.production \
   /etc/nginx 2>/dev/null || true
 
+# ── 2b. SWYPIK CHAIN — CRITIC ──────────────────────────────────────────
+# Keystore + parola + genesis + conturi. Fără astea, cele 10 mld SWYP din
+# trezorerii devin INACCESIBILE PENTRU TOTDEAUNA dacă se pierde discul.
+# Datele blockchainului (blocurile) se pot re-sincroniza de la un alt nod,
+# dar cheile NU se pot regenera.
+if [ -d /opt/swypik-chain ]; then
+  tar czf "$DAY_DIR/chain_keys_${TS}.tar.gz" \
+    -C / \
+    opt/swypik-chain/data/keystore \
+    opt/swypik-chain/keystore-init \
+    opt/swypik-chain/password.txt \
+    opt/swypik-chain/accounts.env \
+    opt/swypik-chain/genesis.json \
+    opt/swypik-chain/docker-compose.yml 2>/dev/null \
+    && log "OK   chain keys+genesis ($(du -h "$DAY_DIR/chain_keys_${TS}.tar.gz" | cut -f1))" \
+    || { log "FAIL chain keys backup"; fail=1; }
+
+  # Snapshot complet al lanțului (o dată pe săptămână, duminica — e mai mare)
+  if [ "$(date +%u)" = "7" ]; then
+    docker stop swypik-chain >/dev/null 2>&1
+    tar czf "$DAY_DIR/chain_data_${TS}.tar.gz" -C /opt/swypik-chain data 2>/dev/null \
+      && log "OK   chain data snapshot ($(du -h "$DAY_DIR/chain_data_${TS}.tar.gz" | cut -f1))" \
+      || { log "FAIL chain data snapshot"; fail=1; }
+    docker start swypik-chain >/dev/null 2>&1
+  fi
+fi
+
 # ── 3. Retenție locală ─────────────────────────────────────────────────
 find "$BACKUP_ROOT" -maxdepth 1 -type d -name '20*' -mtime +"$KEEP_LOCAL_DAYS" -exec rm -rf {} + 2>/dev/null
 
