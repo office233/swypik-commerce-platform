@@ -34,6 +34,7 @@ import {
     driverReferralDiscountCents,
     payFirstRideBonusIfDue,
 } from "@/lib/drivers/referral";
+import { awardSwyp } from "@/lib/swyp/rewards";
 import { logger } from "@/lib/logger";
 
 const log = logger.child({ mod: "payments/mobility" });
@@ -190,6 +191,23 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
     if (!result.alreadySettled) {
         if (ride.driver_id) await recordTierRide(ride.driver_id);
         if (ride.rider_id) await payFirstRideBonusIfDue(ride.rider_id);
+
+        // Cashback în SWYP pentru client (regula go_ride_completed, cu cap
+        // zilnic și anti-sybil: doar pe curse plătite efectiv). Best-effort —
+        // o eroare la recompensă nu trebuie să blocheze decontarea banilor.
+        if (ride.rider_id) {
+            try {
+                await awardSwyp({
+                    userId: ride.rider_id,
+                    action: "go_ride_completed",
+                    refId: ride.id,
+                    paidTxRef: ride.id,
+                    metadata: { fare_cents: fare, payment: isCash ? "cash" : "card" },
+                });
+            } catch (err) {
+                log.warn({ err, rideId: ride.id }, "swyp cashback (ride) failed");
+            }
+        }
     }
 
     await dbQuery(`UPDATE rides SET settled_at = COALESCE(settled_at, now()) WHERE id = $1`, [rideId]);
@@ -211,12 +229,14 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
         payment_method: string | null;
         pricing_zone_id: string | null;
         courier_user_id: string | null;
+        customer_user_id: string | null;
     }>(
         `SELECT lo.id, lo.status, lo.merchant_id,
             COALESCE(lo.subtotal_cents, 0)::int  AS subtotal_cents,
             COALESCE(lo.delivery_fee_cents, 0)::int AS delivery_fee_cents,
             COALESCE(lo.tip_cents, 0)::int AS tip_cents,
             lo.payment_method, lo.pricing_zone_id,
+            lo.customer_user_id,
             c.user_id AS courier_user_id
        FROM local_orders lo
        LEFT JOIN couriers c ON c.id = lo.courier_id
@@ -302,6 +322,22 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
             gmv_cents: order.subtotal_cents + order.delivery_fee_cents + order.tip_cents,
         },
     });
+
+    // Cashback SWYP pentru client la livrare (regula eats_delivery_on_time,
+    // cap zilnic + anti-sybil în awardSwyp). Best-effort.
+    if (!result.alreadySettled && order.customer_user_id) {
+        try {
+            await awardSwyp({
+                userId: order.customer_user_id,
+                action: "eats_delivery_on_time",
+                refId: order.id,
+                paidTxRef: order.id,
+                metadata: { subtotal_cents: order.subtotal_cents, payment: isCash ? "cash" : "card" },
+            });
+        } catch (err) {
+            log.warn({ err, orderId: order.id }, "swyp cashback (order) failed");
+        }
+    }
 
     await dbQuery(`UPDATE local_orders SET settled_at = COALESCE(settled_at, now()) WHERE id = $1`, [orderId]);
     log.info({ orderId, isCash, split, kind: result.ledger_kind, amount: result.ledger_amount_cents }, "order settled");
