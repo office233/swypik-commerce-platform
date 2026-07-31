@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
+import { decryptCnp, maskCnp } from "@/lib/identity/cnp";
 import HostActions from "./HostActions";
 
 export const dynamic = "force-dynamic";
@@ -48,9 +49,20 @@ type Row = {
     max_guests: number;
     classification_cert: string | null;
     tourism_registered: boolean;
+    cnp_encrypted: string | null;
     admin_notes: string | null;
     created_at: string;
 };
+
+/** CNP-ul se afișează DOAR mascat: prima + ultimele 4 cifre. */
+function maskedCnpOf(row: Row): string | null {
+    if (!row.cnp_encrypted) return null;
+    try {
+        return maskCnp(decryptCnp(row.cnp_encrypted));
+    } catch {
+        return "eroare decriptare";
+    }
+}
 
 function fmtDate(d: string | null): string {
     if (!d) return "-";
@@ -87,6 +99,7 @@ export default async function AdminHostsPage({
             `SELECT id, status, full_name, phone, email, entity_type, company_name, cui,
                     property_name, property_type, address, city, county, rooms, max_guests,
                     classification_cert, tourism_registered, admin_notes, created_at::text
+                    , cnp_encrypted
                FROM host_applications ${whereSql}
               ORDER BY created_at DESC LIMIT 100`,
             params,
@@ -154,6 +167,7 @@ export default async function AdminHostsPage({
                                 <div><dt className="inline text-black/50">Email: </dt><dd className="inline font-medium">{r.email}</dd></div>
                                 {r.company_name && <div><dt className="inline text-black/50">Firmă: </dt><dd className="inline font-medium">{r.company_name}</dd></div>}
                                 {r.cui && <div><dt className="inline text-black/50">CUI: </dt><dd className="inline font-medium">{r.cui}</dd></div>}
+                                {maskedCnpOf(r) && <div><dt className="inline text-black/50">CNP: </dt><dd className="inline font-mono font-medium" title="afișat mascat — integral doar la raportare fiscală">{maskedCnpOf(r)}</dd></div>}
                             </dl>
 
                             <div className="mt-3 flex flex-wrap gap-2 text-xs">

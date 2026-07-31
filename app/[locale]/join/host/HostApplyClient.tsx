@@ -31,7 +31,7 @@ export default function HostApplyClient() {
     const tj = useTranslations("join");
     const [form, setForm] = useState({
         full_name: "", phone: "", email: "",
-        entity_type: "persoana_fizica", company_name: "", cui: "",
+        entity_type: "persoana_fizica", company_name: "", cui: "", cnp: "",
         property_name: "", property_type: "apartament",
         address: "", city: "", county: "",
         rooms: 1, max_guests: 2,
@@ -64,6 +64,7 @@ export default function HostApplyClient() {
                     ...form,
                     company_name: form.company_name || undefined,
                     cui: form.cui || undefined,
+                    cnp: form.cnp || undefined,
                     classification_cert: form.classification_cert || undefined,
                 }),
             });
@@ -173,6 +174,24 @@ export default function HostApplyClient() {
                                 <input required value={form.cui} onChange={set("cui")} className={input} placeholder="RO12345678" />
                             </label>
                         </div>
+                    )}
+                    {!isCompany && (
+                        <label className={label}>CNP
+                            <input
+                                required
+                                value={form.cnp}
+                                onChange={set("cnp")}
+                                inputMode="numeric"
+                                pattern="\d{13}"
+                                maxLength={13}
+                                autoComplete="off"
+                                className={input}
+                                placeholder="13 cifre"
+                            />
+                            <span className="mt-1 block text-[11px] text-neutral-400">
+                                Obligatoriu legal (raportare ANAF — DAC7). Stocat criptat; nu apare public niciodată.
+                            </span>
+                        </label>
                     )}
                 </fieldset>
 

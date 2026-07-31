@@ -17,6 +17,7 @@ import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { isValidCnp, ageFromCnp, encryptCnp, hashCnp } from "@/lib/identity/cnp";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
 
@@ -31,6 +32,7 @@ const schema = z
         entity_type: z.enum(["persoana_fizica", "pfa", "srl"]),
         company_name: z.string().max(160).optional(),
         cui: z.string().max(20).optional(),
+        cnp: z.string().trim().length(13, "CNP-ul are 13 cifre").optional(),
         property_name: z.string().min(3).max(160),
         property_type: z.enum(["apartament", "casa", "pensiune", "hotel", "cabana", "vila"]),
         address: z.string().min(5).max(240),
@@ -42,6 +44,23 @@ const schema = z
         tourism_registered: z.boolean(),
     })
     .superRefine((d, ctx) => {
+        // DAC7: platformele trebuie să colecteze codul fiscal al vânzătorului.
+        // Persoană fizică → CNP; PFA/SRL → CUI (validat mai jos).
+        if (d.entity_type === "persoana_fizica") {
+            if (!d.cnp) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["cnp"],
+                    message: "CNP-ul e obligatoriu pentru persoane fizice (raportare ANAF/DAC7).",
+                });
+            } else if (!isValidCnp(d.cnp)) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cnp"], message: "CNP invalid (cifra de control nu corespunde)." });
+            } else if ((ageFromCnp(d.cnp) ?? 0) < 18) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cnp"], message: "Trebuie să fii major pentru a deveni gazdă." });
+            }
+        } else if (d.cnp && !isValidCnp(d.cnp)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cnp"], message: "CNP invalid." });
+        }
         // Ordin 65/2013: structurile clasificabile au nevoie de certificat.
         if ((d.property_type === "pensiune" || d.property_type === "hotel") && !d.classification_cert) {
             ctx.addIssue({
@@ -97,18 +116,33 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Ai deja o aplicație în curs de verificare." }, { status: 409 });
     }
 
+    // Anti-fraudă: același CNP nu poate avea două aplicații active/aprobate
+    // (verificat pe hash, fără decriptare).
+    const cnpHash = d.cnp ? hashCnp(d.cnp) : null;
+    if (cnpHash) {
+        const dupCnp = await dbQuery<{ id: string }>(
+            `SELECT id FROM host_applications
+              WHERE cnp_hash = $1 AND status IN ('pending','needs_info','approved') LIMIT 1`,
+            [cnpHash],
+        );
+        if (dupCnp.rows.length) {
+            return NextResponse.json({ error: "Există deja o aplicație cu acest CNP." }, { status: 409 });
+        }
+    }
+
     const { rows } = await dbQuery<{ id: string }>(
         `INSERT INTO host_applications
             (user_id, full_name, phone, email, entity_type, company_name, cui,
              property_name, property_type, address, city, county, rooms, max_guests,
-             classification_cert, tourism_registered)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+             classification_cert, tourism_registered, cnp_encrypted, cnp_hash)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
          RETURNING id`,
         [
             session?.userId ?? null, d.full_name, d.phone, d.email, d.entity_type,
             d.company_name ?? null, d.cui ?? null, d.property_name, d.property_type,
             d.address, d.city, d.county, d.rooms, d.max_guests,
             d.classification_cert ?? null, d.tourism_registered,
+            d.cnp ? encryptCnp(d.cnp) : null, cnpHash,
         ],
     );
 
