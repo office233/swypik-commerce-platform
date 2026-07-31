@@ -4,7 +4,7 @@
  */
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
-import { Shield, PackageX, RotateCcw, Coins, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Shield, PackageX, RotateCcw, Coins, AlertTriangle, ShieldAlert, Inbox } from "lucide-react";
 
 type Counts = {
   disputes_pending: number;
@@ -14,6 +14,7 @@ type Counts = {
   refunds_pending: number;
   stale_pending_orders: number;
   risky_orders_7d: number;
+  partner_apps_pending: number;
 };
 
 async function getCounts(): Promise<Counts> {
@@ -47,7 +48,14 @@ async function getCounts(): Promise<Counts> {
             OR u.email_verified_at IS NULL
             OR co.total_cents > 200000
             OR (u.created_at IS NOT NULL AND u.created_at > now() - interval '7 days')
-          )) AS risky_orders_7d
+          )) AS risky_orders_7d,
+      (
+        COALESCE((SELECT COUNT(*) FROM couriers WHERE verification_status = 'pending'), 0)
+        + COALESCE((SELECT COUNT(*) FROM fleet_partners WHERE status = 'pending'), 0)
+        + COALESCE((SELECT COUNT(*) FROM sellers WHERE status = 'pending'), 0)
+        + COALESCE((SELECT COUNT(*) FROM host_applications WHERE status IN ('pending','needs_info')), 0)
+        + COALESCE((SELECT COUNT(*) FROM creator_applications WHERE status IN ('submitted','in_review')), 0)
+      ) AS partner_apps_pending
   `);
   const r = rows[0] || ({} as any);
   return {
@@ -58,6 +66,7 @@ async function getCounts(): Promise<Counts> {
     refunds_pending: Number(r.refunds_pending || 0),
     stale_pending_orders: Number(r.stale_pending_orders || 0),
     risky_orders_7d: Number(r.risky_orders_7d || 0),
+    partner_apps_pending: Number(r.partner_apps_pending || 0),
   };
 }
 
@@ -85,6 +94,13 @@ export default async function OpsAlertsBar() {
   }
 
   const cards: Card[] = [
+    {
+      href: "/admin/aplicatii?f=pending",
+      label: "Aplicații",
+      count: counts.partner_apps_pending,
+      Icon: Inbox,
+      tone: counts.partner_apps_pending > 5 ? "danger" : counts.partner_apps_pending > 0 ? "warn" : "ok",
+    },
     {
       href: "/admin/disputes?status=needs_response",
       label: "Disputes",

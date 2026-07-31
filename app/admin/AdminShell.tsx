@@ -35,6 +35,7 @@ import {
   LogOut,
   ChevronLeft,
   Truck,
+  Inbox,
   BedDouble,
 } from "lucide-react";
 
@@ -59,6 +60,7 @@ const sections: NavSection[] = [
     icon: "\u{1F4CA}",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/aplicatii", label: "Aplicații parteneri", icon: Inbox },
       { href: "/admin/health", label: "Health", icon: Activity },
       { href: "/admin/cron", label: "Cron Jobs", icon: Clock },
     ],
@@ -87,9 +89,10 @@ const sections: NavSection[] = [
       { href: "/admin/users", label: "Users", icon: Users },
       { href: "/admin/creators", label: "Creators", icon: UserCheck },
       { href: "/admin/sellers", label: "Selleri", icon: Briefcase },
-      { href: "/admin/applications", label: "Aplicații", icon: FileText },
+      { href: "/admin/applications", label: "Creatori — cereri", icon: FileText },
       { href: "/admin/hosts", label: "Gazde Stays", icon: BedDouble },
-      { href: "/admin/fleet", label: "Flotă", icon: Truck },
+      { href: "/admin/fleet", label: "Flotă (șoferi/curieri)", icon: Truck },
+      { href: "/admin/pricing", label: "Tarife Go/Food", icon: Coins },
     ],
   },
   {
@@ -99,9 +102,6 @@ const sections: NavSection[] = [
     items: [
       { href: "/admin/videos", label: "Videos", icon: Video },
       { href: "/admin/moderation", label: "Moderare", icon: ShieldAlert },
-      { href: "/admin/comments", label: "Comments", icon: MessageSquare, comingSoon: true },
-      { href: "/admin/audio", label: "Audio", icon: Music2, comingSoon: true },
-      { href: "/admin/hashtags", label: "Hashtags", icon: Hash, comingSoon: true },
     ],
   },
   {
@@ -109,18 +109,9 @@ const sections: NavSection[] = [
     title: "Finanțe",
     icon: "\u{1F4B0}",
     items: [
-      { href: "/admin/payouts", label: "Payouts", icon: Wallet },
+      { href: "/admin/payouts", label: "Payouts creatori", icon: Wallet },
+      { href: "/admin/courier-payouts", label: "Payouts curieri", icon: Truck },
       { href: "/admin/commissions", label: "Commissions", icon: BarChart3 },
-    ],
-  },
-  {
-    id: "marketing",
-    title: "Marketing",
-    icon: "\u{1F4E3}",
-    items: [
-      { href: "/admin/notifications", label: "Notifications", icon: Bell, comingSoon: true },
-      { href: "/admin/email", label: "Email", icon: Mail, comingSoon: true },
-      { href: "/admin/push", label: "Push", icon: Send, comingSoon: true },
     ],
   },
 ];
@@ -196,8 +187,8 @@ function SidebarContent({
                     href={item.href}
                     onClick={onNavigate}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition ${active
-                        ? "bg-white/15 text-white"
-                        : "text-white/60 hover:text-white hover:bg-white/10"
+                      ? "bg-white/15 text-white"
+                      : "text-white/60 hover:text-white hover:bg-white/10"
                       }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />

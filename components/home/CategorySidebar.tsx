@@ -12,7 +12,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
 
@@ -106,8 +106,8 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                 className="absolute inset-0 bg-black/40"
                 onClick={() => onOpenChange(false)}
             />
-            <div className="absolute inset-y-0 left-0 flex w-[85%] max-w-xs flex-col bg-white shadow-2xl">
-                <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
+            <div className="absolute inset-y-0 left-0 flex w-[88%] max-w-sm flex-col bg-[#FAFAFB] shadow-2xl">
+                <div className="flex items-center justify-between border-b border-black/5 bg-white px-4 py-3">
                     <p className="text-[16px] font-extrabold text-[#0D0D0D]">{t("allCategories")}</p>
                     <button
                         type="button"
@@ -118,55 +118,62 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                         <X size={18} />
                     </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3">
-                    <p className="px-3 pb-1 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">Swypik</p>
-                    {verticalItems.map((v) => (
-                        <button
-                            key={v.id}
-                            type="button"
-                            onClick={() => goVertical(v.href)}
-                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[14px] font-bold text-[#0D0D0D] transition hover:bg-[#F7F7F8]"
-                        >
-                            <span
-                                className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
-                                style={{ backgroundColor: `${v.accent}22` }}
-                            >
-                                {v.emoji}
-                            </span>
-                            {v.brand}
-                            <span className="ml-auto text-[11px] font-semibold text-[#A1A1AA]">{v.label}</span>
-                        </button>
-                    ))}
-
-                    <div className="mx-3 my-2 h-px bg-black/10" aria-hidden />
-                    <p className="px-3 pb-1 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">{t("categories")}</p>
-
-                    <button
-                        type="button"
-                        onClick={() => pick(null)}
-                        aria-pressed={!activeCategory}
-                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[14px] font-bold ${!activeCategory ? "bg-[#0D0D0D] text-white" : "text-[#0D0D0D] hover:bg-[#F7F7F8]"}`}
-                    >
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-lg">✨</span>
-                        {t("all")}
-                    </button>
-                    {categories.map((c) => {
-                        const active = activeCategory === nodeSlug(c);
-                        return (
+                <div className="flex-1 overflow-y-auto p-4">
+                    <p className="pb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">Serviciile Swypik</p>
+                    {/* Carduri colorate, stil /join */}
+                    <div className="space-y-2.5">
+                        {verticalItems.map((v) => (
                             <button
-                                key={String(c.id ?? c.name)}
+                                key={v.id}
                                 type="button"
-                                onClick={() => pick(active ? null : nodeSlug(c))}
-                                aria-pressed={active}
-                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[14px] font-bold ${active ? "bg-violet-600 text-white" : "text-[#0D0D0D] hover:bg-[#F7F7F8]"}`}
+                                onClick={() => goVertical(v.href)}
+                                className="group flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
                             >
-                                <span className={`flex h-9 w-9 items-center justify-center rounded-full text-lg ${active ? "bg-white/20" : "bg-black/5"}`}>
-                                    {categoryEmoji(c.name)}
+                                <span
+                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl"
+                                    style={{ backgroundColor: `${v.accent}1A` }}
+                                >
+                                    {v.emoji}
                                 </span>
-                                <span className="truncate">{c.name}</span>
+                                <span className="min-w-0 flex-1">
+                                    <span className="block text-[15px] font-extrabold text-[#0D0D0D]">{v.brand}</span>
+                                    <span className="block text-[12px] font-semibold text-[#6E6E80]">{v.label}</span>
+                                </span>
+                                <ChevronRight size={18} className="shrink-0 text-[#C4C4CC] transition group-hover:translate-x-0.5" style={{ color: v.accent }} />
                             </button>
-                        );
-                    })}
+                        ))}
+                    </div>
+
+                    <p className="pb-2 pt-6 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">{t("categories")}</p>
+
+                    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+                        <button
+                            type="button"
+                            onClick={() => pick(null)}
+                            aria-pressed={!activeCategory}
+                            className={`flex w-full items-center gap-3 border-b border-black/5 px-3.5 py-3 text-left text-[14px] font-bold last:border-0 ${!activeCategory ? "bg-[#0D0D0D] text-white" : "text-[#0D0D0D] hover:bg-[#F7F7F8]"}`}
+                        >
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-lg">✨</span>
+                            {t("all")}
+                        </button>
+                        {categories.map((c) => {
+                            const active = activeCategory === nodeSlug(c);
+                            return (
+                                <button
+                                    key={String(c.id ?? c.name)}
+                                    type="button"
+                                    onClick={() => pick(active ? null : nodeSlug(c))}
+                                    aria-pressed={active}
+                                    className={`flex w-full items-center gap-3 border-b border-black/5 px-3.5 py-3 text-left text-[14px] font-bold last:border-0 ${active ? "bg-violet-600 text-white" : "text-[#0D0D0D] hover:bg-[#F7F7F8]"}`}
+                                >
+                                    <span className={`flex h-9 w-9 items-center justify-center rounded-full text-lg ${active ? "bg-white/20" : "bg-black/5"}`}>
+                                        {categoryEmoji(c.name)}
+                                    </span>
+                                    <span className="truncate">{c.name}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>,
