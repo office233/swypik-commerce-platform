@@ -13,6 +13,7 @@ import { dbQuery, withTransaction } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { withErrorHandling } from "@/lib/api-handler";
 import { generateSecret, sha256Hex } from "@/lib/apps/auth";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,6 +25,11 @@ const schema = z.object({
 });
 
 export const POST = withErrorHandling(async function POST(req: Request) {
+  const rl = await rateLimit("oauth-token-ip", getClientIP(req), { limit: 10, window: 300 });
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
