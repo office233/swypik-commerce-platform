@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2 } from "lucide-react";
+import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2, Lock, Wallet } from "lucide-react";
 import { APP_URL } from "@/lib/app-url";
 
 type Mining = {
@@ -29,6 +29,22 @@ type Mining = {
 };
 
 type ChainWallet = { address: string; createdAt: string; exportedAt: string | null };
+
+type StakeRow = {
+    id: string;
+    amount_units: string;
+    term_months: number;
+    apy_bps: number;
+    status: string;
+    matures_at: string;
+};
+
+type StakingInfo = {
+    stakes: StakeRow[];
+    totalStakedUnits: string;
+    stakers: number;
+    apyBps: Record<string, number>;
+};
 
 type LedgerRow = {
     id: string;
@@ -70,6 +86,9 @@ export default function PayClient() {
     const [withdrawBusy, setWithdrawBusy] = useState(false);
     const [withdrawMsg, setWithdrawMsg] = useState<string | null>(null);
     const [lastTxUrl, setLastTxUrl] = useState<string | null>(null);
+    const [staking, setStaking] = useState<StakingInfo | null>(null);
+    const [stakeBusy, setStakeBusy] = useState(false);
+    const [stakeMsg, setStakeMsg] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         const [wRes, mRes] = await Promise.all([fetch("/api/swyp/wallet"), fetch("/api/swyp/mining")]);
@@ -82,6 +101,10 @@ export default function PayClient() {
         fetch("/api/me/referral")
             .then((r) => (r.ok ? r.json() : null))
             .then((d) => { if (d?.shareUrl) setShareUrl(d.shareUrl); })
+            .catch(() => { });
+        fetch("/api/swyp/stake")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => { if (d?.success) setStaking(d); })
             .catch(() => { });
     }, []);
 
@@ -336,6 +359,102 @@ export default function PayClient() {
             </section>
 
             {/* ── Istoric ── */}
+            {/* ── Staking ── */}
+            <section className="px-5 mt-6">
+                <div className="rounded-3xl border border-[#2DBE60]/30 bg-gradient-to-br from-[#0F2A18] to-[#0D0D0D] p-5">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Lock size={16} className="text-[#2DBE60]" />
+                            <h3 className="font-black text-sm">Blochează și câștigă</h3>
+                        </div>
+                        {staking && (
+                            <span className="text-[10px] font-bold text-white/50">
+                                {fmtSwyp(staking.totalStakedUnits)} SWYP blocați · {staking.stakers} useri
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                        {([3, 6, 12] as const).map((m) => {
+                            const bps = staking?.apyBps?.[String(m)] ?? 0;
+                            return (
+                                <button
+                                    key={m}
+                                    onClick={async () => {
+                                        const amount = prompt(`Câți SWYP blochezi pe ${m} luni? (minim 1)`);
+                                        if (!amount) return;
+                                        setStakeBusy(true);
+                                        setStakeMsg(null);
+                                        try {
+                                            const res = await fetch("/api/swyp/stake", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({
+                                                    action: "stake",
+                                                    amountSwyp: Number(amount.replace(",", ".")),
+                                                    termMonths: m,
+                                                }),
+                                            });
+                                            const d = await res.json();
+                                            const errs: Record<string, string> = {
+                                                insufficient_funds: "Sold insuficient.",
+                                                invalid_amount: "Sumă invalidă (minim 1 SWYP).",
+                                                rate_limited: "Prea multe operațiuni — încearcă mai târziu.",
+                                            };
+                                            setStakeMsg(d.success ? `✓ Blocat pe ${m} luni!` : `✗ ${errs[d.error] ?? d.error}`);
+                                            await load();
+                                        } finally {
+                                            setStakeBusy(false);
+                                        }
+                                    }}
+                                    disabled={stakeBusy || balance === null || BigInt(balance ?? "0") < 100n}
+                                    className="rounded-2xl bg-white/5 border border-[#2DBE60]/20 p-3 active:scale-95 transition disabled:opacity-40"
+                                >
+                                    <p className="text-lg font-black text-[#2DBE60]">{(bps / 100).toFixed(0)}%</p>
+                                    <p className="text-[10px] text-white/50">{m} luni</p>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {stakeMsg && <p className="mt-2 text-xs font-bold text-white/80">{stakeMsg}</p>}
+
+                    {staking && staking.stakes.length > 0 && (
+                        <ul className="mt-4 space-y-2">
+                            {staking.stakes.filter((s) => s.status === "active").map((s) => (
+                                <li key={s.id} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                                    <div>
+                                        <p className="text-xs font-bold">{fmtSwyp(s.amount_units)} SWYP · {s.term_months} luni</p>
+                                        <p className="text-[10px] text-white/40">
+                                            se deblochează {new Date(s.matures_at).toLocaleDateString("ro-RO")}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            if (!confirm("Retragi anticipat? Primești principalul integral, dar fără bonus.")) return;
+                                            await fetch("/api/swyp/stake", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ action: "withdraw_early", stakeId: s.id }),
+                                            });
+                                            await load();
+                                        }}
+                                        className="text-[10px] font-bold text-white/50 underline"
+                                    >
+                                        retrage
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <p className="mt-3 text-[10px] leading-relaxed text-white/40">
+                        SWYP-ul blocat iese din circulație — cursul crește pentru toți deținătorii.
+                        Bonusul se plătește din profitul real al platformei. Poți retrage oricând
+                        principalul, fără penalizare.
+                    </p>
+                </div>
+            </section>
+
             <section className="px-5 mt-6">
                 <div className="flex items-center gap-2 mb-3">
                     <History size={14} className="text-white/50" />
@@ -363,17 +482,43 @@ export default function PayClient() {
             {/* ── Transparență ── */}
             <section className="px-5 mt-6">
                 <a
-                    href="/api/swyp/supply"
+                    href="https://scan.swypik.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60 hover:bg-white/10 transition"
                 >
                     <ShieldCheck size={16} className="text-[#F5A623]" />
                     <span>
-                        <strong className="text-white">Transparență totală:</strong> supply-ul, trezoreria și integritatea
-                        ledger-ului sunt publice și verificabile de oricine.
+                        <strong className="text-white">Blockchain public:</strong> vezi fiecare bloc, tranzacție și adresă
+                        pe scan.swypik.com — verificabil de oricine, fără cont. →
                     </span>
                 </a>
+
+                <button
+                    onClick={async () => {
+                        const eth = (window as unknown as { ethereum?: { request: (a: unknown) => Promise<unknown> } }).ethereum;
+                        if (!eth) {
+                            window.open("https://metamask.io/download/", "_blank");
+                            return;
+                        }
+                        try {
+                            await eth.request({
+                                method: "wallet_addEthereumChain",
+                                params: [{
+                                    chainId: "0x9D126", // 643366
+                                    chainName: "Swypik Chain",
+                                    nativeCurrency: { name: "Swypik", symbol: "SWYP", decimals: 18 },
+                                    rpcUrls: ["https://rpc.swypik.com"],
+                                    blockExplorerUrls: ["https://scan.swypik.com"],
+                                }],
+                            });
+                        } catch { /* utilizatorul a refuzat */ }
+                    }}
+                    className="mt-2 w-full flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold text-white/70 hover:bg-white/10 transition"
+                >
+                    <Wallet size={14} className="text-[#F5A623]" />
+                    Adaugă Swypik Chain în MetaMask
+                </button>
             </section>
         </main>
     );
