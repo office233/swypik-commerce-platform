@@ -6,7 +6,9 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 
-export const revalidate = 3600; // cache 1h — cursurile se schimbă zilnic
+// Cursurile se schimbă zilnic; cache scurt ca deploy-urile/refresh-ul manual
+// să se reflecte rapid, dar fără să lovim DB la fiecare request.
+export const revalidate = 300;
 
 export async function GET() {
     try {
