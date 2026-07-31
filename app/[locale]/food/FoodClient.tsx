@@ -10,6 +10,7 @@ import Image from "next/image";
 import { ArrowLeft, Clock, MapPin, ReceiptText, Star, Truck } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { useTranslations } from "next-intl";
 
 const ACCENT = "#2DBE60"; // verdele Swypik Food
 const CITY_KEY = "swypik_city";
@@ -32,17 +33,18 @@ interface Merchant {
 }
 
 const CUISINES = [
-  { id: "pizza", emoji: "🍕", label: "Pizza" },
-  { id: "burgers", emoji: "🍔", label: "Burgeri" },
-  { id: "asian", emoji: "🍜", label: "Asiatic" },
-  { id: "romanian", emoji: "🥘", label: "Românesc" },
-  { id: "desserts", emoji: "🍰", label: "Deserturi" },
-  { id: "healthy", emoji: "🥗", label: "Sănătos" },
-];
+  { id: "pizza", emoji: "🍕", labelKey: "cuisinePizza" },
+  { id: "burgers", emoji: "🍔", labelKey: "cuisineBurgers" },
+  { id: "asian", emoji: "🍜", labelKey: "cuisineAsian" },
+  { id: "romanian", emoji: "🥘", labelKey: "cuisineRomanian" },
+  { id: "desserts", emoji: "🍰", labelKey: "cuisineDesserts" },
+  { id: "healthy", emoji: "🥗", labelKey: "cuisineHealthy" },
+] as const;
 
 export default function FoodClient() {
   const router = useRouter();
   const fmt = useFormatPrice();
+  const t = useTranslations("foodPage");
   const [city, setCity] = useState<string | null>(null);
   const [cuisine, setCuisine] = useState<string | null>(null);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -72,7 +74,7 @@ export default function FoodClient() {
 
   const pickCity = () => {
     haptic("tap");
-    const c = prompt("În ce oraș ești?", city ?? "");
+    const c = prompt(t("cityPrompt"), city ?? "");
     if (c?.trim()) {
       localStorage.setItem(CITY_KEY, c.trim());
       setCity(c.trim());
@@ -92,14 +94,14 @@ export default function FoodClient() {
           <button
             type="button"
             onClick={() => router.push("/")}
-            aria-label="Înapoi"
+            aria-label={t("back")}
             className="grid h-9 w-9 place-items-center rounded-full bg-white/85 transition active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0">
             <h1 className="text-base font-black leading-tight">Swypik Food</h1>
-            <p className="text-[11px] leading-tight text-[#6E6E80]">Livrare rapidă</p>
+            <p className="text-[11px] leading-tight text-[#6E6E80]">{t("fastDelivery")}</p>
           </div>
           <button
             type="button"
@@ -107,7 +109,7 @@ export default function FoodClient() {
             className="ml-auto inline-flex h-9 items-center gap-1 rounded-full bg-white/85 px-3 text-xs font-bold transition active:scale-95"
           >
             <MapPin size={14} className="shrink-0" style={{ color: ACCENT }} />
-            <span className="max-w-[110px] truncate">{city ?? "Alege orașul"}</span>
+            <span className="max-w-[110px] truncate">{city ?? t("chooseCity")}</span>
           </button>
         </div>
 
@@ -129,7 +131,7 @@ export default function FoodClient() {
                   }`}
               >
                 <span aria-hidden>{c.emoji}</span>
-                {c.label}
+                {t(c.labelKey)}
               </button>
             );
           })}
@@ -147,8 +149,8 @@ export default function FoodClient() {
               📍
             </span>
             <span>
-              <span className="block text-sm font-black">Alege orașul tău</span>
-              <span className="block text-xs text-[#6E6E80]">Ca să vezi restaurantele care livrează la tine</span>
+              <span className="block text-sm font-black">{t("chooseCityTitle")}</span>
+              <span className="block text-xs text-[#6E6E80]">{t("chooseCitySub")}</span>
             </span>
           </button>
         )}
@@ -162,9 +164,9 @@ export default function FoodClient() {
         ) : merchants.length === 0 ? (
           <div className="py-16 text-center">
             <div className="mb-3 text-5xl" aria-hidden>🍔</div>
-            <p className="font-black">Încă niciun restaurant{city ? ` în ${city}` : ""}</p>
+            <p className="font-black">{t("noRestaurants", { city: city ? ` — ${city}` : "" })}</p>
             <p className="mx-auto mt-1 max-w-xs text-sm text-[#6E6E80]">
-              Ai un restaurant? Înscrie-te gratuit și primești comenzi prin video.
+              {t("ownerCta")}
             </p>
             <button
               type="button"
@@ -172,7 +174,7 @@ export default function FoodClient() {
               style={{ backgroundColor: ACCENT }}
               className="mt-5 h-11 rounded-xl px-5 text-sm font-bold text-white transition active:scale-95"
             >
-              Înscrie restaurantul
+              {t("ownerBtn")}
             </button>
           </div>
         ) : (
@@ -195,7 +197,7 @@ export default function FoodClient() {
                   )}
                   {!m.is_open && (
                     <div className="absolute inset-0 grid place-items-center bg-black/55">
-                      <span className="text-[10px] font-black uppercase text-white">Închis</span>
+                      <span className="text-[10px] font-black uppercase text-white">{t("closed")}</span>
                     </div>
                   )}
                 </div>
@@ -219,9 +221,9 @@ export default function FoodClient() {
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Truck size={12} />
-                      {m.delivery_fee_cents === 0 ? "Livrare gratuită" : fmtLei(m.delivery_fee_cents)}
+                      {m.delivery_fee_cents === 0 ? t("freeDelivery") : fmtLei(m.delivery_fee_cents)}
                     </span>
-                    {m.min_order_cents > 0 && <span>min. {fmtLei(m.min_order_cents)}</span>}
+                    {m.min_order_cents > 0 && <span>{t("minOrder", { amount: fmtLei(m.min_order_cents) })}</span>}
                   </div>
                 </div>
               </button>

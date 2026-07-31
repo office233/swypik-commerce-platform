@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  *   1. body.sourceUrl (manual override)
  *   2. videos.metadata.source_url
  *   3. videos.playback_url if it looks AE-hosted
- *   4. ae_products.video_url via product_refs[].ae_product_id
+ *   (sursa externă se ia din metadata.source_url sau playback_url)
  *   5. videos.playback_url (any https)
  *
  * Response: 202 { jobId, sessionId, videoId, queued, queueBackend }.

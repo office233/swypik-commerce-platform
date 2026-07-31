@@ -3,7 +3,7 @@
  * Mai mare = risc mai mare (opus față de win-score).
  * Folosit pentru a marca comenzi care merită review manual înainte de fulfillment.
  *
- * Calibrat din pattern-uri publice Stripe Radar + experiență marketplace dropshipping.
+ * Calibrat din pattern-uri publice Stripe Radar + experiență marketplace.
  * Toate weights sunt empirice și pot fi recalibrate după ce avem outcome real (dispute won/lost).
  */
 

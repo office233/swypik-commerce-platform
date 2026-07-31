@@ -26,46 +26,46 @@ export { OFFER_TTL_SECONDS, MAX_COURIERS_PER_WAVE, WAVE_RADII_KM };
 export type DispatchKind = "delivery" | "ride";
 
 export type DispatchJob = {
-  id: string;
-  kind: DispatchKind;
-  order_id: string | null;
-  ride_id: string | null;
-  city: string;
-  pickup_lat: number | null;
-  pickup_lng: number | null;
-  status: "searching" | "assigned" | "no_courier" | "cancelled";
-  wave: number;
-  assigned_courier_id: string | null;
+    id: string;
+    kind: DispatchKind;
+    order_id: string | null;
+    ride_id: string | null;
+    city: string;
+    pickup_lat: number | null;
+    pickup_lng: number | null;
+    status: "searching" | "assigned" | "no_courier" | "cancelled";
+    wave: number;
+    assigned_courier_id: string | null;
 };
 
 export type CreateJobInput = {
-  kind: DispatchKind;
-  orderId?: string;
-  rideId?: string;
-  city: string;
-  pickupLat?: number | null;
-  pickupLng?: number | null;
+    kind: DispatchKind;
+    orderId?: string;
+    rideId?: string;
+    city: string;
+    pickupLat?: number | null;
+    pickupLng?: number | null;
 };
 
 export type AcceptResult =
-  | { ok: true; jobId: string; orderId: string | null; rideId: string | null }
-  | { ok: false; error: string; code: number };
+    | { ok: true; jobId: string; orderId: string | null; rideId: string | null }
+    | { ok: false; error: string; code: number };
 
 type CourierRow = {
-  id: string;
-  user_id: string | null;
-  distance_km: number | null;
+    id: string;
+    user_id: string | null;
+    distance_km: number | null;
 };
 
 export async function publishJobEvent(
-  jobId: string,
-  event: Record<string, unknown>,
+    jobId: string,
+    event: Record<string, unknown>,
 ): Promise<void> {
-  try {
-    await getRedis().publish(`dispatch:job:${jobId}`, JSON.stringify(event));
-  } catch (err) {
-    logger.error({ err, jobId }, "[dispatch] publish failed");
-  }
+    try {
+        await getRedis().publish(`dispatch:job:${jobId}`, JSON.stringify(event));
+    } catch (err) {
+        logger.error({ err, jobId }, "[dispatch] publish failed");
+    }
 }
 
 /**
@@ -75,11 +75,11 @@ export async function publishJobEvent(
  * Returnează numărul de oferte create.
  */
 async function emitWaveOffers(job: DispatchJob): Promise<number> {
-  const radiusKm = WAVE_RADII_KM[Math.min(job.wave, WAVE_RADII_KM.length - 1)];
-  const hasCoords = job.pickup_lat != null && job.pickup_lng != null;
+    const radiusKm = WAVE_RADII_KM[Math.min(job.wave, WAVE_RADII_KM.length - 1)];
+    const hasCoords = job.pickup_lat != null && job.pickup_lng != null;
 
-  const { rows: couriers } = await dbQuery<CourierRow>(
-    `SELECT c.id, c.user_id,
+    const { rows: couriers } = await dbQuery<CourierRow>(
+        `SELECT c.id, c.user_id,
             CASE WHEN $2::float8 IS NOT NULL AND c.current_lat IS NOT NULL THEN
               6371 * 2 * asin(sqrt(
                 power(sin(radians((c.current_lat - $2) / 2)), 2) +
@@ -109,36 +109,36 @@ async function emitWaveOffers(job: DispatchJob): Promise<number> {
              )) <= $5)
       ORDER BY distance_km ASC NULLS LAST
       LIMIT $6`,
-    [
-      job.city,
-      hasCoords ? job.pickup_lat : null,
-      hasCoords ? job.pickup_lng : null,
-      job.id,
-      radiusKm,
-      MAX_COURIERS_PER_WAVE,
-      job.kind === "ride" ? "driver" : "courier",
-    ],
-  );
+        [
+            job.city,
+            hasCoords ? job.pickup_lat : null,
+            hasCoords ? job.pickup_lng : null,
+            job.id,
+            radiusKm,
+            MAX_COURIERS_PER_WAVE,
+            job.kind === "ride" ? "driver" : "courier",
+        ],
+    );
 
-  if (!couriers.length) return 0;
+    if (!couriers.length) return 0;
 
-  for (const c of couriers) {
-    await dbQuery(
-      `INSERT INTO dispatch_offers (job_id, order_id, courier_id, expires_at, wave)
+    for (const c of couriers) {
+        await dbQuery(
+            `INSERT INTO dispatch_offers (job_id, order_id, courier_id, expires_at, wave)
        VALUES ($1, $2, $3, now() + make_interval(secs => $4), $5)
        ON CONFLICT DO NOTHING`,
-      [job.id, job.order_id, c.id, OFFER_TTL_SECONDS, job.wave],
-    );
-    if (c.user_id) {
-      // Push best-effort; nu blocăm dispatch-ul.
-      void sendPushToUser(c.user_id, {
-        title: job.kind === "ride" ? "Cursă nouă!" : "Comandă nouă!",
-        body: "Ai o ofertă nouă — deschide aplicația pentru a accepta.",
-        url: "/courier",
-      }).catch(() => undefined);
+            [job.id, job.order_id, c.id, OFFER_TTL_SECONDS, job.wave],
+        );
+        if (c.user_id) {
+            // Push best-effort; nu blocăm dispatch-ul.
+            void sendPushToUser(c.user_id, {
+                title: job.kind === "ride" ? "Cursă nouă!" : "Comandă nouă!",
+                body: "Ai o ofertă nouă — deschide aplicația pentru a accepta.",
+                url: "/courier",
+            }).catch(() => undefined);
+        }
     }
-  }
-  return couriers.length;
+    return couriers.length;
 }
 
 /**
@@ -146,46 +146,46 @@ async function emitWaveOffers(job: DispatchJob): Promise<number> {
  * Dacă există deja un job activ pentru comandă/cursă, îl returnează.
  */
 export async function createJob(
-  input: CreateJobInput,
+    input: CreateJobInput,
 ): Promise<{ job: DispatchJob; offered: number }> {
-  const { rows: existing } = await dbQuery<DispatchJob>(
-    `SELECT * FROM dispatch_jobs
+    const { rows: existing } = await dbQuery<DispatchJob>(
+        `SELECT * FROM dispatch_jobs
       WHERE status IN ('searching','assigned')
         AND ((($1::uuid IS NOT NULL) AND order_id = $1) OR (($2::uuid IS NOT NULL) AND ride_id = $2))
       LIMIT 1`,
-    [input.orderId ?? null, input.rideId ?? null],
-  );
-  if (existing[0]) return { job: existing[0], offered: 0 };
+        [input.orderId ?? null, input.rideId ?? null],
+    );
+    if (existing[0]) return { job: existing[0], offered: 0 };
 
-  const { rows } = await dbQuery<DispatchJob>(
-    `INSERT INTO dispatch_jobs (kind, order_id, ride_id, city, pickup_lat, pickup_lng)
+    const { rows } = await dbQuery<DispatchJob>(
+        `INSERT INTO dispatch_jobs (kind, order_id, ride_id, city, pickup_lat, pickup_lng)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [
-      input.kind,
-      input.orderId ?? null,
-      input.rideId ?? null,
-      input.city,
-      input.pickupLat ?? null,
-      input.pickupLng ?? null,
-    ],
-  );
-  const job = rows[0];
-
-  if (job.order_id) {
-    await dbQuery(
-      `UPDATE local_orders SET dispatch_status = 'offered', updated_at = now() WHERE id = $1`,
-      [job.order_id],
+        [
+            input.kind,
+            input.orderId ?? null,
+            input.rideId ?? null,
+            input.city,
+            input.pickupLat ?? null,
+            input.pickupLng ?? null,
+        ],
     );
-  }
+    const job = rows[0];
 
-  const offered = await emitWaveOffers(job);
-  if (!offered) {
-    // Niciun curier în primul val — worker-ul va avansa valurile la tick.
-    logger.info({ jobId: job.id }, "[dispatch] no couriers in wave 0");
-  }
-  await publishJobEvent(job.id, { type: "status", status: "searching", wave: job.wave });
-  return { job, offered };
+    if (job.order_id) {
+        await dbQuery(
+            `UPDATE local_orders SET dispatch_status = 'offered', updated_at = now() WHERE id = $1`,
+            [job.order_id],
+        );
+    }
+
+    const offered = await emitWaveOffers(job);
+    if (!offered) {
+        // Niciun curier în primul val — worker-ul va avansa valurile la tick.
+        logger.info({ jobId: job.id }, "[dispatch] no couriers in wave 0");
+    }
+    await publishJobEvent(job.id, { type: "status", status: "searching", wave: job.wave });
+    return { job, offered };
 }
 
 /**
@@ -193,138 +193,138 @@ export async function createJob(
  * încât doi curieri nu pot fi asignați simultan pe același job.
  */
 export async function acceptOffer(jobOrOrderId: string, courierId: string): Promise<AcceptResult> {
-  const result = await withTransaction<AcceptResult>(async (q) => {
-    const { rows: jobs } = await q<DispatchJob>(
-      `SELECT * FROM dispatch_jobs
+    const result = await withTransaction<AcceptResult>(async (q) => {
+        const { rows: jobs } = await q<DispatchJob>(
+            `SELECT * FROM dispatch_jobs
         WHERE (id = $1 OR order_id = $1) AND status IN ('searching','assigned')
         FOR UPDATE`,
-      [jobOrOrderId],
-    );
-    const job = jobs[0];
-    if (!job) return { ok: false as const, error: "Jobul nu există.", code: 404 };
-    if (job.status === "assigned" || job.assigned_courier_id) {
-      return { ok: false as const, error: "Comanda a fost deja preluată.", code: 409 };
-    }
+            [jobOrOrderId],
+        );
+        const job = jobs[0];
+        if (!job) return { ok: false as const, error: "Jobul nu există.", code: 404 };
+        if (job.status === "assigned" || job.assigned_courier_id) {
+            return { ok: false as const, error: "Comanda a fost deja preluată.", code: 409 };
+        }
 
-    const { rows: offer } = await q(
-      `SELECT id FROM dispatch_offers
+        const { rows: offer } = await q(
+            `SELECT id FROM dispatch_offers
         WHERE job_id = $1 AND courier_id = $2 AND response IS NULL AND expires_at > now()
         FOR UPDATE`,
-      [job.id, courierId],
-    );
-    if (!offer.length) {
-      return { ok: false as const, error: "Oferta a expirat.", code: 410 };
-    }
+            [job.id, courierId],
+        );
+        if (!offer.length) {
+            return { ok: false as const, error: "Oferta a expirat.", code: 410 };
+        }
 
-    // Curierul nu poate avea două joburi active simultan. Lock pe rândul
-    // curierului serializează accept-urile concurente ale aceluiași curier.
-    await q(`SELECT id FROM couriers WHERE id = $1 FOR UPDATE`, [courierId]);
-    const { rows: busy } = await q(
-      `SELECT id FROM dispatch_jobs
+        // Curierul nu poate avea două joburi active simultan. Lock pe rândul
+        // curierului serializează accept-urile concurente ale aceluiași curier.
+        await q(`SELECT id FROM couriers WHERE id = $1 FOR UPDATE`, [courierId]);
+        const { rows: busy } = await q(
+            `SELECT id FROM dispatch_jobs
         WHERE assigned_courier_id = $1 AND status = 'assigned'`,
-      [courierId],
-    );
-    if (busy.length) {
-      return { ok: false as const, error: "Ai deja o livrare activă.", code: 409 };
-    }
+            [courierId],
+        );
+        if (busy.length) {
+            return { ok: false as const, error: "Ai deja o livrare activă.", code: 409 };
+        }
 
-    await q(
-      `UPDATE dispatch_offers SET response = 'accepted', responded_at = now() WHERE id = $1`,
-      [offer[0].id],
-    );
-    await q(
-      `UPDATE dispatch_offers SET response = 'expired', responded_at = now()
+        await q(
+            `UPDATE dispatch_offers SET response = 'accepted', responded_at = now() WHERE id = $1`,
+            [offer[0].id],
+        );
+        await q(
+            `UPDATE dispatch_offers SET response = 'expired', responded_at = now()
         WHERE job_id = $1 AND response IS NULL`,
-      [job.id],
-    );
-    await q(
-      `UPDATE dispatch_jobs
+            [job.id],
+        );
+        await q(
+            `UPDATE dispatch_jobs
           SET status = 'assigned', assigned_courier_id = $2, assigned_at = now(), updated_at = now()
         WHERE id = $1`,
-      [job.id, courierId],
-    );
+            [job.id, courierId],
+        );
 
-    if (job.order_id) {
-      const { rows: locked } = await q(
-        `SELECT id, courier_id FROM local_orders WHERE id = $1 FOR UPDATE`,
-        [job.order_id],
-      );
-      if (locked[0]?.courier_id) {
-        // Comandă deja asignată în afara engine-ului — abort.
-        throw new Error("order_already_assigned");
-      }
-      await q(
-        `UPDATE local_orders
+        if (job.order_id) {
+            const { rows: locked } = await q(
+                `SELECT id, courier_id FROM local_orders WHERE id = $1 FOR UPDATE`,
+                [job.order_id],
+            );
+            if (locked[0]?.courier_id) {
+                // Comandă deja asignată în afara engine-ului — abort.
+                throw new Error("order_already_assigned");
+            }
+            await q(
+                `UPDATE local_orders
             SET courier_id = $2, dispatch_status = 'assigned', updated_at = now()
           WHERE id = $1`,
-        [job.order_id, courierId],
-      );
-    }
-    if (job.ride_id) {
-      await q(
-        `UPDATE rides SET driver_id = $2, status = 'accepted' WHERE id = $1 AND driver_id IS NULL`,
-        [job.ride_id, courierId],
-      );
-    }
+                [job.order_id, courierId],
+            );
+        }
+        if (job.ride_id) {
+            await q(
+                `UPDATE rides SET driver_id = $2, status = 'accepted' WHERE id = $1 AND driver_id IS NULL`,
+                [job.ride_id, courierId],
+            );
+        }
 
-    return { ok: true as const, jobId: job.id, orderId: job.order_id, rideId: job.ride_id };
-  }).catch((err: unknown) => {
-    if (err instanceof Error && err.message === "order_already_assigned") {
-      return { ok: false as const, error: "Comanda a fost deja preluată.", code: 409 };
-    }
-    throw err;
-  });
-
-  if (result.ok) {
-    await publishJobEvent(result.jobId, {
-      type: "status",
-      status: "assigned",
-      courier_id: courierId,
+        return { ok: true as const, jobId: job.id, orderId: job.order_id, rideId: job.ride_id };
+    }).catch((err: unknown) => {
+        if (err instanceof Error && err.message === "order_already_assigned") {
+            return { ok: false as const, error: "Comanda a fost deja preluată.", code: 409 };
+        }
+        throw err;
     });
-    // Push best-effort către rider: „Șofer găsit: {nume} • {mașină}".
-    if (result.rideId) {
-      void (async () => {
-        const { rows } = await dbQuery<{
-          rider_user_id: string | null;
-          full_name: string;
-          vehicle_make: string | null;
-          vehicle_model: string | null;
-          vehicle_plate: string | null;
-        }>(
-          `SELECT r.rider_user_id, c.full_name, c.vehicle_make, c.vehicle_model, c.vehicle_plate
+
+    if (result.ok) {
+        await publishJobEvent(result.jobId, {
+            type: "status",
+            status: "assigned",
+            courier_id: courierId,
+        });
+        // Push best-effort către rider: „Șofer găsit: {nume} • {mașină}".
+        if (result.rideId) {
+            void (async () => {
+                const { rows } = await dbQuery<{
+                    rider_user_id: string | null;
+                    full_name: string;
+                    vehicle_make: string | null;
+                    vehicle_model: string | null;
+                    vehicle_plate: string | null;
+                }>(
+                    `SELECT r.rider_user_id, c.full_name, c.vehicle_make, c.vehicle_model, c.vehicle_plate
              FROM rides r JOIN couriers c ON c.id = $2
             WHERE r.id = $1`,
-          [result.rideId, courierId],
-        );
-        const row = rows[0];
-        if (!row?.rider_user_id) return;
-        const car = [row.vehicle_make, row.vehicle_model].filter(Boolean).join(" ") || row.vehicle_plate || "";
-        await sendPushToUser(row.rider_user_id, {
-          title: `Șofer găsit: ${row.full_name}${car ? ` • ${car}` : ""}`,
-          body: "Urmărește cursa live în aplicație.",
-          url: `/go/${result.rideId}`,
-        });
-      })().catch(() => { /* best-effort */ });
+                    [result.rideId, courierId],
+                );
+                const row = rows[0];
+                if (!row?.rider_user_id) return;
+                const car = [row.vehicle_make, row.vehicle_model].filter(Boolean).join(" ") || row.vehicle_plate || "";
+                await sendPushToUser(row.rider_user_id, {
+                    title: `Șofer găsit: ${row.full_name}${car ? ` • ${car}` : ""}`,
+                    body: "Urmărește cursa live în aplicație.",
+                    url: `/go/${result.rideId}`,
+                });
+            })().catch(() => { /* best-effort */ });
+        }
     }
-  }
-  return result;
+    return result;
 }
 
 /** Refuză oferta curentă a curierului pentru un job/comandă. */
 export async function declineOffer(jobOrOrderId: string, courierId: string): Promise<void> {
-  await dbQuery(
-    `UPDATE dispatch_offers o SET response = 'declined', responded_at = now()
+    await dbQuery(
+        `UPDATE dispatch_offers o SET response = 'declined', responded_at = now()
       FROM dispatch_jobs j
      WHERE o.job_id = j.id AND (j.id = $1 OR j.order_id = $1)
        AND o.courier_id = $2 AND o.response IS NULL`,
-    [jobOrOrderId, courierId],
-  );
+        [jobOrOrderId, courierId],
+    );
 }
 
 export type TickResult = {
-  expiredOffers: number;
-  advancedWaves: number;
-  noCourier: number;
+    expiredOffers: number;
+    advancedWaves: number;
+    noCourier: number;
 };
 
 /**
@@ -334,16 +334,16 @@ export type TickResult = {
  *     sau declară 'no_courier' după epuizarea valurilor.
  */
 export async function tick(): Promise<TickResult> {
-  const result: TickResult = { expiredOffers: 0, advancedWaves: 0, noCourier: 0 };
+    const result: TickResult = { expiredOffers: 0, advancedWaves: 0, noCourier: 0 };
 
-  const { rowCount: expired } = await dbQuery(
-    `UPDATE dispatch_offers SET response = 'expired', responded_at = now()
+    const { rowCount: expired } = await dbQuery(
+        `UPDATE dispatch_offers SET response = 'expired', responded_at = now()
       WHERE response IS NULL AND expires_at < now()`,
-  );
-  result.expiredOffers = expired;
+    );
+    result.expiredOffers = expired;
 
-  const { rows: stalled } = await dbQuery<DispatchJob>(
-    `SELECT j.* FROM dispatch_jobs j
+    const { rows: stalled } = await dbQuery<DispatchJob>(
+        `SELECT j.* FROM dispatch_jobs j
       WHERE j.status = 'searching'
         AND NOT EXISTS (
           SELECT 1 FROM dispatch_offers o
@@ -351,59 +351,59 @@ export async function tick(): Promise<TickResult> {
         )
       ORDER BY j.created_at
       LIMIT 50`,
-  );
+    );
 
-  for (const job of stalled) {
-    const nextWave = job.wave + 1;
-    if (nextWave >= WAVE_RADII_KM.length) {
-      await dbQuery(
-        `UPDATE dispatch_jobs SET status = 'no_courier', updated_at = now() WHERE id = $1`,
-        [job.id],
-      );
-      if (job.order_id) {
-        await dbQuery(
-          `UPDATE local_orders SET dispatch_status = 'no_courier', updated_at = now() WHERE id = $1`,
-          [job.order_id],
-        );
-      }
-      if (job.ride_id) {
-        await dbQuery(`UPDATE rides SET status = 'cancelled' WHERE id = $1 AND driver_id IS NULL`, [
-          job.ride_id,
+    for (const job of stalled) {
+        const nextWave = job.wave + 1;
+        if (nextWave >= WAVE_RADII_KM.length) {
+            await dbQuery(
+                `UPDATE dispatch_jobs SET status = 'no_courier', updated_at = now() WHERE id = $1`,
+                [job.id],
+            );
+            if (job.order_id) {
+                await dbQuery(
+                    `UPDATE local_orders SET dispatch_status = 'no_courier', updated_at = now() WHERE id = $1`,
+                    [job.order_id],
+                );
+            }
+            if (job.ride_id) {
+                await dbQuery(`UPDATE rides SET status = 'cancelled' WHERE id = $1 AND driver_id IS NULL`, [
+                    job.ride_id,
+                ]);
+            }
+            await publishJobEvent(job.id, { type: "status", status: "no_courier" });
+            result.noCourier += 1;
+            continue;
+        }
+
+        await dbQuery(`UPDATE dispatch_jobs SET wave = $2, updated_at = now() WHERE id = $1`, [
+            job.id,
+            nextWave,
         ]);
-      }
-      await publishJobEvent(job.id, { type: "status", status: "no_courier" });
-      result.noCourier += 1;
-      continue;
+        const advanced: DispatchJob = { ...job, wave: nextWave };
+        const offered = await emitWaveOffers(advanced);
+        logger.info({ jobId: job.id, wave: nextWave, offered }, "[dispatch] wave advanced");
+        await publishJobEvent(job.id, { type: "status", status: "searching", wave: nextWave });
+        result.advancedWaves += 1;
     }
 
-    await dbQuery(`UPDATE dispatch_jobs SET wave = $2, updated_at = now() WHERE id = $1`, [
-      job.id,
-      nextWave,
-    ]);
-    const advanced: DispatchJob = { ...job, wave: nextWave };
-    const offered = await emitWaveOffers(advanced);
-    logger.info({ jobId: job.id, wave: nextWave, offered }, "[dispatch] wave advanced");
-    await publishJobEvent(job.id, { type: "status", status: "searching", wave: nextWave });
-    result.advancedWaves += 1;
-  }
-
-  return result;
+    return result;
 }
 
 /** Jobul activ al unei comenzi (dacă există). */
 export async function getJobForOrder(orderId: string): Promise<DispatchJob | null> {
-  const { rows } = await dbQuery<DispatchJob>(
-    `SELECT * FROM dispatch_jobs WHERE order_id = $1 ORDER BY created_at DESC LIMIT 1`,
-    [orderId],
-  );
-  return rows[0] ?? null;
+    const { rows } = await dbQuery<DispatchJob>(
+        `SELECT * FROM dispatch_jobs WHERE order_id = $1 ORDER BY created_at DESC LIMIT 1`,
+        [orderId],
+    );
+    return rows[0] ?? null;
 }
 
 /** Jobul activ al unei curse (dacă există). */
 export async function getJobForRide(rideId: string): Promise<DispatchJob | null> {
-  const { rows } = await dbQuery<DispatchJob>(
-    `SELECT * FROM dispatch_jobs WHERE ride_id = $1 ORDER BY created_at DESC LIMIT 1`,
-    [rideId],
-  );
-  return rows[0] ?? null;
+    const { rows } = await dbQuery<DispatchJob>(
+        `SELECT * FROM dispatch_jobs WHERE ride_id = $1 ORDER BY created_at DESC LIMIT 1`,
+        [rideId],
+    );
+    return rows[0] ?? null;
 }

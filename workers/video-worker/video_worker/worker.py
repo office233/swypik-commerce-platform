@@ -62,7 +62,7 @@ class VideoProcessor:
 
                 source_path.parent.mkdir(parents=True, exist_ok=True)
                 # Hybrid pipeline: if the job carries an external `source_url`
-                # (e.g. AliExpress CDN) download it via HTTP and mirror the raw
+                # (sursă externă) download it via HTTP and mirror the raw
                 # bytes into R2 under `source_key` so we keep a canonical copy.
                 if job.source_url:
                     logger.info("Job %s: pulling external source %s", job.job_id, job.source_url)
@@ -158,7 +158,7 @@ class VideoProcessor:
 
 def _download_http(url: str, destination: Path, timeout: int = 120) -> None:
     """Stream an http(s) URL to disk. Used by the hybrid pipeline for
-    external sources (e.g. https://video.aliexpress-media.com/.../.mp4).
+    external sources (URL http(s) direct către un .mp4).
 
     Uses the stdlib so the worker has no extra dependency. Follows redirects.
     Raises on non-2xx responses or content < 1KB (likely an error body).

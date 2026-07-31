@@ -332,8 +332,8 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                 {!cancelled && (
                     <a
                         href={`/go?dropoff=${encodeURIComponent(order.delivery_address)}${order.delivery_lat != null && order.delivery_lng != null
-                                ? `&dlat=${order.delivery_lat}&dlng=${order.delivery_lng}`
-                                : ""
+                            ? `&dlat=${order.delivery_lat}&dlng=${order.delivery_lng}`
+                            : ""
                             }`}
                         onClick={() => haptic("tap")}
                         className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] bg-white text-sm font-bold active:scale-[0.98]"

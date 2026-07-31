@@ -148,14 +148,9 @@ export async function POST(req: Request) {
             [pi]
           );
 
-          // STOP cron from placing AE orders for items still pending,
-          // and flag items already placed at AE so admin can cancel them manually
-          // (AE Open Platform does not expose a cancel endpoint in our scope).
-          const { rows: cancelledItems } = await dbQuery<{
-            id: string;
-            source_status: string;
-            ae_order_id: string | null;
-          }>(
+          // Anulează itemele nelivrate la refund. ('pending_dropship' rămâne
+          // în filtru doar pentru rânduri istorice — fluxul dropship a fost eliminat.)
+          await dbQuery(
             `UPDATE commerce_order_items coi
              SET
                source_status = CASE
@@ -166,26 +161,15 @@ export async function POST(req: Request) {
                metadata = coi.metadata || jsonb_build_object(
                  'refund_event_id', $2::text,
                  'refunded_at', now()::text,
-                 'refund_amount_cents', $3::int,
-                 'ae_cancel_required',
-                   (coi.source_status = 'processing_dropship' AND coi.metadata ? 'ae_order_id')
+                 'refund_amount_cents', $3::int
                )
              FROM commerce_orders co
              WHERE coi.order_id = co.id
                AND (co.metadata->>'paymentIntentId' = $1
                     OR co.metadata->>'payment_intent_id' = $1
-                    OR co.metadata->>'stripe_payment_intent' = $1)
-             RETURNING coi.id, coi.source_status, coi.metadata->>'ae_order_id' AS ae_order_id`,
+                    OR co.metadata->>'stripe_payment_intent' = $1)`,
             [pi, event.id, charge.amount_refunded || 0]
           );
-
-          const needsManualAeCancel = cancelledItems.filter(i => i.ae_order_id && i.source_status === 'processing_dropship');
-          if (needsManualAeCancel.length > 0) {
-            logger.error(
-              { items: needsManualAeCancel },
-              `[Stripe Webhook] Refund received but ${needsManualAeCancel.length} item(s) already placed at AE. Manual cancel required.`
-            );
-          }
 
           try {
             const { rows: oRows } = await dbQuery<{ id: string; currency: string; total_cents: number; customer_email: string | null; user_email: string | null }>(
@@ -226,7 +210,7 @@ export async function POST(req: Request) {
           "UPDATE commerce_orders SET status='cancelled', metadata = metadata || jsonb_build_object('cancelled_at', NOW()::text, 'cancelled_event', $2::text) WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'sessionId' = $1 OR metadata->>'stripe_session_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
           [objId, event.type]
         );
-        // Stop the dropship cron from picking up items belonging to a cancelled order.
+        // Anulează itemele încă neprocesate ale comenzii anulate.
         await dbQuery(
           `UPDATE commerce_order_items coi
            SET source_status = 'cancelled',

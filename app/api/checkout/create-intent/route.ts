@@ -73,7 +73,7 @@ export async function POST(req: Request) {
 
       let variantPrice = pgProduct.price;
       let variantId: string | null = null;
-      
+
       if (item.skuId) {
         const { rows } = await dbQuery(
           `SELECT id, price_cents FROM marketplace_product_variants WHERE product_id = $1 AND sku = $2 LIMIT 1`,
@@ -179,12 +179,12 @@ export async function POST(req: Request) {
     const wantsSwyp = swypRequestedCents > 0 || Boolean(parsed.data.useSwyp);
     const { swypCents, remainingCents } = wantsSwyp && uid
       ? await applySwypToTotal({
-          userId: uid,
-          totalCents,
-          requestedCents: swypRequestedCents,
-          refType: "commerce_order",
-          refId: orderId,
-        })
+        userId: uid,
+        totalCents,
+        requestedCents: swypRequestedCents,
+        refType: "commerce_order",
+        refId: orderId,
+      })
       : { swypCents: 0, remainingCents: totalCents };
 
     if (swypCents > 0) {

@@ -134,14 +134,12 @@ export default function NotificationsClient() {
                     onClick={() => {
                       if (unreadRow) markOne(n.id);
                     }}
-                    className={`flex gap-3 px-4 py-3 transition hover:bg-[#F9FAFB] ${
-                      unreadRow ? "bg-[#0D0D0D]/5" : ""
-                    }`}
+                    className={`flex gap-3 px-4 py-3 transition hover:bg-[#F9FAFB] ${unreadRow ? "bg-[#0D0D0D]/5" : ""
+                      }`}
                   >
                     <span
-                      className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                        unreadRow ? "bg-[#0D0D0D]" : "bg-transparent"
-                      }`}
+                      className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${unreadRow ? "bg-[#0D0D0D]" : "bg-transparent"
+                        }`}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-[#0D0D0D]">

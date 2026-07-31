@@ -204,33 +204,33 @@ export default function PayoutsClient({
         ) : (
           <div className="rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden">
             <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[480px]">
-              <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
-                <tr>
-                  <th className="px-4 py-2">{tr("thData")}</th>
-                  <th className="px-4 py-2">{tr("thSuma")}</th>
-                  <th className="px-4 py-2">{tr("thStatus")}</th>
-                  <th className="px-4 py-2">{tr("thRef")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E5E5]">
-                {recentTransfers.map((t) => (
-                  <tr key={t.id}>
-                    <td className="px-4 py-3 whitespace-nowrap">{new Date(t.completed_at || t.submitted_at || t.created_at).toLocaleDateString("ro-RO")}</td>
-                    <td className="px-4 py-3 font-bold whitespace-nowrap">{formatMoney(t.amount_cents - (t.reversed_amount_cents || 0), t.currency)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-1 rounded-md text-xs font-bold ${TRANSFER_STATUS_CLASS[t.status] || "bg-[#F7F7F8]"}`}>
-                        {TRANSFER_STATUS_LABEL[t.status] || t.status}
-                      </span>
-                      {t.failure_message && (
-                        <div className="mt-1 text-[11px] text-red-600">{t.failure_message}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-[#6E6E80] font-mono">{t.provider_transfer_id ? t.provider_transfer_id.slice(0, 14) + "…" : "—"}</td>
+              <table className="w-full text-sm min-w-[480px]">
+                <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
+                  <tr>
+                    <th className="px-4 py-2">{tr("thData")}</th>
+                    <th className="px-4 py-2">{tr("thSuma")}</th>
+                    <th className="px-4 py-2">{tr("thStatus")}</th>
+                    <th className="px-4 py-2">{tr("thRef")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#E5E5E5]">
+                  {recentTransfers.map((t) => (
+                    <tr key={t.id}>
+                      <td className="px-4 py-3 whitespace-nowrap">{new Date(t.completed_at || t.submitted_at || t.created_at).toLocaleDateString("ro-RO")}</td>
+                      <td className="px-4 py-3 font-bold whitespace-nowrap">{formatMoney(t.amount_cents - (t.reversed_amount_cents || 0), t.currency)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-1 rounded-md text-xs font-bold ${TRANSFER_STATUS_CLASS[t.status] || "bg-[#F7F7F8]"}`}>
+                          {TRANSFER_STATUS_LABEL[t.status] || t.status}
+                        </span>
+                        {t.failure_message && (
+                          <div className="mt-1 text-[11px] text-red-600">{t.failure_message}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[#6E6E80] font-mono">{t.provider_transfer_id ? t.provider_transfer_id.slice(0, 14) + "…" : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -243,30 +243,30 @@ export default function PayoutsClient({
         ) : (
           <div className="rounded-2xl border border-[#E5E5E5] bg-white overflow-hidden">
             <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[480px]">
-              <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
-                <tr>
-                  <th className="px-4 py-2">{tr("thData")}</th>
-                  <th className="px-4 py-2">{tr("thPerioada")}</th>
-                  <th className="px-4 py-2">{tr("thNet")}</th>
-                  <th className="px-4 py-2">{tr("thStatus")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E5E5]">
-                {recentPayouts.map((p) => (
-                  <tr key={p.id}>
-                    <td className="px-4 py-3">{new Date(p.paid_at || p.created_at).toLocaleDateString("ro-RO")}</td>
-                    <td className="px-4 py-3 text-xs text-[#6E6E80]">
-                      {p.period_start ? new Date(p.period_start).toLocaleDateString("ro-RO") : "—"} → {p.period_end ? new Date(p.period_end).toLocaleDateString("ro-RO") : "—"}
-                    </td>
-                    <td className="px-4 py-3 font-bold">{formatMoney(p.net_amount_cents, p.currency)}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-block px-2 py-1 rounded-md bg-[#F7F7F8] text-xs font-bold">{p.status}</span>
-                    </td>
+              <table className="w-full text-sm min-w-[480px]">
+                <thead className="bg-[#F7F7F8] text-left text-xs uppercase text-[#6E6E80]">
+                  <tr>
+                    <th className="px-4 py-2">{tr("thData")}</th>
+                    <th className="px-4 py-2">{tr("thPerioada")}</th>
+                    <th className="px-4 py-2">{tr("thNet")}</th>
+                    <th className="px-4 py-2">{tr("thStatus")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#E5E5E5]">
+                  {recentPayouts.map((p) => (
+                    <tr key={p.id}>
+                      <td className="px-4 py-3">{new Date(p.paid_at || p.created_at).toLocaleDateString("ro-RO")}</td>
+                      <td className="px-4 py-3 text-xs text-[#6E6E80]">
+                        {p.period_start ? new Date(p.period_start).toLocaleDateString("ro-RO") : "—"} → {p.period_end ? new Date(p.period_end).toLocaleDateString("ro-RO") : "—"}
+                      </td>
+                      <td className="px-4 py-3 font-bold">{formatMoney(p.net_amount_cents, p.currency)}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-block px-2 py-1 rounded-md bg-[#F7F7F8] text-xs font-bold">{p.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

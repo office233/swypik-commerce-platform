@@ -381,7 +381,7 @@ function transformProduct(
       ? String(firstNonEmpty(row.ae_title_ro, metadata.title_ro, row.title) || row.title)
       : String(firstNonEmpty(row.ae_title, metadata.title_en, row.title) || row.title));
 
-  // Prefer taxonomy_nodes labels (curated, localized) over AliExpress raw text
+  // Prefer taxonomy_nodes labels (curated, localized) over raw catalog text
   // which often contains the product title in category fields.
   const taxLabels: TaxonomyLabels = (taxonomyMap && row.taxonomy_node_slug)
     ? (taxonomyMap.get(String(row.taxonomy_node_slug)) || {})
@@ -698,7 +698,7 @@ function buildSearchFilters(filters: ProductFilters) {
       const tagValue = String(categoryId).replace("tag:", "");
       paramIndex = addCategoryTextFilters(where, params, paramIndex, tagValue);
     } else {
-      // Support both clean taxonomy slugs and legacy AliExpress category ids.
+      // Support both clean taxonomy slugs and legacy numeric category ids.
       where.push(`
         (
           COALESCE(p.taxonomy_slug, '') = $${paramIndex}

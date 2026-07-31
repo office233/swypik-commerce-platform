@@ -83,8 +83,7 @@ SELECT 'Total tables' AS metric, COUNT(*)::text AS value FROM information_schema
 UNION ALL SELECT 'Videos in feed', COUNT(*)::text FROM videos WHERE status='ready' AND visibility='public'
 UNION ALL SELECT 'Videos with video_url', COUNT(*)::text FROM videos WHERE playback_url IS NOT NULL AND playback_url != ''
 UNION ALL SELECT 'Marketplace products', COUNT(*)::text FROM marketplace_products
-UNION ALL SELECT 'AE products (total)', COUNT(*)::text FROM ae_products
-UNION ALL SELECT 'AE products (with video)', COUNT(*)::text FROM ae_products WHERE has_video=true
+
 UNION ALL SELECT 'AE variants', COUNT(*)::text FROM ae_variants
 UNION ALL SELECT 'AE categories', COUNT(*)::text FROM ae_categories
 UNION ALL SELECT 'Users', COUNT(*)::text FROM users

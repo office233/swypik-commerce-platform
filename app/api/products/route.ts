@@ -1,6 +1,6 @@
 /**
  * Products API - storefront catalog reads from marketplace_products
- * with AliExpress source data used as enrichment where needed.
+ * cu date de catalog folosite ca îmbogățire acolo unde e nevoie.
  */
 
 import { NextResponse } from "next/server";

@@ -84,11 +84,10 @@ export default async function BattlesPage({
             <Link
               key={s}
               href={`/battles?sort=${s}`}
-              className={`rounded-full px-3 py-1.5 border ${
-                sort === s
+              className={`rounded-full px-3 py-1.5 border ${sort === s
                   ? "bg-[#7C3AED] border-[#7C3AED] text-white"
                   : "border-white/10 text-white/60 hover:bg-white/5"
-              }`}
+                }`}
             >
               {s === "hot" ? t("sortHot") : s === "new" ? t("sortNew") : t("sortEnding")}
             </Link>

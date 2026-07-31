@@ -103,7 +103,7 @@ async function persistOpenCheckoutSession(items: CheckoutItem[], sessionId: stri
           unitAmountCents,
           grossAmountCents,
           JSON.stringify({
-            source: "aliexpress",
+            source: "manual",
             product_id: item.productId,
             video_id: item.videoId || null,
             creator_id: item.creatorId || null,

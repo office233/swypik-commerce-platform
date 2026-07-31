@@ -60,7 +60,7 @@ export default function ChatInterface({
 
   useEffect(() => {
     try {
-      // Schema v2: invalidăm istoricul vechi (conținea produse AliExpress
+      // Schema v2: invalidăm istoricul vechi (conținea produse din catalogul vechi
       // rămase în localStorage după golirea catalogului).
       const SCHEMA = "v2";
       if (localStorage.getItem("aicv_chat_schema") !== SCHEMA) {
@@ -261,7 +261,7 @@ export default function ChatInterface({
     const offset = (page - 1) * 20;
     try {
       const catName = catPath.includes(" > ") ? catPath.split(" > ").pop()!.trim() : catPath;
-      // Tag-based filtering (AI tags) vs category-based (AliExpress IDs)
+      // Tag-based filtering (AI tags) vs category-based (id-uri numerice legacy)
       let catParam: string;
       if (effectiveCatId?.startsWith("tag:")) {
         catParam = `tag=${encodeURIComponent(effectiveCatId.replace("tag:", ""))}`;

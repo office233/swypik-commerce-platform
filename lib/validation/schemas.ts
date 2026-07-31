@@ -103,9 +103,9 @@ export const AddressPatchSchema = z.object({
   region: z.string().trim().max(120).nullable().optional(),
   postal_code: z.string().trim().max(20).nullable().optional(),
   country_code: z.string().trim().length(2).regex(/^[A-Za-z]{2}$/, "country_code must be ISO-3166-1 alpha-2").nullable().optional(),
-    lat: z.coerce.number().min(-90).max(90).nullable().optional(),
-    lng: z.coerce.number().min(-180).max(180).nullable().optional(),
-    details: z.string().trim().max(500).nullable().optional(),
+  lat: z.coerce.number().min(-90).max(90).nullable().optional(),
+  lng: z.coerce.number().min(-180).max(180).nullable().optional(),
+  details: z.string().trim().max(500).nullable().optional(),
   set_default: z.boolean().optional(),
 }).strict();
 
@@ -724,9 +724,9 @@ export const UserAddressCreateSchema = z.object({
   postal_code: z.string().trim().min(2, "Codul poștal este obligatoriu").max(20),
   country_code: z.enum(ALLOWED_COUNTRY_CODES).default("RO"),
   is_default: z.coerce.boolean().optional(),
-    lat: z.coerce.number().min(-90).max(90).nullable().optional(),
-    lng: z.coerce.number().min(-180).max(180).nullable().optional(),
-    details: z.string().trim().max(500).nullable().optional(),
+  lat: z.coerce.number().min(-90).max(90).nullable().optional(),
+  lng: z.coerce.number().min(-180).max(180).nullable().optional(),
+  details: z.string().trim().max(500).nullable().optional(),
 });
 export type UserAddressCreateInput = z.infer<typeof UserAddressCreateSchema>;
 

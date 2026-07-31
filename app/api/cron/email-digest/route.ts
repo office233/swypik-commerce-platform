@@ -22,7 +22,7 @@ function authorize(req: Request): boolean {
 }
 
 function escapeHtml(value: unknown): string {
-  return String(value ?? "").replace(/[&<>"'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"} as Record<string,string>)[c] || c);
+  return String(value ?? "").replace(/[&<>"'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" } as Record<string, string>)[c] || c);
 }
 
 type DigestProduct = { id: string; title: string; slug: string | null; image_url: string | null; price_cents: number | null; currency: string };

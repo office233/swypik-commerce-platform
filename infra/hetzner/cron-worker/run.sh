@@ -66,7 +66,6 @@ while true; do
   fi
   # Every 15 min
   if [ $((TICK % 900)) -lt 60 ]; then
-    run_job process-dropship POST
     run_job embed-batch POST
     run_job classify-pending POST
   fi
@@ -76,7 +75,6 @@ while true; do
   fi
   # Every hour
   if [ $((TICK % 3600)) -lt 60 ]; then
-    run_job sync-dropship-status POST
     run_job swyp-view-milestones GET
     run_job refresh-fx GET
     # Alerte operationale + agregari (adaugate 2026-07-31)

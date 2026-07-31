@@ -95,7 +95,7 @@ const ADULT_KEYWORDS_RO = [
 
 // ----- SENSITIVE (suggestive but not explicit) -----
 // NOTE: "sexy", "seductive", "sensual" intentionally NOT in this list —
-// AliExpress marketing uses these words on regular fashion (tops, dresses,
+// Marketingul de import folosește aceste cuvinte pe fashion obișnuit (tops, dresses,
 // lipstick, casual bodysuits). Category match + explicit terms below catch
 // real lingerie. Removing those keywords downgrades ~4800 false positives.
 const SENSITIVE_KEYWORDS_EN = [

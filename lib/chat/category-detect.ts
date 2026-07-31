@@ -1,6 +1,6 @@
 /**
  * Category Detection for Romanian shopping queries
- * Maps Romanian/English terms to AliExpress-style category names
+ * Maps Romanian/English terms to catalog category names
  */
 
 // ─── Category mapping for Romanian queries ────────────────────────

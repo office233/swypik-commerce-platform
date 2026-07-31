@@ -13,6 +13,7 @@ import { ArrowLeft, Clock, MapPin, Minus, Plus, ShoppingBag, Star, Truck } from 
 import { haptic } from "@/lib/haptic";
 import { isOpenNow } from "@/lib/merchants/hours";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { useTranslations } from "next-intl";
 import EatsPaymentModal from "@/components/payments/EatsPaymentModal";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 
@@ -81,6 +82,7 @@ interface CartLine {
 export default function MenuClient({ merchant }: { merchant: Merchant }) {
   const router = useRouter();
   const fmt = useFormatPrice();
+  const t = useTranslations("foodMenu");
   const [menu, setMenu] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -303,7 +305,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           localStorage.removeItem(cartKey);
           return;
         }
-        setError(data.payment_error || "Inițializarea plății a eșuat.");
+        setError(data.payment_error || t("paymentInitFailed"));
         return;
       }
       setPlaced(data.order);
@@ -340,12 +342,12 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
       <div className="grid min-h-dvh place-items-center bg-white px-6 pb-24">
         <div className="text-center">
           <div className="mb-4 text-6xl" aria-hidden>✅</div>
-          <h1 className="text-xl font-black">Comandă plasată!</h1>
+          <h1 className="text-xl font-black">{t("orderPlaced")}</h1>
           <p className="mt-2 text-sm text-[#6E6E80]">
-            Numărul comenzii: <span className="font-black text-[#0D0D0D]">{placed.order_number}</span>
+            {t("orderNumber")} <span className="font-black text-[#0D0D0D]">{placed.order_number}</span>
           </p>
           <p className="mt-1 text-sm text-[#6E6E80]">
-            {merchant.name} confirmă în câteva minute.
+            {t("confirmsSoon", { name: merchant.name })}
           </p>
           {placed.id && (
             <button
@@ -354,7 +356,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               style={{ backgroundColor: ACCENT }}
               className="mt-6 h-12 w-full rounded-xl px-6 text-sm font-bold text-white transition active:scale-95"
             >
-              Urmărește comanda live
+              {t("trackLive")}
             </button>
           )}
           <button
@@ -362,7 +364,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
             onClick={() => router.push("/food")}
             className="mt-3 h-12 rounded-xl border border-[#E5E5E5] px-6 text-sm font-bold text-[#0D0D0D] transition active:scale-95"
           >
-            Înapoi la restaurante
+            {t("backToRestaurants")}
           </button>
         </div>
       </div>
@@ -379,7 +381,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
         <button
           type="button"
           onClick={() => router.push("/food")}
-          aria-label="Înapoi"
+          aria-label={t("back")}
           className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 shadow transition active:scale-95"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -407,11 +409,11 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
             </span>
             <span className="inline-flex items-center gap-1">
               <Truck size={13} />
-              {merchant.delivery_fee_cents === 0 ? "Livrare gratuită" : fmtLei(merchant.delivery_fee_cents)}
+              {merchant.delivery_fee_cents === 0 ? t("freeDelivery") : fmtLei(merchant.delivery_fee_cents)}
             </span>
-            {merchant.min_order_cents > 0 && <span>minim {fmtLei(merchant.min_order_cents)}</span>}
+            {merchant.min_order_cents > 0 && <span>{t("minOrder", { amount: fmtLei(merchant.min_order_cents) })}</span>}
             <span className={`font-black ${open ? "" : "text-red-600"}`} style={open ? { color: ACCENT } : undefined}>
-              {open ? "● Deschis" : "● Închis"}
+              {open ? t("open") : t("closed")}
             </span>
           </div>
         </div>
@@ -426,7 +428,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
             ))}
           </div>
         ) : menu.length === 0 ? (
-          <p className="py-12 text-center text-sm text-[#6E6E80]">Meniul se încarcă în curând.</p>
+          <p className="py-12 text-center text-sm text-[#6E6E80]">{t("menuLoading")}</p>
         ) : (
           menu.map((section) => (
             <section key={section.id ?? "other"} className="mb-6">
@@ -542,7 +544,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               style={{ backgroundColor: ACCENT }}
               className="mt-5 h-12 w-full rounded-xl text-sm font-bold text-white transition active:scale-95"
             >
-              Adaugă în coș
+              {t("addToCart")}
             </button>
           </div>
         </div>
@@ -553,7 +555,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E5E5E5] bg-white/95 p-4 pb-[max(16px,env(safe-area-inset-bottom))] backdrop-blur-xl">
           {belowMin && (
             <p className="mb-2 text-center text-xs font-bold text-amber-600">
-              Comanda minimă e {fmtLei(merchant.min_order_cents)} — mai adaugă {fmtLei(merchant.min_order_cents - subtotal)}
+              {t("minOrderWarning", { min: fmtLei(merchant.min_order_cents), diff: fmtLei(merchant.min_order_cents - subtotal) })}
             </p>
           )}
           <button
@@ -582,7 +584,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
             className="max-h-[90dvh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-black">Finalizează comanda</h3>
+            <h3 className="text-base font-black">{t("checkoutTitle")}</h3>
 
             <div className="mt-3 space-y-2 rounded-2xl bg-[#F7F7F8] p-3">
               {cart.map((l, i) => (
@@ -594,25 +596,25 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => changeQty(i, -1)} aria-label="Scade" className="grid h-7 w-7 place-items-center rounded-full bg-white"><Minus size={14} /></button>
+                    <button type="button" onClick={() => changeQty(i, -1)} aria-label={t("decrease")} className="grid h-7 w-7 place-items-center rounded-full bg-white"><Minus size={14} /></button>
                     <span className="w-5 text-center font-black">{l.qty}</span>
-                    <button type="button" onClick={() => changeQty(i, 1)} aria-label="Crește" className="grid h-7 w-7 place-items-center rounded-full bg-white"><Plus size={14} /></button>
+                    <button type="button" onClick={() => changeQty(i, 1)} aria-label={t("increase")} className="grid h-7 w-7 place-items-center rounded-full bg-white"><Plus size={14} /></button>
                   </div>
                   <span className="w-20 text-right font-black">{fmtLei(l.unit_price_cents * l.qty)}</span>
                 </div>
               ))}
               <div className="border-t border-[#E5E5E5] pt-2 text-sm">
                 <div className="flex justify-between text-[#6E6E80]"><span>Subtotal</span><span>{fmtLei(subtotal)}</span></div>
-                <div className="mt-1 flex justify-between text-[#6E6E80]"><span>Livrare</span><span>{deliveryFee === 0 ? "Gratuită" : fmtLei(deliveryFee)}</span></div>
+                <div className="mt-1 flex justify-between text-[#6E6E80]"><span>{t("delivery")}</span><span>{deliveryFee === 0 ? "Gratuită" : fmtLei(deliveryFee)}</span></div>
                 {tipCents > 0 && (
-                  <div className="mt-1 flex justify-between text-[#6E6E80]"><span>Bacșiș curier</span><span>{fmtLei(tipCents)}</span></div>
+                  <div className="mt-1 flex justify-between text-[#6E6E80]"><span>{t("courierTip")}</span><span>{fmtLei(tipCents)}</span></div>
                 )}
                 <div className="mt-1 flex justify-between font-black"><span>Total</span><span>{fmtLei(total)}</span></div>
               </div>
             </div>
 
             <div className="mt-4 space-y-3">
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Numele tău *" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
               <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon *" inputMode="tel" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
 
               {savedAddresses.length > 0 && (
@@ -653,14 +655,14 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                     <LiveMarker position={addressCoords} kind="dropoff" label="Livrare aici" />
                   </MapView>
                   <p className="flex items-center gap-1 bg-[#F7F7F8] px-3 py-1.5 text-[11px] text-[#6E6E80]">
-                    <MapPin size={12} /> Atinge harta ca să ajustezi pinul exact la ușa ta.
+                    <MapPin size={12} /> {t("adjustPin")}
                   </p>
                 </div>
               )}
 
               {outOfRange && (
                 <p className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
-                  Adresa pare în afara razei de livrare a restaurantului. Alege o adresă mai apropiată.
+                  {t("outOfRange")}
                 </p>
               )}
 
@@ -668,12 +670,12 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
 
               <label className="flex items-center gap-2 text-xs font-medium text-[#6E6E80]">
                 <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="h-4 w-4 accent-[#2DBE60]" />
-                Salvează adresa pentru comenzile viitoare
+                {t("saveAddress")}
               </label>
 
               {/* Bacșiș curier */}
               <div>
-                <p className="mb-1.5 text-xs font-black uppercase tracking-wide text-[#6E6E80]">Bacșiș pentru curier</p>
+                <p className="mb-1.5 text-xs font-black uppercase tracking-wide text-[#6E6E80]">{t("tipTitle")}</p>
                 <div className="flex gap-2">
                   {TIP_PRESETS.map((p) => (
                     <button
@@ -682,7 +684,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                       onClick={() => { haptic("tap"); setTipPct(p); setTipCustom(""); }}
                       className={`h-10 flex-1 rounded-xl border text-sm font-bold ${!tipCustom && tipPct === p ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
                     >
-                      {p === 0 ? "Fără" : `${p}%`}
+                      {p === 0 ? t("noTip") : `${p}%`}
                     </button>
                   ))}
                   <input
@@ -722,7 +724,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               style={{ backgroundColor: ACCENT }}
               className="mt-3 h-13 w-full rounded-2xl py-3.5 text-sm font-black text-white transition active:scale-[0.98] disabled:opacity-50"
             >
-              {placing ? "Se trimite…" : `Comandă — ${fmtLei(total)}`}
+              {placing ? t("submitting") : t("submitOrder", { total: fmtLei(total) })}
             </button>
           </div>
         </div>

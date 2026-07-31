@@ -114,7 +114,7 @@ function WalletIcon() {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-  const formatLei = (cents: number) => formatMoneyCents(cents, "RON");
+const formatLei = (cents: number) => formatMoneyCents(cents, "RON");
 
 // ─── Skeleton loader ────────────────────────────────────────────────────────
 

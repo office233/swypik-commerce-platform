@@ -4,12 +4,12 @@ import path from "node:path";
 
 const files = [];
 const walk = (d) => {
-  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-    const p = path.join(d, e.name);
-    if (/node_modules|\.next/.test(p)) continue;
-    if (e.isDirectory()) walk(p);
-    else if (/\.(ts|tsx)$/.test(e.name) && !/\.d\.ts$/.test(e.name)) files.push(p.replaceAll("\\", "/"));
-  }
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        const p = path.join(d, e.name);
+        if (/node_modules|\.next/.test(p)) continue;
+        if (e.isDirectory()) walk(p);
+        else if (/\.(ts|tsx)$/.test(e.name) && !/\.d\.ts$/.test(e.name)) files.push(p.replaceAll("\\", "/"));
+    }
 };
 ["app", "components", "lib", "types", "hooks"].filter((d) => fs.existsSync(d)).forEach(walk);
 
@@ -20,20 +20,20 @@ const joined = allSrc.map((x) => x.src).join("\n");
 const candidates = files.filter((f) => /^(components|lib|hooks|types)\//.test(f));
 const dead = [];
 for (const f of candidates) {
-  const noExt = f.replace(/\.(ts|tsx)$/, "");
-  const base = path.basename(noExt);
-  const aliases = [
-    `@/${noExt}`,
-    `@/${noExt.replace(/\/index$/, "")}`,
-    `./${base}`,
-    `../${base}`,
-  ];
-  const used = aliases.some((a) => joined.includes(`"${a}"`) || joined.includes(`'${a}'`)) ||
-    // dynamic import cu template
-    joined.includes(`(\`@/${noExt}\`)`) ||
-    // re-export prin folder
-    new RegExp(`from ["'][^"']*/${base}["']`).test(joined);
-  if (!used) dead.push(f);
+    const noExt = f.replace(/\.(ts|tsx)$/, "");
+    const base = path.basename(noExt);
+    const aliases = [
+        `@/${noExt}`,
+        `@/${noExt.replace(/\/index$/, "")}`,
+        `./${base}`,
+        `../${base}`,
+    ];
+    const used = aliases.some((a) => joined.includes(`"${a}"`) || joined.includes(`'${a}'`)) ||
+        // dynamic import cu template
+        joined.includes(`(\`@/${noExt}\`)`) ||
+        // re-export prin folder
+        new RegExp(`from ["'][^"']*/${base}["']`).test(joined);
+    if (!used) dead.push(f);
 }
 console.log(`Candidați cod mort (${dead.length}):`);
 console.log(dead.join("\n"));

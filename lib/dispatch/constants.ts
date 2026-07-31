@@ -11,10 +11,10 @@ export const WAVE_RADII_KM = [2, 5, 10] as const;
 
 /** Viteze medii km/h per tip vehicul — folosite pentru ETA post-pickup. */
 export const VEHICLE_SPEED_KMH: Record<string, number> = {
-  foot: 5,
-  bike: 15,
-  scooter: 25,
-  motorcycle: 30,
-  car: 30,
-  van: 28,
+    foot: 5,
+    bike: 15,
+    scooter: 25,
+    motorcycle: 30,
+    car: 30,
+    van: 28,
 };

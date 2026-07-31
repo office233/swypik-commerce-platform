@@ -312,13 +312,13 @@ export default function Recorder() {
             {camera.status === "denied"
               ? t("activeazaPermisiuneaCamera")
               : camera.error ||
-                t("nuAmPututAccesaCamera")}
+              t("nuAmPututAccesaCamera")}
           </p>
           <button
             onClick={() => window.location.reload()}
             className="w-full bg-white text-black font-bold py-3 rounded-2xl"
           >
-            
+
             {t("reincearca")}
           </button>
         </div>
@@ -381,7 +381,7 @@ export default function Recorder() {
 
           <div>
             <label className="text-xs font-bold text-white/60 mb-1.5 block uppercase tracking-wider">
-              
+
               {t("linkProdusOptional")}
             </label>
             <input
@@ -396,7 +396,7 @@ export default function Recorder() {
 
           <div>
             <label className="text-xs font-bold text-white/60 mb-1.5 block uppercase tracking-wider">
-              
+
               {t("piesaOptional")}
             </label>
             <button
@@ -428,7 +428,7 @@ export default function Recorder() {
             </button>
             {audioTrack?.attributionUrl && (
               <div className="text-[10px] text-white/30 mt-1.5">
-                
+
                 {t("sursa")}{" "}
                 <a
                   href={audioTrack.attributionUrl}
@@ -447,14 +447,14 @@ export default function Recorder() {
               onClick={handleRetake}
               className="flex-1 border border-white/30 text-white font-bold py-3.5 rounded-2xl active:scale-95 transition"
             >
-              
+
               {t("refilmeaza")}
             </button>
             <button
               onClick={handlePublish}
               className="flex-1 bg-white text-black font-bold py-3.5 rounded-2xl active:scale-95 transition"
             >
-              
+
               {t("publica")}
             </button>
           </div>
@@ -549,7 +549,7 @@ export default function Recorder() {
               onClick={() => void handleCancelPending(pendingUploads[0].sessionId)}
               className="flex-1 border border-white/40 text-white font-bold py-2 rounded-xl text-xs active:scale-95"
             >
-              
+
               {t("anuleaza")}
             </button>
           </div>
@@ -586,11 +586,10 @@ export default function Recorder() {
               onClick={() => setShowFilters((v) => !v)}
               aria-label={t("filtre")}
               aria-pressed={showFilters}
-              className={`w-11 h-11 flex items-center justify-center rounded-full backdrop-blur-md ${
-                showFilters || filterId !== "none"
+              className={`w-11 h-11 flex items-center justify-center rounded-full backdrop-blur-md ${showFilters || filterId !== "none"
                   ? "bg-white text-black"
                   : "bg-black/50 text-white"
-              }`}
+                }`}
             >
               <Sparkles size={20} />
             </button>
@@ -618,11 +617,10 @@ export default function Recorder() {
                 <button
                   key={f.id}
                   onClick={() => setFilterId(f.id)}
-                  className={`shrink-0 snap-start px-3.5 h-9 rounded-full text-xs font-bold backdrop-blur-md border transition active:scale-95 ${
-                    active
+                  className={`shrink-0 snap-start px-3.5 h-9 rounded-full text-xs font-bold backdrop-blur-md border transition active:scale-95 ${active
                       ? "bg-white text-black border-white"
                       : "bg-black/50 text-white border-white/20"
-                  }`}
+                    }`}
                   aria-pressed={active}
                 >
                   {f.label}
@@ -716,14 +714,14 @@ export default function Recorder() {
               onClick={handleRetake}
               className="flex-1 border border-white text-white font-bold py-3.5 rounded-2xl active:scale-95 transition"
             >
-              
+
               {t("refilmeaza2")}
             </button>
             <button
               onClick={handleUseClip}
               className="flex-1 bg-white text-black font-bold py-3.5 rounded-2xl active:scale-95 transition"
             >
-              
+
               {t("foloseste")}
             </button>
           </div>
@@ -761,8 +759,8 @@ function RecordButton(props: {
   const ariaLabel = isRec
     ? props.ariaPauseLabel
     : isPaused
-    ? props.ariaResumeLabel
-    : props.ariaStartLabel;
+      ? props.ariaResumeLabel
+      : props.ariaStartLabel;
 
   return (
     <button
@@ -819,9 +817,8 @@ function RecordButton(props: {
 
       {/* outline */}
       <span
-        className={`absolute inset-0 rounded-full border-[3px] ${
-          showRing ? "border-transparent" : "border-white"
-        }`}
+        className={`absolute inset-0 rounded-full border-[3px] ${showRing ? "border-transparent" : "border-white"
+          }`}
       />
 
       {/* inner */}

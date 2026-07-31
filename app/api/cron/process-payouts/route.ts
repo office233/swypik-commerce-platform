@@ -59,8 +59,8 @@ async function handleGET(req: Request) {
 
   const expected = process.env.CRON_SECRET;
   if (!expected || !providedSecret ||
-      Buffer.byteLength(providedSecret) !== Buffer.byteLength(expected) ||
-      !timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expected))) {
+    Buffer.byteLength(providedSecret) !== Buffer.byteLength(expected) ||
+    !timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expected))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
