@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { VideoReportPostSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 
@@ -48,12 +48,12 @@ export async function POST(
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "anon";
-  const rlKey = userId ? `report:user:${userId}` : `report:ip:${ip}`;
-  const rl = await rateLimit(rlKey, 5, 3600);
-  if (!rl.ok) {
+  const rlKey = userId ? `user:${userId}` : `ip:${ip}`;
+  const rl = await rateLimit("report", rlKey, { limit: 5, window: 3600 });
+  if (!rl.success) {
     return NextResponse.json(
       { error: "Prea multe raportări. Încearcă mai târziu." },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+      { status: 429, headers: { "Retry-After": "3600" } }
     );
   }
 

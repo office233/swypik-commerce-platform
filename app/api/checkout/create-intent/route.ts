@@ -6,7 +6,8 @@ import { getStripe } from "@/lib/stripe/checkout";
 import crypto from "crypto";
 
 import { logger } from "@/lib/logger";
-import { rateLimit, idempotencyGet, idempotencySet, clientIp } from "@/lib/rate-limit";
+import { idempotencyGet, idempotencySet, clientIp } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { CheckoutCreateIntentSchema, parseBody } from "@/lib/validation/schemas";
 import { applySwypToTotal } from "@/lib/swyp/hybrid-payment";
@@ -28,12 +29,12 @@ export async function POST(req: Request) {
 
     // Rate limit per user (if authed) or per IP: max 10 req/min
     const uid = await getOptionalSocialUserId().catch(() => null);
-    const rlKey = uid ? `checkout:u:${uid}` : `checkout:ip:${clientIp(req)}`;
-    const rl = await rateLimit(rlKey, 10, 60);
-    if (!rl.ok) {
+    const rlKey = uid ? `u:${uid}` : `ip:${clientIp(req)}`;
+    const rl = await rateLimit("checkout", rlKey, { limit: 10, window: 60 });
+    if (!rl.success) {
       return NextResponse.json(
         { success: false, error: "Prea multe cereri. Reîncearcă în câteva secunde." },
-        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+        { status: 429, headers: { "Retry-After": "60" } }
       );
     }
 

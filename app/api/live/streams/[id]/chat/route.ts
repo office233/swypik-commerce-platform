@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { isUuid } from "@/lib/validation/uuid";
 import { LiveChatMessageSchema, parseBody } from "@/lib/validation/schemas";
 
@@ -15,11 +15,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   // 5 messages / 10s per user (across all streams)
-  const rl = await rateLimit(`live:chat:${session.userId}`, 5, 10);
-  if (!rl.ok) {
+  const rl = await rateLimit("chat", `live:${session.userId}`, { limit: 5, window: 10 });
+  if (!rl.success) {
     return NextResponse.json(
-      { error: "rate_limited", retryAfter: rl.retryAfter },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+      { error: "rate_limited", retryAfter: 10 },
+      { status: 429, headers: { "Retry-After": "10" } },
     );
   }
 
