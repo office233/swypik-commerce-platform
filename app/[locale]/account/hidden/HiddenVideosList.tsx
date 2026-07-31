@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Play, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Item = {
   videoId: string;
@@ -13,14 +14,10 @@ type Item = {
   reason: string;
 };
 
-const REASON_LABELS: Record<string, string> = {
-  not_interested: "Nu mă interesează",
-  reported: "Raportat",
-  already_seen: "Văzut deja",
-  blocked_creator: "Creator blocat",
-};
+const REASON_KEYS = new Set(["not_interested", "reported", "already_seen", "blocked_creator"]);
 
 export default function HiddenVideosList({ initial }: { initial: Item[] }) {
+  const t = useTranslations("hiddenVideos");
   const [items, setItems] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -64,17 +61,17 @@ export default function HiddenVideosList({ initial }: { initial: Item[] }) {
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold line-clamp-2">{i.title}</div>
             <div className="text-xs text-white/50">
-              {REASON_LABELS[i.reason] || i.reason}
+              {REASON_KEYS.has(i.reason) ? t(`reason.${i.reason}`) : i.reason}
             </div>
           </div>
           <button
             onClick={() => restore(i.videoId)}
             disabled={busy === i.videoId}
             className="flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold hover:bg-white/[0.08] disabled:opacity-50"
-            aria-label="Restaurează"
+            aria-label={t("restore")}
           >
             <RotateCcw size={14} />
-            <span className="hidden md:inline">Restaurează</span>
+            <span className="hidden md:inline">{t("restore")}</span>
           </button>
         </li>
       ))}

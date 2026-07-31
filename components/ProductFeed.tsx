@@ -16,6 +16,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { isCurrency } from "@/lib/i18n/config";
@@ -180,6 +181,7 @@ function FeedVideo({ src, registerRef, ...rest }: FeedVideoProps) {
 
 export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose, isLoading }: Props) {
   const router = useRouter();
+  const t = useTranslations("productFeed");
   const formatPrice = useFormatPrice();
   const tapAction = { touchAction: "manipulation" } as const;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -544,7 +546,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       <div className="feed-scroll flex items-center justify-center">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#333] border-t-[#10A37F]" />
-          <p className="mt-4 text-sm font-bold text-[#888]">Se încarcă clipurile...</p>
+          <p className="mt-4 text-sm font-bold text-[#888]">{t("loadingClips")}</p>
         </div>
       </div>
     );
@@ -721,7 +723,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   className={`rounded-2xl px-5 py-3 text-sm font-black shadow-lg transition-all active:scale-[0.95] ${addedToCart === product.id ? "bg-white text-[#10A37F]" : "bg-[#10A37F] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
                     }`}
                 >
-                  {addedToCart === product.id ? "Adăugat" : <><ShoppingCart size={15} className="mr-1 inline" />Coș</>}
+                  {addedToCart === product.id ? t("added") : <><ShoppingCart size={15} className="mr-1 inline" />{t("cart")}</>}
                 </button>
               </div>
             </div>

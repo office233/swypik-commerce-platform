@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Item = {
   optionKey: string;
@@ -18,6 +19,7 @@ export default function VoteButtons({
   items: Item[];
 }) {
   const router = useRouter();
+  const t = useTranslations("postVote");
   const [items, setItems] = useState<Item[]>(initial);
   const [myVote, setMyVote] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
@@ -100,8 +102,8 @@ export default function VoteButtons({
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold line-clamp-2">{it.label}</div>
                 <div className="mt-1 text-xs text-white/60">
-                  {it.voteCount} voturi · {pct}%
-                  {isMine ? <span className="ml-2 text-[#7C3AED]">✓ votul tău</span> : null}
+                  {t("votes", { count: it.voteCount })} · {pct}%
+                  {isMine ? <span className="ml-2 text-[#7C3AED]">✓ {t("yourVote")}</span> : null}
                 </div>
               </div>
             </div>
@@ -111,7 +113,7 @@ export default function VoteButtons({
       {error ? (
         <p className="text-xs text-red-400 text-center">{error}</p>
       ) : (
-        <p className="text-xs text-white/40 text-center">Apasă pe variantă pentru a vota.</p>
+        <p className="text-xs text-white/40 text-center">{t("tapToVote")}</p>
       )}
     </div>
   );

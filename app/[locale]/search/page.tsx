@@ -5,6 +5,7 @@ import { searchAll } from "@/lib/search/query";
 import SearchBar from "@/components/search/SearchBar";
 import { formatCurrency } from "@/lib/i18n/currency";
 import { getProductRatingMap } from "@/lib/reviews/aggregate";
+import { getTranslations } from "next-intl/server";
 import {
   CURRENCY_COOKIE,
   LOCALE_COOKIE,
@@ -27,6 +28,7 @@ export default async function SearchPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params: SearchParams = await searchParams;
+  const t = await getTranslations("searchPage");
 
   const q = (params.q ?? "").trim();
   const tab = (params.tab ?? "videos") as "videos" | "creators" | "products" | "hashtags";
@@ -59,9 +61,9 @@ export default async function SearchPage({
       : new Map<string, { avgRating: number; reviewCount: number }>();
 
   const tabs: Array<{ key: typeof tab; label: string; count: number }> = [
-    { key: "videos", label: "Videoclipuri", count: results.videos.length },
-    { key: "creators", label: "Creatori", count: results.creators.length },
-    { key: "products", label: "Produse", count: results.products.length },
+    { key: "videos", label: t("tabVideos"), count: results.videos.length },
+    { key: "creators", label: t("tabCreators"), count: results.creators.length },
+    { key: "products", label: t("tabProducts"), count: results.products.length },
     { key: "hashtags", label: "#Hashtags", count: results.hashtags.length },
   ];
 
@@ -69,13 +71,13 @@ export default async function SearchPage({
     <main className="min-h-screen overflow-x-hidden text-white" style={{ backgroundColor: BG }}>
       <div className="mx-auto max-w-5xl min-w-0 px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold mb-4">Căutare</h1>
+          <h1 className="text-2xl font-semibold mb-4">{t("title")}</h1>
           <SearchBar initialQuery={q} />
         </header>
 
         {tooShort ? (
           <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-8 text-center text-neutral-400">
-            Type at least 2 characters to search.
+            {t("minChars")}
           </div>
         ) : (
           <>

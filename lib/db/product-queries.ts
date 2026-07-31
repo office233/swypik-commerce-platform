@@ -979,7 +979,8 @@ export async function getCheckoutProductById(id: string) {
     sellerId: row.seller_id ? String(row.seller_id) : undefined,
     title: row.title,
     price: priceCents / 100,
-    oldPrice: Number(row.compare_at_price_cents) > 0 ? Number(row.compare_at_price_cents) / 100 : Math.round((priceCents / 100) * 1.3),
+    // ANPC: fara pret de referinta fabricat — doar compare_at real din DB.
+    oldPrice: Number(row.compare_at_price_cents) > 0 ? Number(row.compare_at_price_cents) / 100 : undefined,
     image: images[0] || row.image_url || undefined,
     category,
     metadata,

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Hash, Package, Search, Tag, User } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Suggestion = {
   label: string;
@@ -20,9 +21,11 @@ const ACCENT = "#0D0D0D";
 
 export default function SearchBar({
   initialQuery = "",
-  placeholder = "Caută produse, creatori, #hashtag-uri…",
+  placeholder,
 }: Props) {
   const router = useRouter();
+  const t = useTranslations("searchBar");
+  const effectivePlaceholder = placeholder ?? t("placeholder");
   const [q, setQ] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -144,17 +147,17 @@ export default function SearchBar({
   }
 
   function labelFor(s: Suggestion) {
-    if (s.type === "hashtag") return "Hashtag";
-    if (s.type === "user") return "Creator";
-    if (s.type === "produs") return "Produs";
-    return "Categorie";
+    if (s.type === "hashtag") return t("typeHashtag");
+    if (s.type === "user") return t("typeCreator");
+    if (s.type === "produs") return t("typeProduct");
+    return t("typeCategory");
   }
 
   const activeId = activeIdx >= 0 ? `${listboxId}-opt-${activeIdx}` : undefined;
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      <label htmlFor="swypik-search" className="sr-only">Caută</label>
+      <label htmlFor="swypik-search" className="sr-only">{t("searchLabel")}</label>
       <input
         id="swypik-search"
         name="q"
@@ -166,7 +169,7 @@ export default function SearchBar({
           if (suggestions.length > 0) setOpen(true);
         }}
         onKeyDown={onKeyDown}
-        placeholder={placeholder}
+        placeholder={effectivePlaceholder}
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={open && suggestions.length > 0}

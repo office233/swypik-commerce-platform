@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Smartphone, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const DISMISS_KEY = "swypik_pwa_dismissed";
 const DISMISS_AT_KEY = "swypik_pwa_dismissed_at";
@@ -20,6 +21,7 @@ type BeforeInstallPromptEvent = Event & {
  * for 14 days. Hidden on auth/admin/onboarding routes.
  */
 export default function InstallPrompt() {
+  const t = useTranslations("installPrompt");
   const pathname = usePathname() || "/";
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
@@ -107,10 +109,10 @@ export default function InstallPrompt() {
         </span>
         <div className="min-w-0 flex-1">
           <p id="pwa-install-title" className="text-sm font-black text-white">
-            Instalează aplicația
+            {t("title")}
           </p>
           <p className="mt-0.5 text-xs text-white/70">
-            Adaugă Swypik pe ecranul principal pentru acces rapid și experiență nativă.
+            {t("subtitle")}
           </p>
           <div className="mt-3 flex items-center gap-2">
             <button
@@ -120,21 +122,21 @@ export default function InstallPrompt() {
               className="inline-flex items-center gap-1.5 rounded-lg bg-[#7C3AED] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#6d28d9] disabled:opacity-60"
             >
               <Smartphone size={12} />
-              {busy ? "Se instalează…" : "Instalează"}
+              {busy ? t("installing") : t("install")}
             </button>
             <button
               type="button"
               onClick={dismiss}
               className="rounded-lg px-3 py-1.5 text-xs font-bold text-white/70 hover:bg-white/5 hover:text-white"
             >
-              Mai târziu
+              {t("later")}
             </button>
           </div>
         </div>
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Închide"
+          aria-label={t("close")}
           className="absolute right-2 top-2 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
         >
           <X size={14} />

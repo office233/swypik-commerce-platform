@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { MessageSquare, TrendingUp, Clock, Eye, Share2 } from "lucide-react";
 import VoteButtons from "./VoteButtons";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,7 @@ export default async function PostPage({
 }) {
   const { slug } = await params;
   if (!slug || slug.length > 80) notFound();
+  const t = await getTranslations("postPage");
 
   const { rows } = await dbQuery<PostRow>(
     `SELECT
@@ -137,7 +139,7 @@ export default async function PostPage({
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white pb-24">
       <header className="sticky top-0 z-10 bg-[#0D0D0D]/90 backdrop-blur border-b border-white/10 px-4 py-3">
-        <Link href="/" className="text-sm text-white/60 hover:text-white">← Acasă</Link>
+        <Link href="/" className="text-sm text-white/60 hover:text-white">← {t("home")}</Link>
       </header>
 
       <article className="mx-auto max-w-2xl px-4 py-6">

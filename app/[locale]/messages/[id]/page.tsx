@@ -4,11 +4,13 @@ import { getOptionalSocialUserId } from "@/lib/social/session";
 import ConversationView from "@/components/messages/ConversationView";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const t = await getTranslations("conversation");
   const userId = await getOptionalSocialUserId();
   if (!userId) {
     redirect(`/auth/login?next=/messages/${id}`);
@@ -21,10 +23,10 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white">
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-white/10 bg-black/80 px-4 py-3 backdrop-blur-xl">
-        <Link href="/inbox" aria-label="Înapoi" className="rounded-full p-1 hover:bg-white/10">
+        <Link href="/inbox" aria-label={t("back")} className="rounded-full p-1 hover:bg-white/10">
           <ArrowLeft size={20} />
         </Link>
-        <h1 className="text-base font-bold">Conversație</h1>
+        <h1 className="text-base font-bold">{t("title")}</h1>
       </header>
       <div className="mx-auto max-w-md">
         <ConversationView

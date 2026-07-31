@@ -259,7 +259,7 @@ export default function EditProfilePage() {
 
         {/* Display name */}
         <Field
-          label="Nume afișat"
+          label={t("displayName")}
           hint={`${displayName.length}/50`}
         >
           <input
@@ -324,7 +324,7 @@ export default function EditProfilePage() {
                     setLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, label: e.target.value } : l)))
                   }
                   maxLength={30}
-                  placeholder="Etichetă (ex: website)"
+                  placeholder={t("linkLabelPlaceholder")}
                   className="w-32 min-h-[44px] rounded-xl bg-white/5 border border-white/10 px-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#7C3AED]"
                 />
                 <input
@@ -341,7 +341,7 @@ export default function EditProfilePage() {
                   type="button"
                   onClick={() => setLinks((prev) => prev.filter((_, i) => i !== idx))}
                   className="min-h-[44px] rounded-xl bg-white/10 px-3 text-sm font-bold text-white/70 hover:bg-white/15"
-                  aria-label="Șterge link"
+                  aria-label={t("removeLink")}
                 >
                   ✕
                 </button>

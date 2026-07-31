@@ -10,6 +10,7 @@ import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import CheckoutProductImage from "./checkout/CheckoutProductImage";
 import StripePaymentForm from "./checkout/StripePaymentForm";
 import type { CartItem } from "./checkout/types";
+import { ShoppingCart, AlertTriangle, Coins } from "lucide-react";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -187,7 +188,7 @@ export default function CheckoutForm() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <div className="text-6xl mb-4">🛒</div>
+          <ShoppingCart size={56} className="mx-auto mb-4 text-[#6E6E80]" />
           <h2 className="text-xl font-black text-[#0D0D0D] mb-2">{t("cosGol")}</h2>
           <p className="text-sm text-[#6E6E80] mb-6">{error}</p>
           <Link href="/" className="inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]">
@@ -301,8 +302,8 @@ export default function CheckoutForm() {
               </div>
             </div>
           ) : error ? (
-            <div className="text-sm font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2.5 text-center">
-              ⚠️ {error}
+            <div className="flex items-center justify-center gap-2 text-sm font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2.5 text-center">
+              <AlertTriangle size={16} className="shrink-0" /> {error}
             </div>
           ) : null}
         </div>
@@ -374,13 +375,13 @@ export default function CheckoutForm() {
 
               {swypApplied > 0 && (
                 <div className="flex justify-between text-sm text-[#F5A623] font-bold">
-                  <span>🪙 Plătit cu SWYP</span>
+                  <span className="flex items-center gap-1.5"><Coins size={14} /> {t("paidWithSwyp")}</span>
                   <span>−{formatPrice(swypApplied, { sourceCurrency: "RON" })}</span>
                 </div>
               )}
 
               <div className="flex justify-between text-xl font-black pt-3 mt-1 border-t border-[#E5E5E5]">
-                <span>{swypApplied > 0 ? "De plată cu cardul" : t("total")}</span>
+                <span>{swypApplied > 0 ? t("cardRemaining") : t("total")}</span>
                 <span className="text-[#10A37F]">
                   {formatPrice(Math.max(0, Math.round(subtotal * 100) - swypApplied), { sourceCurrency: "RON" })}
                 </span>

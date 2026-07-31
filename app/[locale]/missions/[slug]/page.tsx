@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, Coins, Trophy, Users, Video } from "lucide-react";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function MissionDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const t = await getTranslations("missionDetail");
   const mission = await getMission(slug);
 
   if (!mission) notFound();
@@ -80,7 +82,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
           <Link
             href="/missions"
             className="grid h-10 w-10 place-items-center rounded-full text-white/70 hover:bg-white/10 hover:text-white transition"
-            aria-label="Înapoi la missions"
+            aria-label={t("backToMissions")}
           >
             <ArrowLeft size={20} />
           </Link>

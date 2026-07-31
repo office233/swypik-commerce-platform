@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { Music2, Play, ArrowLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ function formatDuration(s: number) {
 
 export default async function AudioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const t = await getTranslations("audioPage");
   if (!/^\d+$/.test(id)) notFound();
 
   const trackRes = await dbQuery<AudioTrackRow>(
@@ -63,7 +65,7 @@ export default async function AudioPage({ params }: { params: Promise<{ id: stri
   return (
     <main style={{ background: "#000", color: "#fff", minHeight: "100dvh", paddingBottom: 80 }}>
       <header style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(10px)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Link href="/explore" aria-label="Înapoi" style={{ color: "#fff", display: "flex" }}>
+        <Link href="/explore" aria-label={t("back")} style={{ color: "#fff", display: "flex" }}>
           <ArrowLeft size={22} />
         </Link>
         <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Audio</h1>
@@ -81,7 +83,7 @@ export default async function AudioPage({ params }: { params: Promise<{ id: stri
           <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.title}</h2>
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", margin: "0 0 6px 0" }}>{track.artist}</p>
           <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: 0 }}>
-            {formatDuration(track.duration_s)} · {videos.length} {videos.length === 1 ? "video" : "videoclipuri"}
+            {formatDuration(track.duration_s)} · {t("videoCount", { count: videos.length })}
             {track.genre ? ` · ${track.genre}` : ""}
           </p>
         </div>
@@ -89,21 +91,21 @@ export default async function AudioPage({ params }: { params: Promise<{ id: stri
 
       <section style={{ padding: "0 16px 16px" }}>
         <audio controls preload="none" src={track.audio_url} style={{ width: "100%" }}>
-          Browserul tău nu poate reda audio.
+          {t("audioUnsupported")}
         </audio>
         {track.attribution_url && (
           <a href={track.attribution_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 8, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
-            Sursă licență
+            {t("licenseSource")}
           </a>
         )}
       </section>
 
       <section style={{ padding: "8px 16px 24px" }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.8)", margin: "8px 0 12px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>
-          Videoclipuri cu acest sunet
+          {t("videosWithSound")}
         </h3>
         {videos.length === 0 ? (
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>Niciun videoclip încă.</p>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>{t("noVideos")}</p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3 }}>
             {videos.map((v) => (

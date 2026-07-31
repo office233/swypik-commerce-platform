@@ -4,12 +4,11 @@
  */
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
-import { Shield, PackageX, RotateCcw, Coins, AlertTriangle, ShieldAlert, Inbox } from "lucide-react";
+import { Shield, RotateCcw, Coins, AlertTriangle, ShieldAlert, Inbox } from "lucide-react";
 
 type Counts = {
   disputes_pending: number;
   disputes_urgent: number;
-  ae_cancel_pending: number;
   returns_pending: number;
   refunds_pending: number;
   stale_pending_orders: number;
@@ -27,9 +26,6 @@ async function getCounts(): Promise<Counts> {
         WHERE status IN ('needs_response','warning_needs_response')
           AND evidence_submitted = false
           AND evidence_due_by < now() + interval '24 hours') AS disputes_urgent,
-      (SELECT COUNT(*) FROM commerce_order_items
-        WHERE (metadata->>'ae_cancel_required') = 'true'
-          AND (metadata->>'ae_cancel_resolved_at') IS NULL) AS ae_cancel_pending,
       (SELECT COUNT(*) FROM commerce_orders
         WHERE status = 'return_requested'
            OR (metadata->>'return_status') = 'requested') AS returns_pending,
@@ -61,7 +57,6 @@ async function getCounts(): Promise<Counts> {
   return {
     disputes_pending: Number(r.disputes_pending || 0),
     disputes_urgent: Number(r.disputes_urgent || 0),
-    ae_cancel_pending: Number(r.ae_cancel_pending || 0),
     returns_pending: Number(r.returns_pending || 0),
     refunds_pending: Number(r.refunds_pending || 0),
     stale_pending_orders: Number(r.stale_pending_orders || 0),
@@ -108,13 +103,6 @@ export default async function OpsAlertsBar() {
       Icon: Shield,
       badgeText: counts.disputes_urgent > 0 ? `${counts.disputes_urgent} <24h` : null,
       tone: counts.disputes_urgent > 0 ? "danger" : counts.disputes_pending > 0 ? "warn" : "ok",
-    },
-    {
-      href: "/admin/ae-cancel",
-      label: "AE Cancel",
-      count: counts.ae_cancel_pending,
-      Icon: PackageX,
-      tone: counts.ae_cancel_pending > 5 ? "danger" : counts.ae_cancel_pending > 0 ? "warn" : "ok",
     },
     {
       href: "/admin/returns?status=requested",

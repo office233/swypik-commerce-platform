@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Play } from "lucide-react";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ type Row = {
 };
 
 export default async function LikedVideosPage() {
+  const t = await getTranslations("likedVideos");
   const user = await getAuthUser();
   if (!user.userId) redirect("/account?redirect=/account/liked");
 
@@ -36,11 +38,11 @@ export default async function LikedVideosPage() {
         <Link href="/account" className="p-1 -ml-1">
           <ArrowLeft size={22} />
         </Link>
-        <h1 className="text-lg font-black">Videoclipuri likeuite</h1>
+        <h1 className="text-lg font-black">{t("title")}</h1>
       </header>
       <div className="px-2 md:px-6 pt-3 max-w-5xl mx-auto">
         {rows.length === 0 ? (
-          <p className="text-white/50 text-sm mt-8 text-center">Niciun video likeuit încă.</p>
+          <p className="text-white/50 text-sm mt-8 text-center">{t("empty")}</p>
         ) : (
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 md:gap-3">
             {rows.map((r) => (

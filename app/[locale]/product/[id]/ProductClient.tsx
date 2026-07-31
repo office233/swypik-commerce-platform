@@ -19,7 +19,7 @@ type Variant = {
   color: string | null; size: string | null;
 };
 type ColorData = { image: string | null; sizes: { size: string; price: number; stock: number; skuId: string }[] };
-type SimilarProduct = { id: string; title: string; price: number; oldPrice: number; image: string; hasVideo: boolean; rating: number; ratingAvg?: number | null; ratingCount?: number };
+type SimilarProduct = { id: string; title: string; price: number; oldPrice?: number; image: string; hasVideo: boolean; rating: number; ratingAvg?: number | null; ratingCount?: number };
 
 function dedupeSizes(sizes: ColorData["sizes"]): ColorData["sizes"] {
   const bySize = new Map<string, ColorData["sizes"][number]>();
@@ -611,7 +611,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     <p className="text-xs font-semibold text-[#6E6E80] truncate">{s.title}</p>
                     <div className="flex items-baseline gap-1.5 mt-1">
                       <span className="text-sm font-black text-[#0D0D0D]">{s.price} lei</span>
-                      {s.oldPrice > s.price && (
+                      {s.oldPrice != null && s.oldPrice > s.price && (
                         <span className="text-[10px] text-[#52525B] line-through">{s.oldPrice} lei</span>
                       )}
                     </div>

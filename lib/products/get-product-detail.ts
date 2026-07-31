@@ -74,7 +74,7 @@ export type ProductDetail = {
     id: string;
     title: string;
     price: number;
-    oldPrice: number;
+    oldPrice: number | undefined;
     image: string;
     hasVideo: boolean;
     rating: number;
@@ -563,7 +563,8 @@ export async function getProductDetail(
             id: String(firstNumber(similarRow.ae_internal_id) || similarRow.id),
             title: String(firstString(similarRow.ae_title_ro, similarMetadata.title_ro, similarRow.title) || similarRow.title),
             price: similarPriceCents / 100,
-            oldPrice: similarCompareAtCents > 0 ? similarCompareAtCents / 100 : Math.round((similarPriceCents / 100) * 1.3),
+            // ANPC: fara pret de referinta fabricat — doar compare_at real din DB.
+            oldPrice: similarCompareAtCents > 0 ? similarCompareAtCents / 100 : undefined,
             image: String(firstString(similarRow.image_url, ...(Array.isArray(similarMetadata.images) ? similarMetadata.images : [])) || ""),
             hasVideo: firstBool(similarMetadata.has_video, similarRow.has_video, false),
             rating: firstNumber(similarMetadata.rating, similarRow.rating, 0) || 0,

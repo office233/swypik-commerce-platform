@@ -7,6 +7,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { BedDouble, Loader2, MapPin, Star, AlertTriangle, CalendarDays, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type City = { slug: string; name: string; country: string };
 type StayResult = {
@@ -24,6 +25,7 @@ const lei = (cents: number) =>
     new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(cents / 100);
 
 function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | null) => void }) {
+    const t = useTranslations("stays");
     const [text, setText] = useState(value ? value.name : "");
     const [results, setResults] = useState<City[]>([]);
     const [open, setOpen] = useState(false);
@@ -54,7 +56,7 @@ function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | n
                 <input
                     value={text}
                     onChange={(e) => search(e.target.value)}
-                    placeholder="ex: Brașov, Roma, Santorini"
+                    placeholder={t("destinationPlaceholder")}
                     autoComplete="off"
                     className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-800"
                 />
@@ -81,6 +83,7 @@ function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | n
 }
 
 export default function StaysClient() {
+    const t = useTranslations("stays");
     const today = new Date();
     const plus = (d: number) => new Date(today.getTime() + d * 86400000).toISOString().slice(0, 10);
 
@@ -136,7 +139,7 @@ export default function StaysClient() {
                 </div>
                 <div>
                     <h1 className="text-xl font-bold">Swypik Stays</h1>
-                    <p className="text-xs text-neutral-500">Prețul afișat e prețul final. În lei, fără taxe ascunse la plată.</p>
+                    <p className="text-xs text-neutral-500">{t("finalPriceNote")}</p>
                 </div>
             </header>
 
@@ -248,7 +251,7 @@ export default function StaysClient() {
                     <h2 className="text-lg font-bold">
                         Cazări de la gazde Swypik {city ? `în ${city.name}` : ""}
                     </h2>
-                    <p className="mb-3 text-xs text-neutral-500">verificate de echipa Swypik · plată securizată</p>
+                    <p className="mb-3 text-xs text-neutral-500">{t("verifiedNote")}</p>
                     <div className="space-y-3">
                         {local.map((l) => (
                             <a key={l.id} href={`/stays/${l.id}`} className="block overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition active:scale-[0.99] dark:border-neutral-800 dark:bg-neutral-900">

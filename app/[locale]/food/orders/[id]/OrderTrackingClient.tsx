@@ -100,6 +100,7 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
 export default function OrderTrackingClient({ orderId }: { orderId: string }) {
     const router = useRouter();
     const tShell = useTranslations("shell");
+    const t = useTranslations("foodTracking");
     const [order, setOrder] = useState<Order | null>(null);
     const [courierPos, setCourierPos] = useState<{ lat: number; lng: number } | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -186,7 +187,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                         style={{ backgroundColor: ACCENT }}
                         className="mt-4 h-11 rounded-xl px-5 text-sm font-bold text-white"
                     >
-                        Înapoi la restaurante
+                        {t("backToRestaurants")}
                     </button>
                 </div>
             </div>
@@ -196,7 +197,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
     if (!order) {
         return (
             <div className="grid min-h-dvh place-items-center bg-white">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2DBE60] border-t-transparent" aria-label="Se încarcă" />
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2DBE60] border-t-transparent" aria-label={t("loading")} />
             </div>
         );
     }
@@ -212,7 +213,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
         <div className="min-h-dvh bg-[#F7F7F8] pb-8">
             {/* Header */}
             <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#E5E5E5] bg-white px-4 py-3">
-                <button type="button" onClick={() => router.push("/food/orders")} aria-label="Înapoi" className="grid h-9 w-9 place-items-center rounded-full bg-[#F7F7F8] active:scale-95">
+                <button type="button" onClick={() => router.push("/food/orders")} aria-label={t("back")} className="grid h-9 w-9 place-items-center rounded-full bg-[#F7F7F8] active:scale-95">
                     <ArrowLeft size={18} />
                 </button>
                 <div className="min-w-0 flex-1">
@@ -287,7 +288,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                                                 {step.label}
                                             </p>
                                             {active && step.key === "placed" && (
-                                                <p className="text-xs text-[#6E6E80]">Așteptăm confirmarea restaurantului…</p>
+                                                <p className="text-xs text-[#6E6E80]">{t("waitingConfirmation")}</p>
                                             )}
                                         </div>
                                     </li>
@@ -303,13 +304,13 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                         <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F0FAF4] text-xl" aria-hidden>🛵</span>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-black">{order.courier.name}</p>
-                            <p className="text-xs text-[#6E6E80]">Curierul tău</p>
+                            <p className="text-xs text-[#6E6E80]">{t("yourCourier")}</p>
                         </div>
                         {order.courier.phone && (
                             <a
                                 href={`tel:${order.courier.phone}`}
                                 onClick={() => haptic("tap")}
-                                aria-label="Sună curierul"
+                                aria-label={t("callCourier")}
                                 className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white active:scale-95"
                                 style={{ backgroundColor: ACCENT }}
                             >
@@ -362,7 +363,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                         <div className="flex justify-between text-[#6E6E80]"><span>Produse</span><span>{fmtLei(order.subtotal_cents)}</span></div>
                         <div className="flex justify-between text-[#6E6E80]"><span>Livrare</span><span>{order.delivery_fee_cents === 0 ? "Gratuită" : fmtLei(order.delivery_fee_cents)}</span></div>
                         {order.tip_cents > 0 && (
-                            <div className="flex justify-between text-[#6E6E80]"><span>Bacșiș curier</span><span>{fmtLei(order.tip_cents)}</span></div>
+                            <div className="flex justify-between text-[#6E6E80]"><span>{t("courierTip")}</span><span>{fmtLei(order.tip_cents)}</span></div>
                         )}
                         <div className="mt-1 flex justify-between font-black"><span>Total</span><span>{fmtLei(order.total_cents)}</span></div>
                         <p className="mt-1 text-xs text-[#9C9CAB]">

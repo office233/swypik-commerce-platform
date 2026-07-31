@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BedDouble, Users, Loader2, CheckCircle2, AlertTriangle, Wallet, CalendarDays } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Stay = {
     id: string;
@@ -26,6 +27,7 @@ const lei = (c: number) =>
 
 export default function StayDetailClient({ stay }: { stay: Stay }) {
     const router = useRouter();
+    const t = useTranslations("stayDetail");
     const plus = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
 
     const [form, setForm] = useState({ checkIn: plus(14), checkOut: plus(16), guests: 2 });
@@ -107,7 +109,7 @@ export default function StayDetailClient({ stay }: { stay: Stay }) {
         return (
             <div className="mx-auto max-w-lg px-4 py-16 text-center">
                 <CheckCircle2 size={52} className="mx-auto text-emerald-500" />
-                <h1 className="mt-4 text-xl font-bold">Rezervare confirmată!</h1>
+                <h1 className="mt-4 text-xl font-bold">{t("confirmed")}</h1>
                 <p className="mt-2 text-sm text-neutral-500">
                     {stay.title} · {form.checkIn} → {form.checkOut}
                 </p>
@@ -160,7 +162,7 @@ export default function StayDetailClient({ stay }: { stay: Stay }) {
 
                     <div className="mt-3 rounded-xl bg-neutral-50 p-3 text-sm dark:bg-neutral-800">
                         {checking ? (
-                            <span className="flex items-center gap-2 text-neutral-500"><Loader2 size={14} className="animate-spin" /> Se verifică...</span>
+                            <span className="flex items-center gap-2 text-neutral-500"><Loader2 size={14} className="animate-spin" /> {t("checking")}</span>
                         ) : quote?.available ? (
                             <div className="flex items-center justify-between">
                                 <span className="text-neutral-600 dark:text-neutral-300">{quote.nights} {quote.nights === 1 ? "noapte" : "nopți"}</span>

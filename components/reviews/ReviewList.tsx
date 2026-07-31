@@ -1,5 +1,6 @@
 import { dbQuery } from "@/lib/db";
 import StarRating from "./StarRating";
+import { getTranslations, getLocale } from "next-intl/server";
 
 export type ReviewListProps = {
   productId: string;
@@ -19,6 +20,8 @@ type Row = {
 };
 
 export default async function ReviewList({ productId, limit = 10 }: ReviewListProps) {
+  const t = await getTranslations("reviewList");
+  const locale = await getLocale();
   const { rows } = await dbQuery<Row>(
     `SELECT r.id, r.rating, r.title, r.body, r.is_verified_purchase, r.helpful_count, r.created_at,
             u.display_name AS user_display_name, u.username AS user_username
@@ -32,27 +35,27 @@ export default async function ReviewList({ productId, limit = 10 }: ReviewListPr
 
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-gray-500">Niciun review încă. Fii primul care lasă o părere.</p>
+      <p className="text-sm text-gray-500">{t("empty")}</p>
     );
   }
 
   return (
     <ul className="space-y-4">
       {rows.map((r) => {
-        const author = r.user_display_name || r.user_username || "Utilizator";
+        const author = r.user_display_name || r.user_username || t("anonymous");
         return (
           <li key={r.id} className="border-b border-gray-200 pb-4 last:border-0">
             <div className="flex items-center gap-2 mb-1">
               <StarRating value={r.rating} size={14} />
               <span className="text-sm font-medium">{author}</span>
               {r.is_verified_purchase && (
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Cumpărător verificat</span>
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">{t("verifiedBuyer")}</span>
               )}
             </div>
             {r.title && <p className="font-semibold text-sm mb-1">{r.title}</p>}
             {r.body && <p className="text-sm text-gray-700 whitespace-pre-wrap">{r.body}</p>}
             <p className="text-xs text-gray-400 mt-1">
-              {new Date(r.created_at).toLocaleDateString("ro-RO")} · {r.helpful_count} utili
+              {new Date(r.created_at).toLocaleDateString(locale)} · {t("helpful", { count: r.helpful_count })}
             </p>
           </li>
         );

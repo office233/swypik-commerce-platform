@@ -83,7 +83,7 @@ export default function HostApplyClient() {
             <main className="grid min-h-screen place-items-center bg-[#FAFAFB] px-4 dark:bg-neutral-950">
                 <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-black/5 dark:bg-neutral-900">
                     <CheckCircle2 size={48} className="mx-auto text-emerald-500" />
-                    <h1 className="mt-4 text-xl font-bold">Aplicație trimisă!</h1>
+                    <h1 className="mt-4 text-xl font-bold">{tj("hostApply.submitted")}</h1>
                     <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
                         Echipa Swypik verifică documentele și te contactează în 1–3 zile lucrătoare.
                         Îți vom cere extrasul de carte funciară (sau contractul de închiriere/comodat)
@@ -159,7 +159,7 @@ export default function HostApplyClient() {
                 </fieldset>
 
                 <fieldset className="space-y-3 border-t border-neutral-100 pt-4 dark:border-neutral-800">
-                    <legend className="text-sm font-bold">Forma juridică</legend>
+                    <legend className="text-sm font-bold">{tj("hostApply.legalForm")}</legend>
                     <label className={label}>Închiriez ca
                         <select value={form.entity_type} onChange={set("entity_type")} className={input}>
                             {ENTITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -206,7 +206,7 @@ export default function HostApplyClient() {
                         </select>
                     </label>
                     <label className={label}>Adresă completă
-                        <input required value={form.address} onChange={set("address")} className={input} placeholder="Str. Principală nr. 12" />
+                        <input required value={form.address} onChange={set("address")} className={input} placeholder={tj("hostApply.addressPlaceholder")} />
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                         <label className={label}>Localitate

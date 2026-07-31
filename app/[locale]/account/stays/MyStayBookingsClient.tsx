@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { BedDouble, Loader2, AlertTriangle, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Booking = {
     id: string;
@@ -33,6 +34,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 const FREE_CANCEL_DAYS = 5; // sincron cu STAYS_FREE_CANCEL_DAYS (afișaj)
 
 export default function MyStayBookingsClient() {
+    const t = useTranslations("staysBookings");
     const [bookings, setBookings] = useState<Booking[] | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -78,7 +80,7 @@ export default function MyStayBookingsClient() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600">
                     <BedDouble size={20} className="text-white" />
                 </div>
-                <h1 className="text-xl font-bold">Rezervările mele</h1>
+                <h1 className="text-xl font-bold">{t("title")}</h1>
             </header>
 
             {error && (
@@ -89,7 +91,7 @@ export default function MyStayBookingsClient() {
 
             {bookings.length === 0 && (
                 <p className="rounded-xl bg-neutral-50 p-6 text-center text-sm text-neutral-500 dark:bg-neutral-900">
-                    Nu ai nicio rezervare. <a href="/stays" className="font-semibold text-emerald-600 underline">Caută o cazare</a>
+                    {t("empty")} <a href="/stays" className="font-semibold text-emerald-600 underline">{t("findStay")}</a>
                 </p>
             )}
 
@@ -116,7 +118,7 @@ export default function MyStayBookingsClient() {
                                     </p>
                                     <p className="mt-1 font-extrabold text-emerald-600 dark:text-emerald-400">{lei(b.total_cents)}</p>
                                     {b.payment_status === "refunded" && (
-                                        <p className="text-xs text-neutral-500">Refund procesat în wallet.</p>
+                                        <p className="text-xs text-neutral-500">{t("refundProcessed")}</p>
                                     )}
                                 </div>
                             </div>

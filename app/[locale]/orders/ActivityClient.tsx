@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import { UtensilsCrossed, Car, ChevronRight, RotateCcw, PackageOpen } from "lucide-react";
 import { haptic } from "@/lib/haptic";
+import { useTranslations, useLocale } from "next-intl";
 
 type ActivityItem = {
   kind: "food_order" | "ride";
@@ -27,23 +28,21 @@ const ACTIVE_STATUSES = new Set([
   "requested", "searching", "arriving", "in_progress",
 ]);
 
-const STATUS_LABELS: Record<string, string> = {
-  placed: "Plasată", accepted: "Acceptată", preparing: "În preparare",
-  ready: "Gata", picked_up: "Preluată", delivering: "În livrare",
-  delivered: "Livrată", cancelled: "Anulată", rejected: "Respinsă",
-  requested: "Solicitată", searching: "Căutăm șofer", arriving: "Șoferul vine",
-  in_progress: "În cursă", completed: "Finalizată",
-};
+const STATUS_KEYS = new Set([
+  "placed", "accepted", "preparing", "ready", "picked_up", "delivering",
+  "delivered", "cancelled", "rejected", "requested", "searching", "arriving",
+  "in_progress", "completed",
+]);
 
 function fmtMoney(cents: number | null, currency: string): string {
   if (cents == null) return "—";
   return `${(cents / 100).toFixed(2)} ${currency}`;
 }
 
-function fmtWhen(iso: string): string {
+function fmtWhen(iso: string, locale: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("ro-RO", { day: "numeric", month: "short" }) +
-    ", " + d.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString(locale, { day: "numeric", month: "short" }) +
+    ", " + d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
 function SkeletonRow() {
@@ -59,6 +58,8 @@ function SkeletonRow() {
 }
 
 export default function ActivityClient() {
+  const t = useTranslations("ordersActivity");
+  const locale = useLocale();
   const [items, setItems] = useState<ActivityItem[] | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -94,7 +95,7 @@ export default function ActivityClient() {
 
   return (
     <main className="mx-auto max-w-lg px-4 pt-6 pb-24">
-      <h1 className="text-xl font-bold mb-4">Comenzile mele</h1>
+      <h1 className="text-xl font-bold mb-4">{t("title")}</h1>
 
       {items === null && (
         <div className="space-y-3">
@@ -104,22 +105,22 @@ export default function ActivityClient() {
 
       {error === "auth" && (
         <div className="text-center py-16">
-          <p className="text-sm text-[#71717A] mb-4">Conectează-te ca să-ți vezi comenzile și cursele.</p>
+          <p className="text-sm text-[#71717A] mb-4">{t("authPrompt")}</p>
           <Link href="/auth/login" className="inline-block rounded-full bg-[#7C3AED] text-white px-6 py-2.5 text-sm font-semibold">
-            Conectează-te
+            {t("signIn")}
           </Link>
         </div>
       )}
 
       {error === "network" && (
         <div className="text-center py-10">
-          <p className="text-sm text-[#71717A] mb-3">Nu am putut încărca activitatea. Verifică conexiunea.</p>
+          <p className="text-sm text-[#71717A] mb-3">{t("networkError")}</p>
           <button
             type="button"
             onClick={() => { haptic("tap"); void load(page, false); }}
             className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] dark:border-[#2A2A2A] px-5 py-2 text-sm font-medium"
           >
-            <RotateCcw size={15} /> Reîncearcă
+            <RotateCcw size={15} /> {t("retry")}
           </button>
         </div>
       )}
@@ -127,10 +128,10 @@ export default function ActivityClient() {
       {items !== null && !error && items.length === 0 && (
         <div className="text-center py-16">
           <PackageOpen size={40} className="mx-auto mb-3 text-[#A1A1AA]" strokeWidth={1.5} />
-          <p className="text-sm text-[#71717A] mb-4">Încă nu ai comenzi sau curse.</p>
+          <p className="text-sm text-[#71717A] mb-4">{t("empty")}</p>
           <div className="flex items-center justify-center gap-3">
-            <Link href="/food" className="rounded-full bg-[#2DBE60] text-white px-5 py-2 text-sm font-semibold">Comandă mâncare</Link>
-            <Link href="/go" className="rounded-full bg-[#7C3AED] text-white px-5 py-2 text-sm font-semibold">Cheamă o mașină</Link>
+            <Link href="/food" className="rounded-full bg-[#2DBE60] text-white px-5 py-2 text-sm font-semibold">{t("orderFood")}</Link>
+            <Link href="/go" className="rounded-full bg-[#7C3AED] text-white px-5 py-2 text-sm font-semibold">{t("callRide")}</Link>
           </div>
         </div>
       )}
@@ -162,7 +163,7 @@ export default function ActivityClient() {
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm font-semibold truncate">{it.title}</span>
                     <span className="block text-xs text-[#71717A] truncate">
-                      {STATUS_LABELS[it.status] ?? it.status} · {fmtWhen(it.ts)} · {it.subtitle}
+                      {STATUS_KEYS.has(it.status) ? t(`status.${it.status}`) : it.status} · {fmtWhen(it.ts, locale)} · {it.subtitle}
                     </span>
                   </span>
                   <span className="text-right shrink-0">
@@ -188,7 +189,7 @@ export default function ActivityClient() {
             onClick={() => void load(page + 1, true)}
             className="rounded-full border border-[#E5E5E5] dark:border-[#2A2A2A] px-6 py-2.5 text-sm font-medium disabled:opacity-50"
           >
-            {loadingMore ? "Se încarcă…" : "Încarcă mai multe"}
+            {loadingMore ? t("loading") : t("loadMore")}
           </button>
         </div>
       )}

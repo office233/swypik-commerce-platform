@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2, Lock, Wallet } from "lucide-react";
+import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2, Lock, Wallet, Car, Bike, Clapperboard, Star } from "lucide-react";
 import { APP_URL } from "@/lib/app-url";
 
 type Mining = {
@@ -89,6 +89,15 @@ export default function PayClient() {
     const [staking, setStaking] = useState<StakingInfo | null>(null);
     const [stakeBusy, setStakeBusy] = useState(false);
     const [stakeMsg, setStakeMsg] = useState<string | null>(null);
+    // Reguli de câștig din DB (swyp_emission_rules) — zero hardcodări în UI.
+    const [earnRules, setEarnRules] = useState<{ action: string; label: string; display: string }[]>([]);
+
+    useEffect(() => {
+        fetch("/api/swyp/earn-rules")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => { if (d?.success) setEarnRules(d.rules); })
+            .catch(() => { /* secțiunea se ascunde dacă API-ul nu răspunde */ });
+    }, []);
 
     const load = useCallback(async () => {
         const [wRes, mRes] = await Promise.all([fetch("/api/swyp/wallet"), fetch("/api/swyp/mining")]);
@@ -332,31 +341,36 @@ export default function PayClient() {
                         className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl bg-[#F5A623]/15 border border-[#F5A623]/40 px-4 py-3 font-black text-sm text-[#F5A623] active:scale-[0.98] transition"
                     >
                         <Share2 size={16} />
-                        {copied ? "Link copiat! Trimite-l unui prieten" : "Invită un prieten → +50 SWYP la prima lui comandă"}
+                        {copied
+                            ? "Link copiat! Trimite-l unui prieten"
+                            : `Invită un prieten → ${earnRules.find((r) => r.action === "referral_validated")?.display ?? "bonus SWYP"} la prima lui comandă`}
                     </button>
                 </div>
             </section>
 
             {/* ── Cum câștigi ── */}
-            <section className="px-5 mt-6">
-                <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">Câștigă mai mult</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                    {[
-                        ["🚗", "Curse Swypik Go", "+20 SWYP/cursă"],
-                        ["🍔", "Livrări la timp", "+15 SWYP/livrare"],
-                        ["🎬", "Clipuri virale", "+10 SWYP/1k vizionări"],
-                        ["⭐", "Recenzii după comandă", "+5 SWYP"],
-                    ].map(([emoji, label, amount]) => (
-                        <div key={label} className="rounded-2xl bg-white/5 p-3 flex items-center gap-3">
-                            <span className="text-xl">{emoji}</span>
-                            <div>
-                                <p className="font-bold text-xs">{label}</p>
-                                <p className="text-[10px] text-[#F5A623] font-black">{amount}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
+            {earnRules.length > 0 && (
+                <section className="px-5 mt-6">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">Câștigă mai mult</h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                        {earnRules.slice(0, 4).map((rule) => {
+                            const Icon =
+                                rule.action === "go_ride_completed" ? Car :
+                                rule.action === "eats_delivery_on_time" ? Bike :
+                                rule.action === "creator_1k_views" ? Clapperboard : Star;
+                            return (
+                                <div key={rule.action} className="rounded-2xl bg-white/5 p-3 flex items-center gap-3">
+                                    <Icon size={20} className="text-[#F5A623] shrink-0" />
+                                    <div>
+                                        <p className="font-bold text-xs">{rule.label}</p>
+                                        <p className="text-[10px] text-[#F5A623] font-black">{rule.display}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             {/* ── Istoric ── */}
             {/* ── Staking ── */}

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type Stream = {
   id: string;
@@ -29,6 +30,7 @@ type Item = {
 type ChatMsg = { id: number; user_id: string; message: string; created_at: string };
 
 export default function LiveViewerClient({ stream, items }: { stream: Stream; items: Item[] }) {
+  const t = useTranslations("liveViewer");
   const videoRef = useRef<HTMLVideoElement>(null);
   const [viewers, setViewers] = useState(stream.viewer_count);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -121,12 +123,12 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
                 )}
               </div>
             </div>
-            <Link href={`/product/${pinned.product_id}`} className="inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-5 py-3 min-h-[44px] rounded-lg text-sm font-semibold focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none">Cumpără</Link>
+            <Link href={`/product/${pinned.product_id}`} className="inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-5 py-3 min-h-[44px] rounded-lg text-sm font-semibold focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none">{t("buy")}</Link>
           </div>
         )}
         {items.length > 1 && (
-          <button onClick={() => setShowDrawer(true)} className="absolute bottom-24 right-4 inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-4 py-3 min-h-[44px] rounded-lg text-sm font-semibold shadow-lg focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none" aria-label="Vezi produse">
-            🛍 {items.length} produse
+          <button onClick={() => setShowDrawer(true)} className="absolute bottom-24 right-4 inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-4 py-3 min-h-[44px] rounded-lg text-sm font-semibold shadow-lg focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none" aria-label={t("seeProducts")}>
+            🛍 {t("productCount", { count: items.length })}
           </button>
         )}
       </div>

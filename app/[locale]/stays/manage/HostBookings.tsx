@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { CalendarCheck, Loader2, Phone, Mail, XCircle, AlertTriangle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type HostBooking = {
     id: string;
@@ -26,14 +27,15 @@ type HostBooking = {
 const lei = (c: number) =>
     new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(c / 100);
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-    pending: { label: "În așteptare", cls: "bg-amber-100 text-amber-800" },
-    confirmed: { label: "Confirmată", cls: "bg-green-100 text-green-800" },
-    cancelled: { label: "Anulată", cls: "bg-red-100 text-red-700" },
-    completed: { label: "Încheiată", cls: "bg-neutral-100 text-neutral-600" },
+const STATUS_CLS: Record<string, string> = {
+    pending: "bg-amber-100 text-amber-800",
+    confirmed: "bg-green-100 text-green-800",
+    cancelled: "bg-red-100 text-red-700",
+    completed: "bg-neutral-100 text-neutral-600",
 };
 
 export default function HostBookings() {
+    const t = useTranslations("hostBookings");
     const [bookings, setBookings] = useState<HostBooking[] | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -49,15 +51,15 @@ export default function HostBookings() {
     async function cancel(b: HostBooking) {
         const warn =
             b.payment_status === "paid"
-                ? `Anulezi rezervarea lui ${b.guest_name}?\n\nClientul primește înapoi TOȚI banii (${lei(b.total_cents)}), iar suma încasată se retrage din portofelul tău.\n\nAnulările dese îți pot suspenda contul de gazdă.`
-                : `Anulezi rezervarea (neplătită) a lui ${b.guest_name}?`;
+                ? t("cancelWarnPaid", { name: b.guest_name, amount: lei(b.total_cents) })
+                : t("cancelWarnUnpaid", { name: b.guest_name });
         if (!confirm(warn)) return;
         setBusy(b.id);
         setError(null);
         try {
             const r = await fetch(`/api/stays/bookings/${b.id}/cancel`, { method: "POST", credentials: "include" });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok) { setError(j.error ?? "Anularea a eșuat."); return; }
+            if (!r.ok) { setError(j.error ?? t("cancelFailed")); return; }
             await load();
         } finally {
             setBusy(null);
@@ -75,7 +77,7 @@ export default function HostBookings() {
     return (
         <section className="mt-8">
             <h2 className="mb-3 flex items-center gap-1.5 text-lg font-bold">
-                <CalendarCheck size={18} /> Rezervări primite
+                <CalendarCheck size={18} /> {t("title")}
             </h2>
 
             {error && (
@@ -86,7 +88,10 @@ export default function HostBookings() {
 
             <div className="space-y-3">
                 {[...upcoming, ...past].map((b) => {
-                    const st = STATUS[b.status] ?? { label: b.status, cls: "bg-neutral-100 text-neutral-600" };
+                    const st = {
+                        label: STATUS_CLS[b.status] ? t(`status.${b.status}`) : b.status,
+                        cls: STATUS_CLS[b.status] ?? "bg-neutral-100 text-neutral-600",
+                    };
                     const cancellable = b.status === "pending" || b.status === "confirmed";
                     return (
                         <div key={b.id} className="rounded-2xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
@@ -94,7 +99,7 @@ export default function HostBookings() {
                                 <div className="min-w-0">
                                     <h3 className="truncate text-sm font-bold">{b.listing_title}</h3>
                                     <p className="text-xs text-neutral-500">
-                                        {b.check_in} → {b.check_out} · {b.guests_count} oaspeți
+                                        {b.check_in} → {b.check_out} · {t("guests", { count: b.guests_count })}
                                     </p>
                                 </div>
                                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${st.cls}`}>{st.label}</span>
@@ -117,8 +122,8 @@ export default function HostBookings() {
                             <div className="mt-2 flex items-center justify-between">
                                 <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
                                     {lei(b.total_cents)}
-                                    {b.payment_status === "paid" && <span className="ml-1 text-[10px] font-normal text-neutral-400">plătit</span>}
-                                    {b.payment_status === "refunded" && <span className="ml-1 text-[10px] font-normal text-neutral-400">rambursat</span>}
+                                    {b.payment_status === "paid" && <span className="ml-1 text-[10px] font-normal text-neutral-400">{t("paid")}</span>}
+                                    {b.payment_status === "refunded" && <span className="ml-1 text-[10px] font-normal text-neutral-400">{t("refunded")}</span>}
                                 </span>
                                 {cancellable && (
                                     <button

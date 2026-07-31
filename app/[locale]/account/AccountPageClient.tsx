@@ -406,9 +406,9 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             locul standard în aplicații mobile (vezi Revolut, Uber). */}
         <div className="mt-8 border-t border-black/5 pt-4 pb-6">
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-semibold text-[#6E6E80]">
-            <a href="/terms" className="underline-offset-2 hover:underline">Termeni</a>
-            <a href="/privacy" className="underline-offset-2 hover:underline">Confidențialitate</a>
-            <a href="/legal/cookies" className="underline-offset-2 hover:underline">Cookie-uri</a>
+            <a href="/terms" className="underline-offset-2 hover:underline">{t("legalTerms" as never)}</a>
+            <a href="/privacy" className="underline-offset-2 hover:underline">{t("legalPrivacy" as never)}</a>
+            <a href="/legal/cookies" className="underline-offset-2 hover:underline">{t("legalCookies" as never)}</a>
             <a href="/legal/anpc" className="underline-offset-2 hover:underline">ANPC</a>
             <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">SOL (UE)</a>
           </div>

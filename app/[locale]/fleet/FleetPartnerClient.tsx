@@ -138,7 +138,7 @@ export default function FleetPartnerClient() {
 
                 {partner.status === "active" && (
                     <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
-                        <p className="text-[13px] font-bold text-[#0D0D0D]">Recrutează pentru flota ta</p>
+                        <p className="text-[13px] font-bold text-[#0D0D0D]">{t("fleet.recruitTitle" as never)}</p>
                         <p className="mt-1 text-[12px] text-[#6E6E80]">
                             Trimite acest link candidaților din {partner.city}. Aplicațiile ajung la Swypik pentru verificare,
                             iar la aprobare îi alocăm francizei tale.

@@ -95,7 +95,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        aria-label="Înapoi"
+                        aria-label={t("back" as never)}
                         className="grid h-9 w-9 place-items-center rounded-full bg-white/80 active:scale-95 transition"
                     >
                         <ArrowLeft className="h-5 w-5" />
@@ -175,7 +175,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                 ) : items.length === 0 ? (
                     <div className="py-20 text-center">
                         <div className="text-5xl mb-3" aria-hidden>{vertical.emoji}</div>
-                        <p className="font-bold text-[#0D0D0D]">Încă nimic aici</p>
+                        <p className="font-bold text-[#0D0D0D]">{t("emptyTitle" as never)}</p>
                         <p className="text-sm text-[#6E6E80] mt-1 max-w-xs mx-auto">
                             Fii primul care publică în {t(`${vertical.labelKey}.label`)}.
                         </p>

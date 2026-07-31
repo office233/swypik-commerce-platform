@@ -42,6 +42,22 @@ body { background-color: var(--sw-bg) !important; }
 }
 .navbar-logo { max-height: 32px; }
 
+/* numele brandului lângă logo */
+.navbar-brand { display: flex !important; align-items: center; gap: 10px; }
+.navbar-brand::after {
+  content: "Swypik";
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: .3px;
+  color: #fff;
+  line-height: 1;
+}
+.navbar-brand::before {
+  content: "";
+}
+/* eticheta "Chain Explorer" sub nume, discretă */
+.navbar-brand:hover { text-decoration: none; }
+
 /* hero cu statistici */
 .dashboard-banner-container {
   background: var(--sw-gradient-deep) !important;
@@ -92,9 +108,69 @@ a:hover { color: var(--sw-primary-dark); }
 .tile.tile-type-block { border-left: 4px solid var(--sw-primary) !important; }
 .tile.tile-type-transaction { border-left: 4px solid var(--sw-accent) !important; }
 
-/* footer */
-.footer { background: var(--sw-ink) !important; }
-.footer-link:hover { color: var(--sw-accent) !important; }
+/* ── footer ──────────────────────────────────────────────────────── */
+.footer {
+  background: linear-gradient(180deg, #221A4E 0%, var(--sw-ink) 100%) !important;
+  border-top: 3px solid transparent;
+  border-image: var(--sw-gradient) 1;
+  padding-top: 2.2rem !important;
+}
+.footer-link { color: #C4B5FD !important; }
+.footer-link:hover { color: var(--sw-accent) !important; text-decoration: none; }
+.footer-info-text { color: #DDD6FE !important; max-width: 34rem; }
+
+/* logo + nume brand */
+.footer-logo-row { margin-bottom: 1.2rem; }
+.footer-brand { display: inline-flex !important; align-items: center; gap: 12px; }
+.footer-logo {
+  max-height: 44px !important;
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: #fff;
+  padding: 4px;
+  box-shadow: 0 2px 10px rgba(236, 72, 153, .35);
+}
+.footer-brand::after {
+  content: "Swypik Chain";
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: .3px;
+  background: linear-gradient(90deg, #C4B5FD, #F9A8D4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* titlu coloană */
+.footer-list h3 { color: #fff !important; font-weight: 700; }
+
+/* ascundem linkul de issues (Blockscout) și li-ul lui gol */
+.footer-list a[href*="issues/new"] { display: none !important; }
+.footer-list li:has(a[href*="issues/new"]) { display: none !important; }
+
+/* iconițele sociale generice (github/twitter Blockscout) — le ascundem */
+.footer-social-icons { display: none !important; }
+
+/* butonul Add Swypik (MetaMask) — îl facem buton adevărat */
+.js-btn-add-chain-to-mm.in-footer {
+  display: inline-block !important;
+  margin-top: .6rem;
+  padding: .45rem 1rem;
+  background: var(--sw-gradient);
+  color: #fff !important;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.js-btn-add-chain-to-mm.in-footer:hover { opacity: .9; }
+
+/* linia cu versiunea */
+.footer-body > div:last-child {
+  margin-top: 1.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(196, 181, 253, .18);
+  color: #A5B4FC;
+  font-size: .85rem;
+}
 
 /* alerta de indexare — mai discretă, pe brand */
 .layout-container > .alert-info, .alert-info {
