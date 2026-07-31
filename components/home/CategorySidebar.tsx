@@ -43,6 +43,7 @@ const VERTICALS = [
     { id: "fly", brand: "Swypik Fly", emoji: "✈️", href: "/fly", accent: "#1D4ED8" },
     { id: "stays", brand: "Swypik Stays", emoji: "🏖️", href: "/stays", accent: "#0D9488" },
     { id: "go", brand: "Swypik Go", emoji: "🚕", href: "/go", accent: "#F59E0B" },
+    { id: "pay", brand: "Swypik Pay", emoji: "🪙", href: "/pay", accent: "#F5A623" },
 ] as const;
 
 /** Emoji fallback pe categorii marketplace frecvente. */
