@@ -1,55 +1,75 @@
+/**
+ * Termeni și Condiții — randați din lib/legal/terms-content.ts
+ * (sursă unică de adevăr, sincronizată cu modelul real de business).
+ */
 import type { Metadata } from "next";
-import { useTranslations } from "next-intl";
-import { getTranslations } from "next-intl/server";
+import { TERMS_SECTIONS, TERMS_LAST_UPDATED } from "@/lib/legal/terms-content";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("terms");
-  return {
-    title: t("metaTitle"),
-    description: t("metaDescription"),
-  };
-}
+export const metadata: Metadata = {
+    title: "Termeni și Condiții — Swypik",
+    description:
+        "Condițiile de utilizare Swypik: rolul platformei, prețuri și comisioane, dreptul de retragere, politici de anulare, reclamații ANPC/SOL.",
+};
 
 export default function TermsPage() {
-  const t = useTranslations("terms");
-  const sectionCount = 8;
-  const sections = Array.from({ length: sectionCount }, (_, i) => i + 1).map((n) => ({
-    title: t(`section${n}Title`),
-    body: t(`section${n}Body`),
-  }));
+    return (
+        <main className="mx-auto max-w-2xl px-4 pb-24 pt-8">
+            <h1 className="text-2xl font-black">Termeni și Condiții</h1>
+            <p className="mt-1 text-sm text-neutral-500">Ultima actualizare: {TERMS_LAST_UPDATED}</p>
 
-  return (
-    <main className="min-h-screen bg-white text-[#0D0D0D]">
-      <div className="mx-auto max-w-2xl px-5 py-10 md:px-6 md:py-16 leading-relaxed">
-        <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          📄 {t("draftNotice")}
-        </div>
+            <p className="mt-4 rounded-xl bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-200">
+                Pe scurt: prețul afișat e prețul final, politicile de anulare sunt la vedere
+                înainte de plată, iar drepturile tale legale de consumator rămân mereu intacte.
+            </p>
 
-        <h1 className="mb-2 text-3xl font-black tracking-tight md:text-4xl">
-          {t("h1")}
-        </h1>
-        <p className="mb-10 text-sm text-[#6E6E80]">{t("lastUpdated")}</p>
+            <div className="mt-8 space-y-8">
+                {TERMS_SECTIONS.map((s) => (
+                    <section key={s.id} id={s.id}>
+                        <h2 className="text-lg font-bold">{s.title}</h2>
 
-        {sections.map((s, idx) => (
-          <section key={idx} className="mb-8">
-            <h2 className="mb-3 text-xl font-bold">{s.title}</h2>
-            <p className="text-[15px] text-[#3C3C43] whitespace-pre-line">{s.body}</p>
-          </section>
-        ))}
+                        {s.body?.map((p, i) => (
+                            <p key={i} className="mt-2 text-[15px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                {p}
+                            </p>
+                        ))}
 
-        <section className="mb-8">
-          <p className="text-[15px] text-[#3C3C43]">
-            {t("contactPrefix")}{" "}
-            <a
-              className="font-semibold text-[#10A37F] underline"
-              href="mailto:legal@swypik.com"
-            >
-              legal@swypik.com
-            </a>
-            {t("contactSuffix")}
-          </p>
-        </section>
-      </div>
-    </main>
-  );
+                        {s.table && (
+                            <div className="mt-3 overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
+                                        <tr>
+                                            {s.table.headers.map((h) => (
+                                                <th key={h} className="px-3 py-2 font-bold">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                                        {s.table.rows.map((row, i) => (
+                                            <tr key={i}>
+                                                {row.map((cell, j) => (
+                                                    <td key={j} className={`px-3 py-2 ${j === 0 ? "font-medium" : "text-neutral-600 dark:text-neutral-400"}`}>
+                                                        {cell}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {s.bullets && (
+                            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[15px] text-neutral-700 dark:text-neutral-300">
+                                {s.bullets.map((b, i) => <li key={i}>{b}</li>)}
+                            </ul>
+                        )}
+                    </section>
+                ))}
+            </div>
+
+            <p className="mt-10 border-t border-neutral-200 pt-4 text-xs text-neutral-400 dark:border-neutral-800">
+                MEISTER COM S.R.L. · suport@swypik.com · ANPC: www.anpc.ro · SOL: ec.europa.eu/consumers/odr
+            </p>
+        </main>
+    );
 }
