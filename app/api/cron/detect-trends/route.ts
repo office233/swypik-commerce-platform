@@ -8,7 +8,11 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 function authorize(req: Request): boolean {
-  const token = (req.headers.get("authorization") || "").replace("Bearer ", "");
+  // Acceptă și x-cron-secret (standardul celorlalte joburi), și Bearer.
+  const token =
+    (req.headers.get("authorization") || "").replace("Bearer ", "") ||
+    req.headers.get("x-cron-secret") ||
+    "";
   const expected = process.env.CRON_SECRET || "";
   if (!expected || !token) return false;
   if (Buffer.byteLength(token) !== Buffer.byteLength(expected)) return false;
