@@ -10,16 +10,28 @@ export const revalidate = 3600; // cache 1h — cursurile se schimbă zilnic
 
 export async function GET() {
     try {
+        // Tabela e populată de cron/refresh-fx cu baza EUR (formatul ECB).
+        // Convertim la formatul de afișare al aplicației: 1 RON -> X TARGET.
         const { rows } = await dbQuery<{ base: string; quote: string; rate: string }>(
-            `SELECT base, quote, rate::text FROM fx_rates
-              WHERE (base = 'RON') OR (quote = 'RON')`
+            `SELECT DISTINCT ON (base, quote) base, quote, rate::text
+               FROM fx_rates
+              ORDER BY base, quote, fetched_at DESC`
         );
-        const rates: Record<string, number> = { RON: 1 };
+        const eur: Record<string, number> = { EUR: 1 };
         for (const r of rows) {
             const rate = Number(r.rate);
             if (!Number.isFinite(rate) || rate <= 0) continue;
-            if (r.base === "RON") rates[r.quote] = rate;
-            else if (r.quote === "RON") rates[r.base] = 1 / rate;
+            if (r.base === "EUR") eur[r.quote] = rate;          // 1 EUR -> X quote
+            else if (r.quote === "EUR") eur[r.base] = 1 / rate; // inversăm
+        }
+        const eurToRon = eur.RON;
+        const rates: Record<string, number> = { RON: 1 };
+        if (Number.isFinite(eurToRon) && eurToRon > 0) {
+            for (const [ccy, eurToCcy] of Object.entries(eur)) {
+                if (ccy === "RON") continue;
+                // 1 RON = (1/eurToRon) EUR = (eurToCcy/eurToRon) CCY
+                rates[ccy] = eurToCcy / eurToRon;
+            }
         }
         return NextResponse.json({ base: "RON", rates });
     } catch {
