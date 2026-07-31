@@ -4,6 +4,7 @@ import { SellerApplicationSchema, parseBody } from "@/lib/validation/schemas";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
+import { sendEmail } from "@/lib/email/service";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -40,6 +41,20 @@ export async function POST(req: Request) {
       `,
       [companyName, cui, normalizedEmail, phone, productType, JSON.stringify(businessDetails)],
     );
+
+    // Notifica ops/admin: aplicatie noua de seller (best-effort).
+    const opsEmail = process.env.OPS_ALERT_EMAIL || process.env.SUPPORT_EMAIL;
+    if (opsEmail) {
+      sendEmail({
+        to: opsEmail,
+        subject: `[Swypik] Aplicație nouă de VÂNZĂTOR: ${companyName} (${cui})`,
+        html: `<h2>Aplicație nouă de vânzător</h2>
+<p><b>Firmă:</b> ${companyName}<br/><b>CUI:</b> ${cui}<br/>
+<b>Email:</b> ${normalizedEmail}<br/><b>Telefon:</b> ${phone}<br/>
+<b>Produse:</b> ${productType}</p>
+<p><a href="https://swypik.com/admin/sellers">Deschide panoul de vânzători</a></p>`,
+      }).catch((err) => logger.warn({ err }, "[apply-seller] ops email failed"));
+    }
 
     return NextResponse.json({
       success: true,

@@ -18,6 +18,7 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { sendEmail } from "@/lib/email/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -112,6 +113,22 @@ export async function POST(req: Request) {
     );
 
     logger.info({ applicationId: rows[0].id, city: d.city, type: d.property_type }, "host application received");
+
+    // Notifica ops/admin: aplicatie noua de gazda (best-effort).
+    const opsEmail = process.env.OPS_ALERT_EMAIL || process.env.SUPPORT_EMAIL;
+    if (opsEmail) {
+        sendEmail({
+            to: opsEmail,
+            subject: `[Swypik] Aplicație nouă de GAZDĂ: ${d.property_name} (${d.city})`,
+            html: `<h2>Aplicație nouă de gazdă Stays</h2>
+<p><b>Proprietate:</b> ${d.property_name} (${d.property_type}, ${d.rooms} camere)<br/>
+<b>Locație:</b> ${d.city}, ${d.county}<br/>
+<b>Contact:</b> ${d.full_name} · ${d.phone} · ${d.email}<br/>
+<b>Formă juridică:</b> ${d.entity_type}${d.cui ? ` (${d.cui})` : ""}</p>
+<p><a href="https://swypik.com/admin/hosts">Deschide panoul de gazde</a></p>`,
+        }).catch((err) => logger.warn({ err }, "[hosts/apply] ops email failed"));
+    }
+
     return NextResponse.json({ ok: true, applicationId: rows[0].id, status: "pending" });
 }
 
