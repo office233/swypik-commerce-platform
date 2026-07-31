@@ -85,10 +85,7 @@ const STEPS: { key: string; label: string; matches: string[] }[] = [
 
 const STATUS_ORDER = ["placed", "accepted", "preparing", "ready", "picked_up", "delivering", "delivered"];
 
-/** Viteze medii km/h pe tip vehicul, pentru ETA după pickup. */
-const VEHICLE_SPEED_KMH: Record<string, number> = {
-    foot: 5, bike: 15, scooter: 25, motorcycle: 30, car: 30, van: 28,
-};
+import { VEHICLE_SPEED_KMH } from "@/lib/dispatch/constants";
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
     const R = 6371;

@@ -402,6 +402,19 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           )}
         </div>
 
+        {/* Linkuri legale — aplicația nu are footer de site; profilul e
+            locul standard în aplicații mobile (vezi Revolut, Uber). */}
+        <div className="mt-8 border-t border-black/5 pt-4 pb-6">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-semibold text-[#6E6E80]">
+            <a href="/terms" className="underline-offset-2 hover:underline">Termeni</a>
+            <a href="/privacy" className="underline-offset-2 hover:underline">Confidențialitate</a>
+            <a href="/legal/cookies" className="underline-offset-2 hover:underline">Cookie-uri</a>
+            <a href="/legal/anpc" className="underline-offset-2 hover:underline">ANPC</a>
+            <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">SOL (UE)</a>
+          </div>
+          <p className="mt-2 text-[11px] text-[#C4C4CC]">© {new Date().getFullYear()} MEISTER COM S.R.L. · suport@swypik.com</p>
+        </div>
+
       </div>
     </div>
   );

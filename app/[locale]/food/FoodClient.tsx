@@ -125,9 +125,8 @@ export default function FoodClient() {
                 }}
                 aria-pressed={active}
                 style={active ? { backgroundColor: ACCENT } : undefined}
-                className={`inline-flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-full px-3.5 text-xs font-bold transition active:scale-95 ${
-                  active ? "text-white" : "bg-white/85 text-[#6E6E80]"
-                }`}
+                className={`inline-flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-full px-3.5 text-xs font-bold transition active:scale-95 ${active ? "text-white" : "bg-white/85 text-[#6E6E80]"
+                  }`}
               >
                 <span aria-hidden>{c.emoji}</span>
                 {c.label}

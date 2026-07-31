@@ -194,6 +194,23 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                         })}
                     </div>
                 </div>
+
+                {/* Footer legal — aplicația nu are footer clasic de site,
+                    deci linkurile obligatorii (Legea 365/2002, Reg. UE 524/2013)
+                    stau aici și în pagina de profil. */}
+                <div className="mt-6 border-t border-black/5 px-1 pb-8 pt-4">
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-semibold text-[#6E6E80]">
+                        <button type="button" onClick={() => goVertical("/terms")} className="underline-offset-2 hover:underline">Termeni</button>
+                        <button type="button" onClick={() => goVertical("/privacy")} className="underline-offset-2 hover:underline">Confidențialitate</button>
+                        <button type="button" onClick={() => goVertical("/legal/cookies")} className="underline-offset-2 hover:underline">Cookie-uri</button>
+                        <button type="button" onClick={() => goVertical("/legal/anpc")} className="underline-offset-2 hover:underline">ANPC</button>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noreferrer" className="text-[11px] text-[#A1A1AA] underline underline-offset-2">Soluționarea alternativă a litigiilor (SAL)</a>
+                        <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer" className="text-[11px] text-[#A1A1AA] underline underline-offset-2">Platforma SOL (UE)</a>
+                    </div>
+                    <p className="mt-3 text-[11px] text-[#C4C4CC]">© {new Date().getFullYear()} MEISTER COM S.R.L. · suport@swypik.com</p>
+                </div>
             </div>
         </div>,
         document.body

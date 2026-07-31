@@ -206,7 +206,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
         sessionIdRef.current = stored;
         return stored;
       }
-    } catch {}
+    } catch { }
 
     const next =
       typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -215,7 +215,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     sessionIdRef.current = next;
     try {
       window.localStorage.setItem("aicv_feed_session_id", next);
-    } catch {}
+    } catch { }
     return next;
   }, []);
 
@@ -241,7 +241,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(event),
           keepalive: true,
-        }).catch(() => {});
+        }).catch(() => { });
       });
     };
 
@@ -249,7 +249,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       try {
         const blob = new Blob([batchBody], { type: "application/json" });
         if (navigator.sendBeacon("/api/v1/events/batch", blob)) return;
-      } catch {}
+      } catch { }
     }
 
     fetch("/api/v1/events/batch", {
@@ -410,7 +410,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           setOverlayTags((prev) => ({ ...prev, [product.id]: data.tags ?? [] }));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [currentIdx, products]);
 
   useEffect(() => {
@@ -508,7 +508,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     if (!product) return;
     Object.entries(videoMapRef.current).forEach(([id, video]) => {
       video.muted = isMuted;
-      if (id === product.id) video.play().catch(() => {});
+      if (id === product.id) video.play().catch(() => { });
       else video.pause();
     });
   }, [currentIdx, isMuted, products]);
@@ -524,7 +524,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     sendFeedEvent(isNextLiked ? "video_like" : "video_unlike", product, { position: currentIdx });
     const videoId = videoEventId(product);
     if (videoId) {
-      fetch(`/api/videos/${videoId}/like`, { method: "POST" }).catch(() => {});
+      fetch(`/api/videos/${videoId}/like`, { method: "POST" }).catch(() => { });
     }
     if (isNextLiked) {
       setHeartBurst(product.id);
@@ -666,8 +666,8 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   <span className="block text-[11px] font-black text-[#34D399]">
                     {activeOverlay.price_cents != null
                       ? formatPrice(activeOverlay.price_cents, {
-                          sourceCurrency: isCurrency(activeOverlay.currency) ? activeOverlay.currency : "RON",
-                        })
+                        sourceCurrency: isCurrency(activeOverlay.currency) ? activeOverlay.currency : "RON",
+                      })
                       : "Vezi produsul"}
                   </span>
                 </span>
@@ -718,9 +718,8 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   type="button"
                   onClick={() => handleAddToCart(product)}
                   style={tapAction}
-                  className={`rounded-2xl px-5 py-3 text-sm font-black shadow-lg transition-all active:scale-[0.95] ${
-                    addedToCart === product.id ? "bg-white text-[#10A37F]" : "bg-[#10A37F] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
-                  }`}
+                  className={`rounded-2xl px-5 py-3 text-sm font-black shadow-lg transition-all active:scale-[0.95] ${addedToCart === product.id ? "bg-white text-[#10A37F]" : "bg-[#10A37F] text-white shadow-[0_4px_20px_rgba(16,163,127,0.4)]"
+                    }`}
                 >
                   {addedToCart === product.id ? "Adăugat" : <><ShoppingCart size={15} className="mr-1 inline" />Coș</>}
                 </button>

@@ -12,12 +12,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 import { haptic } from "@/lib/haptic";
+import { DEFAULT_MAP_CENTER } from "@/lib/config/geo";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
 const LiveMarker = dynamic(() => import("@/components/map/LiveMarker"), { ssr: false });
 const RoutePolyline = dynamic(() => import("@/components/map/RoutePolyline"), { ssr: false });
 
-const BUCHAREST = { lat: 44.4268, lng: 26.1025 };
+const BUCHAREST = DEFAULT_MAP_CENTER;
 
 const CLASSES = [
   { id: "economy", labelKey: "classEconomy", emoji: "🚗", hintKey: "hintEconomy" },

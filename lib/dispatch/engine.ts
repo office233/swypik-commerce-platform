@@ -17,11 +17,11 @@ import { dbQuery, withTransaction } from "@/lib/db";
 import { getRedis } from "@/lib/redis";
 import { sendPushToUser } from "@/lib/push/send";
 import { logger } from "@/lib/logger";
+import { OFFER_TTL_SECONDS, MAX_COURIERS_PER_WAVE, WAVE_RADII_KM } from "./constants";
 
-export const OFFER_TTL_SECONDS = 45;
-export const MAX_COURIERS_PER_WAVE = 5;
-/** raza (km) per val; după ultimul val fără accept → no_courier */
-export const WAVE_RADII_KM = [2, 5, 10] as const;
+// Re-exportate din lib/dispatch/constants pentru compatibilitate cu importatorii actuali.
+export { VEHICLE_SPEED_KMH } from "./constants";
+export { OFFER_TTL_SECONDS, MAX_COURIERS_PER_WAVE, WAVE_RADII_KM };
 
 export type DispatchKind = "delivery" | "ride";
 
