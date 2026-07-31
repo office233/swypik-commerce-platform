@@ -159,3 +159,63 @@ export async function notifyGuestBookingConfirmed(bookingId: string): Promise<vo
         logger.error({ err, bookingId }, "stays: notificare client eșuată");
     }
 }
+
+/** Notifică ambele părți la anulare (cu detalii de refund). */
+export async function notifyCancellation(
+    bookingId: string,
+    cancelledBy: "guest" | "host",
+    refundCents: number,
+    refundPct: number,
+): Promise<void> {
+    try {
+        const b = await loadBookingInfo(bookingId);
+        if (!b) return;
+        const period = `${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}`;
+        const refundTxt = refundCents > 0 ? `Refund: ${lei(refundCents)} (${refundPct}%) în wallet.` : "Fără sumă de refundat.";
+
+        // Clientul
+        if (b.guestUserId) {
+            await sendPushToUser(b.guestUserId, {
+                title: cancelledBy === "host" ? "Rezervare anulată de gazdă" : "Rezervare anulată",
+                body: `${b.propertyTitle}: ${period}. ${refundTxt}`,
+                url: "/account",
+                tag: `stay-cancel-${bookingId}`,
+            }).catch(() => {});
+        }
+        if (b.guestEmail) {
+            await sendEmail({
+                to: b.guestEmail,
+                subject: `Rezervare anulată: ${b.propertyTitle}`,
+                html: `<h2>Rezervarea a fost anulată</h2>
+                       <p><strong>${b.propertyTitle}</strong> · ${period}</p>
+                       <p>${refundTxt}</p>
+                       ${cancelledBy === "host" ? "<p>Ne pare rău — gazda a anulat. Primești banii înapoi integral.</p>" : ""}`,
+            }).catch(() => {});
+        }
+
+        // Gazda
+        if (b.hostUserId) {
+            await sendPushToUser(b.hostUserId, {
+                title: cancelledBy === "guest" ? "Client a anulat o rezervare" : "Ai anulat rezervarea",
+                body: `${b.propertyTitle}: ${period}.`,
+                url: "/stays/manage",
+                tag: `stay-cancel-h-${bookingId}`,
+            }).catch(() => {});
+            const email = await hostEmail(b.hostUserId);
+            if (email) {
+                await sendEmail({
+                    to: email,
+                    subject: `Rezervare anulată: ${b.propertyTitle}`,
+                    html: `<h2>Rezervare anulată</h2>
+                           <p><strong>${b.propertyTitle}</strong> · ${period} · client: ${b.guestName}</p>
+                           <p>${cancelledBy === "guest"
+                               ? `Clientul a anulat. Suma corespunzătoare refund-ului (${refundPct}%) a fost retrasă din portofelul tău.`
+                               : "Ai anulat rezervarea — clientul primește refund integral, iar suma încasată a fost retrasă din portofelul tău."}</p>`,
+                }).catch(() => {});
+            }
+        }
+        logger.info({ bookingId, cancelledBy, refundPct }, "stays: notificări anulare trimise");
+    } catch (err) {
+        logger.error({ err, bookingId }, "stays: notificare anulare eșuată");
+    }
+}
