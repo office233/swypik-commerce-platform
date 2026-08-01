@@ -2,7 +2,8 @@
 -- Idempotent via ON CONFLICT
 BEGIN;
 
-INSERT INTO taxonomy_translations (node_slug, locale, label) VALUES
+INSERT INTO taxonomy_translations (node_slug, locale, label)
+SELECT v.node_slug, v.locale, v.label FROM (VALUES
 -- Fashion
 ('fashion','de','Mode'),
 ('fashion','fr','Mode'),
@@ -195,6 +196,8 @@ INSERT INTO taxonomy_translations (node_slug, locale, label) VALUES
 ('food','fr','Alimentation & boissons'),
 ('other','de','Sonstiges'),
 ('other','fr','Autre')
+) AS v(node_slug, locale, label)
+JOIN taxonomy_nodes n ON n.slug = v.node_slug
 ON CONFLICT (node_slug, locale) DO UPDATE SET label = EXCLUDED.label;
 
 COMMIT;
