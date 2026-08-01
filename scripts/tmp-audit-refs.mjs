@@ -2,9 +2,10 @@
 import { execSync } from "node:child_process";
 
 const patterns = [
-  "visual-search", "api/voice", "eats/quote", "trips/packages",
-  "aliexpress", "AudioPicker", "audio/[id]", '"/audio', "'/audio",
-  '"/r/', "collections", "hashtag", "/best", "categories",
+  'href="/collections', "push(\"/collections", "href={`/collections",
+  'href="/best', 'href="/categories', 'href="/hashtag', "href={`/hashtag",
+  'href="/r/', "href={`/r/", 'href="/audio', "href={`/audio",
+  "FEATURE_", "featureFlags.",
 ];
 for (const p of patterns) {
   let out = "";

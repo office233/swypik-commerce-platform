@@ -303,9 +303,9 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                 </div>
                 <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
               </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Descoperă produse</p>
-              <p className="mt-1 text-xl font-black text-white">Explore</p>
-              <p className="mt-1 text-xs text-[#10A37F] font-bold">Vezi feedul →</p>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">{t("cardExploreKicker")}</p>
+              <p className="mt-1 text-xl font-black text-white">{t("cardExploreTitle")}</p>
+              <p className="mt-1 text-xs text-[#10A37F] font-bold">{t("cardExploreCta")}</p>
             </Link>
 
             <Link
@@ -318,9 +318,9 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                 </div>
                 <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
               </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Câștigă SWYP</p>
-              <p className="mt-1 text-xl font-black text-white">Misiuni</p>
-              <p className="mt-1 text-xs text-[#F59E0B] font-bold">Vezi misiunile →</p>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">{t("cardMissionsKicker")}</p>
+              <p className="mt-1 text-xl font-black text-white">{t("cardMissionsTitle")}</p>
+              <p className="mt-1 text-xs text-[#F59E0B] font-bold">{t("cardMissionsCta")}</p>
             </Link>
           </div>
         </section>
