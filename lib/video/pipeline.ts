@@ -147,7 +147,7 @@ export async function enqueueVideoPipeline(input: VideoPipelineInput): Promise<V
         status, byte_size, content_type, source_url, expires_at,
         metadata, created_at, updated_at
       )
-      VALUES ($1, $2, $3, 'r2', $4, $5, $1, 'completed', 0, 'video/mp4',
+      VALUES ($1::uuid, $2, $3, 'r2', $4, $5, $1::text, 'completed', 0, 'video/mp4',
               $6, $7, $8::jsonb, NOW(), NOW())
       `,
       [
