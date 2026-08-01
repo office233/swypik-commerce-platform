@@ -334,6 +334,7 @@ export async function POST(req: Request) {
           description: body.description,
           productRefs: Array.isArray(body.productRefs) ? body.productRefs : undefined,
           tags: Array.isArray(body.tags) ? body.tags : undefined,
+          creatorId: typeof body.creatorId === "string" && body.creatorId ? body.creatorId : undefined,
           metadata: body.metadata && typeof body.metadata === "object" ? body.metadata : undefined,
         });
 
