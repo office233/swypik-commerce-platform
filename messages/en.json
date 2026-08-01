@@ -2426,5 +2426,225 @@
     "depositCopy": "Tap to copy address",
     "depositCopied": "✓ Address copied!",
     "depositNote": "Deposits are credited automatically only when sent from your on-chain Swypik wallet. Minimum: 0.01 SWYP."
+  },
+  "causesPanel": {
+    "verifPending": "Pending",
+    "verifInReview": "In review",
+    "verifVerified": "Verified ✓",
+    "verifRejected": "Rejected",
+    "authRequired": "Sign in to manage your causes.",
+    "networkError": "Network error.",
+    "registered": "The cause has been registered. Verification is done by the Swypik team.",
+    "registerError": "Registration error.",
+    "campaignInvalid": "Fill in the cause and a valid goal (minimum 1 leu).",
+    "campaignCreated": "The campaign has been created (draft).",
+    "createError": "Creation error.",
+    "uploadError": "Upload error.",
+    "expenseInvalid": "Fill in the campaign, the amount and the proof (upload).",
+    "expenseReported": "The expense has been reported — it appears publicly after confirmation.",
+    "reportError": "Reporting error.",
+    "loading": "Loading…",
+    "title": "Swypik Cares — your panel",
+    "subtitle": "Register a cause, create campaigns and report expenses transparently.",
+    "myCauses": "My causes",
+    "noCauses": "You have no registered causes.",
+    "kindNgo": "NGO",
+    "kindFamily": "Family",
+    "kindSmallBusiness": "Small business",
+    "kindCommunity": "Community",
+    "kindEmergency": "Emergency",
+    "causeName": "Cause name",
+    "legalId": "Tax ID (optional)",
+    "city": "City",
+    "contactName": "Contact person",
+    "contactEmail": "Contact email",
+    "contactPhone": "Phone (optional)",
+    "description": "Description",
+    "registerBtn": "Register the cause (manual verification)",
+    "campaigns": "Campaigns",
+    "viewExpenses": "View reported expenses",
+    "noExpenses": "No expenses reported.",
+    "expenseLine": "{amount} lei",
+    "proofLink": "proof",
+    "needVerified": "You can create campaigns after a cause is verified.",
+    "chooseCause": "Choose the cause…",
+    "campaignTitle": "Campaign title",
+    "goalPlaceholder": "Goal (lei)",
+    "storyPlaceholder": "Campaign story",
+    "createCampaign": "Create the campaign",
+    "reportExpenseTitle": "Report an expense (with proof)",
+    "chooseCampaign": "Choose the campaign…",
+    "amountPlaceholder": "Amount (lei)",
+    "purposePlaceholder": "Purpose (e.g. hospital bill payment)",
+    "proofLabel": "Proof (invoice/receipt — png/jpg/webp):",
+    "proofUploaded": "Proof uploaded ✓",
+    "reportBtn": "Report the expense"
+  },
+  "adminFleet": {
+    "title": "Fleet — verifications",
+    "pendingCount": "{count} pending",
+    "activeCount": "{count} active",
+    "suspendedCount": "{count} suspended",
+    "rejectedCount": "{count} rejected",
+    "totalCount": "{count} total",
+    "applicationsTitle": "Driver & courier applications",
+    "thName": "Name",
+    "thType": "Type",
+    "thContact": "Contact",
+    "thLoginAccount": "Login account",
+    "thCity": "City",
+    "thVehicle": "Vehicle",
+    "thLocationIp": "Location / IP",
+    "thStatus": "Status",
+    "thActions": "Actions",
+    "noAccountTitle": "Application submitted without an account — it links on first login",
+    "noAccount": "no account",
+    "updatedAt": "updated: {time}",
+    "onlineNoGps": "🟢 online, no GPS",
+    "noLocation": "— no location",
+    "lastSession": "last session: {time}",
+    "suspended": "suspended",
+    "noApplications": "No applications yet.",
+    "franchisesTitle": "Fleet franchises",
+    "thCompany": "Company",
+    "thVertical": "Vertical",
+    "thDrivers": "Drivers",
+    "noFranchises": "No franchises yet. Applications come from /join/franchise.",
+    "deleteForever": "Delete permanently"
+  },
+  "adminPricing": {
+    "thCity": "City",
+    "thClass": "Class",
+    "thBase": "Base",
+    "thActions": "Actions",
+    "thZone": "Zone",
+    "thStart": "Start",
+    "thEnd": "End",
+    "thSource": "Source",
+    "zoneLabel": "Zone",
+    "durationMin": "Duration (min)"
+  },
+  "adminOrders": {
+    "notFound": "Order not found.",
+    "paymentSummary": "Payment summary",
+    "totalPaid": "Total paid",
+    "trackingCode": "Tracking code",
+    "deliveryAddress": "Delivery address",
+    "noDeliveryAddress": "No delivery address was provided.",
+    "addAwbTitle": "Add AWB code",
+    "addAwbDesc": "Enter the tracking code received from the courier or supplier."
+  },
+  "adminCreators": {
+    "searchPlaceholder": "Search username or name...",
+    "searchBtn": "Search",
+    "thFollowers": "Followers",
+    "thSalesCount": "Sales (#)",
+    "thSalesTotal": "Sales (total)",
+    "thActions": "Actions",
+    "noCreators": "No creators found."
+  },
+  "adminCommissions": {
+    "pendingLabel": "Pending",
+    "paidLabel": "Paid",
+    "thPlatform": "Platform",
+    "thOrder": "Order",
+    "thPaid": "Paid"
+  },
+  "adminHosts": {
+    "host": "Host: ",
+    "form": "Legal form: ",
+    "company": "Company: ",
+    "cnpMaskedTitle": "displayed masked — full only for tax reporting",
+    "noteLabel": "Note:",
+    "needsInfoPlaceholder": "e.g. the land registry extract is missing; the classification certificate is expired..."
+  },
+  "adminImport": {
+    "missingColumns": "Missing columns",
+    "importing": "Importing products…",
+    "totalRows": "Total rows",
+    "thRow": "Row",
+    "thPrice": "Price"
+  },
+  "adminCourierPayouts": {
+    "loading": "Loading…",
+    "thAmount": "Amount",
+    "thRequestedAt": "Requested at",
+    "thActions": "Actions"
+  },
+  "adminShell": {
+    "comingSoon": "Coming soon",
+    "closeMenu": "Close menu",
+    "close": "Close"
+  },
+  "adminApplications": {
+    "partnersTitle": "Partner applications",
+    "thCity": "City",
+    "thReceived": "Received",
+    "creatorTitle": "Creator applications",
+    "creatorSubtitle": "Requests from users who want to become creators.",
+    "reviewNote": "Review note",
+    "journalNotePlaceholder": "Note for the log or rejection reason..."
+  },
+  "adminDisputes": {
+    "respondTitle": "Respond to the dispute",
+    "filesLabel": "Files (PDF / PNG / JPG, max 5MB)",
+    "uploadingStripe": "Uploading to Stripe…",
+    "orderTotal": "Order total:",
+    "evidenceSent": "Evidence sent:"
+  },
+  "adminModeration": {
+    "actionsTitle": "Actions",
+    "internalReason": "Internal reason (optional)",
+    "journalPlaceholder": "Note for the log...",
+    "pageTitle": "Content moderation",
+    "statusTriaged": "Under review",
+    "noteLabel": "Note:"
+  },
+  "adminPayouts": {
+    "pendingLabel": "Pending",
+    "failedLabel": "Failed",
+    "thAmount": "Amount"
+  },
+  "adminStrikes": {
+    "thWhen": "When",
+    "thExpires": "Expires",
+    "thActions": "Actions"
+  },
+  "adminRefunds": {
+    "thOrder": "Order",
+    "thAmount": "Amount"
+  },
+  "adminReturns": {
+    "thOrder": "Order",
+    "thActions": "Actions"
+  },
+  "adminReviews": {
+    "reactivate": "Reactivate",
+    "delete": "Delete"
+  },
+  "adminUsers": {
+    "searchPlaceholder": "Search by username, email or name...",
+    "thActions": "Actions"
+  },
+  "adminVideos": {
+    "thDuration": "Duration",
+    "thActions": "Actions"
+  },
+  "adminCron": {
+    "thActions": "Actions"
+  },
+  "adminHealth": {
+    "latency": "Latency"
+  },
+  "adminMarketplace": {
+    "searchPlaceholder": "Search products by title, slug, brand or category..."
+  },
+  "adminRisk": {
+    "title": "Order fraud risk",
+    "noSignals": "No signals in the last 30 days. The chart will populate automatically when flagged orders or admin decisions appear.",
+    "chartAria": "Trend over the last 30 days for flagged orders, approve/block decisions and auto-blocks"
+  },
+  "adminSellers": {
+    "thActions": "Actions"
   }
 }

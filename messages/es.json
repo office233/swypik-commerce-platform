@@ -2426,5 +2426,225 @@
     "depositCopy": "Toca para copiar la dirección",
     "depositCopied": "✓ ¡Dirección copiada!",
     "depositNote": "Los depósitos se acreditan automáticamente solo si provienen de tu billetera Swypik on-chain. Mínimo: 0,01 SWYP."
+  },
+  "causesPanel": {
+    "verifPending": "Pendiente",
+    "verifInReview": "En revisión",
+    "verifVerified": "Verificada ✓",
+    "verifRejected": "Rechazada",
+    "authRequired": "Inicia sesión para administrar tus causas.",
+    "networkError": "Error de red.",
+    "registered": "La causa ha sido registrada. La verificación la realiza el equipo de Swypik.",
+    "registerError": "Error al registrar.",
+    "campaignInvalid": "Completa la causa y una meta válida (mínimo 1 leu).",
+    "campaignCreated": "La campaña ha sido creada (borrador).",
+    "createError": "Error al crear.",
+    "uploadError": "Error al subir.",
+    "expenseInvalid": "Completa la campaña, el importe y la prueba (subida).",
+    "expenseReported": "El gasto ha sido reportado: aparecerá públicamente tras la confirmación.",
+    "reportError": "Error al reportar.",
+    "loading": "Cargando…",
+    "title": "Swypik Cares — tu panel",
+    "subtitle": "Registra una causa, crea campañas y reporta los gastos con transparencia.",
+    "myCauses": "Mis causas",
+    "noCauses": "No tienes ninguna causa registrada.",
+    "kindNgo": "ONG",
+    "kindFamily": "Familia",
+    "kindSmallBusiness": "Pequeño negocio",
+    "kindCommunity": "Comunidad",
+    "kindEmergency": "Emergencia",
+    "causeName": "Nombre de la causa",
+    "legalId": "NIF (opcional)",
+    "city": "Ciudad",
+    "contactName": "Persona de contacto",
+    "contactEmail": "Email de contacto",
+    "contactPhone": "Teléfono (opcional)",
+    "description": "Descripción",
+    "registerBtn": "Registrar la causa (verificación manual)",
+    "campaigns": "Campañas",
+    "viewExpenses": "Ver los gastos reportados",
+    "noExpenses": "Ningún gasto reportado.",
+    "expenseLine": "{amount} lei",
+    "proofLink": "prueba",
+    "needVerified": "Puedes crear campañas después de que una causa sea verificada.",
+    "chooseCause": "Elige la causa…",
+    "campaignTitle": "Título de la campaña",
+    "goalPlaceholder": "Meta (lei)",
+    "storyPlaceholder": "Historia de la campaña",
+    "createCampaign": "Crear la campaña",
+    "reportExpenseTitle": "Reporta un gasto (con prueba)",
+    "chooseCampaign": "Elige la campaña…",
+    "amountPlaceholder": "Importe (lei)",
+    "purposePlaceholder": "Propósito (ej.: pago de factura de hospital)",
+    "proofLabel": "Prueba (factura/recibo — png/jpg/webp):",
+    "proofUploaded": "Prueba subida ✓",
+    "reportBtn": "Reportar el gasto"
+  },
+  "adminFleet": {
+    "title": "Flota — verificaciones",
+    "pendingCount": "{count} pendientes",
+    "activeCount": "{count} activos",
+    "suspendedCount": "{count} suspendidos",
+    "rejectedCount": "{count} rechazados",
+    "totalCount": "{count} en total",
+    "applicationsTitle": "Solicitudes de conductores y repartidores",
+    "thName": "Nombre",
+    "thType": "Tipo",
+    "thContact": "Contacto",
+    "thLoginAccount": "Cuenta de acceso",
+    "thCity": "Ciudad",
+    "thVehicle": "Vehículo",
+    "thLocationIp": "Ubicación / IP",
+    "thStatus": "Estado",
+    "thActions": "Acciones",
+    "noAccountTitle": "Solicitud enviada sin cuenta: se vincula en el primer inicio de sesión",
+    "noAccount": "sin cuenta",
+    "updatedAt": "actualizado: {time}",
+    "onlineNoGps": "🟢 en línea, sin GPS",
+    "noLocation": "— sin ubicación",
+    "lastSession": "última sesión: {time}",
+    "suspended": "suspendido",
+    "noApplications": "Aún no hay solicitudes.",
+    "franchisesTitle": "Franquicias de flota",
+    "thCompany": "Empresa",
+    "thVertical": "Vertical",
+    "thDrivers": "Conductores",
+    "noFranchises": "Aún no hay franquicias. Las solicitudes llegan desde /join/franchise.",
+    "deleteForever": "Eliminar definitivamente"
+  },
+  "adminPricing": {
+    "thCity": "Ciudad",
+    "thClass": "Clase",
+    "thBase": "Base",
+    "thActions": "Acciones",
+    "thZone": "Zona",
+    "thStart": "Inicio",
+    "thEnd": "Fin",
+    "thSource": "Fuente",
+    "zoneLabel": "Zona",
+    "durationMin": "Duración (min)"
+  },
+  "adminOrders": {
+    "notFound": "Pedido no encontrado.",
+    "paymentSummary": "Resumen de pago",
+    "totalPaid": "Total pagado",
+    "trackingCode": "Código de seguimiento",
+    "deliveryAddress": "Dirección de entrega",
+    "noDeliveryAddress": "No se proporcionó ninguna dirección de entrega.",
+    "addAwbTitle": "Añadir código AWB",
+    "addAwbDesc": "Introduce el código de seguimiento recibido del mensajero o proveedor."
+  },
+  "adminCreators": {
+    "searchPlaceholder": "Buscar nombre de usuario o nombre...",
+    "searchBtn": "Buscar",
+    "thFollowers": "Seguidores",
+    "thSalesCount": "Ventas (#)",
+    "thSalesTotal": "Ventas (total)",
+    "thActions": "Acciones",
+    "noCreators": "No se encontraron creadores."
+  },
+  "adminCommissions": {
+    "pendingLabel": "Pendientes",
+    "paidLabel": "Pagadas",
+    "thPlatform": "Plataforma",
+    "thOrder": "Pedido",
+    "thPaid": "Pagado"
+  },
+  "adminHosts": {
+    "host": "Anfitrión: ",
+    "form": "Forma: ",
+    "company": "Empresa: ",
+    "cnpMaskedTitle": "mostrado enmascarado: completo solo para informes fiscales",
+    "noteLabel": "Nota:",
+    "needsInfoPlaceholder": "ej.: falta el extracto del registro; el certificado de clasificación está caducado..."
+  },
+  "adminImport": {
+    "missingColumns": "Columnas faltantes",
+    "importing": "Importando productos…",
+    "totalRows": "Total de filas",
+    "thRow": "Fila",
+    "thPrice": "Precio"
+  },
+  "adminCourierPayouts": {
+    "loading": "Cargando…",
+    "thAmount": "Importe",
+    "thRequestedAt": "Solicitada el",
+    "thActions": "Acciones"
+  },
+  "adminShell": {
+    "comingSoon": "Próximamente",
+    "closeMenu": "Cerrar el menú",
+    "close": "Cerrar"
+  },
+  "adminApplications": {
+    "partnersTitle": "Solicitudes de socios",
+    "thCity": "Ciudad",
+    "thReceived": "Recibida",
+    "creatorTitle": "Solicitudes de creador",
+    "creatorSubtitle": "Solicitudes de usuarios que quieren convertirse en creadores.",
+    "reviewNote": "Nota de revisión",
+    "journalNotePlaceholder": "Nota para el registro o motivo de rechazo..."
+  },
+  "adminDisputes": {
+    "respondTitle": "Responder a la disputa",
+    "filesLabel": "Archivos (PDF / PNG / JPG, máx. 5MB)",
+    "uploadingStripe": "Subiendo a Stripe…",
+    "orderTotal": "Total del pedido:",
+    "evidenceSent": "Evidencia enviada:"
+  },
+  "adminModeration": {
+    "actionsTitle": "Acciones",
+    "internalReason": "Motivo interno (opcional)",
+    "journalPlaceholder": "Nota para el registro...",
+    "pageTitle": "Moderación de contenido",
+    "statusTriaged": "En análisis",
+    "noteLabel": "Nota:"
+  },
+  "adminPayouts": {
+    "pendingLabel": "Pendientes",
+    "failedLabel": "Fallidas",
+    "thAmount": "Importe"
+  },
+  "adminStrikes": {
+    "thWhen": "Cuándo",
+    "thExpires": "Expira",
+    "thActions": "Acciones"
+  },
+  "adminRefunds": {
+    "thOrder": "Pedido",
+    "thAmount": "Importe"
+  },
+  "adminReturns": {
+    "thOrder": "Pedido",
+    "thActions": "Acciones"
+  },
+  "adminReviews": {
+    "reactivate": "Reactivar",
+    "delete": "Eliminar"
+  },
+  "adminUsers": {
+    "searchPlaceholder": "Buscar por nombre de usuario, email o nombre...",
+    "thActions": "Acciones"
+  },
+  "adminVideos": {
+    "thDuration": "Duración",
+    "thActions": "Acciones"
+  },
+  "adminCron": {
+    "thActions": "Acciones"
+  },
+  "adminHealth": {
+    "latency": "Latencia"
+  },
+  "adminMarketplace": {
+    "searchPlaceholder": "Buscar productos por título, slug, marca o categoría..."
+  },
+  "adminRisk": {
+    "title": "Riesgo de fraude en pedidos",
+    "noSignals": "Sin señales en los últimos 30 días. El gráfico se llenará automáticamente cuando aparezcan pedidos marcados o decisiones de administrador.",
+    "chartAria": "Tendencia de los últimos 30 días de pedidos marcados, decisiones approve/block y auto-blocks"
+  },
+  "adminSellers": {
+    "thActions": "Acciones"
   }
 }

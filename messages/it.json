@@ -2426,5 +2426,225 @@
     "depositCopy": "Tocca per copiare l'indirizzo",
     "depositCopied": "✓ Indirizzo copiato!",
     "depositNote": "I depositi vengono accreditati automaticamente solo se provengono dal tuo portafoglio Swypik on-chain. Minimo: 0,01 SWYP."
+  },
+  "causesPanel": {
+    "verifPending": "In attesa",
+    "verifInReview": "In verifica",
+    "verifVerified": "Verificata ✓",
+    "verifRejected": "Respinta",
+    "authRequired": "Accedi per gestire le tue cause.",
+    "networkError": "Errore di rete.",
+    "registered": "La causa è stata registrata. La verifica viene effettuata dal team Swypik.",
+    "registerError": "Errore durante la registrazione.",
+    "campaignInvalid": "Compila la causa e un obiettivo valido (minimo 1 leu).",
+    "campaignCreated": "La campagna è stata creata (bozza).",
+    "createError": "Errore durante la creazione.",
+    "uploadError": "Errore durante il caricamento.",
+    "expenseInvalid": "Compila la campagna, l'importo e la prova (upload).",
+    "expenseReported": "La spesa è stata segnalata — apparirà pubblicamente dopo la conferma.",
+    "reportError": "Errore durante la segnalazione.",
+    "loading": "Caricamento…",
+    "title": "Swypik Cares — il tuo pannello",
+    "subtitle": "Registra una causa, crea campagne e segnala le spese in modo trasparente.",
+    "myCauses": "Le mie cause",
+    "noCauses": "Non hai nessuna causa registrata.",
+    "kindNgo": "ONG",
+    "kindFamily": "Famiglia",
+    "kindSmallBusiness": "Piccola impresa",
+    "kindCommunity": "Comunità",
+    "kindEmergency": "Emergenza",
+    "causeName": "Nome della causa",
+    "legalId": "Partita IVA (facoltativa)",
+    "city": "Città",
+    "contactName": "Persona di contatto",
+    "contactEmail": "Email di contatto",
+    "contactPhone": "Telefono (facoltativo)",
+    "description": "Descrizione",
+    "registerBtn": "Registra la causa (verifica manuale)",
+    "campaigns": "Campagne",
+    "viewExpenses": "Vedi le spese segnalate",
+    "noExpenses": "Nessuna spesa segnalata.",
+    "expenseLine": "{amount} lei",
+    "proofLink": "prova",
+    "needVerified": "Puoi creare campagne dopo che una causa è stata verificata.",
+    "chooseCause": "Scegli la causa…",
+    "campaignTitle": "Titolo della campagna",
+    "goalPlaceholder": "Obiettivo (lei)",
+    "storyPlaceholder": "Storia della campagna",
+    "createCampaign": "Crea la campagna",
+    "reportExpenseTitle": "Segnala una spesa (con prova)",
+    "chooseCampaign": "Scegli la campagna…",
+    "amountPlaceholder": "Importo (lei)",
+    "purposePlaceholder": "Scopo (es.: pagamento fattura ospedale)",
+    "proofLabel": "Prova (fattura/ricevuta — png/jpg/webp):",
+    "proofUploaded": "Prova caricata ✓",
+    "reportBtn": "Segnala la spesa"
+  },
+  "adminFleet": {
+    "title": "Flotta — verifiche",
+    "pendingCount": "{count} in attesa",
+    "activeCount": "{count} attivi",
+    "suspendedCount": "{count} sospesi",
+    "rejectedCount": "{count} respinti",
+    "totalCount": "{count} in totale",
+    "applicationsTitle": "Candidature autisti e corrieri",
+    "thName": "Nome",
+    "thType": "Tipo",
+    "thContact": "Contatto",
+    "thLoginAccount": "Account di accesso",
+    "thCity": "Città",
+    "thVehicle": "Veicolo",
+    "thLocationIp": "Posizione / IP",
+    "thStatus": "Stato",
+    "thActions": "Azioni",
+    "noAccountTitle": "Candidatura inviata senza account — si collega al primo accesso",
+    "noAccount": "senza account",
+    "updatedAt": "aggiornato: {time}",
+    "onlineNoGps": "🟢 online, senza GPS",
+    "noLocation": "— nessuna posizione",
+    "lastSession": "ultima sessione: {time}",
+    "suspended": "sospeso",
+    "noApplications": "Ancora nessuna candidatura.",
+    "franchisesTitle": "Franchising di flotta",
+    "thCompany": "Azienda",
+    "thVertical": "Verticale",
+    "thDrivers": "Autisti",
+    "noFranchises": "Ancora nessun franchising. Le candidature arrivano da /join/franchise.",
+    "deleteForever": "Elimina definitivamente"
+  },
+  "adminPricing": {
+    "thCity": "Città",
+    "thClass": "Classe",
+    "thBase": "Base",
+    "thActions": "Azioni",
+    "thZone": "Zona",
+    "thStart": "Inizio",
+    "thEnd": "Fine",
+    "thSource": "Fonte",
+    "zoneLabel": "Zona",
+    "durationMin": "Durata (min)"
+  },
+  "adminOrders": {
+    "notFound": "Ordine non trovato.",
+    "paymentSummary": "Riepilogo pagamento",
+    "totalPaid": "Totale pagato",
+    "trackingCode": "Codice di tracciamento",
+    "deliveryAddress": "Indirizzo di consegna",
+    "noDeliveryAddress": "Non è stato fornito alcun indirizzo di consegna.",
+    "addAwbTitle": "Aggiungi codice AWB",
+    "addAwbDesc": "Inserisci il codice di tracciamento ricevuto dal corriere o dal fornitore."
+  },
+  "adminCreators": {
+    "searchPlaceholder": "Cerca username o nome...",
+    "searchBtn": "Cerca",
+    "thFollowers": "Follower",
+    "thSalesCount": "Vendite (#)",
+    "thSalesTotal": "Vendite (totale)",
+    "thActions": "Azioni",
+    "noCreators": "Nessun creator trovato."
+  },
+  "adminCommissions": {
+    "pendingLabel": "In attesa",
+    "paidLabel": "Pagate",
+    "thPlatform": "Piattaforma",
+    "thOrder": "Ordine",
+    "thPaid": "Pagato"
+  },
+  "adminHosts": {
+    "host": "Host: ",
+    "form": "Forma: ",
+    "company": "Azienda: ",
+    "cnpMaskedTitle": "mostrato mascherato — completo solo per la dichiarazione fiscale",
+    "noteLabel": "Nota:",
+    "needsInfoPlaceholder": "es.: manca l'estratto catastale; il certificato di classificazione è scaduto..."
+  },
+  "adminImport": {
+    "missingColumns": "Colonne mancanti",
+    "importing": "Importazione prodotti…",
+    "totalRows": "Righe totali",
+    "thRow": "Riga",
+    "thPrice": "Prezzo"
+  },
+  "adminCourierPayouts": {
+    "loading": "Caricamento…",
+    "thAmount": "Importo",
+    "thRequestedAt": "Richiesta il",
+    "thActions": "Azioni"
+  },
+  "adminShell": {
+    "comingSoon": "In arrivo",
+    "closeMenu": "Chiudi il menu",
+    "close": "Chiudi"
+  },
+  "adminApplications": {
+    "partnersTitle": "Candidature partner",
+    "thCity": "Città",
+    "thReceived": "Ricevuta",
+    "creatorTitle": "Candidature creator",
+    "creatorSubtitle": "Richieste di utenti che vogliono diventare creator.",
+    "reviewNote": "Nota di revisione",
+    "journalNotePlaceholder": "Nota per il registro o motivo del rifiuto..."
+  },
+  "adminDisputes": {
+    "respondTitle": "Rispondi alla disputa",
+    "filesLabel": "File (PDF / PNG / JPG, max 5MB)",
+    "uploadingStripe": "Caricamento su Stripe…",
+    "orderTotal": "Totale ordine:",
+    "evidenceSent": "Prove inviate:"
+  },
+  "adminModeration": {
+    "actionsTitle": "Azioni",
+    "internalReason": "Motivo interno (facoltativo)",
+    "journalPlaceholder": "Nota per il registro...",
+    "pageTitle": "Moderazione dei contenuti",
+    "statusTriaged": "In analisi",
+    "noteLabel": "Nota:"
+  },
+  "adminPayouts": {
+    "pendingLabel": "In attesa",
+    "failedLabel": "Fallite",
+    "thAmount": "Importo"
+  },
+  "adminStrikes": {
+    "thWhen": "Quando",
+    "thExpires": "Scade",
+    "thActions": "Azioni"
+  },
+  "adminRefunds": {
+    "thOrder": "Ordine",
+    "thAmount": "Importo"
+  },
+  "adminReturns": {
+    "thOrder": "Ordine",
+    "thActions": "Azioni"
+  },
+  "adminReviews": {
+    "reactivate": "Riattiva",
+    "delete": "Elimina"
+  },
+  "adminUsers": {
+    "searchPlaceholder": "Cerca per username, email o nome...",
+    "thActions": "Azioni"
+  },
+  "adminVideos": {
+    "thDuration": "Durata",
+    "thActions": "Azioni"
+  },
+  "adminCron": {
+    "thActions": "Azioni"
+  },
+  "adminHealth": {
+    "latency": "Latenza"
+  },
+  "adminMarketplace": {
+    "searchPlaceholder": "Cerca prodotti per titolo, slug, brand o categoria..."
+  },
+  "adminRisk": {
+    "title": "Rischio frode ordini",
+    "noSignals": "Nessun segnale negli ultimi 30 giorni. Il grafico si popolerà automaticamente quando appariranno ordini segnalati o decisioni admin.",
+    "chartAria": "Trend degli ultimi 30 giorni per ordini segnalati, decisioni approve/block e auto-block"
+  },
+  "adminSellers": {
+    "thActions": "Azioni"
   }
 }

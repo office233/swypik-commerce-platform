@@ -2426,5 +2426,225 @@
     "depositCopy": "Tippen, um die Adresse zu kopieren",
     "depositCopied": "✓ Adresse kopiert!",
     "depositNote": "Einzahlungen werden nur automatisch gutgeschrieben, wenn sie aus deiner On-Chain-Swypik-Wallet stammen. Minimum: 0,01 SWYP."
+  },
+  "causesPanel": {
+    "verifPending": "Ausstehend",
+    "verifInReview": "In Prüfung",
+    "verifVerified": "Verifiziert ✓",
+    "verifRejected": "Abgelehnt",
+    "authRequired": "Melde dich an, um deine Anliegen zu verwalten.",
+    "networkError": "Netzwerkfehler.",
+    "registered": "Das Anliegen wurde registriert. Die Prüfung erfolgt durch das Swypik-Team.",
+    "registerError": "Fehler bei der Registrierung.",
+    "campaignInvalid": "Fülle das Anliegen und ein gültiges Ziel aus (mindestens 1 Leu).",
+    "campaignCreated": "Die Kampagne wurde erstellt (Entwurf).",
+    "createError": "Fehler beim Erstellen.",
+    "uploadError": "Fehler beim Hochladen.",
+    "expenseInvalid": "Fülle Kampagne, Betrag und Nachweis (Upload) aus.",
+    "expenseReported": "Die Ausgabe wurde gemeldet — sie erscheint nach Bestätigung öffentlich.",
+    "reportError": "Fehler beim Melden.",
+    "loading": "Wird geladen…",
+    "title": "Swypik Cares — dein Bereich",
+    "subtitle": "Registriere ein Anliegen, erstelle Kampagnen und melde Ausgaben transparent.",
+    "myCauses": "Meine Anliegen",
+    "noCauses": "Du hast kein registriertes Anliegen.",
+    "kindNgo": "NGO",
+    "kindFamily": "Familie",
+    "kindSmallBusiness": "Kleinunternehmen",
+    "kindCommunity": "Gemeinschaft",
+    "kindEmergency": "Notfall",
+    "causeName": "Name des Anliegens",
+    "legalId": "Steuernummer (optional)",
+    "city": "Stadt",
+    "contactName": "Ansprechpartner",
+    "contactEmail": "Kontakt-E-Mail",
+    "contactPhone": "Telefon (optional)",
+    "description": "Beschreibung",
+    "registerBtn": "Anliegen registrieren (manuelle Prüfung)",
+    "campaigns": "Kampagnen",
+    "viewExpenses": "Gemeldete Ausgaben ansehen",
+    "noExpenses": "Keine Ausgaben gemeldet.",
+    "expenseLine": "{amount} Lei",
+    "proofLink": "Nachweis",
+    "needVerified": "Du kannst Kampagnen erstellen, sobald ein Anliegen verifiziert ist.",
+    "chooseCause": "Anliegen wählen…",
+    "campaignTitle": "Kampagnentitel",
+    "goalPlaceholder": "Ziel (Lei)",
+    "storyPlaceholder": "Geschichte der Kampagne",
+    "createCampaign": "Kampagne erstellen",
+    "reportExpenseTitle": "Ausgabe melden (mit Nachweis)",
+    "chooseCampaign": "Kampagne wählen…",
+    "amountPlaceholder": "Betrag (Lei)",
+    "purposePlaceholder": "Zweck (z. B. Zahlung einer Krankenhausrechnung)",
+    "proofLabel": "Nachweis (Rechnung/Quittung — png/jpg/webp):",
+    "proofUploaded": "Nachweis hochgeladen ✓",
+    "reportBtn": "Ausgabe melden"
+  },
+  "adminFleet": {
+    "title": "Flotte — Prüfungen",
+    "pendingCount": "{count} ausstehend",
+    "activeCount": "{count} aktiv",
+    "suspendedCount": "{count} gesperrt",
+    "rejectedCount": "{count} abgelehnt",
+    "totalCount": "{count} gesamt",
+    "applicationsTitle": "Bewerbungen Fahrer & Kuriere",
+    "thName": "Name",
+    "thType": "Typ",
+    "thContact": "Kontakt",
+    "thLoginAccount": "Login-Konto",
+    "thCity": "Stadt",
+    "thVehicle": "Fahrzeug",
+    "thLocationIp": "Standort / IP",
+    "thStatus": "Status",
+    "thActions": "Aktionen",
+    "noAccountTitle": "Bewerbung ohne Konto eingereicht — wird beim ersten Login verknüpft",
+    "noAccount": "kein Konto",
+    "updatedAt": "aktualisiert: {time}",
+    "onlineNoGps": "🟢 online, kein GPS",
+    "noLocation": "— kein Standort",
+    "lastSession": "letzte Sitzung: {time}",
+    "suspended": "gesperrt",
+    "noApplications": "Noch keine Bewerbungen.",
+    "franchisesTitle": "Flotten-Franchises",
+    "thCompany": "Firma",
+    "thVertical": "Vertikale",
+    "thDrivers": "Fahrer",
+    "noFranchises": "Noch keine Franchises. Bewerbungen kommen über /join/franchise.",
+    "deleteForever": "Endgültig löschen"
+  },
+  "adminPricing": {
+    "thCity": "Stadt",
+    "thClass": "Klasse",
+    "thBase": "Basis",
+    "thActions": "Aktionen",
+    "thZone": "Zone",
+    "thStart": "Beginn",
+    "thEnd": "Ende",
+    "thSource": "Quelle",
+    "zoneLabel": "Zone",
+    "durationMin": "Dauer (Min)"
+  },
+  "adminOrders": {
+    "notFound": "Bestellung nicht gefunden.",
+    "paymentSummary": "Zahlungsübersicht",
+    "totalPaid": "Gesamt bezahlt",
+    "trackingCode": "Sendungsnummer",
+    "deliveryAddress": "Lieferadresse",
+    "noDeliveryAddress": "Es wurde keine Lieferadresse angegeben.",
+    "addAwbTitle": "AWB-Code hinzufügen",
+    "addAwbDesc": "Gib die vom Kurier oder Lieferanten erhaltene Sendungsnummer ein."
+  },
+  "adminCreators": {
+    "searchPlaceholder": "Benutzername oder Namen suchen...",
+    "searchBtn": "Suchen",
+    "thFollowers": "Follower",
+    "thSalesCount": "Verkäufe (#)",
+    "thSalesTotal": "Verkäufe (gesamt)",
+    "thActions": "Aktionen",
+    "noCreators": "Keine Creator gefunden."
+  },
+  "adminCommissions": {
+    "pendingLabel": "Ausstehend",
+    "paidLabel": "Bezahlt",
+    "thPlatform": "Plattform",
+    "thOrder": "Bestellung",
+    "thPaid": "Bezahlt"
+  },
+  "adminHosts": {
+    "host": "Gastgeber: ",
+    "form": "Rechtsform: ",
+    "company": "Firma: ",
+    "cnpMaskedTitle": "maskiert angezeigt — vollständig nur für die Steuermeldung",
+    "noteLabel": "Hinweis:",
+    "needsInfoPlaceholder": "z. B.: Grundbuchauszug fehlt; das Klassifizierungszertifikat ist abgelaufen..."
+  },
+  "adminImport": {
+    "missingColumns": "Fehlende Spalten",
+    "importing": "Produkte werden importiert…",
+    "totalRows": "Zeilen gesamt",
+    "thRow": "Zeile",
+    "thPrice": "Preis"
+  },
+  "adminCourierPayouts": {
+    "loading": "Wird geladen…",
+    "thAmount": "Betrag",
+    "thRequestedAt": "Angefragt am",
+    "thActions": "Aktionen"
+  },
+  "adminShell": {
+    "comingSoon": "Demnächst",
+    "closeMenu": "Menü schließen",
+    "close": "Schließen"
+  },
+  "adminApplications": {
+    "partnersTitle": "Partner-Bewerbungen",
+    "thCity": "Stadt",
+    "thReceived": "Eingegangen",
+    "creatorTitle": "Creator-Bewerbungen",
+    "creatorSubtitle": "Anfragen von Nutzern, die Creator werden möchten.",
+    "reviewNote": "Review-Notiz",
+    "journalNotePlaceholder": "Notiz für das Protokoll oder Ablehnungsgrund..."
+  },
+  "adminDisputes": {
+    "respondTitle": "Auf den Disput antworten",
+    "filesLabel": "Dateien (PDF / PNG / JPG, max. 5 MB)",
+    "uploadingStripe": "Wird zu Stripe hochgeladen…",
+    "orderTotal": "Bestellsumme:",
+    "evidenceSent": "Nachweise gesendet:"
+  },
+  "adminModeration": {
+    "actionsTitle": "Aktionen",
+    "internalReason": "Interner Grund (optional)",
+    "journalPlaceholder": "Notiz für das Protokoll...",
+    "pageTitle": "Inhaltsmoderation",
+    "statusTriaged": "In Prüfung",
+    "noteLabel": "Hinweis:"
+  },
+  "adminPayouts": {
+    "pendingLabel": "Ausstehend",
+    "failedLabel": "Fehlgeschlagen",
+    "thAmount": "Betrag"
+  },
+  "adminStrikes": {
+    "thWhen": "Wann",
+    "thExpires": "Läuft ab",
+    "thActions": "Aktionen"
+  },
+  "adminRefunds": {
+    "thOrder": "Bestellung",
+    "thAmount": "Betrag"
+  },
+  "adminReturns": {
+    "thOrder": "Bestellung",
+    "thActions": "Aktionen"
+  },
+  "adminReviews": {
+    "reactivate": "Reaktivieren",
+    "delete": "Löschen"
+  },
+  "adminUsers": {
+    "searchPlaceholder": "Nach Benutzername, E-Mail oder Name suchen...",
+    "thActions": "Aktionen"
+  },
+  "adminVideos": {
+    "thDuration": "Dauer",
+    "thActions": "Aktionen"
+  },
+  "adminCron": {
+    "thActions": "Aktionen"
+  },
+  "adminHealth": {
+    "latency": "Latenz"
+  },
+  "adminMarketplace": {
+    "searchPlaceholder": "Produkte nach Titel, Slug, Marke oder Kategorie suchen..."
+  },
+  "adminRisk": {
+    "title": "Bestellbetrugsrisiko",
+    "noSignals": "Keine Signale in den letzten 30 Tagen. Das Diagramm füllt sich automatisch, sobald markierte Bestellungen oder Admin-Entscheidungen erscheinen.",
+    "chartAria": "Trend der letzten 30 Tage für markierte Bestellungen, Approve/Block-Entscheidungen und Auto-Blocks"
+  },
+  "adminSellers": {
+    "thActions": "Aktionen"
   }
 }

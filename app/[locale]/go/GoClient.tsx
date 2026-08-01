@@ -11,6 +11,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
+import { Bus, Car, CarFront, type LucideIcon } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { DEFAULT_MAP_CENTER } from "@/lib/config/geo";
 
@@ -20,10 +21,10 @@ const RoutePolyline = dynamic(() => import("@/components/map/RoutePolyline"), { 
 
 const BUCHAREST = DEFAULT_MAP_CENTER;
 
-const CLASSES = [
-  { id: "economy", labelKey: "classEconomy", emoji: "🚗", hintKey: "hintEconomy" },
-  { id: "comfort", labelKey: "classComfort", emoji: "🚙", hintKey: "hintComfort" },
-  { id: "van", labelKey: "classVan", emoji: "🚐", hintKey: "hintVan" },
+const CLASSES: readonly { id: "economy" | "comfort" | "van"; labelKey: string; Icon: LucideIcon; hintKey: string }[] = [
+  { id: "economy", labelKey: "classEconomy", Icon: Car, hintKey: "hintEconomy" },
+  { id: "comfort", labelKey: "classComfort", Icon: CarFront, hintKey: "hintComfort" },
+  { id: "van", labelKey: "classVan", Icon: Bus, hintKey: "hintVan" },
 ] as const;
 
 type Estimate = {

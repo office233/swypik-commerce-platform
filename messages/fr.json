@@ -2426,5 +2426,225 @@
     "depositCopy": "Appuyez pour copier l'adresse",
     "depositCopied": "✓ Adresse copiée !",
     "depositNote": "Les dépôts ne sont crédités automatiquement que s'ils proviennent de votre portefeuille Swypik on-chain. Minimum : 0,01 SWYP."
+  },
+  "causesPanel": {
+    "verifPending": "En attente",
+    "verifInReview": "En cours de vérification",
+    "verifVerified": "Vérifiée ✓",
+    "verifRejected": "Rejetée",
+    "authRequired": "Connectez-vous pour gérer vos causes.",
+    "networkError": "Erreur réseau.",
+    "registered": "La cause a été enregistrée. La vérification est effectuée par l'équipe Swypik.",
+    "registerError": "Erreur lors de l'enregistrement.",
+    "campaignInvalid": "Renseignez la cause et un objectif valide (minimum 1 leu).",
+    "campaignCreated": "La campagne a été créée (brouillon).",
+    "createError": "Erreur lors de la création.",
+    "uploadError": "Erreur lors de l'envoi.",
+    "expenseInvalid": "Renseignez la campagne, le montant et le justificatif (envoi).",
+    "expenseReported": "La dépense a été déclarée — elle apparaîtra publiquement après confirmation.",
+    "reportError": "Erreur lors de la déclaration.",
+    "loading": "Chargement…",
+    "title": "Swypik Cares — votre panneau",
+    "subtitle": "Enregistrez une cause, créez des campagnes et déclarez les dépenses en toute transparence.",
+    "myCauses": "Mes causes",
+    "noCauses": "Vous n'avez aucune cause enregistrée.",
+    "kindNgo": "ONG",
+    "kindFamily": "Famille",
+    "kindSmallBusiness": "Petite entreprise",
+    "kindCommunity": "Communauté",
+    "kindEmergency": "Urgence",
+    "causeName": "Nom de la cause",
+    "legalId": "SIRET (facultatif)",
+    "city": "Ville",
+    "contactName": "Personne de contact",
+    "contactEmail": "E-mail de contact",
+    "contactPhone": "Téléphone (facultatif)",
+    "description": "Description",
+    "registerBtn": "Enregistrer la cause (vérification manuelle)",
+    "campaigns": "Campagnes",
+    "viewExpenses": "Voir les dépenses déclarées",
+    "noExpenses": "Aucune dépense déclarée.",
+    "expenseLine": "{amount} lei",
+    "proofLink": "justificatif",
+    "needVerified": "Vous pouvez créer des campagnes après la vérification d'une cause.",
+    "chooseCause": "Choisissez la cause…",
+    "campaignTitle": "Titre de la campagne",
+    "goalPlaceholder": "Objectif (lei)",
+    "storyPlaceholder": "Histoire de la campagne",
+    "createCampaign": "Créer la campagne",
+    "reportExpenseTitle": "Déclarer une dépense (avec justificatif)",
+    "chooseCampaign": "Choisissez la campagne…",
+    "amountPlaceholder": "Montant (lei)",
+    "purposePlaceholder": "Objet (ex. : paiement d'une facture d'hôpital)",
+    "proofLabel": "Justificatif (facture/reçu — png/jpg/webp) :",
+    "proofUploaded": "Justificatif envoyé ✓",
+    "reportBtn": "Déclarer la dépense"
+  },
+  "adminFleet": {
+    "title": "Flotte — vérifications",
+    "pendingCount": "{count} en attente",
+    "activeCount": "{count} actifs",
+    "suspendedCount": "{count} suspendus",
+    "rejectedCount": "{count} rejetés",
+    "totalCount": "{count} au total",
+    "applicationsTitle": "Candidatures chauffeurs & coursiers",
+    "thName": "Nom",
+    "thType": "Type",
+    "thContact": "Contact",
+    "thLoginAccount": "Compte de connexion",
+    "thCity": "Ville",
+    "thVehicle": "Véhicule",
+    "thLocationIp": "Localisation / IP",
+    "thStatus": "Statut",
+    "thActions": "Actions",
+    "noAccountTitle": "Candidature envoyée sans compte — liée à la première connexion",
+    "noAccount": "sans compte",
+    "updatedAt": "mis à jour : {time}",
+    "onlineNoGps": "🟢 en ligne, sans GPS",
+    "noLocation": "— pas de localisation",
+    "lastSession": "dernière session : {time}",
+    "suspended": "suspendu",
+    "noApplications": "Aucune candidature pour le moment.",
+    "franchisesTitle": "Franchises de flotte",
+    "thCompany": "Société",
+    "thVertical": "Verticale",
+    "thDrivers": "Chauffeurs",
+    "noFranchises": "Aucune franchise pour le moment. Les candidatures arrivent via /join/franchise.",
+    "deleteForever": "Supprimer définitivement"
+  },
+  "adminPricing": {
+    "thCity": "Ville",
+    "thClass": "Classe",
+    "thBase": "Base",
+    "thActions": "Actions",
+    "thZone": "Zone",
+    "thStart": "Début",
+    "thEnd": "Fin",
+    "thSource": "Source",
+    "zoneLabel": "Zone",
+    "durationMin": "Durée (min)"
+  },
+  "adminOrders": {
+    "notFound": "Commande introuvable.",
+    "paymentSummary": "Récapitulatif du paiement",
+    "totalPaid": "Total payé",
+    "trackingCode": "Code de suivi",
+    "deliveryAddress": "Adresse de livraison",
+    "noDeliveryAddress": "Aucune adresse de livraison n'a été fournie.",
+    "addAwbTitle": "Ajouter un code AWB",
+    "addAwbDesc": "Saisissez le code de suivi reçu du transporteur ou du fournisseur."
+  },
+  "adminCreators": {
+    "searchPlaceholder": "Rechercher un nom d'utilisateur ou un nom...",
+    "searchBtn": "Rechercher",
+    "thFollowers": "Abonnés",
+    "thSalesCount": "Ventes (#)",
+    "thSalesTotal": "Ventes (total)",
+    "thActions": "Actions",
+    "noCreators": "Aucun créateur trouvé."
+  },
+  "adminCommissions": {
+    "pendingLabel": "En attente",
+    "paidLabel": "Payées",
+    "thPlatform": "Plateforme",
+    "thOrder": "Commande",
+    "thPaid": "Payé"
+  },
+  "adminHosts": {
+    "host": "Hôte : ",
+    "form": "Forme : ",
+    "company": "Société : ",
+    "cnpMaskedTitle": "affiché masqué — complet uniquement pour la déclaration fiscale",
+    "noteLabel": "Note :",
+    "needsInfoPlaceholder": "ex. : l'extrait du registre foncier manque ; le certificat de classification est expiré..."
+  },
+  "adminImport": {
+    "missingColumns": "Colonnes manquantes",
+    "importing": "Importation des produits…",
+    "totalRows": "Total de lignes",
+    "thRow": "Ligne",
+    "thPrice": "Prix"
+  },
+  "adminCourierPayouts": {
+    "loading": "Chargement…",
+    "thAmount": "Montant",
+    "thRequestedAt": "Demandée le",
+    "thActions": "Actions"
+  },
+  "adminShell": {
+    "comingSoon": "Bientôt disponible",
+    "closeMenu": "Fermer le menu",
+    "close": "Fermer"
+  },
+  "adminApplications": {
+    "partnersTitle": "Candidatures partenaires",
+    "thCity": "Ville",
+    "thReceived": "Reçue",
+    "creatorTitle": "Candidatures créateur",
+    "creatorSubtitle": "Demandes d'utilisateurs souhaitant devenir créateurs.",
+    "reviewNote": "Note de revue",
+    "journalNotePlaceholder": "Note pour le journal ou motif de rejet..."
+  },
+  "adminDisputes": {
+    "respondTitle": "Répondre au litige",
+    "filesLabel": "Fichiers (PDF / PNG / JPG, max 5 Mo)",
+    "uploadingStripe": "Envoi vers Stripe…",
+    "orderTotal": "Total de la commande :",
+    "evidenceSent": "Preuves envoyées :"
+  },
+  "adminModeration": {
+    "actionsTitle": "Actions",
+    "internalReason": "Motif interne (facultatif)",
+    "journalPlaceholder": "Note pour le journal...",
+    "pageTitle": "Modération du contenu",
+    "statusTriaged": "En cours d'analyse",
+    "noteLabel": "Note :"
+  },
+  "adminPayouts": {
+    "pendingLabel": "En attente",
+    "failedLabel": "Échouées",
+    "thAmount": "Montant"
+  },
+  "adminStrikes": {
+    "thWhen": "Quand",
+    "thExpires": "Expire",
+    "thActions": "Actions"
+  },
+  "adminRefunds": {
+    "thOrder": "Commande",
+    "thAmount": "Montant"
+  },
+  "adminReturns": {
+    "thOrder": "Commande",
+    "thActions": "Actions"
+  },
+  "adminReviews": {
+    "reactivate": "Réactiver",
+    "delete": "Supprimer"
+  },
+  "adminUsers": {
+    "searchPlaceholder": "Rechercher par nom d'utilisateur, e-mail ou nom...",
+    "thActions": "Actions"
+  },
+  "adminVideos": {
+    "thDuration": "Durée",
+    "thActions": "Actions"
+  },
+  "adminCron": {
+    "thActions": "Actions"
+  },
+  "adminHealth": {
+    "latency": "Latence"
+  },
+  "adminMarketplace": {
+    "searchPlaceholder": "Rechercher des produits par titre, slug, marque ou catégorie..."
+  },
+  "adminRisk": {
+    "title": "Risque de fraude des commandes",
+    "noSignals": "Aucun signal au cours des 30 derniers jours. Le graphique se remplira automatiquement dès que des commandes signalées ou des décisions admin apparaîtront.",
+    "chartAria": "Tendance des 30 derniers jours pour les commandes signalées, décisions approve/block et auto-blocks"
+  },
+  "adminSellers": {
+    "thActions": "Actions"
   }
 }

@@ -173,6 +173,7 @@ export default function PayClient() {
         const frac = Math.min(1, Math.max(0, (Date.now() - startMs) / (endMs - startMs)));
         return (total * frac).toLocaleString(locale, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
         // countdown re-randează componenta în fiecare secundă, deci contorul crește live
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mining, countdown, locale]);
 
     // ── Acțiuni cu sumă (după confirmarea din modal) ──
@@ -198,7 +199,7 @@ export default function PayClient() {
                     rate_limited: t("errRateLimited"),
                     chain_unavailable_refunded: t("errChainRefunded"),
                 };
-                setWithdrawMsg(`✗ ${reasons[data.error] ?? data.error}`);
+                setWithdrawMsg(`${reasons[data.error] ?? data.error}`);
             }
         } catch {
             setWithdrawMsg(t("errNetwork"));
@@ -222,7 +223,7 @@ export default function PayClient() {
                 invalid_amount: t("errInvalidAmount"),
                 rate_limited: t("errRateLimited"),
             };
-            setStakeMsg(d.success ? t("stakeOk", { months }) : `✗ ${errs[d.error] ?? d.error}`);
+            setStakeMsg(d.success ? t("stakeOk", { months }) : `${errs[d.error] ?? d.error}`);
             await load();
         } finally {
             setStakeBusy(false);
@@ -354,7 +355,7 @@ export default function PayClient() {
                                                             rate_limited: t("errRateLimited"),
                                                             chain_failed: t("errChainFailed"),
                                                         };
-                                                        setSendMsg(`✗ ${reasons[data.error] ?? data.error}`);
+                                                        setSendMsg(`${reasons[data.error] ?? data.error}`);
                                                     }
                                                 } catch {
                                                     setSendMsg(t("errNetwork"));
