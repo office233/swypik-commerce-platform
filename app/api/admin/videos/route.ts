@@ -209,8 +209,8 @@ export async function POST(req: Request) {
     if (!action) {
       return NextResponse.json({ error: "Missing action" }, { status: 400 });
     }
-    // import_ae doesn't operate on an existing videoId; everything else does.
-    if (action !== "import_ae" && !videoId) {
+    // import_ae / import_url don't operate on an existing videoId; everything else does.
+    if (action !== "import_ae" && action !== "import_url" && !videoId) {
       return NextResponse.json(
         { error: "Missing videoId" },
         { status: 400 }
