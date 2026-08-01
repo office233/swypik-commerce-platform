@@ -8,8 +8,8 @@ const cspHeader = `
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
-    media-src 'self' blob: https://media.swypik.com;
-  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
+    media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com;
+  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com;
   frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
   object-src 'none';
@@ -23,8 +23,8 @@ const cspReportOnly = `
   script-src 'self' https://js.stripe.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
-  media-src 'self' blob: https://media.swypik.com;
-  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://api.stripe.com https://*.stripe.com;
+  media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com;
+  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com;
   frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
   object-src 'none';
