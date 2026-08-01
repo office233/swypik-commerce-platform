@@ -10,18 +10,18 @@
 -- ============================================================================
 
 -- 1. HIDDEN VIDEOS — for "not interested" action
-CREATE TABLE IF NOT EXISTS user_hidden_videos (
+  r record;
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   video_id uuid NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
-  reason text NOT NULL DEFAULT 'not_interested'
+  FOR r IN
     CHECK (reason IN ('not_interested', 'reported', 'already_seen', 'blocked_creator')),
   hidden_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, video_id)
 );
 
 CREATE INDEX IF NOT EXISTS user_hidden_videos_user_idx
-  ON user_hidden_videos (user_id, hidden_at DESC);
+    EXECUTE format('ALTER TABLE feed_events DROP CONSTRAINT %I', r.conname);
 
 -- 2. Add `position` to user_collection_items (idempotent)
 ALTER TABLE user_collection_items
@@ -37,23 +37,19 @@ DO $$
 DECLARE
   con_name text;
 BEGIN
-  SELECT conname INTO con_name
-  FROM pg_constraint
-  WHERE conrelid = 'feed_events'::regclass
-    AND contype = 'c'
-    AND pg_get_constraintdef(oid) ILIKE '%event_type%';
-
-  IF con_name IS NOT NULL THEN
+  -- feed_events e tabela de analytics: codul emite ~20 de tipuri de evenimente
+  -- (product_click, watch_time, impression, ...), mult peste lista initiala.
+  -- CHECK-ul static devenise fals-restrictiv si spargea deploy-ul. Il eliminam
+  -- definitiv; validarea tipurilor tine de aplicatie, nu de schema.
+  FOR con_name IN
+    SELECT conname
+    FROM pg_constraint
+    WHERE conrelid = 'feed_events'::regclass
+      AND contype = 'c'
+      AND pg_get_constraintdef(oid) ILIKE '%event_type%'
+  LOOP
     EXECUTE format('ALTER TABLE feed_events DROP CONSTRAINT %I', con_name);
-  END IF;
-
-  ALTER TABLE feed_events
-    ADD CONSTRAINT feed_events_event_type_check
-    CHECK (event_type IN (
-      'video_published', 'video_viewed', 'video_liked', 'video_saved',
-      'video_shared', 'comment_created', 'creator_followed',
-      'more_like_this', 'not_interested', 'video_hidden', 'creator_unfollowed'
-    ));
+  END LOOP;
 END $$;
 
 INSERT INTO schema_migrations (version)
