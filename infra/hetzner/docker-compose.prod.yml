@@ -106,7 +106,10 @@ services:
       context: ../../services/platform-api
       dockerfile_inline: |
         # ── Build stage ──
-        FROM golang:1.26.0-bookworm AS builder
+        # GOTOOLCHAIN=auto: descarca automat toolchain-ul cerut de go.mod
+        # (go.mod poate cere versiuni patch mai noi decat imaginea de baza).
+        FROM golang:1.26-bookworm AS builder
+        ENV GOTOOLCHAIN=auto
         RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
         WORKDIR /src
 
