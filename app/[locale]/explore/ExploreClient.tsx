@@ -552,10 +552,15 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       return;
     }
     trackEvent(video.id, "product_click", { product_id: video.product.id, surface: "feed_chip" });
+    // Postările-ofertă (ex. zboruri) au CTA direct: du userul la ofertă, nu în drawer.
+    if (video.product.ctaUrl) {
+      router.push(video.product.ctaUrl);
+      return;
+    }
     // Open instantly with the data we already have from the feed.
     // ProductDrawer enriches in background if description is missing.
     setActiveProduct({ ...video.product, videoId: video.id });
-  }, [trackEvent]);
+  }, [trackEvent, router]);
 
   const handleProductVote = useCallback(async (video: any, vote: "worth_it" | "not_worth_it") => {
     if (!video?.id || !video.product?.id || video.product?.votes?.viewerVote === vote) return;

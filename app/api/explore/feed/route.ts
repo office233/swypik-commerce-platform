@@ -787,6 +787,9 @@ export async function GET(request: NextRequest) {
             id: productId,
             name: row.mp_name || null,
             title: row.mp_name || null,
+            // CTA direct (ex. /fly?dest=BCN pentru postările-ofertă de zbor).
+            ctaUrl: (row.mp_metadata as Record<string, unknown> | null)?.["cta_url"] as string || null,
+            vertical: (row.mp_metadata as Record<string, unknown> | null)?.["vertical"] as string || null,
             price: priceCents != null ? priceCents / 100 : null,
             priceCents,
             priceDisplay: formatMoney(priceCents, currency),
