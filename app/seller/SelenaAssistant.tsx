@@ -89,8 +89,8 @@ export default function SelenaAssistant() {
                 key={t.id}
                 onClick={() => setTask(t.id)}
                 className={`rounded-full px-3 py-1.5 min-h-[36px] text-xs font-bold border focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${task === t.id
-                    ? "bg-[#0D0D0D] text-white border-[#0D0D0D]"
-                    : "bg-white text-[#0D0D0D] border-[#E5E5E5] hover:bg-[#F7F7F8]"
+                  ? "bg-[#0D0D0D] text-white border-[#0D0D0D]"
+                  : "bg-white text-[#0D0D0D] border-[#E5E5E5] hover:bg-[#F7F7F8]"
                   }`}
               >
                 {t.label}

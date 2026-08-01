@@ -83,14 +83,12 @@ while true; do
     run_job alert-video-queue GET
     run_job aggregate-video-stats POST
     run_job fly-price-watch GET
+    # Integritatea economiei SWYP: invariant supply + hash-chain ledger (2026-08-01)
+    run_job verify-supply POST
   fi
   # Every 4 hours
   if [ $((TICK % 14400)) -lt 60 ]; then
     run_job abandoned-cart POST
-  fi
-  # Every 6 hours (AI trend detection)
-  if [ $((TICK % 21600)) -lt 60 ]; then
-    run_job detect-trends POST
   fi
   # Weekly Monday 09:00 — email digest
   DOW=$(date -u +%u); HOUR=$(date -u +%H); MIN=$(date -u +%M)
@@ -106,7 +104,6 @@ while true; do
     # Adaugate 2026-07-31 (rute existente, neprogramate)
     run_job alert-dispute-deadlines GET
     run_job reconcile-wallets POST
-    run_job battles/close POST
     run_job indexnow GET
     run_job bing-url-submit GET
   fi

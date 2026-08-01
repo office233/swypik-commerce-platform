@@ -204,21 +204,21 @@ export async function GET(req: Request) {
         votes: i.vote_count,
         product: i.product_id
           ? {
-              id: i.product_id,
-              title: i.product_title,
-              image: i.product_image,
-              priceMinor: i.product_price_minor,
-              currency: i.product_currency,
-            }
+            id: i.product_id,
+            title: i.product_title,
+            image: i.product_image,
+            priceMinor: i.product_price_minor,
+            currency: i.product_currency,
+          }
           : null,
         external: i.external_url
           ? {
-              url: i.external_url,
-              image: i.external_image,
-              title: i.external_title,
-              priceMinor: i.external_price_minor,
-              currency: i.external_currency,
-            }
+            url: i.external_url,
+            image: i.external_image,
+            title: i.external_title,
+            priceMinor: i.external_price_minor,
+            currency: i.external_currency,
+          }
           : null,
       })),
     }));
@@ -440,7 +440,7 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
+    await client.query("ROLLBACK").catch(() => { });
     return NextResponse.json(
       { error: "internal", message: (err as Error).message },
       { status: 500 },

@@ -172,10 +172,10 @@ export default function EarningsTab() {
                 <span>{ron(p.amount_cents)} RON</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs ${p.status === "pending"
-                      ? "bg-amber-100 text-amber-700"
-                      : p.status === "paid"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                    ? "bg-amber-100 text-amber-700"
+                    : p.status === "paid"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
                     }`}
                 >
                   {STATUS_LABELS[p.status]}

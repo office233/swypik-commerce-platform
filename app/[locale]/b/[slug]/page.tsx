@@ -217,7 +217,7 @@ export default async function PublicPostPage({
         </div>
 
         <p className="mt-6 text-center text-xs text-zinc-500">
-          
+
           {t("swypikSocialShoppingUnde")}
         </p>
       </div>

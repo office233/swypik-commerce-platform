@@ -211,13 +211,12 @@ export default function StaysCalendarClient() {
               <button
                 key={day}
                 onClick={() => toggleDay(day)}
-                className={`flex min-h-14 flex-col items-center justify-center rounded border text-sm transition ${
-                  isSel
+                className={`flex min-h-14 flex-col items-center justify-center rounded border text-sm transition ${isSel
                     ? "border-blue-600 bg-blue-100"
                     : blocked
                       ? "border-red-200 bg-red-50 text-red-500"
                       : "border-gray-200 bg-white hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 <span className={blocked ? "line-through" : ""}>{Number(day.slice(8, 10))}</span>
                 {hasPrice && info && (
