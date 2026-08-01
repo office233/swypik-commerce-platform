@@ -238,7 +238,7 @@ DO $$ BEGIN
       product_id WITH =,
       daterange(check_in, check_out) WITH &&
     ) WHERE (status IN ('pending', 'confirmed'));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- 6. Taxonomie: verticale noi (food, cazări vacanțe)
