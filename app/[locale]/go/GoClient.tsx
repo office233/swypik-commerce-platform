@@ -224,8 +224,8 @@ export default function GoClient() {
                 setVehicleClass(c.id);
               }}
               className={`rounded-2xl border p-3 text-center transition ${vehicleClass === c.id
-                  ? "border-neutral-900 bg-neutral-900 text-white"
-                  : "border-neutral-200 bg-white"
+                ? "border-neutral-900 bg-neutral-900 text-white"
+                : "border-neutral-200 bg-white"
                 }`}
             >
               <div className="flex justify-center"><c.Icon size={20} /></div>

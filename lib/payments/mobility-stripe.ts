@@ -13,11 +13,12 @@
 import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { MOBILITY_AUTH_BUFFER_BPS } from "@/lib/config/commerce";
 
 const log = logger.child({ mod: "payments/mobility-stripe" });
 
 /** buffer de pre-autorizare peste estimare (tariful final poate fi mai mare) */
-const AUTH_BUFFER_PCT = 20;
+const AUTH_BUFFER_PCT = MOBILITY_AUTH_BUFFER_BPS / 100;
 
 type RidePayRow = {
   id: string;

@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Bucket = { eats_cents: number; go_cents: number; tips_cents: number; net_cents: number };
 type Entry = {
@@ -56,6 +57,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function EarningsClient() {
+    const t = useTranslations("courierEarnings");
     const [data, setData] = useState<EarningsData | null>(null);
     const [connect, setConnect] = useState<ConnectStatus | null>(null);
     const [error, setError] = useState("");
@@ -130,7 +132,7 @@ export default function EarningsClient() {
         return <main className="mx-auto max-w-md p-6 text-red-600">{error}</main>;
     }
     if (!data) {
-        return <main className="mx-auto max-w-md p-6 text-gray-500">Se încarcă…</main>;
+        return <main className="mx-auto max-w-md p-6 text-gray-500">{t("loading")}</main>;
     }
 
     const negative = data.balance_cents < 0;
@@ -138,7 +140,7 @@ export default function EarningsClient() {
     return (
         <main className="mx-auto max-w-md space-y-6 p-4 pb-24">
             <header className="flex items-center justify-between">
-                <h1 className="text-xl font-bold">Câștigurile mele</h1>
+                <h1 className="text-xl font-bold">{t("title")}</h1>
                 <a href="/courier" className="text-sm text-blue-600 underline">
                     ← PWA curier
                 </a>
@@ -175,12 +177,12 @@ export default function EarningsClient() {
 
             {/* Stripe Connect */}
             <section className="rounded-xl border p-4">
-                <h2 className="mb-2 font-semibold">Plăți automate (Stripe)</h2>
+                <h2 className="mb-2 font-semibold">{t("autoPayTitle")}</h2>
                 {connect?.payouts_enabled ? (
-                    <p className="flex items-center gap-1.5 text-sm text-green-600"><CheckCircle2 size={16} /> Cont Stripe activ — retragerile se plătesc automat.</p>
+                    <p className="flex items-center gap-1.5 text-sm text-green-600"><CheckCircle2 size={16} /> {t("stripeActive")}</p>
                 ) : connect?.connected ? (
                     <div className="space-y-2">
-                        <p className="text-sm text-amber-600">Contul Stripe există dar nu e complet.</p>
+                        <p className="text-sm text-amber-600">{t("stripeIncomplete")}</p>
                         <button onClick={startOnboarding} disabled={busy} className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50">
                             Continuă verificarea
                         </button>
@@ -235,9 +237,9 @@ export default function EarningsClient() {
 
             {/* Istoric livrări & curse */}
             <section className="rounded-xl border p-4">
-                <h2 className="mb-2 font-semibold">Ultimele tranzacții</h2>
+                <h2 className="mb-2 font-semibold">{t("lastTransactions")}</h2>
                 {data.entries.length === 0 ? (
-                    <p className="text-sm text-gray-500">Nimic încă — acceptă o livrare sau o cursă.</p>
+                    <p className="text-sm text-gray-500">{t("emptyTransactions")}</p>
                 ) : (
                     <ul className="space-y-1 text-sm">
                         {data.entries.map((e) => (

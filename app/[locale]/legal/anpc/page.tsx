@@ -7,6 +7,7 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
@@ -46,16 +47,16 @@ const CHANNELS = [
     },
 ];
 
-export default function AnpcPage() {
+export default async function AnpcPage() {
+    const t = await getTranslations("legalAnpc");
     return (
         <main className="mx-auto max-w-2xl px-4 pb-24 pt-8">
-            <h1 className="text-2xl font-black">Protecția consumatorului</h1>
+            <h1 className="text-2xl font-black">{t("title")}</h1>
             <p className="mt-2 text-[15px] leading-relaxed text-neutral-700 dark:text-neutral-300">
-                Ai drepturi garantate de lege atunci când cumperi online, iar noi nu le putem
-                limita prin niciun termen contractual. Mai jos, ce poți face dacă ceva nu merge bine.
+                {t("intro")}
             </p>
 
-            <h2 className="mt-8 text-lg font-bold">Unde te poți adresa</h2>
+            <h2 className="mt-8 text-lg font-bold">{t("whereTitle")}</h2>
             <div className="mt-3 space-y-3">
                 {CHANNELS.map((c) => (
                     <a
@@ -75,37 +76,32 @@ export default function AnpcPage() {
                 ))}
             </div>
 
-            <h2 className="mt-8 text-lg font-bold">Drepturile tale principale</h2>
+            <h2 className="mt-8 text-lg font-bold">{t("rightsTitle")}</h2>
             <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[15px] text-neutral-700 dark:text-neutral-300">
                 <li>
-                    <strong>Retragere în 14 zile</strong> — pentru produse cumpărate online, fără să
-                    motivezi. Există excepții legale (mâncare, produse personalizate, cazări cu dată
-                    determinată) — le găsești în{" "}
-                    <Link href="/terms#retragere" className="underline">Termeni, secțiunea 5</Link>.
+                    <strong>{t("r1Strong")}</strong>{t("r1Text")}
+                    <Link href="/terms#retragere" className="underline">{t("r1Link")}</Link>.
                 </li>
                 <li>
-                    <strong>Garanție legală de conformitate 2 ani</strong> — pentru produse
-                    neconforme ai dreptul la reparare, înlocuire sau restituirea banilor.
+                    <strong>{t("r2Strong")}</strong>{t("r2Text")}
                 </li>
                 <li>
-                    <strong>Preț final afișat</strong> — prețul pe care îl vezi include TVA și nu
-                    poate crește la finalul comenzii.
+                    <strong>{t("r3Strong")}</strong>{t("r3Text")}
                 </li>
                 <li>
-                    <strong>Informare corectă</strong> — trebuie să știi cine e vânzătorul real. Pe
-                    Swypik îți spunem la fiecare serviciu dacă suntem intermediari sau vânzător.
+                    <strong>{t("r4Strong")}</strong>{t("r4Text")}
                 </li>
             </ul>
 
             <div className="mt-8 rounded-xl bg-neutral-50 p-4 text-sm dark:bg-neutral-900">
-                <p className="font-semibold">Operatorul platformei</p>
+                <p className="font-semibold">{t("operatorTitle")}</p>
                 <p className="mt-1 text-neutral-600 dark:text-neutral-400">
                     Swypik Technology · {SUPPORT_EMAIL}
                 </p>
                 <p className="mt-2 flex flex-wrap gap-3 text-xs">
-                    <Link href="/terms" className="underline">Termeni și Condiții</Link>
-                    <Link href="/privacy" className="underline">Politica de confidențialitate</Link>
-                    <Link href="/legal/cookies" className="underline">Cookie-uri</Link>
+                    <Link href="/terms" className="underline">{t("linkTerms")}</Link>
+                    <Link href="/privacy" className="underline">{t("linkPrivacy")}</Link>
+                    <Link href="/legal/cookies" className="underline">{t("linkCookies")}</Link>
                 </p>
             </div>
         </main>

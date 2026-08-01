@@ -162,7 +162,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       <Package size={56} className="text-[#E5E5E5]" />
       <p className="text-lg font-black text-[#0D0D0D]">{t("produsulNuAFost")}</p>
       <button onClick={() => router.push('/')} className="rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white active:scale-95 transition-transform">
-        
+
         {t("inapoiLaMagazin")}
       </button>
     </div>
@@ -302,7 +302,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             {displayImages.length > 1 && (
               <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
                 {displayImages.slice(0, 8).map((_: string, i: number) => (
-                  <button key={i} type="button" onClick={() => setSelectedImage(i)} aria-label={`Imaginea ${i+1}`} className="hit-target-44 -m-2.5"><span className={`rounded-full transition-all block ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} /></button>
+                  <button key={i} type="button" onClick={() => setSelectedImage(i)} aria-label={`Imaginea ${i + 1}`} className="hit-target-44 -m-2.5"><span className={`rounded-full transition-all block ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D]' : 'w-2 h-2 bg-[#0D0D0D]/30'}`} /></button>
                 ))}
               </div>
             )}
@@ -404,7 +404,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         {selectedColor && selectedColorSizes.length > 0 && (
           <div className="mb-5">
             <div className="text-sm font-bold text-[#0D0D0D] mb-2">
-              
+
               {t("marime")} <span className="text-[#0D0D0D]">{selectedSize}</span>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -457,7 +457,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     className="object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                   />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center"><Clapperboard size={36} /></div>
+                  <div className="w-full h-full flex items-center justify-center"><Clapperboard size={36} /></div>
                 )}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-lg backdrop-blur-sm">
@@ -561,7 +561,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                 )}
               </div>
             )}
-            
+
             {/* Gallery Fallback in Details tab */}
             {displayImages.length > 1 && (
               <div className="mt-4">
@@ -583,7 +583,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             <div className="rounded-2xl bg-[#F7F7F8] border border-[#E5E5E5] p-6 text-center">
               <div className="text-4xl font-black text-[#0D0D0D] mb-1">{(product.rating ?? 0).toFixed(1)}</div>
               <div className="flex items-center justify-center gap-1 text-[#B45309] mb-2">
-                {[1,2,3,4,5].map(i => <Star key={i} size={16} fill={i <= Math.round(product.rating||0) ? 'currentColor' : 'none'} />)}
+                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={16} fill={i <= Math.round(product.rating || 0) ? 'currentColor' : 'none'} />)}
               </div>
               <p className="text-sm font-medium text-[#6E6E80]">
                 {product.ratingCount && product.ratingCount > 0
@@ -633,7 +633,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       {/* Lightbox Modal */}
       {playingVideo && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fadeIn" onClick={() => setPlayingVideo(null)}>
-            <button className="absolute top-4 right-4 grid h-11 w-11 place-items-center text-white rounded-full bg-white/10 backdrop-blur hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("inchide")} onClick={() => setPlayingVideo(null)}><X size={18} /></button>
+          <button className="absolute top-4 right-4 grid h-11 w-11 place-items-center text-white rounded-full bg-white/10 backdrop-blur hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("inchide")} onClick={() => setPlayingVideo(null)}><X size={18} /></button>
           <video src={playingVideo} autoPlay controls playsInline className="w-full max-w-sm max-h-[80vh] rounded-2xl object-contain shadow-2xl" onClick={e => e.stopPropagation()} />
         </div>
       )}
@@ -671,7 +671,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       {/* Toast */}
       {addedToCart && (
         <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#0D0D0D] px-5 py-2.5 text-sm font-black text-white shadow-xl animate-slideUp">
-          
+
           {t("adaugatInCos")}
         </div>
       )}

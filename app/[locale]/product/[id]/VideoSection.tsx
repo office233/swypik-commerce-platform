@@ -44,7 +44,7 @@ export default function VideoSection({ productId }: { productId: string }) {
       .then((data) => {
         if (Array.isArray(data.videos)) setVideos(data.videos);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [productId]);
 
   const closeLightbox = useCallback(() => setActiveVideo(null), []);

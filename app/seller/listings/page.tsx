@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { Phone, Mail } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
     VERTICALS,
     verticalForSlug,
@@ -87,6 +88,7 @@ interface Inquiry {
 }
 
 export default function SellerListingsPage() {
+    const t = useTranslations("sellerListings");
     const [tab, setTab] = useState<"listings" | "leads">("listings");
     const [isAdding, setIsAdding] = useState(false);
     const [listings, setListings] = useState<Listing[]>([]);
@@ -219,7 +221,7 @@ export default function SellerListingsPage() {
         <div className="max-w-5xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                 <div>
-                    <h1 className="text-2xl font-black text-[#0D0D0D]">Anunțurile mele</h1>
+                    <h1 className="text-2xl font-black text-[#0D0D0D]">{t("title")}</h1>
                     <p className="text-sm text-[#6E6E80] mt-1">
                         Imobiliare, auto și servicii — anunțuri cu formular de contact, fără coș.
                     </p>
@@ -256,7 +258,7 @@ export default function SellerListingsPage() {
 
             {isAdding && (
                 <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E5E5E5] shadow-sm p-6 mb-6 space-y-4">
-                    <h2 className="font-black text-lg">Anunț nou</h2>
+                    <h2 className="font-black text-lg">{t("newListing")}</h2>
                     {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
 
                     <div>
@@ -303,7 +305,7 @@ export default function SellerListingsPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-[#6E6E80] mb-1">Monedă</label>
+                            <label className="block text-xs font-bold text-[#6E6E80] mb-1">{t("currency")}</label>
                             <select
                                 className="w-full border border-[#E5E5E5] rounded-xl px-4 py-2.5 text-sm"
                                 value={currency} onChange={(e) => setCurrency(e.target.value)}
@@ -314,7 +316,7 @@ export default function SellerListingsPage() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-[#6E6E80] mb-1">Țara</label>
+                            <label className="block text-xs font-bold text-[#6E6E80] mb-1">{t("country")}</label>
                             <input
                                 className="w-full border border-[#E5E5E5] rounded-xl px-4 py-2.5 text-sm"
                                 value={country} onChange={(e) => setCountry(e.target.value.toUpperCase().slice(0, 2))}
@@ -322,7 +324,7 @@ export default function SellerListingsPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-[#6E6E80] mb-1">Oraș</label>
+                            <label className="block text-xs font-bold text-[#6E6E80] mb-1">{t("city")}</label>
                             <input
                                 className="w-full border border-[#E5E5E5] rounded-xl px-4 py-2.5 text-sm"
                                 value={city} onChange={(e) => setCity(e.target.value)}
@@ -340,7 +342,7 @@ export default function SellerListingsPage() {
                     )}
 
                     <div>
-                        <label className="block text-xs font-bold text-[#6E6E80] mb-1">Telefon contact (afișat pe anunț)</label>
+                        <label className="block text-xs font-bold text-[#6E6E80] mb-1">{t("contactPhone")}</label>
                         <input
                             className="w-full md:w-1/2 border border-[#E5E5E5] rounded-xl px-4 py-2.5 text-sm"
                             value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={32}
@@ -369,17 +371,17 @@ export default function SellerListingsPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5]">
                             <tr>
-                                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Anunț</th>
+                                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thListing")}</th>
                                 <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Categorie</th>
-                                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Locație</th>
-                                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">Preț</th>
+                                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thLocation")}</th>
+                                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">{t("thPrice")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E5E5E5]">
                             {loading ? (
-                                <tr><td colSpan={4} className="px-6 py-8 text-center text-[#6E6E80]">Se încarcă…</td></tr>
+                                <tr><td colSpan={4} className="px-6 py-8 text-center text-[#6E6E80]">{t("loading")}</td></tr>
                             ) : listings.length === 0 ? (
-                                <tr><td colSpan={4} className="px-6 py-8 text-center text-[#6E6E80]">Niciun anunț încă. Publică primul!</td></tr>
+                                <tr><td colSpan={4} className="px-6 py-8 text-center text-[#6E6E80]">{t("empty")}</td></tr>
                             ) : (
                                 listings.map((l) => (
                                     <tr key={l.id}>

@@ -72,7 +72,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           <h1 className="text-2xl font-black text-[#0D0D0D]">{t("comandaNuAFost")}</h1>
           <p className="mt-2 text-sm text-[#6E6E80]">{error || t("verificaLinkulSauContacteazaSuportul")}</p>
           <Link href="/" className="mt-6 inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white">
-            
+
             {t("inapoiLaMagazin")}
           </Link>
         </div>
@@ -87,7 +87,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
   const isCancelled = order.status === "cancelled";
   const isReturnable =
     (order.fulfillmentStatus === "delivered" || order.fulfillmentStatus === "fulfilled" ||
-     order.status === "delivered" || order.status === "fulfilled") &&
+      order.status === "delivered" || order.status === "fulfilled") &&
     order.status !== "return_requested";
   const isReturnRequested = order.status === "return_requested";
 
@@ -137,10 +137,10 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1">{t("comanda")}</p>
           <h1 className="text-2xl font-black text-[#0D0D0D]">#{order.id.split("-")[0]}</h1>
           <span className={`mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold ${statusInfo.color}`}>
-              <statusInfo.icon size={15} /> {statusInfo.label}
+            <statusInfo.icon size={15} /> {statusInfo.label}
           </span>
           <p className="mt-2 text-xs text-[#6E6E80]">
-            
+
             {t("plasataPe")} {new Date(order.createdAt).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
@@ -159,16 +159,14 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
 
               {STEPS.map((step, i) => (
                 <div key={step.label} className="relative z-10 flex flex-col items-center" style={{ width: "25%" }}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-all ${
-                    i + 1 <= currentStep
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-all ${i + 1 <= currentStep
                       ? "bg-[#0D0D0D] border-[#0D0D0D] text-white shadow-md"
                       : "bg-white border-[#E5E5E5] text-[#A1A1AA]"
-                  }`}>
+                    }`}>
                     {i + 1 <= currentStep ? <Check size={18} /> : <step.icon size={18} />}
                   </div>
-                  <p className={`mt-2 text-[11px] font-bold text-center ${
-                    i + 1 <= currentStep ? "text-[#0D0D0D]" : "text-[#A1A1AA]"
-                  }`}>
+                  <p className={`mt-2 text-[11px] font-bold text-center ${i + 1 <= currentStep ? "text-[#0D0D0D]" : "text-[#A1A1AA]"
+                    }`}>
                     {step.label}
                   </p>
                 </div>
@@ -193,7 +191,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                   rel="noopener noreferrer"
                   className="shrink-0 rounded-lg bg-[#0D0D0D] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0E906F] transition"
                 >
-                  
+
                   {t("urmareste")}
                 </a>
               )}
@@ -245,7 +243,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
               <div>
                 <h2 className="text-base font-black text-orange-800">{t("returSolicitat")}</h2>
                 <p className="text-sm text-orange-700 mt-0.5">
-                  
+
                   {t("cerereaTaDeRetur")}
                 </p>
               </div>
@@ -260,7 +258,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
               <div>
                 <h2 className="text-base font-black text-neutral-900">{t("cerereTrimisaCuSucces")}</h2>
                 <p className="text-sm text-neutral-900 mt-0.5">
-                  
+
                   {t("vomAnalizaCerereaTa")}
                 </p>
               </div>
@@ -286,7 +284,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                     onClick={() => { setShowReturnForm(false); setReturnError(null); }}
                     className="text-xs font-bold text-[#6E6E80] hover:text-[#0D0D0D] transition"
                   >
-                    
+
                     {t("anuleaza")}
                   </button>
                 </div>
@@ -334,7 +332,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
             href="/"
             className="inline-block rounded-xl bg-[#0D0D0D] px-8 py-4 text-sm font-bold text-white transition-transform active:scale-[0.98]"
           >
-            
+
             {t("inapoiLaMagazin2")}
           </Link>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Check, X, ImageIcon } from "lucide-react";
 
 type Row = {
@@ -16,6 +17,7 @@ type Row = {
 };
 
 export default function SellerReturnsClient({ initialRows }: { initialRows: Row[] }) {
+  const t = useTranslations("sellerReturns");
   const [rows, setRows] = useState<Row[]>(initialRows);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +136,7 @@ export default function SellerReturnsClient({ initialRows }: { initialRows: Row[
                       type="button"
                       onClick={() => accept(r.id)}
                       disabled={busy === r.id}
-                      aria-label="Acceptă cererea și restituie banii"
+                      aria-label={t("acceptAria")}
                       className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#10A37F] px-4 py-2.5 min-h-[44px] text-xs font-bold text-white hover:bg-[#0e8e6e] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                       <Check size={14} /> Acceptă & restituie

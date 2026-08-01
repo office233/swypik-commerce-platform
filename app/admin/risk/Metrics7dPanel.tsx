@@ -59,8 +59,8 @@ function Stat({
   const text =
     tone === "emerald" ? "text-emerald-700"
       : tone === "red" ? "text-red-700"
-      : tone === "orange" ? "text-orange-700"
-      : "text-gray-900";
+        : tone === "orange" ? "text-orange-700"
+          : "text-gray-900";
   return (
     <div>
       <div className={`text-[10px] uppercase tracking-wider ${tone ? text : "text-gray-500"}`}>

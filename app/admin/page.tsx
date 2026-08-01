@@ -372,13 +372,12 @@ export default async function AdminDashboard() {
                       </td>
                       <td className="py-3 pr-3 text-center">
                         <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            order.fulfillment_status === "shipped"
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${order.fulfillment_status === "shipped"
                               ? "bg-[#0D0D0D]/15 text-[#0D0D0D]"
                               : order.fulfillment_status === "processing"
                                 ? "bg-[#F59E0B]/15 text-[#B45309]"
                                 : "bg-[#F0F0F2] text-[#6E6E80]"
-                          }`}
+                            }`}
                         >
                           {order.fulfillment_status || "pending"}
                         </span>

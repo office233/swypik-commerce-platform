@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { normalizeViewerUserId } from "@/lib/social/user-profile";
@@ -176,6 +177,7 @@ export default async function CreatorPublicPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("creatorProfile");
   const canonicalUsername = await getCanonicalUsernameForCreatorId(id).catch(() => null);
   if (canonicalUsername) redirect(`/u/${encodeURIComponent(canonicalUsername)}`);
 
@@ -306,11 +308,11 @@ export default async function CreatorPublicPage({
               border: "1px solid rgba(255,255,255,0.06)",
             }}
           >
-            <StatPill label="Clipuri" value={formatCount(creator.video_count)} />
+            <StatPill label={t("statVideos")} value={formatCount(creator.video_count)} />
             <div className="w-px h-10" style={{ background: "rgba(255,255,255,0.06)" }} />
-            <StatPill label="Vizualizări" value={formatCount(creator.total_views)} />
+            <StatPill label={t("statViews")} value={formatCount(creator.total_views)} />
             <div className="w-px h-10" style={{ background: "rgba(255,255,255,0.06)" }} />
-            <StatPill label="Aprecieri" value={formatCount(totalLikes)} />
+            <StatPill label={t("statLikes")} value={formatCount(totalLikes)} />
           </div>
         </div>
       </section>

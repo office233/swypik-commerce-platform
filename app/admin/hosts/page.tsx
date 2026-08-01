@@ -179,7 +179,7 @@ export default async function AdminHostsPage({
                                 </span>
                                 {needsCert && (
                                     <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold ${r.classification_cert ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-                                        {r.classification_cert ? <><Check size={12} /> {t("certLabel",{cert:r.classification_cert})}</> : <><X size={12} /> {t("noCert")}</>}
+                                        {r.classification_cert ? <><Check size={12} /> {t("certLabel", { cert: r.classification_cert })}</> : <><X size={12} /> {t("noCert")}</>}
                                     </span>
                                 )}
                                 <span className="rounded-md bg-black/5 px-2 py-1 text-black/60">Trimisă: {fmtDate(r.created_at)}</span>

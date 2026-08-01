@@ -252,7 +252,7 @@ export default function RideClient({ rideId }: { rideId: string }) {
     const wave = waveForElapsed(elapsed);
     const carLabel = driver
         ? [driver.vehicle_make, driver.vehicle_model, driver.vehicle_color].filter(Boolean).join(" ") ||
-          driver.vehicle_type
+        driver.vehicle_type
         : "";
 
     return (
@@ -450,11 +450,10 @@ export default function RideClient({ rideId }: { rideId: string }) {
                                         haptic("tap");
                                         setCancelReason(r);
                                     }}
-                                    className={`w-full rounded-2xl border p-3 text-left text-[14px] font-semibold transition ${
-                                        cancelReason === r
+                                    className={`w-full rounded-2xl border p-3 text-left text-[14px] font-semibold transition ${cancelReason === r
                                             ? "border-neutral-900 bg-neutral-900 text-white"
                                             : "border-neutral-200 bg-white"
-                                    }`}
+                                        }`}
                                 >
                                     {t(`cancel.${r}`)}
                                 </button>

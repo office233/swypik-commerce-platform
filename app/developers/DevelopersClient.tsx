@@ -7,6 +7,7 @@
  *  - afișare chei (client_secret o singură dată) + regenerare secret
  */
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Developer = {
   id: string;
@@ -46,6 +47,7 @@ const ALL_SCOPES = [
 ] as const;
 
 export default function DevelopersClient() {
+  const t = useTranslations("devPortal");
   const [loading, setLoading] = useState(true);
   const [developer, setDeveloper] = useState<Developer | null>(null);
   const [apps, setApps] = useState<App[]>([]);
@@ -208,13 +210,13 @@ export default function DevelopersClient() {
     setScopes((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Se încarcă…</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-4">
       <header>
         <h1 className="text-2xl font-bold">Portal dezvoltatori</h1>
-        <p className="text-sm text-gray-500">Construiește aplicații pentru sellerii Swypik.</p>
+        <p className="text-sm text-gray-500">{t("subtitle")}</p>
       </header>
 
       {error && <div className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</div>}
@@ -234,7 +236,7 @@ export default function DevelopersClient() {
 
       {!developer && !error && (
         <section className="rounded-lg border p-4">
-          <h2 className="font-semibold">Înregistrează-te ca dezvoltator</h2>
+          <h2 className="font-semibold">{t("registerTitle")}</h2>
           <div className="mt-3 space-y-2">
             <input className="w-full rounded border p-2" placeholder="Companie *" value={company} onChange={(e) => setCompany(e.target.value)} />
             <input className="w-full rounded border p-2" placeholder="Website (https://…)" value={website} onChange={(e) => setWebsite(e.target.value)} />
@@ -259,7 +261,7 @@ export default function DevelopersClient() {
       {developer?.status === "approved" && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Aplicațiile mele</h2>
+            <h2 className="text-lg font-semibold">{t("myApps")}</h2>
             <button className="rounded bg-black px-3 py-1.5 text-sm text-white" onClick={() => setShowCreate((v) => !v)}>
               {showCreate ? "Anulează" : "+ App nou"}
             </button>
@@ -289,7 +291,7 @@ export default function DevelopersClient() {
             </div>
           )}
 
-          {apps.length === 0 && !showCreate && <p className="text-sm text-gray-500">Nu ai încă aplicații.</p>}
+          {apps.length === 0 && !showCreate && <p className="text-sm text-gray-500">{t("noApps")}</p>}
 
           {apps.map((app) => (
             <div key={app.id} className="rounded-lg border p-4">
@@ -307,7 +309,7 @@ export default function DevelopersClient() {
                 Client ID: <code className="font-mono">{app.oauth_client_id}</code> · Instalări: {app.install_count} · Scopes: {app.scopes.join(", ") || "—"}
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                <button className="rounded border px-3 py-1" onClick={() => void rotateSecret(app)}>Regenerează secret</button>
+                <button className="rounded border px-3 py-1" onClick={() => void rotateSecret(app)}>{t("rotateSecret")}</button>
                 {app.status === "draft" && (
                   <button className="rounded border px-3 py-1" onClick={() => void submitReview(app)}>Trimite spre publicare</button>
                 )}
@@ -336,9 +338,9 @@ export default function DevelopersClient() {
 
               {deliveriesFor === app.id && (
                 <div className="mt-3 rounded border p-3">
-                  {deliveriesLoading && <p className="text-sm text-gray-500">Se încarcă livrările…</p>}
+                  {deliveriesLoading && <p className="text-sm text-gray-500">{t("loadingDeliveries")}</p>}
                   {!deliveriesLoading && deliveries.length === 0 && (
-                    <p className="text-sm text-gray-500">Nicio livrare webhook încă.</p>
+                    <p className="text-sm text-gray-500">{t("noDeliveries")}</p>
                   )}
                   {!deliveriesLoading && deliveries.length > 0 && (
                     <table className="w-full text-left text-xs">
@@ -346,8 +348,8 @@ export default function DevelopersClient() {
                         <tr className="border-b text-gray-500">
                           <th className="py-1 pr-2">Event</th>
                           <th className="py-1 pr-2">Status</th>
-                          <th className="py-1 pr-2">Încercări</th>
-                          <th className="py-1">Dată</th>
+                          <th className="py-1 pr-2">{t("thAttempts")}</th>
+                          <th className="py-1">{t("thDate")}</th>
                         </tr>
                       </thead>
                       <tbody>

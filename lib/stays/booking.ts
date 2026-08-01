@@ -16,10 +16,11 @@ import { dbQuery } from "@/lib/db";
 import { debitUser, creditUser, InsufficientFundsError } from "@/lib/wallet/ledger";
 import { notifyHostNewBooking, notifyGuestBookingConfirmed } from "./notifications";
 import { logger } from "@/lib/logger";
+import { STAYS_COMMISSION_BPS } from "@/lib/config/commerce";
 
 export function commissionPct(): number {
-    const v = Number(process.env.STAYS_COMMISSION_PCT ?? 10);
-    return Number.isFinite(v) && v >= 0 && v <= 50 ? v : 10;
+    const v = Number(process.env.STAYS_COMMISSION_PCT ?? STAYS_COMMISSION_BPS / 100);
+    return Number.isFinite(v) && v >= 0 && v <= 50 ? v : STAYS_COMMISSION_BPS / 100;
 }
 
 export type Quote = {

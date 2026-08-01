@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type ScopeDetail = { scope: string; description: string };
 
@@ -22,6 +23,7 @@ type AppDetail = {
 };
 
 export default function AppDetailClient({ slug }: { slug: string }) {
+  const t = useTranslations("appDetail");
   const [app, setApp] = useState<AppDetail | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
@@ -86,11 +88,11 @@ export default function AppDetailClient({ slug }: { slug: string }) {
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Se încarcă…</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
   if (notFound || !app) {
     return (
       <div className="p-8 text-center text-gray-500">
-        Aplicația nu există. <Link href="/apps" className="underline">Înapoi la App Store</Link>
+        {t("notFound")} <Link href="/apps" className="underline">{t("backToStore")}</Link>
       </div>
     );
   }
@@ -155,7 +157,7 @@ export default function AppDetailClient({ slug }: { slug: string }) {
               >
                 {busy ? "Se instalează…" : "Acceptă și instalează"}
               </button>
-              <button className="rounded border px-4 py-2" onClick={() => setShowConsent(false)}>Anulează</button>
+              <button className="rounded border px-4 py-2" onClick={() => setShowConsent(false)}>{t("cancel")}</button>
             </div>
           </div>
         ) : (
@@ -164,7 +166,7 @@ export default function AppDetailClient({ slug }: { slug: string }) {
           </button>
         )
       ) : (
-        <p className="text-sm text-gray-500">Loghează-te ca seller pentru a instala această aplicație.</p>
+        <p className="text-sm text-gray-500">{t("loginPrompt")}</p>
       )}
     </div>
   );

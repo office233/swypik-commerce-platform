@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Sparkles, CheckCircle2 } from "lucide-react";
 
 type Task = "chat" | "product_description" | "price_suggestion" | "customer_reply";
@@ -24,6 +25,7 @@ const TASKS: Array<{ id: Task; label: string; placeholder: string }> = [
 type Msg = { role: "user" | "assistant"; content: string };
 
 export default function SelenaAssistant() {
+  const tt = useTranslations("selenaAssistant");
   const [open, setOpen] = useState(false);
   const [task, setTask] = useState<Task>("chat");
   const [input, setInput] = useState("");
@@ -74,7 +76,7 @@ export default function SelenaAssistant() {
       >
         <span className="flex items-center gap-2">
           <span aria-hidden className="text-lg"><Sparkles size={18} /></span>
-          <span className="font-black text-[#0D0D0D]">Selena — asistent AI pentru vânzări</span>
+          <span className="font-black text-[#0D0D0D]">{tt("title")}</span>
         </span>
         <span className="text-sm text-[#6E6E80]">{open ? "Ascunde" : "Deschide"}</span>
       </button>
@@ -98,7 +100,7 @@ export default function SelenaAssistant() {
 
           {quotaMessage && (
             <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
-              <p className="text-sm font-bold text-amber-900">Limită atinsă</p>
+              <p className="text-sm font-bold text-amber-900">{tt("limitReached")}</p>
               <p className="text-sm text-amber-800 mt-1">{quotaMessage}</p>
             </div>
           )}

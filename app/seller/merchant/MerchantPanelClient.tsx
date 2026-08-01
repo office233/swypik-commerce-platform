@@ -5,6 +5,7 @@
  * toggle „închid acum" (is_open_override) + meniu (adăugare rapidă articole).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Merchant = {
   id: string;
@@ -82,6 +83,7 @@ function playDing(): void {
 }
 
 export default function MerchantPanelClient() {
+  const t = useTranslations("sellerMerchant");
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [orders, setOrders] = useState<LocalOrder[]>([]);
@@ -207,7 +209,7 @@ export default function MerchantPanelClient() {
     if (res.ok) void loadMenu();
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Se încarcă…</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
   if (!merchant) return <div className="p-8 text-center text-gray-500">Niciun comerciant.</div>;
 
@@ -216,7 +218,7 @@ export default function MerchantPanelClient() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{merchant.name}</h1>
-          <p className="text-sm text-gray-500">Panou comenzi live — se actualizează la 10s</p>
+          <p className="text-sm text-gray-500">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
           {merchants.length > 1 && (
@@ -303,7 +305,7 @@ export default function MerchantPanelClient() {
           />
           <input
             className="w-28 rounded border px-3 py-2 text-sm"
-            placeholder="Preț (lei)"
+            placeholder={t("pricePlaceholder")}
             inputMode="decimal"
             value={newItem.price}
             onChange={(e) => setNewItem((p) => ({ ...p, price: e.target.value }))}

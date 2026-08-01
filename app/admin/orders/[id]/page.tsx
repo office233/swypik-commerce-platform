@@ -7,7 +7,7 @@ import { Rocket, Package, Eye, Truck } from "lucide-react";
 import { useParams } from "next/navigation";
 
 export default function AdminOrderDetailPage() {
-    const t = useTranslations("adminOrders");
+  const t = useTranslations("adminOrders");
   const params = useParams();
   const orderId = params.id as string;
 
@@ -46,8 +46,8 @@ export default function AdminOrderDetailPage() {
       if (data.success) {
         setToast(
           action === "fulfill" ? "Comanda a fost trimisă la furnizor!" :
-          action === "add_tracking" ? "Cod AWB adăugat cu succes!" :
-          action === "cancel" ? "Comanda a fost anulată." : "Acțiune completă!"
+            action === "add_tracking" ? "Cod AWB adăugat cu succes!" :
+              action === "cancel" ? "Comanda a fost anulată." : "Acțiune completă!"
         );
         setTimeout(() => setToast(""), 3000);
         loadOrder(); // reload
@@ -80,19 +80,19 @@ export default function AdminOrderDetailPage() {
 
   const statusColor =
     order.status === "paid" ? "bg-neutral-100 text-neutral-900" :
-    order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-    order.status === "fulfilled" ? "bg-blue-100 text-blue-800" :
-    order.status === "return_requested" ? "bg-orange-100 text-orange-800" :
-    order.status === "refunded" ? "bg-purple-100 text-purple-800" :
-    order.status === "cancelled" ? "bg-red-100 text-red-800" :
-    "bg-gray-100 text-gray-800";
+      order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+        order.status === "fulfilled" ? "bg-blue-100 text-blue-800" :
+          order.status === "return_requested" ? "bg-orange-100 text-orange-800" :
+            order.status === "refunded" ? "bg-purple-100 text-purple-800" :
+              order.status === "cancelled" ? "bg-red-100 text-red-800" :
+                "bg-gray-100 text-gray-800";
 
   const fulfillColor =
     order.fulfillmentStatus === "shipped" ? "bg-purple-100 text-purple-800" :
-    order.fulfillmentStatus === "processing" ? "bg-yellow-100 text-yellow-800" :
-    order.fulfillmentStatus === "manual_required" ? "bg-orange-100 text-orange-800" :
-    order.fulfillmentStatus === "failed" ? "bg-red-100 text-red-800" :
-    "bg-gray-100 text-gray-800";
+      order.fulfillmentStatus === "processing" ? "bg-yellow-100 text-yellow-800" :
+        order.fulfillmentStatus === "manual_required" ? "bg-orange-100 text-orange-800" :
+          order.fulfillmentStatus === "failed" ? "bg-red-100 text-red-800" :
+            "bg-gray-100 text-gray-800";
 
   return (
     <div className="min-h-screen bg-[#F7F7F8] p-8">

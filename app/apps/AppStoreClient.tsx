@@ -3,6 +3,7 @@
 /** App Store public — listare aplicații published. */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type AppCard = {
   id: string;
@@ -16,6 +17,7 @@ type AppCard = {
 };
 
 export default function AppStoreClient() {
+  const t = useTranslations("appStore");
   const [apps, setApps] = useState<AppCard[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
@@ -41,20 +43,20 @@ export default function AppStoreClient() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">App Store</h1>
-          <p className="text-sm text-gray-500">Extinde-ți magazinul cu aplicații create de dezvoltatori.</p>
+          <p className="text-sm text-gray-500">{t("subtitle")}</p>
         </div>
         <Link href="/developers" className="rounded border px-3 py-1.5 text-sm">Sunt dezvoltator</Link>
       </header>
 
       <input
         className="w-full rounded border p-2"
-        placeholder="Caută aplicații…"
+        placeholder={t("searchPlaceholder")}
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
 
-      {loading && <p className="text-sm text-gray-500">Se încarcă…</p>}
-      {!loading && apps.length === 0 && <p className="text-sm text-gray-500">Nicio aplicație găsită.</p>}
+      {loading && <p className="text-sm text-gray-500">{t("loading")}</p>}
+      {!loading && apps.length === 0 && <p className="text-sm text-gray-500">{t("empty")}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {apps.map((app) => (

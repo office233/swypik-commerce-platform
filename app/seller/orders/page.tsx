@@ -151,13 +151,12 @@ export default function SellerOrdersPage() {
                   return (
                     <tr
                       key={order.order_id}
-                      className={`border-b border-[#E5E5E5] last:border-0 transition-colors ${
-                        isReturnRequested
+                      className={`border-b border-[#E5E5E5] last:border-0 transition-colors ${isReturnRequested
                           ? "bg-orange-50/60 hover:bg-orange-50"
                           : isRefunded
-                          ? "bg-purple-50/40 hover:bg-purple-50/60"
-                          : "hover:bg-[#F9FAFB]"
-                      }`}
+                            ? "bg-purple-50/40 hover:bg-purple-50/60"
+                            : "hover:bg-[#F9FAFB]"
+                        }`}
                     >
                       <td className="px-6 py-4 font-mono text-xs text-[#0D0D0D]">
                         {order.order_id.split("-")[0]}...

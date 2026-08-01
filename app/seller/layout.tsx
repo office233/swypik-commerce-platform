@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
+import { getTranslations } from "next-intl/server";
 import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
 import {
   BarChart3,
@@ -24,7 +25,8 @@ const sellerNavItems = [
   { href: "/seller/settings", icon: Settings, label: "Setări" },
 ];
 
-export default function SellerLayout({ children }: { children: ReactNode }) {
+export default async function SellerLayout({ children }: { children: ReactNode }) {
+  const t = await getTranslations("sellerLayout");
   return (
     <div className="min-h-screen bg-[#F7F7F8] flex">
       {/* Sidebar */}
@@ -62,7 +64,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
               <User size={18} />
             </div>
             <div>
-              <p className="text-xs font-black text-[#0D0D0D]">Cont Vânzător</p>
+              <p className="text-xs font-black text-[#0D0D0D]">{t("sellerAccount")}</p>
               <p className="text-[10px] text-[#6E6E80]">Status: Activ</p>
             </div>
           </div>

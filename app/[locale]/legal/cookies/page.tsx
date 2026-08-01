@@ -1,12 +1,14 @@
 import ResetConsentButton from "./ResetConsentButton";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "Politica de cookies — Swypik",
   description: "Cookies folosite de Swypik si cum le poti gestiona.",
 };
 
-export default function CookiesPage() {
+export default async function CookiesPage() {
+  const t = await getTranslations("legalCookies");
   return (
     <>
       <h1>Politica de cookies</h1>
@@ -58,7 +60,7 @@ export default function CookiesPage() {
       </ul>
       <p>Atentie: dezactivarea cookies esentiale va impiedica login-ul si efectuarea de comenzi.</p>
 
-      <h2>Preferințe</h2>
+      <h2>{t("preferencesTitle")}</h2>
       <p><ResetConsentButton /></p>
 
       <h2>Contact</h2>

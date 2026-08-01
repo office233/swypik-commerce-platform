@@ -140,7 +140,7 @@ export default function CartPage() {
         </div>
         {items.length > 0 && (
           <button onClick={() => { if (confirm("Ești sigur că vrei să golești coșul?")) clearCart(); }} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors px-3 py-2 rounded-lg bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none min-h-[36px]">
-            
+
             {t("golesteCosul")}
           </button>
         )}
@@ -220,7 +220,7 @@ export default function CartPage() {
               <span className="text-xs text-[#A1A1AA]">{t("taxCalculatedAtCheckout")}</span>
             </div>
             <Link href="/checkout" className="block w-full rounded-2xl bg-[#0D0D0D] py-4 text-center text-sm font-bold text-white active:scale-[0.98] transition-transform shadow-xl">
-              
+
               {t("finalizeazaComanda")} {formatPrice(subtotalCents, { sourceCurrency: currency as any })}
             </Link>
             <p className="text-center text-xs text-[#A1A1AA] mt-2">{t("plataSecurizataPrinStripe")}</p>

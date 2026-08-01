@@ -67,7 +67,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
           const data = await r.json();
           if (data.stream?.viewer_count != null) setViewers(data.stream.viewer_count);
         }
-      } catch {}
+      } catch { }
     }, 10_000);
     return () => clearInterval(t);
   }, [stream.id]);
@@ -79,7 +79,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
       try {
         const m = JSON.parse(e.data) as ChatMsg;
         setMessages((prev) => [...prev.slice(-99), m]);
-      } catch {}
+      } catch { }
     });
     return () => es.close();
   }, [stream.id]);

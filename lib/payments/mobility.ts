@@ -43,11 +43,12 @@ import {
 } from "@/lib/swyp/valuation";
 import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
 import { logger } from "@/lib/logger";
+import { MOBILITY_PLATFORM_FEE_BPS, MOBILITY_COURIER_SHARE_BPS } from "@/lib/config/commerce";
 
 const log = logger.child({ mod: "payments/mobility" });
 
-const DEFAULT_PLATFORM_COMMISSION_PCT = 20;
-const DEFAULT_COURIER_SHARE_PCT = 80;
+const DEFAULT_PLATFORM_COMMISSION_PCT = MOBILITY_PLATFORM_FEE_BPS / 100;
+const DEFAULT_COURIER_SHARE_PCT = MOBILITY_COURIER_SHARE_BPS / 100;
 
 export type SettleResult = {
     settled: boolean;

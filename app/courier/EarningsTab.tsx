@@ -7,6 +7,7 @@
  *  - cerere de retragere (min 50 RON) + istoricul cererilor.
  */
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { UtensilsCrossed, CarTaxiFront, Gift } from "lucide-react";
 
 type Bucket = { eats_cents: number; go_cents: number; tips_cents: number; net_cents: number };
@@ -30,6 +31,7 @@ const PERIOD_LABELS: Record<string, string> = { today: "Azi", week: "Săptămân
 const STATUS_LABELS: Record<string, string> = { pending: "în așteptare", paid: "plătită", rejected: "respinsă" };
 
 export default function EarningsTab() {
+  const t = useTranslations("courierEarningsTab");
   const [data, setData] = useState<EarningsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function EarningsTab() {
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-400">Se încarcă…</div>;
+  if (loading) return <div className="p-8 text-center text-gray-400">{t("loading")}</div>;
   if (error) return <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>;
   if (!data) return null;
 
@@ -124,7 +126,7 @@ export default function EarningsTab() {
               </div>
               <div className="rounded-lg bg-gray-50 p-2">
                 <div className="font-semibold text-gray-800">{ron(b.tips_cents)}</div>
-                <span className="inline-flex items-center gap-1"><Gift size={12} /> Bacșiș</span>
+                <span className="inline-flex items-center gap-1"><Gift size={12} /> {t("tip")}</span>
               </div>
             </div>
           </div>
@@ -144,7 +146,7 @@ export default function EarningsTab() {
             className="w-full rounded-lg border px-3 py-2 text-sm"
           />
           <input
-            placeholder="IBAN (opțional)"
+            placeholder={t("ibanPlaceholder")}
             value={iban}
             onChange={(e) => setIban(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
@@ -169,13 +171,12 @@ export default function EarningsTab() {
               <li key={p.id} className="flex items-center justify-between py-2">
                 <span>{ron(p.amount_cents)} RON</span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${
-                    p.status === "pending"
+                  className={`rounded-full px-2 py-0.5 text-xs ${p.status === "pending"
                       ? "bg-amber-100 text-amber-700"
                       : p.status === "paid"
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-700"
-                  }`}
+                    }`}
                 >
                   {STATUS_LABELS[p.status]}
                 </span>

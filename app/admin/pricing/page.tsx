@@ -39,7 +39,7 @@ function money(cents: number, currency: string) {
 }
 
 export default async function AdminPricingPage() {
-    const t = await getTranslations("adminPricing");
+  const t = await getTranslations("adminPricing");
   const [{ rows: zones }, { rows: surges }] = await Promise.all([
     dbQuery<Zone>(
       `SELECT * FROM pricing_zones ORDER BY country, lower(city), kind, vehicle_class`,

@@ -48,5 +48,3 @@ export const MOBILITY_AUTH_BUFFER_BPS = bpsFromEnv("MOBILITY_AUTH_BUFFER_BPS", 2
 /** Comisionul Swypik pe rezervări de cazare (default 10%). */
 export const STAYS_COMMISSION_BPS = bpsFromEnv("STAYS_COMMISSION_BPS", 1000);
 
-/** Refund parțial la anulare târzie de client (default 50%). */
-export const STAYS_LATE_CANCEL_REFUND_BPS = bpsFromEnv("STAYS_LATE_CANCEL_REFUND_BPS", 5000);

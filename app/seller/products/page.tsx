@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import AddProductWizard from "./AddProductWizard";
+import { useTranslations } from "next-intl";
 import { Tag } from "lucide-react";
 
 export default function SellerProductsPage() {
+  const t = useTranslations("sellerProducts");
   const [isAdding, setIsAdding] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,13 +34,13 @@ export default function SellerProductsPage() {
     <div className="max-w-5xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-black text-[#0D0D0D]">Produsele mele</h1>
-          <p className="text-sm text-[#6E6E80] mt-1">Gestionează catalogul tău de produse locale.</p>
+          <h1 className="text-2xl font-black text-[#0D0D0D]">{t("title")}</h1>
+          <p className="text-sm text-[#6E6E80] mt-1">{t("subtitle")}</p>
         </div>
         <button
           type="button"
           onClick={() => setIsAdding(true)}
-          aria-label="Adaugă produs nou"
+          aria-label={t("addAria")}
           className="inline-flex items-center justify-center bg-[#0D0D0D] text-white px-5 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:bg-[#0D0D0D]/80 transition active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           + Adaugă Produs
@@ -54,20 +56,20 @@ export default function SellerProductsPage() {
                 <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Categorie</th>
                 <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Status</th>
                 <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Stoc</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">Preț</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">{t("thPrice")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5E5]">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-[#6E6E80]">Se încarcă...</td>
+                  <td colSpan={5} className="px-6 py-12 text-center text-[#6E6E80]">{t("loading")}</td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <p className="mb-3 flex justify-center"><Tag size={32} /></p>
-                    <p className="font-bold text-[#0D0D0D]">Niciun produs adăugat.</p>
-                    <p className="text-sm text-[#6E6E80] mt-1">Începe să vinzi adăugând primul tău produs.</p>
+                    <p className="font-bold text-[#0D0D0D]">{t("emptyTitle")}</p>
+                    <p className="text-sm text-[#6E6E80] mt-1">{t("emptySubtitle")}</p>
                   </td>
                 </tr>
               ) : (

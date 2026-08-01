@@ -3,6 +3,7 @@
  * (sursă unică de adevăr, sincronizată cu modelul real de business).
  */
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { TERMS_SECTIONS, TERMS_LAST_UPDATED } from "@/lib/legal/terms-content";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 
@@ -12,15 +13,15 @@ export const metadata: Metadata = {
         "Condițiile de utilizare Swypik: rolul platformei, prețuri și comisioane, dreptul de retragere, politici de anulare, reclamații ANPC/SOL.",
 };
 
-export default function TermsPage() {
+export default async function TermsPage() {
+    const t = await getTranslations("legalTerms");
     return (
         <main className="mx-auto max-w-2xl px-4 pb-24 pt-8">
-            <h1 className="text-2xl font-black">Termeni și Condiții</h1>
-            <p className="mt-1 text-sm text-neutral-500">Ultima actualizare: {TERMS_LAST_UPDATED}</p>
+            <h1 className="text-2xl font-black">{t("title")}</h1>
+            <p className="mt-1 text-sm text-neutral-500">{t("lastUpdated", { date: TERMS_LAST_UPDATED })}</p>
 
             <p className="mt-4 rounded-xl bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-200">
-                Pe scurt: prețul afișat e prețul final, politicile de anulare sunt la vedere
-                înainte de plată, iar drepturile tale legale de consumator rămân mereu intacte.
+                {t("summary")}
             </p>
 
             <div className="mt-8 space-y-8">

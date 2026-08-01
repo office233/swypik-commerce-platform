@@ -93,7 +93,7 @@ export default function CollectionsPage() {
     <div className="min-h-screen bg-[#0D0D0D] text-white p-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">{t("colectiileMele")}</h1>
-        <button 
+        <button
           onClick={() => setShowNewModal(true)}
           className="bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-colors"
         >
@@ -104,11 +104,11 @@ export default function CollectionsPage() {
       {collections.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <p className="text-xl mb-4">{t("nuAiNicioColectie")}</p>
-          <button 
+          <button
             onClick={() => setShowNewModal(true)}
             className="text-[#0D0D0D] hover:underline"
           >
-            
+
             {t("creeazaPrimaTaColectie")}
           </button>
         </div>
@@ -117,7 +117,7 @@ export default function CollectionsPage() {
           {collections.map(col => (
             <Link key={col.id} href={`/collections/${col.id}`}>
               <div className="bg-[#1A1A1A] hover:bg-[#222] border border-gray-800 rounded-2xl p-6 transition-all h-full flex flex-col items-start gap-4 group">
-                <div 
+                <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg"
                   style={{ backgroundColor: col.color ? `${col.color}20` : '#333' }}
                 >
@@ -142,11 +142,11 @@ export default function CollectionsPage() {
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">Nume</label>
-                <input 
+                <input
                   type="text"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
@@ -185,12 +185,12 @@ export default function CollectionsPage() {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={handleCreate}
                 disabled={!newTitle.trim()}
                 className="w-full bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white py-3 rounded-xl font-medium mt-4 disabled:opacity-50 transition-colors"
               >
-                
+
                 {t("creeazaColectia")}
               </button>
             </div>

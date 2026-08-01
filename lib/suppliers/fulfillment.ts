@@ -22,7 +22,7 @@ export type FulfillmentResult = {
 /** Marchează comanda ca preluată în procesare manuală. */
 export async function fulfillOrder(orderId: string): Promise<FulfillmentResult> {
     const { rows } = await dbQuery<{ id: string; status: string }>(
-                `UPDATE commerce_orders
+        `UPDATE commerce_orders
         SET status = 'processing', updated_at = now()
       WHERE id = $1 AND status IN ('paid', 'pending_fulfillment')
       RETURNING id, status`,

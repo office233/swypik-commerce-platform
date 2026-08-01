@@ -31,7 +31,7 @@ export default async function AdminCreatorsPage({
 }: {
   searchParams: Promise<{ sort?: string; q?: string }>;
 }) {
-    const t = await getTranslations("adminCreators");
+  const t = await getTranslations("adminCreators");
   await requireAdminSession();
   const sp = await searchParams;
   const sort = sp.sort === "sales" ? "sales" : sp.sort === "videos" ? "videos" : "followers";
@@ -41,8 +41,8 @@ export default async function AdminCreatorsPage({
     sort === "sales"
       ? "sales_cents DESC, followers DESC"
       : sort === "videos"
-      ? "videos DESC, followers DESC"
-      : "followers DESC, videos DESC";
+        ? "videos DESC, followers DESC"
+        : "followers DESC, videos DESC";
 
   let rows: Row[] = [];
   let loadError: string | null = null;
@@ -96,9 +96,8 @@ export default async function AdminCreatorsPage({
             <Link
               key={s}
               href={`/admin/creators?sort=${s}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-              className={`inline-flex items-center rounded-md px-4 py-2.5 text-xs font-bold border min-h-[40px] ${
-                sort === s ? "bg-black text-white border-black" : "border-black/15 text-black/70"
-              }`}
+              className={`inline-flex items-center rounded-md px-4 py-2.5 text-xs font-bold border min-h-[40px] ${sort === s ? "bg-black text-white border-black" : "border-black/15 text-black/70"
+                }`}
             >
               {s === "followers" ? "Urmăritori" : s === "videos" ? "Videoclipuri" : "Vânzări"}
             </Link>

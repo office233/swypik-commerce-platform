@@ -92,6 +92,7 @@ function playOfferSound(): void {
 
 export default function CourierPwaClient() {
     const t = useTranslations("shell");
+    const tc = useTranslations("courierPwa");
     const [online, setOnline] = useState(false);
     const [tab, setTab] = useState<"jobs" | "earnings">("jobs");
     const [busy, setBusy] = useState(false);
@@ -354,14 +355,14 @@ export default function CourierPwaClient() {
                 {online && !offer && !activeDelivery && !activeRide && (
                     <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
                         <div className="flex animate-pulse justify-center"><RadioTower size={32} /></div>
-                        <p className="mt-2 text-sm text-gray-500">Aștept comenzi… GPS-ul se trimite la 10s.</p>
+                        <p className="mt-2 text-sm text-gray-500">{tc("waitingOrders")}</p>
                     </div>
                 )}
 
                 {offer && (
                     <div className="rounded-2xl border-2 border-blue-500 bg-white p-5 shadow-lg">
                         <div className="flex items-center justify-between">
-                            <h2 className="flex items-center gap-2 font-bold">{offer.kind === "ride" ? <>Cursă nouă! <CarTaxiFront size={16} /></> : "Comandă nouă!"}</h2>
+                            <h2 className="flex items-center gap-2 font-bold">{offer.kind === "ride" ? <>{tc("newRide")} <CarTaxiFront size={16} /></> : tc("newOrder")}</h2>
                             <span
                                 className={`rounded-full px-3 py-1 font-mono text-lg font-bold ${secondsLeft <= 10 ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
                                     }`}
@@ -377,7 +378,7 @@ export default function CourierPwaClient() {
                         </div>
                         <dl className="mt-3 space-y-1 text-sm">
                             {offer.order_number && (
-                                <div><dt className="inline font-medium">Comandă: </dt><dd className="inline font-mono">{offer.order_number}</dd></div>
+                                <div><dt className="inline font-medium">{tc("orderLabel")} </dt><dd className="inline font-mono">{offer.order_number}</dd></div>
                             )}
                             <div><dt className="inline font-medium">Ridicare: </dt><dd className="inline">{offer.merchant_name}{offer.pickup_address ? ` — ${offer.pickup_address}` : ""}</dd></div>
                             <div><dt className="inline font-medium">{offer.kind === "ride" ? "Destinație: " : "Livrare: "}</dt><dd className="inline">{offer.delivery_address}</dd></div>
@@ -436,7 +437,7 @@ export default function CourierPwaClient() {
 
                 {activeRide && (
                     <div className="rounded-2xl border bg-white p-5 shadow-md">
-                        <h2 className="flex items-center gap-2 font-bold">Cursă în curs <CarTaxiFront size={16} /></h2>
+                        <h2 className="flex items-center gap-2 font-bold">{tc("rideInProgress")} <CarTaxiFront size={16} /></h2>
                         <div className="mt-3 space-y-2 text-sm">
                             <div className="flex items-center justify-between gap-2">
                                 <span className="flex items-center gap-1.5"><Circle size={14} className="text-green-600" /> {activeRide.pickup_address ?? "Punct de ridicare"}</span>

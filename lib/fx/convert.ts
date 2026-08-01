@@ -67,21 +67,21 @@ export async function convert(amountCents: number, from: string, to: string): Pr
   if (F !== "EUR" && T !== "EUR") {
     const fromToEur = await getRate(F, "EUR"); // EUR -> F rate; we need to invert
     // getRate("F","EUR") returns EUR->F. To convert F to EUR: divide by it.
-      if (!isFinite(fromToEur) || fromToEur <= 0) return Number.NaN;
+    if (!isFinite(fromToEur) || fromToEur <= 0) return Number.NaN;
     const eurCents = amountCents / fromToEur;
     const eurToTarget = await getRate(T, "EUR");
-      if (!isFinite(eurToTarget) || eurToTarget <= 0) return Number.NaN;
+    if (!isFinite(eurToTarget) || eurToTarget <= 0) return Number.NaN;
     return Math.round(eurCents * eurToTarget);
   }
 
   if (F === "EUR") {
     const rate = await getRate(T, "EUR");
-      if (!isFinite(rate) || rate <= 0) return Number.NaN;
+    if (!isFinite(rate) || rate <= 0) return Number.NaN;
     return Math.round(amountCents * rate);
   }
 
   // T === EUR
   const rate = await getRate(F, "EUR");
-    if (!isFinite(rate) || rate <= 0) return Number.NaN;
+  if (!isFinite(rate) || rate <= 0) return Number.NaN;
   return Math.round(amountCents / rate);
 }

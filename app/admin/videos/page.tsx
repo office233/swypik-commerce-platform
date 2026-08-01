@@ -31,19 +31,19 @@ interface VideoAsset {
 /* ─── Constants ─── */
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  pending:    { bg: "rgba(245,158,11,0.15)", text: "#F59E0B", border: "rgba(245,158,11,0.3)" },
+  pending: { bg: "rgba(245,158,11,0.15)", text: "#F59E0B", border: "rgba(245,158,11,0.3)" },
   processing: { bg: "rgba(59,130,246,0.15)", text: "#3B82F6", border: "rgba(59,130,246,0.3)" },
-  ready:      { bg: "rgba(16,163,127,0.15)", text: "#0D0D0D", border: "rgba(16,163,127,0.3)" },
-  failed:     { bg: "rgba(239,68,68,0.15)",  text: "#EF4444", border: "rgba(239,68,68,0.3)" },
-  queued:     { bg: "rgba(13,13,13,0.15)", text: "#0D0D0D", border: "rgba(13,13,13,0.15)" },
+  ready: { bg: "rgba(16,163,127,0.15)", text: "#0D0D0D", border: "rgba(16,163,127,0.3)" },
+  failed: { bg: "rgba(239,68,68,0.15)", text: "#EF4444", border: "rgba(239,68,68,0.3)" },
+  queued: { bg: "rgba(13,13,13,0.15)", text: "#0D0D0D", border: "rgba(13,13,13,0.15)" },
 };
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "all",        label: "All" },
-  { value: "pending",    label: "Pending" },
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
   { value: "processing", label: "Processing" },
-  { value: "ready",      label: "Ready" },
-  { value: "failed",     label: "Failed" },
+  { value: "ready", label: "Ready" },
+  { value: "failed", label: "Failed" },
 ];
 
 function getStatusStyle(status: string) {
@@ -67,7 +67,7 @@ function formatDimensions(w: number | null, h: number | null): string {
 const PAGE_SIZE = 50;
 
 export default function AdminVideosPage() {
-    const t = useTranslations("adminVideos");
+  const t = useTranslations("adminVideos");
   const [videos, setVideos] = useState<VideoAsset[]>([]);
   const [counts, setCounts] = useState({ total: 0, ready: 0, processing: 0, failed: 0, pending: 0 });
   const [filteredTotal, setFilteredTotal] = useState(0);

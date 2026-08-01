@@ -10,18 +10,18 @@
 -- ============================================================================
 
 -- 1. HIDDEN VIDEOS — for "not interested" action
-  r record;
+CREATE TABLE IF NOT EXISTS user_hidden_videos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   video_id uuid NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
-  FOR r IN
+  reason text NOT NULL DEFAULT 'not_interested'
     CHECK (reason IN ('not_interested', 'reported', 'already_seen', 'blocked_creator')),
   hidden_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, video_id)
 );
 
 CREATE INDEX IF NOT EXISTS user_hidden_videos_user_idx
-    EXECUTE format('ALTER TABLE feed_events DROP CONSTRAINT %I', r.conname);
+  ON user_hidden_videos (user_id, hidden_at DESC);
 
 -- 2. Add `position` to user_collection_items (idempotent)
 ALTER TABLE user_collection_items

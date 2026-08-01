@@ -24,7 +24,7 @@ const PAD_TOP = 8;
 const PAD_BOTTOM = 18;
 
 export async function TimeSeriesChart({ data }: { data: TimeSeries30d }) {
-    const t = await getTranslations("adminRisk");
+  const t = await getTranslations("adminRisk");
   const pts = data.points;
   const hasData = data.totalFlagged + data.totalApprovals + data.totalBlocks + data.totalAutoBlocks > 0;
   const max = Math.max(

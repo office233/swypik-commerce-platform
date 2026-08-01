@@ -203,7 +203,7 @@ export async function POST(req: Request) {
         );
         if (insRows[0]?.id) {
           autoEmbedProduct(insRows[0].id, title, description);
-          labelProduct({ id: insRows[0].id, title, description, category }).catch(() => {});
+          labelProduct({ id: insRows[0].id, title, description, category }).catch(() => { });
         }
         imported++;
       } catch (dbErr: any) {

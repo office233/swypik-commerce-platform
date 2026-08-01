@@ -207,7 +207,7 @@ export default async function AdminRiskPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-    const t = await getTranslations("adminRisk");
+  const t = await getTranslations("adminRisk");
   const sp = await searchParams;
   const statusFilter = sp.status || "paid";
   const minScore = Number(sp.min || "0");

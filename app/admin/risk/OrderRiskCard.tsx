@@ -24,9 +24,9 @@ export type OrderRow = {
 function levelBadge(level: OrderRiskScore["level"]) {
   switch (level) {
     case "critical": return { bg: "bg-red-600", text: "text-white", label: "CRITIC" };
-    case "high":     return { bg: "bg-orange-500", text: "text-white", label: "ÎNALT" };
-    case "medium":   return { bg: "bg-amber-100", text: "text-amber-900", label: "MEDIU" };
-    case "low":      return { bg: "bg-emerald-100", text: "text-emerald-900", label: "SCĂZUT" };
+    case "high": return { bg: "bg-orange-500", text: "text-white", label: "ÎNALT" };
+    case "medium": return { bg: "bg-amber-100", text: "text-amber-900", label: "MEDIU" };
+    case "low": return { bg: "bg-emerald-100", text: "text-emerald-900", label: "SCĂZUT" };
   }
 }
 

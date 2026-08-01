@@ -39,7 +39,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
-    const t = await getTranslations("adminUsers");
+  const t = await getTranslations("adminUsers");
   await requireAdminSession();
   const sp = await searchParams;
   const q = (sp.q || "").trim() || null;
@@ -56,10 +56,10 @@ export default async function AdminUsersPage({
       status === "active"
         ? "(suspended_until IS NULL OR suspended_until < now())"
         : status === "suspended"
-        ? "(suspended_until IS NOT NULL AND suspended_until > now())"
-        : status === "admin"
-        ? "(role = 'admin')"
-        : "TRUE";
+          ? "(suspended_until IS NOT NULL AND suspended_until > now())"
+          : status === "admin"
+            ? "(role = 'admin')"
+            : "TRUE";
 
     const searchSql = q
       ? "AND (username ILIKE '%'||$1||'%' OR email ILIKE '%'||$1||'%' OR display_name ILIKE '%'||$1||'%')"
@@ -138,9 +138,8 @@ export default async function AdminUsersPage({
           <Link
             key={t.id}
             href={tabHref(t.id)}
-            className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-bold border min-h-[40px] ${
-              status === t.id ? "bg-[#0D0D0D] text-white border-[#0D0D0D]" : "bg-white text-[#0D0D0D] border-black/15"
-            }`}
+            className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-bold border min-h-[40px] ${status === t.id ? "bg-[#0D0D0D] text-white border-[#0D0D0D]" : "bg-white text-[#0D0D0D] border-black/15"
+              }`}
           >
             {t.label}
           </Link>
@@ -204,13 +203,12 @@ export default async function AdminUsersPage({
                   <td className="px-4 py-3 text-gray-600 text-xs">{u.email || "-"}</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
-                        u.role === "admin"
+                      className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${u.role === "admin"
                           ? "bg-purple-100 text-purple-700"
                           : u.role === "creator" || u.role === "seller"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
                     >
                       {u.role}
                     </span>

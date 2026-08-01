@@ -104,7 +104,7 @@ export default async function AdminDisputesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-    const t = await getTranslations("adminDisputes");
+  const t = await getTranslations("adminDisputes");
   const sp = await searchParams;
   const active = sp.status || "needs_response";
   const disputes = await getDisputes(active);
@@ -240,8 +240,8 @@ function WinBadge({ score }: { score: WinScore }) {
     score.label === "high"
       ? "bg-green-100 text-green-800"
       : score.label === "medium"
-      ? "bg-amber-100 text-amber-900"
-      : "bg-red-100 text-red-800";
+        ? "bg-amber-100 text-amber-900"
+        : "bg-red-100 text-red-800";
   return (
     <span
       title={`Win score: ${score.score}% — ${score.recommendation}`}
@@ -257,8 +257,8 @@ function WinScorePanel({ score }: { score: WinScore }) {
     score.label === "high"
       ? "bg-green-500"
       : score.label === "medium"
-      ? "bg-amber-500"
-      : "bg-red-500";
+        ? "bg-amber-500"
+        : "bg-red-500";
   const positives = score.factors.filter((f) => f.delta > 0);
   const negatives = score.factors.filter((f) => f.delta < 0);
   return (

@@ -78,11 +78,10 @@ export default function VoteButtons({
             type="button"
             disabled={isPending}
             onClick={() => vote(it.optionKey)}
-            className={`relative w-full rounded-2xl border overflow-hidden text-left transition ${
-              isMine
+            className={`relative w-full rounded-2xl border overflow-hidden text-left transition ${isMine
                 ? "border-[#7C3AED] bg-[#7C3AED]/10"
                 : "border-white/10 bg-white/[0.04] hover:border-white/30"
-            } ${isPending ? "opacity-60" : ""}`}
+              } ${isPending ? "opacity-60" : ""}`}
           >
             <div
               className="absolute inset-y-0 left-0 bg-[#7C3AED]/20 transition-all"

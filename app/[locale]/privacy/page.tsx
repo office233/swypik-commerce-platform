@@ -3,6 +3,7 @@
  * (sursă unică de adevăr, ținută sincron cu ce colectează efectiv platforma).
  */
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { PRIVACY_SECTIONS, PRIVACY_LAST_UPDATED } from "@/lib/legal/privacy-content";
 
 export const metadata: Metadata = {
@@ -11,15 +12,15 @@ export const metadata: Metadata = {
         "Cum colectează, folosește și protejează Swypik datele tale personale: temeiuri legale, perioade de păstrare, drepturile tale GDPR.",
 };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+    const t = await getTranslations("legalPrivacy");
     return (
         <main className="mx-auto max-w-2xl px-4 pb-24 pt-8">
-            <h1 className="text-2xl font-black">Politica de confidențialitate</h1>
-            <p className="mt-1 text-sm text-neutral-500">Ultima actualizare: {PRIVACY_LAST_UPDATED}</p>
+            <h1 className="text-2xl font-black">{t("title")}</h1>
+            <p className="mt-1 text-sm text-neutral-500">{t("lastUpdated", { date: PRIVACY_LAST_UPDATED })}</p>
 
             <p className="mt-4 rounded-xl bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-200">
-                Pe scurt: colectăm doar ce e necesar, criptăm ce e sensibil, nu vindem
-                datele nimănui și le poți controla oricând. Detaliile complete, mai jos.
+                {t("summary")}
             </p>
 
             <div className="mt-8 space-y-8">

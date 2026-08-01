@@ -46,7 +46,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const t = useTranslations("collections");
   const resolvedParams = use(params);
   const collectionId = resolvedParams.id;
-  
+
   const [collection, setCollection] = useState<Collection | null>(null);
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,7 +128,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 bg-[#1A1A1A] p-6 rounded-3xl border border-gray-800">
         <div className="flex items-center gap-4">
-          <div 
+          <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg"
             style={{ backgroundColor: collection.color ? `${collection.color}30` : '#333' }}
           >
@@ -139,16 +139,16 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             <p className="text-gray-400 mt-1">{items.length} items salvate</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setShowEdit(true)}
             className="bg-[#222] hover:bg-[#333] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors border border-gray-700"
           >
             <Edit2 size={16} />  {t("editeaza")}
           </button>
           {!collection.is_default && (
-            <button 
+            <button
               onClick={handleDelete}
               className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-xl flex items-center gap-2 transition-colors border border-red-500/20"
             >
@@ -163,7 +163,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           <div className="mb-4 flex justify-center opacity-50"><Inbox size={48} /></div>
           <p className="text-xl">{t("aceastaColectieEsteGoala")}</p>
           <Link href="/explore" className="text-[#0D0D0D] hover:underline mt-2 inline-block">
-            
+
             {t("exploreazaClipuri")}
           </Link>
         </div>
@@ -205,11 +205,11 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">Nume</label>
-                <input 
+                <input
                   type="text"
                   value={editTitle}
                   onChange={e => setEditTitle(e.target.value)}
@@ -246,12 +246,12 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={handleUpdate}
                 disabled={!editTitle.trim()}
                 className="w-full bg-[#0D0D0D] hover:bg-[#0e8a6b] text-white py-3 rounded-xl font-medium mt-4 disabled:opacity-50 transition-colors"
               >
-                
+
                 {t("salveazaModificarile")}
               </button>
             </div>

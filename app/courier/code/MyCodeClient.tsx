@@ -7,6 +7,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, Copy, Check, Share2, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 
@@ -22,6 +23,7 @@ type CodeData = {
 };
 
 export default function MyCodeClient() {
+    const t = useTranslations("courierCode");
     const [data, setData] = useState<CodeData | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
@@ -76,7 +78,7 @@ export default function MyCodeClient() {
     return (
         <div className="mx-auto min-h-screen max-w-md bg-white px-5 pb-16 pt-6 text-[#111]">
             <div className="mb-6 flex items-center gap-3">
-                <Link href="/courier" className="rounded-full p-2 hover:bg-neutral-100" aria-label="Înapoi">
+                <Link href="/courier" className="rounded-full p-2 hover:bg-neutral-100" aria-label={t("backAria")}>
                     <ArrowLeft size={20} />
                 </Link>
                 <h1 className="text-xl font-extrabold">Codul meu</h1>
@@ -133,7 +135,7 @@ export default function MyCodeClient() {
                         <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                             <div>
                                 <p className="text-2xl font-extrabold tabular-nums">{data.stats.total_referred}</p>
-                                <p className="text-[12px] font-semibold text-neutral-500">Total aduși</p>
+                                <p className="text-[12px] font-semibold text-neutral-500">{t("totalReferred")}</p>
                             </div>
                             <div>
                                 <p className="text-2xl font-extrabold tabular-nums">{data.stats.active_referred}</p>
@@ -144,7 +146,7 @@ export default function MyCodeClient() {
                                     {(data.stats.total_earned_cents / 100).toFixed(0)}
                                     <span className="text-sm font-bold"> lei</span>
                                 </p>
-                                <p className="text-[12px] font-semibold text-neutral-500">Câștigați</p>
+                                <p className="text-[12px] font-semibold text-neutral-500">{t("earned")}</p>
                             </div>
                         </div>
                         <Link

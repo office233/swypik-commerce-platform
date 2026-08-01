@@ -5,6 +5,7 @@
  * + prețuri sezoniere (override pe interval selectat).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Stay = {
   id: string;
@@ -30,6 +31,7 @@ function iso(d: Date): string {
 }
 
 export default function StaysCalendarClient() {
+  const t = useTranslations("sellerStaysCalendar");
   const [stays, setStays] = useState<Stay[]>([]);
   const [stayId, setStayId] = useState<string | null>(null);
   const [monthDate, setMonthDate] = useState(() => new Date());
@@ -160,7 +162,7 @@ export default function StaysCalendarClient() {
   }
 
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
-  if (!stay) return <div className="p-8 text-center text-gray-500">Se încarcă…</div>;
+  if (!stay) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 p-4">
@@ -248,7 +250,7 @@ export default function StaysCalendarClient() {
         <div className="flex items-center gap-2">
           <input
             className="w-32 rounded border px-3 py-2 text-sm"
-            placeholder="Preț/noapte (lei)"
+            placeholder={t("pricePerNight")}
             inputMode="decimal"
             value={price}
             onChange={(e) => setPrice(e.target.value)}

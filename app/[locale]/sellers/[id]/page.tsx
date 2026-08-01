@@ -254,7 +254,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
                         loading="lazy"
                       />
                     ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[#C4C4C4]"><Clapperboard size={24} /></div>
+                      <div className="flex h-full w-full items-center justify-center text-[#C4C4C4]"><Clapperboard size={24} /></div>
                     )}
                     <p className="absolute inset-x-0 bottom-0 line-clamp-2 bg-gradient-to-t from-black/70 to-transparent p-2 text-[11px] font-bold text-white">
                       {v.title}
