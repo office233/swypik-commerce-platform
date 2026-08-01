@@ -68,3 +68,37 @@ export async function waitForChainReceipt(hash: `0x${string}`): Promise<void> {
 export async function chainBalance(address: `0x${string}`): Promise<bigint> {
     return publicClient().getBalance({ address });
 }
+
+/**
+ * Transfer P2P: semnează cu cheia privată a USERULUI (portofel custodial)
+ * și trimite `wei` către `to`. Returnează hash-ul imediat după emitere
+ * (apelantul persistă hash-ul, apoi așteaptă confirmarea).
+ *
+ * Verifică înainte că soldul acoperă suma + gas (21000 * gasPrice), ca să
+ * nu ardem nonce-uri pe tranzacții sortite eșecului.
+ */
+export async function submitUserTransfer(
+    userPk: `0x${string}`,
+    to: `0x${string}`,
+    wei: bigint,
+): Promise<`0x${string}`> {
+    const account = privateKeyToAccount(userPk);
+    const pub = publicClient();
+    const [balance, gasPrice] = await Promise.all([
+        pub.getBalance({ address: account.address }),
+        pub.getGasPrice(),
+    ]);
+    const gasCost = 21_000n * gasPrice;
+    if (balance < wei + gasCost) {
+        throw new InsufficientChainBalanceError(balance, wei + gasCost);
+    }
+    const wallet = createWalletClient({ account, chain: swypikChain, transport: http() });
+    return wallet.sendTransaction({ to, value: wei });
+}
+
+export class InsufficientChainBalanceError extends Error {
+    constructor(public balance: bigint, public required: bigint) {
+        super("sold on-chain insuficient (suma + gas)");
+        this.name = "InsufficientChainBalanceError";
+    }
+}

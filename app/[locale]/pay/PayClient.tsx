@@ -86,6 +86,12 @@ export default function PayClient() {
     const [withdrawBusy, setWithdrawBusy] = useState(false);
     const [withdrawMsg, setWithdrawMsg] = useState<string | null>(null);
     const [lastTxUrl, setLastTxUrl] = useState<string | null>(null);
+    const [sendOpen, setSendOpen] = useState(false);
+    const [sendTo, setSendTo] = useState("");
+    const [sendAmount, setSendAmount] = useState("");
+    const [sendBusy, setSendBusy] = useState(false);
+    const [sendMsg, setSendMsg] = useState<string | null>(null);
+    const [sendTxUrl, setSendTxUrl] = useState<string | null>(null);
     const [staking, setStaking] = useState<StakingInfo | null>(null);
     const [stakeBusy, setStakeBusy] = useState(false);
     const [stakeMsg, setStakeMsg] = useState<string | null>(null);
@@ -257,6 +263,89 @@ export default function PayClient() {
                                     </a>
                                 )}
                             </p>
+                        )}
+
+                        {/* ── Trimite SWYP (P2P on-chain) ── */}
+                        <button
+                            onClick={() => { setSendOpen((v) => !v); setSendMsg(null); }}
+                            className="mt-2 w-full rounded-xl border border-[#F5A623]/40 px-4 py-2.5 text-sm font-black text-[#F5A623] active:scale-[0.98] transition"
+                        >
+                            {sendOpen ? "✕ Închide" : "↗️ Trimite SWYP către o adresă"}
+                        </button>
+                        {sendOpen && (
+                            <div className="mt-3 space-y-2">
+                                <input
+                                    value={sendTo}
+                                    onChange={(e) => setSendTo(e.target.value.trim())}
+                                    placeholder="Adresa destinatarului (0x…)"
+                                    spellCheck={false}
+                                    className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2.5 font-mono text-xs text-white placeholder:text-white/30 focus:border-[#F5A623]/60 outline-none"
+                                />
+                                <input
+                                    value={sendAmount}
+                                    onChange={(e) => setSendAmount(e.target.value)}
+                                    placeholder="Suma SWYP (min. 0,01)"
+                                    inputMode="decimal"
+                                    className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#F5A623]/60 outline-none"
+                                />
+                                <button
+                                    onClick={async () => {
+                                        const amount = Number(sendAmount.replace(",", "."));
+                                        if (!/^0x[0-9a-fA-F]{40}$/.test(sendTo)) { setSendMsg("✗ Adresă invalidă (format 0x… + 40 caractere hex)."); return; }
+                                        if (!Number.isFinite(amount) || amount < 0.01) { setSendMsg("✗ Suma minimă e 0,01 SWYP."); return; }
+                                        if (!confirm(`Trimiți ${amount} SWYP către\n${sendTo}?\n\nTransferul on-chain e IREVERSIBIL.`)) return;
+                                        setSendBusy(true);
+                                        setSendMsg(null);
+                                        setSendTxUrl(null);
+                                        try {
+                                            const res = await fetch("/api/swyp/transfer", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ toAddress: sendTo, amountSwyp: amount }),
+                                            });
+                                            const data = await res.json();
+                                            if (data.success) {
+                                                setSendMsg(data.pending ? "⏳ Emis — se confirmă în câteva secunde." : "✓ Transfer confirmat on-chain!");
+                                                setSendTxUrl(data.explorerUrl);
+                                                setSendTo(""); setSendAmount("");
+                                            } else {
+                                                const reasons: Record<string, string> = {
+                                                    invalid_address: "Adresă invalidă.",
+                                                    invalid_amount: "Sumă invalidă.",
+                                                    min_amount: "Suma minimă e 0,01 SWYP.",
+                                                    self_transfer: "Nu poți trimite către propria adresă.",
+                                                    insufficient_chain_balance: "Sold on-chain insuficient (sumă + gas). Retrage întâi SWYP pe chain.",
+                                                    rate_limited: "Prea multe transferuri — așteaptă câteva minute.",
+                                                    chain_failed: "Chain indisponibil momentan — nimic nu a fost trimis.",
+                                                };
+                                                setSendMsg(`✗ ${reasons[data.error] ?? data.error}`);
+                                            }
+                                        } catch {
+                                            setSendMsg("✗ Eroare de rețea.");
+                                        } finally {
+                                            setSendBusy(false);
+                                        }
+                                    }}
+                                    disabled={sendBusy}
+                                    className="w-full rounded-xl bg-[#F5A623] px-4 py-2.5 text-sm font-black text-black active:scale-[0.98] transition disabled:opacity-40"
+                                >
+                                    {sendBusy ? "Se trimite…" : "Trimite acum"}
+                                </button>
+                                <p className="text-[10px] leading-relaxed text-white/40">
+                                    Se trimite din portofelul tău on-chain (nu din soldul din aplicație).
+                                    Taxa de rețea (~0,00002 SWYP) se plătește din același portofel.
+                                </p>
+                                {sendMsg && (
+                                    <p className="text-xs font-bold text-white/80">
+                                        {sendMsg}{" "}
+                                        {sendTxUrl && (
+                                            <a href={sendTxUrl} target="_blank" rel="noopener noreferrer" className="text-[#F5A623] underline">
+                                                vezi în explorer →
+                                            </a>
+                                        )}
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                 </section>
