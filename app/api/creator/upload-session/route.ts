@@ -201,7 +201,7 @@ async function createLocalUploadSession(input: CreatorUploadInput) {
         id, user_id, video_id, storage_provider, bucket, object_key, upload_id,
         status, byte_size, content_type, expires_at, metadata, created_at, updated_at
       )
-      VALUES ($1, $2, $3, 'r2', $4, $5, $1, 'created', $6, $7, $8, $9::jsonb, NOW(), NOW())
+      VALUES ($1::uuid, $2, $3, 'r2', $4, $5, $1::text, 'created', $6, $7, $8, $9::jsonb, NOW(), NOW())
       `,
       [
         uploadId,
