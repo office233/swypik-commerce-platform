@@ -1964,7 +1964,7 @@
       "cancelledFree": "Cancelamento gratuito.",
       "ratePrompt": "Como foi a viagem?",
       "rateSend": "Enviar avaliação",
-      "rateThanks": "Obrigado pela avaliação! 💛",
+      "rateThanks": "Obrigado pela avaliação!",
       "total": "Total a pagar"
     },
     "search": {
@@ -2837,5 +2837,22 @@
     "earnCtaBtn": "Abrir Swypik Pay",
     "disclaimer": "O SWYP é uma moeda de recompensas interna com cobertura real, emitida na blockchain privada Swypik Chain. Não é um instrumento financeiro, não é negociável em bolsas nesta fase e não prometemos qualquer valorização. O valor de resgate na plataforma está limitado ao fundo de cobertura existente.",
     "loading": "A carregar dados ao vivo…"
+  },
+  "foodApply": {
+    "title": "Bring your restaurant to Swypik Food",
+    "subtitle": "Fill in the form and we'll contact you once your application is approved.",
+    "nameLabel": "Restaurant name",
+    "addressLabel": "Address",
+    "cityLabel": "City",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email (optional)",
+    "scheduleLabel": "Opening hours (optional)",
+    "schedulePlaceholder": "e.g. Mon–Fri 10:00–22:00, Sat–Sun 12:00–23:00",
+    "descriptionLabel": "Short description (optional)",
+    "submit": "Submit application",
+    "sending": "Sending…",
+    "successTitle": "Application sent!",
+    "successBody": "We'll review your application and get back to you soon.",
+    "error": "Something went wrong. Please try again."
   }
 }

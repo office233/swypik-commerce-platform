@@ -98,7 +98,7 @@
       "total": "Total de plată",
       "ratePrompt": "Cum a fost cursa?",
       "rateSend": "Trimite ratingul",
-      "rateThanks": "Mulțumim pentru rating! 💛",
+      "rateThanks": "Mulțumim pentru rating!",
       "another": "Comandă altă cursă",
       "cancelledFee": "Taxă de anulare: {fee}",
       "cancelledFree": "Anulare gratuită."
@@ -2837,5 +2837,22 @@
     "earnCtaBtn": "Deschide Swypik Pay",
     "disclaimer": "SWYP este o monedă de recompense internă cu acoperire reală, emisă pe blockchainul privat Swypik Chain. Nu este un instrument financiar, nu este tranzacționabilă pe burse în această fază și nu promitem nicio creștere de valoare. Valoarea de răscumpărare în platformă este limitată la fondul de acoperire existent.",
     "loading": "Se încarcă datele live…"
+  },
+  "foodApply": {
+    "title": "Adu-ți restaurantul pe Swypik Food",
+    "subtitle": "Completează formularul și te contactăm după aprobarea aplicației.",
+    "nameLabel": "Numele restaurantului",
+    "addressLabel": "Adresă",
+    "cityLabel": "Oraș",
+    "phoneLabel": "Telefon",
+    "emailLabel": "Email (opțional)",
+    "scheduleLabel": "Program (opțional)",
+    "schedulePlaceholder": "ex: L–V 10:00–22:00, S–D 12:00–23:00",
+    "descriptionLabel": "Descriere scurtă (opțional)",
+    "submit": "Trimite aplicația",
+    "sending": "Se trimite…",
+    "successTitle": "Aplicație trimisă!",
+    "successBody": "Îți vom analiza aplicația și te contactăm în curând.",
+    "error": "A apărut o eroare. Reîncearcă."
   }
 }

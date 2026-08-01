@@ -10,9 +10,10 @@
  */
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { Car, Bike, Building2, Store, Home, Clapperboard, type LucideIcon } from "lucide-react";
+import { Car, Bike, Building2, Store, Home, Clapperboard, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
+import MerchantActions from "./MerchantActions";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ const SOURCE_META: Record<string, { label: string; Icon: LucideIcon; color: stri
     seller: { label: "Vânzător", Icon: Store, color: "bg-violet-100 text-violet-700", href: "/admin/sellers" },
     host: { label: "Gazdă Stays", Icon: Home, color: "bg-teal-100 text-teal-700", href: "/admin/hosts" },
     creator: { label: "Creator", Icon: Clapperboard, color: "bg-pink-100 text-pink-700", href: "/admin/applications" },
+    restaurant: { label: "Restaurant", Icon: UtensilsCrossed, color: "bg-orange-100 text-orange-700", href: "/admin/aplicatii" },
 };
 
 const PENDING_STATUSES = new Set(["pending", "submitted", "in_review", "needs_info"]);
@@ -62,7 +64,7 @@ async function loadAll(): Promise<UnifiedApp[]> {
         } catch { return []; }
     };
 
-    const [couriers, franchises, sellers, hosts, creators] = await Promise.all([
+    const [couriers, franchises, sellers, hosts, creators, merchants] = await Promise.all([
         safe(`SELECT kind AS source, id::text, full_name AS name,
              CONCAT(vehicle_type, COALESCE(' · ' || vehicle_plate, ''), ' · ', phone) AS detail,
              city, verification_status AS status, created_at::text
@@ -84,9 +86,14 @@ async function loadAll(): Promise<UnifiedApp[]> {
              NULL AS city, ca.status, ca.created_at::text
         FROM creator_applications ca LEFT JOIN users u ON u.id = ca.user_id
        ORDER BY ca.created_at DESC LIMIT 50`),
+           safe(`SELECT 'restaurant' AS source, id::text, name,
+               CONCAT(COALESCE(address, ''), ' · ', COALESCE(phone, '')) AS detail,
+               location_city AS city, status, created_at::text
+           FROM local_merchants WHERE seller_id IS NULL OR status = 'pending'
+          ORDER BY created_at DESC LIMIT 50`),
     ]);
 
-    return [...couriers, ...franchises, ...sellers, ...hosts, ...creators]
+        return [...couriers, ...franchises, ...sellers, ...hosts, ...creators, ...merchants]
         .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 }
 
@@ -160,9 +167,13 @@ export default async function AdminAplicatiiPage({
                                     </td>
                                     <td className="whitespace-nowrap px-4 py-3 text-[#6E6E80]">{fmt(a.created_at)}</td>
                                     <td className="px-4 py-3">
-                                        <Link href={meta.href} className="font-bold text-violet-600 hover:underline">
-                                            Procesează →
-                                        </Link>
+                                        {a.source === "restaurant" ? (
+                                            a.status === "pending" ? <MerchantActions merchantId={a.id} /> : <span className="text-[#A1A1AA]">—</span>
+                                        ) : (
+                                            <Link href={meta.href} className="font-bold text-violet-600 hover:underline">
+                                                Procesează →
+                                            </Link>
+                                        )}
                                     </td>
                                 </tr>
                             );

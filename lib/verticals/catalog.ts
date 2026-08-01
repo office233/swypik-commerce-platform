@@ -224,7 +224,7 @@ export const VERTICAL_CATALOG: Vertical[] = [
     // ─── SOCIAL ───────────────────────────────────────────────────────────────
     // Donații: românii donează pentru România. Comision 0% — doar taxa de
     // procesare. Beneficiari verificați, transparență totală pe fiecare campanie.
-    { id: "cares", brand: "Swypik Cares", labelKey: "cares", emoji: "❤️", accent: "#E11D48", mode: "donation", publisher: "cause", taxonomyRoot: "donations", wave: 1, group: "social" },
+    { id: "cares", brand: "Swypik Cares", labelKey: "cares", emoji: "🎗️", accent: "#E11D48", mode: "donation", publisher: "cause", taxonomyRoot: "donations", wave: 1, group: "social" },
 
     // ─── FINANCE ──────────────────────────────────────────────────────────────
     // Moneda platformei: câștigi SWYP din orice activitate (mining zilnic,

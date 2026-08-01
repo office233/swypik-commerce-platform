@@ -98,7 +98,7 @@
       "total": "Total to pay",
       "ratePrompt": "How was your ride?",
       "rateSend": "Send rating",
-      "rateThanks": "Thanks for rating! 💛",
+      "rateThanks": "Thanks for rating!",
       "another": "Order another ride",
       "cancelledFee": "Cancellation fee: {fee}",
       "cancelledFree": "Free cancellation."
@@ -2837,5 +2837,22 @@
     "earnCtaBtn": "Open Swypik Pay",
     "disclaimer": "SWYP is an internal rewards currency with real backing, issued on the private Swypik Chain blockchain. It is not a financial instrument, is not tradable on exchanges in this phase, and we promise no value growth. The in-platform redemption value is limited to the existing backing fund.",
     "loading": "Loading live data…"
+  },
+  "foodApply": {
+    "title": "Bring your restaurant to Swypik Food",
+    "subtitle": "Fill in the form and we'll contact you once your application is approved.",
+    "nameLabel": "Restaurant name",
+    "addressLabel": "Address",
+    "cityLabel": "City",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email (optional)",
+    "scheduleLabel": "Opening hours (optional)",
+    "schedulePlaceholder": "e.g. Mon–Fri 10:00–22:00, Sat–Sun 12:00–23:00",
+    "descriptionLabel": "Short description (optional)",
+    "submit": "Submit application",
+    "sending": "Sending…",
+    "successTitle": "Application sent!",
+    "successBody": "We'll review your application and get back to you soon.",
+    "error": "Something went wrong. Please try again."
   }
 }
