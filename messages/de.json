@@ -1866,24 +1866,11 @@
     "aboutDescription": "Swypik ist der Marktplatz, auf dem du Produkte über kurze Videos entdeckst — mit KI-Empfehlungen und lokalen Creators.",
     "helpTitle": "Hilfe — Swypik",
     "helpDescription": "Häufige Fragen und Support für Swypik-Käufer und -Creator.",
-    "battlesTitle": "Battles — Swypik Arena",
-    "battlesDescription": "Video-Duelle zwischen Creators: stimme ab, unterstütze deinen Favoriten und gewinne Belohnungen.",
     "missionsTitle": "Missionen — Swypik Creators",
     "missionsDescription": "Bezahlte Missionen für Creators: filmen, veröffentlichen und Belohnungen verdienen.",
     "sellerTitle": "{name} — Swypik",
     "sellerDescription": "Entdecke die Produkte von {name} auf Swypik.",
     "sellerNotFound": "Verkäufer nicht gefunden — Swypik"
-  },
-  "battlesPage": {
-    "subtitle": "Produkt gegen Produkt. Stimme für deinen Favoriten, verdiene SWYP.",
-    "sortHot": "🔥 Hot",
-    "sortNew": "🆕 Neu",
-    "sortEnding": "⏰ Enden bald",
-    "empty": "Keine aktiven Battles. Sei der Erste!",
-    "createOne": "Erstelle eins",
-    "votes": "{count} Stimmen",
-    "permanent": "Dauerhaft",
-    "ended": "Beendet"
   },
   "missionsPage": {
     "subtitle": "Bezahlte Briefings für Creators. Verdiene SWYP + Bounty pro Verkauf.",
@@ -2303,11 +2290,6 @@
     "tabCreators": "Creator",
     "tabProducts": "Produkte",
     "minChars": "Gib mindestens 2 Zeichen ein, um zu suchen."
-  },
-  "trendsPage": {
-    "title": "Aktuelle Trends",
-    "subtitle": "Die aktuellen Tops — Hashtags, Sounds, Produkte und KI-erkannte Themen.",
-    "empty": "Noch keine Trends erkannt. Der Job läuft alle 6 Stunden — schau bald wieder vorbei."
   },
   "hostBookings": {
     "title": "Eingegangene Buchungen",

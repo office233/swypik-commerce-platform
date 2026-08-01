@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, TrendingUp, Swords, User } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, Compass, User } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
 import MyModes from "@/components/account/MyModes";
 import { useTranslations } from "next-intl";
@@ -294,33 +294,33 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Link
-              href="/trends"
+              href="/explore"
               className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#10A37F]/20 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#10A37F]/60 transition active:scale-[0.98]"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="w-9 h-9 rounded-xl bg-[#10A37F]/20 flex items-center justify-center">
-                  <TrendingUp size={18} className="text-[#10A37F]" aria-hidden />
+                  <Compass size={18} className="text-[#10A37F]" aria-hidden />
                 </div>
                 <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
               </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Ce e hot acum</p>
-              <p className="mt-1 text-xl font-black text-white">Trends</p>
-              <p className="mt-1 text-xs text-[#10A37F] font-bold">Vezi trending →</p>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Descoperă produse</p>
+              <p className="mt-1 text-xl font-black text-white">Explore</p>
+              <p className="mt-1 text-xs text-[#10A37F] font-bold">Vezi feedul →</p>
             </Link>
 
             <Link
-              href="/battles"
+              href="/missions"
               className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#F59E0B]/20 via-[#1A1A1A] to-[#1A1A1A] p-4 hover:border-[#F59E0B]/60 transition active:scale-[0.98]"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="w-9 h-9 rounded-xl bg-[#F59E0B]/20 flex items-center justify-center">
-                  <Swords size={18} className="text-[#F59E0B]" aria-hidden />
+                  <Trophy size={18} className="text-[#F59E0B]" aria-hidden />
                 </div>
                 <ChevronRight size={16} className="text-white/40 group-hover:text-white/80 transition" aria-hidden />
               </div>
-              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Voturi & dueluri</p>
-              <p className="mt-1 text-xl font-black text-white">Battles</p>
-              <p className="mt-1 text-xs text-[#F59E0B] font-bold">{t("intraInArena")}</p>
+              <p className="text-[11px] uppercase font-bold tracking-wider text-white/50">Câștigă SWYP</p>
+              <p className="mt-1 text-xl font-black text-white">Misiuni</p>
+              <p className="mt-1 text-xs text-[#F59E0B] font-bold">Vezi misiunile →</p>
             </Link>
           </div>
         </section>

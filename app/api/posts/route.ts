@@ -1,11 +1,12 @@
 /**
- * Swypik Arena — community posts in all 8 formats.
+ * Swypik Arena — community posts.
+ * (format "battle" retras 2026-08: nefolosit, UI-ul /battles a fost sters)
  *
  *   GET  /api/posts   → public feed (read-only listing, hot/new/ending)
  *   POST /api/posts   → create a new post (authenticated)
  *
  * Query params for GET:
- *   format=merita|battle|find_me|setup|drop|review_real|dupe_hunt|roast_cart
+ *   format=merita|find_me|setup|drop|review_real|dupe_hunt|roast_cart
  *   sort=hot|new|ending     (default: hot)
  *   limit=1..50             (default: 20)
  *   cursor=<iso ts>         (optional)
@@ -14,7 +15,7 @@
  *   { format, title, body?, endsAt?, options?: Array<{
  *       optionKey?, label?, productId?, externalUrl?, externalImage?, externalTitle?
  *   }> }
- *   - battle / find_me / dupe_hunt require ≥2 options.
+ *   - find_me / dupe_hunt require ≥2 options.
  *   - Each option needs productId OR externalUrl.
  *
  * Title + body are run through `moderateText("post")` — blocked/adult ⇒ 422.
@@ -32,7 +33,6 @@ export const dynamic = "force-dynamic";
 
 const FORMATS = new Set([
   "merita",
-  "battle",
   "find_me",
   "setup",
   "drop",
@@ -42,7 +42,6 @@ const FORMATS = new Set([
 ]);
 
 const MIN_OPTIONS_BY_FORMAT: Record<string, number> = {
-  battle: 2,
   find_me: 2,
   dupe_hunt: 2,
 };

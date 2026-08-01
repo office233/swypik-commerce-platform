@@ -1982,24 +1982,11 @@
     "aboutDescription": "Swypik este marketplace-ul unde descoperi produse prin clipuri scurte, cu recomandări AI și creatori locali.",
     "helpTitle": "Ajutor — Swypik",
     "helpDescription": "Întrebări frecvente și sprijin pentru cumpărători și creatori Swypik.",
-    "battlesTitle": "Battles — Swypik Arena",
-    "battlesDescription": "Dueluri video între creatori: votează, susține-ți favoritul și câștigă recompense.",
     "missionsTitle": "Misiuni — Swypik Creators",
     "missionsDescription": "Misiuni plătite pentru creatori: filmează, publică și câștigă din recompense.",
     "sellerTitle": "{name} — Swypik",
     "sellerDescription": "Descoperă produsele vândute de {name} pe Swypik.",
     "sellerNotFound": "Vânzător negăsit — Swypik"
-  },
-  "battlesPage": {
-    "subtitle": "Versus între produse. Votează preferatul, câștigă SWYP.",
-    "sortHot": "🔥 Hot",
-    "sortNew": "🆕 Noi",
-    "sortEnding": "⏰ Se închid",
-    "empty": "Niciun battle activ. Ești primul!",
-    "createOne": "Creează unul",
-    "votes": "{count} voturi",
-    "permanent": "Permanent",
-    "ended": "Încheiat"
   },
   "missionsPage": {
     "subtitle": "Brief-uri plătite pentru creatori. Câștigi SWYP + bounty per vânzare.",
@@ -2303,11 +2290,6 @@
     "tabCreators": "Creatori",
     "tabProducts": "Produse",
     "minChars": "Scrie cel puțin 2 caractere pentru a căuta."
-  },
-  "trendsPage": {
-    "title": "Trends acum",
-    "subtitle": "Topul curent — hashtag-uri, sunete, produse și topicuri detectate AI.",
-    "empty": "Niciun trend detectat încă. Cron-ul rulează la 6 ore — revino curând."
   },
   "hostBookings": {
     "title": "Rezervări primite",

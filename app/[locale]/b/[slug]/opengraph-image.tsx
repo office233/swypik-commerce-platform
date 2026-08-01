@@ -10,7 +10,6 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const FORMAT_LABEL: Record<string, string> = {
-  battle: "BATTLE",
   find_me: "AJUTĂ-MĂ SĂ ALEG",
   merita: "MERITĂ?",
   dupe_hunt: "DUPE HUNT",

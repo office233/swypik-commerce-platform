@@ -1866,24 +1866,11 @@
     "aboutDescription": "Swypik è il marketplace dove scopri prodotti tramite brevi video, con consigli IA e creator locali.",
     "helpTitle": "Aiuto — Swypik",
     "helpDescription": "Domande frequenti e supporto per acquirenti e creator Swypik.",
-    "battlesTitle": "Battles — Swypik Arena",
-    "battlesDescription": "Duelli video tra creator: vota, sostieni il tuo preferito e vinci premi.",
     "missionsTitle": "Missioni — Swypik Creators",
     "missionsDescription": "Missioni retribuite per creator: gira, pubblica e guadagna premi.",
     "sellerTitle": "{name} — Swypik",
     "sellerDescription": "Scopri i prodotti venduti da {name} su Swypik.",
     "sellerNotFound": "Venditore non trovato — Swypik"
-  },
-  "battlesPage": {
-    "subtitle": "Prodotto contro prodotto. Vota il tuo preferito, guadagna SWYP.",
-    "sortHot": "🔥 Hot",
-    "sortNew": "🆕 Nuovi",
-    "sortEnding": "⏰ In chiusura",
-    "empty": "Nessun battle attivo. Sii il primo!",
-    "createOne": "Creane uno",
-    "votes": "{count} voti",
-    "permanent": "Permanente",
-    "ended": "Concluso"
   },
   "missionsPage": {
     "subtitle": "Brief retribuiti per creator. Guadagna SWYP + bounty per vendita.",
@@ -2303,11 +2290,6 @@
     "tabCreators": "Creator",
     "tabProducts": "Prodotti",
     "minChars": "Digita almeno 2 caratteri per cercare."
-  },
-  "trendsPage": {
-    "title": "Tendenze del momento",
-    "subtitle": "La top attuale — hashtag, suoni, prodotti e argomenti rilevati dall'IA.",
-    "empty": "Nessuna tendenza rilevata ancora. Il processo gira ogni 6 ore — torna presto."
   },
   "hostBookings": {
     "title": "Prenotazioni ricevute",

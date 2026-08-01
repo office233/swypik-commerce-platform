@@ -76,7 +76,6 @@ async function loadPost(slug: string) {
 }
 
 const FORMAT_CTA: Record<string, string> = {
-  battle: "Votează battle-ul",
   find_me: "Ajută-mă să aleg",
   merita: "Merită sau nu?",
   dupe_hunt: "Găseşte o alternativă mai bună",

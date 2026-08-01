@@ -1951,24 +1951,11 @@
     "aboutDescription": "Swypik is the marketplace where you discover products through short videos, with AI recommendations and local creators.",
     "helpTitle": "Help — Swypik",
     "helpDescription": "Frequently asked questions and support for Swypik shoppers and creators.",
-    "battlesTitle": "Battles — Swypik Arena",
-    "battlesDescription": "Video duels between creators: vote, back your favorite and earn rewards.",
     "missionsTitle": "Missions — Swypik Creators",
     "missionsDescription": "Paid missions for creators: film, publish and earn rewards.",
     "sellerTitle": "{name} — Swypik",
     "sellerDescription": "Discover products sold by {name} on Swypik.",
     "sellerNotFound": "Seller not found — Swypik"
-  },
-  "battlesPage": {
-    "subtitle": "Product versus product. Vote your favorite, earn SWYP.",
-    "sortHot": "🔥 Hot",
-    "sortNew": "🆕 New",
-    "sortEnding": "⏰ Ending",
-    "empty": "No active battles. Be the first!",
-    "createOne": "Create one",
-    "votes": "{count} votes",
-    "permanent": "Permanent",
-    "ended": "Ended"
   },
   "missionsPage": {
     "subtitle": "Paid briefs for creators. Earn SWYP + a bounty per sale.",
@@ -2303,11 +2290,6 @@
     "tabCreators": "Creators",
     "tabProducts": "Products",
     "minChars": "Type at least 2 characters to search."
-  },
-  "trendsPage": {
-    "title": "Trending now",
-    "subtitle": "The current top — hashtags, sounds, products and topics detected by AI.",
-    "empty": "No trends detected yet. The job runs every 6 hours — check back soon."
   },
   "hostBookings": {
     "title": "Received bookings",

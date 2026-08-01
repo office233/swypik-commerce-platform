@@ -1866,24 +1866,11 @@
     "aboutDescription": "Swypik est la marketplace où vous découvrez des produits via de courtes vidéos, avec recommandations IA et créateurs locaux.",
     "helpTitle": "Aide — Swypik",
     "helpDescription": "Questions fréquentes et assistance pour les acheteurs et créateurs Swypik.",
-    "battlesTitle": "Battles — Swypik Arena",
-    "battlesDescription": "Duels vidéo entre créateurs : votez, soutenez votre favori et gagnez des récompenses.",
     "missionsTitle": "Missions — Swypik Creators",
     "missionsDescription": "Missions rémunérées pour créateurs : filmez, publiez et gagnez des récompenses.",
     "sellerTitle": "{name} — Swypik",
     "sellerDescription": "Découvrez les produits vendus par {name} sur Swypik.",
     "sellerNotFound": "Vendeur introuvable — Swypik"
-  },
-  "battlesPage": {
-    "subtitle": "Produit contre produit. Votez pour votre favori, gagnez des SWYP.",
-    "sortHot": "🔥 Hot",
-    "sortNew": "🆕 Nouveaux",
-    "sortEnding": "⏰ Bientôt finis",
-    "empty": "Aucun battle actif. Soyez le premier !",
-    "createOne": "Créez-en un",
-    "votes": "{count} votes",
-    "permanent": "Permanent",
-    "ended": "Terminé"
   },
   "missionsPage": {
     "subtitle": "Briefs rémunérés pour créateurs. Gagnez des SWYP + une prime par vente.",
@@ -2303,11 +2290,6 @@
     "tabCreators": "Créateurs",
     "tabProducts": "Produits",
     "minChars": "Saisissez au moins 2 caractères pour rechercher."
-  },
-  "trendsPage": {
-    "title": "Tendances du moment",
-    "subtitle": "Le top actuel — hashtags, sons, produits et sujets détectés par l'IA.",
-    "empty": "Aucune tendance détectée pour l'instant. Le traitement s'exécute toutes les 6 heures — revenez bientôt."
   },
   "hostBookings": {
     "title": "Réservations reçues",

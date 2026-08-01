@@ -823,11 +823,9 @@ export async function GET(request: NextRequest) {
           } : null,
           cardType: row.mission_id
             ? "mission"
-            : row.post_format === "battle"
-              ? "battle"
-              : row.post_format === "merita"
-                ? "decide"
-                : "watch",
+            : row.post_format === "merita"
+              ? "decide"
+              : "watch",
           linkedPost: row.post_id ? {
             id: String(row.post_id),
             slug: row.post_slug || null,
