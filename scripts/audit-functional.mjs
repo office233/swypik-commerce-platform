@@ -7,10 +7,11 @@ const BASE = process.env.AUDIT_BASE || "https://swypik.com";
 
 const checks = [
   // Pagini publice (HTML 200)
-  { name: "home ro", path: "/ro", expect: 200 },
+  // localePrefix "as-needed": /ro/* redirecteaza 307 la /* (limba implicita)
+  { name: "home ro", path: "/ro", expect: [200, 307] },
   { name: "home en", path: "/en", expect: 200 },
-  { name: "explore", path: "/ro/explore", expect: 200 },
-  { name: "cart", path: "/ro/cart", expect: 200 },
+  { name: "explore", path: "/explore", expect: 200 },
+  { name: "cart", path: "/ro/cart", expect: [200, 307] },
   { name: "cart redirect vechi", path: "/cart", expect: [200, 307, 308] },
   { name: "pay", path: "/ro/pay", expect: [200, 307] },
   { name: "go (ride)", path: "/ro/go", expect: [200, 307] },
