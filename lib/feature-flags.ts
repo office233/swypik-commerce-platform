@@ -19,6 +19,8 @@ export const FEATURES = {
   emailMarketing: flag('FEATURE_EMAIL_MARKETING', false),
   seoPages: flag('FEATURE_SEO_PAGES', false),
   aiChatFull: flag('FEATURE_AI_CHAT_FULL', false),
+  // Swypik Go (curse) — live, dar cu killswitch: FEATURE_GO=0 îl oprește.
+  go: flag('FEATURE_GO', true),
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

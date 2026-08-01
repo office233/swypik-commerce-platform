@@ -14,6 +14,7 @@ import { resolveRideCity, NoZoneError } from "@/lib/rides/city";
 import { RideEstimateSchema } from "@/lib/validation/rides";
 import { parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export const dynamic = "force-dynamic";
 const log = logger.child({ route: "rides/estimate" });
 
 export async function POST(req: Request) {
+    if (!isEnabled("go")) return frozenResponse("go");
     const session = await getAuthSession();
     if (!session?.userId) {
         return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });

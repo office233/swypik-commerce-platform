@@ -65,6 +65,9 @@ while true; do
   # Every 10 min
   if [ $((TICK % 600)) -lt 60 ]; then
     run_job watchdog-videos POST
+      # Plasa de siguranta Go: anuleaza cursele blocate in requested/searching
+      # daca dispatch-worker a murit. (Audit 2026-08-01.)
+      run_job watchdog-rides POST
   fi
   # Every 15 min
   if [ $((TICK % 900)) -lt 60 ]; then
