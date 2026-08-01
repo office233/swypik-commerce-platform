@@ -687,6 +687,33 @@ export default function PayClient() {
                 </div>
             </section>
 
+            {/* ── Verifică singur: toate resursele publice ale monedei ── */}
+            <section className="px-5 mt-6 pb-4">
+                <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">{t("linksTitle")}</h3>
+                <div className="space-y-2">
+                    {[
+                        { href: "https://scan.swypik.com", label: t("linkExplorer"), desc: t("linkExplorerDesc") },
+                        { href: "/api/swyp/supply", label: t("linkSupply"), desc: t("linkSupplyDesc") },
+                        { href: "https://rpc.swypik.com", label: t("linkRpc"), desc: t("linkRpcDesc") },
+                        { href: "/api/swyp/rate", label: t("linkRate"), desc: t("linkRateDesc") },
+                    ].map((l) => (
+                        <a
+                            key={l.href}
+                            href={l.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 active:scale-[0.99] transition"
+                        >
+                            <span>
+                                <span className="block text-xs font-bold text-white/90">{l.label}</span>
+                                <span className="block text-[10px] text-white/40">{l.desc}</span>
+                            </span>
+                            <span className="text-[#F5A623] text-xs shrink-0 ml-3">↗</span>
+                        </a>
+                    ))}
+                </div>
+            </section>
+
             {/* ── Modal sumă (înlocuiește prompt) ── */}
             {amountModal && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-4" onClick={() => setAmountModal(null)}>
