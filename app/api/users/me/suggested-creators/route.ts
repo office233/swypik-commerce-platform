@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { SWYPIK_OFFICIAL_ID } from "@/lib/config/accounts";
 
 export const dynamic = "force-dynamic";
-
-const SWYPIK_OFFICIAL_ID = "bf3ba871-b369-4669-b7f9-2e0ab5eecebe";
 
 type Row = {
   id: string;

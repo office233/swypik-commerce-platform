@@ -111,18 +111,24 @@ export const POST = withErrorHandling(async (req: Request) => {
         }
         // 3b. Emiterea a eșuat complet → restituie intern (idempotent pe <id>).
         logger.error({ err, withdrawalId }, "swyp.withdraw.chain_failed");
-        await swypTransfer({
-            from: { pool: "rewards" },
-            to: { userId: session.userId },
-            amountUnits: units,
-            kind: "adjustment",
-            refType: "withdraw_refund",
-            refId: withdrawalId,
-            description: "Refund retragere eșuată",
-        }).catch((e) => logger.error({ err: e, withdrawalId }, "swyp.withdraw.refund_failed"));
+        let refunded = true;
+        try {
+            await swypTransfer({
+                from: { pool: "rewards" },
+                to: { userId: session.userId },
+                amountUnits: units,
+                kind: "adjustment",
+                refType: "withdraw_refund",
+                refId: withdrawalId,
+                description: "Refund retragere eșuată",
+            });
+        } catch (e) {
+            refunded = false;
+            logger.error({ err: e, withdrawalId }, "swyp.withdraw.refund_failed");
+        }
         await dbQuery(
-            `UPDATE swyp_withdrawals SET status='refunded', error='chain_send_failed', completed_at=now() WHERE id=$1`,
-            [withdrawalId],
+            `UPDATE swyp_withdrawals SET status=$2, error='chain_send_failed', completed_at=now() WHERE id=$1`,
+            [withdrawalId, refunded ? "refunded" : "refund_failed"],
         );
         return NextResponse.json({ success: false, error: "chain_unavailable_refunded" }, { status: 502 });
     }

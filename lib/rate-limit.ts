@@ -59,6 +59,31 @@ export async function idempotencySet(
   }
 }
 
+/**
+ * Rezervă atomic cheia de idempotență (SET NX). Întoarce `true` doar pentru
+ * primul apelant — ceilalți trebuie să aștepte/reia rezultatul, ca două cereri
+ * concurente să nu execute amândouă operația în fereastra get-then-set.
+ */
+export async function idempotencyClaim(key: string, ttlSec = 300): Promise<boolean> {
+  try {
+    const redis = getRedis();
+    const res = await redis.set(`idem:claim:${key}`, "1", "EX", ttlSec, "NX");
+    return res === "OK";
+  } catch {
+    // Fail-open: fără Redis nu blocăm vânzarea.
+    return true;
+  }
+}
+
+/** Eliberează rezervarea (la eroare, ca retry-ul clientului să poată relua). */
+export async function idempotencyRelease(key: string): Promise<void> {
+  try {
+    await getRedis().del(`idem:claim:${key}`);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function clientIp(req: Request): string {
   const h = (req as any).headers;
   if (!h) return "unknown";

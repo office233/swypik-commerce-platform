@@ -2,8 +2,7 @@ import { headers } from "next/headers";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import OnboardingModal, { type SuggestedCreator } from "./OnboardingModal";
-
-const SWYPIK_OFFICIAL_ID = "bf3ba871-b369-4669-b7f9-2e0ab5eecebe";
+import { SWYPIK_OFFICIAL_ID } from "@/lib/config/accounts";
 
 type Row = {
   id: string;

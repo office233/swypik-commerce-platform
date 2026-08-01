@@ -6,11 +6,12 @@ import { getStripe } from "@/lib/stripe/checkout";
 import crypto from "crypto";
 
 import { logger } from "@/lib/logger";
-import { idempotencyGet, idempotencySet, clientIp } from "@/lib/rate-limit";
+import { idempotencyGet, idempotencySet, idempotencyClaim, idempotencyRelease, clientIp } from "@/lib/rate-limit";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { CheckoutCreateIntentSchema, parseBody } from "@/lib/validation/schemas";
 import { applySwypToTotal } from "@/lib/swyp/hybrid-payment";
+import { refundSwypForUnpaidOrder } from "@/lib/swyp/refund";
 function parseQuantity(value: unknown) {
   const quantity = Number(value);
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) return null;
@@ -18,6 +19,7 @@ function parseQuantity(value: unknown) {
 }
 
 export async function POST(req: Request) {
+  let claimedKey: string | null = null;
   try {
     const rawBody = await req.json().catch(() => null);
     const parsed = parseBody(CheckoutCreateIntentSchema, rawBody);
@@ -56,11 +58,21 @@ export async function POST(req: Request) {
       if (cached) {
         return NextResponse.json(cached);
       }
+      // Rezervare atomică: două cereri concurente cu aceeași cheie nu au voie
+      // să creeze amândouă comenzi + debit SWYP în fereastra get-then-set.
+      const claimed = await idempotencyClaim(`checkout:${idempotencyKey}`, 60);
+      if (!claimed) {
+        return NextResponse.json(
+          { success: false, error: "În curs de procesare. Reîncearcă în câteva secunde." },
+          { status: 409 },
+        );
+      }
+      claimedKey = idempotencyKey;
     }
 
 
     const checkoutItems = [];
-    let totalRon = 0;
+    let totalCents = 0;
 
     for (const item of rawItems) {
       const productId = String(item.productId || item.pgId || "").trim();
@@ -72,7 +84,7 @@ export async function POST(req: Request) {
       const pgProduct = await getCheckoutProductById(productId);
       if (!pgProduct) continue;
 
-      let variantPrice = pgProduct.price;
+      let variantPriceCents = Math.round(pgProduct.price * 100);
       let variantId: string | null = null;
 
       if (item.skuId) {
@@ -82,7 +94,7 @@ export async function POST(req: Request) {
         );
         if (rows.length > 0 && Number(rows[0].price_cents) > 0) {
           variantId = String(rows[0].id);
-          variantPrice = Number(rows[0].price_cents) / 100;
+          variantPriceCents = Number(rows[0].price_cents);
         }
       }
 
@@ -96,7 +108,7 @@ export async function POST(req: Request) {
         aeProductId: pgProduct.aeProductId,
         pgId: pgProduct.productId,
         title: pgProduct.title,
-        price: variantPrice,
+        priceCents: variantPriceCents,
         quantity: qty,
         skuId: item.skuId,
         variantId,
@@ -104,14 +116,13 @@ export async function POST(req: Request) {
         ...attribution,
       });
 
-      totalRon += variantPrice * qty;
+      totalCents += variantPriceCents * qty;
     }
 
     if (checkoutItems.length === 0) {
       return NextResponse.json({ success: false, error: "Produse indisponibile." }, { status: 400 });
     }
 
-    const totalCents = Math.round(totalRon * 100);
     const orderLookupToken = crypto.randomBytes(24).toString("hex");
 
     // Cloudflare signals — only trusted because Caddy strips CF-* from origin traffic.
@@ -153,8 +164,8 @@ export async function POST(req: Request) {
           `${item.pgId}:${item.skuId || "default"}`,
           item.title,
           item.quantity,
-          Math.round(item.price * 100),
-          Math.round(item.price * item.quantity * 100),
+          item.priceCents,
+          item.priceCents * item.quantity,
           JSON.stringify({
             source: "manual",
             product_id: item.productId,
@@ -198,19 +209,47 @@ export async function POST(req: Request) {
       );
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: remainingCents,
-      currency: "ron",
-      automatic_payment_methods: {
-        enabled: true,
-      },
-      metadata: {
-        orderId: orderId,
-        expectedAmount: String(remainingCents),
-        expectedCurrency: "RON",
-        swypPaidCents: String(swypCents),
+    // Din acest punct SWYP-ul e deja debitat. Dacă Stripe eșuează, comanda nu
+    // se va plăti niciodată, deci trebuie să întoarcem SWYP-ul imediat —
+    // altfel userul rămâne fără el pe un `pending` mort, iar retry-ul creează
+    // altă comandă și debitează din nou.
+    let paymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: remainingCents,
+        currency: "ron",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          orderId: orderId,
+          expectedAmount: String(remainingCents),
+          expectedCurrency: "RON",
+          swypPaidCents: String(swypCents),
+        }
+      }, { idempotencyKey: `pi:${orderId}` });
+    } catch (stripeErr) {
+      if (swypCents > 0) {
+        try {
+          await refundSwypForUnpaidOrder({
+            orderId,
+            refType: "swyp_refund_intent",
+            refId: `create_failed:${orderId}`,
+            reason: "stripe_intent_create_failed",
+          });
+        } catch (refundErr) {
+          logger.error(
+            { err: refundErr, orderId, swypCents },
+            "[Create Intent] SWYP refund failed after Stripe error — needs manual reconciliation",
+          );
+        }
       }
-    });
+      await dbQuery(
+        `UPDATE commerce_orders SET status = 'failed' WHERE id = $1 AND status = 'pending'`,
+        [orderId],
+      ).catch(() => undefined);
+      throw stripeErr;
+    }
 
     await dbQuery(
       `UPDATE commerce_orders SET metadata = metadata || $1::jsonb WHERE id = $2`,
@@ -220,7 +259,7 @@ export async function POST(req: Request) {
     const responsePayload = {
       success: true,
       clientSecret: paymentIntent.client_secret,
-      totalRon,
+      totalRon: totalCents / 100,
       orderId,
       orderLookupToken,
       swypPaidCents: swypCents,
@@ -232,6 +271,7 @@ export async function POST(req: Request) {
     return NextResponse.json(responsePayload);
   } catch (error: unknown) {
     logger.error({ err: error }, "[Create Intent Error]");
+    if (claimedKey) await idempotencyRelease(`checkout:${claimedKey}`);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
   }
 }

@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { dbQuery } from "@/lib/db";
+import { dbQuery, withTransaction } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { getStripe } from "@/lib/stripe/checkout";
 import { evaluateSellerRefundRequest } from "@/lib/seller/refund-policy";
@@ -131,7 +131,12 @@ export async function POST(
       );
     }
 
-    await dbQuery(
+    // Banii au plecat deja de la Stripe. Toate consecințele în DB trebuie să
+    // fie atomice: dacă una eșuează la jumătate, comanda rămâne într-o stare
+    // hibridă (refundată la Stripe, dar plătibilă în continuare de cronul de
+    // payout). Un singur BEGIN/COMMIT pentru tot.
+    const { sellerClawback, creatorClawback } = await withTransaction(async (q) => {
+    await q(
       `UPDATE commerce_orders
        SET status = 'refunded',
            metadata = metadata || jsonb_build_object(
@@ -146,7 +151,7 @@ export async function POST(
     );
 
     // Stamp refund metadata on every item belonging to this seller (informational).
-    await dbQuery(
+    await q(
       `UPDATE commerce_order_items
          SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
                'refund_id', $3::text,
@@ -161,7 +166,7 @@ export async function POST(
     // Items already 'paid' must NOT be flipped to 'refunded' (the Stripe transfer
     // already moved money). Flag them for manual clawback and emit a structured
     // log line so ops can pick it up from `docker logs`.
-    const { rows: sellerClawback } = await dbQuery<{
+    const { rows: sellerClawback } = await q<{
       id: string;
       amount_cents: number | null;
       transfer_id: string | null;
@@ -180,23 +185,9 @@ export async function POST(
                  metadata->>'seller_transfer_id' AS transfer_id`,
       [orderId, sellerId, refundId]
     );
-    for (const row of sellerClawback) {
-      console.error(
-        '[refund-after-payout] seller payout already settled - manual Stripe clawback required',
-        JSON.stringify({
-          order_id: orderId,
-          item_id: row.id,
-          seller_id: sellerId,
-          amount_cents: row.amount_cents,
-          transfer_id: row.transfer_id,
-          refund_id: refundId,
-        })
-      );
-    }
-
     // Items not yet paid out to the seller: safe to mark as refunded so the
     // payout cron skips them even before the order-status guard kicks in.
-    await dbQuery(
+    await q(
       `UPDATE commerce_order_items
          SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
                'seller_payout_status', 'refunded',
@@ -214,7 +205,7 @@ export async function POST(
     // CREATOR payout state lives in the dedicated `payout_status` column
     // (see migration 20260514_0003_order_item_payout_status_check.sql).
     // Same rule: don't overwrite 'paid' - flag for manual clawback.
-    const { rows: creatorClawback } = await dbQuery<{
+    const { rows: creatorClawback } = await q<{
       id: string;
       amount_cents: number | null;
       transfer_id: string | null;
@@ -235,23 +226,9 @@ export async function POST(
                  creator_id::text AS creator_id`,
       [orderId, sellerId]
     );
-    for (const row of creatorClawback) {
-      console.error(
-        '[refund-after-payout] creator payout already settled - manual Stripe clawback required',
-        JSON.stringify({
-          order_id: orderId,
-          item_id: row.id,
-          creator_id: row.creator_id,
-          amount_cents: row.amount_cents,
-          transfer_id: row.transfer_id,
-          refund_id: refundId,
-        })
-      );
-    }
-
     // Creator items not yet paid: flip column to 'refunded' so payout cron
     // skips them (cron filters payout_status IN (NULL,'pending')).
-    await dbQuery(
+    await q(
       `UPDATE commerce_order_items
          SET payout_status = 'refunded'
        WHERE order_id = $1::uuid
@@ -261,7 +238,7 @@ export async function POST(
       [orderId, sellerId]
     );
 
-    await dbQuery(
+    await q(
       `INSERT INTO payment_transactions (
         order_id, provider, provider_payment_id, transaction_type,
         status, currency, amount_cents, processed_at, metadata
@@ -280,6 +257,38 @@ export async function POST(
         JSON.stringify({ payment_intent: paymentIntentId, seller_id: sellerId }),
       ]
     );
+
+    return { sellerClawback, creatorClawback };
+    });
+
+    // Alerte de reconciliere manuală — după commit, ca logarea să nu țină
+    // tranzacția deschisă și să nu se emită dacă aceasta face rollback.
+    for (const row of sellerClawback) {
+      logger.error(
+        {
+          order_id: orderId,
+          item_id: row.id,
+          seller_id: sellerId,
+          amount_cents: row.amount_cents,
+          transfer_id: row.transfer_id,
+          refund_id: refundId,
+        },
+        "[refund-after-payout] seller payout already settled - manual Stripe clawback required",
+      );
+    }
+    for (const row of creatorClawback) {
+      logger.error(
+        {
+          order_id: orderId,
+          item_id: row.id,
+          creator_id: row.creator_id,
+          amount_cents: row.amount_cents,
+          transfer_id: row.transfer_id,
+          refund_id: refundId,
+        },
+        "[refund-after-payout] creator payout already settled - manual Stripe clawback required",
+      );
+    }
 
     logger.info({ order_id: orderId, seller_id: sellerId }, "[Seller Refund] order marked as refunded");
 

@@ -68,21 +68,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "IBAN invalid." }, { status: 400 });
   }
 
-  // Cerere pending existentă → nu permitem alta în paralel.
-  const { rows: pending } = await dbQuery(
-    `SELECT id FROM payout_requests WHERE user_id = $1 AND status = 'pending' LIMIT 1`,
-    [session.userId],
-  );
-  if (pending[0]) {
-    return NextResponse.json({ error: "Ai deja o cerere de retragere în așteptare." }, { status: 409 });
-  }
-
-  // Creăm cererea, apoi debităm soldul cu ref pe id-ul cererii (idempotent).
+  // Creăm cererea DOAR dacă nu există alta pending — atomic, ca două cereri
+  // concurente să nu treacă amândouă de verificare (TOCTOU).
   const { rows: created } = await dbQuery<{ id: string }>(
     `INSERT INTO payout_requests (user_id, courier_id, amount_cents, iban)
-     VALUES ($1, $2, $3, $4) RETURNING id`,
+     SELECT $1, $2, $3, $4
+     WHERE NOT EXISTS (
+       SELECT 1 FROM payout_requests WHERE user_id = $1 AND status = 'pending'
+     )
+     RETURNING id`,
     [session.userId, courierRows[0].id, amount, iban],
   );
+  if (!created[0]) {
+    return NextResponse.json({ error: "Ai deja o cerere de retragere în așteptare." }, { status: 409 });
+  }
   const payoutId = created[0].id;
 
   try {
