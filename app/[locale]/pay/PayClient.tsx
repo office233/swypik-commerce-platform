@@ -718,11 +718,18 @@ export default function PayClient() {
                 <section className="px-5 mt-8 pb-6">
                     <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/45 mb-3">{t("linksTitle")}</h3>
                     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] divide-y divide-white/[0.05] overflow-hidden">
+                        <Link
+                            href="/swyp"
+                            className="flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.04] transition"
+                        >
+                            <span>
+                                <span className="block text-xs font-bold text-white/85">{t("linkPublicPage")}</span>
+                                <span className="mt-0.5 block text-[10px] text-white/35">{t("linkPublicPageDesc")}</span>
+                            </span>
+                            <span className="text-[#F5A623]/70 text-xs shrink-0 ml-3">→</span>
+                        </Link>
                         {[
                             { href: "https://scan.swypik.com", label: t("linkExplorer"), desc: t("linkExplorerDesc") },
-                            { href: "/api/swyp/supply", label: t("linkSupply"), desc: t("linkSupplyDesc") },
-                            { href: "https://rpc.swypik.com", label: t("linkRpc"), desc: t("linkRpcDesc") },
-                            { href: "/api/swyp/rate", label: t("linkRate"), desc: t("linkRateDesc") },
                         ].map((l) => (
                             <a
                                 key={l.href}
