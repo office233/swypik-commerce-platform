@@ -4,6 +4,7 @@
  * (pensiuni/hoteluri) și conformitatea fiscală înainte de publicare.
  */
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Check, X } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
@@ -83,6 +84,7 @@ export default async function AdminHostsPage({
 }: {
     searchParams: Promise<{ status?: string }>;
 }) {
+    const t = await getTranslations("adminHosts");
     await requireAdminSession();
     const sp = await searchParams;
     const status = (TABS as readonly string[]).includes(sp.status || "") ? sp.status! : "pending";
@@ -162,22 +164,22 @@ export default async function AdminHostsPage({
                             </div>
 
                             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                                <div><dt className="inline text-black/50">Gazdă: </dt><dd className="inline font-medium">{r.full_name}</dd></div>
-                                <div><dt className="inline text-black/50">Formă: </dt><dd className="inline font-medium">{ENTITY_LABELS[r.entity_type] ?? r.entity_type}</dd></div>
+                                <div><dt className="inline text-black/50">{t("host")}</dt><dd className="inline font-medium">{r.full_name}</dd></div>
+                                <div><dt className="inline text-black/50">{t("form")}</dt><dd className="inline font-medium">{ENTITY_LABELS[r.entity_type] ?? r.entity_type}</dd></div>
                                 <div><dt className="inline text-black/50">Telefon: </dt><dd className="inline font-medium">{r.phone}</dd></div>
                                 <div><dt className="inline text-black/50">Email: </dt><dd className="inline font-medium">{r.email}</dd></div>
-                                {r.company_name && <div><dt className="inline text-black/50">Firmă: </dt><dd className="inline font-medium">{r.company_name}</dd></div>}
+                                {r.company_name && <div><dt className="inline text-black/50">{t("company")}</dt><dd className="inline font-medium">{r.company_name}</dd></div>}
                                 {r.cui && <div><dt className="inline text-black/50">CUI: </dt><dd className="inline font-medium">{r.cui}</dd></div>}
-                                {maskedCnpOf(r) && <div><dt className="inline text-black/50">CNP: </dt><dd className="inline font-mono font-medium" title="afișat mascat — integral doar la raportare fiscală">{maskedCnpOf(r)}</dd></div>}
+                                {maskedCnpOf(r) && <div><dt className="inline text-black/50">CNP: </dt><dd className="inline font-mono font-medium" title={t("cnpMaskedTitle")}>{maskedCnpOf(r)}</dd></div>}
                             </dl>
 
                             <div className="mt-3 flex flex-wrap gap-2 text-xs">
                                 <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold ${r.tourism_registered ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-                                    {r.tourism_registered ? <><Check size={12} /> Declară înregistrare ANAF</> : <><X size={12} /> Fără declarație ANAF</>}
+                                    {r.tourism_registered ? <><Check size={12} /> {t("anafYes")}</> : <><X size={12} /> {t("anafNo")}</>}
                                 </span>
                                 {needsCert && (
                                     <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold ${r.classification_cert ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-                                        {r.classification_cert ? <><Check size={12} /> Certificat: {r.classification_cert}</> : <><X size={12} /> Fără certificat de clasificare</>}
+                                        {r.classification_cert ? <><Check size={12} /> {t("certLabel",{cert:r.classification_cert})}</> : <><X size={12} /> {t("noCert")}</>}
                                     </span>
                                 )}
                                 <span className="rounded-md bg-black/5 px-2 py-1 text-black/60">Trimisă: {fmtDate(r.created_at)}</span>
@@ -190,7 +192,7 @@ export default async function AdminHostsPage({
 
                             {r.admin_notes && (
                                 <p className="mt-2 rounded-lg bg-black/5 p-2 text-xs text-black/70">
-                                    <strong>Notă:</strong> {r.admin_notes}
+                                    <strong>{t("noteLabel")}</strong> {r.admin_notes}
                                 </p>
                             )}
 

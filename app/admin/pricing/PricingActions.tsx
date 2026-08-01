@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -19,6 +20,7 @@ async function post(body: unknown): Promise<boolean> {
 }
 
 export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
+    const t = useTranslations("adminPricing");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [zoneId, setZoneId] = useState("");
@@ -63,7 +65,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
     return (
       <div className="flex flex-wrap items-end gap-2 rounded-lg border p-3">
         <div className="flex flex-col text-xs">
-          <label className="mb-1">Zonă</label>
+          <label className="mb-1">{t("zoneLabel")}</label>
           <select
             value={zoneId}
             onChange={(e) => setZoneId(e.target.value)}
@@ -86,7 +88,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
           />
         </div>
         <div className="flex flex-col text-xs">
-          <label className="mb-1">Durată (min)</label>
+          <label className="mb-1">{t("durationMin")}</label>
           <input
             value={minutes}
             onChange={(e) => setMinutes(e.target.value)}

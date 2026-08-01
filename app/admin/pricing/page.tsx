@@ -1,4 +1,5 @@
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 import { MapPin, Zap, CheckCircle2, Ban } from "lucide-react";
 import PricingActions from "./PricingActions";
 
@@ -38,6 +39,7 @@ function money(cents: number, currency: string) {
 }
 
 export default async function AdminPricingPage() {
+    const t = await getTranslations("adminPricing");
   const [{ rows: zones }, { rows: surges }] = await Promise.all([
     dbQuery<Zone>(
       `SELECT * FROM pricing_zones ORDER BY country, lower(city), kind, vehicle_class`,
@@ -63,10 +65,10 @@ export default async function AdminPricingPage() {
           <table className="w-full text-sm">
             <thead className="bg-neutral-100 text-left dark:bg-neutral-800">
               <tr>
-                <th className="p-2">Oraș</th>
+                <th className="p-2">{t("thCity")}</th>
                 <th className="p-2">Tip</th>
-                <th className="p-2">Clasă</th>
-                <th className="p-2">Bază</th>
+                <th className="p-2">{t("thClass")}</th>
+                <th className="p-2">{t("thBase")}</th>
                 <th className="p-2">/km</th>
                 <th className="p-2">/min</th>
                 <th className="p-2">Min</th>
@@ -74,7 +76,7 @@ export default async function AdminPricingPage() {
                 <th className="p-2">Comision</th>
                 <th className="p-2">Curier %</th>
                 <th className="p-2">Activ</th>
-                <th className="p-2">Acțiuni</th>
+                <th className="p-2">{t("thActions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -119,12 +121,12 @@ export default async function AdminPricingPage() {
           <table className="w-full text-sm">
             <thead className="bg-neutral-100 text-left dark:bg-neutral-800">
               <tr>
-                <th className="p-2">Zonă</th>
+                <th className="p-2">{t("thZone")}</th>
                 <th className="p-2">Multiplicator</th>
-                <th className="p-2">Început</th>
-                <th className="p-2">Sfârșit</th>
-                <th className="p-2">Sursă</th>
-                <th className="p-2">Acțiuni</th>
+                <th className="p-2">{t("thStart")}</th>
+                <th className="p-2">{t("thEnd")}</th>
+                <th className="p-2">{t("thSource")}</th>
+                <th className="p-2">{t("thActions")}</th>
               </tr>
             </thead>
             <tbody>

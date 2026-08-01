@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import { Coins, BarChart3, Clock, CheckCircle2 } from "lucide-react";
 
@@ -44,6 +45,7 @@ export default async function CommissionsAdminPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+    const t = await getTranslations("adminCommissions");
   const sp = await searchParams;
   const status = (sp.status || "").trim();
   const creatorQ = (sp.creator || "").trim();
@@ -155,12 +157,12 @@ export default async function CommissionsAdminPage({
         />
         <KpiCard
           icon={<Clock className="w-5 h-5 text-yellow-600" />}
-          label="În așteptare"
+          label={t("pendingLabel")}
           value={String(kpis.pendingCount)}
         />
         <KpiCard
           icon={<CheckCircle2 className="w-5 h-5 text-green-600" />}
-          label="Plătite"
+          label={t("paidLabel")}
           value={String(kpis.paidCount)}
         />
         <KpiCard
@@ -228,12 +230,12 @@ export default async function CommissionsAdminPage({
                 <th className="px-4 py-3">Tip</th>
                 <th className="px-4 py-3">Brut</th>
                 <th className="px-4 py-3">Creator</th>
-                <th className="px-4 py-3">Platformă</th>
+                <th className="px-4 py-3">{t("thPlatform")}</th>
                 <th className="px-4 py-3">Rate</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Comandă</th>
+                <th className="px-4 py-3">{t("thOrder")}</th>
                 <th className="px-4 py-3">Creat</th>
-                <th className="px-4 py-3">Plătit</th>
+                <th className="px-4 py-3">{t("thPaid")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5E5] text-sm">

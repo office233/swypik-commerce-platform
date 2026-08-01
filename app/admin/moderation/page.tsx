@@ -2,6 +2,7 @@
  * Admin Moderation Queue — listă rapoarte
  */
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -69,12 +70,13 @@ export default async function ModerationPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+    const t = await getTranslations("adminModeration");
   const params = await searchParams;
   const reports = await getReports(params);
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-black mb-4">Moderare conținut</h1>
+      <h1 className="text-2xl font-black mb-4">{t("pageTitle")}</h1>
 
       <form method="GET" className="flex flex-wrap gap-2 mb-6">
         <select
@@ -83,7 +85,7 @@ export default async function ModerationPage({
           className="rounded-lg border border-black/10 px-3 py-2 text-sm bg-white"
         >
           <option value="open">Deschise</option>
-          <option value="triaged">În analiză</option>
+          <option value="triaged">{t("statusTriaged")}</option>
           <option value="actioned">Rezolvate</option>
           <option value="dismissed">Respinse</option>
         </select>

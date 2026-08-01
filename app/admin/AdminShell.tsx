@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -124,6 +125,7 @@ function SidebarContent({
   onNavigate?: () => void;
   onLogout: () => void;
 }) {
+  const t = useTranslations("adminShell");
   return (
     <div className="flex h-full flex-col">
       <div className="px-4 py-4 border-b border-white/10">
@@ -169,7 +171,7 @@ function SidebarContent({
                       key={item.href}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium text-white/30 cursor-not-allowed"
                       aria-disabled="true"
-                      title="În curând"
+                      title={t("comingSoon")}
                     >
                       <Icon className="w-4 h-4 shrink-0" />
                       <span className="flex-1 truncate">{item.label}</span>
@@ -204,6 +206,7 @@ function SidebarContent({
 }
 
 export default function AdminShell({ children }: { children: ReactNode }) {
+    const t = useTranslations("adminShell");
   const pathname = usePathname();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -248,7 +251,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         <div className="md:hidden fixed inset-0 z-50 flex">
           <button
             type="button"
-            aria-label="Închide meniul"
+            aria-label={t("closeMenu")}
             className="absolute inset-0 bg-black/60"
             onClick={() => setDrawerOpen(false)}
           />
@@ -256,7 +259,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
-              aria-label="Închide"
+              aria-label={t("close")}
               className="absolute top-2 right-2 grid h-11 w-11 place-items-center rounded-md text-white/60 hover:text-white hover:bg-white/10 z-10"
             >
               <X className="w-5 h-5" />

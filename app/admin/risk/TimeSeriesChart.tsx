@@ -1,4 +1,5 @@
 import { TrendingUp } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export type TimeSeriesPoint = {
   day: string; // YYYY-MM-DD
@@ -22,7 +23,8 @@ const PAD_X = 28;
 const PAD_TOP = 8;
 const PAD_BOTTOM = 18;
 
-export function TimeSeriesChart({ data }: { data: TimeSeries30d }) {
+export async function TimeSeriesChart({ data }: { data: TimeSeries30d }) {
+    const t = await getTranslations("adminRisk");
   const pts = data.points;
   const hasData = data.totalFlagged + data.totalApprovals + data.totalBlocks + data.totalAutoBlocks > 0;
   const max = Math.max(
@@ -68,7 +70,7 @@ export function TimeSeriesChart({ data }: { data: TimeSeries30d }) {
           viewBox={`0 0 ${W} ${H}`}
           className="w-full h-auto"
           role="img"
-          aria-label="Trend ultimele 30 zile pentru comenzi flagged, decizii approve/block și auto-blocks"
+          aria-label={t("chartAria")}
         >
           {/* Y axis gridlines */}
           {[0, 0.5, 1].map((r) => {

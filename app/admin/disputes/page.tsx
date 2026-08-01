@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Zap, Target } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import DisputeEvidenceForm from "./DisputeEvidenceForm";
@@ -103,6 +104,7 @@ export default async function AdminDisputesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+    const t = await getTranslations("adminDisputes");
   const sp = await searchParams;
   const active = sp.status || "needs_response";
   const disputes = await getDisputes(active);
@@ -191,7 +193,7 @@ export default async function AdminDisputesPage({
                       )}
                     </div>
                     <div>
-                      <span className="text-gray-500">Total comandă:</span>{" "}
+                      <span className="text-gray-500">{t("orderTotal")}</span>{" "}
                       {fmtMoney(d.order_total_cents, d.currency)}
                     </div>
                     <div>
@@ -217,7 +219,7 @@ export default async function AdminDisputesPage({
                     />
                   ) : d.evidence_data && Object.keys(d.evidence_data).length > 0 ? (
                     <div className="text-xs">
-                      <div className="font-semibold mb-1 text-gray-700">Evidence trimisă:</div>
+                      <div className="font-semibold mb-1 text-gray-700">{t("evidenceSent")}</div>
                       <pre className="bg-white border border-[#E5E5E5] rounded p-2 overflow-auto max-h-60 whitespace-pre-wrap">
                         {JSON.stringify(d.evidence_data, null, 2)}
                       </pre>

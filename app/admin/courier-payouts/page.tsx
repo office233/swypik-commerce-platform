@@ -5,6 +5,7 @@
  * Listă + aprobare (paid) / respingere (rejected, cu refund automat în wallet).
  */
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Payout = {
   id: string;
@@ -24,6 +25,7 @@ type Payout = {
 const ron = (c: number) => (c / 100).toFixed(2) + " RON";
 
 export default function CourierPayoutsAdminPage() {
+    const t = useTranslations("adminCourierPayouts");
   const [status, setStatus] = useState<string>("pending");
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ export default function CourierPayoutsAdminPage() {
 
       {error && <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">{error}</div>}
       {loading ? (
-        <div className="text-gray-500">Se încarcă…</div>
+        <div className="text-gray-500">{t("loading")}</div>
       ) : payouts.length === 0 ? (
         <div className="text-gray-500">Nicio cerere.</div>
       ) : (
@@ -97,12 +99,12 @@ export default function CourierPayoutsAdminPage() {
             <thead className="bg-gray-50 text-left">
               <tr>
                 <th className="p-3">Curier</th>
-                <th className="p-3">Sumă</th>
+                <th className="p-3">{t("thAmount")}</th>
                 <th className="p-3">Sold curent</th>
                 <th className="p-3">IBAN</th>
-                <th className="p-3">Cerută la</th>
+                <th className="p-3">{t("thRequestedAt")}</th>
                 <th className="p-3">Status</th>
-                <th className="p-3">Acțiuni</th>
+                <th className="p-3">{t("thActions")}</th>
               </tr>
             </thead>
             <tbody>

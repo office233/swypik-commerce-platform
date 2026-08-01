@@ -2,6 +2,7 @@
  * Admin Creators — top creators by followers + sales
  */
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { BadgeCheck } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
@@ -30,6 +31,7 @@ export default async function AdminCreatorsPage({
 }: {
   searchParams: Promise<{ sort?: string; q?: string }>;
 }) {
+    const t = await getTranslations("adminCreators");
   await requireAdminSession();
   const sp = await searchParams;
   const sort = sp.sort === "sales" ? "sales" : sp.sort === "videos" ? "videos" : "followers";
@@ -84,11 +86,11 @@ export default async function AdminCreatorsPage({
           type="search"
           name="q"
           defaultValue={q}
-          placeholder="Caută username sau nume..."
+          placeholder={t("searchPlaceholder")}
           className="rounded-lg border border-black/15 px-3 py-2 text-sm w-64"
         />
         <input type="hidden" name="sort" value={sort} />
-        <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">Caută</button>
+        <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">{t("searchBtn")}</button>
         <div className="ml-auto flex flex-wrap gap-2">
           {(["followers", "videos", "sales"] as const).map((s) => (
             <Link
@@ -113,17 +115,17 @@ export default async function AdminCreatorsPage({
           <thead className="bg-black/5 text-left text-xs uppercase tracking-wide text-black/60">
             <tr>
               <th className="px-4 py-3">Creator</th>
-              <th className="px-4 py-3 text-right">Urmăritori</th>
+              <th className="px-4 py-3 text-right">{t("thFollowers")}</th>
               <th className="px-4 py-3 text-right">Videoclipuri</th>
-              <th className="px-4 py-3 text-right">Vânzări (#)</th>
-              <th className="px-4 py-3 text-right">Vânzări (total)</th>
-              <th className="px-4 py-3 text-right">Acțiuni</th>
+              <th className="px-4 py-3 text-right">{t("thSalesCount")}</th>
+              <th className="px-4 py-3 text-right">{t("thSalesTotal")}</th>
+              <th className="px-4 py-3 text-right">{t("thActions")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-black/50">Niciun creator găsit.</td>
+                <td colSpan={6} className="px-4 py-12 text-center text-black/50">{t("noCreators")}</td>
               </tr>
             )}
             {rows.map((r) => (

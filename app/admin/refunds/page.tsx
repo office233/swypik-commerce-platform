@@ -3,6 +3,7 @@
  * Read-only: refund-urile sunt inițiate de seller sau via Stripe webhook.
  */
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ async function getRefunds() {
 }
 
 export default async function AdminRefundsPage() {
+    const t = await getTranslations("adminRefunds");
   const items = await getRefunds();
 
   return (
@@ -61,9 +63,9 @@ export default async function AdminRefundsPage() {
           <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
             <tr>
               <th className="px-4 py-3">Refund ID</th>
-              <th className="px-4 py-3">Comandă</th>
+              <th className="px-4 py-3">{t("thOrder")}</th>
               <th className="px-4 py-3">Client</th>
-              <th className="px-4 py-3">Sumă</th>
+              <th className="px-4 py-3">{t("thAmount")}</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Procesat</th>
               <th className="px-4 py-3">Creat</th>

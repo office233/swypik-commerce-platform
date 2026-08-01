@@ -1,9 +1,11 @@
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 import { approveSeller } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function SellersAdminPage() {
+    const t = await getTranslations("adminSellers");
   let sellers: any[] = [];
   try {
     const res = await dbQuery("SELECT id, name, cui, email, phone, product_type, status FROM sellers ORDER BY created_at DESC");
@@ -29,7 +31,7 @@ export default async function SellersAdminPage() {
               <th className="px-6 py-4">Nume</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Acțiuni</th>
+              <th className="px-6 py-4 text-right">{t("thActions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5] text-sm">

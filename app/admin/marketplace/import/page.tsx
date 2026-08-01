@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ArrowLeft, Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertTriangle, Loader2 } from "lucide-react";
 
@@ -92,6 +93,7 @@ function parseCsvPreview(raw: string): { headers: string[]; rows: PreviewRow[] }
 const EXPECTED_COLUMNS = ["title", "price", "description", "image_url", "category", "stock"];
 
 export default function BulkImportPage() {
+    const t = useTranslations("adminImport");
   const [phase, setPhase] = useState<Phase>("idle");
   const [csvRaw, setCsvRaw] = useState("");
   const [fileName, setFileName] = useState("");
@@ -310,7 +312,7 @@ export default function BulkImportPage() {
             <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-bold text-amber-800">Coloane lipsă</p>
+                <p className="text-sm font-bold text-amber-800">{t("missingColumns")}</p>
                 <p className="text-xs text-amber-700 mt-1">
                   {missingCols.map((c) => (
                     <code key={c} className="bg-amber-100 px-1 py-0.5 rounded mr-1 font-mono">
@@ -382,7 +384,7 @@ export default function BulkImportPage() {
         <div className="flex flex-col items-center gap-6 rounded-2xl border border-slate-200 bg-white p-12 shadow-sm">
           <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
           <div className="text-center">
-            <p className="text-lg font-bold text-slate-900">Se importă produsele…</p>
+            <p className="text-lg font-bold text-slate-900">{t("importing")}</p>
             <p className="text-sm text-slate-500 mt-1">{totalRows} produse în coadă</p>
           </div>
 
@@ -426,7 +428,7 @@ export default function BulkImportPage() {
               <div className="flex items-center gap-3">
                 <FileSpreadsheet className="w-6 h-6 text-slate-400" />
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Total rânduri</p>
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{t("totalRows")}</p>
                   <p className="text-3xl font-black text-slate-900 mt-1">{result.total}</p>
                 </div>
               </div>
@@ -459,10 +461,10 @@ export default function BulkImportPage() {
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                     <tr>
-                      <th className="px-4 py-3 font-bold text-slate-700 text-xs">Rând</th>
+                      <th className="px-4 py-3 font-bold text-slate-700 text-xs">{t("thRow")}</th>
                       <th className="px-4 py-3 font-bold text-slate-700 text-xs">Motiv</th>
                       <th className="px-4 py-3 font-bold text-slate-700 text-xs">Titlu</th>
-                      <th className="px-4 py-3 font-bold text-slate-700 text-xs">Preț</th>
+                      <th className="px-4 py-3 font-bold text-slate-700 text-xs">{t("thPrice")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">

@@ -9,6 +9,7 @@
  *   - creatori (creator_applications)    → /admin/applications
  */
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Car, Bike, Building2, Store, Home, Clapperboard, type LucideIcon } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
@@ -94,6 +95,7 @@ export default async function AdminAplicatiiPage({
 }: {
     searchParams: Promise<{ f?: string }>;
 }) {
+    const t = await getTranslations("adminApplications");
     await requireAdminSession();
     const { f } = await searchParams;
     const all = await loadAll();
@@ -103,7 +105,7 @@ export default async function AdminAplicatiiPage({
     return (
         <div className="p-6">
             <div className="mb-6 flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-black text-[#0D0D0D]">Aplicații parteneri</h1>
+                <h1 className="text-2xl font-black text-[#0D0D0D]">{t("partnersTitle")}</h1>
                 {pendingCount > 0 && (
                     <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-700">
                         {pendingCount} în așteptare
@@ -132,9 +134,9 @@ export default async function AdminAplicatiiPage({
                             <th className="px-4 py-3">Tip</th>
                             <th className="px-4 py-3">Nume</th>
                             <th className="px-4 py-3">Detalii</th>
-                            <th className="px-4 py-3">Oraș</th>
+                            <th className="px-4 py-3">{t("thCity")}</th>
                             <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">Primită</th>
+                            <th className="px-4 py-3">{t("thReceived")}</th>
                             <th className="px-4 py-3" />
                         </tr>
                     </thead>

@@ -3,6 +3,7 @@
  * Mirrors GET /api/admin/strikes.
  */
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Shield, AlertCircle } from "lucide-react";
 import RevokeStrikeButton from "./RevokeStrikeButton";
@@ -126,6 +127,7 @@ export default async function AdminStrikesPage({
 }: {
   searchParams: Promise<{ userId?: string }>;
 }) {
+    const t = await getTranslations("adminStrikes");
   const params = await searchParams;
   const userId = params.userId?.trim() || null;
 
@@ -174,14 +176,14 @@ export default async function AdminStrikesPage({
               <table className="w-full text-xs">
                 <thead className="bg-white/5 text-white/60 uppercase tracking-wide">
                   <tr>
-                    <th className="text-left p-2">Când</th>
+                    <th className="text-left p-2">{t("thWhen")}</th>
                     <th className="text-left p-2">Sev</th>
                     <th className="text-left p-2">Label</th>
                     <th className="text-left p-2">Context</th>
                     <th className="text-left p-2">Ref</th>
-                    <th className="text-left p-2">Expiră</th>
+                    <th className="text-left p-2">{t("thExpires")}</th>
                     <th className="text-left p-2">Status</th>
-                    <th className="text-right p-2">Acțiuni</th>
+                    <th className="text-right p-2">{t("thActions")}</th>
                   </tr>
                 </thead>
                 <tbody>

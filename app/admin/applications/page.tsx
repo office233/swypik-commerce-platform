@@ -2,6 +2,7 @@
  * Admin Applications — creator applications queue
  */
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 import ApplicationActions from "./ApplicationActions";
@@ -48,6 +49,7 @@ export default async function AdminApplicationsPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+    const t = await getTranslations("adminApplications");
   await requireAdminSession();
   const sp = await searchParams;
   const status = ["submitted", "in_review", "approved", "rejected", "withdrawn", "all"].includes(sp.status || "")
@@ -93,8 +95,8 @@ export default async function AdminApplicationsPage({
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-[#0D0D0D]">Aplicații creator</h1>
-        <p className="text-sm text-black/60 mt-1">Cereri de la utilizatori care vor să devină creatori.</p>
+        <h1 className="text-2xl font-black text-[#0D0D0D]">{t("creatorTitle")}</h1>
+        <p className="text-sm text-black/60 mt-1">{t("creatorSubtitle")}</p>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -181,7 +183,7 @@ export default async function AdminApplicationsPage({
                       )}
                       {r.review_note && (
                         <div className="md:col-span-2">
-                          <dt className="text-xs font-bold text-black/50 uppercase">Notă review</dt>
+                          <dt className="text-xs font-bold text-black/50 uppercase">{t("reviewNote")}</dt>
                           <dd className="text-black/70">{r.review_note}</dd>
                         </div>
                       )}

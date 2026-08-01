@@ -1,6 +1,7 @@
 "use client";
 
 import { Filter, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { SOURCE_OPTIONS, STATUS_OPTIONS } from "./types";
 
 const SELECT_BG_STYLE = {
@@ -30,6 +31,7 @@ export function MarketplaceFilters({
   onStatusChange,
   onSourceChange,
 }: Props) {
+    const t = useTranslations("adminMarketplace");
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
       <div className="relative">
@@ -37,7 +39,7 @@ export function MarketplaceFilters({
         <input
           id="marketplace-search"
           type="text"
-          placeholder="Caută produse după titlu, slug, brand sau categorie..."
+          placeholder={t("searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-orange-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all"

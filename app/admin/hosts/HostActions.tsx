@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
 export default function HostActions({ applicationId }: { applicationId: string }) {
+    const t = useTranslations("adminHosts");
     const router = useRouter();
     const [note, setNote] = useState("");
     const [loading, setLoading] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export default function HostActions({ applicationId }: { applicationId: string }
                 rows={2}
                 maxLength={1000}
                 className="mb-2 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
-                placeholder="ex: lipsește extrasul CF; certificatul de clasificare e expirat..."
+                placeholder={t("needsInfoPlaceholder")}
             />
             {error && (
                 <div className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>

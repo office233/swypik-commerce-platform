@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
 export default function ApplicationActions({ applicationId }: { applicationId: string }) {
+    const t = useTranslations("adminApplications");
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export default function ApplicationActions({ applicationId }: { applicationId: s
         rows={2}
         maxLength={500}
         className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm mb-2"
-        placeholder="Notă pentru jurnal sau motiv de respingere..."
+        placeholder={t("journalNotePlaceholder")}
       />
       {error && (
         <div className="mb-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>

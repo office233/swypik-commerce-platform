@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { CheckCircle2 } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { scoreOrderRisk, type OrderRiskScore } from "@/lib/risk/order-fraud-score";
@@ -206,6 +207,7 @@ export default async function AdminRiskPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+    const t = await getTranslations("adminRisk");
   const sp = await searchParams;
   const statusFilter = sp.status || "paid";
   const minScore = Number(sp.min || "0");
@@ -233,7 +235,7 @@ export default async function AdminRiskPage({
     <main className="max-w-7xl mx-auto p-4 space-y-4">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#0D0D0D]">Risc fraudă comenzi</h1>
+          <h1 className="text-xl font-semibold text-[#0D0D0D]">{t("title")}</h1>
           <p className="text-xs text-gray-500 mt-1">
             Scoring 0-100 per comandă (90 zile). Mai mare = risc mai mare. Review manual recomandat pentru ≥50.
           </p>

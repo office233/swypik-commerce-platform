@@ -2,6 +2,7 @@
  * Admin Cron Dashboard — listă job-uri + ultimul run + manual trigger.
  */
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 import { Clock } from "lucide-react";
 import CronJobRow from "./CronJobRow";
 import { CRON_JOBS } from "./jobs";
@@ -31,6 +32,7 @@ async function getLastRuns(): Promise<Map<string, LastRun>> {
 }
 
 export default async function AdminCronPage() {
+    const t = await getTranslations("adminCron");
   const lastRuns = await getLastRuns();
 
   return (
@@ -53,7 +55,7 @@ export default async function AdminCronPage() {
               <th className="text-left px-4 py-2 font-black">Schedule</th>
               <th className="text-left px-4 py-2 font-black">Ultim run</th>
               <th className="text-left px-4 py-2 font-black">Status</th>
-              <th className="text-right px-4 py-2 font-black">Acțiuni</th>
+              <th className="text-right px-4 py-2 font-black">{t("thActions")}</th>
             </tr>
           </thead>
           <tbody>

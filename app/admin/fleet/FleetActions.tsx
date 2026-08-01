@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
 type Partner = { id: string; company_name: string };
@@ -18,6 +19,7 @@ export default function FleetActions({
     active?: boolean;
     partners: Partner[];
 }) {
+    const t = useTranslations("adminFleet");
     const router = useRouter();
     const [loading, setLoading] = useState<string | null>(null);
     const [partnerId, setPartnerId] = useState("");
@@ -93,7 +95,7 @@ export default function FleetActions({
                 type="button"
                 disabled={loading !== null}
                 onClick={() => run("delete")}
-                title="Șterge definitiv"
+                title={t("deleteForever")}
                 className={`${BTN} bg-white text-red-600 ring-1 ring-red-200 hover:bg-red-50`}
             >
                 {loading === "delete" ? "..." : "Șterge"}

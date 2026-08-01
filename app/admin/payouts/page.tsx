@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import { Wallet, ArrowRightLeft, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
@@ -44,6 +45,7 @@ export default async function PayoutsAdminPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+    const t = await getTranslations("adminPayouts");
   const sp = await searchParams;
   const status = (sp.status || "").trim();
   const creatorQ = (sp.creator || "").trim();
@@ -151,12 +153,12 @@ export default async function PayoutsAdminPage({
         />
         <KpiCard
           icon={<Clock className="w-5 h-5 text-yellow-600" />}
-          label="În așteptare"
+          label={t("pendingLabel")}
           value={String(kpis.pendingCount)}
         />
         <KpiCard
           icon={<AlertTriangle className="w-5 h-5 text-red-600" />}
-          label="Eșuate"
+          label={t("failedLabel")}
           value={String(kpis.failedCount)}
         />
         <KpiCard
@@ -221,7 +223,7 @@ export default async function PayoutsAdminPage({
             <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
               <tr>
                 <th className="px-4 py-3">Creator</th>
-                <th className="px-4 py-3">Sumă</th>
+                <th className="px-4 py-3">{t("thAmount")}</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Trimis</th>
                 <th className="px-4 py-3">Finalizat</th>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Clapperboard, Film, Check, X } from "lucide-react";
 
@@ -66,6 +67,7 @@ function formatDimensions(w: number | null, h: number | null): string {
 const PAGE_SIZE = 50;
 
 export default function AdminVideosPage() {
+    const t = useTranslations("adminVideos");
   const [videos, setVideos] = useState<VideoAsset[]>([]);
   const [counts, setCounts] = useState({ total: 0, ready: 0, processing: 0, failed: 0, pending: 0 });
   const [filteredTotal, setFilteredTotal] = useState(0);
@@ -215,10 +217,10 @@ export default function AdminVideosPage() {
                   <th className="text-left px-5 py-4">Creator</th>
                   <th className="text-left px-5 py-4">Produs</th>
                   <th className="text-center px-5 py-4">Status</th>
-                  <th className="text-center px-5 py-4">Durată</th>
+                  <th className="text-center px-5 py-4">{t("thDuration")}</th>
                   <th className="text-center px-5 py-4">Dimensiuni</th>
                   <th className="text-left px-5 py-4">Data</th>
-                  <th className="text-right px-5 py-4">Acțiuni</th>
+                  <th className="text-right px-5 py-4">{t("thActions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -365,7 +367,7 @@ export default function AdminVideosPage() {
                                     onClick={() => performAction("approve", video.id)}
                                     className="rounded-lg bg-[#0D0D0D]/15 px-3 py-1.5 text-[11px] font-bold text-[#0D0D0D] border border-[#0D0D0D]/30 hover:bg-[#0D0D0D]/25 hover:border-[#0D0D0D]/50 transition-all"
                                   >
-                                    <span className="inline-flex items-center gap-1"><Check size={12} /> Aprobă</span>
+                                    <span className="inline-flex items-center gap-1"><Check size={12} /> {t("approve")}</span>
                                   </button>
                                 )}
 

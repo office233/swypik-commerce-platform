@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Rocket, Package, Eye, Truck } from "lucide-react";
 import { useParams } from "next/navigation";
 
 export default function AdminOrderDetailPage() {
+    const t = useTranslations("adminOrders");
   const params = useParams();
   const orderId = params.id as string;
 
@@ -71,7 +73,7 @@ export default function AdminOrderDetailPage() {
   if (!order) {
     return (
       <div className="min-h-screen bg-[#F7F7F8] flex items-center justify-center">
-        <p className="text-[#6E6E80] font-bold">Comanda nu a fost găsită.</p>
+        <p className="text-[#6E6E80] font-bold">{t("notFound")}</p>
       </div>
     );
   }
@@ -134,7 +136,7 @@ export default function AdminOrderDetailPage() {
                   disabled={!!actionLoading}
                   className="rounded-lg bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white hover:bg-[#333] disabled:opacity-50 transition"
                 >
-                  <span className="inline-flex items-center gap-1.5"><Package size={14} /> Adaugă AWB</span>
+                  <span className="inline-flex items-center gap-1.5"><Package size={14} /> {t("addAwbBtn")}</span>
                 </button>
               </>
             )}
@@ -144,7 +146,7 @@ export default function AdminOrderDetailPage() {
                 disabled={!!actionLoading}
                 className="rounded-lg bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white hover:bg-[#333] disabled:opacity-50 transition"
               >
-                <span className="inline-flex items-center gap-1.5"><Package size={14} /> Adaugă AWB</span>
+                <span className="inline-flex items-center gap-1.5"><Package size={14} /> {t("addAwbBtn")}</span>
               </button>
             )}
             {order.status !== "cancelled" && (
@@ -195,10 +197,10 @@ export default function AdminOrderDetailPage() {
 
             {/* Payment Info */}
             <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 shadow-sm">
-              <h2 className="text-lg font-black mb-4">Sumar plată</h2>
+              <h2 className="text-lg font-black mb-4">{t("paymentSummary")}</h2>
               <div className="space-y-2">
                 <div className="flex justify-between text-base font-black pt-2">
-                  <span>Total plătit</span>
+                  <span>{t("totalPaid")}</span>
                   <span>{Number(order.totalRon).toFixed(2)} lei</span>
                 </div>
               </div>
@@ -207,7 +209,7 @@ export default function AdminOrderDetailPage() {
             {/* Tracking Info */}
             {order.trackingNumber && (
               <div className="bg-white rounded-2xl border border-[#0D0D0D]/30 p-6 shadow-sm">
-                <h2 className="text-lg font-black mb-3 text-[#0D0D0D] flex items-center gap-2"><Truck size={20} /> Cod de urmărire</h2>
+                <h2 className="text-lg font-black mb-3 text-[#0D0D0D] flex items-center gap-2"><Truck size={20} /> {t("trackingCode")}</h2>
                 <div className="bg-[#F0FDF4] rounded-xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-xl font-black font-mono text-[#0D0D0D]">{order.trackingNumber}</p>
@@ -237,7 +239,7 @@ export default function AdminOrderDetailPage() {
 
             {/* Shipping Address */}
             <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 shadow-sm">
-              <h2 className="text-base font-black mb-4">Adresă de livrare</h2>
+              <h2 className="text-base font-black mb-4">{t("deliveryAddress")}</h2>
               <div className="text-sm text-[#0D0D0D]">
                 {order.shipping?.line1 ? (
                   <>
@@ -248,7 +250,7 @@ export default function AdminOrderDetailPage() {
                     <p>{order.shipping.postal_code}, {order.shipping.country}</p>
                   </>
                 ) : (
-                  <p className="text-[#6E6E80]">Nu a fost furnizată nicio adresă de livrare.</p>
+                  <p className="text-[#6E6E80]">{t("noDeliveryAddress")}</p>
                 )}
               </div>
             </div>
@@ -261,8 +263,8 @@ export default function AdminOrderDetailPage() {
       {showTrackingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowTrackingModal(false)}>
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-black text-[#0D0D0D] mb-2">Adaugă cod AWB</h3>
-            <p className="text-sm text-[#6E6E80] mb-4">Introdu codul de urmărire primit de la curier sau furnizor.</p>
+            <h3 className="text-xl font-black text-[#0D0D0D] mb-2">{t("addAwbTitle")}</h3>
+            <p className="text-sm text-[#6E6E80] mb-4">{t("addAwbDesc")}</p>
             <input
               type="text"
               value={trackingInput}

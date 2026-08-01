@@ -2,6 +2,7 @@
  * Admin Returns Queue — cereri de retur clienți
  */
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export default async function AdminReturnsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+    const t = await getTranslations("adminReturns");
   const sp = await searchParams;
   const activeStatus = sp.status || "all";
   const items = await getReturns(sp);
@@ -105,14 +107,14 @@ export default async function AdminReturnsPage({
         <table className="w-full text-left min-w-[900px]">
           <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
             <tr>
-              <th className="px-4 py-3">Comandă</th>
+              <th className="px-4 py-3">{t("thOrder")}</th>
               <th className="px-4 py-3">Client</th>
               <th className="px-4 py-3">Articole</th>
               <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3">Motiv</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Solicitat</th>
-              <th className="px-4 py-3">Acțiuni</th>
+              <th className="px-4 py-3">{t("thActions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5] text-sm">

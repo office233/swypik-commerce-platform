@@ -2,6 +2,7 @@
  * Admin Moderation — detail raport video
  */
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ModerationActions from "./ModerationActions";
@@ -61,6 +62,7 @@ export default async function ModerationDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+    const t = await getTranslations("adminModeration");
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return notFound();
   const r = await getReportDetail(id);
@@ -151,7 +153,7 @@ export default async function ModerationDetailPage({
             </div>
             {r.note && (
               <div className="mt-2">
-                <dt className="font-bold">Notă:</dt>
+                <dt className="font-bold">{t("noteLabel")}</dt>
                 <dd className="text-black/70 whitespace-pre-wrap">{r.note}</dd>
               </div>
             )}
