@@ -23,16 +23,21 @@ import { logger } from "@/lib/logger";
 
 const log = logger.child({ mod: "drivers/referral" });
 
-/** Reducerea clientului: 50% pe primele 3 curse (decizie owner, achiziție). */
-export const REFERRAL_DISCOUNT_PCT = 50;
+/** Config prin env, cu defaulturile deciziei owner (audit 2026-08-01). */
+function envInt(name: string, def: number): number {
+    const n = Number(process.env[name]);
+    return Number.isFinite(n) && n >= 0 ? n : def;
+}
+/** Reducerea clientului: % pe primele N curse (decizie owner, achiziție). */
+export const REFERRAL_DISCOUNT_PCT = envInt("REFERRAL_DISCOUNT_PCT", 50);
 /** Numărul de curse cu reducere. */
-export const REFERRAL_DISCOUNTED_RIDES = 3;
-/** Plafon reducere per cursă: 15 RON. */
-export const REFERRAL_DISCOUNT_CAP_CENTS = 1500;
-/** Bonus șofer la prima cursă a clientului: 5 RON. */
-export const REFERRAL_FIRST_RIDE_BONUS_CENTS = 500;
-/** Valabilitatea legăturii de referral: 6 luni. */
-export const REFERRAL_VALIDITY_MONTHS = 6;
+export const REFERRAL_DISCOUNTED_RIDES = envInt("REFERRAL_DISCOUNTED_RIDES", 3);
+/** Plafon reducere per cursă (cenți). */
+export const REFERRAL_DISCOUNT_CAP_CENTS = envInt("REFERRAL_DISCOUNT_CAP_CENTS", 1500);
+/** Bonus șofer la prima cursă a clientului (cenți). */
+export const REFERRAL_FIRST_RIDE_BONUS_CENTS = envInt("REFERRAL_FIRST_RIDE_BONUS_CENTS", 500);
+/** Valabilitatea legăturii de referral (luni). */
+export const REFERRAL_VALIDITY_MONTHS = envInt("REFERRAL_VALIDITY_MONTHS", 6);
 
 const CODE_RE = /^SWK[A-Z0-9]{5}$/;
 

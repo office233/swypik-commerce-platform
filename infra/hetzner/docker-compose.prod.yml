@@ -287,6 +287,31 @@ services:
     restart: unless-stopped
 
   # ──────────────────────────────────────────────
+  # 6b. dispatch-worker — tick dispatch la 10s (Go/Food)
+  #   Audit 2026-08-01: scriptul exista dar NU rula nicăieri; dispatch-tick
+  #   din cron-worker (5 min) e prea rar pentru oferte de 30s.
+  # ──────────────────────────────────────────────
+  dispatch-worker:
+    image: node:22-alpine
+    command: ["node", "/app/dispatch-worker.mjs"]
+    volumes:
+      - ../../scripts/dispatch-worker.mjs:/app/dispatch-worker.mjs:ro
+    env_file:
+      - .env.production
+    environment:
+      DISPATCH_TICK_URL: http://web-next:3000/api/cron/dispatch-tick
+    depends_on:
+      web-next:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.1
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
   # 7. caddy — Reverse proxy + auto TLS
   # ──────────────────────────────────────────────
   caddy:

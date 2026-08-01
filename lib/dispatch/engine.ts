@@ -201,9 +201,9 @@ export async function acceptOffer(jobOrOrderId: string, courierId: string): Prom
             [jobOrOrderId],
         );
         const job = jobs[0];
-        if (!job) return { ok: false as const, error: "Jobul nu există.", code: 404 };
+        if (!job) return { ok: false as const, error: "Dispatch job not found.", code: 404 };
         if (job.status === "assigned" || job.assigned_courier_id) {
-            return { ok: false as const, error: "Comanda a fost deja preluată.", code: 409 };
+            return { ok: false as const, error: "Job already taken.", code: 409 };
         }
 
         const { rows: offer } = await q(
@@ -213,7 +213,7 @@ export async function acceptOffer(jobOrOrderId: string, courierId: string): Prom
             [job.id, courierId],
         );
         if (!offer.length) {
-            return { ok: false as const, error: "Oferta a expirat.", code: 410 };
+            return { ok: false as const, error: "Offer expired.", code: 410 };
         }
 
         // Curierul nu poate avea două joburi active simultan. Lock pe rândul
@@ -225,7 +225,7 @@ export async function acceptOffer(jobOrOrderId: string, courierId: string): Prom
             [courierId],
         );
         if (busy.length) {
-            return { ok: false as const, error: "Ai deja o livrare activă.", code: 409 };
+            return { ok: false as const, error: "You already have an active job.", code: 409 };
         }
 
         await q(
@@ -270,7 +270,7 @@ export async function acceptOffer(jobOrOrderId: string, courierId: string): Prom
         return { ok: true as const, jobId: job.id, orderId: job.order_id, rideId: job.ride_id };
     }).catch((err: unknown) => {
         if (err instanceof Error && err.message === "order_already_assigned") {
-            return { ok: false as const, error: "Comanda a fost deja preluată.", code: 409 };
+            return { ok: false as const, error: "Job already taken.", code: 409 };
         }
         throw err;
     });

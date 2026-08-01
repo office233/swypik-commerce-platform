@@ -99,13 +99,13 @@ export function canTransition(
   role: RideRole,
 ): { ok: true } | { ok: false; error: string; code: number } {
   const t = TRANSITIONS[to];
-  if (!t) return { ok: false, error: `Status invalid: ${to}`, code: 400 };
+  if (!t) return { ok: false, error: `Invalid status: ${to}`, code: 400 };
   if (!t.from.includes(from)) {
-    return { ok: false, error: `Tranziție interzisă: ${from} → ${to}`, code: 409 };
+    return { ok: false, error: `Transition not allowed: ${from} → ${to}`, code: 409 };
   }
   if (role === "admin") return { ok: true };
   if (!role || !t.roles.includes(role)) {
-    return { ok: false, error: "Rolul tău nu poate face această tranziție.", code: 403 };
+    return { ok: false, error: "Your role cannot perform this transition.", code: 403 };
   }
   return { ok: true };
 }

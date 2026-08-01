@@ -33,12 +33,12 @@ export async function PATCH(
     );
     const driverId = cRows[0]?.id;
     if (!driverId) {
-      return NextResponse.json({ success: false, error: "Nu ești șofer aprobat." }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Not an approved driver." }, { status: 403 });
     }
 
     const job = await getJobForRide(id);
     if (!job) {
-      return NextResponse.json({ success: false, error: "Cursa nu mai caută șofer." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Ride is no longer searching for a driver." }, { status: 404 });
     }
 
     if (!accept) {

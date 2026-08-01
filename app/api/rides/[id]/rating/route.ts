@@ -22,7 +22,7 @@ export const POST = withErrorHandling(async function POST(
   const { id } = await params;
   const session = await getAuthSession();
   if (!session?.userId) {
-    return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
   const body = await req.json().catch(() => null);
@@ -30,15 +30,15 @@ export const POST = withErrorHandling(async function POST(
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   const ride = await loadRide(id);
-  if (!ride) return NextResponse.json({ error: "Cursa nu există." }, { status: 404 });
+  if (!ride) return NextResponse.json({ error: "Ride not found." }, { status: 404 });
   if (ride.status !== "completed") {
-    return NextResponse.json({ error: "Poți nota doar curse finalizate." }, { status: 409 });
+    return NextResponse.json({ error: "Only completed rides can be rated." }, { status: 409 });
   }
 
   const authUser = await getAuthUser().catch(() => null);
   const role = await resolveRole(ride, session.userId, Boolean(authUser?.isAdmin));
   if (role !== "rider" && role !== "driver") {
-    return NextResponse.json({ error: "Doar riderul sau șoferul pot nota." }, { status: 403 });
+    return NextResponse.json({ error: "Only the rider or driver can rate." }, { status: 403 });
   }
 
   const { rows } = await dbQuery<{ id: string }>(
@@ -49,7 +49,7 @@ export const POST = withErrorHandling(async function POST(
     [id, role, parsed.data.stars, parsed.data.comment ?? null],
   );
   if (!rows.length) {
-    return NextResponse.json({ error: "Ai notat deja această cursă." }, { status: 409 });
+    return NextResponse.json({ error: "You already rated this ride." }, { status: 409 });
   }
 
   // rider → recalculează media șoferului din TOATE ratingurile de tip rider.

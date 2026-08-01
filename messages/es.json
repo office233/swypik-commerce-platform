@@ -1999,7 +1999,8 @@
       "searching": "Buscando un conductor…",
       "title": "Viaje Swypik Go",
       "withDriver": "Conductor: {name}"
-    }
+    },
+    "activeRide": "Ya tienes un viaje activo."
   },
   "authForgot": {
     "title": "¿Olvidaste tu contraseña?",

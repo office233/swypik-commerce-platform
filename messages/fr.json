@@ -1999,7 +1999,8 @@
       "searching": "Recherche d'un chauffeur…",
       "title": "Course Swypik Go",
       "withDriver": "Chauffeur : {name}"
-    }
+    },
+    "activeRide": "Vous avez déjà une course en cours."
   },
   "authForgot": {
     "title": "Mot de passe oublié ?",

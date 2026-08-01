@@ -1999,7 +1999,8 @@
       "searching": "Suche einen Fahrer…",
       "title": "Swypik-Go-Fahrt",
       "withDriver": "Fahrer: {name}"
-    }
+    },
+    "activeRide": "Du hast bereits eine aktive Fahrt."
   },
   "authForgot": {
     "title": "Passwort vergessen?",

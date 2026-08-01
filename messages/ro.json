@@ -117,7 +117,8 @@
       "backToGo": "Înapoi la Go"
     },
     "paySwyp": "Plateste cu SWYP",
-    "swypBalance": "Sold: {swyp} SWYP (aprox. {lei} lei) - acoperim cat se poate din cursa"
+    "swypBalance": "Sold: {swyp} SWYP (aprox. {lei} lei) - acoperim cat se poate din cursa",
+    "activeRide": "Ai deja o cursă activă."
   },
   "auth": {
     "login": "Autentificare",

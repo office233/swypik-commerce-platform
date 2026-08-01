@@ -30,14 +30,14 @@ export async function GET(
   const { id } = await params;
   const session = await getAuthSession();
   if (!session?.userId) {
-    return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
   const ride = await loadRide(id);
-  if (!ride) return NextResponse.json({ error: "Cursa nu există." }, { status: 404 });
+  if (!ride) return NextResponse.json({ error: "Ride not found." }, { status: 404 });
 
   const user = await getAuthUser();
   const role = await resolveRole(ride, session.userId, user?.role === "admin");
-  if (!role) return NextResponse.json({ error: "Nu ai acces la această cursă." }, { status: 403 });
+  if (!role) return NextResponse.json({ error: "You do not have access to this ride." }, { status: 403 });
 
   const { rows } = await dbQuery(
     `SELECT payment_method, payment_status, tip_cents, final_fare_cents, estimated_fare_cents, settled_at
@@ -54,7 +54,7 @@ export async function POST(
   const { id } = await params;
   const session = await getAuthSession();
   if (!session?.userId) {
-    return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
   const body = await req.json().catch(() => null);
@@ -64,11 +64,11 @@ export async function POST(
   }
 
   const ride = await loadRide(id);
-  if (!ride) return NextResponse.json({ error: "Cursa nu există." }, { status: 404 });
+  if (!ride) return NextResponse.json({ error: "Ride not found." }, { status: 404 });
 
   const user = await getAuthUser();
   const role = await resolveRole(ride, session.userId, user?.role === "admin");
-  if (!role) return NextResponse.json({ error: "Nu ai acces la această cursă." }, { status: 403 });
+  if (!role) return NextResponse.json({ error: "You do not have access to this ride." }, { status: 403 });
 
   try {
     if (action === "authorize") {
@@ -76,7 +76,7 @@ export async function POST(
         return NextResponse.json({ error: "Doar pasagerul poate autoriza plata." }, { status: 403 });
       }
       const result = await authorizeRidePayment(id);
-      if (!result) return NextResponse.json({ error: "Pre-autorizarea a eșuat." }, { status: 409 });
+      if (!result) return NextResponse.json({ error: "Pre-authorization failed." }, { status: 409 });
       return NextResponse.json({
         payment_intent_id: result.payment_intent_id,
         client_secret: result.client_secret,
@@ -86,7 +86,7 @@ export async function POST(
 
     // collect_cash — șoferul confirmă încasarea cash pe cursa finalizată.
     if (role !== "driver" && role !== "admin") {
-      return NextResponse.json({ error: "Doar șoferul poate marca încasarea cash." }, { status: 403 });
+      return NextResponse.json({ error: "Only the driver can mark cash collected." }, { status: 403 });
     }
     const { rows } = await dbQuery<{ status: string; payment_method: string; payment_status: string }>(
       `SELECT status, payment_method, payment_status FROM rides WHERE id = $1`,
@@ -97,7 +97,7 @@ export async function POST(
       return NextResponse.json({ error: "Cursa nu e cu plata cash." }, { status: 409 });
     }
     if (r.status !== "completed") {
-      return NextResponse.json({ error: "Cursa nu e finalizată." }, { status: 409 });
+      return NextResponse.json({ error: "Ride is not completed." }, { status: 409 });
     }
     await dbQuery(
       `UPDATE rides SET payment_status = 'collected_cash', updated_at = now()
@@ -110,6 +110,6 @@ export async function POST(
     return NextResponse.json({ payment_status: "collected_cash" });
   } catch (err) {
     log.error({ err, rideId: id, action }, "ride pay failed");
-    return NextResponse.json({ error: "Operațiunea de plată a eșuat." }, { status: 500 });
+    return NextResponse.json({ error: "Payment operation failed." }, { status: 500 });
   }
 }

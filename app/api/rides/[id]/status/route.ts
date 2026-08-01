@@ -42,7 +42,7 @@ export async function PATCH(
   const { id } = await params;
   const session = await getAuthSession();
   if (!session?.userId) {
-    return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
   const body = await req.json().catch(() => null);
@@ -51,11 +51,11 @@ export async function PATCH(
   const { status: to, reason, cancel_reason: cancelReason } = parsed.data;
 
   const ride = await loadRide(id);
-  if (!ride) return NextResponse.json({ error: "Cursa nu există." }, { status: 404 });
+  if (!ride) return NextResponse.json({ error: "Ride not found." }, { status: 404 });
 
   const authUser = await getAuthUser().catch(() => null);
   const role = await resolveRole(ride, session.userId, Boolean(authUser?.isAdmin));
-  if (!role) return NextResponse.json({ error: "Acces interzis." }, { status: 403 });
+  if (!role) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
   const check = canTransition(ride.status, to, role);
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.code });

@@ -28,10 +28,10 @@ export async function POST(req: Request) {
     if (!isEnabled("go")) return frozenResponse("go");
     const session = await getAuthSession();
     if (!session?.userId) {
-        return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
+        return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
     const rl = await rateLimit("rideCreate", session.userId);
-    if (!rl.success) return NextResponse.json({ error: "Prea multe cereri." }, { status: 429 });
+    if (!rl.success) return NextResponse.json({ error: "Too many requests." }, { status: 429 });
 
     const body = await req.json().catch(() => null);
     const parsed = parseBody(RideCreateSchema, body);
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     );
     if (active.length) {
         return NextResponse.json(
-            { error: "Ai deja o cursă activă.", ride_id: active[0].id },
+            { error: "You already have an active ride.", code: "active_ride", ride_id: active[0].id },
             { status: 409 },
         );
     }
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     } catch (err) {
         if (err instanceof NoZoneError || (err as Error).message === "no_zone") {
             return NextResponse.json(
-                { error: "Swypik Go nu e disponibil încă în zona ta.", code: "no_zone" },
+                { error: "Swypik Go is not available in your area yet.", code: "no_zone" },
                 { status: 422 },
             );
         }
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
     const session = await getAuthSession();
     if (!session?.userId) {
-        return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
+        return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
     const url = new URL(req.url);
     const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit")) || 20));
