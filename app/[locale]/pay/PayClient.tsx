@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
-import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2, Lock, Wallet, Car, Bike, Clapperboard, Star } from "lucide-react";
+import { Coins, Pickaxe, History, ShieldCheck, Loader2, Share2, Lock, Wallet, Car, Bike, Clapperboard, Star } from "lucide-react";
 import { APP_URL } from "@/lib/app-url";
 
 type Mining = {
@@ -436,66 +436,78 @@ export default function PayClient() {
             )}
 
             {/* ── Mining ── */}
-            <section className="px-5 mt-2">
-                <div className="rounded-3xl border border-[#F5A623]/30 bg-gradient-to-br from-[#1A1A1A] to-[#0D0D0D] p-6">
+            <section className="px-5 mt-8">
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Pickaxe size={18} className="text-[#F5A623]" />
-                            <h2 className="font-black">{t("miningTitle")}</h2>
+                            <Pickaxe size={15} className="text-[#F5A623]" />
+                            <h2 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/45">{t("miningTitle")}</h2>
                         </div>
-                        <span className="text-xs font-bold text-[#F5A623]">{t("perHour", { rate: ratePerHour })}</span>
+                        <span className="text-[11px] font-bold text-white/40">{t("perHour", { rate: ratePerHour })}</span>
                     </div>
-                    <p className="mt-1 text-[11px] text-white/40">{t("perSession", { rate: ratePerSession })}</p>
 
-                    <div className="mt-5 flex flex-col items-center gap-3">
+                    <div className="mt-8 mb-2 flex flex-col items-center gap-4">
                         {!mining?.active && (
                             <button
                                 onClick={() => act("start")}
                                 disabled={busy || !mining}
-                                className="w-40 h-40 rounded-full bg-gradient-to-br from-[#F5A623] to-[#D4830B] text-black font-black text-lg shadow-[0_0_60px_-15px_#F5A623] active:scale-95 transition disabled:opacity-50 flex items-center justify-center"
+                                className="w-36 h-36 rounded-full bg-[#F5A623] text-black font-black text-base active:scale-95 transition disabled:opacity-40 flex flex-col items-center justify-center gap-1"
                             >
-                                {busy ? <Loader2 className="animate-spin" /> : t("start")}
+                                {busy ? <Loader2 className="animate-spin" /> : (
+                                    <>
+                                        <span>{t("start")}</span>
+                                        <span className="text-[10px] font-bold opacity-60">{t("perSession", { rate: ratePerSession })}</span>
+                                    </>
+                                )}
                             </button>
                         )}
                         {mining?.active && !claimable && (
-                            <div className="w-40 h-40 rounded-full border-4 border-[#F5A623]/40 flex flex-col items-center justify-center">
-                                <span className="text-xl font-black tabular-nums text-[#F5A623]">
-                                    {minedSoFar} <span className="text-[10px]">SWYP</span>
-                                </span>
-                                <span className="text-[10px] uppercase tracking-wider text-white/50">{t("minedSoFar")}</span>
-                                <span className="mt-1 text-xs font-bold tabular-nums text-white/60">{countdown?.label ?? "…"}</span>
+                            <div className="relative w-36 h-36">
+                                {/* Inel de progres SVG — discret, animat de countdown */}
+                                <svg viewBox="0 0 144 144" className="absolute inset-0 -rotate-90">
+                                    <circle cx="72" cy="72" r="66" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+                                    <circle
+                                        cx="72" cy="72" r="66" fill="none"
+                                        stroke="#F5A623" strokeWidth="5" strokeLinecap="round"
+                                        strokeDasharray={2 * Math.PI * 66}
+                                        strokeDashoffset={(1 - sessionFrac) * 2 * Math.PI * 66}
+                                        className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className="text-lg font-black tabular-nums text-white">{minedSoFar}</span>
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#F5A623]">SWYP</span>
+                                    <span className="mt-1.5 text-[11px] font-bold tabular-nums text-white/40">{countdown?.label ?? "…"}</span>
+                                </div>
                             </div>
                         )}
                         {claimable && (
                             <button
                                 onClick={() => act("claim")}
                                 disabled={busy}
-                                className="w-40 h-40 rounded-full bg-gradient-to-br from-[#2DBE60] to-[#188A41] text-black font-black text-lg shadow-[0_0_60px_-15px_#2DBE60] active:scale-95 transition disabled:opacity-50 flex items-center justify-center"
+                                className="w-36 h-36 rounded-full bg-[#2DBE60] text-black font-black text-base active:scale-95 transition disabled:opacity-40 flex items-center justify-center px-4 text-center"
                             >
                                 {busy ? <Loader2 className="animate-spin" /> : t("claim", { amount: ratePerSession })}
                             </button>
                         )}
                     </div>
 
-                    <div className="mt-6 grid grid-cols-3 gap-2 text-center">
-                        <div className="rounded-2xl bg-white/5 p-3">
-                            <Flame size={14} className="mx-auto text-[#F5A623]" />
-                            <p className="mt-1 text-sm font-black">{mining?.streakDays ?? "—"}</p>
-                            <p className="text-[10px] text-white/50">{t("streakLabel")}</p>
+                    <div className="mt-8 grid grid-cols-3 divide-x divide-white/[0.06] text-center">
+                        <div className="px-2">
+                            <p className="text-base font-black tabular-nums">{mining?.streakDays ?? "—"}</p>
+                            <p className="mt-0.5 text-[10px] leading-tight text-white/35">{t("streakLabel")}</p>
                         </div>
-                        <div className="rounded-2xl bg-white/5 p-3">
-                            <Users size={14} className="mx-auto text-[#F5A623]" />
-                            <p className="mt-1 text-sm font-black">{mining?.miners?.toLocaleString(locale) ?? "—"}</p>
-                            <p className="text-[10px] text-white/50">{t("minersLabel")}</p>
+                        <div className="px-2">
+                            <p className="text-base font-black tabular-nums">{mining?.miners?.toLocaleString(locale) ?? "—"}</p>
+                            <p className="mt-0.5 text-[10px] leading-tight text-white/35">{t("minersLabel")}</p>
                         </div>
-                        <div className="rounded-2xl bg-white/5 p-3">
-                            <ShieldCheck size={14} className="mx-auto text-[#F5A623]" />
-                            <p className="mt-1 text-sm font-black">{mining ? `${mining.halvings}/4` : "—"}</p>
-                            <p className="text-[10px] text-white/50">{t("halvingsLabel")}</p>
+                        <div className="px-2">
+                            <p className="text-base font-black tabular-nums">{mining ? `${mining.halvings}/4` : "—"}</p>
+                            <p className="mt-0.5 text-[10px] leading-tight text-white/35">{t("halvingsLabel")}</p>
                         </div>
                     </div>
 
-                    <p className="mt-4 text-[11px] leading-relaxed text-white/40">
+                    <p className="mt-6 text-[11px] leading-relaxed text-white/35">
                         {t("miningNote", { supply: (10_000_000_000).toLocaleString(locale) })}
                     </p>
 
@@ -510,9 +522,9 @@ export default function PayClient() {
                             setCopied(true);
                             setTimeout(() => setCopied(false), 2500);
                         }}
-                        className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl bg-[#F5A623]/15 border border-[#F5A623]/40 px-4 py-3 font-black text-sm text-[#F5A623] active:scale-[0.98] transition"
+                        className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 font-bold text-[13px] text-white/70 active:scale-[0.98] transition"
                     >
-                        <Share2 size={16} />
+                        <Share2 size={15} className="text-[#F5A623]" />
                         {copied
                             ? t("linkCopied")
                             : t("invite", { bonus: earnRules.find((r) => r.action === "referral_validated")?.display ?? t("inviteFallback") })}
@@ -522,20 +534,20 @@ export default function PayClient() {
 
             {/* ── Cum câștigi ── */}
             {earnRules.length > 0 && (
-                <section className="px-5 mt-6">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">{t("earnTitle")}</h3>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                <section className="px-5 mt-8">
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/45 mb-3">{t("earnTitle")}</h3>
+                    <div className="grid grid-cols-2 gap-2">
                         {earnRules.slice(0, 4).map((rule) => {
                             const Icon =
                                 rule.action === "go_ride_completed" ? Car :
                                     rule.action === "eats_delivery_on_time" ? Bike :
                                         rule.action === "creator_1k_views" ? Clapperboard : Star;
                             return (
-                                <div key={rule.action} className="rounded-2xl bg-white/5 p-3 flex items-center gap-3">
-                                    <Icon size={20} className="text-[#F5A623] shrink-0" />
+                                <div key={rule.action} className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 flex items-center gap-3">
+                                    <Icon size={17} className="text-[#F5A623] shrink-0" />
                                     <div>
-                                        <p className="font-bold text-xs">{rule.label}</p>
-                                        <p className="text-[10px] text-[#F5A623] font-black">{rule.display}</p>
+                                        <p className="font-bold text-xs text-white/85">{rule.label}</p>
+                                        <p className="mt-0.5 text-[11px] text-[#F5A623] font-black">{rule.display}</p>
                                     </div>
                                 </div>
                             );
@@ -544,17 +556,16 @@ export default function PayClient() {
                 </section>
             )}
 
-            {/* ── Istoric ── */}
             {/* ── Staking ── */}
-            <section className="px-5 mt-6">
-                <div className="rounded-3xl border border-[#2DBE60]/30 bg-gradient-to-br from-[#0F2A18] to-[#0D0D0D] p-5">
+            <section className="px-5 mt-8">
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Lock size={16} className="text-[#2DBE60]" />
-                            <h3 className="font-black text-sm">{t("stakingTitle")}</h3>
+                            <Lock size={15} className="text-[#2DBE60]" />
+                            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/45">{t("stakingTitle")}</h3>
                         </div>
                         {staking && (
-                            <span className="text-[10px] font-bold text-white/50">
+                            <span className="text-[10px] font-bold text-white/35">
                                 {t("stakingSummary", { amount: fmtSwyp(staking.totalStakedUnits, locale), stakers: staking.stakers })}
                             </span>
                         )}
@@ -568,10 +579,10 @@ export default function PayClient() {
                                     key={m}
                                     onClick={() => { setAmountValue(""); setAmountModal({ kind: "stake", months: m }); }}
                                     disabled={stakeBusy || balance === null || BigInt(balance ?? "0") < 100n}
-                                    className="rounded-2xl bg-white/5 border border-[#2DBE60]/20 p-3 active:scale-95 transition disabled:opacity-40"
+                                    className="rounded-xl border border-white/[0.08] bg-black/20 p-3.5 active:scale-95 transition disabled:opacity-30 hover:border-[#2DBE60]/40"
                                 >
-                                    <p className="text-lg font-black text-[#2DBE60]">{(bps / 100).toFixed(0)}%</p>
-                                    <p className="text-[10px] text-white/50">{t("months", { months: m })}</p>
+                                    <p className="text-lg font-black text-[#2DBE60] tabular-nums">{(bps / 100).toFixed(0)}%</p>
+                                    <p className="mt-0.5 text-[10px] text-white/40">{t("months", { months: m })}</p>
                                 </button>
                             );
                         })}
@@ -615,22 +626,22 @@ export default function PayClient() {
                 </div>
             </section>
 
-            <section className="px-5 mt-6">
+            <section className="px-5 mt-8">
                 <div className="flex items-center gap-2 mb-3">
-                    <History size={14} className="text-white/50" />
-                    <h3 className="text-sm font-black uppercase tracking-wider text-white/70">{t("historyTitle")}</h3>
+                    <History size={13} className="text-white/35" />
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/45">{t("historyTitle")}</h3>
                 </div>
                 {history.length === 0 ? (
-                    <p className="text-xs text-white/40">{t("historyEmpty")}</p>
+                    <p className="rounded-2xl border border-dashed border-white/[0.08] px-4 py-6 text-center text-xs text-white/35">{t("historyEmpty")}</p>
                 ) : (
-                    <ul className="space-y-2">
+                    <ul className="rounded-2xl border border-white/[0.06] bg-white/[0.03] divide-y divide-white/[0.05] overflow-hidden">
                         {history.map((h) => (
-                            <li key={h.id} className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+                            <li key={h.id} className="flex items-center justify-between px-4 py-3.5">
                                 <div>
-                                    <p className="text-xs font-bold">{h.description ?? h.ref_type}</p>
-                                    <p className="text-[10px] text-white/40">{new Date(h.created_at).toLocaleString(locale)}</p>
+                                    <p className="text-xs font-bold text-white/85">{h.description ?? h.ref_type}</p>
+                                    <p className="mt-0.5 text-[10px] text-white/35">{new Date(h.created_at).toLocaleString(locale)}</p>
                                 </div>
-                                <span className={`text-sm font-black ${h.direction === "in" ? "text-[#2DBE60]" : "text-white/70"}`}>
+                                <span className={`text-[13px] font-black tabular-nums ${h.direction === "in" ? "text-[#2DBE60]" : "text-white/60"}`}>
                                     {h.direction === "in" ? "+" : "−"}{fmtSwyp(h.amount_units, locale)}
                                 </span>
                             </li>
@@ -640,16 +651,16 @@ export default function PayClient() {
             </section>
 
             {/* ── Transparență ── */}
-            <section className="px-5 mt-6">
+            <section className="px-5 mt-8">
                 <a
                     href="https://scan.swypik.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60 hover:bg-white/10 transition"
+                    className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3.5 text-xs text-white/50 hover:bg-white/[0.06] transition"
                 >
-                    <ShieldCheck size={16} className="text-[#F5A623]" />
+                    <ShieldCheck size={15} className="text-[#F5A623] shrink-0" />
                     <span>
-                        <strong className="text-white">{t("explorerStrong")}</strong> {t("explorerText")}
+                        <strong className="text-white/85">{t("explorerStrong")}</strong> {t("explorerText")}
                     </span>
                 </a>
 
@@ -673,38 +684,40 @@ export default function PayClient() {
                             });
                         } catch { /* utilizatorul a refuzat */ }
                     }}
-                    className="mt-2 w-full flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold text-white/70 hover:bg-white/10 transition"
+                    className="mt-2 w-full flex items-center justify-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3.5 text-xs font-bold text-white/60 hover:bg-white/[0.06] transition"
                 >
-                    <Wallet size={14} className="text-[#F5A623]" />
+                    <Wallet size={14} className="text-[#F5A623] shrink-0" />
                     {t("addMetamask")}
                 </button>
             </section>
 
             {/* ── Ce este SWYP? (educație + transparență) ── */}
-            <section className="px-5 mt-6 pb-4">
-                <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">{t("aboutTitle")}</h3>
-                <div className="space-y-2">
+            <section className="px-5 mt-8">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/45 mb-3">{t("aboutTitle")}</h3>
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] divide-y divide-white/[0.05] overflow-hidden">
                     {([1, 2, 3, 4, 5] as const).map((i) => (
-                        <div key={i} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+                        <div key={i}>
                             <button
                                 onClick={() => setAboutOpen(aboutOpen === i ? null : i)}
-                                className="w-full flex items-center justify-between px-4 py-3 text-left"
+                                className="w-full flex items-center justify-between px-4 py-3.5 text-left"
                             >
-                                <span className="text-xs font-bold text-white/90">{t(`aboutQ${i}`)}</span>
-                                <span className="text-white/40 text-xs ml-2 shrink-0">{aboutOpen === i ? "−" : "+"}</span>
+                                <span className="text-xs font-bold text-white/85">{t(`aboutQ${i}`)}</span>
+                                <span className={`text-white/30 text-sm ml-3 shrink-0 transition-transform duration-200 ${aboutOpen === i ? "rotate-45" : ""}`}>+</span>
                             </button>
-                            {aboutOpen === i && (
-                                <p className="px-4 pb-3 text-[11px] leading-relaxed text-white/60">{t(`aboutA${i}`)}</p>
-                            )}
+                            <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${aboutOpen === i ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                                <div className="overflow-hidden">
+                                    <p className="px-4 pb-4 text-[11px] leading-relaxed text-white/50">{t(`aboutA${i}`)}</p>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
             </section>
 
             {/* ── Verifică singur: toate resursele publice ale monedei ── */}
-            <section className="px-5 mt-6 pb-4">
-                <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">{t("linksTitle")}</h3>
-                <div className="space-y-2">
+            <section className="px-5 mt-8 pb-6">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/45 mb-3">{t("linksTitle")}</h3>
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] divide-y divide-white/[0.05] overflow-hidden">
                     {[
                         { href: "https://scan.swypik.com", label: t("linkExplorer"), desc: t("linkExplorerDesc") },
                         { href: "/api/swyp/supply", label: t("linkSupply"), desc: t("linkSupplyDesc") },
@@ -716,13 +729,13 @@ export default function PayClient() {
                             href={l.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 active:scale-[0.99] transition"
+                            className="flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.04] transition"
                         >
                             <span>
-                                <span className="block text-xs font-bold text-white/90">{l.label}</span>
-                                <span className="block text-[10px] text-white/40">{l.desc}</span>
+                                <span className="block text-xs font-bold text-white/85">{l.label}</span>
+                                <span className="mt-0.5 block text-[10px] text-white/35">{l.desc}</span>
                             </span>
-                            <span className="text-[#F5A623] text-xs shrink-0 ml-3">↗</span>
+                            <span className="text-[#F5A623]/70 text-xs shrink-0 ml-3">↗</span>
                         </a>
                     ))}
                 </div>
@@ -785,7 +798,7 @@ export default function PayClient() {
                     </div>
                 </div>
             )}
-                    </div>
+            </div>
         </main>
     );
 }
