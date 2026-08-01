@@ -176,6 +176,15 @@ export default function PayClient() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mining, countdown, locale]);
 
+    // Fracția sesiunii de mining (0..1) — pentru inelul de progres.
+    const sessionFrac = useMemo(() => {
+        if (!mining?.active || !mining.endsAt) return 0;
+        const endMs = new Date(mining.endsAt).getTime();
+        const startMs = endMs - 24 * 3_600_000;
+        return Math.min(1, Math.max(0, (Date.now() - startMs) / (endMs - startMs)));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mining, countdown]);
+
     // ── Acțiuni cu sumă (după confirmarea din modal) ──
     const doWithdraw = useCallback(async (amount: number) => {
         setWithdrawBusy(true);
@@ -244,28 +253,31 @@ export default function PayClient() {
     }
 
     return (
-        <main className="min-h-screen bg-[#0D0D0D] text-white pb-24">
+        <main className="min-h-screen bg-[#0B0B0C] text-white pb-28">
+            <div className="mx-auto w-full max-w-lg">
             {/* ── Sold ── */}
-            <section className="px-5 pt-8 pb-6 bg-gradient-to-b from-[#F5A623]/15 to-transparent">
-                <div className="flex items-center gap-2 text-[#F5A623]">
-                    <Coins size={20} />
-                    <h1 className="text-lg font-black uppercase tracking-wider">Swypik Pay</h1>
+            <section className="px-5 pt-10 pb-2">
+                <div className="flex items-center gap-2 text-white/40">
+                    <Coins size={15} className="text-[#F5A623]" />
+                    <h1 className="text-[11px] font-bold uppercase tracking-[0.2em]">Swypik Pay</h1>
                 </div>
-                <p className="mt-4 text-4xl font-black">
-                    {balance === null ? <span className="inline-block h-9 w-40 rounded bg-white/10 animate-pulse" /> : <>{fmtSwyp(balance, locale)} <span className="text-lg text-[#F5A623]">SWYP</span></>}
+                <p className="mt-5 text-[44px] leading-none font-black tracking-tight">
+                    {balance === null
+                        ? <span className="inline-block h-10 w-44 rounded-lg bg-white/5 animate-pulse" />
+                        : <>{fmtSwyp(balance, locale)}<span className="ml-2 text-base font-bold text-[#F5A623]">SWYP</span></>}
                 </p>
-                <p className="mt-1 text-xs text-white/50">{t("balanceNote")}</p>
+                <p className="mt-3 text-[12px] leading-relaxed text-white/35 max-w-xs">{t("balanceNote")}</p>
             </section>
 
             {/* ── Portofel on-chain (Swypik Chain) ── */}
             {wallet && (
-                <section className="px-5 mt-4">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <section className="px-5 mt-8">
+                    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5">
                         <div className="flex items-center justify-between">
-                            <p className="text-[11px] font-black uppercase tracking-wider text-white/60">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/45">
                                 {t("walletTitle")}
                             </p>
-                            <span className="text-[10px] font-bold text-[#2DBE60]">chain ID 643366</span>
+                            <span className="rounded-full bg-[#2DBE60]/10 px-2 py-0.5 text-[10px] font-bold text-[#2DBE60]">643366</span>
                         </div>
                         <button
                             onClick={async () => {
@@ -273,24 +285,32 @@ export default function PayClient() {
                                 setAddrCopied(true);
                                 setTimeout(() => setAddrCopied(false), 2000);
                             }}
-                            className="mt-2 w-full text-left font-mono text-xs text-[#F5A623] break-all active:opacity-70"
+                            className="mt-3 w-full rounded-xl bg-black/30 px-3 py-2.5 text-left font-mono text-[11px] text-white/70 break-all active:opacity-70 transition"
                             title={t("copyHint")}
                         >
-                            {wallet.address} {addrCopied ? t("copied") : "⧉"}
+                            {wallet.address} <span className="text-[#F5A623]">{addrCopied ? t("copied") : "⧉"}</span>
                         </button>
-                        <p className="mt-2 text-[10px] leading-relaxed text-white/40">
+                        <p className="mt-3 text-[11px] leading-relaxed text-white/35">
                             {t("walletNote")}
                         </p>
 
-                        <button
-                            onClick={() => { setAmountValue(""); setAmountModal({ kind: "withdraw" }); }}
-                            disabled={withdrawBusy || balance === null || BigInt(balance ?? "0") < 100n}
-                            className="mt-3 w-full rounded-xl bg-[#F5A623] px-4 py-2.5 text-sm font-black text-black active:scale-[0.98] transition disabled:opacity-40"
-                        >
-                            {withdrawBusy ? t("withdrawBusy") : t("withdraw")}
-                        </button>
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => { setAmountValue(""); setAmountModal({ kind: "withdraw" }); }}
+                                disabled={withdrawBusy || balance === null || BigInt(balance ?? "0") < 100n}
+                                className="rounded-xl bg-[#F5A623] px-4 py-3 text-[13px] font-black text-black active:scale-[0.98] transition disabled:opacity-30"
+                            >
+                                {withdrawBusy ? t("withdrawBusy") : t("withdraw")}
+                            </button>
+                            <button
+                                onClick={() => { setSendOpen((v) => !v); setSendMsg(null); }}
+                                className={`rounded-xl border px-4 py-3 text-[13px] font-black active:scale-[0.98] transition ${sendOpen ? "border-[#F5A623] text-[#F5A623]" : "border-white/10 text-white/70"}`}
+                            >
+                                {sendOpen ? t("sendClose") : t("sendOpen")}
+                            </button>
+                        </div>
                         {withdrawMsg && (
-                            <p className="mt-2 text-xs font-bold text-white/80">
+                            <p className="mt-3 text-xs font-bold text-white/80">
                                 {withdrawMsg}{" "}
                                 {lastTxUrl && (
                                     <a href={lastTxUrl} target="_blank" rel="noopener noreferrer" className="text-[#F5A623] underline">
@@ -301,12 +321,6 @@ export default function PayClient() {
                         )}
 
                         {/* ── Trimite SWYP (P2P on-chain) ── */}
-                        <button
-                            onClick={() => { setSendOpen((v) => !v); setSendMsg(null); }}
-                            className="mt-2 w-full rounded-xl border border-[#F5A623]/40 px-4 py-2.5 text-sm font-black text-[#F5A623] active:scale-[0.98] transition"
-                        >
-                            {sendOpen ? t("sendClose") : t("sendOpen")}
-                        </button>
                         {sendOpen && (
                             <div className="mt-3 space-y-2">
                                 <input
@@ -771,6 +785,7 @@ export default function PayClient() {
                     </div>
                 </div>
             )}
+                    </div>
         </main>
     );
 }
