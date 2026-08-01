@@ -30,30 +30,23 @@ ALTER TABLE user_collection_items
 CREATE INDEX IF NOT EXISTS user_collection_items_collection_pos_idx
   ON user_collection_items (collection_id, position DESC, created_at DESC);
 
--- 3. Extend feed_events event_type to allow more_like_this / not_interested / follow_creator
--- (Original CHECK only allowed: video_published, video_viewed, video_liked, video_saved,
---  video_shared, comment_created, creator_followed.)
+-- 3. feed_events e tabela de analytics: codul emite ~20 tipuri de evenimente
+-- (product_click, watch_time, impression...). CHECK-ul static restrictiv pica
+-- pe datele existente si spargea deploy-ul; migrarea 20260514_0001 restaureaza
+-- oricum setul larg. Aici doar eliminam CHECK-urile vechi, idempotent.
 DO $$
 DECLARE
   con_name text;
 BEGIN
-  SELECT conname INTO con_name
-  FROM pg_constraint
-  WHERE conrelid = 'feed_events'::regclass
-    AND contype = 'c'
-    AND pg_get_constraintdef(oid) ILIKE '%event_type%';
-
-  IF con_name IS NOT NULL THEN
+  FOR con_name IN
+    SELECT conname
+    FROM pg_constraint
+    WHERE conrelid = 'feed_events'::regclass
+      AND contype = 'c'
+      AND pg_get_constraintdef(oid) ILIKE '%event_type%'
+  LOOP
     EXECUTE format('ALTER TABLE feed_events DROP CONSTRAINT %I', con_name);
-  END IF;
-
-  ALTER TABLE feed_events
-    ADD CONSTRAINT feed_events_event_type_check
-    CHECK (event_type IN (
-      'video_published', 'video_viewed', 'video_liked', 'video_saved',
-      'video_shared', 'comment_created', 'creator_followed',
-      'more_like_this', 'not_interested', 'video_hidden', 'creator_unfollowed'
-    ));
+  END LOOP;
 END $$;
 
 INSERT INTO schema_migrations (version)
