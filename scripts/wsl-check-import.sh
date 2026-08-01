@@ -12,3 +12,5 @@ SELECT j.status, j.job_type, left(coalesce(j.error_message,''),80) AS err, v.tit
 FROM video_processing_jobs j JOIN videos v ON v.id = j.video_id
 WHERE v.creator_id = '00000000-0000-4000-9000-0000000f1c1a' AND j.status NOT IN ('succeeded')
 ORDER BY j.created_at DESC LIMIT 5;"
+echo "=== titluri in feed ==="
+curl -s 'http://127.0.0.1:3005/api/explore/feed?limit=50' | grep -o '"title":"[^"]*"' | sort | uniq | head -20
