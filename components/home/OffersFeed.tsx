@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import OfferCard from "./OfferCard";
+import { ShoppingBag } from "lucide-react";
 import FeedFilterBar, { type FeedFilters } from "./FeedFilterBar";
 import type { OfferPost, OffersFeedResponse } from "@/lib/types/feed";
 

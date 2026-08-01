@@ -9,6 +9,7 @@ import { Link } from "@/lib/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { PaymentElement, useStripe, useElements, AddressElement } from "@stripe/react-stripe-js";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { AlertTriangle, CreditCard } from "lucide-react";
 
 type SavedAddress = {
   id: string;

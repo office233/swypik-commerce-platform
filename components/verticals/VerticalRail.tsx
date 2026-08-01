@@ -1,5 +1,7 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
+
 /**
  * VerticalRail — bara orizontală de verticale, sub header.
  *

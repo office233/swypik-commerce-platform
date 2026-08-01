@@ -5,7 +5,7 @@
  * Pill-uri sticky + bottom-sheet cu preț / discount / rating.
  */
 import { useState } from "react";
-import { SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, X, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
 import type { OffersSort } from "@/lib/types/feed";
