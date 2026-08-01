@@ -1,3 +1,4 @@
+import { Ban } from "lucide-react";
 import { UserFraudActions } from "./UserFraudActions";
 
 export type BlockedUser = {
@@ -20,7 +21,7 @@ export function BlockedUsersList({ users }: { users: BlockedUser[] }) {
       open={users.length <= 3}
     >
       <summary className="text-xs font-semibold text-red-900 cursor-pointer list-none flex items-center justify-between">
-        <span>🚫 Useri blocați ({users.length})</span>
+        <span className="inline-flex items-center gap-1"><Ban size={14} /> Useri blocați ({users.length})</span>
         <span className="text-[10px] font-normal text-red-700">click pentru detalii</span>
       </summary>
       <div className="mt-2 space-y-1.5">

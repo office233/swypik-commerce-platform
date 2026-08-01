@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { X, Hourglass, Camera, Package, Check } from "lucide-react";
 
 type Suggestion = { slug: string; confidence: number; label: string };
 type Variant = { sku: string; title: string; price: string; stock: string; color: string; size: string };
@@ -179,7 +180,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
             <h3 id="add-product-title" className="font-black text-[#0D0D0D] text-lg">{t("titluModal")}</h3>
             <p className="text-xs text-[#6E6E80] mt-0.5">{t("pasulXdinY", { x: step + 1, y: STEPS.length, name: STEPS[step] })}</p>
           </div>
-          <button type="button" aria-label={t("inchide")} onClick={onClose} className="w-11 h-11 inline-flex items-center justify-center rounded-lg text-[#6E6E80] hover:text-[#0D0D0D] hover:bg-[#F7F7F8] text-xl focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">✕</button>
+          <button type="button" aria-label={t("inchide")} onClick={onClose} className="w-11 h-11 inline-flex items-center justify-center rounded-lg text-[#6E6E80] hover:text-[#0D0D0D] hover:bg-[#F7F7F8] text-xl focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><X size={20} /></button>
         </div>
 
         <div className="px-6 pt-3">
@@ -254,12 +255,12 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.url} alt={t("imagineNr", { n: idx + 1 })} className="w-full h-full object-cover" />
                     {idx === 0 && <span className="absolute top-1 left-1 px-2 py-0.5 bg-[#0D0D0D] text-white text-[10px] font-bold rounded-full">{t("badgePrincipal")}</span>}
-                    <button type="button" onClick={() => removeImage(idx)} aria-label={t("stergeImaginea")} className="absolute top-1 right-1 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition">✕</button>
+                    <button type="button" onClick={() => removeImage(idx)} aria-label={t("stergeImaginea")} className="absolute top-1 right-1 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition"><X size={14} /></button>
                   </div>
                 ))}
                 {images.length < 8 && (
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-[#E5E5E5] hover:border-[#0D0D0D] flex flex-col items-center justify-center text-[#6E6E80] hover:text-[#0D0D0D] transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-                    <span className="text-2xl mb-1">{uploadingCount > 0 ? "⏳" : "📷"}</span>
+                    <span className="mb-1">{uploadingCount > 0 ? <Hourglass size={24} /> : <Camera size={24} />}</span>
                     <span className="text-xs font-bold">{uploadingCount > 0 ? t("seUrca", { n: uploadingCount }) : t("adaugaImg")}</span>
                   </button>
                 )}
@@ -322,7 +323,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                         <input value={v.sku} onChange={(e) => updateVariant(idx, { sku: e.target.value })} placeholder="SKU" className="col-span-3 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
                         <input value={v.price} onChange={(e) => updateVariant(idx, { price: e.target.value })} placeholder={t("pret")} type="number" min="0" step="0.01" className="col-span-2 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
                         <input value={v.stock} onChange={(e) => updateVariant(idx, { stock: e.target.value })} placeholder={t("stoc")} type="number" min="0" className="col-span-1 border border-[#E5E5E5] rounded-md px-2 py-1.5 text-xs focus:border-[#0D0D0D] outline-none" />
-                        <button type="button" onClick={() => removeVariant(idx)} aria-label={t("stergeVarianta")} className="col-span-1 h-8 text-[#6E6E80] hover:text-red-600 text-sm">✕</button>
+                        <button type="button" onClick={() => removeVariant(idx)} aria-label={t("stergeVarianta")} className="col-span-1 h-8 text-[#6E6E80] hover:text-red-600 text-sm"><X size={14} /></button>
                       </div>
                     ))}
                     <button type="button" onClick={addVariantRow} className="w-full py-2 text-xs font-bold text-[#0D0D0D] border border-dashed border-[#E5E5E5] hover:border-[#0D0D0D] rounded-lg transition">+ {t("adaugaVarianta")}</button>
@@ -357,7 +358,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                 </select>
               </div>
               <div className="bg-[#F7F7F8] rounded-xl p-4 text-xs text-[#6E6E80]">
-                <p className="font-bold text-[#0D0D0D] mb-1">📦 {t("recapitulare")}</p>
+                <p className="mb-1 flex items-center gap-1.5 font-bold text-[#0D0D0D]"><Package size={14} /> {t("recapitulare")}</p>
                 <p>{title || t("titluLipsa")} · {price ? `${price} ${currency}` : t("pretLipsa")} · {t("stoc").toLowerCase()} {stock || 0}</p>
                 <p className="mt-1">{t("categorie")}: {categoryText || t("nedetectata")}</p>
                 <p>{t("imagini")}: {images.length} · {t("variante")}: {variantsEnabled ? variants.length : 0}</p>
@@ -376,7 +377,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
             </button>
           ) : (
             <button type="button" onClick={submit} disabled={saving || !price || !stock} className="px-6 py-2.5 min-h-[44px] bg-[#0E906F] text-white text-sm font-bold rounded-xl hover:bg-[#0E906F]/80 disabled:opacity-40 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none">
-              {saving ? t("seSalveaza") : `✓ ${t("publicaProdusul")}`}
+              {saving ? t("seSalveaza") : <span className="inline-flex items-center gap-1.5"><Check size={16} /> {t("publicaProdusul")}</span>}
             </button>
           )}
         </div>

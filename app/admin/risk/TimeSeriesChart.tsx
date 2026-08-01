@@ -1,3 +1,5 @@
+import { TrendingUp } from "lucide-react";
+
 export type TimeSeriesPoint = {
   day: string; // YYYY-MM-DD
   flagged: number;
@@ -48,7 +50,7 @@ export function TimeSeriesChart({ data }: { data: TimeSeries30d }) {
   return (
     <div className="bg-white border border-[#E5E5E5] rounded p-3">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-xs font-semibold text-gray-700">📈 Trend ultimele 30 zile</div>
+        <div className="text-xs font-semibold text-gray-700 flex items-center gap-1"><TrendingUp size={14} /> Trend ultimele 30 zile</div>
         <div className="flex gap-3 text-[10px]">
           <Legend color="#6366f1" label={`Flagged (${data.totalFlagged})`} />
           <Legend color="#10b981" label={`Approve (${data.totalApprovals})`} />

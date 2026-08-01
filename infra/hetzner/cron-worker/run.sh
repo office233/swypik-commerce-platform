@@ -59,6 +59,8 @@ while true; do
     # Dispecerizarea curselor Go / livrarilor Food — fara asta comenzile
     # raman neatribuite. (Adaugat 2026-07-31: ruta exista dar nu era programata.)
     run_job dispatch-tick POST
+    # Deposit watcher: crediteaza depozitele on-chain (chain -> app).
+    run_job scan-chain-deposits POST
   fi
   # Every 10 min
   if [ $((TICK % 600)) -lt 60 ]; then

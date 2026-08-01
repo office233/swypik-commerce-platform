@@ -135,7 +135,7 @@ export default function OffersFeed({ initialItems = [], category, onOpenProduct 
                 )}
                 {!loading && !error && items.length === 0 && (
                     <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
-                        <p className="text-3xl">🛍️</p>
+                        <p className="text-3xl"><ShoppingBag size={30} className="inline" /></p>
                         <p className="mt-2 text-[14px] font-semibold text-[#6E6E80]">{t("empty")}</p>
                     </div>
                 )}

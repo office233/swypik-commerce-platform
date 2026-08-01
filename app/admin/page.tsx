@@ -5,6 +5,7 @@
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminConfigured } from "@/lib/security/admin-auth";
 import Link from "next/link";
+import { Clapperboard } from "lucide-react";
 import OpsAlertsBar from "./OpsAlertsBar";
 
 export const dynamic = "force-dynamic";
@@ -311,7 +312,7 @@ export default async function AdminDashboard() {
         >
           <div className="flex items-center gap-4">
             <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#0D0D0D]/10 text-xl group-hover:bg-[#0D0D0D]/20 transition-colors">
-              🎬
+              <Clapperboard size={24} />
             </span>
             <div>
               <h3 className="text-base font-black group-hover:text-[#0D0D0D] transition-colors">

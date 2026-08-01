@@ -2,6 +2,7 @@
  * Admin Creators — top creators by followers + sales
  */
 import Link from "next/link";
+import { BadgeCheck } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 
@@ -138,7 +139,7 @@ export default async function AdminCreatorsPage({
                     <div>
                       <div className="font-bold flex items-center gap-1">
                         @{r.username}
-                        {r.is_verified && <span className="text-xs text-blue-600">✓</span>}
+                        {r.is_verified && <BadgeCheck size={14} className="text-blue-600" />}
                       </div>
                       {r.display_name && <div className="text-xs text-black/50">{r.display_name}</div>}
                     </div>

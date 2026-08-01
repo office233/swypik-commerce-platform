@@ -262,7 +262,7 @@ export async function POST(req: Request) {
                   OR co.metadata->>'sessionId' = $1
                   OR co.metadata->>'stripe_session_id' = $1
                   OR co.metadata->>'stripe_payment_intent' = $1)`,
-           [objId, event.type]
+          [objId, event.type]
         );
         // SWYP: intentul nu se mai poate plăti niciodată → recreditează
         // integral partea debitată la create-intent. Idempotent după

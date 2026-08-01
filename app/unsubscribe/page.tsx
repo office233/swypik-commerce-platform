@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Check } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Dezabonare — Swypik",
@@ -64,7 +65,7 @@ export default async function UnsubscribePage({
             fontSize: "28px",
           }}
         >
-          ✓
+          <Check size={28} color="#16a34a" />
         </div>
 
         {/* Main message */}

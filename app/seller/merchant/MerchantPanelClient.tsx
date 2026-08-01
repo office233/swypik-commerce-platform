@@ -251,7 +251,7 @@ export default function MerchantPanelClient() {
         <h2 className="mb-2 text-lg font-semibold">Comenzi active ({orders.length})</h2>
         {orders.length === 0 ? (
           <p className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-400">
-            Nicio comandă activă. Sunetul te anunță când vine una nouă. 🔔
+            Nicio comandă activă. Sunetul te anunță când vine una nouă.
           </p>
         ) : (
           <ul className="space-y-3">

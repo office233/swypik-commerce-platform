@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { useTranslations } from "next-intl";
+import { Package, RefreshCw, Banknote, Hourglass, ShoppingBag } from "lucide-react";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -17,13 +18,13 @@ const fetcher = async (url: string) => {
 function statusBadge(status: string) {
   switch (status) {
     case "fulfilled":
-      return { label: "Expediat", cls: "bg-neutral-100 text-neutral-900", icon: "📦" };
+      return { label: "Expediat", cls: "bg-neutral-100 text-neutral-900", icon: <Package size={14} /> };
     case "return_requested":
-      return { label: "Retur solicitat", cls: "bg-orange-100 text-orange-800 ring-2 ring-orange-300", icon: "🔄" };
+      return { label: "Retur solicitat", cls: "bg-orange-100 text-orange-800 ring-2 ring-orange-300", icon: <RefreshCw size={14} /> };
     case "refunded":
-      return { label: "Restituit", cls: "bg-purple-100 text-purple-800", icon: "💸" };
+      return { label: "Restituit", cls: "bg-purple-100 text-purple-800", icon: <Banknote size={14} /> };
     default:
-      return { label: "În procesare", cls: "bg-yellow-100 text-yellow-800", icon: "⏳" };
+      return { label: "În procesare", cls: "bg-yellow-100 text-yellow-800", icon: <Hourglass size={14} /> };
   }
 }
 
@@ -74,7 +75,7 @@ export default function SellerOrdersPage() {
       });
       const json = await res.json();
       if (json.success) {
-        alert("✅ Restituirea a fost procesată cu succes! Banii vor fi returnați pe cardul clientului.");
+        alert("Restituirea a fost procesată cu succes! Banii vor fi returnați pe cardul clientului.");
         mutate();
       } else {
         alert("Eroare la restituire: " + json.error);
@@ -134,7 +135,7 @@ export default function SellerOrdersPage() {
               ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
-                    <p className="text-3xl mb-3">🛍️</p>
+                    <p className="mb-3 flex justify-center"><ShoppingBag size={32} /></p>
                     <p className="font-bold text-[#0D0D0D]">{t("emptyTitle")}</p>
                     <p className="text-sm text-[#6E6E80] mt-1">{t("emptyHint")}</p>
                   </td>

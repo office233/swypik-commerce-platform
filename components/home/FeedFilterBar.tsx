@@ -132,7 +132,7 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
                                     onClick={() => setDraft({ ...draft, minRating: draft.minRating === r ? undefined : r })}
                                     className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${draft.minRating === r ? "bg-amber-400 text-white" : "bg-[#F0F0F2] text-[#6E6E80]"}`}
                                 >
-                                    ★ {r}+
+                                    <Star size={12} className="inline" fill="currentColor" /> {r}+
                                 </button>
                             ))}
                         </div>

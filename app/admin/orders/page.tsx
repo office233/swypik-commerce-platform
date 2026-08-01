@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Ban, AlertTriangle } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { deriveOrderStatus } from "@/lib/commerce/order-status";
 
@@ -89,7 +90,7 @@ export default async function OrdersAdminPage() {
                       className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white hover:bg-red-700"
                       title={`Fraud score ${order.fraudScore}/100 — fulfillment BLOCAT`}
                     >
-                      🛑 BLOCK {order.fraudScore}
+                      <Ban size={12} /> BLOCK {order.fraudScore}
                     </Link>
                   )}
                   {!order.fraudBlock && order.fraudReview && (
@@ -98,7 +99,7 @@ export default async function OrdersAdminPage() {
                       className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500 text-white hover:bg-orange-600"
                       title={`Fraud score ${order.fraudScore}/100 — review manual recomandat`}
                     >
-                      ⚠ REVIEW {order.fraudScore}
+                      <AlertTriangle size={12} /> REVIEW {order.fraudScore}
                     </Link>
                   )}
                 </td>

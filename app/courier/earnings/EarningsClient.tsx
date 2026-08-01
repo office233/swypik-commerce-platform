@@ -8,6 +8,7 @@
  * Stripe Connect pentru payout automat.
  */
 import { useCallback, useEffect, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 type Bucket = { eats_cents: number; go_cents: number; tips_cents: number; net_cents: number };
 type Entry = {
@@ -176,7 +177,7 @@ export default function EarningsClient() {
             <section className="rounded-xl border p-4">
                 <h2 className="mb-2 font-semibold">Plăți automate (Stripe)</h2>
                 {connect?.payouts_enabled ? (
-                    <p className="text-sm text-green-600">✓ Cont Stripe activ — retragerile se plătesc automat.</p>
+                    <p className="flex items-center gap-1.5 text-sm text-green-600"><CheckCircle2 size={16} /> Cont Stripe activ — retragerile se plătesc automat.</p>
                 ) : connect?.connected ? (
                     <div className="space-y-2">
                         <p className="text-sm text-amber-600">Contul Stripe există dar nu e complet.</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Check, Ban } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -53,7 +54,7 @@ export function UserFraudActions({ userId, blocked }: Props) {
       disabled={disabled}
       className="shrink-0 text-[11px] px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 font-semibold disabled:opacity-50"
     >
-      {disabled ? "..." : "✓ Deblochează"}
+      {disabled ? "..." : <span className="inline-flex items-center gap-1"><Check size={12} /> Deblochează</span>}
     </button>
   ) : (
     <button
@@ -62,7 +63,7 @@ export function UserFraudActions({ userId, blocked }: Props) {
       disabled={disabled}
       className="shrink-0 text-[11px] px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 font-semibold disabled:opacity-50"
     >
-      {disabled ? "..." : "🚫 Blochează user"}
+      {disabled ? "..." : <span className="inline-flex items-center gap-1"><Ban size={12} /> Blochează user</span>}
     </button>
   );
 }

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Menu, X, type LucideIcon } from "lucide-react";
 
 export type MobileDashboardNavItem = {
   href: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
 };
 
 type Props = {
@@ -28,7 +29,7 @@ export default function MobileDashboardNav({ title, section, accentClassName, it
         onClick={() => setOpen(true)}
         className="grid h-11 w-11 place-items-center rounded-xl border border-[#E5E5E5] bg-white text-2xl text-[#0D0D0D] active:scale-95"
       >
-        ☰
+        <Menu size={22} />
       </button>
 
       {open && (
@@ -52,7 +53,7 @@ export default function MobileDashboardNav({ title, section, accentClassName, it
                 onClick={() => setOpen(false)}
                 className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] text-xl font-black text-[#0D0D0D]"
               >
-                ×
+                <X size={20} />
               </button>
             </div>
             <nav className="space-y-2">
@@ -63,7 +64,7 @@ export default function MobileDashboardNav({ title, section, accentClassName, it
                   onClick={() => setOpen(false)}
                   className="flex min-h-12 items-center gap-3 rounded-2xl border border-[#E5E5E5] px-4 py-3 text-sm font-black text-[#0D0D0D] active:scale-[0.99]"
                 >
-                  <span className="text-xl">{item.icon}</span>
+                  <item.icon size={20} />
                   {item.label}
                 </Link>
               ))}

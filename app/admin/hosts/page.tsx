@@ -4,6 +4,7 @@
  * (pensiuni/hoteluri) și conformitatea fiscală înainte de publicare.
  */
 import Link from "next/link";
+import { Check, X } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 import { decryptCnp, maskCnp } from "@/lib/identity/cnp";
@@ -171,12 +172,12 @@ export default async function AdminHostsPage({
                             </dl>
 
                             <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                                <span className={`rounded-md px-2 py-1 font-semibold ${r.tourism_registered ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-                                    {r.tourism_registered ? "✓ Declară înregistrare ANAF" : "✗ Fără declarație ANAF"}
+                                <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold ${r.tourism_registered ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                                    {r.tourism_registered ? <><Check size={12} /> Declară înregistrare ANAF</> : <><X size={12} /> Fără declarație ANAF</>}
                                 </span>
                                 {needsCert && (
-                                    <span className={`rounded-md px-2 py-1 font-semibold ${r.classification_cert ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-                                        {r.classification_cert ? `✓ Certificat: ${r.classification_cert}` : "✗ Fără certificat de clasificare"}
+                                    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold ${r.classification_cert ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                                        {r.classification_cert ? <><Check size={12} /> Certificat: {r.classification_cert}</> : <><X size={12} /> Fără certificat de clasificare</>}
                                     </span>
                                 )}
                                 <span className="rounded-md bg-black/5 px-2 py-1 text-black/60">Trimisă: {fmtDate(r.created_at)}</span>

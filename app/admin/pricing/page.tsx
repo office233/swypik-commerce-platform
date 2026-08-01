@@ -1,5 +1,5 @@
 import { dbQuery } from "@/lib/db";
-import { MapPin, Zap } from "lucide-react";
+import { MapPin, Zap, CheckCircle2, Ban } from "lucide-react";
 import PricingActions from "./PricingActions";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +92,7 @@ export default async function AdminPricingPage() {
                   <td className="p-2">{money(zn.booking_fee_cents, zn.currency)}</td>
                   <td className="p-2">{Number(zn.platform_commission_pct).toFixed(0)}%</td>
                   <td className="p-2">{Number(zn.courier_share_pct).toFixed(0)}%</td>
-                  <td className="p-2">{zn.active ? "✅" : "⛔"}</td>
+                  <td className="p-2">{zn.active ? <CheckCircle2 size={16} className="text-green-600" /> : <Ban size={16} className="text-red-600" />}</td>
                   <td className="p-2">
                     <PricingActions zone={{ id: zn.id, active: zn.active }} />
                   </td>

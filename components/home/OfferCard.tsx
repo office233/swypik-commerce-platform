@@ -134,7 +134,7 @@ export default function OfferCard({ post, onOpen, priority = false }: Props) {
                 </div>
                 {(likeCount > 0 || shareCount > 0) && (
                     <p className="mt-2 text-[11px] font-semibold text-[#A1A1AA]">
-                        {likeCount > 0 && <>❤️ {formatCount(likeCount)}</>}
+                        {likeCount > 0 && <><Heart size={12} className="inline" fill="currentColor" /> {formatCount(likeCount)}</>}
                         {likeCount > 0 && shareCount > 0 && " · "}
                         {shareCount > 0 && t("shares", { count: shareCount })}
                     </p>

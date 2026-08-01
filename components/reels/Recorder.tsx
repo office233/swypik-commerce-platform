@@ -869,7 +869,7 @@ function UploadingOverlay(props: { pct: number; done: boolean }) {
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           {done ? (
-            <span className="text-3xl">✓</span>
+            <span className="text-3xl"><Check size={30} /></span>
           ) : (
             <span className="text-2xl font-black">{pct}%</span>
           )}

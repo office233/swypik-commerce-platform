@@ -1,16 +1,27 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
+import {
+  BarChart3,
+  Package,
+  ShoppingBag,
+  UtensilsCrossed,
+  Home,
+  Coins,
+  Undo2,
+  Settings,
+  User,
+} from "lucide-react";
 
 const sellerNavItems = [
-  { href: "/seller", icon: "📊", label: "Dashboard" },
-  { href: "/seller/products", icon: "📦", label: "Produsele mele" },
-  { href: "/seller/orders", icon: "🛍️", label: "Comenzi" },
-  { href: "/seller/merchant", icon: "🍕", label: "Local & livrări" },
-  { href: "/seller/cazari", icon: "🏠", label: "Cazări" },
-  { href: "/seller/payouts", icon: "💰", label: "Payouts" },
-  { href: "/seller/returns", icon: "↩️", label: "Retururi" },
-  { href: "/seller/settings", icon: "⚙️", label: "Setări" },
+  { href: "/seller", icon: BarChart3, label: "Dashboard" },
+  { href: "/seller/products", icon: Package, label: "Produsele mele" },
+  { href: "/seller/orders", icon: ShoppingBag, label: "Comenzi" },
+  { href: "/seller/merchant", icon: UtensilsCrossed, label: "Local & livrări" },
+  { href: "/seller/cazari", icon: Home, label: "Cazări" },
+  { href: "/seller/payouts", icon: Coins, label: "Payouts" },
+  { href: "/seller/returns", icon: Undo2, label: "Retururi" },
+  { href: "/seller/settings", icon: Settings, label: "Setări" },
 ];
 
 export default function SellerLayout({ children }: { children: ReactNode }) {
@@ -23,32 +34,32 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
             Swypik <span className="text-[#0D0D0D]">Sellers</span>
           </Link>
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-2">
           <Link href="/seller" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#0D0D0D] transition">
-            <span className="text-lg">📊</span> Dashboard
+            <BarChart3 size={18} /> Dashboard
           </Link>
           <Link href="/seller/products" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">📦</span> Produsele mele
+            <Package size={18} /> Produsele mele
           </Link>
           <Link href="/seller/orders" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">🛍️</span> Comenzi
+            <ShoppingBag size={18} /> Comenzi
           </Link>
           <Link href="/seller/payouts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">💰</span> Payouts
+            <Coins size={18} /> Payouts
           </Link>
           <Link href="/seller/returns" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">↩️</span> Retururi
+            <Undo2 size={18} /> Retururi
           </Link>
           <Link href="/seller/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">⚙️</span> Setări
+            <Settings size={18} /> Setări
           </Link>
         </nav>
 
         <div className="p-4 border-t border-[#E5E5E5]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#0D0D0D]/10 flex items-center justify-center text-lg">
-              👤
+              <User size={18} />
             </div>
             <div>
               <p className="text-xs font-black text-[#0D0D0D]">Cont Vânzător</p>

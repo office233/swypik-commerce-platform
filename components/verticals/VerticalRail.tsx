@@ -61,7 +61,7 @@ export default function VerticalRail({ items, activeId = null, onSelect, classNa
                         : "bg-[#F7F7F8] text-[#6E6E80] hover:bg-[#EFEFF1]"
                     }`}
             >
-                <span aria-hidden>✨</span>
+                <span aria-hidden><Sparkles size={14} className="inline" /></span>
                 {t("all")}
             </button>
 

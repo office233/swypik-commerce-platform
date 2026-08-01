@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { scoreOrderRisk, type OrderRiskScore } from "@/lib/risk/order-fraud-score";
 import { SummaryCards } from "./SummaryCards";
@@ -250,7 +251,7 @@ export default async function AdminRiskPage({
 
       {scored.length === 0 ? (
         <div className="bg-emerald-50 border border-emerald-200 rounded p-6 text-center text-emerald-800 text-sm">
-          ✅ Nicio comandă cu risc ≥{minScore} în ultimele 90 zile pentru status <strong>{statusFilter}</strong>.
+          <CheckCircle2 size={16} className="inline mr-1 align-text-bottom" /> Nicio comandă cu risc ≥{minScore} în ultimele 90 zile pentru status <strong>{statusFilter}</strong>.
         </div>
       ) : (
         <div className="space-y-2">

@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 
 type Task = "chat" | "product_description" | "price_suggestion" | "customer_reply";
 
@@ -72,7 +73,7 @@ export default function SelenaAssistant() {
         className="w-full flex items-center justify-between gap-3 px-4 py-3 min-h-[48px] text-left hover:bg-[#F7F7F8] focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
       >
         <span className="flex items-center gap-2">
-          <span aria-hidden className="text-lg">✨</span>
+          <span aria-hidden className="text-lg"><Sparkles size={18} /></span>
           <span className="font-black text-[#0D0D0D]">Selena — asistent AI pentru vânzări</span>
         </span>
         <span className="text-sm text-[#6E6E80]">{open ? "Ascunde" : "Deschide"}</span>

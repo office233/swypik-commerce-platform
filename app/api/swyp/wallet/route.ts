@@ -7,6 +7,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
+import { treasuryAddress } from "@/lib/swyp/chain";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,8 @@ export const GET = withErrorHandling(async (req: Request) => {
     balanceUnits: balance.toString(),
     // 1 SWYP = 100 units
     balanceSwyp: (Number(balance) / 100).toFixed(2),
+    // adresa de depozit chain→app (trezoreria REWARDS); scanner-ul creditează automat
+    depositAddress: (() => { try { return treasuryAddress(); } catch { return null; } })(),
     history: history.rows,
     nextCursor: history.rows.length === limit ? history.rows[history.rows.length - 1].id : null,
   });

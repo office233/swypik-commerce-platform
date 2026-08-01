@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Zap, Target } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import DisputeEvidenceForm from "./DisputeEvidenceForm";
 import { scoreDispute, type WinScore } from "@/lib/stripe/dispute-win-score";
@@ -309,8 +310,8 @@ function WinScorePanel({ score }: { score: WinScore }) {
 
       {score.missing.length > 0 && (
         <div className="border-t border-[#E5E5E5] pt-2 mt-1">
-          <div className="font-semibold text-violet-800 text-xs mb-1">
-            ⚡ Top {score.missing.length} câmpuri lipsă (sortate după impact)
+          <div className="font-semibold text-violet-800 text-xs mb-1 flex items-center gap-1">
+            <Zap size={14} /> Top {score.missing.length} câmpuri lipsă (sortate după impact)
           </div>
           <ul className="space-y-1 text-xs">
             {score.missing.map((m) => (
@@ -333,8 +334,8 @@ function WinScorePanel({ score }: { score: WinScore }) {
 
       {score.combos.length > 0 && (
         <div className="border-t border-[#E5E5E5] pt-2 mt-1">
-          <div className="font-semibold text-emerald-800 text-xs mb-1">
-            🎯 What-if combo (completare grupată)
+          <div className="font-semibold text-emerald-800 text-xs mb-1 flex items-center gap-1">
+            <Target size={14} /> What-if combo (completare grupată)
           </div>
           <ul className="space-y-1 text-xs">
             {score.combos.map((c) => (

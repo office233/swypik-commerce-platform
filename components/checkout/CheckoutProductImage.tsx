@@ -1,6 +1,6 @@
 "use client";
 
-/** Imaginea unui produs din coș, cu fallback 📦. Extras din CheckoutForm.tsx (Faza C). */
+/** Imaginea unui produs din coș, cu fallback Package. Extras din CheckoutForm.tsx (Faza C). */
 import Image from "next/image";
 import type { CartItem } from "./types";
 

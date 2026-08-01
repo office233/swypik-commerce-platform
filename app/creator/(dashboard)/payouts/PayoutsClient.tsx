@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Banknote, ExternalLink, CheckCircle2, AlertTriangle, Loader2, ArrowRightLeft } from "lucide-react";
+import { Banknote, ExternalLink, CheckCircle2, AlertTriangle, Loader2, ArrowRightLeft, Check, X } from "lucide-react";
 import { formatMoneyCents } from "@/lib/i18n/currency";
 
 type ConnectStatus = {
@@ -187,7 +187,7 @@ export default function PayoutsClient({
             <div>
               <h2 className="text-lg font-black text-green-900">{tr("platileActive")}</h2>
               <p className="text-sm text-[#6E6E80]">
-                Charges: {status.chargesEnabled ? "✓" : "✗"} · Payouts: {status.payoutsEnabled ? "✓" : "✗"}
+                Charges: {status.chargesEnabled ? <Check size={14} className="inline text-green-600" /> : <X size={14} className="inline text-red-600" />} · Payouts: {status.payoutsEnabled ? <Check size={14} className="inline text-green-600" /> : <X size={14} className="inline text-red-600" />}
               </p>
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { Rocket, Package, Eye, Truck } from "lucide-react";
 import { useParams } from "next/navigation";
 
 export default function AdminOrderDetailPage() {
@@ -42,14 +43,14 @@ export default function AdminOrderDetailPage() {
       const data = await res.json();
       if (data.success) {
         setToast(
-          action === "fulfill" ? "✅ Comanda a fost trimisă la furnizor!" :
-          action === "add_tracking" ? "✅ Cod AWB adăugat cu succes!" :
-          action === "cancel" ? "❌ Comanda a fost anulată." : "✅ Acțiune completă!"
+          action === "fulfill" ? "Comanda a fost trimisă la furnizor!" :
+          action === "add_tracking" ? "Cod AWB adăugat cu succes!" :
+          action === "cancel" ? "Comanda a fost anulată." : "Acțiune completă!"
         );
         setTimeout(() => setToast(""), 3000);
         loadOrder(); // reload
       } else {
-        setToast(`⚠️ Eroare: ${data.error || "Necunoscută"}`);
+        setToast(`Eroare: ${data.error || "Necunoscută"}`);
         setTimeout(() => setToast(""), 4000);
       }
     } finally {
@@ -126,14 +127,14 @@ export default function AdminOrderDetailPage() {
                   disabled={!!actionLoading}
                   className="rounded-lg bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white hover:bg-[#0E906F] disabled:opacity-50 transition"
                 >
-                  {actionLoading === "fulfill" ? "Se procesează..." : "🚀 Trimite la Furnizor"}
+                  {actionLoading === "fulfill" ? "Se procesează..." : <span className="inline-flex items-center gap-1.5"><Rocket size={14} /> Trimite la Furnizor</span>}
                 </button>
                 <button
                   onClick={() => setShowTrackingModal(true)}
                   disabled={!!actionLoading}
                   className="rounded-lg bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white hover:bg-[#333] disabled:opacity-50 transition"
                 >
-                  📦 Adaugă AWB
+                  <span className="inline-flex items-center gap-1.5"><Package size={14} /> Adaugă AWB</span>
                 </button>
               </>
             )}
@@ -143,7 +144,7 @@ export default function AdminOrderDetailPage() {
                 disabled={!!actionLoading}
                 className="rounded-lg bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white hover:bg-[#333] disabled:opacity-50 transition"
               >
-                📦 Adaugă AWB
+                <span className="inline-flex items-center gap-1.5"><Package size={14} /> Adaugă AWB</span>
               </button>
             )}
             {order.status !== "cancelled" && (
@@ -160,7 +161,7 @@ export default function AdminOrderDetailPage() {
               target="_blank"
               className="rounded-lg bg-white border border-[#E5E5E5] px-4 py-2 text-sm font-bold text-[#6E6E80] hover:bg-[#F7F7F8] transition"
             >
-              👁️ Pagina client
+              <span className="inline-flex items-center gap-1.5"><Eye size={14} /> Pagina client</span>
             </Link>
           </div>
         </div>
@@ -177,7 +178,7 @@ export default function AdminOrderDetailPage() {
                 {items.map((item: any, i: number) => (
                   <div key={i} className="flex gap-4 items-center pb-4 border-b border-[#E5E5E5] last:border-0 last:pb-0">
                     <div className="h-16 w-16 bg-[#F7F7F8] rounded-xl flex items-center justify-center font-bold text-2xl">
-                      📦
+                      <Package size={24} className="text-[#6E6E80]" />
                     </div>
                     <div className="flex-1">
                       <p className="font-bold text-sm text-[#0D0D0D]">{item.title}</p>
@@ -206,7 +207,7 @@ export default function AdminOrderDetailPage() {
             {/* Tracking Info */}
             {order.trackingNumber && (
               <div className="bg-white rounded-2xl border border-[#0D0D0D]/30 p-6 shadow-sm">
-                <h2 className="text-lg font-black mb-3 text-[#0D0D0D]">🚚 Cod de urmărire</h2>
+                <h2 className="text-lg font-black mb-3 text-[#0D0D0D] flex items-center gap-2"><Truck size={20} /> Cod de urmărire</h2>
                 <div className="bg-[#F0FDF4] rounded-xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-xl font-black font-mono text-[#0D0D0D]">{order.trackingNumber}</p>

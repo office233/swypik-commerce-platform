@@ -3,7 +3,9 @@
  * + lista francizelor de flotă.
  */
 import { dbQuery } from "@/lib/db";
+import { Car, Bike, Circle, CircleDot } from "lucide-react";
 import { requireAdminSession } from "@/lib/security/admin-auth";
+import { getTranslations } from "next-intl/server";
 import FleetActions, { PartnerActions } from "./FleetActions";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +52,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 export default async function AdminFleetPage() {
     await requireAdminSession();
+    const t = await getTranslations("adminFleet");
 
     const [{ rows: couriers }, { rows: partners }] = await Promise.all([
         dbQuery<CourierRow>(
@@ -89,42 +92,42 @@ export default async function AdminFleetPage() {
     return (
         <div className="p-6">
             <h1 className="text-2xl font-black text-[#0D0D0D]">
-                Flotă — verificări{" "}
+                {t("title")}{" "}
                 {pending.length > 0 && (
                     <span className="ml-2 rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-700">
-                        {pending.length} în așteptare
+                        {t("pendingCount", { count: pending.length })}
                     </span>
                 )}
             </h1>
             <div className="mt-3 flex flex-wrap gap-2 text-[12px] font-bold">
-                <span className="rounded-full bg-green-100 px-3 py-1 text-green-700">{activeCount} activi</span>
-                <span className="rounded-full bg-gray-200 px-3 py-1 text-gray-600">{inactiveCount} suspendați</span>
-                <span className="rounded-full bg-red-100 px-3 py-1 text-red-600">{rejectedCount} respinși</span>
-                <span className="rounded-full bg-black/5 px-3 py-1 text-[#6E6E80]">{couriers.length} total</span>
+                <span className="rounded-full bg-green-100 px-3 py-1 text-green-700">{t("activeCount", { count: activeCount })}</span>
+                <span className="rounded-full bg-gray-200 px-3 py-1 text-gray-600">{t("suspendedCount", { count: inactiveCount })}</span>
+                <span className="rounded-full bg-red-100 px-3 py-1 text-red-600">{t("rejectedCount", { count: rejectedCount })}</span>
+                <span className="rounded-full bg-black/5 px-3 py-1 text-[#6E6E80]">{t("totalCount", { count: couriers.length })}</span>
             </div>
 
             <section className="mt-6">
-                <h2 className="mb-3 text-lg font-extrabold">Aplicații șoferi & curieri</h2>
+                <h2 className="mb-3 text-lg font-extrabold">{t("applicationsTitle")}</h2>
                 <div className="overflow-x-auto rounded-2xl border border-black/10 bg-white">
                     <table className="w-full text-left text-[13px]">
                         <thead className="border-b border-black/10 text-[11px] uppercase tracking-wide text-[#6E6E80]">
                             <tr>
-                                <th className="px-4 py-3">Nume</th>
-                                <th className="px-4 py-3">Tip</th>
-                                <th className="px-4 py-3">Contact</th>
-                                <th className="px-4 py-3">Cont login</th>
-                                <th className="px-4 py-3">Oraș</th>
-                                <th className="px-4 py-3">Vehicul</th>
-                                <th className="px-4 py-3">Locație / IP</th>
-                                <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3">Acțiuni</th>
+                                <th className="px-4 py-3">{t("thName")}</th>
+                                <th className="px-4 py-3">{t("thType")}</th>
+                                <th className="px-4 py-3">{t("thContact")}</th>
+                                <th className="px-4 py-3">{t("thLoginAccount")}</th>
+                                <th className="px-4 py-3">{t("thCity")}</th>
+                                <th className="px-4 py-3">{t("thVehicle")}</th>
+                                <th className="px-4 py-3">{t("thLocationIp")}</th>
+                                <th className="px-4 py-3">{t("thStatus")}</th>
+                                <th className="px-4 py-3">{t("thActions")}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {couriers.map((c) => (
                                 <tr key={c.id} className="border-b border-black/5 last:border-0">
                                     <td className="px-4 py-3 font-bold">{c.full_name}</td>
-                                    <td className="px-4 py-3">{c.kind === "driver" ? "🚕 Go" : "🛵 Food"}</td>
+                                    <td className="px-4 py-3"><span className="inline-flex items-center gap-1">{c.kind === "driver" ? <Car size={14} /> : <Bike size={14} />} {c.kind === "driver" ? "Go" : "Food"}</span></td>
                                     <td className="px-4 py-3">
                                         {c.phone}
                                         {c.email && <span className="block text-[11px] text-[#A1A1AA]">{c.email}</span>}
@@ -136,8 +139,8 @@ export default async function AdminFleetPage() {
                                                 <span className="block font-mono text-[10px] text-[#A1A1AA]" title="user_id">{c.user_id.slice(0, 8)}…</span>
                                             </>
                                         ) : (
-                                            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700" title="Aplicație trimisă fără cont — se leagă la primul login">
-                                                fără cont
+                                            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700" title={t("noAccountTitle")}>
+                                                {t("noAccount")}
                                             </span>
                                         )}
                                     </td>
@@ -153,15 +156,15 @@ export default async function AdminFleetPage() {
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="text-[12px] font-medium text-sky-600 underline"
-                                                title={c.location_updated_at ? `actualizat: ${c.location_updated_at}` : undefined}
+                                                title={c.location_updated_at ? t("updatedAt", { time: c.location_updated_at }) : undefined}
                                             >
-                                                {c.is_online ? "🟢" : "⚪"} {Number(c.current_lat).toFixed(4)}, {Number(c.current_lng).toFixed(4)}
+                                                {c.is_online ? <CircleDot size={12} className="inline text-green-600" /> : <Circle size={12} className="inline text-gray-400" />} {Number(c.current_lat).toFixed(4)}, {Number(c.current_lng).toFixed(4)}
                                             </a>
                                         ) : (
-                                            <span className="text-[11px] text-[#A1A1AA]">{c.is_online ? "🟢 online, fără GPS" : "— fără locație"}</span>
+                                            <span className="text-[11px] text-[#A1A1AA]">{c.is_online ? t("onlineNoGps") : t("noLocation")}</span>
                                         )}
                                         {c.last_ip && (
-                                            <span className="block font-mono text-[10px] text-[#A1A1AA]" title={c.last_seen_at ? `ultima sesiune: ${c.last_seen_at}` : undefined}>
+                                            <span className="block font-mono text-[10px] text-[#A1A1AA]" title={c.last_seen_at ? t("lastSession", { time: c.last_seen_at }) : undefined}>
                                                 IP {c.last_ip}
                                             </span>
                                         )}
@@ -171,7 +174,7 @@ export default async function AdminFleetPage() {
                                             {c.verification_status}
                                         </span>
                                         {!c.active && c.verification_status === "approved" && (
-                                            <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500">suspendat</span>
+                                            <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500">{t("suspended")}</span>
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
@@ -185,7 +188,7 @@ export default async function AdminFleetPage() {
                                 </tr>
                             ))}
                             {couriers.length === 0 && (
-                                <tr><td colSpan={7} className="px-4 py-8 text-center text-[#A1A1AA]">Nicio aplicație încă.</td></tr>
+                                <tr><td colSpan={7} className="px-4 py-8 text-center text-[#A1A1AA]">{t("noApplications")}</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -193,17 +196,17 @@ export default async function AdminFleetPage() {
             </section>
 
             <section className="mt-10">
-                <h2 className="mb-3 text-lg font-extrabold">Francize de flotă</h2>
+                <h2 className="mb-3 text-lg font-extrabold">{t("franchisesTitle")}</h2>
                 <div className="overflow-x-auto rounded-2xl border border-black/10 bg-white">
                     <table className="w-full text-left text-[13px]">
                         <thead className="border-b border-black/10 text-[11px] uppercase tracking-wide text-[#6E6E80]">
                             <tr>
-                                <th className="px-4 py-3">Firmă</th>
-                                <th className="px-4 py-3">Oraș</th>
-                                <th className="px-4 py-3">Vertical</th>
-                                <th className="px-4 py-3">Șoferi</th>
-                                <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3">Acțiuni</th>
+                                <th className="px-4 py-3">{t("thCompany")}</th>
+                                <th className="px-4 py-3">{t("thCity")}</th>
+                                <th className="px-4 py-3">{t("thVertical")}</th>
+                                <th className="px-4 py-3">{t("thDrivers")}</th>
+                                <th className="px-4 py-3">{t("thStatus")}</th>
+                                <th className="px-4 py-3">{t("thActions")}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -211,7 +214,7 @@ export default async function AdminFleetPage() {
                                 <tr key={p.id} className="border-b border-black/5 last:border-0">
                                     <td className="px-4 py-3 font-bold">{p.company_name}<span className="block text-[11px] font-normal text-[#A1A1AA]">{p.phone}</span></td>
                                     <td className="px-4 py-3">{p.city}</td>
-                                    <td className="px-4 py-3">{p.vertical === "both" ? "Go + Food" : p.vertical === "go" ? "🚕 Go" : "🛵 Food"}</td>
+                                    <td className="px-4 py-3"><span className="inline-flex items-center gap-1">{p.vertical === "both" ? "Go + Food" : p.vertical === "go" ? <><Car size={14} /> Go</> : <><Bike size={14} /> Food</>}</span></td>
                                     <td className="px-4 py-3">{p.driver_count}</td>
                                     <td className="px-4 py-3">
                                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${p.status === "active" ? "bg-green-100 text-green-700" : STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
@@ -224,7 +227,7 @@ export default async function AdminFleetPage() {
                                 </tr>
                             ))}
                             {partners.length === 0 && (
-                                <tr><td colSpan={6} className="px-4 py-8 text-center text-[#A1A1AA]">Nicio franciză încă. Aplicațiile vin din /join/franchise.</td></tr>
+                                <tr><td colSpan={6} className="px-4 py-8 text-center text-[#A1A1AA]">{t("noFranchises")}</td></tr>
                             )}
                         </tbody>
                     </table>

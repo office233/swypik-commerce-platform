@@ -7,6 +7,7 @@
  *  - cerere de retragere (min 50 RON) + istoricul cererilor.
  */
 import { useCallback, useEffect, useState } from "react";
+import { UtensilsCrossed, CarTaxiFront, Gift } from "lucide-react";
 
 type Bucket = { eats_cents: number; go_cents: number; tips_cents: number; net_cents: number };
 type Payout = {
@@ -72,7 +73,7 @@ export default function EarningsTab() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Cererea a eșuat.");
-      setMsg("Cerere trimisă ✔");
+      setMsg("Cerere trimisă");
       setAmount("");
       await load();
     } catch (e) {
@@ -115,15 +116,15 @@ export default function EarningsTab() {
             <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs text-gray-500">
               <div className="rounded-lg bg-gray-50 p-2">
                 <div className="font-semibold text-gray-800">{ron(b.eats_cents)}</div>
-                🍔 Eats
+                <span className="inline-flex items-center gap-1"><UtensilsCrossed size={12} /> Eats</span>
               </div>
               <div className="rounded-lg bg-gray-50 p-2">
                 <div className="font-semibold text-gray-800">{ron(b.go_cents)}</div>
-                🚕 Go
+                <span className="inline-flex items-center gap-1"><CarTaxiFront size={12} /> Go</span>
               </div>
               <div className="rounded-lg bg-gray-50 p-2">
                 <div className="font-semibold text-gray-800">{ron(b.tips_cents)}</div>
-                💝 Bacșiș
+                <span className="inline-flex items-center gap-1"><Gift size={12} /> Bacșiș</span>
               </div>
             </div>
           </div>

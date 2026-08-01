@@ -4,7 +4,7 @@
  */
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
-import { Shield, RotateCcw, Coins, AlertTriangle, ShieldAlert, Inbox } from "lucide-react";
+import { Shield, RotateCcw, Coins, AlertTriangle, ShieldAlert, Inbox, CheckCircle2 } from "lucide-react";
 
 type Counts = {
   disputes_pending: number;
@@ -137,8 +137,8 @@ export default async function OpsAlertsBar() {
   const totalAlerts = cards.reduce((s, c) => s + (c.tone !== "ok" ? c.count : 0), 0);
   if (totalAlerts === 0) {
     return (
-      <div className="mb-6 bg-green-50 border border-green-200 rounded-2xl p-3 text-sm text-green-800">
-        ✓ Niciun alert operational. Toate cozile sunt curate.
+      <div className="mb-6 bg-green-50 border border-green-200 rounded-2xl p-3 text-sm text-green-800 flex items-center gap-1.5">
+        <CheckCircle2 size={16} /> Niciun alert operational. Toate cozile sunt curate.
       </div>
     );
   }

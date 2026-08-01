@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { Clapperboard, Film, Check, X } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -143,7 +144,7 @@ export default function AdminVideosPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-black flex items-center gap-3">
-              🎬 Video Manager
+              <Clapperboard size={28} /> Video Manager
             </h1>
             <p className="mt-1 text-sm text-[#6E6E80]">
               Review, approve, and manage all creator video assets.
@@ -267,7 +268,7 @@ export default function AdminVideosPage() {
                                 }}
                               />
                             ) : (
-                              <span className="text-[#444] text-lg">🎞️</span>
+                              <Film size={20} className="text-[#444]" />
                             )}
                           </div>
                         </td>
@@ -364,7 +365,7 @@ export default function AdminVideosPage() {
                                     onClick={() => performAction("approve", video.id)}
                                     className="rounded-lg bg-[#0D0D0D]/15 px-3 py-1.5 text-[11px] font-bold text-[#0D0D0D] border border-[#0D0D0D]/30 hover:bg-[#0D0D0D]/25 hover:border-[#0D0D0D]/50 transition-all"
                                   >
-                                    ✓ Aprobă
+                                    <span className="inline-flex items-center gap-1"><Check size={12} /> Aprobă</span>
                                   </button>
                                 )}
 
@@ -400,7 +401,7 @@ export default function AdminVideosPage() {
                                       }}
                                       className="text-[#6E6E80] text-[11px] hover:text-[#0D0D0D] transition-colors px-1"
                                     >
-                                      ✕
+                                      <X size={12} />
                                     </button>
                                   </div>
                                 ) : (
@@ -408,7 +409,7 @@ export default function AdminVideosPage() {
                                     onClick={() => setRejectId(video.id)}
                                     className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-bold text-red-600 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all"
                                   >
-                                    ✕ Respinge
+                                    <span className="inline-flex items-center gap-1"><X size={12} /> Respinge</span>
                                   </button>
                                 )}
 

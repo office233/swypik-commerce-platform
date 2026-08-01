@@ -5,6 +5,7 @@
  * (doar cauze verificate) și raportare cheltuieli cu dovezi (prin /api/upload).
  */
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Cause = {
   id: string;
@@ -33,18 +34,18 @@ type Expense = {
   created_at: string;
 };
 
-const VERIF_LABELS: Record<string, string> = {
-  pending: "În așteptare",
-  in_review: "În verificare",
-  verified: "Verificată ✓",
-  rejected: "Respinsă",
-};
-
 function lei(cents: number): string {
   return (cents / 100).toLocaleString("ro-RO", { maximumFractionDigits: 2 });
 }
 
 export default function CausesPanelClient() {
+  const t = useTranslations("causesPanel");
+  const VERIF_LABELS: Record<string, string> = {
+    pending: t("verifPending"),
+    in_review: t("verifInReview"),
+    verified: t("verifVerified"),
+    rejected: t("verifRejected"),
+  };
   const [causes, setCauses] = useState<Cause[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expenses, setExpenses] = useState<Record<string, Expense[]>>({});
@@ -69,7 +70,7 @@ export default function CausesPanelClient() {
         fetch("/api/campaigns/manage"),
       ]);
       if (cRes.status === 401) {
-        setError("Autentifică-te pentru a-ți administra cauzele.");
+        setError(t("authRequired"));
         return;
       }
       const cData = (await cRes.json()) as { causes?: Cause[] };
@@ -77,11 +78,11 @@ export default function CausesPanelClient() {
       setCauses(cData.causes ?? []);
       setCampaigns(campData.campaigns ?? []);
     } catch {
-      setError("Eroare de rețea.");
+      setError(t("networkError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -106,11 +107,11 @@ export default function CausesPanelClient() {
     });
     const data = (await res.json()) as { success?: boolean; error?: string };
     if (res.ok && data.success) {
-      setMsg("Cauza a fost înregistrată. Verificarea se face de echipa Swypik.");
+      setMsg(t("registered"));
       setRegForm({ kind: "ngo", name: "", description: "", legal_id: "", contact_name: "", contact_email: "", contact_phone: "", location_city: "" });
       void load();
     } else {
-      setMsg(data.error ?? "Eroare la înregistrare.");
+      setMsg(data.error ?? t("registerError"));
     }
   }
 
@@ -119,7 +120,7 @@ export default function CausesPanelClient() {
     setMsg(null);
     const goalCents = Math.round(Number(campForm.goal) * 100);
     if (!campForm.cause_id || !Number.isFinite(goalCents) || goalCents < 100) {
-      setMsg("Completează cauza și o țintă validă (minim 1 leu).");
+      setMsg(t("campaignInvalid"));
       return;
     }
     const res = await fetch("/api/campaigns/manage", {
@@ -134,11 +135,11 @@ export default function CausesPanelClient() {
     });
     const data = (await res.json()) as { success?: boolean; error?: string };
     if (res.ok && data.success) {
-      setMsg("Campania a fost creată (draft).");
+      setMsg(t("campaignCreated"));
       setCampForm({ cause_id: "", title: "", story: "", goal: "" });
       void load();
     } else {
-      setMsg(data.error ?? "Eroare la creare.");
+      setMsg(data.error ?? t("createError"));
     }
   }
 
@@ -153,7 +154,7 @@ export default function CausesPanelClient() {
       if (res.ok && data.url) {
         setExpForm((p) => ({ ...p, proof_url: data.url ?? "" }));
       } else {
-        setMsg(data.error ?? "Eroare la upload.");
+        setMsg(data.error ?? t("uploadError"));
       }
     } finally {
       setUploading(false);
@@ -165,7 +166,7 @@ export default function CausesPanelClient() {
     setMsg(null);
     const amountCents = Math.round(Number(expForm.amount) * 100);
     if (!expForm.campaign_id || !Number.isFinite(amountCents) || amountCents <= 0 || !expForm.proof_url) {
-      setMsg("Completează campania, suma și dovada (upload).");
+      setMsg(t("expenseInvalid"));
       return;
     }
     const res = await fetch("/api/campaigns/manage/expenses", {
@@ -180,12 +181,12 @@ export default function CausesPanelClient() {
     });
     const data = (await res.json()) as { success?: boolean; error?: string };
     if (res.ok && data.success) {
-      setMsg("Cheltuiala a fost raportată — apare public după confirmare.");
+      setMsg(t("expenseReported"));
       const cid = expForm.campaign_id;
       setExpForm({ campaign_id: "", amount: "", purpose: "", proof_url: "" });
       void loadExpenses(cid);
     } else {
-      setMsg(data.error ?? "Eroare la raportare.");
+      setMsg(data.error ?? t("reportError"));
     }
   }
 
@@ -196,30 +197,29 @@ export default function CausesPanelClient() {
     setExpenses((prev) => ({ ...prev, [campaignId]: data.expenses ?? [] }));
   }, []);
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Se încarcă…</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-4">
       <header>
-        <h1 className="text-2xl font-bold">Swypik Cares — panoul tău</h1>
-        <p className="text-sm text-gray-500">Înregistrează o cauză, creează campanii și raportează transparent cheltuielile.</p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-sm text-gray-500">{t("subtitle")}</p>
       </header>
 
       {msg && <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">{msg}</div>}
 
       <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-lg font-semibold">Cauzele mele</h2>
+        <h2 className="mb-3 text-lg font-semibold">{t("myCauses")}</h2>
         {causes.length === 0 ? (
-          <p className="text-sm text-gray-400">Nu ai nicio cauză înregistrată.</p>
+          <p className="text-sm text-gray-400">{t("noCauses")}</p>
         ) : (
           <ul className="space-y-2">
             {causes.map((c) => (
               <li key={c.id} className="flex items-center justify-between rounded border p-3 text-sm">
                 <span>{c.name} <span className="text-gray-400">({c.kind})</span></span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  c.verification_status === "verified" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-                }`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${c.verification_status === "verified" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                  }`}>
                   {VERIF_LABELS[c.verification_status] ?? c.verification_status}
                 </span>
               </li>
@@ -230,34 +230,34 @@ export default function CausesPanelClient() {
         <form onSubmit={(e) => void registerCause(e)} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <select className="rounded border px-3 py-2 text-sm" value={regForm.kind}
             onChange={(e) => setRegForm((p) => ({ ...p, kind: e.target.value }))}>
-            <option value="ngo">ONG</option>
-            <option value="family">Familie</option>
-            <option value="small_business">Business mic</option>
-            <option value="community">Comunitate</option>
-            <option value="emergency">Urgență</option>
+            <option value="ngo">{t("kindNgo")}</option>
+            <option value="family">{t("kindFamily")}</option>
+            <option value="small_business">{t("kindSmallBusiness")}</option>
+            <option value="community">{t("kindCommunity")}</option>
+            <option value="emergency">{t("kindEmergency")}</option>
           </select>
-          <input required className="rounded border px-3 py-2 text-sm" placeholder="Numele cauzei"
+          <input required className="rounded border px-3 py-2 text-sm" placeholder={t("causeName")}
             value={regForm.name} onChange={(e) => setRegForm((p) => ({ ...p, name: e.target.value }))} />
-          <input className="rounded border px-3 py-2 text-sm" placeholder="CUI / CIF (opțional)"
+          <input className="rounded border px-3 py-2 text-sm" placeholder={t("legalId")}
             value={regForm.legal_id} onChange={(e) => setRegForm((p) => ({ ...p, legal_id: e.target.value }))} />
-          <input className="rounded border px-3 py-2 text-sm" placeholder="Oraș"
+          <input className="rounded border px-3 py-2 text-sm" placeholder={t("city")}
             value={regForm.location_city} onChange={(e) => setRegForm((p) => ({ ...p, location_city: e.target.value }))} />
-          <input required className="rounded border px-3 py-2 text-sm" placeholder="Persoană de contact"
+          <input required className="rounded border px-3 py-2 text-sm" placeholder={t("contactName")}
             value={regForm.contact_name} onChange={(e) => setRegForm((p) => ({ ...p, contact_name: e.target.value }))} />
-          <input required type="email" className="rounded border px-3 py-2 text-sm" placeholder="Email contact"
+          <input required type="email" className="rounded border px-3 py-2 text-sm" placeholder={t("contactEmail")}
             value={regForm.contact_email} onChange={(e) => setRegForm((p) => ({ ...p, contact_email: e.target.value }))} />
-          <input className="rounded border px-3 py-2 text-sm" placeholder="Telefon (opțional)"
+          <input className="rounded border px-3 py-2 text-sm" placeholder={t("contactPhone")}
             value={regForm.contact_phone} onChange={(e) => setRegForm((p) => ({ ...p, contact_phone: e.target.value }))} />
-          <textarea className="rounded border px-3 py-2 text-sm sm:col-span-2" rows={2} placeholder="Descriere"
+          <textarea className="rounded border px-3 py-2 text-sm sm:col-span-2" rows={2} placeholder={t("description")}
             value={regForm.description} onChange={(e) => setRegForm((p) => ({ ...p, description: e.target.value }))} />
           <button type="submit" className="rounded bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 sm:col-span-2">
-            Înregistrează cauza (verificare manuală)
+            {t("registerBtn")}
           </button>
         </form>
       </section>
 
       <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-lg font-semibold">Campanii</h2>
+        <h2 className="mb-3 text-lg font-semibold">{t("campaigns")}</h2>
         {campaigns.length > 0 && (
           <ul className="mb-4 space-y-2">
             {campaigns.map((c) => (
@@ -271,16 +271,16 @@ export default function CausesPanelClient() {
                 </div>
                 <p className="mt-1 text-xs text-gray-500">{lei(c.raised_cents)} / {lei(c.goal_cents)} {c.currency}</p>
                 <button onClick={() => void loadExpenses(c.id)} className="mt-1 text-xs text-blue-600 underline">
-                  Vezi cheltuielile raportate
+                  {t("viewExpenses")}
                 </button>
                 {expenses[c.id] && (
                   <ul className="mt-2 space-y-1 border-t pt-2 text-xs text-gray-600">
-                    {expenses[c.id].length === 0 && <li>Nicio cheltuială raportată.</li>}
+                    {expenses[c.id].length === 0 && <li>{t("noExpenses")}</li>}
                     {expenses[c.id].map((x) => (
                       <li key={x.id}>
-                        {lei(x.amount_cents)} lei — {x.purpose} ({x.status})
+                        {t("expenseLine", { amount: lei(x.amount_cents) })} — {x.purpose} ({x.status})
                         {x.proof_url && (
-                          <a href={x.proof_url} target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-600 underline">dovadă</a>
+                          <a href={x.proof_url} target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-600 underline">{t("proofLink")}</a>
                         )}
                       </li>
                     ))}
@@ -292,22 +292,22 @@ export default function CausesPanelClient() {
         )}
 
         {verifiedCauses.length === 0 ? (
-          <p className="text-sm text-amber-600">Poți crea campanii după ce o cauză este verificată.</p>
+          <p className="text-sm text-amber-600">{t("needVerified")}</p>
         ) : (
           <form onSubmit={(e) => void createCampaign(e)} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <select required className="rounded border px-3 py-2 text-sm" value={campForm.cause_id}
               onChange={(e) => setCampForm((p) => ({ ...p, cause_id: e.target.value }))}>
-              <option value="">Alege cauza…</option>
+              <option value="">{t("chooseCause")}</option>
               {verifiedCauses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <input required className="rounded border px-3 py-2 text-sm" placeholder="Titlul campaniei"
+            <input required className="rounded border px-3 py-2 text-sm" placeholder={t("campaignTitle")}
               value={campForm.title} onChange={(e) => setCampForm((p) => ({ ...p, title: e.target.value }))} />
-            <input required inputMode="decimal" className="rounded border px-3 py-2 text-sm" placeholder="Țintă (lei)"
+            <input required inputMode="decimal" className="rounded border px-3 py-2 text-sm" placeholder={t("goalPlaceholder")}
               value={campForm.goal} onChange={(e) => setCampForm((p) => ({ ...p, goal: e.target.value }))} />
-            <textarea className="rounded border px-3 py-2 text-sm sm:col-span-2" rows={2} placeholder="Povestea campaniei"
+            <textarea className="rounded border px-3 py-2 text-sm sm:col-span-2" rows={2} placeholder={t("storyPlaceholder")}
               value={campForm.story} onChange={(e) => setCampForm((p) => ({ ...p, story: e.target.value }))} />
             <button type="submit" className="rounded bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 sm:col-span-2">
-              Creează campania
+              {t("createCampaign")}
             </button>
           </form>
         )}
@@ -315,29 +315,29 @@ export default function CausesPanelClient() {
 
       {campaigns.length > 0 && (
         <section className="rounded-xl border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-lg font-semibold">Raportează o cheltuială (cu dovadă)</h2>
+          <h2 className="mb-3 text-lg font-semibold">{t("reportExpenseTitle")}</h2>
           <form onSubmit={(e) => void reportExpense(e)} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <select required className="rounded border px-3 py-2 text-sm" value={expForm.campaign_id}
               onChange={(e) => setExpForm((p) => ({ ...p, campaign_id: e.target.value }))}>
-              <option value="">Alege campania…</option>
+              <option value="">{t("chooseCampaign")}</option>
               {campaigns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
-            <input required inputMode="decimal" className="rounded border px-3 py-2 text-sm" placeholder="Sumă (lei)"
+            <input required inputMode="decimal" className="rounded border px-3 py-2 text-sm" placeholder={t("amountPlaceholder")}
               value={expForm.amount} onChange={(e) => setExpForm((p) => ({ ...p, amount: e.target.value }))} />
-            <input required className="rounded border px-3 py-2 text-sm sm:col-span-2" placeholder="Scop (ex: plată factură spital)"
+            <input required className="rounded border px-3 py-2 text-sm sm:col-span-2" placeholder={t("purposePlaceholder")}
               value={expForm.purpose} onChange={(e) => setExpForm((p) => ({ ...p, purpose: e.target.value }))} />
             <div className="sm:col-span-2">
               <label className="block text-sm text-gray-600">
-                Dovadă (factură/chitanță — png/jpg/webp):
+                {t("proofLabel")}
                 <input type="file" accept="image/png,image/jpeg,image/webp" className="mt-1 block text-sm"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadProof(f); }} />
               </label>
-              {uploading && <p className="text-xs text-gray-400">Se încarcă…</p>}
-              {expForm.proof_url && <p className="text-xs text-green-600">Dovadă încărcată ✓</p>}
+              {uploading && <p className="text-xs text-gray-400">{t("loading")}</p>}
+              {expForm.proof_url && <p className="text-xs text-green-600">{t("proofUploaded")}</p>}
             </div>
             <button type="submit" disabled={uploading}
               className="rounded bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50 sm:col-span-2">
-              Raportează cheltuiala
+              {t("reportBtn")}
             </button>
           </form>
         </section>

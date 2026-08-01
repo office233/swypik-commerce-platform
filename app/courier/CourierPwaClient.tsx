@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import EarningsTab from "./EarningsTab";
+import { Bell, BellOff, AlertTriangle, RadioTower, Store, Home, CircleDot, Circle, CarTaxiFront } from "lucide-react";
 
 type Offer = {
     offer_id: string;
@@ -305,7 +306,7 @@ export default function CourierPwaClient() {
                         title={soundOn ? t("soundOn") : t("soundOff")}
                         className="rounded-full border px-3 py-2 text-xs"
                     >
-                        {soundOn ? "🔔" : "🔕"}
+                        {soundOn ? <Bell size={16} /> : <BellOff size={16} />}
                     </button>
                     <button
                         onClick={() => void toggleOnline()}
@@ -319,8 +320,8 @@ export default function CourierPwaClient() {
             </header>
 
             {online && hiddenWhileOnline && (
-                <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-                    ⚠️ {t("bgWarning")}
+                <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                    <AlertTriangle size={16} className="text-amber-600" /> {t("bgWarning")}
                 </div>
             )}
 
@@ -352,7 +353,7 @@ export default function CourierPwaClient() {
 
                 {online && !offer && !activeDelivery && !activeRide && (
                     <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
-                        <div className="animate-pulse text-3xl">📡</div>
+                        <div className="flex animate-pulse justify-center"><RadioTower size={32} /></div>
                         <p className="mt-2 text-sm text-gray-500">Aștept comenzi… GPS-ul se trimite la 10s.</p>
                     </div>
                 )}
@@ -360,7 +361,7 @@ export default function CourierPwaClient() {
                 {offer && (
                     <div className="rounded-2xl border-2 border-blue-500 bg-white p-5 shadow-lg">
                         <div className="flex items-center justify-between">
-                            <h2 className="font-bold">{offer.kind === "ride" ? "Cursă nouă! 🚕" : "Comandă nouă!"}</h2>
+                            <h2 className="flex items-center gap-2 font-bold">{offer.kind === "ride" ? <>Cursă nouă! <CarTaxiFront size={16} /></> : "Comandă nouă!"}</h2>
                             <span
                                 className={`rounded-full px-3 py-1 font-mono text-lg font-bold ${secondsLeft <= 10 ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
                                     }`}
@@ -406,13 +407,13 @@ export default function CourierPwaClient() {
                         <h2 className="font-bold">Livrare în curs — {activeDelivery.order_number}</h2>
                         <div className="mt-3 space-y-2 text-sm">
                             <div className="flex items-center justify-between gap-2">
-                                <span>🏪 {activeDelivery.merchant_name}</span>
+                                <span className="flex items-center gap-1.5"><Store size={16} /> {activeDelivery.merchant_name}</span>
                                 {activeDelivery.pickup_address && (
                                     <NavButtons address={activeDelivery.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                                 )}
                             </div>
                             <div className="flex items-center justify-between gap-2">
-                                <span>🏠 {activeDelivery.delivery_address}</span>
+                                <span className="flex items-center gap-1.5"><Home size={16} /> {activeDelivery.delivery_address}</span>
                                 <NavButtons address={activeDelivery.delivery_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                             </div>
                         </div>
@@ -435,16 +436,16 @@ export default function CourierPwaClient() {
 
                 {activeRide && (
                     <div className="rounded-2xl border bg-white p-5 shadow-md">
-                        <h2 className="font-bold">Cursă în curs 🚕</h2>
+                        <h2 className="flex items-center gap-2 font-bold">Cursă în curs <CarTaxiFront size={16} /></h2>
                         <div className="mt-3 space-y-2 text-sm">
                             <div className="flex items-center justify-between gap-2">
-                                <span>🟢 {activeRide.pickup_address ?? "Punct de ridicare"}</span>
+                                <span className="flex items-center gap-1.5"><Circle size={14} className="text-green-600" /> {activeRide.pickup_address ?? "Punct de ridicare"}</span>
                                 {activeRide.pickup_address && (
                                     <NavButtons address={activeRide.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                                 )}
                             </div>
                             <div className="flex items-center justify-between gap-2">
-                                <span>🔴 {activeRide.delivery_address}</span>
+                                <span className="flex items-center gap-1.5"><CircleDot size={14} className="text-red-600" /> {activeRide.delivery_address}</span>
                                 <NavButtons address={activeRide.delivery_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                             </div>
                         </div>

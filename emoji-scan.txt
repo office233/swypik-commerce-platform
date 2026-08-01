@@ -1,0 +1,155 @@
+### app/[locale]/account/AccountPageClient.tsx | import: import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, TrendingUp, Swords } from "lucide-react";
+250: <span className="text-3xl">😎</span>
+
+### app/[locale]/account/edit/page.tsx | import: import { ArrowLeft, Camera, Loader2 } from "lucide-react";
+346: ✕
+
+### app/[locale]/b/[slug]/opengraph-image.tsx | import: NONE
+214: 👁  {post.vote_count} vot{post.vote_count === 1 ? "" : "uri"}
+
+### app/[locale]/collections/page.tsx | import: import { Plus, X } from "lucide-react";
+24: const [newIcon, setNewIcon] = useState("📁");
+60: setNewIcon("📁");
+67: const EMOJIS = ["📁", "🔖", "🛒", "💡", "❤️", "⭐", "🎵", "✈️", "🍔", "🎮"];
+106: {col.icon || '📁'}
+
+### app/[locale]/collections/[id]/page.tsx | import: import { ArrowLeft, Edit2, Trash2, X, Play } from "lucide-react";
+49: setEditIcon(data.collection.icon || "📁");
+96: const EMOJIS = ["📁", "🔖", "🛒", "💡", "❤️", "⭐", "🎵", "✈️", "🍔", "🎮"];
+117: {collection.icon || '📁'}
+145: <div className="text-5xl mb-4 opacity-50">📭</div>
+
+### app/[locale]/fleet/FleetPartnerClient.tsx | import: import { Building2, Loader2, Users } from "lucide-react";
+148: 🚕 Link șoferi Go
+151: 🛵 Link curieri Food
+164: <span className="text-xl">{d.kind === "driver" ? "🚕" : "🛵"}</span>
+
+### app/[locale]/food/FoodClient.tsx | import: import { ArrowLeft, Clock, MapPin, ReceiptText, Star, Truck } from "lucide-react";
+36: { id: "pizza", emoji: "🍕", labelKey: "cuisinePizza" },
+37: { id: "burgers", emoji: "🍔", labelKey: "cuisineBurgers" },
+38: { id: "asian", emoji: "🍜", labelKey: "cuisineAsian" },
+39: { id: "romanian", emoji: "🥘", labelKey: "cuisineRomanian" },
+40: { id: "desserts", emoji: "🍰", labelKey: "cuisineDesserts" },
+41: { id: "healthy", emoji: "🥗", labelKey: "cuisineHealthy" },
+149: 📍
+166: <div className="mb-3 text-5xl" aria-hidden>🍔</div>
+196: <div className="grid h-full place-items-center text-3xl">🍽️</div>
+
+### app/[locale]/food/orders/OrdersListClient.tsx | import: import { ArrowLeft, ChevronRight, RotateCcw } from "lucide-react";
+100: <div className="text-5xl" aria-hidden>🍕</div>
+184: <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#F7F7F8] text-xl" aria-hidden>🍽️</span>
+
+### app/[locale]/food/orders/[id]/OrderTrackingClient.tsx | import: import { ArrowLeft, Check, ChefHat, Bike, MapPin, Phone, ShoppingBag } from "lucide-react";
+83: { key: "delivered", label: "Livrată 🎉", matches: ["delivered"] },
+304: <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F0FAF4] text-xl" aria-hidden>🛵</span>
+342: 🚗 Ai nevoie de o cursă? Swypik Go
+370: {order.payment_method === "cash" ? "Plată cash la livrare" : order.payment_status === "paid" ? "Plătită cu cardul ✓" : "Plată cu cardul în curs"}
+
+### app/[locale]/food/[slug]/MenuClient.tsx | import: import { ArrowLeft, Clock, MapPin, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react";
+344: <div className="mb-4 text-6xl" aria-hidden>✅</div>
+629: 📍 {a.label || a.line1.slice(0, 24)}
+709: 💵 Cash la livrare
+716: 💳 Card online
+
+### app/[locale]/go/GoClient.tsx | import: NONE
+24: { id: "economy", labelKey: "classEconomy", emoji: "🚗", hintKey: "hintEconomy" },
+25: { id: "comfort", labelKey: "classComfort", emoji: "🚙", hintKey: "hintComfort" },
+26: { id: "van", labelKey: "classVan", emoji: "🚐", hintKey: "hintVan" },
+199: <h1 className="mb-3 text-lg font-extrabold tracking-tight">{t("title")} 🚕</h1>
+205: icon={<span className="text-sm">🟢</span>}
+211: icon={<span className="text-sm">🔴</span>}
+246: ⚡ {t("surge", { mult: Number(selected.breakdown.surge_multiplier).toFixed(2) })}
+
+### app/[locale]/go/history/HistoryClient.tsx | import: NONE
+112: <dd>{r.driver_name}{r.driver_rating ? ` (★ ${Number(r.driver_rating).toFixed(2)})` : ""}</dd>
+
+### app/[locale]/go/track/[token]/TrackClient.tsx | import: NONE
+88: <p>🟢 {snap.pickup.address}</p>
+89: <p>🔴 {snap.dropoff.address}</p>
+
+### app/[locale]/go/[id]/RideClient.tsx | import: NONE
+277: {shared ? t("share.copied") : `📤 ${t("share.button")}`}
+308: 🚕
+329: <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-xl">🧑‍✈️</div>
+334: {driver.rating ? ` • ★ ${Number(driver.rating).toFixed(2)}` : ""}
+353: 📞 {t("driver.call")}
+395: <button key={s} onClick={() => setStars(s)} aria-label={`${s}★`}>
+396: {s <= stars ? "⭐" : "☆"}
+474: ⚠️ {t("cancel.feeWarning", { fee: fmt(cancelFeeNow) })}
+
+### app/[locale]/hashtag/[tag]/page.tsx | import: NONE
+67: ♥ {Intl.NumberFormat().format(v.like_count)}
+
+### app/[locale]/live/page.tsx | import: NONE
+17: <h1 className="text-2xl font-bold mb-4">🔴 Live acum</h1>
+35: <p className="text-xs opacity-80">👁 {s.viewer_count ?? 0}{s.username ? ` · @${s.username}` : ""}</p>
+
+### app/[locale]/live/[id]/LiveViewerClient.tsx | import: NONE
+103: <span className="bg-black/60 text-xs px-2 py-1 rounded">👁 {viewers}</span>
+131: 🛍 {t("productCount", { count: items.length })}
+
+### app/[locale]/missions/page.tsx | import: import { Trophy, Coins, Clock, Users } from "lucide-react";
+106: 🎯
+
+### app/[locale]/orders/[id]/page.tsx | import: NONE
+10: paid: { label: t("statusPaid"), color: "bg-neutral-100 text-neutral-900", icon: "💳", step: 2 },
+11: fulfilled: { label: t("statusFulfilled"), color: "bg-blue-100 text-blue-800", icon: "📦", step: 3 },
+12: shipped: { label: t("statusShipped"), color: "bg-purple-100 text-purple-800", icon: "🚚", step: 3 },
+13: delivered: { label: t("statusDelivered"), color: "bg-neutral-100 text-neutral-900", icon: "✅", step: 4 },
+14: return_requested: { label: t("statusReturnRequested"), color: "bg-orange-100 text-orange-800", icon: "🔄", step: 4 },
+15: cancelled: { label: t("statusCancelled"), color: "bg-red-100 text-red-800", icon: "❌", step: 0 },
+21: { label: t("stepComandaPlasata"), icon: "🛋" },
+22: { label: t("stepPlataConfirmata"), icon: "💳" },
+23: { label: t("stepExpediata"), icon: "📦" },
+24: { label: t("stepLivrata"), icon: "🏠" },
+70: <div className="text-6xl mb-4">📭</div>
+166: {i + 1 <= currentStep ? "✓" : step.icon}
+243: <span className="text-3xl">🔄</span>
+258: <span className="text-3xl">✅</span>
+278: <span>↩️</span>  {t("solicitaRetur")}
+307: ⚠️ {returnError}
+
+### app/[locale]/orders/[id]/return/page.tsx | import: import { ArrowLeft } from "lucide-react";
+76: <div className="text-5xl mb-4">↩️</div>
+
+### app/[locale]/pay/PayClient.tsx | import: import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2, Lock, Wallet, Car, Bike, Clapperboard, Star } from "lucide-react";
+201: setWithdrawMsg(`✗ ${reasons[data.error] ?? data.error}`);
+225: setStakeMsg(d.success ? t("stakeOk", { months }) : `✗ ${errs[d.error] ?? d.error}`);
+357: setSendMsg(`✗ ${reasons[data.error] ?? data.error}`);
+
+### app/[locale]/post/[slug]/VoteButtons.tsx | import: NONE
+99: 🛍️
+106: {isMine ? <span className="ml-2 text-[#7C3AED]">✓ {t("yourVote")}</span> : null}
+
+### app/[locale]/product/[id]/opengraph-image.tsx | import: NONE
+42: <div style={{ width: 630, height: 630, background: "#1e1b4b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 96 }}>📦</div>
+
+### app/[locale]/product/[id]/ProductClient.tsx | import: import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Star, Truck } from "lucide-react";
+460: <div className="w-full h-full flex items-center justify-center text-4xl">🎬</div>
+636: <button className="absolute top-4 right-4 grid h-11 w-11 place-items-center text-white rounded-full bg-white/10 backdrop-blur hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("inchide")} onClick={() => setPlayingVideo(null)}>✕</button>
+660: 🪞
+
+### app/[locale]/product/[id]/VideoSection.tsx | import: NONE
+78: 📹 Clipuri cu acest produs
+151: 🎬
+232: <span>👁 {formatViews(video.viewCount)}</span>
+283: ✕
+329: {activeVideo.creatorName} · 👁 {formatViews(activeVideo.viewCount)}
+
+### app/[locale]/sellers/[id]/page.tsx | import: import { Star } from "lucide-react";
+181: <span className="text-3xl">🏪</span>
+257: <div className="flex h-full w-full items-center justify-center text-2xl text-[#C4C4C4]">🎬</div>
+296: 📦
+
+### app/[locale]/shop/page.tsx | import: NONE
+101: <div className="w-full h-full flex items-center justify-center text-white/30 text-3xl">📦</div>
+
+### app/[locale]/stays/StaysClient.tsx | import: import { BedDouble, Loader2, MapPin, Star, AlertTriangle, CalendarDays, Users } from "lucide-react";
+121: setNotice("Rezervările de cazări se lansează în curând pe Swypik. Zborurile sunt deja disponibile în Fly! ✈️");
+
+### app/[locale]/trends/page.tsx | import: NONE
+37: <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>🔥 {t("title")}</h1>
+
+### app/[locale]/v/[id]/VerticalClient.tsx | import: import { ArrowLeft, MapPin } from "lucide-react";
+226: {it.publisher.verified && <span className="ml-1">✓</span>}
+

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import AddProductWizard from "./AddProductWizard";
+import { Tag } from "lucide-react";
 
 export default function SellerProductsPage() {
   const [isAdding, setIsAdding] = useState(false);
@@ -64,7 +65,7 @@ export default function SellerProductsPage() {
               ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
-                    <p className="text-3xl mb-3">🏷️</p>
+                    <p className="mb-3 flex justify-center"><Tag size={32} /></p>
                     <p className="font-bold text-[#0D0D0D]">Niciun produs adăugat.</p>
                     <p className="text-sm text-[#6E6E80] mt-1">Începe să vinzi adăugând primul tău produs.</p>
                   </td>

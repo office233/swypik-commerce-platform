@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Copy, Plus, Radio, Square } from "lucide-react";
+import { Copy, Eye, Plus, Radio, Square } from "lucide-react";
 
 type Stream = {
   id: string;
@@ -115,7 +115,7 @@ export default function LiveStudioClient({ streams }: { streams: Stream[] }) {
             )}
             <div className="flex items-center gap-3 mt-3 text-sm">
               <Link href={`/live/${s.id}`} className="text-violet-600 underline">Vezi pagina</Link>
-              {s.status === "live" && <span>👁 {s.viewer_count} viewers</span>}
+              {s.status === "live" && <span className="inline-flex items-center gap-1"><Eye className="w-4 h-4" /> {s.viewer_count} viewers</span>}
               {s.status === "live" && (
                 <button type="button" onClick={() => onEnd(s.id)} className="ml-auto inline-flex items-center gap-1 min-h-[40px] px-3 rounded-lg text-red-600 hover:bg-red-50 font-bold text-sm focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                   <Square className="w-3 h-3" /> Termină

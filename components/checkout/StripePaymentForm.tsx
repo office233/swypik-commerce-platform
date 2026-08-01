@@ -114,7 +114,7 @@ export default function StripePaymentForm({ totalRon, orderId, orderLookupToken 
             >
               {savedAddresses.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.is_default ? "★ " : ""}
+                  {a.is_default ? "* " : ""}
                   {a.label ? `${a.label} — ` : ""}
                   {a.recipient_name}, {a.line1}, {a.city}
                 </option>
@@ -156,7 +156,7 @@ export default function StripePaymentForm({ totalRon, orderId, orderLookupToken 
 
       {error && (
         <div className="mb-4 text-sm font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2.5 text-center">
-          ⚠️ {error}
+          <AlertTriangle size={14} className="inline" /> {error}
         </div>
       )}
 
@@ -185,7 +185,7 @@ export default function StripePaymentForm({ totalRon, orderId, orderLookupToken 
 
       <div className="mt-4 flex items-center justify-center gap-3 opacity-60">
         <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider">{t("acceptam")}</span>
-        <span className="text-lg">💳</span>
+        <CreditCard size={18} />
         <span className="text-[10px] font-bold text-[#0D0D0D]">Visa</span>
         <span className="text-[10px] font-bold text-[#0D0D0D]">Mastercard</span>
       </div>

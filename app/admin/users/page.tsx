@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BadgeCheck } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 import UserActions from "./UserActions";
@@ -195,7 +196,7 @@ export default async function AdminUsersPage({
                         </Link>
                         {u.display_name && <div className="text-xs text-gray-500 truncate max-w-[160px]">{u.display_name}</div>}
                       </div>
-                      {u.is_verified && <span title="Verified" className="text-blue-500 text-xs">✓</span>}
+                      {u.is_verified && <span title="Verified"><BadgeCheck size={14} className="text-blue-500" /></span>}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{u.email || "-"}</td>

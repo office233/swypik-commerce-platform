@@ -13,6 +13,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 import { Coins, Pickaxe, Flame, Users, History, ShieldCheck, Loader2, Share2, Lock, Wallet, Car, Bike, Clapperboard, Star } from "lucide-react";
 import { APP_URL } from "@/lib/app-url";
 
@@ -56,7 +57,8 @@ type LedgerRow = {
     created_at: string;
 };
 
-const fmtSwyp = (units: string | bigint) => (Number(units) / 100).toLocaleString("ro-RO", { maximumFractionDigits: 2 });
+const fmtSwyp = (units: string | bigint, locale?: string) =>
+    (Number(units) / 100).toLocaleString(locale, { maximumFractionDigits: 2 });
 
 function useCountdown(target: string | null) {
     const [now, setNow] = useState(() => Date.now());
@@ -74,6 +76,8 @@ function useCountdown(target: string | null) {
 }
 
 export default function PayClient() {
+    const t = useTranslations("payPage");
+    const locale = useLocale();
     const [balance, setBalance] = useState<string | null>(null);
     const [history, setHistory] = useState<LedgerRow[]>([]);
     const [mining, setMining] = useState<Mining | null>(null);
@@ -92,9 +96,17 @@ export default function PayClient() {
     const [sendBusy, setSendBusy] = useState(false);
     const [sendMsg, setSendMsg] = useState<string | null>(null);
     const [sendTxUrl, setSendTxUrl] = useState<string | null>(null);
+    const [depositAddr, setDepositAddr] = useState<string | null>(null);
+    const [depositOpen, setDepositOpen] = useState(false);
+    const [depCopied, setDepCopied] = useState(false);
     const [staking, setStaking] = useState<StakingInfo | null>(null);
     const [stakeBusy, setStakeBusy] = useState(false);
     const [stakeMsg, setStakeMsg] = useState<string | null>(null);
+    // Modal de sumă (înlocuiește prompt()) + modal de confirmare (înlocuiește confirm())
+    const [amountModal, setAmountModal] = useState<{ kind: "withdraw" } | { kind: "stake"; months: 3 | 6 | 12 } | null>(null);
+    const [amountValue, setAmountValue] = useState("");
+    const [confirmModal, setConfirmModal] = useState<{ text: string; onYes: () => void } | null>(null);
+    const [aboutOpen, setAboutOpen] = useState<number | null>(null);
     // Reguli de câștig din DB (swyp_emission_rules) — zero hardcodări în UI.
     const [earnRules, setEarnRules] = useState<{ action: string; label: string; display: string }[]>([]);
 
@@ -111,6 +123,7 @@ export default function PayClient() {
         const w = await wRes.json();
         const m = await mRes.json();
         if (w.success) { setBalance(w.balanceUnits); setHistory(w.history); }
+        if (w.success && w.depositAddress) setDepositAddr(w.depositAddress);
         if (m.success) setMining(m.mining);
         if (m.wallet) setWallet(m.wallet);
         fetch("/api/me/referral")
@@ -149,8 +162,8 @@ export default function PayClient() {
     // Rata pe oră (sesiune de 24h) — afișaj stil Pi: "0,42 SWYP/h"
     const ratePerHour = useMemo(() => {
         if (!mining) return "—";
-        return (Number(mining.rateUnits) / 100 / 24).toLocaleString("ro-RO", { maximumFractionDigits: 2 });
-    }, [mining]);
+        return (Number(mining.rateUnits) / 100 / 24).toLocaleString(locale, { maximumFractionDigits: 2 });
+    }, [mining, locale]);
     // Câți SWYP s-au "minat" până acum în sesiunea curentă (proporțional cu timpul scurs).
     const minedSoFar = useMemo(() => {
         if (!mining?.active || !mining.endsAt) return "0";
@@ -158,18 +171,72 @@ export default function PayClient() {
         const endMs = new Date(mining.endsAt).getTime();
         const startMs = endMs - 24 * 3_600_000;
         const frac = Math.min(1, Math.max(0, (Date.now() - startMs) / (endMs - startMs)));
-        return (total * frac).toLocaleString("ro-RO", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+        return (total * frac).toLocaleString(locale, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
         // countdown re-randează componenta în fiecare secundă, deci contorul crește live
-    }, [mining, countdown]);
+    }, [mining, countdown, locale]);
+
+    // ── Acțiuni cu sumă (după confirmarea din modal) ──
+    const doWithdraw = useCallback(async (amount: number) => {
+        setWithdrawBusy(true);
+        setWithdrawMsg(null);
+        try {
+            const res = await fetch("/api/swyp/withdraw", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ amountSwyp: amount }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setWithdrawMsg(t("withdrawOk"));
+                setLastTxUrl(data.explorerUrl);
+                await load();
+            } else {
+                const reasons: Record<string, string> = {
+                    insufficient_funds: t("errInsufficient"),
+                    min_1_swyp: t("errMin1"),
+                    invalid_amount: t("errInvalidAmount"),
+                    rate_limited: t("errRateLimited"),
+                    chain_unavailable_refunded: t("errChainRefunded"),
+                };
+                setWithdrawMsg(`✗ ${reasons[data.error] ?? data.error}`);
+            }
+        } catch {
+            setWithdrawMsg(t("errNetwork"));
+        } finally {
+            setWithdrawBusy(false);
+        }
+    }, [load, t]);
+
+    const doStake = useCallback(async (amount: number, months: 3 | 6 | 12) => {
+        setStakeBusy(true);
+        setStakeMsg(null);
+        try {
+            const res = await fetch("/api/swyp/stake", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "stake", amountSwyp: amount, termMonths: months }),
+            });
+            const d = await res.json();
+            const errs: Record<string, string> = {
+                insufficient_funds: t("errInsufficient"),
+                invalid_amount: t("errInvalidAmount"),
+                rate_limited: t("errRateLimited"),
+            };
+            setStakeMsg(d.success ? t("stakeOk", { months }) : `✗ ${errs[d.error] ?? d.error}`);
+            await load();
+        } finally {
+            setStakeBusy(false);
+        }
+    }, [load, t]);
 
     if (unauthorized) {
         return (
             <main className="min-h-screen bg-[#0D0D0D] text-white flex flex-col items-center justify-center gap-4 p-6">
                 <Coins size={48} className="text-[#F5A623]" />
                 <h1 className="text-2xl font-black">Swypik Pay</h1>
-                <p className="text-white/60 text-center max-w-sm">Conectează-te ca să-ți vezi portofelul SWYP și să pornești mining-ul zilnic.</p>
+                <p className="text-white/60 text-center max-w-sm">{t("loginPrompt")}</p>
                 <Link href="/account?redirect=%2Fpay" className="rounded-2xl bg-[#F5A623] px-6 py-3 font-black text-black">
-                    Intră în cont
+                    {t("loginCta")}
                 </Link>
             </main>
         );
@@ -184,9 +251,9 @@ export default function PayClient() {
                     <h1 className="text-lg font-black uppercase tracking-wider">Swypik Pay</h1>
                 </div>
                 <p className="mt-4 text-4xl font-black">
-                    {balance === null ? <span className="inline-block h-9 w-40 rounded bg-white/10 animate-pulse" /> : <>{fmtSwyp(balance)} <span className="text-lg text-[#F5A623]">SWYP</span></>}
+                    {balance === null ? <span className="inline-block h-9 w-40 rounded bg-white/10 animate-pulse" /> : <>{fmtSwyp(balance, locale)} <span className="text-lg text-[#F5A623]">SWYP</span></>}
                 </p>
-                <p className="mt-1 text-xs text-white/50">Monedă internă Swypik — o folosești la reduceri, boost-uri și tips în aplicație.</p>
+                <p className="mt-1 text-xs text-white/50">{t("balanceNote")}</p>
             </section>
 
             {/* ── Portofel on-chain (Swypik Chain) ── */}
@@ -195,7 +262,7 @@ export default function PayClient() {
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                         <div className="flex items-center justify-between">
                             <p className="text-[11px] font-black uppercase tracking-wider text-white/60">
-                                🔗 Portofelul tău pe Swypik Chain
+                                {t("walletTitle")}
                             </p>
                             <span className="text-[10px] font-bold text-[#2DBE60]">chain ID 643366</span>
                         </div>
@@ -206,60 +273,27 @@ export default function PayClient() {
                                 setTimeout(() => setAddrCopied(false), 2000);
                             }}
                             className="mt-2 w-full text-left font-mono text-xs text-[#F5A623] break-all active:opacity-70"
-                            title="Apasă pentru a copia"
+                            title={t("copyHint")}
                         >
-                            {wallet.address} {addrCopied ? "✓ copiat" : "⧉"}
+                            {wallet.address} {addrCopied ? t("copied") : "⧉"}
                         </button>
                         <p className="mt-2 text-[10px] leading-relaxed text-white/40">
-                            Adresa ta reală pe blockchainul Swypik — creată automat, a ta pentru totdeauna.
-                            Retragi SWYP din aplicație direct aici și îl vezi în orice portofel compatibil
-                            Ethereum (MetaMask: RPC https://rpc.swypik.com, chain ID 643366).
+                            {t("walletNote")}
                         </p>
 
                         <button
-                            onClick={async () => {
-                                const amount = prompt("Câți SWYP retragi pe chain? (minim 1)");
-                                if (!amount) return;
-                                setWithdrawBusy(true);
-                                setWithdrawMsg(null);
-                                try {
-                                    const res = await fetch("/api/swyp/withdraw", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ amountSwyp: Number(amount.replace(",", ".")) }),
-                                    });
-                                    const data = await res.json();
-                                    if (data.success) {
-                                        setWithdrawMsg(`✓ Trimis on-chain!`);
-                                        setLastTxUrl(data.explorerUrl);
-                                        await load();
-                                    } else {
-                                        const reasons: Record<string, string> = {
-                                            insufficient_funds: "Sold insuficient.",
-                                            min_1_swyp: "Minim 1 SWYP.",
-                                            invalid_amount: "Sumă invalidă.",
-                                            rate_limited: "Prea multe retrageri — așteaptă câteva minute.",
-                                            chain_unavailable_refunded: "Chain indisponibil — suma a fost restituită.",
-                                        };
-                                        setWithdrawMsg(`✗ ${reasons[data.error] ?? data.error}`);
-                                    }
-                                } catch {
-                                    setWithdrawMsg("✗ Eroare de rețea.");
-                                } finally {
-                                    setWithdrawBusy(false);
-                                }
-                            }}
+                            onClick={() => { setAmountValue(""); setAmountModal({ kind: "withdraw" }); }}
                             disabled={withdrawBusy || balance === null || BigInt(balance ?? "0") < 100n}
                             className="mt-3 w-full rounded-xl bg-[#F5A623] px-4 py-2.5 text-sm font-black text-black active:scale-[0.98] transition disabled:opacity-40"
                         >
-                            {withdrawBusy ? "Se trimite on-chain…" : "⛓️ Retrage pe chain"}
+                            {withdrawBusy ? t("withdrawBusy") : t("withdraw")}
                         </button>
                         {withdrawMsg && (
                             <p className="mt-2 text-xs font-bold text-white/80">
                                 {withdrawMsg}{" "}
                                 {lastTxUrl && (
                                     <a href={lastTxUrl} target="_blank" rel="noopener noreferrer" className="text-[#F5A623] underline">
-                                        vezi tranzacția în explorer →
+                                        {t("viewTx")}
                                     </a>
                                 )}
                             </p>
@@ -270,82 +304,117 @@ export default function PayClient() {
                             onClick={() => { setSendOpen((v) => !v); setSendMsg(null); }}
                             className="mt-2 w-full rounded-xl border border-[#F5A623]/40 px-4 py-2.5 text-sm font-black text-[#F5A623] active:scale-[0.98] transition"
                         >
-                            {sendOpen ? "✕ Închide" : "↗️ Trimite SWYP către o adresă"}
+                            {sendOpen ? t("sendClose") : t("sendOpen")}
                         </button>
                         {sendOpen && (
                             <div className="mt-3 space-y-2">
                                 <input
                                     value={sendTo}
                                     onChange={(e) => setSendTo(e.target.value.trim())}
-                                    placeholder="Adresa destinatarului (0x…)"
+                                    placeholder={t("sendToPlaceholder")}
                                     spellCheck={false}
                                     className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2.5 font-mono text-xs text-white placeholder:text-white/30 focus:border-[#F5A623]/60 outline-none"
                                 />
                                 <input
                                     value={sendAmount}
                                     onChange={(e) => setSendAmount(e.target.value)}
-                                    placeholder="Suma SWYP (min. 0,01)"
+                                    placeholder={t("sendAmountPlaceholder")}
                                     inputMode="decimal"
                                     className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#F5A623]/60 outline-none"
                                 />
                                 <button
                                     onClick={async () => {
                                         const amount = Number(sendAmount.replace(",", "."));
-                                        if (!/^0x[0-9a-fA-F]{40}$/.test(sendTo)) { setSendMsg("✗ Adresă invalidă (format 0x… + 40 caractere hex)."); return; }
-                                        if (!Number.isFinite(amount) || amount < 0.01) { setSendMsg("✗ Suma minimă e 0,01 SWYP."); return; }
-                                        if (!confirm(`Trimiți ${amount} SWYP către\n${sendTo}?\n\nTransferul on-chain e IREVERSIBIL.`)) return;
-                                        setSendBusy(true);
-                                        setSendMsg(null);
-                                        setSendTxUrl(null);
-                                        try {
-                                            const res = await fetch("/api/swyp/transfer", {
-                                                method: "POST",
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({ toAddress: sendTo, amountSwyp: amount }),
-                                            });
-                                            const data = await res.json();
-                                            if (data.success) {
-                                                setSendMsg(data.pending ? "⏳ Emis — se confirmă în câteva secunde." : "✓ Transfer confirmat on-chain!");
-                                                setSendTxUrl(data.explorerUrl);
-                                                setSendTo(""); setSendAmount("");
-                                            } else {
-                                                const reasons: Record<string, string> = {
-                                                    invalid_address: "Adresă invalidă.",
-                                                    invalid_amount: "Sumă invalidă.",
-                                                    min_amount: "Suma minimă e 0,01 SWYP.",
-                                                    self_transfer: "Nu poți trimite către propria adresă.",
-                                                    insufficient_chain_balance: "Sold on-chain insuficient (sumă + gas). Retrage întâi SWYP pe chain.",
-                                                    rate_limited: "Prea multe transferuri — așteaptă câteva minute.",
-                                                    chain_failed: "Chain indisponibil momentan — nimic nu a fost trimis.",
-                                                };
-                                                setSendMsg(`✗ ${reasons[data.error] ?? data.error}`);
-                                            }
-                                        } catch {
-                                            setSendMsg("✗ Eroare de rețea.");
-                                        } finally {
-                                            setSendBusy(false);
-                                        }
+                                        if (!/^0x[0-9a-fA-F]{40}$/.test(sendTo)) { setSendMsg(t("errAddress")); return; }
+                                        if (!Number.isFinite(amount) || amount < 0.01) { setSendMsg(t("errMinSend")); return; }
+                                        setConfirmModal({
+                                            text: t("sendConfirm", { amount, address: `${sendTo.slice(0, 10)}…${sendTo.slice(-8)}` }),
+                                            onYes: async () => {
+                                                setSendBusy(true);
+                                                setSendMsg(null);
+                                                setSendTxUrl(null);
+                                                try {
+                                                    const res = await fetch("/api/swyp/transfer", {
+                                                        method: "POST",
+                                                        headers: { "Content-Type": "application/json" },
+                                                        body: JSON.stringify({ toAddress: sendTo, amountSwyp: amount }),
+                                                    });
+                                                    const data = await res.json();
+                                                    if (data.success) {
+                                                        setSendMsg(data.pending ? t("sendPending") : t("sendOk"));
+                                                        setSendTxUrl(data.explorerUrl);
+                                                        setSendTo(""); setSendAmount("");
+                                                    } else {
+                                                        const reasons: Record<string, string> = {
+                                                            invalid_address: t("errAddress"),
+                                                            invalid_amount: t("errInvalidAmount"),
+                                                            min_amount: t("errMinSend"),
+                                                            self_transfer: t("errSelfTransfer"),
+                                                            insufficient_chain_balance: t("errChainBalance"),
+                                                            rate_limited: t("errRateLimited"),
+                                                            chain_failed: t("errChainFailed"),
+                                                        };
+                                                        setSendMsg(`✗ ${reasons[data.error] ?? data.error}`);
+                                                    }
+                                                } catch {
+                                                    setSendMsg(t("errNetwork"));
+                                                } finally {
+                                                    setSendBusy(false);
+                                                }
+                                            },
+                                        });
                                     }}
                                     disabled={sendBusy}
                                     className="w-full rounded-xl bg-[#F5A623] px-4 py-2.5 text-sm font-black text-black active:scale-[0.98] transition disabled:opacity-40"
                                 >
-                                    {sendBusy ? "Se trimite…" : "Trimite acum"}
+                                    {sendBusy ? t("sending") : t("sendNow")}
                                 </button>
                                 <p className="text-[10px] leading-relaxed text-white/40">
-                                    Se trimite din portofelul tău on-chain (nu din soldul din aplicație).
-                                    Taxa de rețea (~0,00002 SWYP) se plătește din același portofel.
+                                    {t("sendNote")}
                                 </p>
                                 {sendMsg && (
                                     <p className="text-xs font-bold text-white/80">
                                         {sendMsg}{" "}
                                         {sendTxUrl && (
                                             <a href={sendTxUrl} target="_blank" rel="noopener noreferrer" className="text-[#F5A623] underline">
-                                                vezi în explorer →
+                                                {t("viewTx")}
                                             </a>
                                         )}
                                     </p>
                                 )}
                             </div>
+                        )}
+
+                        {/* ── Depune SWYP (chain → app) ── */}
+                        {depositAddr && (
+                            <>
+                                <button
+                                    onClick={() => setDepositOpen((v) => !v)}
+                                    className="mt-2 w-full rounded-xl border border-white/15 px-4 py-2.5 text-sm font-black text-white/80 active:scale-[0.98] transition"
+                                >
+                                    {depositOpen ? t("depositClose") : t("depositOpen")}
+                                </button>
+                                {depositOpen && (
+                                    <div className="mt-3 space-y-2">
+                                        <p className="text-xs text-white/60">{t("depositHint")}</p>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(depositAddr).then(() => {
+                                                    setDepCopied(true);
+                                                    setTimeout(() => setDepCopied(false), 2000);
+                                                });
+                                            }}
+                                            className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2.5 font-mono text-[11px] text-white/90 break-all text-left active:scale-[0.99] transition"
+                                        >
+                                            {depositAddr}
+                                            <span className="block mt-1 text-[10px] font-sans font-bold text-[#F5A623]">
+                                                {depCopied ? t("depositCopied") : t("depositCopy")}
+                                            </span>
+                                        </button>
+                                        <p className="text-[10px] leading-relaxed text-white/40">{t("depositNote")}</p>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </section>
@@ -357,11 +426,11 @@ export default function PayClient() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Pickaxe size={18} className="text-[#F5A623]" />
-                            <h2 className="font-black">Mining zilnic</h2>
+                            <h2 className="font-black">{t("miningTitle")}</h2>
                         </div>
-                        <span className="text-xs font-bold text-[#F5A623]">⚡ {ratePerHour} SWYP/h</span>
+                        <span className="text-xs font-bold text-[#F5A623]">{t("perHour", { rate: ratePerHour })}</span>
                     </div>
-                    <p className="mt-1 text-[11px] text-white/40">{ratePerSession} SWYP pe sesiunea de 24h</p>
+                    <p className="mt-1 text-[11px] text-white/40">{t("perSession", { rate: ratePerSession })}</p>
 
                     <div className="mt-5 flex flex-col items-center gap-3">
                         {!mining?.active && (
@@ -370,7 +439,7 @@ export default function PayClient() {
                                 disabled={busy || !mining}
                                 className="w-40 h-40 rounded-full bg-gradient-to-br from-[#F5A623] to-[#D4830B] text-black font-black text-lg shadow-[0_0_60px_-15px_#F5A623] active:scale-95 transition disabled:opacity-50 flex items-center justify-center"
                             >
-                                {busy ? <Loader2 className="animate-spin" /> : "Pornește"}
+                                {busy ? <Loader2 className="animate-spin" /> : t("start")}
                             </button>
                         )}
                         {mining?.active && !claimable && (
@@ -378,7 +447,7 @@ export default function PayClient() {
                                 <span className="text-xl font-black tabular-nums text-[#F5A623]">
                                     {minedSoFar} <span className="text-[10px]">SWYP</span>
                                 </span>
-                                <span className="text-[10px] uppercase tracking-wider text-white/50">minat până acum</span>
+                                <span className="text-[10px] uppercase tracking-wider text-white/50">{t("minedSoFar")}</span>
                                 <span className="mt-1 text-xs font-bold tabular-nums text-white/60">{countdown?.label ?? "…"}</span>
                             </div>
                         )}
@@ -388,7 +457,7 @@ export default function PayClient() {
                                 disabled={busy}
                                 className="w-40 h-40 rounded-full bg-gradient-to-br from-[#2DBE60] to-[#188A41] text-black font-black text-lg shadow-[0_0_60px_-15px_#2DBE60] active:scale-95 transition disabled:opacity-50 flex items-center justify-center"
                             >
-                                {busy ? <Loader2 className="animate-spin" /> : `Revendică ${ratePerSession}`}
+                                {busy ? <Loader2 className="animate-spin" /> : t("claim", { amount: ratePerSession })}
                             </button>
                         )}
                     </div>
@@ -397,29 +466,28 @@ export default function PayClient() {
                         <div className="rounded-2xl bg-white/5 p-3">
                             <Flame size={14} className="mx-auto text-[#F5A623]" />
                             <p className="mt-1 text-sm font-black">{mining?.streakDays ?? "—"}</p>
-                            <p className="text-[10px] text-white/50">zile streak (+10%/zi)</p>
+                            <p className="text-[10px] text-white/50">{t("streakLabel")}</p>
                         </div>
                         <div className="rounded-2xl bg-white/5 p-3">
                             <Users size={14} className="mx-auto text-[#F5A623]" />
-                            <p className="mt-1 text-sm font-black">{mining?.miners?.toLocaleString("ro-RO") ?? "—"}</p>
-                            <p className="text-[10px] text-white/50">mineri în rețea</p>
+                            <p className="mt-1 text-sm font-black">{mining?.miners?.toLocaleString(locale) ?? "—"}</p>
+                            <p className="text-[10px] text-white/50">{t("minersLabel")}</p>
                         </div>
                         <div className="rounded-2xl bg-white/5 p-3">
                             <ShieldCheck size={14} className="mx-auto text-[#F5A623]" />
                             <p className="mt-1 text-sm font-black">{mining ? `${mining.halvings}/4` : "—"}</p>
-                            <p className="text-[10px] text-white/50">halving-uri</p>
+                            <p className="text-[10px] text-white/50">{t("halvingsLabel")}</p>
                         </div>
                     </div>
 
                     <p className="mt-4 text-[11px] leading-relaxed text-white/40">
-                        Rata scade pe măsură ce rețeaua crește — cine minează devreme câștigă mai mult pe sesiune.
-                        Supply fix: 10 miliarde SWYP, verificabil public.
+                        {t("miningNote", { supply: (10_000_000_000).toLocaleString(locale) })}
                     </p>
 
                     <button
                         onClick={async () => {
                             const url = shareUrl ?? APP_URL;
-                            const text = `Minez SWYP pe Swypik — pornește și tu, e gratis: ${url}`;
+                            const text = t("shareText", { url });
                             if (navigator.share) {
                                 try { await navigator.share({ title: "Swypik Pay", text, url }); return; } catch { /* anulat */ }
                             }
@@ -431,8 +499,8 @@ export default function PayClient() {
                     >
                         <Share2 size={16} />
                         {copied
-                            ? "Link copiat! Trimite-l unui prieten"
-                            : `Invită un prieten → ${earnRules.find((r) => r.action === "referral_validated")?.display ?? "bonus SWYP"} la prima lui comandă`}
+                            ? t("linkCopied")
+                            : t("invite", { bonus: earnRules.find((r) => r.action === "referral_validated")?.display ?? t("inviteFallback") })}
                     </button>
                 </div>
             </section>
@@ -440,13 +508,13 @@ export default function PayClient() {
             {/* ── Cum câștigi ── */}
             {earnRules.length > 0 && (
                 <section className="px-5 mt-6">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">Câștigă mai mult</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">{t("earnTitle")}</h3>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                         {earnRules.slice(0, 4).map((rule) => {
                             const Icon =
                                 rule.action === "go_ride_completed" ? Car :
-                                rule.action === "eats_delivery_on_time" ? Bike :
-                                rule.action === "creator_1k_views" ? Clapperboard : Star;
+                                    rule.action === "eats_delivery_on_time" ? Bike :
+                                        rule.action === "creator_1k_views" ? Clapperboard : Star;
                             return (
                                 <div key={rule.action} className="rounded-2xl bg-white/5 p-3 flex items-center gap-3">
                                     <Icon size={20} className="text-[#F5A623] shrink-0" />
@@ -468,11 +536,11 @@ export default function PayClient() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Lock size={16} className="text-[#2DBE60]" />
-                            <h3 className="font-black text-sm">Blochează și câștigă</h3>
+                            <h3 className="font-black text-sm">{t("stakingTitle")}</h3>
                         </div>
                         {staking && (
                             <span className="text-[10px] font-bold text-white/50">
-                                {fmtSwyp(staking.totalStakedUnits)} SWYP blocați · {staking.stakers} useri
+                                {t("stakingSummary", { amount: fmtSwyp(staking.totalStakedUnits, locale), stakers: staking.stakers })}
                             </span>
                         )}
                     </div>
@@ -483,38 +551,12 @@ export default function PayClient() {
                             return (
                                 <button
                                     key={m}
-                                    onClick={async () => {
-                                        const amount = prompt(`Câți SWYP blochezi pe ${m} luni? (minim 1)`);
-                                        if (!amount) return;
-                                        setStakeBusy(true);
-                                        setStakeMsg(null);
-                                        try {
-                                            const res = await fetch("/api/swyp/stake", {
-                                                method: "POST",
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({
-                                                    action: "stake",
-                                                    amountSwyp: Number(amount.replace(",", ".")),
-                                                    termMonths: m,
-                                                }),
-                                            });
-                                            const d = await res.json();
-                                            const errs: Record<string, string> = {
-                                                insufficient_funds: "Sold insuficient.",
-                                                invalid_amount: "Sumă invalidă (minim 1 SWYP).",
-                                                rate_limited: "Prea multe operațiuni — încearcă mai târziu.",
-                                            };
-                                            setStakeMsg(d.success ? `✓ Blocat pe ${m} luni!` : `✗ ${errs[d.error] ?? d.error}`);
-                                            await load();
-                                        } finally {
-                                            setStakeBusy(false);
-                                        }
-                                    }}
+                                    onClick={() => { setAmountValue(""); setAmountModal({ kind: "stake", months: m }); }}
                                     disabled={stakeBusy || balance === null || BigInt(balance ?? "0") < 100n}
                                     className="rounded-2xl bg-white/5 border border-[#2DBE60]/20 p-3 active:scale-95 transition disabled:opacity-40"
                                 >
                                     <p className="text-lg font-black text-[#2DBE60]">{(bps / 100).toFixed(0)}%</p>
-                                    <p className="text-[10px] text-white/50">{m} luni</p>
+                                    <p className="text-[10px] text-white/50">{t("months", { months: m })}</p>
                                 </button>
                             );
                         })}
@@ -526,24 +568,26 @@ export default function PayClient() {
                             {staking.stakes.filter((s) => s.status === "active").map((s) => (
                                 <li key={s.id} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
                                     <div>
-                                        <p className="text-xs font-bold">{fmtSwyp(s.amount_units)} SWYP · {s.term_months} luni</p>
+                                        <p className="text-xs font-bold">{fmtSwyp(s.amount_units, locale)} SWYP · {t("months", { months: s.term_months })}</p>
                                         <p className="text-[10px] text-white/40">
-                                            se deblochează {new Date(s.matures_at).toLocaleDateString("ro-RO")}
+                                            {t("unlocksAt", { date: new Date(s.matures_at).toLocaleDateString(locale) })}
                                         </p>
                                     </div>
                                     <button
-                                        onClick={async () => {
-                                            if (!confirm("Retragi anticipat? Primești principalul integral, dar fără bonus.")) return;
-                                            await fetch("/api/swyp/stake", {
-                                                method: "POST",
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({ action: "withdraw_early", stakeId: s.id }),
-                                            });
-                                            await load();
-                                        }}
+                                        onClick={() => setConfirmModal({
+                                            text: t("withdrawEarlyConfirm"),
+                                            onYes: async () => {
+                                                await fetch("/api/swyp/stake", {
+                                                    method: "POST",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ action: "withdraw_early", stakeId: s.id }),
+                                                });
+                                                await load();
+                                            },
+                                        })}
                                         className="text-[10px] font-bold text-white/50 underline"
                                     >
-                                        retrage
+                                        {t("withdrawEarly")}
                                     </button>
                                 </li>
                             ))}
@@ -551,9 +595,7 @@ export default function PayClient() {
                     )}
 
                     <p className="mt-3 text-[10px] leading-relaxed text-white/40">
-                        SWYP-ul blocat iese din circulație — cursul crește pentru toți deținătorii.
-                        Bonusul se plătește din profitul real al platformei. Poți retrage oricând
-                        principalul, fără penalizare.
+                        {t("stakingNote")}
                     </p>
                 </div>
             </section>
@@ -561,20 +603,20 @@ export default function PayClient() {
             <section className="px-5 mt-6">
                 <div className="flex items-center gap-2 mb-3">
                     <History size={14} className="text-white/50" />
-                    <h3 className="text-sm font-black uppercase tracking-wider text-white/70">Istoric</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-white/70">{t("historyTitle")}</h3>
                 </div>
                 {history.length === 0 ? (
-                    <p className="text-xs text-white/40">Nicio tranzacție încă — pornește mining-ul de mai sus. ⛏️</p>
+                    <p className="text-xs text-white/40">{t("historyEmpty")}</p>
                 ) : (
                     <ul className="space-y-2">
                         {history.map((h) => (
                             <li key={h.id} className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
                                 <div>
                                     <p className="text-xs font-bold">{h.description ?? h.ref_type}</p>
-                                    <p className="text-[10px] text-white/40">{new Date(h.created_at).toLocaleString("ro-RO")}</p>
+                                    <p className="text-[10px] text-white/40">{new Date(h.created_at).toLocaleString(locale)}</p>
                                 </div>
                                 <span className={`text-sm font-black ${h.direction === "in" ? "text-[#2DBE60]" : "text-white/70"}`}>
-                                    {h.direction === "in" ? "+" : "−"}{fmtSwyp(h.amount_units)}
+                                    {h.direction === "in" ? "+" : "−"}{fmtSwyp(h.amount_units, locale)}
                                 </span>
                             </li>
                         ))}
@@ -592,8 +634,7 @@ export default function PayClient() {
                 >
                     <ShieldCheck size={16} className="text-[#F5A623]" />
                     <span>
-                        <strong className="text-white">Blockchain public:</strong> vezi fiecare bloc, tranzacție și adresă
-                        pe scan.swypik.com — verificabil de oricine, fără cont. →
+                        <strong className="text-white">{t("explorerStrong")}</strong> {t("explorerText")}
                     </span>
                 </a>
 
@@ -620,9 +661,88 @@ export default function PayClient() {
                     className="mt-2 w-full flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold text-white/70 hover:bg-white/10 transition"
                 >
                     <Wallet size={14} className="text-[#F5A623]" />
-                    Adaugă Swypik Chain în MetaMask
+                    {t("addMetamask")}
                 </button>
             </section>
+
+            {/* ── Ce este SWYP? (educație + transparență) ── */}
+            <section className="px-5 mt-6 pb-4">
+                <h3 className="text-sm font-black uppercase tracking-wider text-white/70 mb-3">{t("aboutTitle")}</h3>
+                <div className="space-y-2">
+                    {([1, 2, 3, 4, 5] as const).map((i) => (
+                        <div key={i} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+                            <button
+                                onClick={() => setAboutOpen(aboutOpen === i ? null : i)}
+                                className="w-full flex items-center justify-between px-4 py-3 text-left"
+                            >
+                                <span className="text-xs font-bold text-white/90">{t(`aboutQ${i}`)}</span>
+                                <span className="text-white/40 text-xs ml-2 shrink-0">{aboutOpen === i ? "−" : "+"}</span>
+                            </button>
+                            {aboutOpen === i && (
+                                <p className="px-4 pb-3 text-[11px] leading-relaxed text-white/60">{t(`aboutA${i}`)}</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── Modal sumă (înlocuiește prompt) ── */}
+            {amountModal && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-4" onClick={() => setAmountModal(null)}>
+                    <div className="w-full max-w-sm rounded-3xl bg-[#1A1A1A] border border-white/10 p-5" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-sm font-black text-white">
+                            {amountModal.kind === "withdraw" ? t("amountPromptWithdraw") : t("stakePrompt", { months: amountModal.months })}
+                        </p>
+                        <input
+                            autoFocus
+                            value={amountValue}
+                            onChange={(e) => setAmountValue(e.target.value)}
+                            inputMode="decimal"
+                            placeholder="1"
+                            className="mt-3 w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#F5A623]/60 outline-none"
+                        />
+                        <div className="mt-4 flex gap-2">
+                            <button onClick={() => setAmountModal(null)} className="flex-1 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-bold text-white/70">
+                                {t("cancel")}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const amount = Number(amountValue.replace(",", "."));
+                                    if (!Number.isFinite(amount) || amount < 1) return;
+                                    const m = amountModal;
+                                    setAmountModal(null);
+                                    if (m.kind === "withdraw") void doWithdraw(amount);
+                                    else void doStake(amount, m.months);
+                                }}
+                                disabled={!Number.isFinite(Number(amountValue.replace(",", "."))) || Number(amountValue.replace(",", ".")) < 1}
+                                className="flex-1 rounded-xl bg-[#F5A623] px-4 py-2.5 text-sm font-black text-black disabled:opacity-40"
+                            >
+                                {t("confirm")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal confirmare (înlocuiește confirm) ── */}
+            {confirmModal && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-4" onClick={() => setConfirmModal(null)}>
+                    <div className="w-full max-w-sm rounded-3xl bg-[#1A1A1A] border border-white/10 p-5" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-sm font-bold text-white leading-relaxed">{confirmModal.text}</p>
+                        <div className="mt-4 flex gap-2">
+                            <button onClick={() => setConfirmModal(null)} className="flex-1 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-bold text-white/70">
+                                {t("cancel")}
+                            </button>
+                            <button
+                                onClick={() => { const m = confirmModal; setConfirmModal(null); void m.onYes(); }}
+                                className="flex-1 rounded-xl bg-[#F5A623] px-4 py-2.5 text-sm font-black text-black"
+                            >
+                                {t("confirm")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

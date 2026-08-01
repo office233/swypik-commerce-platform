@@ -1,16 +1,27 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
+import {
+  BarChart3,
+  Upload,
+  Clapperboard,
+  FileText,
+  TrendingUp,
+  Coins,
+  Banknote,
+  CircleDot,
+  UserRound,
+} from "lucide-react";
 
 const creatorNavItems = [
-  { href: "/creator", icon: "📊", label: "Dashboard" },
-  { href: "/upload", icon: "⬆️", label: "Încarcă" },
-  { href: "/creator/videos", icon: "🎬", label: "Clipurile Mele" },
-  { href: "/creator/drafts", icon: "📝", label: "Schițe" },
-  { href: "/creator/analytics", icon: "📈", label: "Analytics" },
-  { href: "/creator/earnings", icon: "💰", label: "Câștiguri" },
-  { href: "/creator/payouts", icon: "💸", label: "Plăți" },
-  { href: "/creator/live", icon: "🔴", label: "Live" },
+  { href: "/creator", icon: BarChart3, label: "Dashboard" },
+  { href: "/upload", icon: Upload, label: "Încarcă" },
+  { href: "/creator/videos", icon: Clapperboard, label: "Clipurile Mele" },
+  { href: "/creator/drafts", icon: FileText, label: "Schițe" },
+  { href: "/creator/analytics", icon: TrendingUp, label: "Analytics" },
+  { href: "/creator/earnings", icon: Coins, label: "Câștiguri" },
+  { href: "/creator/payouts", icon: Banknote, label: "Plăți" },
+  { href: "/creator/live", icon: CircleDot, label: "Live" },
 ];
 
 export default function CreatorLayout({ children }: { children: ReactNode }) {
@@ -26,32 +37,32 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
 
         <nav className="flex-1 p-4 space-y-2">
           <Link href="/creator" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#0D0D0D] transition">
-            <span className="text-lg">📊</span> Dashboard
+            <BarChart3 size={18} /> Dashboard
           </Link>
           <Link href="/creator/videos" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">🎬</span> Clipurile Mele
+            <Clapperboard size={18} /> Clipurile Mele
           </Link>
           <Link href="/creator/drafts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">📝</span> Schițe
+            <FileText size={18} /> Schițe
           </Link>
           <Link href="/upload" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">⬆️</span> Încarcă Video
+            <Upload size={18} /> Încarcă Video
           </Link>
           <Link href="/creator/analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">📈</span> Analytics
+            <TrendingUp size={18} /> Analytics
           </Link>
           <Link href="/creator/earnings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">💰</span> Câștiguri
+            <Coins size={18} /> Câștiguri
           </Link>
           <Link href="/creator/payouts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <span className="text-lg">💸</span> Plăți
+            <Banknote size={18} /> Plăți
           </Link>
         </nav>
 
         <div className="p-4 border-t border-[#E5E5E5]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#0D0D0D]/10 flex items-center justify-center text-lg">
-              🤳
+              <UserRound size={18} />
             </div>
             <div>
               <p className="text-xs font-black text-[#0D0D0D]">Cont Creator</p>

@@ -15,6 +15,7 @@ import {
   User as UserIcon,
   Phone,
   AtSign,
+  Handshake,
 } from "lucide-react";
 
 type Mode = "login" | "signup";
@@ -354,7 +355,7 @@ function PartnerLinks() {
         href="/join"
         className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
       >
-        🤝 {t("becomePartnerBtn")}
+        <Handshake size={16} /> {t("becomePartnerBtn")}
       </Link>
     </div>
   );

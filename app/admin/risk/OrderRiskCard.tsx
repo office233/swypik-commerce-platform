@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Ban, Lightbulb } from "lucide-react";
 import type { OrderRiskScore } from "@/lib/risk/order-fraud-score";
 import { FraudActions } from "./FraudActions";
 
@@ -64,27 +65,27 @@ export function OrderRiskCard({ row, risk }: { row: OrderRow; risk: OrderRiskSco
               Order <code className="font-mono">{row.id.slice(0, 8)}</code> ·{" "}
               {new Date(row.created_at).toLocaleString("ro-RO")}
               {row.prior_paid > 0 && ` · ${row.prior_paid} comenzi anterioare`}
-              {row.prior_disputes > 0 && ` · ⚠ ${row.prior_disputes} dispute prior`}
+              {row.prior_disputes > 0 && ` · ${row.prior_disputes} dispute prior`}
             </div>
           </div>
         </div>
         {risk.blockSuggested && (
-          <span className="shrink-0 text-[10px] font-bold bg-red-100 text-red-800 px-1.5 py-0.5 rounded">
-            🛑 BLOCHEAZĂ
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold bg-red-100 text-red-800 px-1.5 py-0.5 rounded">
+            <Ban size={10} /> BLOCHEAZĂ
           </span>
         )}
       </summary>
 
       <div className="mt-3 pt-3 border-t border-[#E5E5E5] space-y-3">
-        <div className="text-xs bg-violet-50 text-violet-900 px-2 py-1.5 rounded">
-          💡 {risk.recommendation}
+        <div className="text-xs bg-violet-50 text-violet-900 px-2 py-1.5 rounded flex items-center gap-1">
+          <Lightbulb size={12} className="shrink-0" /> {risk.recommendation}
         </div>
 
         {positives.length > 0 && (
-          <FactorList title={`⚠ Semnale negative (${positives.length})`} factors={positives} tone="red" />
+          <FactorList title={`Semnale negative (${positives.length})`} factors={positives} tone="red" />
         )}
         {negatives.length > 0 && (
-          <FactorList title={`✓ Semnale pozitive (${negatives.length})`} factors={negatives} tone="emerald" />
+          <FactorList title={`Semnale pozitive (${negatives.length})`} factors={negatives} tone="emerald" />
         )}
 
         {row.metadata?.fraud_last_decision && (

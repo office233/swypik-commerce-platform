@@ -9,6 +9,7 @@
  *   - creatori (creator_applications)    → /admin/applications
  */
 import Link from "next/link";
+import { Car, Bike, Building2, Store, Home, Clapperboard, type LucideIcon } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 
@@ -24,13 +25,13 @@ type UnifiedApp = {
     created_at: string;
 };
 
-const SOURCE_META: Record<string, { label: string; emoji: string; color: string; href: string }> = {
-    driver: { label: "Șofer Go", emoji: "🚕", color: "bg-amber-100 text-amber-700", href: "/admin/fleet" },
-    courier: { label: "Curier Food", emoji: "🛵", color: "bg-green-100 text-green-700", href: "/admin/fleet" },
-    franchise: { label: "Franciză", emoji: "🏢", color: "bg-purple-100 text-purple-700", href: "/admin/fleet" },
-    seller: { label: "Vânzător", emoji: "🏪", color: "bg-violet-100 text-violet-700", href: "/admin/sellers" },
-    host: { label: "Gazdă Stays", emoji: "🏡", color: "bg-teal-100 text-teal-700", href: "/admin/hosts" },
-    creator: { label: "Creator", emoji: "🎬", color: "bg-pink-100 text-pink-700", href: "/admin/applications" },
+const SOURCE_META: Record<string, { label: string; Icon: LucideIcon; color: string; href: string }> = {
+    driver: { label: "Șofer Go", Icon: Car, color: "bg-amber-100 text-amber-700", href: "/admin/fleet" },
+    courier: { label: "Curier Food", Icon: Bike, color: "bg-green-100 text-green-700", href: "/admin/fleet" },
+    franchise: { label: "Franciză", Icon: Building2, color: "bg-purple-100 text-purple-700", href: "/admin/fleet" },
+    seller: { label: "Vânzător", Icon: Store, color: "bg-violet-100 text-violet-700", href: "/admin/sellers" },
+    host: { label: "Gazdă Stays", Icon: Home, color: "bg-teal-100 text-teal-700", href: "/admin/hosts" },
+    creator: { label: "Creator", Icon: Clapperboard, color: "bg-pink-100 text-pink-700", href: "/admin/applications" },
 };
 
 const PENDING_STATUSES = new Set(["pending", "submitted", "in_review", "needs_info"]);
@@ -144,7 +145,7 @@ export default async function AdminAplicatiiPage({
                                 <tr key={`${a.source}-${a.id}`} className="border-b border-black/5 last:border-0 hover:bg-gray-50/50">
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${meta.color}`}>
-                                            {meta.emoji} {meta.label}
+                                            <meta.Icon size={12} /> {meta.label}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 font-bold">{a.name}</td>

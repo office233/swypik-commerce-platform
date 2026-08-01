@@ -28,6 +28,11 @@ function treasuryAccount() {
     return privateKeyToAccount(pk as `0x${string}`);
 }
 
+/** Adresa trezoreriei REWARDS — folosită și ca adresă de depozit chain→app. */
+export function treasuryAddress(): `0x${string}` {
+    return treasuryAccount().address;
+}
+
 /**
  * Subunități interne (1 SWYP = 100) → wei on-chain (1 SWYP = 1e18).
  * Aritmetică exclusiv pe bigint: `Number(units)` ar pierde precizie peste

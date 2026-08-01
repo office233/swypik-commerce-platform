@@ -5,6 +5,7 @@
  * Publicare anunțuri (imobiliare / auto / servicii) + inbox lead-uri.
  */
 import { useState, useEffect, useMemo } from "react";
+import { Phone, Mail } from "lucide-react";
 import {
     VERTICALS,
     verticalForSlug,
@@ -12,20 +13,20 @@ import {
 } from "@/lib/verticals/registry";
 
 const CATEGORY_OPTIONS: { slug: string; label: string }[] = [
-    { slug: "real-estate/apartments-sale", label: "🏠 Apartamente de vânzare" },
-    { slug: "real-estate/apartments-rent", label: "🏠 Apartamente de închiriat" },
-    { slug: "real-estate/houses-sale", label: "🏡 Case de vânzare" },
-    { slug: "real-estate/houses-rent", label: "🏡 Case de închiriat" },
-    { slug: "real-estate/land", label: "🌍 Terenuri" },
-    { slug: "real-estate/commercial", label: "🏢 Spații comerciale" },
-    { slug: "vehicles/cars", label: "🚗 Autoturisme" },
-    { slug: "vehicles/motorcycles", label: "🏍️ Motociclete" },
-    { slug: "vehicles/trucks", label: "🚚 Camioane și utilitare" },
-    { slug: "services/home-repair", label: "🔧 Reparații și amenajări" },
-    { slug: "services/beauty", label: "💅 Frumusețe" },
-    { slug: "services/education", label: "📚 Educație și meditații" },
-    { slug: "services/events", label: "🎉 Evenimente" },
-    { slug: "services/transport", label: "🚚 Transport și mutări" },
+    { slug: "real-estate/apartments-sale", label: "Apartamente de vânzare" },
+    { slug: "real-estate/apartments-rent", label: "Apartamente de închiriat" },
+    { slug: "real-estate/houses-sale", label: "Case de vânzare" },
+    { slug: "real-estate/houses-rent", label: "Case de închiriat" },
+    { slug: "real-estate/land", label: "Terenuri" },
+    { slug: "real-estate/commercial", label: "Spații comerciale" },
+    { slug: "vehicles/cars", label: "Autoturisme" },
+    { slug: "vehicles/motorcycles", label: "Motociclete" },
+    { slug: "vehicles/trucks", label: "Camioane și utilitare" },
+    { slug: "services/home-repair", label: "Reparații și amenajări" },
+    { slug: "services/beauty", label: "Frumusețe" },
+    { slug: "services/education", label: "Educație și meditații" },
+    { slug: "services/events", label: "Evenimente" },
+    { slug: "services/transport", label: "Transport și mutări" },
 ];
 
 const FIELD_LABELS: Record<string, string> = {
@@ -414,8 +415,8 @@ export default function SellerListingsPage() {
                                 </div>
                                 <p className="text-sm mt-3">{i.message}</p>
                                 <div className="flex gap-4 mt-3 text-sm font-medium text-violet-700">
-                                    {i.phone && <a href={`tel:${i.phone}`}>📞 {i.phone}</a>}
-                                    {i.email && <a href={`mailto:${i.email}`}>✉️ {i.email}</a>}
+                                    {i.phone && <a href={`tel:${i.phone}`} className="inline-flex items-center gap-1.5"><Phone size={14} /> {i.phone}</a>}
+                                    {i.email && <a href={`mailto:${i.email}`} className="inline-flex items-center gap-1.5"><Mail size={14} /> {i.email}</a>}
                                 </div>
                             </div>
                         ))
