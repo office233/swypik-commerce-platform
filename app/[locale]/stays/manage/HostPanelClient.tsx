@@ -45,7 +45,7 @@ export default function HostPanelClient() {
             fd.append("file", file);
             const r = await fetch("/api/host/upload", { method: "POST", credentials: "include", body: fd });
             const j = await r.json();
-                if (!r.ok) { setError(j.error ?? t("uploadFailed")); return; }
+            if (!r.ok) { setError(j.error ?? t("uploadFailed")); return; }
             setForm((f) => ({ ...f, imageUrl: j.url }));
         } finally {
             setUploading(false);
@@ -84,7 +84,7 @@ export default function HostPanelClient() {
                 }),
             });
             const j = await r.json();
-                if (!r.ok) { setError(j.error ?? t("createFailed")); return; }
+            if (!r.ok) { setError(j.error ?? t("createFailed")); return; }
             setForm({ title: "", description: "", price: "", imageUrl: "", maxGuests: 2 });
             setShowForm(false);
             await load();
@@ -104,7 +104,7 @@ export default function HostPanelClient() {
                 body: body === null ? undefined : JSON.stringify(body),
             });
             const j = await r.json().catch(() => ({}));
-                if (!r.ok) { setError(j.error ?? t("actionFailed")); return; }
+            if (!r.ok) { setError(j.error ?? t("actionFailed")); return; }
             await load();
         } finally {
             setBusy(null);
@@ -125,18 +125,18 @@ export default function HostPanelClient() {
                     <BedDouble size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
-                        <h1 className="text-xl font-bold">{t("title")}</h1>
-                        <p className="text-xs text-neutral-500">{t("subtitle")}</p>
+                    <h1 className="text-xl font-bold">{t("title")}</h1>
+                    <p className="text-xs text-neutral-500">{t("subtitle")}</p>
                 </div>
             </header>
 
             {!approved && (
                 <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                        <p className="font-semibold">{t("notApprovedTitle")}</p>
-                        <p className="mt-1 text-xs">
-                            {t("notApprovedBody")}{" "}
-                            <Link href="/join/host" className="underline">{t("notApprovedLink")}</Link>.
-                        </p>
+                    <p className="font-semibold">{t("notApprovedTitle")}</p>
+                    <p className="mt-1 text-xs">
+                        {t("notApprovedBody")}{" "}
+                        <Link href="/join/host" className="underline">{t("notApprovedLink")}</Link>.
+                    </p>
                 </div>
             )}
 
@@ -151,52 +151,52 @@ export default function HostPanelClient() {
                     onClick={() => setShowForm(true)}
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 font-semibold text-white shadow"
                 >
-                        <Plus size={16} /> {t("addListing")}
+                    <Plus size={16} /> {t("addListing")}
                 </button>
             )}
 
             {approved && showForm && (
                 <form onSubmit={create} className="mt-4 space-y-3 rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                        <h2 className="text-sm font-bold">{t("newListing")}</h2>
-                        <label className={lbl}>{t("fieldTitle")}
-                            <input required minLength={5} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inp} placeholder={t("titlePlaceholder")} />
-                        </label>
-                        <label className={lbl}>{t("fieldDescription")}
-                            <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inp} placeholder={t("descPlaceholder")} />
-                        </label>
+                    <h2 className="text-sm font-bold">{t("newListing")}</h2>
+                    <label className={lbl}>{t("fieldTitle")}
+                        <input required minLength={5} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inp} placeholder={t("titlePlaceholder")} />
+                    </label>
+                    <label className={lbl}>{t("fieldDescription")}
+                        <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inp} placeholder={t("descPlaceholder")} />
+                    </label>
                     <div className="grid grid-cols-2 gap-3">
-                            <label className={lbl}>{t("pricePerNight")}
+                        <label className={lbl}>{t("pricePerNight")}
                             <input required type="number" min={20} step={1} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inp} placeholder="250" />
                         </label>
-                            <label className={lbl}>{t("maxGuests")}
+                        <label className={lbl}>{t("maxGuests")}
                             <input required type="number" min={1} max={50} value={form.maxGuests} onChange={(e) => setForm({ ...form, maxGuests: Number(e.target.value) })} className={inp} />
                         </label>
                     </div>
                     <div>
-                            <span className={lbl}>{t("photo")}</span>
+                        <span className={lbl}>{t("photo")}</span>
                         {form.imageUrl ? (
                             <div className="mt-1 flex items-center gap-2">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={form.imageUrl} alt={t("preview")} className="h-16 w-24 rounded-lg object-cover" />
+                                <img src={form.imageUrl} alt={t("preview")} className="h-16 w-24 rounded-lg object-cover" />
                                 <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })}
-                                        className="text-xs font-semibold text-red-600">{t("change")}</button>
+                                    className="text-xs font-semibold text-red-600">{t("change")}</button>
                             </div>
                         ) : (
                             <label className="mt-1 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 px-3 py-4 text-sm text-neutral-500 dark:border-neutral-700">
                                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
-                                    {uploading ? t("uploading") : t("choosePhoto")}
+                                {uploading ? t("uploading") : t("choosePhoto")}
                                 <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden"
                                     onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); }} />
                             </label>
                         )}
-                            <span className="mt-1 block text-[11px] text-neutral-400">{t("photoRequired")}</span>
+                        <span className="mt-1 block text-[11px] text-neutral-400">{t("photoRequired")}</span>
                     </div>
                     <div className="flex gap-2">
                         <button type="submit" disabled={busy === "create"} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 font-semibold text-white disabled:opacity-40">
-                                {busy === "create" ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} {t("save")}
+                            {busy === "create" ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} {t("save")}
                         </button>
                         <button type="button" onClick={() => setShowForm(false)} className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-semibold dark:border-neutral-700">
-                                {t("cancel")}
+                            {t("cancel")}
                         </button>
                     </div>
                 </form>
@@ -218,35 +218,35 @@ export default function HostPanelClient() {
                                 <div className="min-w-0">
                                     <h3 className="truncate font-bold">{l.title}</h3>
                                     <p className="text-xs text-neutral-500">
-                                            {l.location_city ?? "—"} · {t("guests", { count: l.metadata?.max_guests ?? "?" })}
+                                        {l.location_city ?? "—"} · {t("guests", { count: l.metadata?.max_guests ?? "?" })}
                                     </p>
                                 </div>
                                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${l.status === "active" ? "bg-green-100 text-green-800" : "bg-neutral-100 text-neutral-600"}`}>
-                                        {l.status === "active" ? t("published") : t("draft")}
+                                    {l.status === "active" ? t("published") : t("draft")}
                                 </span>
                             </div>
                             <p className="mt-1 text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
-                                    {lei(l.price_cents)}<span className="text-xs font-normal text-neutral-500"> {t("perNight")}</span>
+                                {lei(l.price_cents)}<span className="text-xs font-normal text-neutral-500"> {t("perNight")}</span>
                             </p>
                             <div className="mt-3 flex flex-wrap gap-2">
                                 {l.status === "active" ? (
                                     <button onClick={() => act(l.id, { action: "unpublish" }, "u")} disabled={busy !== null}
                                         className="flex items-center gap-1.5 rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-semibold dark:bg-neutral-800">
-                                            <EyeOff size={14} /> {t("unpublish")}
+                                        <EyeOff size={14} /> {t("unpublish")}
                                     </button>
                                 ) : (
                                     <button onClick={() => act(l.id, { action: "publish" }, "p")} disabled={busy !== null}
                                         className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">
-                                            <Eye size={14} /> {t("publish")}
+                                        <Eye size={14} /> {t("publish")}
                                     </button>
                                 )}
-                                    <button onClick={() => { if (confirm(t("deleteConfirm"))) act(l.id, null, "d"); }} disabled={busy !== null}
+                                <button onClick={() => { if (confirm(t("deleteConfirm"))) act(l.id, null, "d"); }} disabled={busy !== null}
                                     className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">
-                                        <Trash2 size={14} /> {t("delete")}
+                                    <Trash2 size={14} /> {t("delete")}
                                 </button>
                                 <button onClick={() => setCalendarFor(calendarFor === l.id ? null : l.id)}
                                     className="flex items-center gap-1.5 rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 dark:bg-sky-950 dark:text-sky-300">
-                                        <CalendarDays size={14} /> {t("calendar")}
+                                    <CalendarDays size={14} /> {t("calendar")}
                                 </button>
                             </div>
                             {calendarFor === l.id && (
@@ -257,7 +257,7 @@ export default function HostPanelClient() {
                 ))}
                 {approved && listings.length === 0 && !showForm && (
                     <p className="rounded-xl bg-neutral-50 p-6 text-center text-sm text-neutral-500 dark:bg-neutral-900">
-                            {t("empty")}
+                        {t("empty")}
                     </p>
                 )}
             </div>
