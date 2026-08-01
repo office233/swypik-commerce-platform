@@ -39,7 +39,7 @@ export default async function OgImage({ params }: { params: Promise<{ id: string
           // eslint-disable-next-line @next/next/no-img-element
           <img src={row.image_url} alt="" width={630} height={630} style={{ objectFit: "cover" }} />
         ) : (
-          <div style={{ width: 630, height: 630, background: "#1e1b4b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 96 }}>📦</div>
+          <div style={{ width: 630, height: 630, background: "#1e1b4b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 96 }} />
         )}
         <div style={{ display: "flex", flexDirection: "column", padding: 48, flex: 1, justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 28, fontWeight: 800, color: "#a78bfa" }}>

@@ -3,8 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Folder, Bookmark, ShoppingCart, Lightbulb, Heart, Star, Music, Plane, UtensilsCrossed, Gamepad2, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  folder: Folder,
+  bookmark: Bookmark,
+  cart: ShoppingCart,
+  idea: Lightbulb,
+  heart: Heart,
+  star: Star,
+  music: Music,
+  plane: Plane,
+  food: UtensilsCrossed,
+  game: Gamepad2,
+};
+
+function CollectionIcon({ name, size = 24 }: { name?: string | null; size?: number }) {
+  const Icon = (name && ICON_MAP[name]) || Folder;
+  return <Icon size={size} />;
+}
 
 type Collection = {
   id: string;
@@ -21,7 +39,7 @@ export default function CollectionsPage() {
   const [loading, setLoading] = useState(true);
   const [showNewModal, setShowNewModal] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newIcon, setNewIcon] = useState("📁");
+  const [newIcon, setNewIcon] = useState("folder");
   const [newColor, setNewColor] = useState("#0D0D0D");
 
   const router = useRouter();
@@ -57,14 +75,14 @@ export default function CollectionsPage() {
         setCollections([data.collection, ...collections]);
         setShowNewModal(false);
         setNewTitle("");
-        setNewIcon("📁");
+        setNewIcon("folder");
       }
     } catch (e) {
       console.error("Failed to create collection", e);
     }
   };
 
-  const EMOJIS = ["📁", "🔖", "🛒", "💡", "❤️", "⭐", "🎵", "✈️", "🍔", "🎮"];
+  const ICON_KEYS = Object.keys(ICON_MAP);
   const COLORS = ["#0D0D0D", "#4F46E5", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444", "#3B82F6"];
 
   if (loading) {
@@ -103,7 +121,7 @@ export default function CollectionsPage() {
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg"
                   style={{ backgroundColor: col.color ? `${col.color}20` : '#333' }}
                 >
-                  {col.icon || '📁'}
+                  <CollectionIcon name={col.icon} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg group-hover:text-[#0D0D0D] transition-colors">{col.title}</h3>
@@ -141,13 +159,13 @@ export default function CollectionsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">Icon</label>
                 <div className="flex flex-wrap gap-2">
-                  {EMOJIS.map(emoji => (
+                  {ICON_KEYS.map(key => (
                     <button
-                      key={emoji}
-                      onClick={() => setNewIcon(emoji)}
-                      className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-colors ${newIcon === emoji ? 'bg-[#333] border border-[#0D0D0D]' : 'hover:bg-[#222] border border-transparent'}`}
+                      key={key}
+                      onClick={() => setNewIcon(key)}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${newIcon === key ? 'bg-[#333] border border-[#0D0D0D]' : 'hover:bg-[#222] border border-transparent'}`}
                     >
-                      {emoji}
+                      <CollectionIcon name={key} size={20} />
                     </button>
                   ))}
                 </div>

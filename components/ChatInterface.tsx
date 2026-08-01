@@ -29,7 +29,7 @@ type FunnelStage = "discover" | "compare" | "consider" | "cart" | "checkout" | "
 
 const AI_WELCOME: ChatMessage = {
   id: "welcome", role: "assistant", timestamp: new Date(),
-  content: `Bună! 👋 Sunt asistentul tău de shopping.
+  content: `Bună! Sunt asistentul tău de shopping.
 
 Spune-mi ce cauți și eu:
 • Găsesc cele mai bune opțiuni
@@ -38,9 +38,9 @@ Spune-mi ce cauți și eu:
 • Compar prețuri și calitate
 
 Încearcă ceva de genul:
-💻 "Setup gaming sub 4000 lei"
-👗 "Outfit elegant pentru nuntă"
-🏠 "Apartament nou sub 2000 lei"`,
+"Setup gaming sub 4000 lei"
+"Outfit elegant pentru nuntă"
+"Apartament nou sub 2000 lei"`,
 };
 
 export default function ChatInterface({
@@ -237,7 +237,7 @@ export default function ChatInterface({
         body: JSON.stringify({ productId, quantity, variantId: product.skuId || null, title: product.title, image: product.images?.[0] || null, priceCents, currency: "RON" }),
       }).catch(() => { });
     } catch { }
-    setSelectedProduct(null); setToastMessage(`🛒 ${quantity > 1 ? quantity + 'x ' : ''}${product.title.slice(0, 24)} adăugat în coș`); setFunnelStage("upsell");
+    setSelectedProduct(null); setToastMessage(`${quantity > 1 ? quantity + 'x ' : ''}${product.title.slice(0, 24)} adăugat în coș`); setFunnelStage("upsell");
     const newKey = `${product.pgId || product.id}:${product.skuId || "base"}`;
     const candidate = lastShownProducts.find((p) => `${p.pgId || p.id}:${p.skuId || "base"}` !== newKey && !cartItems.some((item) => cartItemKey(item) === `${p.pgId || p.id}:${p.skuId || "base"}`));
     if (candidate) setUpsellProduct(candidate);
@@ -341,7 +341,7 @@ export default function ChatInterface({
 
   const ProductCard = ({ product, compact = false }: { product: ChatProduct; compact?: boolean }) => {
     const badge = product.commerceBadge;
-    const insight = product.rating >= 4.8 && product.orders >= 200 ? '⭐ Calitate peste medie' : product.orders >= 500 ? '✅ Seller verificat' : product.discountPercent >= 25 ? '💰 Reducere reală' : product.qualityScore >= 9 ? '🏆 Best value' : null;
+    const insight = product.rating >= 4.8 && product.orders >= 200 ? 'Calitate peste medie' : product.orders >= 500 ? 'Seller verificat' : product.discountPercent >= 25 ? 'Reducere reală' : product.qualityScore >= 9 ? 'Best value' : null;
     const q = getCardQty(product.id);
     const vc = product.variantsCount || 0;
     return (
@@ -365,7 +365,7 @@ export default function ChatInterface({
           <p className="line-clamp-2 text-[13px] sm:text-sm font-bold leading-tight text-[#0D0D0D] product-card-title">{product.title}</p>
           {insight && <p className="mt-1 text-[11px] font-semibold text-[#0D0D0D]">{insight}</p>}
           <div className="mt-1 flex items-center gap-2 text-[11px] font-medium text-[#6E6E80]">
-            <span className="text-[#B45309]">★ {product.rating?.toFixed?.(1) || "4.8"}</span>
+            <span className="text-[#B45309] inline-flex items-center gap-0.5"><Star size={12} fill="currentColor" /> {product.rating?.toFixed?.(1) || "4.8"}</span>
             <span>{product.orders || 0}+ comenzi</span>
           </div>
           <div className="mt-2 flex items-end gap-2">
@@ -427,7 +427,7 @@ export default function ChatInterface({
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/80 z-10"></div>
         <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
           <div className="flex items-center gap-2 mb-2">
-            <span className="rounded-full bg-[#DC2626] px-2 py-1 text-[10px] font-black text-white uppercase tracking-wider animate-pulse">🔥 Trending Today</span>
+            <span className="rounded-full bg-[#DC2626] px-2 py-1 text-[10px] font-black text-white uppercase tracking-wider animate-pulse inline-flex items-center gap-1"><Flame size={12} /> Trending Today</span>
           </div>
           {trendingProducts.length > 0 && (
             <>
@@ -528,7 +528,7 @@ export default function ChatInterface({
           </button>
         </div>
       )}
-      {activeTab === "chat" && <div className="px-4 pt-4"><div className="space-y-4">{(messages.length === 0 ? [AI_WELCOME] : messages).map((m) => <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}><div className={`inline-block max-w-[88%] rounded-2xl px-4 py-3 text-sm font-medium ${m.role === "user" ? "bg-[#0D0D0D] text-white" : "bg-[#F7F7F8] text-[#0D0D0D] border border-[#E5E5E5]"}`}>{m.role === "assistant" && <div className="mb-1 flex items-center gap-1 text-xs font-bold text-[#0D0D0D]"><Bot size={13} /> Asistent Shopping AI</div>}<p className="whitespace-pre-wrap">{m.content}</p></div>{m.role === "assistant" && <><ProductCarousel title={t("recomandatePentruTine")} products={m.products} />{(m.bundleProducts?.length || 0) > 0 && <div className="mt-3 rounded-2xl border border-[#0D0D0D]/30 bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] p-4"><div className="flex items-center justify-between mb-3"><p className="text-xs font-black uppercase tracking-widest text-[#0D0D0D]">{t("bundleAiCompleteazaSetul")}</p><p className="text-xs font-bold text-[#6E6E80]">{(() => { const t = (m.bundleProducts || []).reduce((s, p) => s + p.price, 0); const o = (m.bundleProducts || []).reduce((s, p) => s + (p.oldPrice || p.price), 0); return o > t ? `Economisești ${Math.round(o - t)} lei` : `Total: ${Math.round(t)} lei`; })()}</p></div><div className="space-y-2">{(m.bundleProducts || []).map(bp => <div key={bp.id} className="flex items-center gap-3 rounded-xl bg-white/80 p-2.5 border border-[#E5E5E5]/50"><Image src={bp.images?.[0] || ""} alt="" width={48} height={48} className="h-12 w-12 rounded-lg object-cover shrink-0" /><div className="flex-1 min-w-0"><p className="text-xs font-bold text-[#0D0D0D] truncate">{bp.title}</p><p className="text-xs font-bold text-[#0D0D0D]">{bp.price} lei {bp.oldPrice > bp.price && <span className="text-[#A1A1AA] line-through ml-1">{bp.oldPrice}</span>}</p></div><button type="button" onClick={() => addToCart(bp)} className="shrink-0 rounded-lg bg-[#0D0D0D] px-2.5 py-1.5 text-[10px] font-black text-white active:scale-90 transition-transform">{t("cos")}</button></div>)}</div><button type="button" onClick={() => { (m.bundleProducts || []).forEach(bp => addToCart(bp)); setToastMessage("🎁 Tot bundle-ul adăugat!"); setTimeout(() => setToastMessage(""), 2500); }} className="mt-3 w-full rounded-xl bg-[#0D0D0D] py-3 text-xs font-black text-white active:scale-95 transition-transform"><ShoppingCart size={13} className="inline mr-1.5" />{t("adaugaTotBundleul")} {Math.round((m.bundleProducts || []).reduce((s, p) => s + p.price, 0))} lei</button></div>}{(m.products?.length || 0) > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{[{ label: "🔄 Arată altele", query: "arată-mi altceva" }, { label: "💰 Mai ieftin", query: "vreau mai ieftin" }, { label: "⭐ Top calitate", query: "arată-mi doar top calitate" }, { label: "🆕 Mai noi", query: "arată-mi produse mai noi" }, { label: "⚖️ Compară top 2", query: "compară primele 2 produse" }].map(chip => <button type="button" key={chip.label} onClick={() => sendMessage(chip.query)} className="rounded-full bg-white border border-[#E5E5E5] px-3 py-1.5 text-[11px] font-bold text-[#6E6E80] hover:border-[#0D0D0D] hover:text-[#0D0D0D] active:scale-95 transition-all">{chip.label}</button>)}</div>}</>}</div>)}{isLoading && <div className="rounded-xl bg-[#F7F7F8] p-3 text-sm font-medium text-[#6E6E80] border border-[#E5E5E5]">{t("aiAnalizeazaSiCauta")}</div>}{messages.length > 0 && !isLoading && <button type="button" onClick={() => { setMessages([]); try { localStorage.removeItem("aicv_chat"); } catch { } }} className="mx-auto block text-[10px] font-bold text-[#A1A1AA] hover:text-[#6E6E80] mt-2">{t("stergeConversatia")}</button>}<div ref={messagesEndRef} /></div></div>}
+      {activeTab === "chat" && <div className="px-4 pt-4"><div className="space-y-4">{(messages.length === 0 ? [AI_WELCOME] : messages).map((m) => <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}><div className={`inline-block max-w-[88%] rounded-2xl px-4 py-3 text-sm font-medium ${m.role === "user" ? "bg-[#0D0D0D] text-white" : "bg-[#F7F7F8] text-[#0D0D0D] border border-[#E5E5E5]"}`}>{m.role === "assistant" && <div className="mb-1 flex items-center gap-1 text-xs font-bold text-[#0D0D0D]"><Bot size={13} /> Asistent Shopping AI</div>}<p className="whitespace-pre-wrap">{m.content}</p></div>{m.role === "assistant" && <><ProductCarousel title={t("recomandatePentruTine")} products={m.products} />{(m.bundleProducts?.length || 0) > 0 && <div className="mt-3 rounded-2xl border border-[#0D0D0D]/30 bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] p-4"><div className="flex items-center justify-between mb-3"><p className="text-xs font-black uppercase tracking-widest text-[#0D0D0D]">{t("bundleAiCompleteazaSetul")}</p><p className="text-xs font-bold text-[#6E6E80]">{(() => { const t = (m.bundleProducts || []).reduce((s, p) => s + p.price, 0); const o = (m.bundleProducts || []).reduce((s, p) => s + (p.oldPrice || p.price), 0); return o > t ? `Economisești ${Math.round(o - t)} lei` : `Total: ${Math.round(t)} lei`; })()}</p></div><div className="space-y-2">{(m.bundleProducts || []).map(bp => <div key={bp.id} className="flex items-center gap-3 rounded-xl bg-white/80 p-2.5 border border-[#E5E5E5]/50"><Image src={bp.images?.[0] || ""} alt="" width={48} height={48} className="h-12 w-12 rounded-lg object-cover shrink-0" /><div className="flex-1 min-w-0"><p className="text-xs font-bold text-[#0D0D0D] truncate">{bp.title}</p><p className="text-xs font-bold text-[#0D0D0D]">{bp.price} lei {bp.oldPrice > bp.price && <span className="text-[#A1A1AA] line-through ml-1">{bp.oldPrice}</span>}</p></div><button type="button" onClick={() => addToCart(bp)} className="shrink-0 rounded-lg bg-[#0D0D0D] px-2.5 py-1.5 text-[10px] font-black text-white active:scale-90 transition-transform">{t("cos")}</button></div>)}</div><button type="button" onClick={() => { (m.bundleProducts || []).forEach(bp => addToCart(bp)); setToastMessage("Tot bundle-ul adăugat!"); setTimeout(() => setToastMessage(""), 2500); }} className="mt-3 w-full rounded-xl bg-[#0D0D0D] py-3 text-xs font-black text-white active:scale-95 transition-transform"><ShoppingCart size={13} className="inline mr-1.5" />{t("adaugaTotBundleul")} {Math.round((m.bundleProducts || []).reduce((s, p) => s + p.price, 0))} lei</button></div>}{(m.products?.length || 0) > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{[{ label: "Arată altele", query: "arată-mi altceva" }, { label: "Mai ieftin", query: "vreau mai ieftin" }, { label: "Top calitate", query: "arată-mi doar top calitate" }, { label: "Mai noi", query: "arată-mi produse mai noi" }, { label: "Compară top 2", query: "compară primele 2 produse" }].map(chip => <button type="button" key={chip.label} onClick={() => sendMessage(chip.query)} className="rounded-full bg-white border border-[#E5E5E5] px-3 py-1.5 text-[11px] font-bold text-[#6E6E80] hover:border-[#0D0D0D] hover:text-[#0D0D0D] active:scale-95 transition-all">{chip.label}</button>)}</div>}</>}</div>)}{isLoading && <div className="rounded-xl bg-[#F7F7F8] p-3 text-sm font-medium text-[#6E6E80] border border-[#E5E5E5]">{t("aiAnalizeazaSiCauta")}</div>}{messages.length > 0 && !isLoading && <button type="button" onClick={() => { setMessages([]); try { localStorage.removeItem("aicv_chat"); } catch { } }} className="mx-auto block text-[10px] font-bold text-[#A1A1AA] hover:text-[#6E6E80] mt-2">{t("stergeConversatia")}</button>}<div ref={messagesEndRef} /></div></div>}
       {activeTab === "deals" && <div className="px-4 pt-4"><h2 className="mb-3 text-2xl font-black text-[#0D0D0D]">Reduceri</h2>{dealsLoading ? <p className="py-20 text-center font-medium text-[#6E6E80]">{t("seIncarca")}</p> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 product-grid">{dealsProducts.map((p) => <ProductCard key={p.id} product={p} />)}</div>}</div>}
       {activeTab === "feed" && <ProductFeed products={feedProducts} onAddToCart={(p: any, q?: number) => addToCart(p, q || 1)} onLoadMore={loadMoreFeed} onClose={() => setActiveTab("home")} isLoading={feedLoading} />}
       {activeTab === "cart" && (

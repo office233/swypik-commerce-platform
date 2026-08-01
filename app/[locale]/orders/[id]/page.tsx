@@ -3,25 +3,26 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { AlertTriangle, Check, CheckCircle2, Clock, CreditCard, Home, Inbox, Package, RotateCcw, ShoppingBag, Truck, Undo2, XCircle, type LucideIcon } from "lucide-react";
 
-function buildStatusMap(t: (k: string) => string): Record<string, { label: string; color: string; icon: string; step: number }> {
+function buildStatusMap(t: (k: string) => string): Record<string, { label: string; color: string; icon: LucideIcon; step: number }> {
   return {
-    pending: { label: t("statusPending"), color: "bg-yellow-100 text-yellow-800", icon: "⏳", step: 1 },
-    paid: { label: t("statusPaid"), color: "bg-neutral-100 text-neutral-900", icon: "💳", step: 2 },
-    fulfilled: { label: t("statusFulfilled"), color: "bg-blue-100 text-blue-800", icon: "📦", step: 3 },
-    shipped: { label: t("statusShipped"), color: "bg-purple-100 text-purple-800", icon: "🚚", step: 3 },
-    delivered: { label: t("statusDelivered"), color: "bg-neutral-100 text-neutral-900", icon: "✅", step: 4 },
-    return_requested: { label: t("statusReturnRequested"), color: "bg-orange-100 text-orange-800", icon: "🔄", step: 4 },
-    cancelled: { label: t("statusCancelled"), color: "bg-red-100 text-red-800", icon: "❌", step: 0 },
+    pending: { label: t("statusPending"), color: "bg-yellow-100 text-yellow-800", icon: Clock, step: 1 },
+    paid: { label: t("statusPaid"), color: "bg-neutral-100 text-neutral-900", icon: CreditCard, step: 2 },
+    fulfilled: { label: t("statusFulfilled"), color: "bg-blue-100 text-blue-800", icon: Package, step: 3 },
+    shipped: { label: t("statusShipped"), color: "bg-purple-100 text-purple-800", icon: Truck, step: 3 },
+    delivered: { label: t("statusDelivered"), color: "bg-neutral-100 text-neutral-900", icon: CheckCircle2, step: 4 },
+    return_requested: { label: t("statusReturnRequested"), color: "bg-orange-100 text-orange-800", icon: RotateCcw, step: 4 },
+    cancelled: { label: t("statusCancelled"), color: "bg-red-100 text-red-800", icon: XCircle, step: 0 },
   };
 }
 
 function buildSteps(t: (k: string) => string) {
   return [
-    { label: t("stepComandaPlasata"), icon: "🛋" },
-    { label: t("stepPlataConfirmata"), icon: "💳" },
-    { label: t("stepExpediata"), icon: "📦" },
-    { label: t("stepLivrata"), icon: "🏠" },
+    { label: t("stepComandaPlasata"), icon: ShoppingBag },
+    { label: t("stepPlataConfirmata"), icon: CreditCard },
+    { label: t("stepExpediata"), icon: Package },
+    { label: t("stepLivrata"), icon: Home },
   ];
 }
 
@@ -67,7 +68,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">📭</div>
+          <div className="mb-4 flex justify-center text-[#A1A1AA]"><Inbox size={56} /></div>
           <h1 className="text-2xl font-black text-[#0D0D0D]">{t("comandaNuAFost")}</h1>
           <p className="mt-2 text-sm text-[#6E6E80]">{error || t("verificaLinkulSauContacteazaSuportul")}</p>
           <Link href="/" className="mt-6 inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white">
@@ -136,7 +137,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1">{t("comanda")}</p>
           <h1 className="text-2xl font-black text-[#0D0D0D]">#{order.id.split("-")[0]}</h1>
           <span className={`mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold ${statusInfo.color}`}>
-            {statusInfo.icon} {statusInfo.label}
+              <statusInfo.icon size={15} /> {statusInfo.label}
           </span>
           <p className="mt-2 text-xs text-[#6E6E80]">
             
@@ -163,7 +164,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                       ? "bg-[#0D0D0D] border-[#0D0D0D] text-white shadow-md"
                       : "bg-white border-[#E5E5E5] text-[#A1A1AA]"
                   }`}>
-                    {i + 1 <= currentStep ? "✓" : step.icon}
+                    {i + 1 <= currentStep ? <Check size={18} /> : <step.icon size={18} />}
                   </div>
                   <p className={`mt-2 text-[11px] font-bold text-center ${
                     i + 1 <= currentStep ? "text-[#0D0D0D]" : "text-[#A1A1AA]"
@@ -240,7 +241,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         {isReturnRequested && (
           <div className="bg-orange-50 rounded-2xl border border-orange-200 p-6 mb-6 shadow-sm">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🔄</span>
+              <RotateCcw size={28} className="text-orange-800" />
               <div>
                 <h2 className="text-base font-black text-orange-800">{t("returSolicitat")}</h2>
                 <p className="text-sm text-orange-700 mt-0.5">
@@ -255,7 +256,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         {returnSuccess && !isReturnRequested && (
           <div className="bg-neutral-100 rounded-2xl border border-neutral-100 p-6 mb-6 shadow-sm">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">✅</span>
+              <CheckCircle2 size={28} className="text-neutral-900" />
               <div>
                 <h2 className="text-base font-black text-neutral-900">{t("cerereTrimisaCuSucces")}</h2>
                 <p className="text-sm text-neutral-900 mt-0.5">
@@ -275,7 +276,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                 onClick={() => setShowReturnForm(true)}
                 className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-6 py-3.5 text-sm font-bold text-red-700 hover:bg-red-100 hover:border-red-300 transition-all active:scale-[0.98]"
               >
-                <span>↩️</span>  {t("solicitaRetur")}
+                <Undo2 size={16} />  {t("solicitaRetur")}
               </button>
             ) : (
               <div className="space-y-4">
@@ -303,8 +304,8 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                   />
                 </div>
                 {returnError && (
-                  <p className="text-sm font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2">
-                    ⚠️ {returnError}
+                  <p className="flex items-center gap-1.5 text-sm font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2">
+                    <AlertTriangle size={14} /> {returnError}
                   </p>
                 )}
                 <button

@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { AlertTriangle, Car, CircleUserRound, Phone, Share, Star } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
@@ -274,7 +275,7 @@ export default function RideClient({ rideId }: { rideId: string }) {
                                 onClick={shareTrip}
                                 className="rounded-2xl bg-white/95 px-3 py-2 text-[12px] font-bold shadow-md"
                             >
-                                {shared ? t("share.copied") : `📤 ${t("share.button")}`}
+                                {shared ? t("share.copied") : <span className="inline-flex items-center gap-1"><Share size={13} /> {t("share.button")}</span>}
                             </button>
                         ) : null}
                         <a
@@ -304,8 +305,8 @@ export default function RideClient({ rideId }: { rideId: string }) {
                                 className="absolute -inset-2 animate-ping rounded-full bg-yellow-200 opacity-30"
                                 style={{ animationDuration: `${(4 - wave) * 1.2}s` }}
                             />
-                            <span className="absolute inset-3 flex items-center justify-center rounded-full bg-yellow-400 text-2xl">
-                                🚕
+                            <span className="absolute inset-3 flex items-center justify-center rounded-full bg-yellow-400">
+                                <Car size={24} />
                             </span>
                         </div>
                         <p className="text-[13px] font-semibold text-neutral-700">{t(`search.wave${wave}`)}</p>
@@ -326,12 +327,12 @@ export default function RideClient({ rideId }: { rideId: string }) {
                 {active && driver ? (
                     <div className="mt-3">
                         <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-xl">🧑‍✈️</div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100"><CircleUserRound size={24} /></div>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-[15px] font-bold">{driver.full_name}</p>
                                 <p className="text-[13px] text-neutral-500">
                                     {carLabel}
-                                    {driver.rating ? ` • ★ ${Number(driver.rating).toFixed(2)}` : ""}
+                                    {driver.rating ? ` • ${Number(driver.rating).toFixed(2)}` : ""}
                                 </p>
                             </div>
                             {driver.vehicle_plate ? (
@@ -348,9 +349,9 @@ export default function RideClient({ rideId }: { rideId: string }) {
                             {driver.phone ? (
                                 <a
                                     href={`tel:${driver.phone}`}
-                                    className="rounded-2xl bg-neutral-900 py-3 text-center text-[14px] font-bold text-white"
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-neutral-900 py-3 text-center text-[14px] font-bold text-white"
                                 >
-                                    📞 {t("driver.call")}
+                                    <Phone size={15} /> {t("driver.call")}
                                 </a>
                             ) : (
                                 <span className="rounded-2xl bg-neutral-100 py-3 text-center text-[14px] font-semibold text-neutral-500">
@@ -390,10 +391,10 @@ export default function RideClient({ rideId }: { rideId: string }) {
                         {!rated ? (
                             <div className="mt-3 text-center">
                                 <p className="text-[14px] font-semibold">{t("receipt.ratePrompt")}</p>
-                                <div className="mt-1 flex justify-center gap-1 text-3xl">
+                                <div className="mt-1 flex justify-center gap-1">
                                     {[1, 2, 3, 4, 5].map((s) => (
-                                        <button key={s} onClick={() => setStars(s)} aria-label={`${s}★`}>
-                                            {s <= stars ? "⭐" : "☆"}
+                                        <button key={s} onClick={() => setStars(s)} aria-label={`${s} stele`}>
+                                            <Star size={28} className={s <= stars ? "fill-yellow-400 text-yellow-400" : "text-neutral-300"} />
                                         </button>
                                     ))}
                                 </div>
@@ -470,8 +471,8 @@ export default function RideClient({ rideId }: { rideId: string }) {
                             ) : null}
                         </div>
                         {cancelFeeNow > 0 ? (
-                            <p className="mt-3 text-center text-[13px] font-semibold text-amber-600">
-                                ⚠️ {t("cancel.feeWarning", { fee: fmt(cancelFeeNow) })}
+                            <p className="mt-3 flex items-center justify-center gap-1 text-center text-[13px] font-semibold text-amber-600">
+                                <AlertTriangle size={14} /> {t("cancel.feeWarning", { fee: fmt(cancelFeeNow) })}
                             </p>
                         ) : null}
                         <div className="mt-4 grid grid-cols-2 gap-2">

@@ -118,7 +118,7 @@ export default function StaysClient() {
             });
             const j = await r.json();
             if (j.error === "stays_not_enabled") {
-                setNotice("Rezervările de cazări se lansează în curând pe Swypik. Zborurile sunt deja disponibile în Fly! ✈️");
+                setNotice("Rezervările de cazări se lansează în curând pe Swypik. Zborurile sunt deja disponibile în Fly!");
             } else if (!r.ok) {
                 setError(j.error ?? "Căutarea a eșuat");
             } else {

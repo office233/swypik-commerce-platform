@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Package } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { cookies } from "next/headers";
 import { formatCurrency } from "@/lib/i18n/currency";
@@ -98,7 +99,7 @@ export default async function ShopPage({
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/30 text-3xl">📦</div>
+                        <div className="w-full h-full flex items-center justify-center text-white/30"><Package size={28} /></div>
                       )}
                     </div>
                     <div className="p-3">

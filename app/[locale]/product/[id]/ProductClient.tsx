@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Star, Truck } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clapperboard, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Sparkles, Star, Truck, X } from "lucide-react";
 import { mergeIntoCart } from "@/types/cart";
 import type { Product } from "@/types/product";
 
@@ -457,7 +457,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
                     className="object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl">🎬</div>
+                    <div className="w-full h-full flex items-center justify-center"><Clapperboard size={36} /></div>
                 )}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-lg backdrop-blur-sm">
@@ -633,7 +633,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       {/* Lightbox Modal */}
       {playingVideo && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fadeIn" onClick={() => setPlayingVideo(null)}>
-          <button className="absolute top-4 right-4 grid h-11 w-11 place-items-center text-white rounded-full bg-white/10 backdrop-blur hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("inchide")} onClick={() => setPlayingVideo(null)}>✕</button>
+            <button className="absolute top-4 right-4 grid h-11 w-11 place-items-center text-white rounded-full bg-white/10 backdrop-blur hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("inchide")} onClick={() => setPlayingVideo(null)}><X size={18} /></button>
           <video src={playingVideo} autoPlay controls playsInline className="w-full max-w-sm max-h-[80vh] rounded-2xl object-contain shadow-2xl" onClick={e => e.stopPropagation()} />
         </div>
       )}
@@ -655,9 +655,9 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             <Link
               href={`/try-on/${product.id}`}
               aria-label={t("probeazaVirtual")}
-              className="flex items-center justify-center rounded-2xl bg-[#7C3AED] px-4 py-3.5 text-lg shadow-xl active:scale-95 transition-transform"
+              className="flex items-center justify-center rounded-2xl bg-[#7C3AED] px-4 py-3.5 text-white shadow-xl active:scale-95 transition-transform"
             >
-              🪞
+              <Sparkles size={20} />
             </Link>
           )}
           <button onClick={handleAddToCart}

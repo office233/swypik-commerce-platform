@@ -86,11 +86,10 @@ export default function SelenaAssistant() {
               <button
                 key={t.id}
                 onClick={() => setTask(t.id)}
-                className={`rounded-full px-3 py-1.5 min-h-[36px] text-xs font-bold border focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${
-                  task === t.id
+                className={`rounded-full px-3 py-1.5 min-h-[36px] text-xs font-bold border focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none ${task === t.id
                     ? "bg-[#0D0D0D] text-white border-[#0D0D0D]"
                     : "bg-white text-[#0D0D0D] border-[#E5E5E5] hover:bg-[#F7F7F8]"
-                }`}
+                  }`}
               >
                 {t.label}
               </button>
@@ -114,9 +113,8 @@ export default function SelenaAssistant() {
               {messages.map((m, i) => (
                 <div
                   key={i}
-                  className={`rounded-lg p-3 text-sm whitespace-pre-wrap ${
-                    m.role === "user" ? "bg-[#F7F7F8] text-[#0D0D0D]" : "bg-violet-50 text-[#0D0D0D]"
-                  }`}
+                  className={`rounded-lg p-3 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-[#F7F7F8] text-[#0D0D0D]" : "bg-violet-50 text-[#0D0D0D]"
+                    }`}
                 >
                   <span className="block text-[11px] font-bold text-[#6E6E80] mb-1">
                     {m.role === "user" ? "Tu" : "Selena"}

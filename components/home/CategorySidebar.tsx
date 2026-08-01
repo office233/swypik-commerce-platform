@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { SUPPORT_EMAIL } from "@/lib/contact";
+
 /**
  * CategorySidebar — drawer de categorii, stil Facebook, ultra curat.
  *
@@ -12,7 +14,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, Smartphone, Shirt, Home, Sparkles, Dumbbell, Baby, Car, PawPrint, BookOpen, Watch, Tag, UtensilsCrossed, Plane, BedDouble, Coins, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
 import { VERTICAL_CATALOG as VERTICALS } from "@/lib/verticals/catalog";
@@ -56,21 +58,30 @@ const LIVE_VERTICALS: { id: string; href: string; note: string }[] = [
     { id: "pay", href: "/pay", note: "Moneda SWYP" },
 ];
 
-/** Emoji fallback pe categorii marketplace frecvente. */
-function categoryEmoji(name: string): string {
+/** Icon fallback pe categorii marketplace frecvente. */
+function categoryIcon(name: string): LucideIcon {
     const n = name.toLowerCase();
-    if (/(elect|tech|phone|laptop)/.test(n)) return "📱";
-    if (/(fashion|moda|imbrac|haine)/.test(n)) return "👕";
-    if (/(home|casa|garden|gradin)/.test(n)) return "🏠";
-    if (/(beauty|frumus|cosmet)/.test(n)) return "💄";
-    if (/(sport|fitness)/.test(n)) return "⚽";
-    if (/(kid|copii|toy|jucar)/.test(n)) return "🧸";
-    if (/(auto|car|masin)/.test(n)) return "🚗";
-    if (/(pet|animal)/.test(n)) return "🐾";
-    if (/(book|carte|carti)/.test(n)) return "📚";
-    if (/(jewel|bijut|watch|ceas)/.test(n)) return "⌚";
-    return "🏷️";
+    if (/(elect|tech|phone|laptop)/.test(n)) return Smartphone;
+    if (/(fashion|moda|imbrac|haine)/.test(n)) return Shirt;
+    if (/(home|casa|garden|gradin)/.test(n)) return Home;
+    if (/(beauty|frumus|cosmet)/.test(n)) return Sparkles;
+    if (/(sport|fitness)/.test(n)) return Dumbbell;
+    if (/(kid|copii|toy|jucar)/.test(n)) return Baby;
+    if (/(auto|car|masin)/.test(n)) return Car;
+    if (/(pet|animal)/.test(n)) return PawPrint;
+    if (/(book|carte|carti)/.test(n)) return BookOpen;
+    if (/(jewel|bijut|watch|ceas)/.test(n)) return Watch;
+    return Tag;
 }
+
+/** Iconițe lucide pentru verticalele live (înlocuiesc emoji din catalog). */
+const VERTICAL_ICONS: Record<string, LucideIcon> = {
+    eats: UtensilsCrossed,
+    fly: Plane,
+    stays: BedDouble,
+    go: Car,
+    pay: Coins,
+};
 
 export default function CategorySidebar({ categories, activeCategory, onSelectCategory, open, onOpenChange }: Props) {
     const t = useTranslations("homeFeed");
@@ -109,7 +120,7 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
         return [{
             id: v.id,
             brand: v.brand,
-            emoji: v.emoji,
+            Icon: VERTICAL_ICONS[v.id] ?? Tag,
             accent: v.accent,
             href: lv.href,
             label: lv.note,
@@ -149,10 +160,10 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                                 className="group flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
                             >
                                 <span
-                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl"
+                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
                                     style={{ backgroundColor: `${v.accent}1A` }}
                                 >
-                                    {v.emoji}
+                                    <v.Icon size={20} style={{ color: v.accent }} />
                                 </span>
                                 <span className="min-w-0 flex-1">
                                     <span className="block text-[15px] font-extrabold text-[#0D0D0D]">{v.brand}</span>
@@ -172,11 +183,12 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                             aria-pressed={!activeCategory}
                             className={`flex w-full items-center gap-3 border-b border-black/5 px-3.5 py-3 text-left text-[14px] font-bold last:border-0 ${!activeCategory ? "bg-[#0D0D0D] text-white" : "text-[#0D0D0D] hover:bg-[#F7F7F8]"}`}
                         >
-                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-lg">✨</span>
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5"><Sparkles size={18} /></span>
                             {t("all")}
                         </button>
                         {categories.map((c) => {
                             const active = activeCategory === nodeSlug(c);
+                            const CatIcon = categoryIcon(c.name);
                             return (
                                 <button
                                     key={String(c.id ?? c.name)}
@@ -185,8 +197,8 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                                     aria-pressed={active}
                                     className={`flex w-full items-center gap-3 border-b border-black/5 px-3.5 py-3 text-left text-[14px] font-bold last:border-0 ${active ? "bg-violet-600 text-white" : "text-[#0D0D0D] hover:bg-[#F7F7F8]"}`}
                                 >
-                                    <span className={`flex h-9 w-9 items-center justify-center rounded-full text-lg ${active ? "bg-white/20" : "bg-black/5"}`}>
-                                        {categoryEmoji(c.name)}
+                                    <span className={`flex h-9 w-9 items-center justify-center rounded-full ${active ? "bg-white/20" : "bg-black/5"}`}>
+                                        <CatIcon size={18} />
                                     </span>
                                     <span className="truncate">{c.name}</span>
                                 </button>
@@ -228,7 +240,7 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                     </div>
                     <p className="mt-4 text-center text-[11px] leading-relaxed text-[#A1A1AA]">
                         © {new Date().getFullYear()} Swypik Technology
-                        <span className="block">suport@swypik.com</span>
+                        <span className="block">{SUPPORT_EMAIL}</span>
                     </p>
                 </div>
             </div>

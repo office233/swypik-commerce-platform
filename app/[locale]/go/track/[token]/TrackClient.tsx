@@ -85,8 +85,8 @@ export default function TrackClient({ token }: { token: string }) {
           {done ? t("finished") : snap.driver ? t("withDriver", { name: snap.driver.first_name }) : t("searching")}
         </p>
         <div className="mt-3 space-y-1 text-[13px]">
-          <p>🟢 {snap.pickup.address}</p>
-          <p>🔴 {snap.dropoff.address}</p>
+          <p className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-green-500" /> {snap.pickup.address}</p>
+          <p className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-500" /> {snap.dropoff.address}</p>
         </div>
       </div>
     </main>

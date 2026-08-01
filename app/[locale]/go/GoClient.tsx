@@ -11,7 +11,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
-import { Bus, Car, CarFront, type LucideIcon } from "lucide-react";
+import { Bus, Car, CarFront, Zap, type LucideIcon } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { DEFAULT_MAP_CENTER } from "@/lib/config/geo";
 
@@ -197,19 +197,19 @@ export default function GoClient() {
 
       {/* Panou comandă */}
       <div className="z-10 rounded-t-3xl bg-white p-4 pb-6 shadow-[0_-8px_24px_rgba(0,0,0,.08)]">
-        <h1 className="mb-3 text-lg font-extrabold tracking-tight">{t("title")} 🚕</h1>
+        <h1 className="mb-3 text-lg font-extrabold tracking-tight">{t("title")}</h1>
         <div className="space-y-2">
           <AddressAutocomplete
             placeholder={t("pickupPlaceholder")}
             value={pickup?.address}
             onSelect={setPickup}
-            icon={<span className="text-sm">🟢</span>}
+            icon={<span className="block h-2.5 w-2.5 rounded-full bg-green-500" />}
           />
           <AddressAutocomplete
             placeholder={t("dropoffPlaceholder")}
             value={dropoff?.address}
             onSelect={setDropoff}
-            icon={<span className="text-sm">🔴</span>}
+            icon={<span className="block h-2.5 w-2.5 rounded-full bg-red-500" />}
           />
         </div>
 
@@ -228,7 +228,7 @@ export default function GoClient() {
                   : "border-neutral-200 bg-white"
                 }`}
             >
-              <div className="text-xl">{c.emoji}</div>
+              <div className="flex justify-center"><c.Icon size={20} /></div>
               <div className="text-[13px] font-bold">{t(c.labelKey)}</div>
               <div className={`text-[12px] ${vehicleClass === c.id ? "text-neutral-300" : "text-neutral-500"}`}>
                 {loading ? "…" : fmt(estimates[c.id])}
@@ -243,8 +243,8 @@ export default function GoClient() {
           </p>
         ) : null}
         {selected && Number(selected.breakdown?.surge_multiplier) > 1 ? (
-          <p className="mt-2 text-center text-[12px] font-semibold text-amber-600">
-            ⚡ {t("surge", { mult: Number(selected.breakdown.surge_multiplier).toFixed(2) })}
+          <p className="mt-2 flex items-center justify-center gap-1 text-center text-[12px] font-semibold text-amber-600">
+            <Zap size={12} /> {t("surge", { mult: Number(selected.breakdown.surge_multiplier).toFixed(2) })}
           </p>
         ) : null}
         {error ? <p className="mt-2 text-center text-[13px] text-red-600">{error}</p> : null}

@@ -25,3 +25,28 @@ export const CREATOR_COMMISSION_BPS = bpsFromEnv("CREATOR_COMMISSION_BPS_RATE", 
 export function applyBps(amountCents: number, bps: number): number {
     return Math.round((amountCents * bps) / 10000);
 }
+
+/**
+ * Mobility (Swypik Go — curse și livrări curieri).
+ * Fallback-uri când zona de preț nu definește propriile procente
+ * (pricing_zones.platform_commission_pct / courier_share_pct).
+ */
+
+/** Comisionul standard al platformei pe curse/livrări (default 20%). */
+export const MOBILITY_PLATFORM_FEE_BPS = bpsFromEnv("MOBILITY_PLATFORM_FEE_BPS", 2000);
+
+/** Cota curierului/șoferului din tarif (default 80%). */
+export const MOBILITY_COURIER_SHARE_BPS = bpsFromEnv("MOBILITY_COURIER_SHARE_BPS", 8000);
+
+/** Buffer de pre-autorizare Stripe peste tariful estimat (default 20%). */
+export const MOBILITY_AUTH_BUFFER_BPS = bpsFromEnv("MOBILITY_AUTH_BUFFER_BPS", 2000);
+
+/**
+ * Stays (cazări).
+ */
+
+/** Comisionul Swypik pe rezervări de cazare (default 10%). */
+export const STAYS_COMMISSION_BPS = bpsFromEnv("STAYS_COMMISSION_BPS", 1000);
+
+/** Refund parțial la anulare târzie de client (default 50%). */
+export const STAYS_LATE_CANCEL_REFUND_BPS = bpsFromEnv("STAYS_LATE_CANCEL_REFUND_BPS", 5000);

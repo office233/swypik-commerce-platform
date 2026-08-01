@@ -14,6 +14,8 @@
  * ATENȚIE: la orice schimbare de comision sau politică, actualizează AICI.
  */
 
+import { SUPPORT_EMAIL } from "@/lib/contact";
+
 export const TERMS_LAST_UPDATED = "31 iulie 2026";
 
 export type TermsSection = {
@@ -156,7 +158,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: "reclamatii",
         title: "11. Reclamații și rezolvarea disputelor",
         body: [
-            "Scrie-ne întâi la suport@swypik.com — răspundem în maximum 30 de zile. Majoritatea problemelor se rezolvă aici.",
+            `Scrie-ne întâi la ${SUPPORT_EMAIL} — răspundem în maximum 30 de zile. Majoritatea problemelor se rezolvă aici.`,
             "Dacă nu ești mulțumit, te poți adresa:",
         ],
         bullets: [

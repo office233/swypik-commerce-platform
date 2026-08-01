@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { ArrowLeft, ChevronRight, RotateCcw, UtensilsCrossed } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { useTranslations, useLocale } from "next-intl";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
@@ -97,7 +97,7 @@ export default function OrdersListClient() {
 
         {orders != null && orders.length === 0 && (
           <div className="rounded-2xl border border-[#E5E5E5] bg-white p-8 text-center">
-            <div className="text-5xl" aria-hidden>🍕</div>
+            <div className="flex justify-center" aria-hidden><UtensilsCrossed size={48} /></div>
             <p className="mt-3 text-sm font-bold">{t("empty")}</p>
             <button
               type="button"
@@ -181,6 +181,6 @@ function OrderThumb({ image, name }: { image: string | null; name: string }) {
   return image ? (
     <Image src={image} alt={name} width={48} height={48} className="h-12 w-12 shrink-0 rounded-xl object-cover" />
   ) : (
-    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#F7F7F8] text-xl" aria-hidden>🍽️</span>
+    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#F7F7F8]" aria-hidden><UtensilsCrossed size={20} /></span>
   );
 }

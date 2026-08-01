@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Clock, MapPin, ReceiptText, Star, Truck } from "lucide-react";
+import { ArrowLeft, Cake, Clock, Ham, MapPin, Pizza, ReceiptText, Salad, Soup, Star, Truck, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { useTranslations } from "next-intl";
@@ -32,13 +32,13 @@ interface Merchant {
   menu_count: number;
 }
 
-const CUISINES = [
-  { id: "pizza", emoji: "🍕", labelKey: "cuisinePizza" },
-  { id: "burgers", emoji: "🍔", labelKey: "cuisineBurgers" },
-  { id: "asian", emoji: "🍜", labelKey: "cuisineAsian" },
-  { id: "romanian", emoji: "🥘", labelKey: "cuisineRomanian" },
-  { id: "desserts", emoji: "🍰", labelKey: "cuisineDesserts" },
-  { id: "healthy", emoji: "🥗", labelKey: "cuisineHealthy" },
+const CUISINES: readonly { id: string; Icon: LucideIcon; labelKey: string }[] = [
+  { id: "pizza", Icon: Pizza, labelKey: "cuisinePizza" },
+  { id: "burgers", Icon: Ham, labelKey: "cuisineBurgers" },
+  { id: "asian", Icon: Soup, labelKey: "cuisineAsian" },
+  { id: "romanian", Icon: UtensilsCrossed, labelKey: "cuisineRomanian" },
+  { id: "desserts", Icon: Cake, labelKey: "cuisineDesserts" },
+  { id: "healthy", Icon: Salad, labelKey: "cuisineHealthy" },
 ] as const;
 
 export default function FoodClient() {
@@ -130,7 +130,7 @@ export default function FoodClient() {
                 className={`inline-flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-full px-3.5 text-xs font-bold transition active:scale-95 ${active ? "text-white" : "bg-white/85 text-[#6E6E80]"
                   }`}
               >
-                <span aria-hidden>{c.emoji}</span>
+                <c.Icon size={14} aria-hidden />
                 {t(c.labelKey)}
               </button>
             );
@@ -145,8 +145,8 @@ export default function FoodClient() {
             onClick={pickCity}
             className="mb-4 flex w-full items-center gap-3 rounded-2xl border-2 border-dashed border-[#E5E5E5] p-4 text-left transition active:scale-[0.98]"
           >
-            <span className="grid h-11 w-11 place-items-center rounded-xl text-xl" style={{ backgroundColor: `${ACCENT}1A` }}>
-              📍
+            <span className="grid h-11 w-11 place-items-center rounded-xl" style={{ backgroundColor: `${ACCENT}1A` }}>
+              <MapPin size={20} style={{ color: ACCENT }} />
             </span>
             <span>
               <span className="block text-sm font-black">{t("chooseCityTitle")}</span>
@@ -163,7 +163,7 @@ export default function FoodClient() {
           </div>
         ) : merchants.length === 0 ? (
           <div className="py-16 text-center">
-            <div className="mb-3 text-5xl" aria-hidden>🍔</div>
+            <div className="mb-3 flex justify-center" aria-hidden><UtensilsCrossed size={48} /></div>
             <p className="font-black">{t("noRestaurants", { city: city ? ` — ${city}` : "" })}</p>
             <p className="mx-auto mt-1 max-w-xs text-sm text-[#6E6E80]">
               {t("ownerCta")}
@@ -193,7 +193,7 @@ export default function FoodClient() {
                   {m.image_url ? (
                     <Image src={m.image_url} alt={m.name} fill sizes="96px" className="object-cover" />
                   ) : (
-                    <div className="grid h-full place-items-center text-3xl">🍽️</div>
+                    <div className="grid h-full place-items-center"><UtensilsCrossed size={28} /></div>
                   )}
                   {!m.is_open && (
                     <div className="absolute inset-0 grid place-items-center bg-black/55">

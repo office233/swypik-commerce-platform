@@ -4,8 +4,26 @@ import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Edit2, Trash2, X, Play } from "lucide-react";
+import { ArrowLeft, Edit2, Trash2, X, Play, Folder, Bookmark, ShoppingCart, Lightbulb, Heart, Star, Music, Plane, UtensilsCrossed, Gamepad2, Inbox, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  folder: Folder,
+  bookmark: Bookmark,
+  cart: ShoppingCart,
+  idea: Lightbulb,
+  heart: Heart,
+  star: Star,
+  music: Music,
+  plane: Plane,
+  food: UtensilsCrossed,
+  game: Gamepad2,
+};
+
+function CollectionIcon({ name, size = 28 }: { name?: string | null; size?: number }) {
+  const Icon = (name && ICON_MAP[name]) || Folder;
+  return <Icon size={size} />;
+}
 
 type Collection = {
   id: string;
@@ -46,7 +64,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         setCollection(data.collection);
         setItems(data.items || []);
         setEditTitle(data.collection.title);
-        setEditIcon(data.collection.icon || "📁");
+        setEditIcon(data.collection.icon || "folder");
         setEditColor(data.collection.color || "#0D0D0D");
       } else {
         router.push('/collections');
@@ -93,7 +111,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
     }
   };
 
-  const EMOJIS = ["📁", "🔖", "🛒", "💡", "❤️", "⭐", "🎵", "✈️", "🍔", "🎮"];
+  const ICON_KEYS = Object.keys(ICON_MAP);
   const COLORS = ["#0D0D0D", "#4F46E5", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444", "#3B82F6"];
 
   if (loading) {
@@ -114,7 +132,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg"
             style={{ backgroundColor: collection.color ? `${collection.color}30` : '#333' }}
           >
-            {collection.icon || '📁'}
+            <CollectionIcon name={collection.icon} />
           </div>
           <div>
             <h1 className="text-3xl font-bold">{collection.title}</h1>
@@ -142,7 +160,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
 
       {items.length === 0 ? (
         <div className="text-center py-20 text-gray-500 bg-[#141414] rounded-3xl border border-gray-800/50">
-          <div className="text-5xl mb-4 opacity-50">📭</div>
+          <div className="mb-4 flex justify-center opacity-50"><Inbox size={48} /></div>
           <p className="text-xl">{t("aceastaColectieEsteGoala")}</p>
           <Link href="/explore" className="text-[#0D0D0D] hover:underline mt-2 inline-block">
             
@@ -202,13 +220,13 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">Icon</label>
                 <div className="flex flex-wrap gap-2">
-                  {EMOJIS.map(emoji => (
+                  {ICON_KEYS.map(key => (
                     <button
-                      key={emoji}
-                      onClick={() => setEditIcon(emoji)}
-                      className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-colors ${editIcon === emoji ? 'bg-[#333] border border-[#0D0D0D]' : 'hover:bg-[#222] border border-transparent'}`}
+                      key={key}
+                      onClick={() => setEditIcon(key)}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${editIcon === key ? 'bg-[#333] border border-[#0D0D0D]' : 'hover:bg-[#222] border border-transparent'}`}
                     >
-                      {emoji}
+                      <CollectionIcon name={key} size={20} />
                     </button>
                   ))}
                 </div>

@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, ChefHat, Bike, MapPin, Phone, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Car, Check, ChefHat, Bike, MapPin, Phone, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
@@ -80,7 +80,7 @@ const STEPS: { key: string; label: string; matches: string[] }[] = [
     { key: "ready", label: "Gata de ridicare", matches: ["ready"] },
     { key: "picked_up", label: "Curierul a preluat comanda", matches: ["picked_up"] },
     { key: "delivering", label: "În livrare", matches: ["delivering"] },
-    { key: "delivered", label: "Livrată 🎉", matches: ["delivered"] },
+    { key: "delivered", label: "Livrată", matches: ["delivered"] },
 ];
 
 const STATUS_ORDER = ["placed", "accepted", "preparing", "ready", "picked_up", "delivering", "delivered"];
@@ -301,7 +301,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                 {/* Curier */}
                 {order.courier && !cancelled && (
                     <div className="flex items-center gap-3 rounded-2xl border border-[#E5E5E5] bg-white p-4">
-                        <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F0FAF4] text-xl" aria-hidden>🛵</span>
+                        <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F0FAF4]" aria-hidden><Bike size={20} /></span>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-black">{order.courier.name}</p>
                             <p className="text-xs text-[#6E6E80]">{t("yourCourier")}</p>
@@ -339,7 +339,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                         onClick={() => haptic("tap")}
                         className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] bg-white text-sm font-bold active:scale-[0.98]"
                     >
-                        🚗 Ai nevoie de o cursă? Swypik Go
+                        <Car size={16} /> Ai nevoie de o cursă? Swypik Go
                     </a>
                 )}
 
@@ -367,7 +367,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                         )}
                         <div className="mt-1 flex justify-between font-black"><span>Total</span><span>{fmtLei(order.total_cents)}</span></div>
                         <p className="mt-1 text-xs text-[#9C9CAB]">
-                            {order.payment_method === "cash" ? "Plată cash la livrare" : order.payment_status === "paid" ? "Plătită cu cardul ✓" : "Plată cu cardul în curs"}
+                            {order.payment_method === "cash" ? "Plată cash la livrare" : order.payment_status === "paid" ? "Plătită cu cardul" : "Plată cu cardul în curs"}
                         </p>
                     </div>
                 </div>

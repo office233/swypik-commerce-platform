@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -63,8 +64,8 @@ export default async function HashtagPage({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={v.thumbnail_url} alt={v.title ?? ""} className="w-full h-full object-cover" />
                   ) : null}
-                  <div className="absolute bottom-1 left-2 text-xs">
-                    ♥ {Intl.NumberFormat().format(v.like_count)}
+                  <div className="absolute bottom-1 left-2 flex items-center gap-1 text-xs">
+                    <Heart size={12} className="fill-current" /> {Intl.NumberFormat().format(v.like_count)}
                   </div>
                 </div>
                 <div className="p-2">

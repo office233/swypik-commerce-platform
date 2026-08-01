@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type Me = {
@@ -343,7 +343,7 @@ export default function EditProfilePage() {
                   className="min-h-[44px] rounded-xl bg-white/10 px-3 text-sm font-bold text-white/70 hover:bg-white/15"
                   aria-label={t("removeLink")}
                 >
-                  ✕
+                  <X size={16} />
                 </button>
               </div>
             ))}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { dbQuery } from "@/lib/db";
 import { getTranslations } from "next-intl/server";
-import { Trophy, Coins, Clock, Users } from "lucide-react";
+import { Trophy, Coins, Clock, Users, Target } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -102,8 +102,8 @@ export default async function MissionsPage() {
                         />
                       </div>
                     ) : (
-                      <div className="w-20 h-20 rounded-xl bg-white/5 flex items-center justify-center text-2xl flex-shrink-0">
-                        🎯
+                      <div className="w-20 h-20 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                        <Target size={24} />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">

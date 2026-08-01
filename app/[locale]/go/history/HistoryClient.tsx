@@ -109,7 +109,7 @@ export default function HistoryClient() {
                     {r.driver_name ? (
                       <div className="flex justify-between">
                         <dt>{t("driver")}</dt>
-                        <dd>{r.driver_name}{r.driver_rating ? ` (★ ${Number(r.driver_rating).toFixed(2)})` : ""}</dd>
+                        <dd>{r.driver_name}{r.driver_rating ? ` (${Number(r.driver_rating).toFixed(2)})` : ""}</dd>
                       </div>
                     ) : null}
                     <div className="flex justify-between border-t border-neutral-100 pt-1 font-extrabold">

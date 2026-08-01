@@ -1,5 +1,7 @@
 "use client";
 
+import { Check, ShoppingBag } from "lucide-react";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -95,15 +97,15 @@ export default function VoteButtons({
                   className="w-16 h-16 rounded-xl object-cover border border-white/10 flex-shrink-0"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-2xl flex-shrink-0">
-                  🛍️
+                <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                  <ShoppingBag size={24} />
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold line-clamp-2">{it.label}</div>
                 <div className="mt-1 text-xs text-white/60">
                   {t("votes", { count: it.voteCount })} · {pct}%
-                  {isMine ? <span className="ml-2 text-[#7C3AED]">✓ {t("yourVote")}</span> : null}
+                  {isMine ? <span className="ml-2 inline-flex items-center gap-1 text-[#7C3AED]"><Check size={12} /> {t("yourVote")}</span> : null}
                 </div>
               </div>
             </div>

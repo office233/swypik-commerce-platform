@@ -9,7 +9,7 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Clapperboard, Package, Star, Store } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { getProductRatingMap } from "@/lib/reviews/aggregate";
 import { notFound } from "next/navigation";
@@ -178,7 +178,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <span className="text-3xl">🏪</span>
+              <Store size={28} />
             )}
           </div>
           <div className="min-w-0 flex-1">
@@ -254,7 +254,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
                         loading="lazy"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-2xl text-[#C4C4C4]">🎬</div>
+                        <div className="flex h-full w-full items-center justify-center text-[#C4C4C4]"><Clapperboard size={24} /></div>
                     )}
                     <p className="absolute inset-x-0 bottom-0 line-clamp-2 bg-gradient-to-t from-black/70 to-transparent p-2 text-[11px] font-bold text-white">
                       {v.title}
@@ -292,8 +292,8 @@ export default async function SellerStorefrontPage({ params }: Props) {
                           loading="lazy"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-3xl text-[#C4C4C4]">
-                          📦
+                        <div className="flex h-full w-full items-center justify-center text-[#C4C4C4]">
+                          <Package size={28} />
                         </div>
                       )}
                     </div>

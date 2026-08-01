@@ -2,6 +2,7 @@
 
 /** Imaginea unui produs din coș, cu fallback Package. Extras din CheckoutForm.tsx (Faza C). */
 import Image from "next/image";
+import { Package } from "lucide-react";
 import type { CartItem } from "./types";
 
 export default function CheckoutProductImage({
@@ -21,7 +22,7 @@ export default function CheckoutProductImage({
 }) {
     const imageSrc = item.product.images?.[0] || item.product.image;
     if (!imageSrc) {
-        return <div className={`w-full h-full flex items-center justify-center ${placeholderClassName}`}>📦</div>;
+        return <div className={`w-full h-full flex items-center justify-center ${placeholderClassName}`}><Package size={20} /></div>;
     }
 
     return (

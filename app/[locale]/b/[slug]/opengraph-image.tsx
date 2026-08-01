@@ -211,7 +211,7 @@ export default async function OgImage({
         >
           <div style={{ display: "flex" }}>de {author}</div>
           <div style={{ display: "flex", fontWeight: 700 }}>
-            👁  {post.vote_count} vot{post.vote_count === 1 ? "" : "uri"}
+            {post.vote_count} vot{post.vote_count === 1 ? "" : "uri"}
           </div>
         </div>
       </div>

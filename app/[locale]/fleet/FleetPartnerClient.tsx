@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2, Loader2, Users } from "lucide-react";
+import { Bike, Building2, Car, Loader2, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type Partner = {
@@ -144,11 +144,11 @@ export default function FleetPartnerClient() {
                             iar la aprobare îi alocăm francizei tale.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                            <a href="/join/fleet?kind=driver" className="rounded-xl bg-amber-500 px-3 py-2 text-[12px] font-bold text-white">
-                                🚕 Link șoferi Go
+                            <a href="/join/fleet?kind=driver" className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-[12px] font-bold text-white">
+                                <Car size={14} /> Link șoferi Go
                             </a>
-                            <a href="/join/fleet?kind=courier" className="rounded-xl bg-green-600 px-3 py-2 text-[12px] font-bold text-white">
-                                🛵 Link curieri Food
+                            <a href="/join/fleet?kind=courier" className="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-3 py-2 text-[12px] font-bold text-white">
+                                <Bike size={14} /> Link curieri Food
                             </a>
                         </div>
                     </div>
@@ -161,7 +161,7 @@ export default function FleetPartnerClient() {
                     <div className="mt-3 space-y-2">
                         {drivers.map((d) => (
                             <div key={d.id} className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
-                                <span className="text-xl">{d.kind === "driver" ? "🚕" : "🛵"}</span>
+                                <span className="text-xl">{d.kind === "driver" ? <Car size={20} /> : <Bike size={20} />}</span>
                                 <div className="min-w-0 flex-1">
                                     <p className="text-[14px] font-bold text-[#0D0D0D]">{d.full_name}</p>
                                     <p className="text-[12px] text-[#6E6E80]">

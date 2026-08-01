@@ -232,9 +232,8 @@ export default function MerchantPanelClient() {
           )}
           <button
             onClick={() => void toggleOpen()}
-            className={`rounded-full px-4 py-2 text-sm font-semibold text-white ${
-              isClosed ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
-            }`}
+            className={`rounded-full px-4 py-2 text-sm font-semibold text-white ${isClosed ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+              }`}
           >
             {isClosed ? "Redeschide" : "Închid acum"}
           </button>
@@ -280,9 +279,8 @@ export default function MerchantPanelClient() {
                     <button
                       key={a.to}
                       onClick={() => void setOrderStatus(o.id, a.to)}
-                      className={`rounded px-3 py-1.5 text-sm font-medium text-white ${
-                        a.to === "rejected" ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
-                      }`}
+                      className={`rounded px-3 py-1.5 text-sm font-medium text-white ${a.to === "rejected" ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
+                        }`}
                     >
                       {a.label}
                     </button>
@@ -322,9 +320,8 @@ export default function MerchantPanelClient() {
               </span>
               <button
                 onClick={() => void toggleItemAvailable(it)}
-                className={`rounded px-2 py-1 text-xs font-medium ${
-                  it.is_available ? "bg-gray-200 text-gray-700" : "bg-green-100 text-green-700"
-                }`}
+                className={`rounded px-2 py-1 text-xs font-medium ${it.is_available ? "bg-gray-200 text-gray-700" : "bg-green-100 text-green-700"
+                  }`}
               >
                 {it.is_available ? "Dezactivează" : "Activează"}
               </button>

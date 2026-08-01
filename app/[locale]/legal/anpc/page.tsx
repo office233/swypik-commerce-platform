@@ -7,6 +7,7 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
     title: "Protecția consumatorului — Swypik",
@@ -18,8 +19,8 @@ const CHANNELS = [
     {
         name: "Suport Swypik",
         detail: "Primul pas — rezolvăm majoritatea problemelor direct.",
-        action: "suport@swypik.com",
-        href: "mailto:suport@swypik.com",
+        action: SUPPORT_EMAIL,
+        href: `mailto:${SUPPORT_EMAIL}`,
         note: "Răspundem în maximum 30 de zile.",
     },
     {
@@ -99,7 +100,7 @@ export default function AnpcPage() {
             <div className="mt-8 rounded-xl bg-neutral-50 p-4 text-sm dark:bg-neutral-900">
                 <p className="font-semibold">Operatorul platformei</p>
                 <p className="mt-1 text-neutral-600 dark:text-neutral-400">
-                    Swypik Technology · suport@swypik.com
+                    Swypik Technology · {SUPPORT_EMAIL}
                 </p>
                 <p className="mt-2 flex flex-wrap gap-3 text-xs">
                     <Link href="/terms" className="underline">Termeni și Condiții</Link>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, SwitchCamera, Loader2, Sparkles, Timer, Music, ImagePlus } from "lucide-react";
+import { X, SwitchCamera, Loader2, Sparkles, Timer, Music, ImagePlus, Check } from "lucide-react";
 import { useCamera } from "@/lib/reels/use-camera";
 import { useRecorder } from "@/lib/reels/use-recorder";
 import { uploadReel } from "@/lib/reels/upload-reel";

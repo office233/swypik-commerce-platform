@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Eye, ShoppingBag } from "lucide-react";
 
 type Stream = {
   id: string;
@@ -100,7 +101,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
         <video ref={videoRef} controls autoPlay playsInline className="w-full h-full object-contain" />
         <div className="absolute top-3 left-3 flex items-center gap-2">
           <span className="bg-red-600 text-xs px-2 py-1 rounded font-bold">LIVE</span>
-          <span className="bg-black/60 text-xs px-2 py-1 rounded">👁 {viewers}</span>
+          <span className="inline-flex items-center gap-1 bg-black/60 text-xs px-2 py-1 rounded"><Eye size={12} /> {viewers}</span>
         </div>
         <div className="absolute top-3 right-3 bg-black/60 px-3 py-1 rounded text-sm">
           {stream.display_name || stream.username || "Creator"}
@@ -128,7 +129,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
         )}
         {items.length > 1 && (
           <button onClick={() => setShowDrawer(true)} className="absolute bottom-24 right-4 inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-4 py-3 min-h-[44px] rounded-lg text-sm font-semibold shadow-lg focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none" aria-label={t("seeProducts")}>
-            🛍 {t("productCount", { count: items.length })}
+            <ShoppingBag size={15} className="mr-1.5" /> {t("productCount", { count: items.length })}
           </button>
         )}
       </div>

@@ -34,7 +34,7 @@ export default async function TrendsPage() {
 
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: 24, minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>🔥 {t("title")}</h1>
+      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>{t("title")}</h1>
       <p style={{ color: "#666", marginBottom: 24 }}>{t("subtitle")}</p>
 
       {rows.length === 0 ? (

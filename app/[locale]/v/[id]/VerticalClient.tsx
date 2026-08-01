@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, Check, MapPin } from "lucide-react";
 import VerticalRail from "@/components/verticals/VerticalRail";
 import { ACTION_KEY, type Vertical } from "@/lib/verticals/catalog";
 
@@ -223,7 +223,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                                     {it.publisher.name && (
                                         <p className="mt-1 text-[11px] text-[#6E6E80] truncate">
                                             {it.publisher.name}
-                                            {it.publisher.verified && <span className="ml-1">✓</span>}
+                                            {it.publisher.verified && <Check size={12} className="ml-1 inline" />}
                                         </p>
                                     )}
                                     <div className="mt-2 flex items-center justify-between gap-2">

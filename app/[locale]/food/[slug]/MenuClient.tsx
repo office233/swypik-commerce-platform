@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { ArrowLeft, Clock, MapPin, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react";
+import { ArrowLeft, Banknote, CheckCircle2, Clock, CreditCard, MapPin, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { isOpenNow } from "@/lib/merchants/hours";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
@@ -341,7 +341,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
     return (
       <div className="grid min-h-dvh place-items-center bg-white px-6 pb-24">
         <div className="text-center">
-          <div className="mb-4 text-6xl" aria-hidden>✅</div>
+          <div className="mb-4 flex justify-center text-[#2DBE60]" aria-hidden><CheckCircle2 size={56} /></div>
           <h1 className="text-xl font-black">{t("orderPlaced")}</h1>
           <p className="mt-2 text-sm text-[#6E6E80]">
             {t("orderNumber")} <span className="font-black text-[#0D0D0D]">{placed.order_number}</span>
@@ -624,9 +624,9 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                       key={a.id}
                       type="button"
                       onClick={() => { haptic("tap"); applySaved(a); }}
-                      className="shrink-0 rounded-full border border-[#E5E5E5] px-3 py-1.5 text-xs font-bold text-[#0D0D0D]"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#E5E5E5] px-3 py-1.5 text-xs font-bold text-[#0D0D0D]"
                     >
-                      📍 {a.label || a.line1.slice(0, 24)}
+                      <MapPin size={12} /> {a.label || a.line1.slice(0, 24)}
                     </button>
                   ))}
                 </div>
@@ -704,16 +704,16 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               <button
                 type="button"
                 onClick={() => setPayMethod("cash")}
-                className={`h-11 rounded-xl border text-sm font-bold ${payMethod === "cash" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold ${payMethod === "cash" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
               >
-                💵 Cash la livrare
+                <Banknote size={16} /> Cash la livrare
               </button>
               <button
                 type="button"
                 onClick={() => setPayMethod("card_online")}
-                className={`h-11 rounded-xl border text-sm font-bold ${payMethod === "card_online" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold ${payMethod === "card_online" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
               >
-                💳 Card online
+                <CreditCard size={16} /> Card online
               </button>
             </div>
 

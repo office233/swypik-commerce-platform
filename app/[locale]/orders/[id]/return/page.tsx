@@ -7,7 +7,7 @@
  */
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Undo2 } from "lucide-react";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { canRequestReturn } from "@/lib/commerce/order-status";
@@ -73,7 +73,7 @@ export default async function OrderReturnPage({
           <h1 className="text-lg font-black">Cerere retur</h1>
         </header>
         <div className="px-4 pt-8 max-w-xl mx-auto text-center">
-          <div className="text-5xl mb-4">↩️</div>
+          <div className="mb-4 flex justify-center"><Undo2 size={48} /></div>
           <h2 className="text-xl font-black mb-2">
             {alreadyRequested ? "Cererea de retur există deja" : "Nu poți cere retur încă"}
           </h2>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
+import { Clapperboard, Eye, Video as VideoIcon, X } from "lucide-react";
 
 /* ───── Types ───── */
 type Video = {
@@ -75,7 +76,7 @@ export default function VideoSection({ productId }: { productId: string }) {
             paddingLeft: 16,
           }}
         >
-          📹 Clipuri cu acest produs
+          <VideoIcon size={13} style={{ marginRight: 6, verticalAlign: "middle" }} /> Clipuri cu acest produs
         </h2>
 
         {/* Horizontal Scroll Container */}
@@ -148,7 +149,7 @@ export default function VideoSection({ productId }: { productId: string }) {
                       fontSize: 32,
                     }}
                   >
-                    🎬
+                    <Clapperboard size={32} />
                   </div>
                 )}
 
@@ -229,7 +230,7 @@ export default function VideoSection({ productId }: { productId: string }) {
                     gap: 6,
                   }}
                 >
-                  <span>👁 {formatViews(video.viewCount)}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Eye size={12} /> {formatViews(video.viewCount)}</span>
                   <span>·</span>
                   <span>{formatDuration(video.durationSeconds)}</span>
                 </p>
@@ -280,7 +281,7 @@ export default function VideoSection({ productId }: { productId: string }) {
               zIndex: 10,
             }}
           >
-            ✕
+            <X size={20} />
           </button>
 
           {/* Video Player */}
@@ -326,7 +327,7 @@ export default function VideoSection({ productId }: { productId: string }) {
               marginTop: 4,
             }}
           >
-            {activeVideo.creatorName} · 👁 {formatViews(activeVideo.viewCount)}
+            {activeVideo.creatorName} · {formatViews(activeVideo.viewCount)}
           </p>
         </div>
       )}

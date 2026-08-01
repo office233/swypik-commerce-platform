@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, TrendingUp, Swords } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, TrendingUp, Swords, User } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
 import MyModes from "@/components/account/MyModes";
 import { useTranslations } from "next-intl";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 type AccountPageClientProps = {
   redirectTo: string;
@@ -247,7 +248,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               {customer?.avatar_url ? (
                 <Image src={customer.avatar_url} alt="Avatar" width={96} height={96} className="w-full h-full object-cover" unoptimized />
               ) : (
-                <span className="text-3xl">😎</span>
+                <User size={32} />
               )}
             </div>
           </div>
@@ -412,7 +413,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             <a href="/legal/anpc" className="underline-offset-2 hover:underline">ANPC</a>
             <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">SOL (UE)</a>
           </div>
-          <p className="mt-2 text-[11px] text-[#C4C4CC]">© {new Date().getFullYear()} Swypik Technology · suport@swypik.com</p>
+          <p className="mt-2 text-[11px] text-[#C4C4CC]">© {new Date().getFullYear()} Swypik Technology · {SUPPORT_EMAIL}</p>
         </div>
 
       </div>

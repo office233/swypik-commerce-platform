@@ -1,5 +1,6 @@
 import { dbQuery } from "@/lib/db";
 import Link from "next/link";
+import { CircleDot, Eye } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function LivePage() {
   ).catch(() => ({ rows: [] as any[] }));
   return (
     <main className="max-w-6xl mx-auto px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))]">
-      <h1 className="text-2xl font-bold mb-4">🔴 Live acum</h1>
+      <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold"><CircleDot size={22} className="text-red-600" /> Live acum</h1>
       {rows.length === 0 ? (
         <p className="text-gray-500">Niciun stream activ.</p>
       ) : (
@@ -32,7 +33,7 @@ export default async function LivePage() {
               <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded font-bold">LIVE</div>
               <div className="absolute bottom-2 left-2 right-2 text-white">
                 <p className="text-sm font-medium line-clamp-2">{s.title || "Live stream"}</p>
-                <p className="text-xs opacity-80">👁 {s.viewer_count ?? 0}{s.username ? ` · @${s.username}` : ""}</p>
+                <p className="flex items-center gap-1 text-xs opacity-80"><Eye size={12} /> {s.viewer_count ?? 0}{s.username ? ` · @${s.username}` : ""}</p>
               </div>
             </Link>
           ))}

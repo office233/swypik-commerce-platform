@@ -4,6 +4,7 @@
  */
 import type { Metadata } from "next";
 import { TERMS_SECTIONS, TERMS_LAST_UPDATED } from "@/lib/legal/terms-content";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
     title: "Termeni și Condiții — Swypik",
@@ -68,7 +69,7 @@ export default function TermsPage() {
             </div>
 
             <p className="mt-10 border-t border-neutral-200 pt-4 text-xs text-neutral-400 dark:border-neutral-800">
-                Swypik Technology · suport@swypik.com · ANPC: www.anpc.ro · SOL: ec.europa.eu/consumers/odr
+                Swypik Technology · {SUPPORT_EMAIL} · ANPC: www.anpc.ro · SOL: ec.europa.eu/consumers/odr
             </p>
         </main>
     );
