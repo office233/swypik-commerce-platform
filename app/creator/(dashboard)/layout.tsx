@@ -15,14 +15,14 @@ import {
 } from "lucide-react";
 
 const creatorNavItems = [
-  { href: "/creator", icon: BarChart3, label: "Dashboard" },
-  { href: "/upload", icon: Upload, label: "Încarcă" },
-  { href: "/creator/videos", icon: Clapperboard, label: "Clipurile Mele" },
-  { href: "/creator/drafts", icon: FileText, label: "Schițe" },
-  { href: "/creator/analytics", icon: TrendingUp, label: "Analytics" },
-  { href: "/creator/earnings", icon: Coins, label: "Câștiguri" },
-  { href: "/creator/payouts", icon: Banknote, label: "Plăți" },
-  { href: "/creator/live", icon: CircleDot, label: "Live" },
+  { href: "/creator", icon: "barChart3", label: "Dashboard" },
+  { href: "/upload", icon: "upload", label: "Încarcă" },
+  { href: "/creator/videos", icon: "clapperboard", label: "Clipurile Mele" },
+  { href: "/creator/drafts", icon: "fileText", label: "Schițe" },
+  { href: "/creator/analytics", icon: "trendingUp", label: "Analytics" },
+  { href: "/creator/earnings", icon: "coins", label: "Câștiguri" },
+  { href: "/creator/payouts", icon: "banknote", label: "Plăți" },
+  { href: "/creator/live", icon: "circleDot", label: "Live" },
 ];
 
 export default function CreatorLayout({ children }: { children: ReactNode }) {

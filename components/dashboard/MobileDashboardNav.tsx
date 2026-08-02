@@ -2,12 +2,47 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, type LucideIcon } from "lucide-react";
+import {
+  Menu,
+  X,
+  BarChart3,
+  Package,
+  ShoppingBag,
+  UtensilsCrossed,
+  Home,
+  Coins,
+  Undo2,
+  Settings,
+  Upload,
+  Clapperboard,
+  FileText,
+  TrendingUp,
+  Banknote,
+  CircleDot,
+  type LucideIcon,
+} from "lucide-react";
+
+const ICONS: Record<string, LucideIcon> = {
+  barChart3: BarChart3,
+  package: Package,
+  shoppingBag: ShoppingBag,
+  utensilsCrossed: UtensilsCrossed,
+  home: Home,
+  coins: Coins,
+  undo2: Undo2,
+  settings: Settings,
+  upload: Upload,
+  clapperboard: Clapperboard,
+  fileText: FileText,
+  trendingUp: TrendingUp,
+  banknote: Banknote,
+  circleDot: CircleDot,
+};
 
 export type MobileDashboardNavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: string;
 };
 
 type Props = {
@@ -57,17 +92,20 @@ export default function MobileDashboardNav({ title, section, accentClassName, it
               </button>
             </div>
             <nav className="space-y-2">
-              {items.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="flex min-h-12 items-center gap-3 rounded-2xl border border-[#E5E5E5] px-4 py-3 text-sm font-black text-[#0D0D0D] active:scale-[0.99]"
-                >
-                  <item.icon size={20} />
-                  {item.label}
-                </Link>
-              ))}
+              {items.map((item) => {
+                const Icon = ICONS[item.icon] ?? Menu;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="flex min-h-12 items-center gap-3 rounded-2xl border border-[#E5E5E5] px-4 py-3 text-sm font-black text-[#0D0D0D] active:scale-[0.99]"
+                  >
+                    <Icon size={20} />
+                    {item.label}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
         </div>

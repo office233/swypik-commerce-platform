@@ -15,14 +15,14 @@ import {
 } from "lucide-react";
 
 const sellerNavItems = [
-  { href: "/seller", icon: BarChart3, label: "Dashboard" },
-  { href: "/seller/products", icon: Package, label: "Produsele mele" },
-  { href: "/seller/orders", icon: ShoppingBag, label: "Comenzi" },
-  { href: "/seller/merchant", icon: UtensilsCrossed, label: "Local & livrări" },
-  { href: "/seller/cazari", icon: Home, label: "Cazări" },
-  { href: "/seller/payouts", icon: Coins, label: "Payouts" },
-  { href: "/seller/returns", icon: Undo2, label: "Retururi" },
-  { href: "/seller/settings", icon: Settings, label: "Setări" },
+  { href: "/seller", icon: "barChart3", label: "Dashboard" },
+  { href: "/seller/products", icon: "package", label: "Produsele mele" },
+  { href: "/seller/orders", icon: "shoppingBag", label: "Comenzi" },
+  { href: "/seller/merchant", icon: "utensilsCrossed", label: "Local & livrări" },
+  { href: "/seller/cazari", icon: "home", label: "Cazări" },
+  { href: "/seller/payouts", icon: "coins", label: "Payouts" },
+  { href: "/seller/returns", icon: "undo2", label: "Retururi" },
+  { href: "/seller/settings", icon: "settings", label: "Setări" },
 ];
 
 export default async function SellerLayout({ children }: { children: ReactNode }) {
