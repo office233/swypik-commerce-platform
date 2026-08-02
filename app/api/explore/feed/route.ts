@@ -509,6 +509,11 @@ export async function GET(request: NextRequest) {
     const rawSessionId = (searchParams.get("session_id") || "").trim();
     const viewerSessionId = SESSION_RE.test(rawSessionId) ? rawSessionId : null;
 
+      // Deep-link `?v=<uuid>`: clipul cerut se prinde PRIMUL în pagina 1,
+      // altfel linkul de pe profil deschide feed-ul pe alt video.
+      const rawPinnedId = (searchParams.get("v") || "").trim();
+      const pinnedVideoId = page === 1 && new RegExp(UUID_SQL_RE, "i").test(rawPinnedId) ? rawPinnedId : null;
+
     // Fetch extra rows when quality filtering is active so the default feed can
     // skip low-quality products without looking empty.
     const queryLimit = minSwypikScore > 1 ? Math.min(limit * 4 + 1, 200) : limit + 1;
@@ -528,6 +533,11 @@ export async function GET(request: NextRequest) {
       queryParams.push(taxonomySlugParam);
       taxonomyParam = `$${queryParams.length}`;
     }
+      let pinnedParam = "";
+      if (pinnedVideoId) {
+        queryParams.push(pinnedVideoId);
+        pinnedParam = `$${queryParams.length}`;
+      }
 
     const feedWeights = await loadFeedWeights();
     const equityExpr = buildEquityExpr(feedWeights, Boolean(userId) || Boolean(viewerSessionId));
@@ -738,7 +748,7 @@ export async function GET(request: NextRequest) {
           SELECT n.slug FROM taxonomy_nodes n JOIN descendants d ON n.parent_slug = d.slug
         ) SELECT slug FROM descendants
       )` : ''}
-      ORDER BY ${orderClause}
+      ORDER BY ${pinnedParam ? `(v.id = ${pinnedParam}::uuid) DESC, ` : ""}${orderClause}
       LIMIT $1 OFFSET $2`,
       queryParams
     );

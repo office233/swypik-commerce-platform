@@ -180,9 +180,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       try {
         const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
         const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
+          const pinQs = initialVideoId ? `&v=${encodeURIComponent(initialVideoId)}` : "";
         const url = feedSource === "following"
-          ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}`
-          : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}`;
+           ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}${pinQs}`
+           : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}${pinQs}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
