@@ -3,7 +3,7 @@ import { labelProduct } from "@/lib/moderation/labelProduct";
 import { autoEmbedProduct } from "@/lib/ai/auto-embed";
 import { dbQuery } from "@/lib/db";
 
-import { requireAuth } from "@/lib/auth/getAuthUser";
+import { isAdminRequest } from "@/lib/security/admin-auth";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -113,8 +113,9 @@ function inventoryFromStock(stock: string | undefined): string {
 /* ------------------------------------------------------------------ */
 
 export async function POST(req: Request) {
-  const __auth = await requireAuth(req, ["admin"]);
-  if (__auth instanceof NextResponse) return __auth;
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
