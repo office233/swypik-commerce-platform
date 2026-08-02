@@ -76,13 +76,24 @@ for (const [l, miss] of Object.entries(missing)) {
 if (!Object.keys(missing).length) ok(`chei complete: ${roKeys.length} chei × ${LOCALES.length - 1} limbi`);
 
 // ── 3. Hardcodări în cod ──────────────────────────────────────
+// Baseline: hardcodările istorice (majoritatea în backoffice) sunt tolerate;
+// blocăm doar CREȘTEREA numărului (cod nou netradus). Baseline în .i18n-baseline.json.
 try {
     const out = execSync("node scripts/scan-hardcoded.mjs", { encoding: "utf8" });
     const m = out.match(/files:\s*(\d+)\s*hits:\s*(\d+)/);
-    if (m && +m[2] > 0) {
-        err(`scan-hardcoded: ${m[2]} stringuri hardcodate în ${m[1]} fișiere`);
-        console.error(out.split("\n").slice(0, 20).join("\n"));
-    } else ok("0 stringuri hardcodate");
+    const hits = m ? +m[2] : 0;
+    let baseline = 0;
+    try { baseline = JSON.parse(fs.readFileSync(".i18n-baseline.json", "utf8")).hits; } catch {}
+    if (hits > baseline) {
+        err(`scan-hardcoded: ${hits} hardcodări (baseline ${baseline}) — ai adăugat ${hits - baseline} stringuri netraduse noi`);
+        console.error(out.split("\n").slice(0, 15).join("\n"));
+    } else {
+        ok(`hardcodări: ${hits} ≤ baseline ${baseline}`);
+        if (hits < baseline) {
+            fs.writeFileSync(".i18n-baseline.json", JSON.stringify({ hits }) + "\n");
+            console.log(`  (baseline actualizat: ${baseline} → ${hits})`);
+        }
+    }
 } catch (e) {
     err("scan-hardcoded.mjs a eșuat: " + e.message.slice(0, 100));
 }

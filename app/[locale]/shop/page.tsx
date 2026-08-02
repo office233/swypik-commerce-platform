@@ -3,6 +3,7 @@ import { Package } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { cookies } from "next/headers";
 import { formatCurrency } from "@/lib/i18n/currency";
+import { getTranslations } from "next-intl/server";
 import {
   CURRENCY_COOKIE,
   LOCALE_COOKIE,
@@ -33,6 +34,7 @@ export default async function ShopPage({
 }: {
   searchParams: Promise<{ page?: string; cat?: string }>;
 }) {
+  const t = await getTranslations("shop");
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page || 1));
   const cat = (sp.cat || "").trim();
@@ -78,7 +80,8 @@ export default async function ShopPage({
       <div className="mx-auto max-w-6xl px-4 py-6">
         {rows.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center text-white/60">
-            Nu am găsit produse{cat ? ` în ${cat}` : ""}.
+            
+            {t("nuAmGasitProduse")}{cat ? ` în ${cat}` : ""}.
           </div>
         ) : (
           <>
@@ -136,7 +139,8 @@ export default async function ShopPage({
                   href={`/shop?${cat ? `cat=${encodeURIComponent(cat)}&` : ""}page=${page + 1}`}
                   className="rounded-xl border border-white/10 px-4 py-2 text-sm hover:bg-white/5"
                 >
-                  Următor →
+                  
+                  {t("urmator")}
                 </Link>
               ) : null}
             </nav>

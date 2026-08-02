@@ -176,8 +176,9 @@ export default async function CreatorPublicPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("creator");
   const { id } = await params;
-  const t = await getTranslations("creatorProfile");
+  const tx = await getTranslations("creatorProfile");
   const canonicalUsername = await getCanonicalUsernameForCreatorId(id).catch(() => null);
   if (canonicalUsername) redirect(`/u/${encodeURIComponent(canonicalUsername)}`);
 
@@ -214,7 +215,8 @@ export default async function CreatorPublicPage({
               color: "#fff",
             }}
           >
-            Explorează
+            
+            {t("exploreaza")}
           </Link>
         </div>
       </header>
@@ -308,11 +310,11 @@ export default async function CreatorPublicPage({
               border: "1px solid rgba(255,255,255,0.06)",
             }}
           >
-            <StatPill label={t("statVideos")} value={formatCount(creator.video_count)} />
+            <StatPill label={tx("statVideos")} value={formatCount(creator.video_count)} />
             <div className="w-px h-10" style={{ background: "rgba(255,255,255,0.06)" }} />
-            <StatPill label={t("statViews")} value={formatCount(creator.total_views)} />
+            <StatPill label={tx("statViews")} value={formatCount(creator.total_views)} />
             <div className="w-px h-10" style={{ background: "rgba(255,255,255,0.06)" }} />
-            <StatPill label={t("statLikes")} value={formatCount(totalLikes)} />
+            <StatPill label={tx("statLikes")} value={formatCount(totalLikes)} />
           </div>
         </div>
       </section>
@@ -352,7 +354,8 @@ export default async function CreatorPublicPage({
                 Niciun clip publicat
               </p>
               <p className="text-sm" style={{ color: "#6E6E80" }}>
-                Acest creator nu are clipuri publicate.
+                
+                {t("acestCreatorNuAre")}
               </p>
             </div>
           </div>

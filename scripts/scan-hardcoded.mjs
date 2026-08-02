@@ -14,7 +14,9 @@ function walk(d) {
                 if (/^\s*(\/\/|\*|\/\*)/.test(l)) return;
                 const m =
                     l.match(/>[^<>{}]*[ăâîșțĂÂÎȘȚ][^<>{}]*</) ||
-                    l.match(/(?:placeholder|title|label|aria-label)="[^"]*[ăâîșțĂÂÎȘȚ][^"]*"/);
+                        l.match(/(?:placeholder|title|label|aria-label)="[^"]*[ăâîșțĂÂÎȘȚ][^"]*"/) ||
+                        // literale JS cu diacritice românești (obiecte, array-uri, toast(), alert() etc.)
+                        l.match(/["'`][^"'`\n]*[ăâîșțĂÂÎȘȚ][^"'`\n]*["'`]/);
                 if (m) hits.push(i + 1);
             });
             if (hits.length) out[p.replace(/\\/g, "/")] = hits;

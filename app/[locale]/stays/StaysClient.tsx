@@ -52,7 +52,8 @@ function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | n
     return (
         <div ref={boxRef} className="relative">
             <label className="text-xs font-medium text-neutral-500">
-                Destinație
+                
+                {t("destinatie")}
                 <input
                     value={text}
                     onChange={(e) => search(e.target.value)}
@@ -203,7 +204,7 @@ export default function StaysClient() {
             {results && (
                 <div className="mt-5 space-y-3">
                     <p className="text-sm text-neutral-500">
-                        {results.length} cazări găsite · totalul include tot, fără costuri ascunse
+                        {results.length}  {t("cazariGasiteTotalulInclude")}
                     </p>
                     {results.map((s) => (
                         <div key={s.searchResultId} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
@@ -232,7 +233,8 @@ export default function StaysClient() {
                     ))}
                     {results.length === 0 && (
                         <p className="rounded-xl bg-neutral-50 p-4 text-center text-sm text-neutral-500 dark:bg-neutral-900">
-                            Nicio cazare găsită pentru datele alese. Încearcă alte date.
+                            
+                            {t("nicioCazareGasitaPentru")}
                         </p>
                     )}
                 </div>
@@ -241,7 +243,8 @@ export default function StaysClient() {
             {!results && !notice && !loading && (
                 <p className="mt-6 text-center text-xs text-neutral-400">
                     <Users size={14} className="mr-1 inline" />
-                    Cazări din 1M+ proprietăți, cu plata direct pe Swypik.
+                    
+                    {t("cazariDin1mProprietati")}
                 </p>
             )}
 
@@ -249,7 +252,8 @@ export default function StaysClient() {
             {local.length > 0 && (
                 <div className="mt-8">
                     <h2 className="text-lg font-bold">
-                        Cazări de la gazde Swypik {city ? `în ${city.name}` : ""}
+                        
+                        {t("cazariDeLaGazde")} {city ? `în ${city.name}` : ""}
                     </h2>
                     <p className="mb-3 text-xs text-neutral-500">{t("verifiedNote")}</p>
                     <div className="space-y-3">
@@ -264,7 +268,7 @@ export default function StaysClient() {
                                         <div className="min-w-0">
                                             <h3 className="truncate font-bold">{l.title}</h3>
                                             <p className="text-xs text-neutral-500">
-                                                {l.location_city} · până la {l.max_guests ?? "?"} oaspeți
+                                                {l.location_city}  {t("panaLa")} {l.max_guests ?? "?"}  {t("oaspeti")}
                                             </p>
                                         </div>
                                         <div className="shrink-0 text-right">

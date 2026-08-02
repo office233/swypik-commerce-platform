@@ -45,6 +45,7 @@ const DEDICATED_PAGES: Record<string, string> = {
 };
 
 export default function VerticalClient({ vertical }: { vertical: Vertical }) {
+  const tx = useTranslations("vertical");
     const t = useTranslations("verticals");
     const router = useRouter();
     const [items, setItems] = useState<FeedItem[]>([]);
@@ -177,7 +178,8 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                         <div className="text-5xl mb-3" aria-hidden>{vertical.emoji}</div>
                         <p className="font-bold text-[#0D0D0D]">{t("emptyTitle" as never)}</p>
                         <p className="text-sm text-[#6E6E80] mt-1 max-w-xs mx-auto">
-                            Fii primul care publică în {t(`${vertical.labelKey}.label`)}.
+                            
+                            {tx("fiiPrimulCarePublica")} {t(`${vertical.labelKey}.label`)}.
                         </p>
                         <button
                             type="button"
@@ -185,7 +187,8 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                             style={{ backgroundColor: vertical.accent }}
                             className="mt-5 rounded-xl px-5 h-11 text-sm font-bold text-white active:scale-95 transition"
                         >
-                            Publică acum
+                            
+                            {tx("publicaAcum")}
                         </button>
                     </div>
                 ) : (

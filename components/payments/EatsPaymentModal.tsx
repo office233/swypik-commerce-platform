@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useTranslations } from "next-intl";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -26,6 +27,7 @@ function PayForm({
     onSuccess: () => void;
     onCancel: () => void;
 }) {
+    const t = useTranslations("paymentsEatsPaymentModal");
     const stripe = useStripe();
     const elements = useElements();
     const [busy, setBusy] = useState(false);
@@ -62,7 +64,8 @@ function PayForm({
                     onClick={onCancel}
                     className="h-12 flex-1 rounded-xl border text-sm font-bold"
                 >
-                    Renunță
+
+                    {t("renunta")}
                 </button>
                 <button
                     type="submit"

@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Lock, Unlock, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const DAYS = ["L", "Ma", "Mi", "J", "V", "S", "D"];
 
@@ -29,6 +30,7 @@ export default function AvailabilityCalendar({
     listingId: string;
     onClose: () => void;
 }) {
+     const t = useTranslations("manageAvailabilityCalendar");
     const today = new Date();
     const [cursor, setCursor] = useState({ y: today.getUTCFullYear(), m: today.getUTCMonth() });
     const [blocked, setBlocked] = useState<Set<string>>(new Set());
@@ -156,11 +158,11 @@ export default function AvailabilityCalendar({
                         <div className="mt-3 flex gap-2">
                             <button onClick={() => apply(false)} disabled={saving}
                                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
-                                {saving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />} Blochează ({selected.size})
+                                {saving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}  {t("blocheaza")}{selected.size})
                             </button>
                             <button onClick={() => apply(true)} disabled={saving}
                                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
-                                {saving ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />} Deblochează
+                                {saving ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />}  {t("deblocheaza")}
                             </button>
                         </div>
                     )}

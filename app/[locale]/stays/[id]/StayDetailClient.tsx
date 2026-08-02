@@ -26,6 +26,7 @@ const lei = (c: number) =>
     new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(c / 100);
 
 export default function StayDetailClient({ stay }: { stay: Stay }) {
+  const tx = useTranslations("staysStayDetail");
     const router = useRouter();
     const t = useTranslations("stayDetail");
     const plus = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
@@ -114,7 +115,8 @@ export default function StayDetailClient({ stay }: { stay: Stay }) {
                     {stay.title} · {form.checkIn} → {form.checkOut}
                 </p>
                 <Link href="/account" className="mt-6 inline-block rounded-xl bg-emerald-600 px-5 py-2.5 font-semibold text-white">
-                    Vezi rezervările mele
+                    
+                    {tx("veziRezervarileMele")}
                 </Link>
             </div>
         );
@@ -129,7 +131,7 @@ export default function StayDetailClient({ stay }: { stay: Stay }) {
             <div className="px-4 pt-4">
                 <h1 className="text-xl font-bold">{stay.title}</h1>
                 <p className="mt-0.5 text-sm text-neutral-500">
-                    {stay.location_city} · până la {stay.max_guests ?? 2} oaspeți
+                    {stay.location_city}  {tx("panaLa")} {stay.max_guests ?? 2}  {tx("oaspeti")}
                 </p>
                 <p className="mt-2 text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
                     {lei(stay.price_cents ?? 0)}<span className="text-sm font-normal text-neutral-500"> / noapte</span>
@@ -152,7 +154,7 @@ export default function StayDetailClient({ stay }: { stay: Stay }) {
                                 onChange={(e) => setForm({ ...form, checkOut: e.target.value })} className={inp} />
                         </label>
                     </div>
-                    <label className={`${lbl} mt-3`}>Oaspeți
+                    <label className={`${lbl} mt-3`}>{tx("oaspeti2")}
                         <select value={form.guests} onChange={(e) => setForm({ ...form, guests: Number(e.target.value) })} className={inp}>
                             {Array.from({ length: stay.max_guests ?? 2 }, (_, i) => i + 1).map((n) => (
                                 <option key={n} value={n}>{n} {n === 1 ? "oaspete" : "oaspeți"}</option>
@@ -197,7 +199,8 @@ export default function StayDetailClient({ stay }: { stay: Stay }) {
                                 {booking ? "Se procesează..." : `Rezervă și plătește ${lei(quote.totalCents)}`}
                             </button>
                             <p className="text-center text-[11px] text-neutral-400">
-                                Plata se face din wallet-ul Swypik. Prețul afișat e final.
+                                
+                                {tx("plataSeFaceDin")}
                             </p>
                         </div>
                     )}

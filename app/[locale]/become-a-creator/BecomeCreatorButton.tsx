@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ApplyResponse = {
   success?: boolean;
@@ -12,6 +13,7 @@ type ApplyResponse = {
 };
 
 export default function BecomeCreatorButton() {
+  const t = useTranslations("becomeacreatorBecomeCreatorButton");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind: "ok" | "err" } | null>(null);
@@ -55,7 +57,7 @@ export default function BecomeCreatorButton() {
       >
         {loading ? (
           <>
-            <Loader2 size={18} className="animate-spin" /> Se activează...
+            <Loader2 size={18} className="animate-spin" />  {t("seActiveaza")}
           </>
         ) : (
           <>

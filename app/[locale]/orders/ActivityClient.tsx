@@ -143,20 +143,20 @@ export default function ActivityClient() {
             const active = ACTIVE_STATUSES.has(it.status);
             const Icon =
               it.kind === "food_order" ? UtensilsCrossed
-              : it.kind === "shop_order" ? ShoppingBag
-              : Car;
+                : it.kind === "shop_order" ? ShoppingBag
+                  : Car;
             const accent =
               it.kind === "food_order" ? "#2DBE60"
-              : it.kind === "shop_order" ? "#F59E0B"
-              : "#7C3AED";
+                : it.kind === "shop_order" ? "#F59E0B"
+                  : "#7C3AED";
             return (
               <li key={`${it.kind}-${it.id}`}>
                 <Link
                   href={it.href}
                   onClick={() => haptic("tap")}
                   className={`flex items-center gap-3 rounded-2xl border p-4 transition-colors ${active
-                      ? "border-transparent ring-1"
-                      : "border-[#E5E5E5] dark:border-[#1F1F1F] hover:bg-[#FAFAFA] dark:hover:bg-[#111]"
+                    ? "border-transparent ring-1"
+                    : "border-[#E5E5E5] dark:border-[#1F1F1F] hover:bg-[#FAFAFA] dark:hover:bg-[#111]"
                     }`}
                   style={active ? { boxShadow: `inset 0 0 0 1.5px ${accent}` } : undefined}
                 >

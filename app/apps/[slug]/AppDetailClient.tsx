@@ -23,7 +23,8 @@ type AppDetail = {
 };
 
 export default function AppDetailClient({ slug }: { slug: string }) {
-  const t = useTranslations("appDetail");
+  const t = useTranslations("appsAppDetail");
+  const tx = useTranslations("appDetail");
   const [app, setApp] = useState<AppDetail | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
@@ -88,11 +89,11 @@ export default function AppDetailClient({ slug }: { slug: string }) {
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">{tx("loading")}</div>;
   if (notFound || !app) {
     return (
       <div className="p-8 text-center text-gray-500">
-        {t("notFound")} <Link href="/apps" className="underline">{t("backToStore")}</Link>
+        {tx("notFound")} <Link href="/apps" className="underline">{tx("backToStore")}</Link>
       </div>
     );
   }
@@ -128,11 +129,12 @@ export default function AppDetailClient({ slug }: { slug: string }) {
       {isSeller ? (
         installed ? (
           <button className="rounded border border-red-300 px-4 py-2 text-red-600" onClick={() => void uninstall()}>
-            Dezinstalează
+            
+            {t("dezinstaleaza")}
           </button>
         ) : showConsent ? (
           <div className="rounded-lg border p-4">
-            <h2 className="font-semibold">&bdquo;{app.name}&rdquo; cere acces la:</h2>
+            <h2 className="font-semibold">&bdquo;{app.name}{t("rdquoCereAccesLa")}</h2>
             <ul className="mt-3 space-y-2">
               {app.scope_details.map((s) => (
                 <li key={s.scope} className="flex items-center gap-2 text-sm">
@@ -157,16 +159,17 @@ export default function AppDetailClient({ slug }: { slug: string }) {
               >
                 {busy ? "Se instalează…" : "Acceptă și instalează"}
               </button>
-              <button className="rounded border px-4 py-2" onClick={() => setShowConsent(false)}>{t("cancel")}</button>
+              <button className="rounded border px-4 py-2" onClick={() => setShowConsent(false)}>{tx("cancel")}</button>
             </div>
           </div>
         ) : (
           <button className="rounded bg-black px-6 py-2 text-white" onClick={() => setShowConsent(true)}>
-            Instalează
+            
+            {t("instaleaza")}
           </button>
         )
       ) : (
-        <p className="text-sm text-gray-500">{t("loginPrompt")}</p>
+        <p className="text-sm text-gray-500">{tx("loginPrompt")}</p>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
+import { useTranslations } from "next-intl";
 import {
   BarChart3,
   Upload,
@@ -25,6 +26,7 @@ const creatorNavItems = [
 ];
 
 export default function CreatorLayout({ children }: { children: ReactNode }) {
+  const t = useTranslations("creatordashboard");
   return (
     <div className="min-h-screen bg-[#F7F7F8] flex">
       {/* Sidebar */}
@@ -43,19 +45,19 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
             <Clapperboard size={18} /> Clipurile Mele
           </Link>
           <Link href="/creator/drafts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <FileText size={18} /> Schițe
+            <FileText size={18} />  {t("schite")}
           </Link>
           <Link href="/upload" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Upload size={18} /> Încarcă Video
+            <Upload size={18} />  {t("incarcaVideo")}
           </Link>
           <Link href="/creator/analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <TrendingUp size={18} /> Analytics
           </Link>
           <Link href="/creator/earnings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Coins size={18} /> Câștiguri
+            <Coins size={18} />  {t("castiguri")}
           </Link>
           <Link href="/creator/payouts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Banknote size={18} /> Plăți
+            <Banknote size={18} />  {t("plati")}
           </Link>
         </nav>
 
@@ -65,7 +67,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
               <UserRound size={18} />
             </div>
             <div>
-              <p className="text-xs font-black text-[#0D0D0D]">Cont Creator</p>
+              <p className="text-xs font-black text-[#0D0D0D]">{t("contCreator")}</p>
               <p className="text-[10px] text-[#6E6E80]">Status: Aprobat</p>
             </div>
           </div>

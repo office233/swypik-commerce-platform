@@ -28,6 +28,7 @@ const ENTITY_TYPES = [
 ];
 
 export default function HostApplyClient() {
+  const t = useTranslations("hostApply");
     const tj = useTranslations("join");
     const [form, setForm] = useState({
         full_name: "", phone: "", email: "",
@@ -85,12 +86,12 @@ export default function HostApplyClient() {
                     <CheckCircle2 size={48} className="mx-auto text-emerald-500" />
                     <h1 className="mt-4 text-xl font-bold">{tj("hostApply.submitted")}</h1>
                     <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-                        Echipa Swypik verifică documentele și te contactează în 1–3 zile lucrătoare.
-                        Îți vom cere extrasul de carte funciară (sau contractul de închiriere/comodat)
-                        și actul de identitate al reprezentantului.
+                        
+                        {t("echipaSwypikVerificaDocumentele")}
                     </p>
                     <Link href="/stays" className="mt-6 inline-block rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-2.5 font-semibold text-white">
-                        Înapoi la Stays
+                        
+                        {t("inapoiLaStays")}
                     </Link>
                 </div>
             </main>
@@ -136,15 +137,14 @@ export default function HostApplyClient() {
             <div className="mb-4 flex items-start gap-2 rounded-xl bg-sky-50 p-3 text-xs text-sky-800 dark:bg-sky-950 dark:text-sky-300">
                 <ShieldCheck size={16} className="mt-0.5 shrink-0" />
                 <span>
-                    Verificăm fiecare proprietate înainte de publicare: dreptul de folosință,
-                    certificatul de clasificare (unde e cazul) și înregistrarea fiscală.
-                    Anunțurile false sunt respinse.
+                    
+                    {t("verificamFiecareProprietateInainte")}
                 </span>
             </div>
 
             <form onSubmit={submit} className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-bold">Date de contact</legend>
+                    <legend className="text-sm font-bold">{t("dateDeContact")}</legend>
                     <label className={label}>Nume complet
                         <input required value={form.full_name} onChange={set("full_name")} className={input} placeholder="Ion Popescu" />
                     </label>
@@ -160,14 +160,14 @@ export default function HostApplyClient() {
 
                 <fieldset className="space-y-3 border-t border-neutral-100 pt-4 dark:border-neutral-800">
                     <legend className="text-sm font-bold">{tj("hostApply.legalForm")}</legend>
-                    <label className={label}>Închiriez ca
+                    <label className={label}>{t("inchiriezCa")}
                         <select value={form.entity_type} onChange={set("entity_type")} className={input}>
                             {ENTITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                         </select>
                     </label>
                     {isCompany && (
                         <div className="grid grid-cols-2 gap-3">
-                            <label className={label}>Denumire firmă
+                            <label className={label}>{t("denumireFirma")}
                                 <input required value={form.company_name} onChange={set("company_name")} className={input} />
                             </label>
                             <label className={label}>CUI / CIF
@@ -189,7 +189,8 @@ export default function HostApplyClient() {
                                 placeholder="13 cifre"
                             />
                             <span className="mt-1 block text-[11px] text-neutral-400">
-                                Obligatoriu legal (raportare ANAF — DAC7). Stocat criptat; nu apare public niciodată.
+                                
+                                {t("obligatoriuLegalRaportareAnaf")}
                             </span>
                         </label>
                     )}
@@ -198,21 +199,21 @@ export default function HostApplyClient() {
                 <fieldset className="space-y-3 border-t border-neutral-100 pt-4 dark:border-neutral-800">
                     <legend className="text-sm font-bold">Proprietatea</legend>
                     <label className={label}>Denumire
-                        <input required value={form.property_name} onChange={set("property_name")} className={input} placeholder="Casa cu Molizi" />
+                        <input required value={form.property_name} onChange={set("property_name")} className={input} placeholder={t("casaCuMolizi")} />
                     </label>
                     <label className={label}>Tip
                         <select value={form.property_type} onChange={set("property_type")} className={input}>
                             {PROPERTY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                         </select>
                     </label>
-                    <label className={label}>Adresă completă
+                    <label className={label}>{t("adresaCompleta")}
                         <input required value={form.address} onChange={set("address")} className={input} placeholder={tj("hostApply.addressPlaceholder")} />
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                         <label className={label}>Localitate
                             <input required value={form.city} onChange={set("city")} className={input} placeholder="Sinaia" />
                         </label>
-                        <label className={label}>Județ
+                        <label className={label}>{t("judet")}
                             <input required value={form.county} onChange={set("county")} className={input} placeholder="Prahova" />
                         </label>
                     </div>
@@ -220,21 +221,23 @@ export default function HostApplyClient() {
                         <label className={label}>Camere
                             <input required type="number" min={1} max={200} value={form.rooms} onChange={set("rooms")} className={input} />
                         </label>
-                        <label className={label}>Oaspeți max.
+                        <label className={label}>{t("oaspetiMax")}
                             <input required type="number" min={1} max={500} value={form.max_guests} onChange={set("max_guests")} className={input} />
                         </label>
                     </div>
                     {form.entity_type === "persoana_fizica" && form.rooms > 5 && (
                         <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                             <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                            Peste 5 camere ai nevoie de PFA sau SRL (Cod Fiscal).
+                            
+                            {t("peste5CamereAi")}
                         </p>
                     )}
                     {needsCert && (
-                        <label className={label}>Nr. certificat de clasificare
+                        <label className={label}>{t("nrCertificatDeClasificare")}
                             <input required value={form.classification_cert} onChange={set("classification_cert")} className={input} placeholder="ex: 12345/2024" />
                             <span className="mt-1 block text-[11px] text-neutral-400">
-                                Obligatoriu pentru pensiuni și hoteluri (Ministerul Turismului, Ordin 65/2013).
+                                
+                                {t("obligatoriuPentruPensiuniSi")}
                             </span>
                         </label>
                     )}
@@ -243,9 +246,8 @@ export default function HostApplyClient() {
                 <label className="flex items-start gap-2 border-t border-neutral-100 pt-4 text-xs text-neutral-600 dark:border-neutral-800 dark:text-neutral-400">
                     <input required type="checkbox" checked={form.tourism_registered} onChange={set("tourism_registered")} className="mt-0.5" />
                     <span>
-                        Confirm că activitatea de închiriere este înregistrată fiscal la ANAF și că dețin
-                        dreptul legal de a închiria această proprietate. Voi prezenta documentele
-                        justificative la verificare.
+                        
+                        {t("confirmCaActivitateaDe")}
                     </span>
                 </label>
 

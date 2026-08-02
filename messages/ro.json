@@ -219,7 +219,9 @@
     "scheduled": "Programate",
     "publish": "Publică",
     "saveDraft": "Salvează draft",
-    "schedule": "Programează"
+    "schedule": "Programează",
+    "exploreaza": "Explorează",
+    "acestCreatorNuAre": "Acest creator nu are clipuri publicate."
   },
   "settings": {
     "preferences": "Preferințe",
@@ -997,7 +999,8 @@
     "schimbaFotografia": "Schimbă fotografia",
     "numeleTau": "Numele tău",
     "anuleaza": "Anulează",
-    "salveaza": "Salvează"
+    "salveaza": "Salvează",
+    "adaugaLink": "+ Adaugă link"
   },
   "returnForm": {
     "produsePentruRetur": "Produse pentru retur",
@@ -2083,7 +2086,9 @@
     "tipTitle": "Bacșiș pentru curier",
     "noTip": "Fără",
     "submitting": "Se trimite…",
-    "submitOrder": "Comandă — {total}"
+    "submitOrder": "Comandă — {total}",
+    "adresaDeLivrare": "Adresa de livrare *",
+    "cashLaLivrare": "Cash la livrare"
   },
   "foodOrders": {
     "title": "Comenzile mele",
@@ -2218,7 +2223,14 @@
   "stays": {
     "destinationPlaceholder": "ex: Brașov, Roma, Santorini",
     "finalPriceNote": "Prețul afișat e prețul final. În lei, fără taxe ascunse la plată.",
-    "verifiedNote": "verificate de echipa Swypik · plată securizată"
+    "verifiedNote": "verificate de echipa Swypik · plată securizată",
+    "destinatie": "Destinație",
+    "cazariGasiteTotalulInclude": "cazări găsite · totalul include tot, fără costuri ascunse",
+    "nicioCazareGasitaPentru": "Nicio cazare găsită pentru datele alese. Încearcă alte date.",
+    "cazariDin1mProprietati": "Cazări din 1M+ proprietăți, cu plata direct pe Swypik.",
+    "cazariDeLaGazde": "Cazări de la gazde Swypik",
+    "panaLa": "· până la",
+    "oaspeti": "oaspeți"
   },
   "hiddenVideos": {
     "restore": "Restaurează",
@@ -2752,7 +2764,8 @@
     "statLikes": "Aprecieri"
   },
   "onboarding": {
-    "title": "Alege ce vrei să vezi"
+    "title": "Alege ce vrei să vezi",
+    "selecteaza35IntereseFeedul": "Selectează 3-5 interese. Feed-ul tău va fi personalizat instant."
   },
   "sellerLayout": {
     "sellerAccount": "Cont Vânzător"
@@ -2855,5 +2868,96 @@
     "successTitle": "Aplicație trimisă!",
     "successBody": "Îți vom analiza aplicația și te contactăm în curând.",
     "error": "A apărut o eroare. Reîncearcă."
+  },
+  "developers": {
+    "cheiPentruBdquo": "Chei pentru &bdquo;",
+    "rdquoSalveazaleAcumSecretul": "&rdquo; — salvează-le ACUM, secretul nu va mai fi afișat!",
+    "esteInAsteptareVei": ") este în așteptare. Vei fi notificat după aprobare.",
+    "cerereaTaAFost": "Cererea ta a fost respinsă.",
+    "creeazaApp": "Creează app",
+    "instalari": "· Instalări:",
+    "trimiteSprePublicare": "Trimite spre publicare",
+    "salveaza": "Salvează"
+  },
+  "ordersOrderTracking": {
+    "adresaDeLivrare": "Adresa de livrare",
+    "aiNevoieDeO": "Ai nevoie de o cursă? Swypik Go",
+    "comandaTa": "Comanda ta",
+    "sunaRestaurantul": "Sună restaurantul",
+    "comandaDinNou": "Comandă din nou"
+  },
+  "staysStayDetail": {
+    "veziRezervarileMele": "Vezi rezervările mele",
+    "panaLa": "· până la",
+    "oaspeti": "oaspeți",
+    "oaspeti2": "Oaspeți",
+    "plataSeFaceDin": "Plata se face din wallet-ul Swypik. Prețul afișat e final."
+  },
+  "staysMyStayBookings": {
+    "oaspeti": "oaspeți",
+    "anuleazaRezervarea": "Anulează rezervarea",
+    "anulareGratuitaCuCel": "Anulare gratuită cu cel puțin",
+    "zileInainteDeCheckin": "zile înainte de check-in · sub"
+  },
+  "hostApply": {
+    "echipaSwypikVerificaDocumentele": "Echipa Swypik verifică documentele și te contactează în 1–3 zile lucrătoare.\r\n                        Îți vom cere extrasul de carte funciară (sau contractul de închiriere/comodat)\r\n                        și actul de identitate al reprezentantului.",
+    "inapoiLaStays": "Înapoi la Stays",
+    "verificamFiecareProprietateInainte": "Verificăm fiecare proprietate înainte de publicare: dreptul de folosință,\r\n                    certificatul de clasificare (unde e cazul) și înregistrarea fiscală.\r\n                    Anunțurile false sunt respinse.",
+    "dateDeContact": "Date de contact",
+    "inchiriezCa": "Închiriez ca",
+    "denumireFirma": "Denumire firmă",
+    "obligatoriuLegalRaportareAnaf": "Obligatoriu legal (raportare ANAF — DAC7). Stocat criptat; nu apare public niciodată.",
+    "casaCuMolizi": "Casa cu Molizi",
+    "adresaCompleta": "Adresă completă",
+    "judet": "Județ",
+    "oaspetiMax": "Oaspeți max.",
+    "peste5CamereAi": "Peste 5 camere ai nevoie de PFA sau SRL (Cod Fiscal).",
+    "nrCertificatDeClasificare": "Nr. certificat de clasificare",
+    "obligatoriuPentruPensiuniSi": "Obligatoriu pentru pensiuni și hoteluri (Ministerul Turismului, Ordin 65/2013).",
+    "confirmCaActivitateaDe": "Confirm că activitatea de închiriere este înregistrată fiscal la ANAF și că dețin\r\n                        dreptul legal de a închiria această proprietate. Voi prezenta documentele\r\n                        justificative la verificare."
+  },
+  "appsAppDetail": {
+    "dezinstaleaza": "Dezinstalează",
+    "rdquoCereAccesLa": "&rdquo; cere acces la:",
+    "instaleaza": "Instalează"
+  },
+  "creatordashboard": {
+    "schite": "Schițe",
+    "incarcaVideo": "Încarcă Video",
+    "castiguri": "Câștiguri",
+    "plati": "Plăți",
+    "contCreator": "Cont Creator"
+  },
+  "becomeacreatorBecomeCreatorButton": {
+    "seActiveaza": "Se activează..."
+  },
+  "paymentsEatsPaymentModal": {
+    "renunta": "Renunță"
+  },
+  "privacy": {
+    "swypikTechnologyPrivacyswypikcomAutoritatea": "Swypik Technology · privacy@swypik.com · Autoritatea de supraveghere: ANSPDCP (www.dataprotection.ro)"
+  },
+  "shop": {
+    "nuAmGasitProduse": "Nu am găsit produse",
+    "urmator": "Următor →"
+  },
+  "vertical": {
+    "fiiPrimulCarePublica": "Fii primul care publică în",
+    "publicaAcum": "Publică acum"
+  },
+  "video": {
+    "vizualizari": "vizualizări",
+    "vizioneaza": "Vizionează",
+    "redirectionareAutomata": "Redirecționare automată…"
+  },
+  "missions": {
+    "briefPentruCreatori": "Brief pentru creatori",
+    "vanzare": "/vânzare",
+    "inscrieri": "înscrieri",
+    "publicaUnClip": "Publică un clip"
+  },
+  "manageAvailabilityCalendar": {
+    "blocheaza": "Blochează (",
+    "deblocheaza": "Deblochează"
   }
 }

@@ -633,7 +633,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               )}
 
               <AddressAutocomplete
-                placeholder="Adresa de livrare *"
+                placeholder={t("adresaDeLivrare")}
                 value={address}
                 onSelect={(r: AddressResult) => {
                   setAddress(r.address);
@@ -706,7 +706,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                 onClick={() => setPayMethod("cash")}
                 className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold ${payMethod === "cash" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
               >
-                <Banknote size={16} /> Cash la livrare
+                <Banknote size={16} />  {t("cashLaLivrare")}
               </button>
               <button
                 type="button"

@@ -34,6 +34,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 const FREE_CANCEL_DAYS = 5; // sincron cu STAYS_FREE_CANCEL_DAYS (afișaj)
 
 export default function MyStayBookingsClient() {
+  const tx = useTranslations("staysMyStayBookings");
     const t = useTranslations("staysBookings");
     const [bookings, setBookings] = useState<Booking[] | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export default function MyStayBookingsClient() {
                                         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${st.cls}`}>{st.label}</span>
                                     </div>
                                     <p className="mt-0.5 text-xs text-neutral-500">
-                                        {b.location_city} · {b.check_in} → {b.check_out} · {b.guests_count} oaspeți
+                                        {b.location_city} · {b.check_in} → {b.check_out} · {b.guests_count}  {tx("oaspeti")}
                                     </p>
                                     <p className="mt-1 font-extrabold text-emerald-600 dark:text-emerald-400">{lei(b.total_cents)}</p>
                                     {b.payment_status === "refunded" && (
@@ -130,7 +131,8 @@ export default function MyStayBookingsClient() {
                                         className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40 dark:hover:bg-red-950"
                                     >
                                         {busy === b.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
-                                        Anulează rezervarea
+                                        
+                                        {tx("anuleazaRezervarea")}
                                     </button>
                                 </div>
                             )}
@@ -140,7 +142,8 @@ export default function MyStayBookingsClient() {
             </div>
 
             <p className="mt-6 text-center text-[11px] text-neutral-400">
-                Anulare gratuită cu cel puțin {FREE_CANCEL_DAYS} zile înainte de check-in · sub {FREE_CANCEL_DAYS} zile: refund 50%
+                
+                {tx("anulareGratuitaCuCel")} {FREE_CANCEL_DAYS}  {tx("zileInainteDeCheckin")} {FREE_CANCEL_DAYS} zile: refund 50%
             </p>
         </div>
     );

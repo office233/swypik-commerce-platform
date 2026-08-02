@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 import { safeJsonLd } from "@/lib/seo/json-ld";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { APP_URL } from "@/lib/app-url";
+import { getTranslations } from "next-intl/server";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -98,6 +99,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // ── Page Component ──────────────────────────────────────────────
 export default async function VideoPage({ params }: Props) {
+  const t = await getTranslations("video");
   const { id } = await params;
   const video = await getVideo(id);
 
@@ -285,7 +287,7 @@ export default async function VideoPage({ params }: Props) {
               margin: "0 0 16px",
             }}
           >
-            {formattedViews} vizualizări
+            {formattedViews}  {t("vizualizari")}
           </p>
 
           {/* Description with hashtag + mention links */}
@@ -321,7 +323,7 @@ export default async function VideoPage({ params }: Props) {
               transition: "transform 0.15s ease, box-shadow 0.15s ease",
             }}
           >
-            <span style={{ fontSize: 20 }}>▶</span> Vizionează
+            <span style={{ fontSize: 20 }}>▶</span>  {t("vizioneaza")}
           </a>
 
           {/* Redirect notice */}
@@ -332,7 +334,8 @@ export default async function VideoPage({ params }: Props) {
               marginTop: 20,
             }}
           >
-            Redirecționare automată…
+            
+            {t("redirectionareAutomata")}
           </p>
         </div>
       </div>

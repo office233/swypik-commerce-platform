@@ -60,7 +60,8 @@ export default function OnboardingPage() {
         <div className="flex-1">
           <h1 className="text-4xl font-black mb-2 text-center tracking-tight">{t("title")}</h1>
           <p className="text-gray-400 text-center mb-8">
-            Selectează 3-5 interese. Feed-ul tău va fi personalizat instant.
+            
+            {t("selecteaza35IntereseFeedul")}
           </p>
 
           <div className="grid grid-cols-2 gap-3 mb-8">

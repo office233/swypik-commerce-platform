@@ -98,6 +98,7 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
 }
 
 export default function OrderTrackingClient({ orderId }: { orderId: string }) {
+  const tx = useTranslations("ordersOrderTracking");
     const router = useRouter();
     const tShell = useTranslations("shell");
     const t = useTranslations("foodTracking");
@@ -325,7 +326,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                     <MapPin size={18} className="mt-0.5 shrink-0 text-[#6E6E80]" />
                     <div className="min-w-0">
                         <p className="text-sm font-semibold">{order.delivery_address}</p>
-                        <p className="text-xs text-[#6E6E80]">Adresa de livrare</p>
+                        <p className="text-xs text-[#6E6E80]">{tx("adresaDeLivrare")}</p>
                     </div>
                 </div>
 
@@ -339,13 +340,13 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                         onClick={() => haptic("tap")}
                         className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] bg-white text-sm font-bold active:scale-[0.98]"
                     >
-                        <Car size={16} /> Ai nevoie de o cursă? Swypik Go
+                        <Car size={16} />  {tx("aiNevoieDeO")}
                     </a>
                 )}
 
                 {/* Sumar comandă */}
                 <div className="rounded-2xl border border-[#E5E5E5] bg-white p-4">
-                    <h2 className="text-sm font-black">Comanda ta</h2>
+                    <h2 className="text-sm font-black">{tx("comandaTa")}</h2>
                     <div className="mt-2 space-y-1.5">
                         {(order.items ?? []).map((it, i) => (
                             <div key={i} className="flex justify-between gap-2 text-sm">
@@ -379,7 +380,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                         onClick={() => haptic("tap")}
                         className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] bg-white text-sm font-bold active:scale-[0.98]"
                     >
-                        <Phone size={16} /> Sună restaurantul
+                        <Phone size={16} />  {tx("sunaRestaurantul")}
                     </a>
                 )}
 
@@ -394,7 +395,8 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                         style={{ backgroundColor: ACCENT }}
                         className="h-12 w-full rounded-2xl text-sm font-black text-white active:scale-[0.98]"
                     >
-                        Comandă din nou
+                        
+                        {tx("comandaDinNou")}
                     </button>
                 )}
 

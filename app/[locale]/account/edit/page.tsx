@@ -353,7 +353,8 @@ export default function EditProfilePage() {
                 onClick={() => setLinks((prev) => [...prev, { label: "", url: "" }])}
                 className="min-h-[44px] w-full rounded-xl border border-dashed border-white/20 text-sm font-bold text-white/60 hover:bg-white/5"
               >
-                + Adaugă link
+                
+                {t("adaugaLink")}
               </button>
             )}
           </div>
