@@ -1,198 +1,85 @@
-# Swypik — Social Video Commerce Platform
+# Arhitectura Swypik
 
-## What is Swypik
+> Ultima actualizare: 2026-08-02. Public țintă: un inginer nou trebuie să înțeleagă proiectul în ~30 min. (Versiunea veche a acestui fișier descria o viziune „Go modular monolith" abandonată — realitatea de azi e mai jos.)
 
-Swypik is a video-first social commerce platform.
+> ⚠️ **Infrastructură**: TOTUL rulează LOCAL în WSL (distro `swypik`, containere `swypik-prod-*`), expus prin Cloudflare Tunnel `swypik-home` → https://swypik.com. Web local: http://127.0.0.1:3005. VPS-ul vechi (178.105.46.66) este DEZAFECTAT.
 
-Users don't just search for products. They enter a vertical video feed — like TikTok — where every video can have:
-- Attached product(s)
-- Creator attribution
-- Comments, likes, saves, shares
-- Cart button + instant checkout
-- AI-powered recommendations
-- Personalized ranking based on behavior
+## 1. Privire de ansamblu
 
-## Core Loops
+Swypik = platformă de video commerce (TikTok-style feed + marketplace + servicii: zboruri, cazări, ride-hailing, food delivery) cu economie internă pe token SWYP (geth PoA privat, chainId 643366).
 
-### User Loop
-```
-Open app → Video feed → Watch clips → Interact (like/save/comment/share)
-→ Tap product → Add to cart → Checkout → Behavior data improves feed
-```
+**Stack**: Next.js (App Router) + TypeScript, next-intl (7 limbi: ro, en, es, fr, de, pt, it), PostgreSQL 16 + pgvector, Redis, MinIO, Stripe, mediamtx (live RTMP/HLS), Cloudflare Workers (ai, api-proxy, video), platform-api în Go, video-worker în Python (FFmpeg).
 
-### Creator Loop
-```
-Sign up → Upload video → Attach product(s) → Publish
-→ Get views/clicks/sales → Earn commission → Optimize next clips
-```
+## 2. Servicii / containere (infra/hetzner/docker-compose.prod.yml + minio)
 
-### Marketplace Loop
-```
-Products imported/managed → Creators promote via video
-→ Feed distributes best clips → Users buy
-→ Platform takes fee → Creators earn commission
-```
+| Serviciu | Imagine | Port local | Rol |
+|---|---|---|---|
+| web-next | node:20.19-alpine (standalone) | 127.0.0.1:3005→3000 | aplicația Next.js |
+| platform-api | golang:1.26 (build inline) | 127.0.0.1:8090→8080 | API Go auxiliar |
+| postgres | pgvector/pgvector:pg16 | 127.0.0.1:5433→5432 | DB principal (~128 tabele) |
+| redis | redis:7.4-alpine | intern | cache, cozi, rate-limit |
+| video-worker ×3 | python:3.11-slim | — | pipeline FFmpeg (transcodare, thumbnails, captions) |
+| cron-worker | shell custom | — | rulează cron-urile prin curl → /api/cron/* |
+| mediamtx | bluenviron/mediamtx:1.10 | 1935 (RTMP), 8888 (HLS), 9997 (API) | live streaming |
+| minio | minio/minio | 9000/9001 | stocare S3 (video, imagini) |
+| caddy, pgbouncer | — | — | **dezactivate** (`profiles: [disabled]`) — păstrate pentru scale-prep |
 
-## Architecture Principle
+Servicii externe: Stripe (+Identity, Connect), Resend (email), Duffel/Kiwi (fly), RateHawk (stays), Gemini + GitHub Models (AI/moderare/embeddings), Cloudflare Workers, geth PoA (chain/).
 
-**Build big, deploy simple.**
-
-- Serious architecture, modular code
-- Simple deployment
-- No premature microservices
-- No Kubernetes initially
-- Go modular monolith for v1
-
-## Repository Structure
+## 3. Structura repo
 
 ```
-swypik/
-  apps/
-    web/                          # Next.js frontend (Phase 2 migration)
-  
-  services/
-    platform-api/                 # Go modular monolith
-      cmd/api/
-      internal/
-        auth/                     # JWT, sessions, roles
-        users/                    # User profiles, settings
-        creators/                 # Creator profiles, verification
-        videos/                   # Upload, processing, publish
-        feed/                     # Ranking, candidates, exploration
-        events/                   # Batch ingestion, Redis Streams
-        social/                   # Likes, follows, saves, shares
-        marketplace/              # Products, inventory, collections
-        checkout/                 # Cart, Stripe, orders, commissions
-        notifications/            # Push, email, in-app
-        moderation/               # Reports, review, strikes
-        admin/                    # Dashboard, metrics, management
-        platform/
-          config/
-          db/
-          redis/
-          http/
-          logger/
-      migrations/
-      openapi/
-
-  workers/
-    video-worker/                 # Python: FFmpeg, HLS, thumbnails
-    ai-worker/                    # Python: Tags, captions, moderation
-
-  packages/
-    contracts/                    # OpenAPI specs
-
-  infra/
-    docker/
-    clickhouse/
-    redis/
-    postgres/
-    minio/
-    observability/
-
-  docs/
-    ARCHITECTURE.md
-    LOCAL_DEVELOPMENT.md
-    API.md
-    VIDEO_PIPELINE.md
+app/               → App Router: pagini ([locale]/, admin/, seller/, creator/, auth/…) + api/
+components/        → componente React pe domenii (auth, reels, live, checkout, i18n, pwa…)
+lib/               → logică business: auth, db, payments, ai, video, feed/algo, swyp, rides, dispatch…
+db/                → schema.sql + migrations/ (aplicare additivă)
+services/          → platform-api (Go)
+workers/           → video-worker (Python/FFmpeg)
+chain/             → geth PoA privat, token SWYP
+infra/hetzner/     → compose files, Caddyfile, cron-worker/run.sh, mediamtx.yml, .env.production
+messages/          → traduceri next-intl (7 limbi)
+scripts/           → audituri (scan-hardcoded.mjs, audit-i18n.mjs), backup, check-env
+tests/             → Playwright E2E
 ```
 
-## Tech Stack
+## 4. Rute API (~200) — grupuri și autentificare
 
-### Local Development
-```
-Host:
-├── Next.js              localhost:3001
-├── Go API               localhost:8080
-└── Python workers       local process or Docker
+| Grup | Protecție |
+|---|---|
+| `/api/auth/*`, oauth google/apple | publice prin design |
+| `/api/cron/*` (~29 joburi) | `Authorization: Bearer CRON_SECRET` |
+| `/api/admin/*` | sesiune admin (`requireAuth` cu rol admin) |
+| `/api/internal/*` (live started/ended etc.) | header `INTERNAL_SECRET` (apelate de mediamtx) |
+| `/api/webhooks/stripe*` | semnătură Stripe (`STRIPE_WEBHOOK_SECRET`, `STRIPE_IDENTITY_WEBHOOK_SECRET`) |
+| `/api/partner/*` | `PARTNER_PROVISION_SECRET` |
+| `/api/health` public; `/api/health/full` | `INTERNAL_HEALTH_SECRET` |
+| user-scoped: users/me, orders, cart, checkout, dm, push, seller, creator, couriers, rides, swyp | sesiune (cookie) via `lib/auth` / `lib/security/*` |
+| publice read-only: products, search, explore, videos, fx, geo, `/api/v1/feed` | fără auth |
 
-Docker:
-├── PostgreSQL           localhost:5432
-├── Redis                localhost:6379
-├── ClickHouse           localhost:8123
-├── MinIO                localhost:9000
-└── MinIO Console        localhost:9001
-```
+## 5. Cron-uri (infra/hetzner/cron-worker/run.sh)
 
-### Production (Hetzner)
-```
-Hetzner CX32:
-├── Next.js + Go API + Workers
-├── PostgreSQL + Redis + ClickHouse
-└── Cloudflare Tunnel (zero exposed ports)
+Buclă la 60s; job rulează dacă `TICK % interval < 60`; `curl -m 300` per job, eșec izolat. La 5 min: publish-scheduled, refresh-rank, dispatch-tick, scan-chain-deposits. La 10 min: watchdog-videos, watchdog-rides. Restul (payouts, reconcile-wallets, email-digest, refresh-fx, cleanup-tokens, embed-batch, classify-pending, strikes-decay, abandoned-cart, indexnow, verify-supply, dropship etc.) la 30–1440 min — lista exactă în run.sh.
 
-Cloudflare:
-├── DNS + CDN + SSL + DDoS
-└── R2 (video/image storage)
-```
+## 6. Baza de date
 
-## Data Architecture
+Schema în `db/schema.sql`, migrări additive în `db/migrations/`. Domenii: auth/sesiuni, marketplace (products/offers/variants/merchants), commerce (orders, commissions, payouts), video/media, social, live, wallet/SWYP (ledger, on-chain), moderare, dropship AliExpress (ae_*), creator (missions, collections), taxonomie, referral, notificări/push. Convenții: `docs/DATABASE_CONVENTIONS.md`.
 
-| Store | Purpose |
-|-------|---------|
-| **PostgreSQL** | Source of truth: users, videos, products, orders, social graph |
-| **Redis Streams** | Event queues, video jobs, notifications, cache, rate limits |
-| **ClickHouse** | Analytics: clickstream, watch time, CTR, conversion, ranking data |
-| **R2/MinIO** | Media: source videos, HLS segments, thumbnails, captions |
+## 7. Env vars
 
-## API Surface
+Sursa de adevăr runtime: `/opt/swypik/app/infra/hetzner/.env.production` (NU se comite, NU se suprascrie). `.env.example` ținut sincron cu codul — verificare cu `scripts/check-env*` și auditul din `docs/HARDCODE_AUDIT.md`.
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/v1/feed` | GET | Video feed with ranking |
-| `/v1/events/batch` | POST | Batch event ingestion |
-| `/v1/videos/uploads/init` | POST | Start upload session |
-| `/v1/videos/uploads/complete` | POST | Complete upload |
-| `/v1/videos/:id/publish` | POST | Publish video to feed |
-| `/v1/social/follow` | POST | Follow creator |
-| `/v1/social/unfollow` | POST | Unfollow creator |
-| `/v1/videos/:id/like` | POST | Like video |
-| `/v1/videos/:id/save` | POST | Save video |
-| `/v1/videos/:id/comments` | GET/POST | Comments |
-| `/v1/cart/items` | POST/DELETE | Cart management |
-| `/v1/checkout` | POST | Create checkout session |
-| `/v1/payments/webhooks/stripe` | POST | Stripe webhooks |
-| `/v1/admin/*` | GET/POST | Admin dashboard APIs |
+## 8. Fluxuri critice (E2E)
 
-## Feed Ranking v1
+1. Signup/login (email OTP + Google/Apple OAuth) → onboarding
+2. Upload video → video-worker FFmpeg → publish → feed rank
+3. Shop: product → cart → checkout Stripe → order → commission → payout
+4. SWYP: earn → wallet → on-chain deposit/withdraw (scan-chain-deposits, verify-supply)
+5. Live: RTMP → mediamtx → webhook /api/internal/live → HLS + live shop
+6. Go (rides): estimate → request → dispatch-tick → watchdog-rides
+7. Food: restaurant → order → courier dispatch
+8. Fly/Stays: search (Duffel/Kiwi/RateHawk) → booking
+9. Seller: apply → admin approve → dashboard → products → payouts
 
-```
-score =
-  0.25 × completion_rate
-+ 0.20 × watch_time_score  
-+ 0.15 × product_click_rate
-+ 0.15 × add_to_cart_rate
-+ 0.10 × purchase_rate
-+ 0.05 × save_share_rate
-+ 0.05 × freshness
-+ 0.05 × creator_quality
-- report_penalty
-- not_interested_penalty
-- low_inventory_penalty
-```
+## 9. Deploy
 
-Feed mix: **80% exploitation, 20% exploration**
-
-## Video Pipeline
-
-```
-Creator selects video → Frontend requests upload init from Go
-→ Go creates draft + upload session → Returns signed URL
-→ Frontend uploads directly to R2/MinIO → Calls upload complete
-→ Go verifies object → Creates processing job → Redis Stream
-→ Python worker: ffprobe → ffmpeg HLS → thumbnail → captions
-→ Worker writes video_assets → Marks video ready
-→ Creator publishes → Video enters feed
-```
-
-## Phased Roadmap
-
-| Phase | Focus | Status |
-|-------|-------|--------|
-| **0** | Local foundation, rebrand, DB repos | 🔄 In Progress |
-| **1** | Platform API: auth, feed, events, social | ⏳ Next |
-| **2** | Video pipeline: upload, MinIO, worker | ⏳ |
-| **3** | Creator commerce: dashboard, commissions | ⏳ |
-| **4** | Feed intelligence: ClickHouse, ranking v1.5 | ⏳ |
-| **5** | Production deploy: Hetzner, Cloudflare, R2 | ⏳ |
-| **6** | Scale: mobile app, advanced AI, Stripe Connect | ⏳ |
+Local WSL: `cd /opt/swypik/app && git pull && docker compose -f infra/hetzner/docker-compose.prod.yml up -d --build web-next` (sau serviciul modificat). Verificare: `curl -s http://127.0.0.1:3005/api/health` + curl pe https://swypik.com. Detalii: `docs/LOCAL_DEVELOPMENT.md`, runbook-uri în `docs/`.
