@@ -29,8 +29,15 @@
 
 ## Urmează
 
-- Personaje P1–P7 cap-coadă în browser (mobil 390×844 + desktop)
-- Smoke final P1–P7 pe https://swypik.com
+
+## 2026-08-02 — P1 Creator (browser real, mobil 390×844)
+
+| Pas | Așteptat | Observat | Verdict |
+|---|---|---|---|
+| Signup 4 pași (`test-creator@swypik.test`, Teodor Creator, @teo_creator_test) | cont creat | wizard complet, validare username live, cont creat + redirect login | PASS |
+| Login pe http://localhost:3005 | sesiune activă | API `/api/auth` 200 dar sesiunea nu persistă — cookie `Domain=swypik.com; Secure` (build prod). NU e bug: testarea autentificată se face pe https://swypik.com | N/A (limitare mediu, documentată) |
+| Login pe https://swypik.com | /account | PASS — profil complet: avatar fallback, 0/0/0 contoare, "Modurile mele", banner confirmare email, welcome modal | PASS |
+| Observație UX | eroare vizibilă la login eșuat local | formularul se golește fără niciun mesaj de eroare când fetch-ul nu setează cookie | BACKLOG (afișare eroare la login failure) |
 
 ## 2026-08-02 — Redesign Explorează TikTok-style
 

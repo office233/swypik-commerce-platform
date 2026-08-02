@@ -917,7 +917,10 @@
     "numeleTau": "Dein Name",
     "anuleaza": "Abbrechen",
     "salveaza": "Speichern",
-    "adaugaLink": "+ Link hinzufügen"
+    "adaugaLink": "+ Link hinzufügen",
+    "displayName": "Anzeigename",
+    "linkLabelPlaceholder": "Bezeichnung (z. B. Meine Website)",
+    "removeLink": "Link entfernen"
   },
   "returnForm": {
     "produsePentruRetur": "Rückgabeprodukte",

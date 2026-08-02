@@ -1003,7 +1003,10 @@
     "numeleTau": "Numele tău",
     "anuleaza": "Anulează",
     "salveaza": "Salvează",
-    "adaugaLink": "+ Adaugă link"
+    "adaugaLink": "+ Adaugă link",
+    "displayName": "Nume afișat",
+    "linkLabelPlaceholder": "Etichetă (ex: Site-ul meu)",
+    "removeLink": "Șterge linkul"
   },
   "returnForm": {
     "produsePentruRetur": "Produse pentru retur",
