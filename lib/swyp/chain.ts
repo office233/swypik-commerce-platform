@@ -9,13 +9,14 @@
  */
 import { createPublicClient, createWalletClient, http, defineChain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { SWYP_CHAIN_ID, SWYP_CHAIN_NAME, SWYP_NATIVE_CURRENCY, SWYP_EXPLORER_URL } from "./chain-public";
 
 export const swypikChain = defineChain({
-    id: 643366,
-    name: "Swypik Chain",
-    nativeCurrency: { name: "Swypik", symbol: "SWYP", decimals: 18 },
+    id: SWYP_CHAIN_ID,
+    name: SWYP_CHAIN_NAME,
+    nativeCurrency: { ...SWYP_NATIVE_CURRENCY },
     rpcUrls: { default: { http: [process.env.SWYP_CHAIN_RPC || "http://swypik-chain-rpc:8545"] } },
-    blockExplorers: { default: { name: "SwypikScan", url: "https://scan.swypik.com" } },
+    blockExplorers: { default: { name: "SwypikScan", url: SWYP_EXPLORER_URL } },
 });
 
 export function publicClient() {

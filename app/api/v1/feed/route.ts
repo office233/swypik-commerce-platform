@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SYNTHETIC_LIKES_PER_ORDER, SYNTHETIC_COMMENTS_PER_ORDER } from "@/lib/config/synthetic-engagement";
 import { searchProducts } from "@/lib/db/product-queries";
 import { proxyToSocialApi } from "@/lib/social/proxy";
 import { getOptionalSocialUserId } from "@/lib/social/session";
@@ -45,8 +46,8 @@ type ExploreVideo = {
 };
 
 function toFeedItem(product: FeedProduct, index: number, seed: number) {
-  const likes = product.likes || Math.max(3, Math.round((product.orders || 30) * 0.35));
-  const comments = product.commentCount || Math.max(1, Math.round((product.orders || 30) * 0.04));
+  const likes = product.likes || Math.max(3, Math.round((product.orders || 30) * SYNTHETIC_LIKES_PER_ORDER));
+  const comments = product.commentCount || Math.max(1, Math.round((product.orders || 30) * SYNTHETIC_COMMENTS_PER_ORDER));
   const productId = String(product.pgId || product.product_id || product.productId || product.id);
   const numericProductId = Number(product.pgId || product.id);
   const videoId = product.video_id || product.videoId || (product.video ? `product_${product.id}` : `feed_${product.id}`);

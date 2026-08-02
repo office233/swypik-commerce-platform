@@ -11,6 +11,7 @@ import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/swyp/hooks";
 import { markStayBookingPaidByCard, markStayBookingCardFailed } from "@/lib/stays/stripe-payment";
 import { APP_URL } from "@/lib/app-url";
 import { maybeSendOrderConfirmation, reclaimSwypForDeadIntent } from "./shared";
+import { FRAUD_REVIEW_SCORE, FRAUD_BLOCK_SCORE } from "@/lib/risk/thresholds";
 
 export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
   const intent = event.data.object as Stripe.PaymentIntent;
@@ -284,16 +285,16 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
     fraud_evaluated_at: new Date().toISOString(),
     fraud_factors: risk.factors.map((f) => f.tag),
   };
-  if (risk.score >= 50) patch.fraud_review = true;
-  if (risk.score >= 70) patch.fraud_block = true;
+  if (risk.score >= FRAUD_REVIEW_SCORE) patch.fraud_review = true;
+  if (risk.score >= FRAUD_BLOCK_SCORE) patch.fraud_block = true;
 
   await dbQuery(
     `UPDATE commerce_orders SET metadata = metadata || $1::jsonb WHERE id = $2`,
     [JSON.stringify(patch), orderId],
   );
 
-  if (risk.score >= 50) {
-    const severity = risk.score >= 70 ? "critical" : "warning";
+  if (risk.score >= FRAUD_REVIEW_SCORE) {
+    const severity = risk.score >= FRAUD_BLOCK_SCORE ? "critical" : "warning";
     const positives = risk.factors.filter((f) => f.delta > 0);
     await notifyOps({
       key: `fraud_block:${orderId}`,
@@ -304,14 +305,14 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
         risk.recommendation +
         "\n\nSemnale: " +
         positives.map((f) => `${f.tag}+${f.delta}`).join(", "),
-      link: `${APP_URL}/admin/risk?status=paid&min=50`,
+      link: `${APP_URL}/admin/risk?status=paid&min=${FRAUD_REVIEW_SCORE}`,
       payload: { orderId, score: risk.score, level: risk.level, factors: risk.factors },
       cooldownMin: 5, // o singură comandă, e ok să alertăm rapid
     });
   }
 
   // User-level auto-block check (only for authenticated buyers, only on review+ scores)
-  if (o.buyer_user_id && risk.score >= 50) {
+    if (o.buyer_user_id && risk.score >= FRAUD_REVIEW_SCORE) {
     try {
       const { maybeAutoBlockUser } = await import("@/lib/risk/user-block");
       await maybeAutoBlockUser({

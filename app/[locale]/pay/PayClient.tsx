@@ -16,6 +16,13 @@ import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { Coins, Pickaxe, History, ShieldCheck, Loader2, Share2, Lock, Wallet, Car, Bike, Clapperboard, Star } from "lucide-react";
 import { APP_URL } from "@/lib/app-url";
+import {
+    SWYP_CHAIN_ID_HEX,
+    SWYP_CHAIN_NAME,
+    SWYP_NATIVE_CURRENCY,
+    SWYP_PUBLIC_RPC_URL,
+    SWYP_EXPLORER_URL,
+} from "@/lib/swyp/chain-public";
 
 type Mining = {
     active: boolean;
@@ -675,11 +682,11 @@ export default function PayClient() {
                                 await eth.request({
                                     method: "wallet_addEthereumChain",
                                     params: [{
-                                        chainId: "0x9D126", // 643366
-                                        chainName: "Swypik Chain",
-                                        nativeCurrency: { name: "Swypik", symbol: "SWYP", decimals: 18 },
-                                        rpcUrls: ["https://rpc.swypik.com"],
-                                        blockExplorerUrls: ["https://scan.swypik.com"],
+                                            chainId: SWYP_CHAIN_ID_HEX,
+                                            chainName: SWYP_CHAIN_NAME,
+                                            nativeCurrency: SWYP_NATIVE_CURRENCY,
+                                            rpcUrls: [SWYP_PUBLIC_RPC_URL],
+                                            blockExplorerUrls: [SWYP_EXPLORER_URL],
                                     }],
                                 });
                             } catch { /* utilizatorul a refuzat */ }

@@ -18,7 +18,10 @@ import { dbQuery, getDb } from "@/lib/db";
 
 const REF_COOKIE = "swypik_ref";
 const REF_MAX_AGE = 60 * 60 * 24 * 90; // 90 days
-const REFERRAL_DAILY_CAP = 3; // validated referrals per referrer per day
+/** Referrals validate max/zi per referrer (env: REFERRAL_DAILY_CAP). */
+const REFERRAL_DAILY_CAP = Number(process.env.REFERRAL_DAILY_CAP) > 0 ? Number(process.env.REFERRAL_DAILY_CAP) : 3;
+/** Scor anti-fraud minim pentru validare (env: REFERRAL_MIN_SCORE, 0..1). */
+const REFERRAL_MIN_SCORE = Number(process.env.REFERRAL_MIN_SCORE) > 0 ? Number(process.env.REFERRAL_MIN_SCORE) : 0.5;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 
 function hashOr(v: string | null | undefined): string | null {
@@ -237,7 +240,7 @@ export async function tryValidateReferral(inviteeUserId: string, action: string)
       return false;
     }
     const score = Number(row.anti_fraud_score);
-    if (score < 0.5) {
+    if (score < REFERRAL_MIN_SCORE) {
       await client.query("COMMIT");
       return false;
     }
