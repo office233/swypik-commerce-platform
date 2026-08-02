@@ -38,6 +38,28 @@
 | Login pe http://localhost:3005 | sesiune activă | API `/api/auth` 200 dar sesiunea nu persistă — cookie `Domain=swypik.com; Secure` (build prod). NU e bug: testarea autentificată se face pe https://swypik.com | N/A (limitare mediu, documentată) |
 | Login pe https://swypik.com | /account | PASS — profil complet: avatar fallback, 0/0/0 contoare, "Modurile mele", banner confirmare email, welcome modal | PASS |
 | Observație UX | eroare vizibilă la login eșuat local | formularul se golește fără niciun mesaj de eroare când fetch-ul nu setează cookie | BACKLOG (afișare eroare la login failure) |
+| /account/edit — chei i18n | toate textele traduse | `MISSING_MESSAGE: accountEdit.displayName/linkLabelPlaceholder/removeLink` în consolă | FAIL → FIXED (180aa17d, ×7 limbi) |
+| /account/edit — buton Salvează pe mobil 390×844 | click funcțional | butonul era ACOPERIT de bottom-nav (bara fixă z-20 sub nav z-30) — click interceptat, imposibil de salvat de pe telefon | **FAIL → FIXED** (fbd2cf9a: bara ridicată la `bottom-16` + safe-area, z-40) |
+| Completare bio + categorii (date reale) | persistă după reload | în curs de re-test după deploy fix | ÎN CURS |
+| Salvare profil (bio + categorii) | ambele persistă | categoriile persistă; **bio se pierdea la fiecare salvare**: `GET /api/auth` nu returna `bio`, deci edit-page pornea mereu cu bio="" și PATCH-ul îl golea în DB | **FAIL → FIXED** (eab68282: bio adăugat în SELECT + payload `/api/auth`) |
+| Buton Salvează după fix z-index | click OK | Playwright „element not stable" persistent din cauza bannerului email care re-randează; submit prin `form.requestSubmit()` merge → redirect `/account?updated=1` | PASS cu notă (bannerul face layout shift — BACKLOG minor) |
+| Re-test bio după fix eab68282 | bio persistă după reload | „Creator de test — clipuri tech și lifestyle. Cont E2E." prezent la reload + pe profilul public | **PASS** |
+| Profil public `/u/teo_creator_test` (logat, ca owner) | bio + categorii + contoare | complet: avatar TC, bio, #tech #lifestyle, 0/0/0/0, link „Profilul tau" → /creator, empty-state clipuri corect | PASS |
+| Observație i18n profil public | texte traduse | „URMARITORI", „Nu exista clipuri publice" — RO fără diacritice, hardcodat (nu next-intl) | BACKLOG (lot i18n pagina /u/[username]) |
+| Profil văzut de vizitator NELOGAT (curl swypik.com) | identic + buton Follow | bio + #tech #lifestyle prezente, `isOwnProfile:false`, buton „Urmareste"/Follow, OG meta corecte (og:title, og:description=bio) | PASS |
+
+## 2026-08-02 — P1b Upload clip (browser real)
+
+| Pas | Așteptat | Observat | Verdict |
+|---|---|---|---|
+| /reels/record pe desktop fără cameră | fallback spre upload | „Camera indisponibilă" + doar „Reîncearcă" — fără link spre /upload | BACKLOG UX (adaugă buton „Încarcă din galerie") |
+| /upload — selectare fișier (clip generat ffmpeg 720×1280, 6s, 2.4MB) | preview + Continuă | fișier acceptat, buton Continuă activ | PASS |
+| Click Continuă → upload | progres + procesare | **blocat silențios**: `/api/creator/upload-session` returna presigned URL pe `http://swypik-minio:9000` (hostname intern Docker) — browserul nu-l poate accesa; XHR eșua fără mesaj | **FAIL P0 → FIXED** (cd013c42: presign semnat pe endpoint public `S3_UPLOAD_PUBLIC_ENDPOINT=https://cdn.swypik.com`, tunel CF → MinIO; env adăugat în .env.production prin append) |
+| Re-test upload după fix | clip urcat + procesat de video-worker | în curs | ÎN CURS |
+| Re-test upload cap-coadă după cd013c42 | presign pe host public, upload OK, HLS, publish | presign → `cdn.swypik.com` ✅; upload PUT OK; „Procesarea s-a încheiat" în <5s; detalii (titlu+descriere `#test #tech`) → Publică → `/creator/videos` arată clipul cu badge GATA | **PASS** |
+| Clip pe profilul public | apare în grid | „1 clip public", card cu link `/explore?v=<id>`, contoare 1 CLIPURI | PASS |
+| Deep-link `/explore?v=<id>` | feed-ul deschide clipul respectiv | feed-ul se încarcă cu rail nou, dar clipul țintit nu e adus primul (creator negăsit în primele slide-uri) | BACKLOG (verificare parametru `v` în ExploreClient) |
+| Notă Playwright | — | butoanele din /upload dau „element not stable" (preview video re-randează); click programatic funcționează — nu blocează utilizatorii reali | notă |
 
 ## 2026-08-02 — Redesign Explorează TikTok-style
 
