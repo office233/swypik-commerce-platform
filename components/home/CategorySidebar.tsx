@@ -18,6 +18,7 @@ import { X, ChevronRight, Smartphone, Shirt, Home, Sparkles, Dumbbell, Baby, Car
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
 import { VERTICAL_CATALOG as VERTICALS } from "@/lib/verticals/catalog";
+import LocaleQuickPicker from "@/components/i18n/LocaleQuickPicker";
 
 export type CategoryNode = {
     id?: string | number;
@@ -52,7 +53,6 @@ function nodeSlug(c: CategoryNode): string {
  */
 const LIVE_VERTICALS: { id: string; href: string; note: string }[] = [
     { id: "eats", href: "/food", note: "Mâncare" },
-    { id: "fly", href: "/fly", note: "Zboruri" },
     { id: "stays", href: "/stays", note: "Cazări" },
     { id: "go", href: "/go", note: "Transport" },
     { id: "pay", href: "/pay", note: "Moneda SWYP" },
@@ -150,7 +150,7 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
-                    <p className="pb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">Serviciile Swypik</p>
+                    <p className="pb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">{t("categories")}</p>
                     <div className="space-y-2.5">
                         {verticalItems.map((v) => (
                             <button
@@ -174,18 +174,7 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                         ))}
                     </div>
 
-                    <p className="pb-2 pt-6 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">{t("categories")}</p>
-
-                    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
-                        <button
-                            type="button"
-                            onClick={() => pick(null)}
-                            aria-pressed={!activeCategory}
-                            className={`flex w-full items-center gap-3 border-b border-black/5 px-3.5 py-3 text-left text-[14px] font-bold last:border-0 ${!activeCategory ? "bg-[#0D0D0D] text-white" : "text-[#0D0D0D] hover:bg-[#F7F7F8]"}`}
-                        >
-                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5"><Sparkles size={18} /></span>
-                            {t("all")}
-                        </button>
+                    <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
                         {categories.map((c) => {
                             const active = activeCategory === nodeSlug(c);
                             const CatIcon = categoryIcon(c.name);
@@ -211,34 +200,37 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                     grid 2 coloane, safe-area pentru iPhone. Linkurile SAL/SOL
                     sunt obligatorii (Reg. UE 524/2013). */}
                 <div className="mt-6 border-t border-black/5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
-                    <div className="grid grid-cols-2 gap-2">
+                        <div className="flex items-center justify-center pb-2">
+                            <LocaleQuickPicker />
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
                         {[
                             { label: "Termeni", href: "/terms" },
                             { label: "Confidențialitate", href: "/privacy" },
                             { label: "Cookie-uri", href: "/legal/cookies" },
-                            { label: "ANPC · Protecția consumatorului", href: "/legal/anpc" },
+                                { label: "ANPC", href: "/legal/anpc" },
                         ].map((l) => (
                             <button
                                 key={l.href}
                                 type="button"
                                 onClick={() => goVertical(l.href)}
-                                className="flex min-h-[44px] items-center justify-center rounded-xl bg-black/[0.04] px-3 text-center text-[12px] font-bold text-[#3C3C43] transition active:scale-[0.97]"
+                                    className="flex min-h-[32px] items-center justify-center rounded-lg bg-black/[0.03] px-2 text-center text-[10px] font-semibold text-[#6E6E80] transition active:scale-[0.97]"
                             >
                                 {l.label}
                             </button>
                         ))}
                     </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                         <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noreferrer"
-                            className="flex min-h-[40px] items-center justify-center rounded-xl px-3 text-center text-[11px] font-semibold text-[#6E6E80] underline-offset-2 active:scale-[0.97]">
+                                className="flex min-h-[28px] items-center justify-center rounded-lg px-2 text-center text-[10px] font-medium text-[#A1A1AA] underline-offset-2 active:scale-[0.97]">
                             SAL — litigii
                         </a>
                         <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer"
-                            className="flex min-h-[40px] items-center justify-center rounded-xl px-3 text-center text-[11px] font-semibold text-[#6E6E80] underline-offset-2 active:scale-[0.97]">
+                                className="flex min-h-[28px] items-center justify-center rounded-lg px-2 text-center text-[10px] font-medium text-[#A1A1AA] underline-offset-2 active:scale-[0.97]">
                             SOL — platforma UE
                         </a>
                     </div>
-                    <p className="mt-4 text-center text-[11px] leading-relaxed text-[#A1A1AA]">
+                        <p className="mt-2 text-center text-[10px] leading-relaxed text-[#C7C7CC]">
                         © {new Date().getFullYear()} Swypik Technology
                         <span className="block">{SUPPORT_EMAIL}</span>
                     </p>
