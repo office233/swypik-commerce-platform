@@ -1,4 +1,5 @@
-{   "common": {
+{
+  "common": {
     "loading": "Se încarcă…",
     "error": "A apărut o eroare",
     "retry": "Încearcă din nou",
@@ -97,7 +98,7 @@
       "total": "Total de plată",
       "ratePrompt": "Cum a fost cursa?",
       "rateSend": "Trimite ratingul",
-      "rateThanks": "Mulțumim pentru rating! 💛",
+      "rateThanks": "Mulțumim pentru rating!",
       "another": "Comandă altă cursă",
       "cancelledFee": "Taxă de anulare: {fee}",
       "cancelledFree": "Anulare gratuită."
@@ -111,13 +112,13 @@
       "finished": "Cursa s-a încheiat."
     },
     "errors": {
-        "noAccess": "Nu ai acces la această cursă.",
-        "notFound": "Cursa nu există.",
-        "backToGo": "Înapoi la Go"
-      },
-      "paySwyp": "Plateste cu SWYP",
-      "swypBalance": "Sold: {swyp} SWYP (aprox. {lei} lei) - acoperim cat se poate din cursa",
-      "activeRide": "Ai deja o cursă activă."
+      "noAccess": "Nu ai acces la această cursă.",
+      "notFound": "Cursa nu există.",
+      "backToGo": "Înapoi la Go"
+    },
+    "paySwyp": "Plateste cu SWYP",
+    "swypBalance": "Sold: {swyp} SWYP (aprox. {lei} lei) - acoperim cat se poate din cursa",
+    "activeRide": "Ai deja o cursă activă."
   },
   "auth": {
     "login": "Autentificare",
@@ -2792,28 +2793,11 @@
     "r3Strong": "Preț final afișat",
     "r3Text": " — prețul pe care îl vezi include TVA și nu poate crește la finalul comenzii.",
     "r4Strong": "Informare corectă",
-      "r4Text": " — trebuie să știi cine e vânzătorul real. Pe Swypik îți spunem la fiecare serviciu dacă suntem intermediari sau vânzător.",
-      "operatorTitle": "Operatorul platformei",
-      "linkTerms": "Termeni și Condiții",
-      "linkPrivacy": "Politica de confidențialitate",
-      "linkCookies": "Cookie-uri"
-    },
-  "foodApply": {
-    "title": "Adu-ți restaurantul pe Swypik Food",
-    "subtitle": "Completează formularul și te contactăm după aprobarea aplicației.",
-    "nameLabel": "Numele restaurantului",
-    "addressLabel": "Adresă",
-    "cityLabel": "Oraș",
-    "phoneLabel": "Telefon",
-    "emailLabel": "Email (opțional)",
-    "scheduleLabel": "Program (opțional)",
-    "schedulePlaceholder": "ex: L–V 10:00–22:00, S–D 12:00–23:00",
-    "descriptionLabel": "Descriere scurtă (opțional)",
-    "submit": "Trimite aplicația",
-    "sending": "Se trimite…",
-    "successTitle": "Aplicație trimisă!",
-    "successBody": "Îți vom analiza aplicația și te contactăm în curând.",
-      "error": "A apărut o eroare. Reîncearcă."
+    "r4Text": " — trebuie să știi cine e vânzătorul real. Pe Swypik îți spunem la fiecare serviciu dacă suntem intermediari sau vânzător.",
+    "operatorTitle": "Operatorul platformei",
+    "linkTerms": "Termeni și Condiții",
+    "linkPrivacy": "Politica de confidențialitate",
+    "linkCookies": "Cookie-uri"
   },
   "swypPublic": {
     "title": "Moneda SWYP",
@@ -2854,405 +2838,22 @@
     "earnCtaBtn": "Deschide Swypik Pay",
     "disclaimer": "SWYP este o monedă de recompense internă cu acoperire reală, emisă pe blockchainul privat Swypik Chain. Nu este un instrument financiar, nu este tranzacționabilă pe burse în această fază și nu promitem nicio creștere de valoare. Valoarea de răscumpărare în platformă este limitată la fondul de acoperire existent.",
     "loading": "Se încarcă datele live…"
-  }
-  ,
-    "courierPwa": {
-      "waitingOrders": "Aștept comenzi… GPS-ul se trimite la 10s.",
-      "newRide": "Cursă nouă!",
-      "newOrder": "Comandă nouă!",
-      "orderLabel": "Comandă:",
-    "rideInProgress": "Cursă în curs"
   },
-  "courierCode": {
-    "backAria": "Înapoi",
-    "totalReferred": "Total aduși",
-    "earned": "Câștigați"
-  },
-  "courierEarningsTab": {
-    "loading": "Se încarcă…",
-    "tip": "Bacșiș",
-    "ibanPlaceholder": "IBAN (opțional)"
-  },
-  "sellerMerchant": {
-    "loading": "Se încarcă…",
-    "subtitle": "Panou comenzi live — se actualizează la 10s",
-    "pricePlaceholder": "Preț (lei)"
-  },
-  "sellerStaysCalendar": {
-    "loading": "Se încarcă…",
-    "pricePerNight": "Preț/noapte (lei)"
-  },
-  "selenaAssistant": {
-    "title": "Selena — asistent AI pentru vânzări",
-    "limitReached": "Limită atinsă"
-  },
-  "creatorProfile": {
-    "statVideos": "Clipuri",
-    "statViews": "Vizualizări",
-    "statLikes": "Aprecieri"
-  },
-  "onboarding": {
-    "title": "Alege ce vrei să vezi"
-  },
-  "sellerLayout": {
-    "sellerAccount": "Cont Vânzător"
-  },
-  "sellerReturns": {
-    "acceptAria": "Acceptă cererea și restituie banii"
-  },
-  "legalLayout": {
-    "terms": "Termeni",
-    "privacy": "Confidențialitate",
-    "cookies": "Cookie-uri",
-    "anpc": "Protecția consumatorului (ANPC)",
-    "backHome": "Înapoi acasă"
-  },
-  "legalCookies": {
-    "preferencesTitle": "Preferințe"
-  },
-  "legalTerms": {
-    "title": "Termeni și Condiții",
-    "lastUpdated": "Ultima actualizare: {date}",
-    "summary": "Pe scurt: prețul afișat e prețul final, politicile de anulare sunt la vedere înainte de plată, iar drepturile tale legale de consumator rămân mereu intacte."
-  },
-  "legalPrivacy": {
-    "title": "Politica de confidențialitate",
-    "lastUpdated": "Ultima actualizare: {date}",
-    "summary": "Pe scurt: colectăm doar ce e necesar, criptăm ce e sensibil, nu vindem datele nimănui și le poți controla oricând. Detaliile complete, mai jos."
-  },
-  "legalAnpc": {
-    "title": "Protecția consumatorului",
-    "intro": "Ai drepturi garantate de lege atunci când cumperi online, iar noi nu le putem limita prin niciun termen contractual. Mai jos, ce poți face dacă ceva nu merge bine.",
-    "whereTitle": "Unde te poți adresa",
-    "rightsTitle": "Drepturile tale principale",
-    "r1Strong": "Retragere în 14 zile",
-    "r1Text": " — pentru produse cumpărate online, fără să motivezi. Există excepții legale (mâncare, produse personalizate, cazări cu dată determinată) — le găsești în ",
-    "r1Link": "Termeni, secțiunea 5",
-    "r2Strong": "Garanție legală de conformitate 2 ani",
-    "r2Text": " — pentru produse neconforme ai dreptul la reparare, înlocuire sau restituirea banilor.",
-    "r3Strong": "Preț final afișat",
-    "r3Text": " — prețul pe care îl vezi include TVA și nu poate crește la finalul comenzii.",
-    "r4Strong": "Informare corectă",
-    "r4Text": " — trebuie să știi cine e vânzătorul real. Pe Swypik îți spunem la fiecare serviciu dacă suntem intermediari sau vânzător.",
-    "operatorTitle": "Operatorul platformei",
-    "linkTerms": "Termeni și Condiții",
-    "linkPrivacy": "Politica de confidențialitate",
-    "linkCookies": "Cookie-uri"
-  }
-        "comingSoon": "În curând",
-        "closeMenu": "Închide meniul",
-        "close": "Închide"
-    },
-    "adminApplications": {
-        "partnersTitle": "Aplicații parteneri",
-        "thCity": "Oraș",
-        "thReceived": "Primită",
-        "creatorTitle": "Aplicații creator",
-        "creatorSubtitle": "Cereri de la utilizatori care vor să devină creatori.",
-        "reviewNote": "Notă review",
-        "journalNotePlaceholder": "Notă pentru jurnal sau motiv de respingere..."
-    },
-    "adminDisputes": {
-        "respondTitle": "Răspunde la dispute",
-        "filesLabel": "Fișiere (PDF / PNG / JPG, max 5MB)",
-        "uploadingStripe": "Se urcă la Stripe…",
-        "orderTotal": "Total comandă:",
-        "evidenceSent": "Evidence trimisă:"
-    },
-    "adminModeration": {
-        "actionsTitle": "Acțiuni",
-        "internalReason": "Motiv intern (opțional)",
-        "journalPlaceholder": "Notă pentru jurnal...",
-        "pageTitle": "Moderare conținut",
-        "statusTriaged": "În analiză",
-        "noteLabel": "Notă:"
-    },
-    "adminPayouts": {
-        "pendingLabel": "În așteptare",
-        "failedLabel": "Eșuate",
-        "thAmount": "Sumă"
-    },
-    "adminStrikes": {
-        "thWhen": "Când",
-        "thExpires": "Expiră",
-        "thActions": "Acțiuni"
-    },
-    "adminRefunds": {
-        "thOrder": "Comandă",
-        "thAmount": "Sumă"
-    },
-    "adminReturns": {
-        "thOrder": "Comandă",
-        "thActions": "Acțiuni"
-    },
-    "adminReviews": {
-        "reactivate": "Reactivează",
-        "delete": "Șterge"
-    },
-    "adminUsers": {
-        "searchPlaceholder": "Caută după username, email sau nume...",
-        "thActions": "Acțiuni"
-    },
-    "adminVideos": {
-        "thDuration": "Durată",
-        "thActions": "Acțiuni",
-        "approve": "Aprobă"
-    },
-    "adminCron": {
-        "thActions": "Acțiuni"
-    },
-    "adminHealth": {
-        "latency": "Latență"
-    },
-    "adminMarketplace": {
-        "searchPlaceholder": "Caută produse după titlu, slug, brand sau categorie..."
-    },
-    "adminRisk": {
-        "title": "Risc fraudă comenzi",
-        "noSignals": "Niciun semnal în ultimele 30 zile. Chart-ul se va popula automat când apar comenzi flagged sau decizii admin.",
-        "chartAria": "Trend ultimele 30 zile pentru comenzi flagged, decizii approve/block și auto-blocks",
-        "approveUnblock": "Aprobă (deblochează)",
-        "blockManual": "Blochează manual",
-        "unblock": "Deblochează",
-        "blockUser": "Blochează user"
-    },
-    "adminSellers": {
-        "thActions": "Acțiuni"
-    }
-   "unblock": "Deblochează",
-    "blockUser": "Blochează user"
-"Niciun semnal în ultimele 30 zile. Chart-ul se va popula automat când apar comenzi flagged sau decizii admin.",
-    "chartAria": "Trend ultimele 30 zile pentru comenzi flagged, decizii approve/block și auto-blocks"
-  },
-  "adminSellers": {
-    "thActions": "Acțiuni"
-rincipalul integral, dar fără bonus.",
-    "withdrawEarly": "retrage",
-    "stakingNote": "SWYP-ul blocat iese din circulație — cursul crește pentru toți deținătorii. Bonusul se plătește din profitul real al platformei. Poți retrage oricând principalul, fără penalizare.",
-    "historyTitle": "Istoric",
-    "historyEmpty": "Nicio tranzacție încă — pornește mining-ul de mai sus. ⛏️",
-    "explorerStrong": "Blockchain public:",
-    "explorerText": "vezi fiecare bloc, tranzacție și adresă pe scan.swypik.com — verificabil de oricine, fără cont. →",
-    "addMetamask": "Adaugă Swypik Chain în MetaMask",
-    "aboutTitle": "💡 Ce este SWYP?",
-    "aboutQ1": "De unde vine valoarea SWYP?",
-    "aboutA1": "Din bani reali: un procent din comisionul pe care Swypik îl încasează la fiecare comandă intră într-un fond de acoperire. Cursul SWYP = fondul ÷ monedele în circulație. Fără vânzări reale, cursul e 0 — nu promitem nimic ce nu există.",
-    "aboutQ2": "Ce pot face cu SWYP?",
-    "aboutA2": "Plătești o parte din coș la checkout, dai boost la videoclipuri, lași tips creatorilor. Iar dacă vrei control total: îl retragi pe blockchainul public Swypik Chain, în portofelul tău.",
-    "aboutQ3": "E un blockchain adevărat?",
-    "aboutA3": "Da — Swypik Chain e o rețea reală, compatibilă Ethereum (chain ID 643366), cu explorer public la scan.swypik.com. Supply fix de 10 miliarde, fără inflație. Poți adăuga rețeaua în MetaMask și îți vezi SWYP-ul acolo.",
-    "aboutQ4": "Cine controlează cheia portofelului meu?",
-    "aboutA4": "Platforma o păstrează criptat pentru tine (ca să nu-ți trebuiască seed phrase), dar o poți exporta oricând — din acel moment doar tu ai control asupra fondurilor, criptografic.",
-    "aboutQ5": "SWYP crește în valoare?",
-    "aboutA5": "Nu promitem creșteri de preț. SWYP nu e investiție și nu e tranzacționabil pe burse în această fază. E o monedă de recompense cu acoperire reală — atât, și e verificabil.",
-    "depositOpen": "⬇️ Depune SWYP de pe chain",
-    "depositClose": "✕ Închide",
-    "depositHint": "Trimite SWYP din orice portofel (MetaMask etc.) către adresa de mai jos. Soldul din aplicație se creditează automat în câteva minute.",
-    "depositCopy": "Apasă pentru a copia adresa",
-    "depositCopied": "✓ Adresă copiată!",
-    "depositNote": "Depozitele sunt creditate automat doar dacă vin din portofelul tău Swypik on-chain. Suma minimă: 0,01 SWYP."
-  }
- o monedă de recompense cu acoperire reală — atât, și e verificabil."
-# utili}}"
-    },
-    "likedVideos": {
-        "title": "Videoclipuri likeuite",
-        "empty": "Niciun video likeuit încă."
-    },
-    "liveViewer": {
-        "buy": "Cumpără",
-        "seeProducts": "Vezi produse",
-        "productCount": "{count, plural, one {# produs} few {# produse} other {# de produse}}"
-    },
-    "missionDetail": {
-        "backToMissions": "Înapoi la missions"
-    },
-    "postPage": {
-        "home": "Acasă"
-    },
-    "searchPage": {
-        "title": "Căutare",
-        "tabVideos": "Videoclipuri",
-        "tabCreators": "Creatori",
-        "tabProducts": "Produse",
-        "minChars": "Scrie cel puțin 2 caractere pentru a căuta."
-    },
-    "trendsPage": {
-        "title": "Trends acum",
-        "subtitle": "Topul curent — hashtag-uri, sunete, produse și topicuri detectate AI.",
-        "empty": "Niciun trend detectat încă. Cron-ul rulează la 6 ore — revino curând."
-    },
-    "hostBookings": {
-        "title": "Rezervări primite",
-        "cancelWarnPaid": "Anulezi rezervarea lui {name}?\n\nClientul primește înapoi TOȚI banii ({amount}), iar suma încasată se retrage din portofelul tău.\n\nAnulările dese îți pot suspenda contul de gazdă.",
-        "cancelWarnUnpaid": "Anulezi rezervarea (neplătită) a lui {name}?",
-        "cancelFailed": "Anularea a eșuat.",
-        "guests": "{count, plural, one {# oaspete} few {# oaspeți} other {# de oaspeți}}",
-        "paid": "plătit",
-        "refunded": "rambursat",
-        "status": {
-            "pending": "În așteptare",
-            "confirmed": "Confirmată",
-            "cancelled": "Anulată",
-            "completed": "Încheiată"
-        }
-    },
-    "installPrompt": {
-        "title": "Instalează aplicația",
-        "subtitle": "Adaugă Swypik pe ecranul principal pentru acces rapid și experiență nativă.",
-        "installing": "Se instalează…",
-        "install": "Instalează",
-        "later": "Mai târziu",
-        "close": "Închide"
-    },
-    "searchBar": {
-        "placeholder": "Caută produse, creatori, #hashtag-uri…",
-        "typeHashtag": "Hashtag",
-        "typeCreator": "Creator",
-        "typeProduct": "Produs",
-        "typeCategory": "Categorie",
-        "searchLabel": "Caută"
-    },
-    "topBar": {
-        "categories": "Categorii",
-        "cart": "Coș"
-    }
-e": "Telefon"
-nt pentru ofertele Duffel."
-ed": "Refuzată"
-"Re-comandă",
-    "active": "Activă"
-ealthy": "Sănătos"
-": "Brief-uri plătite pentru creatori. Câștigi SWYP + bounty per vânzare.",
-    "empty": "Nu sunt mission-uri active acum. Revino curând!",
-    "perSale": "/vânzare",
-    "noDeadline": "Fără termen",
-    "ended": "Încheiat"
-  },
-  "authForgot": {
-    "title": "Ai uitat parola?",
-    "subtitle": "Introdu emailul contului și îți trimitem un link pentru a-ți reseta parola.",
-    "doneMessage": "Dacă există un cont asociat cu acest email, ți-am trimis un link de resetare. Verifică inbox-ul (și folderul Spam). Link-ul expiră în 1 oră.",
-    "backToLogin": "Înapoi la autentificare",
-    "email": "Email",
-    "genericError": "Nu am putut procesa cererea.",
-    "networkError": "Eroare de rețea.",
-    "sending": "Se trimite...",
-    "submit": "Trimite link de resetare"
-  },
-  "notificationsPage": {
-    "title": "Notificări",
-    "markAllRead": "Marchează toate citite",
-    "loading": "Se încarcă...",
-    "emptyTitle": "Nicio notificare încă",
-    "emptyBody": "Aici vei vedea aprecieri, comentarii și follow-uri noi.",
-    "justNow": "acum",
-    "minutesShort": "{count}m",
-    "hoursShort": "{count}h",
-    "daysShort": "{count}z"
-  },
-  "permissionsPrompt": {
-    "eatsTitle": "Livrare mai rapidă",
-    "eatsLocation": "Folosim locația ca să-ți arătăm restaurantele din apropiere și să precompletăm adresa de livrare.",
-    "eatsPush": "Notificările te anunță când comanda e acceptată, preluată de curier și livrată.",
-    "goTitle": "Curse mai simple",
-    "goLocation": "Folosim locația ca să setăm automat punctul de plecare și să-ți arătăm șoferii din jur.",
-    "goPush": "Notificările te anunță când șoferul acceptă cursa și când ajunge la tine.",
-    "close": "Închide",
-    "enabling": "Se activează…",
-    "enable": "Activează",
-    "later": "Mai târziu"
-uri video între creatori: votează, susține-ți favoritul și câștigă recompense.",
-    "missionsTitle": "Misiuni — Swypik Creators",
-    "missionsDescription": "Misiuni plătite pentru creatori: filmează, publică și câștigă din recompense.",
-    "sellerTitle": "{name} — Swypik",
-    "sellerDescription": "Descoperă produsele vândute de {name} pe Swypik.",
-    "sellerNotFound": "Vânzător   },
-  "battlesPage": {
-    "subtitle": "Versus între produse. Votează preferatul, câștigă SWYP.",
-    "sortHot": "🔥 Hot",
-    "sortNew": "🆕 Noi",
-    "sortEnding": "⏰ Se închid",
-    "empty": "Niciun battle activ. Ești primul!",
-    "createOne": "Creează unul",
-    "votes": "{count} voturi",
-    "permanent": "Permanent",
-    "ended": "Încheiat"
-  },
-  "missionsPage": {
-    "subtitle": "Brief-uri plătite pentru creatori. Câștigi SWYP + bounty per vânzare.",
-    "empty": "Nu sunt mission-uri active acum. Revino curând!",
-    "perSale": "/vânzare",
-    "noDeadline": "Fără termen",
-    "ended": "Încheiat"
-negăsit — Swypik"
-Cta": "Devino Sell    "sellerFormSub": "Completează detaliile companiei tale, iar echipa noastră te va contacta.",
-    "earningsTitleHost": "Cât păstrezi ca gazdă",
-    "earningsTitleSeller": "De ce vinzi mai bine pe Swypik"
-etaliile companiei tale, iar echipa noastră te va contacta."
-otă: recrutare, activare, probleme operaționale de zi cu zi."
-,
-    "applyNow": "Aplică acum"
-"
- francizei tale."
-  "backHome": "Înapoi acasă",
-    "back": "Înapoi"
-  }
-}
-": "Joburi",
-      "social": "Comunitate"
-    }
-  },
-  "homeFeed": {
-    "sort": {
-      "popular": "Populare",
-      "new": "Noi",
-      "discount": "Reducere mare"
-    },
-    "filters": "Filtre",
-    "price": "Preț",
-    "min": "Min",
-    "max": "Max",
-    "minDiscount": "Reducere minimă",
-    "minRating": "Rating minim",
-    "apply": "Aplică",
-    "reset": "Resetează",
-    "close": "Închide",
-    "like": "Îmi place",
-    "comment": "Comentează",
-    "share": "Distribuie",
-    "view": "Vezi",
-    "comingSoon": "În curând",
-    "error": "Nu am putut încărca ofertele.",
-    "retry": "Reîncearcă",
-    "empty": "Nicio ofertă pentru filtrele alese.",
-    "shares": "{count} distribuiri",
-    "categories": "Categorii",
-    "allCategories": "Toate categoriile",
-    "all": "Toate"
-  },
-  "shell": {
-    "discoverFeed": "Descoperă în feed",
-    "discoverFeedSub": "Vezi clipuri și produse noi cât aștepți",
-    "discoverAfterDelivery": "Ți-a plăcut? Descoperă mai multe în feed",
-    "openFeed": "Deschide feedul",
-    "myModes": "Modurile mele",
-    "modeBuyer": "Cumpărător",
-    "modeBuyerSub": "Feed & cumpărături",
-    "modeSeller": "Vânzător",
-    "modeSellerSub": "Dashboard seller",
-    "modeCreator": "Creator",
-    "modeCreatorSub": "Publică clipuri",
-    "modeCourier": "Curier / Șofer",
-    "modeCourierSub": "Livrări și curse",
-    "courierPending": "În verificare",
-    "courierApproved": "Aprobat",
-    "courierRejected": "Respins",
-    "becomeCourier": "Devino curier",
-    "waze": "Waze",
-    "gmaps": "Google Maps",
-    "bgWarning": "Ține aplicația deschisă (în prim-plan) pentru a primi comenzi — iOS oprește GPS-ul în fundal.",
-    "soundOn": "Sunet la ofertă: pornit",
-    "soundOff": "Sunet la ofertă: oprit"
+  "foodApply": {
+    "title": "Adu-ți restaurantul pe Swypik Food",
+    "subtitle": "Completează formularul și te contactăm după aprobarea aplicației.",
+    "nameLabel": "Numele restaurantului",
+    "addressLabel": "Adresă",
+    "cityLabel": "Oraș",
+    "phoneLabel": "Telefon",
+    "emailLabel": "Email (opțional)",
+    "scheduleLabel": "Program (opțional)",
+    "schedulePlaceholder": "ex: L–V 10:00–22:00, S–D 12:00–23:00",
+    "descriptionLabel": "Descriere scurtă (opțional)",
+    "submit": "Trimite aplicația",
+    "sending": "Se trimite…",
+    "successTitle": "Aplicație trimisă!",
+    "successBody": "Îți vom analiza aplicația și te contactăm în curând.",
+    "error": "A apărut o eroare. Reîncearcă."
   }
 }

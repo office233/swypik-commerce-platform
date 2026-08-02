@@ -1,4 +1,5 @@
-{   "common": {
+{
+  "common": {
     "loading": "Loading…",
     "error": "Something went wrong",
     "retry": "Try again",
@@ -97,7 +98,7 @@
       "total": "Total to pay",
       "ratePrompt": "How was your ride?",
       "rateSend": "Send rating",
-      "rateThanks": "Thanks for rating! 💛",
+      "rateThanks": "Thanks for rating!",
       "another": "Order another ride",
       "cancelledFee": "Cancellation fee: {fee}",
       "cancelledFree": "Free cancellation."
@@ -111,13 +112,13 @@
       "finished": "The ride has ended."
     },
     "errors": {
-        "noAccess": "You don't have access to this ride.",
-        "notFound": "This ride doesn't exist.",
-        "backToGo": "Back to Go"
-      },
-      "paySwyp": "Pay with SWYP",
-      "swypBalance": "Balance: {swyp} SWYP (about {lei} lei) - covers as much of the ride as possible",
-      "activeRide": "You already have an active ride."
+      "noAccess": "You don't have access to this ride.",
+      "notFound": "Ride not found.",
+      "backToGo": "Back to Go"
+    },
+    "paySwyp": "Pay with SWYP",
+    "swypBalance": "Balance: {swyp} SWYP (about {lei} lei) - covers as much of the ride as possible",
+    "activeRide": "You already have an active ride."
   },
   "auth": {
     "login": "Sign in",
@@ -2791,24 +2792,7 @@
     "r2Text": " — for non-conforming products you are entitled to repair, replacement or a refund.",
     "r3Strong": "Final price displayed",
     "r3Text": " — the price you see includes VAT and cannot increase at checkout.",
-    "r4Strong": "Fair informat  },
-  "foodApply": {
-    "title": "Bring your restaurant to Swypik Food",
-    "subtitle": "Fill in the form and we'll contact you once your application is approved.",
-    "nameLabel": "Restaurant name",
-    "addressLabel": "Address",
-    "cityLabel": "City",
-    "phoneLabel": "Phone",
-    "emailLabel": "Email (optional)",
-    "scheduleLabel": "Opening hours (optional)",
-    "schedulePlaceholder": "e.g. Mon–Fri 10:00–22:00, Sat–Sun 12:00–23:00",
-    "descriptionLabel": "Short description (optional)",
-    "submit": "Submit application",
-    "sending": "Sending…",
-    "successTitle": "Application sent!",
-    "successBody": "We'll review your application and get back to you soon.",
-    "error": "Something went wrong. Please try again."
-ion",
+    "r4Strong": "Fair information",
     "r4Text": " — you must know who the real seller is. On Swypik we tell you for each service whether we are an intermediary or the seller.",
     "operatorTitle": "Platform operator",
     "linkTerms": "Terms and Conditions",
@@ -2854,493 +2838,22 @@ ion",
     "earnCtaBtn": "Open Swypik Pay",
     "disclaimer": "SWYP is an internal rewards currency with real backing, issued on the private Swypik Chain blockchain. It is not a financial instrument, is not tradable on exchanges in this phase, and we promise no value growth. The in-platform redemption value is limited to the existing backing fund.",
     "loading": "Loading live data…"
-  }
-rm operator",
-        "linkTerms": "Terms and Conditions",
-        "linkPrivacy": "Privacy Policy",
-        "linkCookies": "Cookies"
-    },
-    "swypPublic": {
-        "title": "The SWYP currency",
-        "subtitle": "Swypik's platform currency, on its own blockchain. Fixed supply, public treasury, everything verifiable by anyone — no account, no blind trust.",
-        "badge": "Own blockchain · Chain ID 643366",
-        "statSupply": "Total supply (fixed)",
-        "statCirculating": "In circulation with users",
-        "statHolders": "Holders",
-        "statRate": "Internal rate",
-        "ratePerSwyp": "per SWYP",
-        "rateZeroNote": "The rate starts at 0 and grows only from real commissions earned by the platform. No promises, just math.",
-        "treasuryTitle": "Treasuries — distribution of the 10 billion",
-        "treasuryNote": "Each treasury is a public address on the chain. The balances below are read live from the platform database and can be checked against the blockchain anytime.",
-        "poolRewards": "User rewards",
-        "poolEcosystem": "Ecosystem & partners",
-        "poolCompany": "Company",
-        "poolTeam": "Team",
-        "poolReserve": "Reserve",
-        "poolStaking": "Staking (transit)",
-        "howTitle": "How it gains value",
-        "how1Title": "You sell or buy on Swypik",
-        "how1Text": "The platform earns a real commission on every completed order.",
-        "how2Title": "The backing fund grows",
-        "how2Text": "A share of the net commission automatically flows into a dedicated SWYP fund.",
-        "how3Title": "The rate is mathematical",
-        "how3Text": "Rate = fund ÷ SWYP in circulation. It can't fall below its backing — and we promise nothing beyond it.",
-        "verifyTitle": "Verify it yourself",
-        "verifyNote": "Don't take our word for it — everything is public:",
-        "linkExplorer": "Blockchain explorer",
-        "linkExplorerDesc": "scan.swypik.com — every block, transaction and address",
-        "linkRpc": "Connect your wallet",
-        "linkRpcDesc": "MetaMask and any EVM wallet: RPC rpc.swypik.com, chain ID 643366, symbol SWYP",
-        "linkApi": "Public transparency API",
-        "linkApiDesc": "supply, treasuries and rate, machine-readable",
-        "rpcCopied": "✓ Config copied",
-        "rpcCopy": "Copy RPC configuration",
-        "earnCta": "Want to earn SWYP?",
-        "earnCtaBtn": "Open Swypik Pay",
-        "disclaimer": "SWYP is an internal rewards currency with real backing, issued on the private Swypik Chain blockchain. It is not a financial instrument, is not tradable on exchanges in this phase, and we promise no value growth. The in-platform redemption value is limited to the existing backing fund.",
-        "loading": "Loading live data…"
-    }
-rierPwa": {
-    "waitingOrders": "Waiting for orders… GPS is sent every 10s.",
-    "newRide": "New ride!",
-    "newOrder": "New order!",
-    "orderLabel": "Order:",
-    "rideInProgress": "Ride in progress"
   },
-  "courierCode": {
-    "backAria": "Back",
-    "totalReferred": "Total referred",
-    "earned": "Earned"
-  },
-  "courierEarningsTab": {
-    "loading": "Loading…",
-    "tip": "Tip",
-    "ibanPlaceholder": "IBAN (optional)"
-  },
-  "sellerMerchant": {
-    "loading": "Loading…",
-    "subtitle": "Live orders panel — refreshes every 10s",
-    "pricePlaceholder": "Price (RON)"
-  },
-  "sellerStaysCalendar": {
-    "loading": "Loading…",
-    "pricePerNight": "Price/night (RON)"
-  },
-  "selenaAssistant": {
-    "title": "Selena — AI sales assistant",
-    "limitReached": "Limit reached"
-  },
-  "creatorProfile": {
-    "statVideos": "Videos",
-    "statViews": "Views",
-    "statLikes": "Likes"
-  },
-  "onboarding": {
-    "title": "Choose what you want to see"
-  },
-  "sellerLayout": {
-    "sellerAccount": "Seller Account"
-  },
-  "sellerReturns": {
-    "acceptAria": "Accept the request and refund the money"
-  },
-  "legalLayout": {
-    "terms": "Terms",
-    "privacy": "Privacy",
-    "cookies": "Cookies",
-    "anpc": "Consumer protection (ANPC)",
-    "backHome": "Back home"
-  },
-  "legalCookies": {
-    "preferencesTitle": "Preferences"
-  },
-  "legalTerms": {
-    "title": "Terms and Conditions",
-    "lastUpdated": "Last updated: {date}",
-    "summary": "In short: the displayed price is the final price, cancellation policies are visible before payment, and your legal consumer rights always remain intact."
-  },
-  "legalPrivacy": {
-    "title": "Privacy Policy",
-    "lastUpdated": "Last updated: {date}",
-    "summary": "In short: we collect only what is necessary, encrypt what is sensitive, never sell your data and you can control it at any time. Full details below."
-  },
-  "legalAnpc": {
-    "title": "Consumer protection",
-    "intro": "You have rights guaranteed by law when you buy online, and we cannot limit them through any contractual term. Below, what you can do if something goes wrong.",
-    "whereTitle": "Where you can turn to",
-    "rightsTitle": "Your main rights",
-    "r1Strong": "Withdrawal within 14 days",
-    "r1Text": " — for products bought online, without giving a reason. There are legal exceptions (food, personalized products, stays with a fixed date) — you can find them in ",
-    "r1Link": "Terms, section 5",
-    "r2Strong": "2-year legal conformity guarantee",
-    "r2Text": " — for non-conforming products you are entitled to repair, replacement or a refund.",
-    "r3Strong": "Final price displayed",
-    "r3Text": " — the price you see includes VAT and cannot increase at checkout.",
-    "r4Strong": "Fair information",
-    "r4Text": " — you must know who the real seller is. On Swypik we tell you for each service whether we are an intermediary or the seller.",
-    "operatorTitle": "Platform operator",
-    "linkTerms": "Terms and Conditions",
-    "linkPrivacy": "Privacy Policy",
-    "linkCookies": "Cookies"
-  }
-  "adminShell": {
-        "comingSoon": "Coming soon",
-        "closeMenu": "Close menu",
-        "close": "Close"
-    },
-    "adminApplications": {
-        "partnersTitle": "Partner applications",
-        "thCity": "City",
-        "thReceived": "Received",
-        "creatorTitle": "Creator applications",
-        "creatorSubtitle": "Requests from users who want to become creators.",
-        "reviewNote": "Review note",
-        "journalNotePlaceholder": "Note for the log or rejection reason..."
-    },
-    "adminDisputes": {
-        "respondTitle": "Respond to the dispute",
-        "filesLabel": "Files (PDF / PNG / JPG, max 5MB)",
-        "uploadingStripe": "Uploading to Stripe…",
-        "orderTotal": "Order total:",
-        "evidenceSent": "Evidence sent:"
-    },
-    "adminModeration": {
-        "actionsTitle": "Actions",
-        "internalReason": "Internal reason (optional)",
-        "journalPlaceholder": "Note for the log...",
-        "pageTitle": "Content moderation",
-        "statusTriaged": "Under review",
-        "noteLabel": "Note:"
-    },
-    "adminPayouts": {
-        "pendingLabel": "Pending",
-        "failedLabel": "Failed",
-        "thAmount": "Amount"
-    },
-    "adminStrikes": {
-        "thWhen": "When",
-        "thExpires": "Expires",
-        "thActions": "Actions"
-    },
-    "adminRefunds": {
-        "thOrder": "Order",
-        "thAmount": "Amount"
-    },
-    "adminReturns": {
-        "thOrder": "Order",
-        "thActions": "Actions"
-    },
-    "adminReviews": {
-        "reactivate": "Reactivate",
-        "delete": "Delete"
-    },
-    "adminUsers": {
-        "searchPlaceholder": "Search by username, email or name...",
-        "thActions": "Actions"
-    },
-    "adminVideos": {
-        "thDuration": "Duration",
-        "thActions": "Actions",
-        "approve": "Approve"
-    },
-    "adminCron": {
-        "thActions": "Actions"
-    },
-    "adminHealth": {
-        "latency": "Latency"
-    },
-    "adminMarketplace": {
-        "searchPlaceholder": "Search products by title, slug, brand or category..."
-    },
-    "adminRisk": {
-        "title": "Order fraud risk",
-        "noSignals": "No signals in the last 30 days. The chart will populate automatically when flagged orders or admin decisions appear.",
-        "chartAria": "Trend over the last 30 days for flagged orders, approve/block decisions and auto-blocks",
-        "approveUnblock": "Approve (unblock)",
-        "blockManual": "Block manually",
-        "unblock": "Unblock",
-        "blockUser": "Block user"
-    },
-    "adminSellers": {
-        "thActions": "Actions"
-    }
-lly",
-    "unblock": "Unblock",
-    "blockUser": "Block user"
-in the last 30 days. The chart will populate automatically when flagged orders or admin decisions appear.",
-    "chartAria": "Trend over the last 30 days for flagged orders, approve/block decisions and auto-blocks"
-  },
-  "adminSellers": {
-    "thActions": "Actions"
-
-    "unlocksAt": "unlocks {date}",
-    "withdrawEarlyConfirm": "Withdraw early? You get the full principal back, but no bonus.",
-    "withdrawEarly": "withdraw",
-    "stakingNote": "Locked SWYP leaves circulation — the rate rises for all holders. Bonuses are paid from the platform's real profit. You can withdraw your principal anytime, no penalty.",
-    "historyTitle": "History",
-    "historyEmpty": "No transactions yet — start mining above. ⛏️",
-    "explorerStrong": "Public blockchain:",
-    "explorerText": "see every block, transaction and address on scan.swypik.com — verifiable by anyone, no account needed. →",
-    "addMetamask": "Add Swypik Chain to MetaMask",
-    "aboutTitle": "💡 What is SWYP?",
-    "aboutQ1": "Where does SWYP's value come from?",
-    "aboutA1": "From real money: a share of the commission Swypik earns on every order goes into a backing fund. SWYP rate = fund ÷ coins in circulation. No real sales, rate is 0 — we never promise what doesn't exist.",
-    "aboutQ2": "What can I do with SWYP?",
-    "aboutA2": "Pay part of your cart at checkout, boost videos, tip creators. And if you want full control: withdraw it to the public Swypik Chain blockchain, into your own wallet.",
-    "aboutQ3": "Is it a real blockchain?",
-    "aboutA3": "Yes — Swypik Chain is a real Ethereum-compatible network (chain ID 643366) with a public explorer at scan.swypik.com. Fixed supply of 10 billion, no inflation. Add the network to MetaMask and see your SWYP there.",
-    "aboutQ4": "Who controls my wallet key?",
-    "aboutA4": "The platform stores it encrypted for you (so you don't need a seed phrase), but you can export it anytime — from that moment only you control the funds, cryptographically.",
-    "aboutQ5": "Will SWYP go up in value?",
-    "aboutA5": "We promise no price growth. SWYP is not an investment and is not tradable on exchanges in this phase. It's a rewards currency with real backing — that's it, and it's verifiable.",
-    "depositOpen": "⬇️ Deposit SWYP from chain",
-    "depositClose": "✕ Close",
-    "depositHint": "Send SWYP from any wallet (MetaMask etc.) to the address below. Your in-app balance is credited automatically within minutes.",
-    "depositCopy": "Tap to copy address",
-    "depositCopied": "✓ Address copied!",
-    "depositNote": "Deposits are credited automatically only when sent from your on-chain Swypik wallet. Minimum: 0.01 SWYP."
-  }
-rewards currency with real backing — that's it, and it's verifiable."
-  "verifiedBuyer": "Verified buyer",
-        "helpful": "{count, plural, one {# helpful} other {# helpful}}"
-    },
-    "likedVideos": {
-        "title": "Liked videos",
-        "empty": "No liked videos yet."
-    },
-    "liveViewer": {
-        "buy": "Buy",
-        "seeProducts": "See products",
-        "productCount": "{count, plural, one {# product} other {# products}}"
-    },
-    "missionDetail": {
-        "backToMissions": "Back to missions"
-    },
-    "postPage": {
-        "home": "Home"
-    },
-    "searchPage": {
-        "title": "Search",
-        "tabVideos": "Videos",
-        "tabCreators": "Creators",
-        "tabProducts": "Products",
-        "minChars": "Type at least 2 characters to search."
-    },
-    "trendsPage": {
-        "title": "Trending now",
-        "subtitle": "The current top — hashtags, sounds, products and topics detected by AI.",
-        "empty": "No trends detected yet. The job runs every 6 hours — check back soon."
-    },
-    "hostBookings": {
-        "title": "Received bookings",
-        "cancelWarnPaid": "Cancel {name}'s booking?\n\nThe guest gets ALL their money back ({amount}), and the amount received is withdrawn from your wallet.\n\nFrequent cancellations may suspend your host account.",
-        "cancelWarnUnpaid": "Cancel {name}'s (unpaid) booking?",
-        "cancelFailed": "Cancellation failed.",
-        "guests": "{count, plural, one {# guest} other {# guests}}",
-        "paid": "paid",
-        "refunded": "refunded",
-        "status": {
-            "pending": "Pending",
-            "confirmed": "Confirmed",
-            "cancelled": "Cancelled",
-            "completed": "Completed"
-        }
-    },
-    "installPrompt": {
-        "title": "Install the app",
-        "subtitle": "Add Swypik to your home screen for quick access and a native experience.",
-        "installing": "Installing…",
-        "install": "Install",
-        "later": "Later",
-        "close": "Close"
-    },
-    "searchBar": {
-        "placeholder": "Search products, creators, #hashtags…",
-        "typeHashtag": "Hashtag",
-        "typeCreator": "Creator",
-        "typeProduct": "Product",
-        "typeCategory": "Category",
-        "searchLabel": "Search"
-    },
-    "topBar": {
-        "categories": "Categories",
-        "cart": "Cart"
-    }
-one": "Phone"
-cketing for Duffel offers."
-ed": "Rejected"
-": "Reorder",
-    "active": "Active"
-ealthy": "Healthy"
-guage & currency",
-    "itemNotificari": "Notifications",
-    "itemSeDeconnect": "Signing out…",
-    "itemSecuritate": "Security & password",
-    "itemSeller": "Seller Dashboard",
-    "itemSellerPending": "Seller application under review",
-    "itemWallet": "SWYP wallet"
-  },
-  "authForgot": {
-    "title": "Forgot your password?",
-    "subtitle": "Enter your account email and we'll send you a link to reset your password.",
-    "doneMessage": "If an account exists for this email, we've sent you a reset link. Check your inbox (and Spam folder). The link expires in 1 hour.",
-    "backToLogin": "Back to sign in",
-    "email": "Email",
-    "genericError": "We couldn't process your request.",
-    "networkError": "Network error.",
-    "sending": "Sending...",
-    "submit": "Send reset link"
-  },
-  "notificationsPage": {
-    "title": "Notifications",
-    "markAllRead": "Mark all as read",
-    "loading": "Loading...",
-    "emptyTitle": "No notifications yet",
-    "emptyBody": "You'll see new likes, comments and follows here.",
-    "justNow": "now",
-    "minutesShort": "{count}m",
-    "hoursShort": "{count}h",
-    "daysShort": "{count}d"
-  },
-  "permissionsPrompt": {
-    "eatsTitle": "Faster delivery",
-    "eatsLocation": "We use your location to show nearby restaurants and pre-fill your delivery address.",
-    "eatsPush": "Notifications let you know when your order is accepted, picked up by the courier and delivered.",
-    "goTitle": "Easier rides",
-    "goLocation": "We use your location to set your pickup point automatically and show drivers around you.",
-    "goPush": "Notifications let you know when a driver accepts your ride and when they arrive.",
-    "close": "Close",
-    "enabling": "Enabling…",
-    "enable": "Enable",
-    "later": "Later"
- short videos, with AI recommendations and local creators.",
-    "helpTitle": "Help — Swypik",
-    "helpDescription": "Frequently asked questions and support for Swypik shoppers and creators.",
-    "battlesTitle": "Battles — Swypik Arena",
-    "battlesDescription": "Video duels between creators: vote, back your favorite and earn rewards.",
-    "missionsTitle": "Missions — Swypik Creators",
-    "missionsDescription": "Paid missions for creators: film, publish and earn rewards.",
-    "sellerTitle": "{name} — Swypik",
-    "sellerDescription": "Discover products sold by {name} on Swypik.",
-    "sellerNotFound": "Seller not found — Swypik"
-  },
-  "battlesPage": {
-    "subtitle": "Product versus product. Vote your favorite, earn SWYP.",
-    "sortHot": "🔥 Hot",
-    "sortNew": "🆕 New",
-    "sortEnding": "⏰ Ending",
-    "empty": "No active battles. Be the first!",
-    "createOne": "Create one",
-    "votes": "{count} votes",
-    "permanent": "Permanent",
-    "ended": "Ended"
-  },
-  "missionsPage": {
-    "subtitle": "Paid briefs for creators. Earn SWYP + a bounty per sale.",
-    "empty": "No active missions right now. Check back soon!",
-    "perSale": "/sale",
-    "noDeadline": "No deadline",
-    "ended": "Ended"
-  },
-  "reviewForm": {
-    "ariaRating": "Star rating",
-    "ariaStele": "{n} stars",
-    "btnSeTrimite": "Sending…",
-    "btnTrimite": "Submit review",
-    "errAuth": "You must be signed in.",
-    "errDeja": "You already reviewed this product.",
-    "errGenerica": "Something went wrong.",
-    "errRating": "Select a rating between 1 and 5 stars.",
-    "errRetea": "A network error occurred.",
-    "labelParere": "Your opinion",
-    "labelRating": "Rating",
-    "labelTitlu": "Title (optional)"
-  },
-  "settingsClient": {
-    "ariaInapoi": "Back to profile",
-    "headerTitle": "Settings",
-    "itemAdmin": "Admin Dashboard",
-    "itemAdrese": "Delivery addresses",
-    "itemComenzi": "My orders",
-    "itemDeconnect": "Sign out",
-    "itemDevinoSeller": "Become a seller",
-    "itemEditeaza": "Edit profile",
-    "itemLimba": "Language & currency",
-    "itemNotificari": "Notifications",
-    "itemSeDeconnect": "Signing out…",
-    "itemSecuritate": "Security & password",
-    "itemSeller": "Seller Dashboard",
-    "itemSellerPending": "Seller application under review",
-    "itemWallet": "SWYP wallet"
-"ended": "Ended"
-t found — Swypik"
-ellerFormCta": "Become a Swypi    "sellerFormSub": "Fill in your company details and our team will contact you.",
-    "earningsTitleHost": "What you keep as a host",
-    "earningsTitleSeller": "Why you sell better on Swypik"
-"Fill in your company details and our team will contact you."
-or the fleet: recruiting, activation, day-to-day operations."
-?",
-    "applyNow": "Apply now"
-"
- your franchise."
-,
-    "backHome": "Back home",
-    "back": "Back"
-  }
-}
-
-    }
-  },
-  "homeFeed": {
-    "sort": {
-      "popular": "Popular",
-      "new": "New",
-      "discount": "Big discount"
-    },
-    "filters": "Filters",
-    "price": "Price",
-    "min": "Min",
-    "max": "Max",
-    "minDiscount": "Min discount",
-    "minRating": "Min rating",
-    "apply": "Apply",
-    "reset": "Reset",
-    "close": "Close",
-    "like": "Like",
-    "comment": "Comment",
-    "share": "Share",
-    "view": "View",
-    "comingSoon": "Coming soon",
-    "error": "Couldn't load offers.",
-    "retry": "Retry",
-    "empty": "No offers match your filters.",
-    "shares": "{count} shares",
-    "categories": "Categories",
-    "allCategories": "All categories",
-    "all": "All"
-  },
-  "shell": {
-    "discoverFeed": "Discover the feed",
-    "discoverFeedSub": "Watch new clips and products while you wait",
-    "discoverAfterDelivery": "Enjoyed it? Discover more in the feed",
-    "openFeed": "Open feed",
-    "myModes": "My modes",
-    "modeBuyer": "Buyer",
-    "modeBuyerSub": "Feed & shopping",
-    "modeSeller": "Seller",
-    "modeSellerSub": "Seller dashboard",
-    "modeCreator": "Creator",
-    "modeCreatorSub": "Publish clips",
-    "modeCourier": "Courier / Driver",
-    "modeCourierSub": "Deliveries and rides",
-    "courierPending": "Under review",
-    "courierApproved": "Approved",
-    "courierRejected": "Rejected",
-    "becomeCourier": "Become a courier",
-    "waze": "Waze",
-    "gmaps": "Google Maps",
-    "bgWarning": "Keep the app open (foreground) to receive orders — iOS stops background GPS.",
-    "soundOn": "Offer sound: on",
-    "soundOff": "Offer sound: off"
+  "foodApply": {
+    "title": "Bring your restaurant to Swypik Food",
+    "subtitle": "Fill in the form and we'll contact you once your application is approved.",
+    "nameLabel": "Restaurant name",
+    "addressLabel": "Address",
+    "cityLabel": "City",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email (optional)",
+    "scheduleLabel": "Opening hours (optional)",
+    "schedulePlaceholder": "e.g. Mon–Fri 10:00–22:00, Sat–Sun 12:00–23:00",
+    "descriptionLabel": "Short description (optional)",
+    "submit": "Submit application",
+    "sending": "Sending…",
+    "successTitle": "Application sent!",
+    "successBody": "We'll review your application and get back to you soon.",
+    "error": "Something went wrong. Please try again."
   }
 }
