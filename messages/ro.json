@@ -746,7 +746,10 @@
     "activeazaSunetul": "Activează sunetul",
     "opresteSunetul": "Oprește sunetul",
     "actiuniProdus": "Acțiuni produs {name}",
-    "veziPret": "Vezi preț"
+    "veziPret": "Vezi preț",
+    "actiuniVideo": "Acțiuni video",
+    "apreciaza": "Apreciază",
+    "distribuie": "Distribuie"
   },
   "accountOrders": {
     "nuAiComenziInca": "Nu ai comenzi încă.",

@@ -746,7 +746,10 @@
     "activeazaSunetul": "Unmute",
     "opresteSunetul": "Mute",
     "actiuniProdus": "Actions for {name}",
-    "veziPret": "See price"
+    "veziPret": "See price",
+    "actiuniVideo": "Video actions",
+    "apreciaza": "Like",
+    "distribuie": "Share"
   },
   "accountOrders": {
     "nuAiComenziInca": "No orders yet.",

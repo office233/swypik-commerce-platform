@@ -660,7 +660,10 @@
     "activeazaSunetul": "Ton aktivieren",
     "opresteSunetul": "Ton aus",
     "actiuniProdus": "Aktionen für {name}",
-    "veziPret": "Preis anzeigen"
+    "veziPret": "Preis anzeigen",
+    "actiuniVideo": "Video-Aktionen",
+    "apreciaza": "Gefällt mir",
+    "distribuie": "Teilen"
   },
   "accountOrders": {
     "nuAiComenziInca": "Du hast noch keine Bestellungen.",

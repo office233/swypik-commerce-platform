@@ -660,7 +660,10 @@
     "activeazaSunetul": "Attiva l'audio",
     "opresteSunetul": "Disattiva l'audio",
     "actiuniProdus": "Azioni prodotto {name}",
-    "veziPret": "Vedi prezzo"
+    "veziPret": "Vedi prezzo",
+    "actiuniVideo": "Azioni video",
+    "apreciaza": "Mi piace",
+    "distribuie": "Condividi"
   },
   "accountOrders": {
     "nuAiComenziInca": "Non hai ancora ordini.",

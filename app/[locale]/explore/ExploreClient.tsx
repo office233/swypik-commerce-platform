@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bookmark, Coins, MessageCircle, Scale, Search, ShoppingCart, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX } from "lucide-react";
+import { Bookmark, Heart, MessageCircle, Scale, Search, Share2, ShoppingCart, Sparkles, Volume2, VolumeX } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
@@ -31,21 +31,6 @@ function getProductVerdictKey(product: any): "verdictPretBun" | "verdictVerifica
   if (title.includes("viral") || title.includes("trending")) return "verdictTrending";
   if (score < 55) return "verdictRiscVerificat";
   return "verdictAiRapid";
-}
-
-function withOptimisticVote(product: any, vote: "worth_it" | "not_worth_it") {
-  const votes = product?.votes || {};
-  const previousVote = votes.viewerVote || null;
-  let worthIt = Number(votes.worthIt || 0);
-  let notWorthIt = Number(votes.notWorthIt || 0);
-  if (previousVote === "worth_it") worthIt = Math.max(0, worthIt - 1);
-  if (previousVote === "not_worth_it") notWorthIt = Math.max(0, notWorthIt - 1);
-  if (vote === "worth_it") worthIt += 1;
-  if (vote === "not_worth_it") notWorthIt += 1;
-  return {
-    ...product,
-    votes: { worthIt, notWorthIt, total: worthIt + notWorthIt, viewerVote: vote },
-  };
 }
 
 interface FeedVideoProps {
@@ -108,8 +93,6 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const [shareToast, setShareToast] = useState<string | null>(null);
   const [activeFormat, setActiveFormat] = useState<typeof FEED_FORMATS[number]>(FEED_FORMATS[0]);
   const [aiPrompt, setAiPrompt] = useState("");
-  const [voteBusyKey, setVoteBusyKey] = useState<string | null>(null);
-  const [coinBurst, setCoinBurst] = useState<{ videoId: string; nonce: number } | null>(null);
   const [cartBusyProductId, setCartBusyProductId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -557,43 +540,6 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     setActiveProduct({ ...video.product, videoId: video.id });
   }, [trackEvent]);
 
-  const handleProductVote = useCallback(async (video: any, vote: "worth_it" | "not_worth_it") => {
-    if (!video?.id || !video.product?.id || video.product?.votes?.viewerVote === vote) return;
-    haptic("tap");
-    const previousProduct = video.product;
-    const nextProduct = withOptimisticVote(previousProduct, vote);
-    const busyKey = `${video.id}:${vote}`;
-    setVoteBusyKey(busyKey);
-    updateVideo(video.id, { product: nextProduct });
-    const burstNonce = Date.now();
-    setCoinBurst({ videoId: video.id, nonce: burstNonce });
-    window.setTimeout(() => {
-      setCoinBurst((current) => current?.nonce === burstNonce ? null : current);
-    }, 900);
-
-    try {
-      const sessionId = sessionIdRef.current || getSessionId();
-      sessionIdRef.current = sessionId;
-      const res = await fetch(`/api/videos/${video.id}/product-vote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ productId: String(video.product.id), vote, sessionId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "vote_failed");
-      updateVideo(video.id, { product: { ...nextProduct, votes: data.votes } });
-      trackEvent(video.id, "product_click", { product_id: video.product.id, action: "feed_vote", vote });
-      window.dispatchEvent(new CustomEvent("reward", { detail: { points: 8, msg: "Vot +8 XP" } }));
-    } catch {
-      updateVideo(video.id, { product: previousProduct });
-      setShareToast("Votul nu s-a salvat");
-      setTimeout(() => setShareToast(null), 1600);
-    } finally {
-      setVoteBusyKey(null);
-    }
-  }, [trackEvent, updateVideo]);
-
   const handleAddProductToCart = useCallback(async (video: any) => {
     if (!video?.product?.id || cartBusyProductId === String(video.product.id)) return;
     haptic("tap");
@@ -676,6 +622,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .score-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 24px; border-radius: 999px; background: #FDE047; color: #111; font-size: 13px; font-weight: 950; }
         .score-label { color: rgba(255,255,255,0.68); font-size: 8px; font-weight: 800; white-space: nowrap; }
         .cockpit-actions { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 4px; }
+          .cockpit-two { grid-template-columns: repeat(2, minmax(0,1fr)); }
         .cockpit-btn { min-width: 0; min-height: 29px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.10); color: #fff; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 3px; font-size: 8.5px; font-weight: 850; line-height: 1.05; padding: 0 4px; }
         .cockpit-btn svg { width: 13px; height: 13px; flex: 0 0 auto; }
         .cockpit-secondary { grid-template-columns: repeat(3, minmax(0,1fr)); }
@@ -870,14 +817,6 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                       <span className="verdict-pill"><Sparkles size={12} />{t(getProductVerdictKey(video.product))}</span>
                     </div>
 
-                    {coinBurst?.videoId === video.id && (
-                      <div className="coin-burst" aria-hidden="true">
-                        <span><Coins /></span>
-                        <span>+8</span>
-                        <span><Coins /></span>
-                      </div>
-                    )}
-
                     <button type="button" className="cockpit-main" onClick={() => { haptic("tap"); openProduct(video); }} aria-label="Deschide produsul">
                       <span className="cockpit-image">
                         {video.product.image ? (
@@ -899,33 +838,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                       </span>
                     </button>
 
-                    <div className="cockpit-actions">
-                      <button
-                        type="button"
-                        className={`cockpit-btn ${video.product.votes?.viewerVote === 'worth_it' ? 'vote-on' : ''}`}
-                        onClick={() => handleProductVote(video, 'worth_it')}
-                        disabled={voteBusyKey === `${video.id}:worth_it`}
-                        aria-pressed={video.product.votes?.viewerVote === 'worth_it'}
-                      >
-                        <ThumbsUp />{t("merita")}
-                      </button>
-                      <button
-                        type="button"
-                        className={`cockpit-btn ${video.product.votes?.viewerVote === 'not_worth_it' ? 'vote-on' : ''}`}
-                        onClick={() => handleProductVote(video, 'not_worth_it')}
-                        disabled={voteBusyKey === `${video.id}:not_worth_it`}
-                        aria-pressed={video.product.votes?.viewerVote === 'not_worth_it'}
-                      >
-                        <ThumbsDown />{t("nuMerita")}
-                      </button>
-                      <button
-                        type="button"
-                        className={`cockpit-btn ${savedVideos.has(video.id) ? 'vote-on' : ''}`}
-                        onClick={() => handleSave(video.id)}
-                        aria-pressed={savedVideos.has(video.id)}
-                      >
-                        <Bookmark />{t("salveaza")}
-                      </button>
+                    <div className="cockpit-actions cockpit-two">
                       <button
                         type="button"
                         className="cockpit-btn"
@@ -942,26 +855,40 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                         <ShoppingCart />{t("cos")}
                       </button>
                     </div>
-
-                    <div className="cockpit-actions cockpit-secondary">
-                      <button type="button" className="cockpit-btn" onClick={() => { haptic("tap"); setActiveCommentsVideo(video); }}>
-                        <MessageCircle />{t("discutii")} {formatCount(video.comments)}
-                      </button>
-                      <button type="button" className="cockpit-btn" onClick={() => handleShare(video.id)}>
-                        Share {formatCount(video.shares)}
-                      </button>
-                      {video.creator?.id && !followingCreators.has(video.creator.id) ? (
-                        <button type="button" className="cockpit-btn" onClick={() => handleFollow(video.creator?.id)}>
-
-                          {t("urmareste")}
-                        </button>
-                      ) : (
-                        <button type="button" className="cockpit-btn" onClick={() => openProduct(video)}>
-                          Detalii
-                        </button>
-                      )}
-                    </div>
                   </section>
+                )}
+
+                {nearActive && (
+                  <div className="action-bar" aria-label={t("actiuniVideo")}>
+                    {video.creator?.id && (
+                      <button type="button" className="creator-avatar" onClick={() => router.push(`/u/${(video.creator as any)?.username || video.creator?.id}`)} aria-label={`@${(video.creator as any)?.username || video.creator?.name || 'creator'}`}>
+                        {(video.creator as any)?.avatar ? (
+                          <img src={(video.creator as any).avatar} alt="" />
+                        ) : (
+                          <span className="creator-avatar-fallback">{((video.creator as any)?.username || video.creator?.name || 'S').charAt(0).toUpperCase()}</span>
+                        )}
+                        {!followingCreators.has(video.creator.id) && (
+                          <span className="avatar-plus" role="button" aria-label={t("urmareste")} onClick={(e) => { e.stopPropagation(); handleFollow(video.creator?.id); }} />
+                        )}
+                      </button>
+                    )}
+                    <button type="button" className={`action-btn ${likedVideos.has(video.id) ? 'liked' : ''}`} onClick={() => handleLike(video.id)} aria-pressed={likedVideos.has(video.id)} aria-label={t("apreciaza")}>
+                      <span className="icon-wrap"><Heart size={30} fill={likedVideos.has(video.id) ? '#ff2d55' : 'transparent'} color={likedVideos.has(video.id) ? '#ff2d55' : '#fff'} /></span>
+                      <span className="count">{formatCount(video.likes)}</span>
+                    </button>
+                    <button type="button" className="action-btn" onClick={() => { haptic("tap"); setActiveCommentsVideo(video); }} aria-label={t("discutii")}>
+                      <span className="icon-wrap"><MessageCircle size={29} color="#fff" /></span>
+                      <span className="count">{formatCount(video.comments)}</span>
+                    </button>
+                    <button type="button" className={`action-btn ${savedVideos.has(video.id) ? 'liked' : ''}`} onClick={() => handleSave(video.id)} aria-pressed={savedVideos.has(video.id)} aria-label={t("salveaza")}>
+                      <span className="icon-wrap"><Bookmark size={28} fill={savedVideos.has(video.id) ? '#FDE047' : 'transparent'} color={savedVideos.has(video.id) ? '#FDE047' : '#fff'} /></span>
+                      <span className="count">{formatCount(video.saves)}</span>
+                    </button>
+                    <button type="button" className="action-btn" onClick={() => handleShare(video.id)} aria-label={t("distribuie")}>
+                      <span className="icon-wrap"><Share2 size={28} color="#fff" /></span>
+                      <span className="count">{formatCount(video.shares)}</span>
+                    </button>
+                  </div>
                 )}
               </div>
             );
