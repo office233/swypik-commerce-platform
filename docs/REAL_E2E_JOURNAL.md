@@ -61,6 +61,19 @@
 | Deep-link `/explore?v=<id>` | feed-ul deschide clipul respectiv | feed-ul se încarcă cu rail nou, dar clipul țintit nu e adus primul (creator negăsit în primele slide-uri) | BACKLOG (verificare parametru `v` în ExploreClient) |
 | Notă Playwright | — | butoanele din /upload dau „element not stable" (preview video re-randează); click programatic funcționează — nu blocează utilizatorii reali | notă |
 
+## 2026-08-02 — P2 Shopper + interacțiuni cross-account
+
+| Pas | Așteptat | Observat | Verdict |
+|---|---|---|---|
+| Signup al 2-lea cont (`test-shopper@swypik.test`, @sonia_shopper_test) prin UI | cont creat + auto-login | wizard 4 pași OK → `/account` | PASS |
+| Follow @teo_creator_test din contul shopper | contor crește, buton devine „Urmărești" | profil creator: „1 URMARITORI", „Urmaresti" | PASS |
+| Deep-link `/explore?v=<id>` după fix dae0ee00 | clipul creatorului primul | API pin OK; primul slide = clipul țintă cu rail-ul nou | PASS |
+| Like de la shopper | contor 0→1, persistă | `aria-pressed=true`, count=1; confirmat prin API (`viewer.liked=true`) | PASS |
+| Comentariu de la shopper (bottom-sheet) | apare cu autor | „1 total", card „Sonia Shopper", contor rail 0→1 | PASS |
+| Verificare din contul creator | contoare identice | API: likes=1, comments=1; `/creator/videos`: clip Live | PASS |
+| Curățenie | — | 2 înregistrări orfane „AȘTEPTARE" (probe.mp4 din probă API + upload eșuat pre-fix) — de curățat via watchdog-videos | notă |
+| Notă infra | — | Service worker PWA servește bundle vechi după deploy (feed-ul ignora `v=` până la reload dublu) | BACKLOG (SW skipWaiting/versionare) |
+
 ## 2026-08-02 — Redesign Explorează TikTok-style
 
 | Pas | Așteptat | Observat | Verdict |
