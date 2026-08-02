@@ -200,37 +200,37 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                     grid 2 coloane, safe-area pentru iPhone. Linkurile SAL/SOL
                     sunt obligatorii (Reg. UE 524/2013). */}
                 <div className="mt-6 border-t border-black/5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
-                        <div className="flex items-center justify-center pb-2">
-                            <LocaleQuickPicker />
-                        </div>
-                        <div className="grid grid-cols-2 gap-1.5">
+                    <div className="flex items-center justify-center pb-2">
+                        <LocaleQuickPicker />
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
                         {[
                             { label: "Termeni", href: "/terms" },
                             { label: "Confidențialitate", href: "/privacy" },
                             { label: "Cookie-uri", href: "/legal/cookies" },
-                                { label: "ANPC", href: "/legal/anpc" },
+                            { label: "ANPC", href: "/legal/anpc" },
                         ].map((l) => (
                             <button
                                 key={l.href}
                                 type="button"
                                 onClick={() => goVertical(l.href)}
-                                    className="flex min-h-[32px] items-center justify-center rounded-lg bg-black/[0.03] px-2 text-center text-[10px] font-semibold text-[#6E6E80] transition active:scale-[0.97]"
+                                className="flex min-h-[32px] items-center justify-center rounded-lg bg-black/[0.03] px-2 text-center text-[10px] font-semibold text-[#6E6E80] transition active:scale-[0.97]"
                             >
                                 {l.label}
                             </button>
                         ))}
                     </div>
-                        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                    <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                         <a href="https://anpc.ro/ce-este-sal/" target="_blank" rel="noreferrer"
-                                className="flex min-h-[28px] items-center justify-center rounded-lg px-2 text-center text-[10px] font-medium text-[#A1A1AA] underline-offset-2 active:scale-[0.97]">
+                            className="flex min-h-[28px] items-center justify-center rounded-lg px-2 text-center text-[10px] font-medium text-[#A1A1AA] underline-offset-2 active:scale-[0.97]">
                             SAL — litigii
                         </a>
                         <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer"
-                                className="flex min-h-[28px] items-center justify-center rounded-lg px-2 text-center text-[10px] font-medium text-[#A1A1AA] underline-offset-2 active:scale-[0.97]">
+                            className="flex min-h-[28px] items-center justify-center rounded-lg px-2 text-center text-[10px] font-medium text-[#A1A1AA] underline-offset-2 active:scale-[0.97]">
                             SOL — platforma UE
                         </a>
                     </div>
-                        <p className="mt-2 text-center text-[10px] leading-relaxed text-[#C7C7CC]">
+                    <p className="mt-2 text-center text-[10px] leading-relaxed text-[#C7C7CC]">
                         © {new Date().getFullYear()} Swypik Technology
                         <span className="block">{SUPPORT_EMAIL}</span>
                     </p>
