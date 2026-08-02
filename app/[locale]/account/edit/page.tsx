@@ -386,7 +386,8 @@ export default function EditProfilePage() {
       )}
 
       {/* Sticky save bar */}
-      <div className="fixed bottom-0 inset-x-0 z-20 bg-black/95 backdrop-blur border-t border-white/10">
+        {/* deasupra bottom-nav (h-16, z-30) — altfel nav-ul interceptează click-urile pe mobil */}
+        <div className="fixed bottom-16 inset-x-0 z-40 bg-black/95 backdrop-blur border-t border-white/10" style={{ bottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}>
         <div className="max-w-2xl mx-auto px-4 py-3 flex gap-3">
           <button
             type="button"
