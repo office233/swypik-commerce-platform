@@ -104,6 +104,16 @@
 | Comandă Economy | cursă creată + dispatch | ride `f93070a8` creat, ecran „Căutăm un șofer în zonă… (2 km)" cu timer, SOS 112, Distribuie cursa | PASS |
 | Anulare gratuită | cursă anulată | „Cursă anulată — Anulare gratuită" + chestionar motiv | PASS |
 | Notă UX | — | după anulare, dialogul „De ce anulezi?" rămâne cu „Anulează cursa" disabled — ordinea e ciudată (anularea s-a făcut deja) | BACKLOG minor |
+
+## 2026-08-02 — P7 Seller + Admin
+
+| Pas | Așteptat | Observat | Verdict |
+|---|---|---|---|
+| `/seller/login` OTP email (seller@swypik.test, approved) | cod 6 cifre + sesiune | OTP generat, autentificare OK → Dashboard Vânzător complet (KPI, Selena AI) | PASS |
+| ⚠️ Securitate | OTP-ul NU trebuie logat | `[SELLER OTP] dev mode code` apare în log — VERIFICAT în cod: gated pe `!isProd \|\| email.endsWith("@swypik.test")` — se loghează DOAR pentru conturi de test. | JUSTIFICAT (design pentru E2E; de monitorizat să nu se extindă) |
+| Pagini seller (orders/products/listings/returns/settings/merchant) | 200 | toate 200 | PASS |
+| `/seller/payouts` | 200 | **500** — `column "stripe_payouts_enabled" does not exist`: pagina citește coloane Stripe Connect de pe `sellers`, dar migrarea 20260730_0013 le-a adăugat doar pe `couriers` | **FAIL P1 → FIXED** (08799656: migrare aditivă 20260802_0001, aplicată; pagina afișează corect „Cont Stripe Connect lipsă") |
+| `/admin` login cu parolă + 12 pagini (health/users/applications/refunds/commissions/creators/pricing/strikes/fleet/risk/hosts/reviews) | toate 200 | login 200, toate paginile 200 cu sesiune | PASS |
 ## 2026-08-02 — Redesign Explorează TikTok-style
 
 | Pas | Așteptat | Observat | Verdict |
