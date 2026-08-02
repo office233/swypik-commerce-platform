@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PrivacyPage() {
-        const tx = await getTranslations("privacy");
+    const tx = await getTranslations("privacy");
     const t = await getTranslations("legalPrivacy");
     return (
         <main className="mx-auto max-w-2xl px-4 pb-24 pt-8">
@@ -70,7 +70,7 @@ export default async function PrivacyPage() {
             </div>
 
             <p className="mt-10 border-t border-neutral-200 pt-4 text-xs text-neutral-400 dark:border-neutral-800">
-                 {tx("swypikTechnologyPrivacyswypikcomAutoritatea")}
+                {tx("swypikTechnologyPrivacyswypikcomAutoritatea")}
             </p>
         </main>
     );

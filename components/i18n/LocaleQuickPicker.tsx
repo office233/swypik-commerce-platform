@@ -20,7 +20,13 @@ const META: Record<Locale, { label: string; flag: string }> = {
  * Compact globe button → dropdown with all locales.
  * Persists choice via /api/i18n/preferences (cookie + DB if user logged in).
  */
-export default function LocaleQuickPicker({ className = "" }: { className?: string }) {
+export default function LocaleQuickPicker({
+  className = "",
+  variant = "dark",
+}: {
+  className?: string;
+  variant?: "dark" | "light";
+}) {
   const currentLocale = useLocale() as Locale;
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -59,23 +65,39 @@ export default function LocaleQuickPicker({ className = "" }: { className?: stri
         aria-label="Language"
         disabled={isPending}
         onClick={() => setOpen((v) => !v)}
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+          className={
+            variant === "light"
+              ? "relative inline-flex h-11 items-center justify-center gap-2 rounded-full bg-black/5 px-4 text-[13px] font-bold text-[#0D0D0D] hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-black/20"
+              : "relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+          }
       >
         <Globe className="h-5 w-5" />
-        <span className="absolute -bottom-0.5 -right-0.5 text-[10px] leading-none">
-          {META[currentLocale]?.flag}
-        </span>
+          {variant === "light" ? (
+            <span>{META[currentLocale]?.flag} {META[currentLocale]?.label}</span>
+          ) : (
+            <span className="absolute -bottom-0.5 -right-0.5 text-[10px] leading-none">
+              {META[currentLocale]?.flag}
+            </span>
+          )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-44 rounded-xl border border-white/10 bg-black/95 shadow-lg backdrop-blur-xl z-50 py-1">
+          <div
+            className={
+              variant === "light"
+                ? "absolute bottom-full left-1/2 z-50 mb-2 w-44 -translate-x-1/2 rounded-xl border border-black/10 bg-white py-1 shadow-xl"
+                : "absolute right-0 mt-2 w-44 rounded-xl border border-white/10 bg-black/95 shadow-lg backdrop-blur-xl z-50 py-1"
+            }
+          >
           {LOCALES.map((l) => (
             <button
               key={l}
               type="button"
               onClick={() => pick(l)}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-white/10 ${
-                l === currentLocale ? "text-white font-medium" : "text-white/80"
-              }`}
+                className={
+                  variant === "light"
+                    ? `flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-black/5 ${l === currentLocale ? "font-bold text-[#0D0D0D]" : "text-[#3C3C43]"}`
+                    : `w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-white/10 ${l === currentLocale ? "text-white font-medium" : "text-white/80"}`
+                }
             >
               <span>{META[l].flag}</span>
               <span>{META[l].label}</span>

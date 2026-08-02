@@ -1120,6 +1120,9 @@ export async function getCategoryHierarchy(locale = "ro") {
       JOIN taxonomy_nodes n ON n.slug = nc.slug
       LEFT JOIN taxonomy_translations t_loc ON t_loc.node_slug = n.slug AND t_loc.locale = $1
       LEFT JOIN taxonomy_translations t_en ON t_en.node_slug = n.slug AND t_en.locale = 'en'
+        -- Verticalele cu pagină dedicată (Fly, Go) nu apar ca have categorii marketplace:
+        -- produsele lor („Zbor spre X") trăiesc în feed, dar navigarea se face din /fly, /go.
+        WHERE COALESCE(n.metadata->>'vertical', '') NOT IN ('fly', 'go')
       ORDER BY n.sort_order NULLS LAST, n.slug
     `,
     [locale],

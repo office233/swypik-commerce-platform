@@ -53,6 +53,7 @@ function nodeSlug(c: CategoryNode): string {
  */
 const LIVE_VERTICALS: { id: string; href: string; note: string }[] = [
     { id: "eats", href: "/food", note: "Mâncare" },
+    { id: "fly", href: "/fly", note: "Zboruri" },
     { id: "stays", href: "/stays", note: "Cazări" },
     { id: "go", href: "/go", note: "Transport" },
     { id: "pay", href: "/pay", note: "Moneda SWYP" },
@@ -201,7 +202,7 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                     sunt obligatorii (Reg. UE 524/2013). */}
                 <div className="mt-6 border-t border-black/5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
                     <div className="flex items-center justify-center pb-2">
-                        <LocaleQuickPicker />
+                            <LocaleQuickPicker variant="light" />
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
                         {[

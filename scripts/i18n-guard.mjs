@@ -83,7 +83,7 @@ try {
     const m = out.match(/files:\s*(\d+)\s*hits:\s*(\d+)/);
     const hits = m ? +m[2] : 0;
     let baseline = 0;
-    try { baseline = JSON.parse(fs.readFileSync(".i18n-baseline.json", "utf8")).hits; } catch {}
+    try { baseline = JSON.parse(fs.readFileSync(".i18n-baseline.json", "utf8")).hits; } catch { }
     if (hits > baseline) {
         err(`scan-hardcoded: ${hits} hardcodări (baseline ${baseline}) — ai adăugat ${hits - baseline} stringuri netraduse noi`);
         console.error(out.split("\n").slice(0, 15).join("\n"));
