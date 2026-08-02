@@ -1,0 +1,63 @@
+# VERIFICATION ROUND 2 — Raport de verificare ostilă (2026-08-02)
+
+> Verdictul pe scurt: **RUNDA 1 NU A FOST COMPLETĂ.** Dovezile de mai jos.
+
+## 1. Precondiții mediu (PASS)
+
+- Containere WSL `swypik`: `web-next` healthy, postgres healthy, video-worker-1..3 healthy, cron-worker healthy, mediamtx up, dispatch up, chain/blockscout up.
+- `http://127.0.0.1:3005/api/health` = 200; `https://swypik.com` = 200.
+
+## 2. Faza A — Audit (subagenți independenți + sondaj orchestrator)
+
+### SA-1 Hardcodări (subagent read-only, thorough)
+**27 găsiri, din care 24 LIPSESC din `docs/HARDCODE_AUDIT.md`** → runda 1 incompletă.
+- P1 (7): `https://api.exchangerate.host` (`app/api/cron/refresh-fx/route.ts:29`), `https://track24.net` (`app/api/seller/orders/route.ts:128`), tarife referral/tiers hardcodate fără env (`lib/drivers/referral.ts:26-33`, `lib/drivers/tiers.ts:33-41`), `SWYP_CHAIN_ID = 643366` (`lib/swyp/chain-public.ts:6`).
+- P2 (12): `scan.swypik.com`/`rpc.swypik.com`/`18.swypik.com` hardcodate în JSX/lib, CORS fix `swypik.com` în `workers/ai-chat-proxy.js:11`, `BADGE_THRESHOLDS_CENTS`, `SYSTEM_CREATOR_ID`.
+- P3 (5): coordonate statice orașe stays (justificabile), texte 18+ inline.
+- IP VPS mort 178.105.46.66: **0 rezultate** ✅ (singurul lucru curățat corect în runda 1).
+
+### SA-3 Securitate API (subagent read-only, 311 rute enumerate, ~60 high-risk citite)
+- `POST /api/orders/[id]/return` + `/return/photos`: auth prin `order_lookup_token` din body. **Sondaj orchestrator**: token generat cu `randomBytes(24).toString("hex")` (webhook stripe) = 192 biți entropie + rate-limit IP:id prezent → risc redus, reclasific P1→P3 (design acceptabil pentru guest orders).
+- `app/api/seller/auth/route.ts`: rate-limit prezent (3/min IP, 5/h email, 20/5min verify) ✅ — sondaj confirmat pe cod (liniile 50/57/108).
+- Restul găsirilor P0/P1 din raportul SA-3: de triat în Faza D (tabel complet la subagent, păstrat în istoricul sesiunii).
+
+### SA-6 i18n + scan hardcoded (rulat direct, output real)
+- `node scripts/audit-i18n.mjs`: 160 namespace-uri, 0 nefolosite, 0 chei orfane; **1 „netradusă"**: `sellerAddProduct.courier_posta_romana` în en/it = „Poșta Română" — **fals pozitiv** (nume propriu de curier, corect netradus). → efectiv 0 probleme reale.
+- `node scripts/scan-hardcoded.mjs`: **127 fișiere / 464 hituri** de texte în JSX fără i18n (top: `app/seller/listings/page.tsx` 25, `app/admin/fleet/FleetActions.tsx` 17, `components/ProductFeed.tsx` etc.). **NU e 0** — criteriul rundei 1 nu era îndeplinit. Notă: multe sunt în panouri seller/admin (impact user redus), dar rămân de rezolvat sau de adăugat explicit în baseline (`.i18n-baseline.json`) cu justificare.
+
+### UI vechi „Votează"
+- `grep 'Votează|voteaza'` pe `app/`+`components/`: **1 singură apariție** — `app/[locale]/about/page.tsx:41` = cheia i18n `t("voteazaMeritaSauNu")` (text de marketing despre comunitate, NU butonul vechi de vot). Butonul vechi nu mai există în cod. Rămâne decizia de produs dacă textul din About se rescrie după redesign.
+
+### Redesign Explorează — stare reală
+- `app/[locale]/explore/ExploreClient.tsx` (944 linii) — verificat pe cod (corecție față de prima estimare): are `scroll-snap-type: y mandatory` (linia 596), slide-uri `100dvh`, bară de acțiuni verticală dreapta (avatar+follow linia 872, like cu `heartPop` linia 876-877, comentarii `CommentsSheet` bottom-sheet dinamic linia 16/881/922, save linia 884, share linia 888), `formatCount` 1.2K/M, „cockpit" produs. **Redesignul TikTok-style este IMPLEMENTAT în cod** — rămâne validarea vizuală pe mobil (Faza C) + i18n-ul celor câteva stringuri inline din pagină.
+
+## 3. Faza B — Build (output real)
+
+| Verificare | Rezultat |
+|---|---|
+| `npx tsc --noEmit` (swypik/app) | **0 erori** ✅ |
+| `go vet ./...` + `go build ./...` (multi-erp/backend) | **exit 0 / exit 0** ✅ |
+| `npx vitest run` | **6 files, 71 passed, 0 failed** ✅ |
+| `npm run lint` | 0 erori; warnings `react-hooks/exhaustive-deps` (P3, listate) |
+| `audit-i18n.mjs` | 0 reale (1 fals pozitiv documentat) ✅ |
+| `scan-hardcoded.mjs` | **464 hituri — FAIL** ❌ |
+| docker build + crawl 148 pagini | **NERULATE ÎNCĂ** — programate în continuarea rundei |
+
+### Fixuri aplicate deja (validate cu `tsc` = 0)
+1. `app/api/cron/refresh-fx/route.ts` — URL FX configurabil prin `FX_API_URL` (fallback exchangerate.host).
+2. `app/api/seller/orders/route.ts` — fallback tracking configurabil prin `TRACKING_URL_TEMPLATE` (`{code}` placeholder).
+
+## 4. Recunoaștere onestă (ce trebuia prins în runda 1)
+
+1. `HARDCODE_AUDIT.md` acoperea doar IP-ul VPS — 24/27 hardcodări reale lipseau.
+2. `scan-hardcoded.mjs` nu a fost adus la 0 și nici nu s-a construit un baseline justificat.
+3. Redesignul Explorează a fost declarat „gata" deși lipsesc bara de acțiuni dreapta și bottom-sheet-ul de comentarii.
+
+## 5. Pași următori (Faza D — ordinea de execuție)
+
+1. **P1 hardcodări** → env-uri (`FX_API_URL`, `TRACKING_URL_TEMPLATE`, `NEXT_PUBLIC_SWYP_CHAIN_ID`, tarife drivers) — commit atomic per grup.
+2. **Explorează**: bară acțiuni verticală dreapta + CommentSheet bottom-sheet + contoare formatate + i18n 7 limbi.
+3. **scan-hardcoded**: fix top-10 fișiere user-facing; baseline documentat pentru admin/seller intern.
+4. Faza B restantă: go vet/build, lint, vitest, docker build, crawl → `docs/CRAWL_REPORT.md`.
+5. Faza C: E2E P1–P7 conform `E:\Meister\PROMPT_MASTER_V2_VERIFICARE_SI_E2E.md`, jurnal în `docs/REAL_E2E_JOURNAL.md`.
+6. Faza E: 2 auditori externi finali.

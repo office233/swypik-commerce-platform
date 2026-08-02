@@ -74,6 +74,16 @@
 | Curățenie | — | 2 înregistrări orfane „AȘTEPTARE" (probe.mp4 din probă API + upload eșuat pre-fix) — de curățat via watchdog-videos | notă |
 | Notă infra | — | Service worker PWA servește bundle vechi după deploy (feed-ul ignora `v=` până la reload dublu) | BACKLOG (SW skipWaiting/versionare) |
 
+## 2026-08-02 — P3 Shop: coș + checkout (shopper)
+
+| Pas | Așteptat | Observat | Verdict |
+|---|---|---|---|
+| Adăugare „Zbor spre Barcelona" în coș din feed | în coș sau mesaj clar | API refuză corect (`listing_type=listing` → „Folosește formularul de contact") dar UI-ul NU arată nimic — click fără feedback | BACKLOG UX (toast cu mesajul de eroare la Coș din feed) |
+| Adăugare produs real (Smart TV 55", 2499,99 RON, `listing_type=product`) | în coș | `/api/cart/items` 200, `/cart` afișează produsul, subtotal corect, livrare gratuită | PASS |
+| `/checkout` | formular Stripe | **pagină complet goală** + `IntegrationError: Please call Stripe() with your publishable key. You used an empty string` — `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` nu era transmis ca build-arg, deci bundle-ul client avea "" | **FAIL P0 → FIXED** (c96ef8b5 + cdd424b4: ARG/ENV în build stage; cheia era deja în .env.production) |
+| Re-test checkout după rebuild | Stripe Elements se încarcă | în curs | ÎN CURS |
+| Re-test checkout după rebuild cu build-arg | pagina se randează | PASS: „Swypik Checkout" complet — produs, cantitate +/−, sumar, total 2.499,99 RON, iframe-uri Stripe încărcate (3) | PASS |
+| Payment intent | client_secret | 401 de la Stripe: `STRIPE_SECRET_KEY=sk_placeholder` în .env.production — NU există chei reale de test în mediu. UI-ul tratează grațios („Plățile cu cardul nu sunt disponibile momentan"). | **LIMITARE MEDIU** — documentat în BACKLOG: setați chei Stripe test (sk_test_/pk_test_) și re-testați plata cu 4242 4242 4242 4242 |
 ## 2026-08-02 — Redesign Explorează TikTok-style
 
 | Pas | Așteptat | Observat | Verdict |

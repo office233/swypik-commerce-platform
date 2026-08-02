@@ -14,6 +14,11 @@
 
 ## Funcțional (din AUDIT-E2E-2026-08-02)
 
+- [ ] **P0 mediu** — Chei Stripe reale de TEST în `.env.production` WSL (`sk_test_`/`pk_test_`+webhook): acum `sk_placeholder` → plăți indisponibile. După setare: rebuild web-next (pk e build-arg) + test plată 4242 4242 4242 4242 (jurnal P3).
+- [ ] UX feed: buton „Coș" pe listing-uri necumpărabile — click silențios, fără toast cu eroarea API.
+- [ ] PWA SW servește bundle vechi după deploy (reload dublu necesar) — skipWaiting + update prompt.
+- [ ] `/reels/record` fără cameră: doar „Reîncearcă", lipsește link spre `/upload`.
+- [ ] Curățare video-uri orfane „AȘTEPTARE" (probe.mp4 etc.) — watchdog-videos sau admin.
 - [ ] Battles — zero cod backend, doar UI. Decizie: implementare sau eliminare UI.
 - [ ] Fluxuri parțiale de finalizat (Faza 5): Food, Stays, Go, Live, Missions, Seller.
 - [ ] Rate-limit Redis global pe rutele publice de search.
