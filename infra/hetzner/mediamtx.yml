@@ -24,6 +24,7 @@ authInternalUsers:
       - action: publish
         path: ~^live/.+$
 
-# Lifecycle hooks → notify Next.js
-runOnReady: curl -fsS -X POST http://swypik-prod-web-next-1:3000/api/internal/live/started -H "X-Internal: $INTERNAL_SECRET" -d "path=$MTX_PATH"
-runOnNotReady: curl -fsS -X POST http://swypik-prod-web-next-1:3000/api/internal/live/ended -H "X-Internal: $INTERNAL_SECRET" -d "path=$MTX_PATH"
+# Lifecycle hooks → notify Next.js (sub pathDefaults, quotate — YAML valid)
+pathDefaults:
+  runOnReady: "curl -fsS -X POST http://swypik-prod-web-next-1:3000/api/internal/live/started -H \"X-Internal: $INTERNAL_SECRET\" -d \"path=$MTX_PATH\""
+  runOnNotReady: "curl -fsS -X POST http://swypik-prod-web-next-1:3000/api/internal/live/ended -H \"X-Internal: $INTERNAL_SECRET\" -d \"path=$MTX_PATH\""
