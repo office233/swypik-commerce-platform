@@ -1044,6 +1044,7 @@ export async function GET() {
     phone: string | null;
     first_name: string | null;
     last_name: string | null;
+      bio: string | null;
     suspend_grace_until: string | null;
   }>(
     `SELECT
@@ -1058,6 +1059,7 @@ export async function GET() {
        u.phone,
        u.first_name,
        u.last_name,
+         u.bio,
        u.suspend_grace_until
      FROM user_sessions us
      JOIN users u ON u.id = us.user_id
@@ -1098,6 +1100,7 @@ export async function GET() {
       last_name: user.last_name,
       username: user.username,
       avatar_url: user.avatar_url,
+        bio: user.bio,
       role: user.role,
       phone: user.phone || (user.metadata as { phone?: unknown })?.phone || null,
       emailVerified: Boolean(user.email_verified_at),
