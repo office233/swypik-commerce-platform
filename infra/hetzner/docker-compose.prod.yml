@@ -24,6 +24,7 @@ services:
         BUILD_COMMIT: ${BUILD_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
         DEPLOYED_AT: ${DEPLOYED_AT:-unknown}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
       dockerfile_inline: |
         # ── Build stage ──
         FROM node:20.19.0-alpine AS builder
@@ -38,6 +39,10 @@ services:
 
         # Build Next.js in standalone mode for deploy images only.
         ENV NEXT_BUILD_STANDALONE=1
+          # NEXT_PUBLIC_* se inlineaza in bundle la BUILD, nu la runtime —
+          # fara ARG aici cheia Stripe ajunge "" si checkout-ul crapa.
+          ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+          ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         RUN npm run build
 
         # ── Runtime stage ──
