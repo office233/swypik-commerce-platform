@@ -62,10 +62,7 @@ async function cachedFetch(cacheKey: string, url: string): Promise<unknown | nul
 export async function geoSearch(q: string): Promise<GeoResult[]> {
   const query = q.trim().toLowerCase();
   if (query.length < 3) return [];
-  // Configurabil pentru extindere internațională (ex: "ro,de,hu"); gol = global.
-  const cc = (process.env.GEO_SEARCH_COUNTRYCODES ?? "ro").trim();
-  const ccParam = cc ? `&countrycodes=${encodeURIComponent(cc)}` : "";
-  const url = `${BASE}/search?format=jsonv2&addressdetails=1&limit=5${ccParam}&q=${encodeURIComponent(query)}`;
+  const url = `${BASE}/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=ro&q=${encodeURIComponent(query)}`;
   const data = await cachedFetch(`geo:search:${query}`, url);
   if (!Array.isArray(data)) return [];
   return (data as NominatimRow[])

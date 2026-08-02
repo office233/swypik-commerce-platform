@@ -111,7 +111,7 @@ export default async function PostPage({
   // Fire-and-forget view increment
   dbQuery(`UPDATE community_posts SET view_count = view_count + 1 WHERE id=$1`, [
     post.id,
-  ]).catch(() => {});
+  ]).catch(() => { });
 
   const { rows: items } = await dbQuery<ItemRow>(
     `SELECT

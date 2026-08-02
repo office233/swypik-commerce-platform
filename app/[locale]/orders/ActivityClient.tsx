@@ -7,12 +7,12 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "@/lib/i18n/navigation";
-import { UtensilsCrossed, Car, ChevronRight, RotateCcw, PackageOpen } from "lucide-react";
+import { UtensilsCrossed, Car, ShoppingBag, ChevronRight, RotateCcw, PackageOpen } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { useTranslations, useLocale } from "next-intl";
 
 type ActivityItem = {
-  kind: "food_order" | "ride";
+  kind: "food_order" | "ride" | "shop_order";
   id: string;
   status: string;
   ts: string;
@@ -26,12 +26,13 @@ type ActivityItem = {
 const ACTIVE_STATUSES = new Set([
   "placed", "accepted", "preparing", "ready", "picked_up", "delivering",
   "requested", "searching", "arriving", "in_progress",
+  "authorized", "paid",
 ]);
 
 const STATUS_KEYS = new Set([
   "placed", "accepted", "preparing", "ready", "picked_up", "delivering",
   "delivered", "cancelled", "rejected", "requested", "searching", "arriving",
-  "in_progress", "completed",
+  "in_progress", "completed", "authorized", "paid", "fulfilled", "refunded", "failed",
 ]);
 
 function fmtMoney(cents: number | null, currency: string): string {
@@ -140,18 +141,23 @@ export default function ActivityClient() {
         <ul className="space-y-3">
           {items.map((it) => {
             const active = ACTIVE_STATUSES.has(it.status);
-            const Icon = it.kind === "food_order" ? UtensilsCrossed : Car;
-            const accent = it.kind === "food_order" ? "#2DBE60" : "#7C3AED";
+            const Icon =
+              it.kind === "food_order" ? UtensilsCrossed
+              : it.kind === "shop_order" ? ShoppingBag
+              : Car;
+            const accent =
+              it.kind === "food_order" ? "#2DBE60"
+              : it.kind === "shop_order" ? "#F59E0B"
+              : "#7C3AED";
             return (
               <li key={`${it.kind}-${it.id}`}>
                 <Link
                   href={it.href}
                   onClick={() => haptic("tap")}
-                  className={`flex items-center gap-3 rounded-2xl border p-4 transition-colors ${
-                    active
+                  className={`flex items-center gap-3 rounded-2xl border p-4 transition-colors ${active
                       ? "border-transparent ring-1"
                       : "border-[#E5E5E5] dark:border-[#1F1F1F] hover:bg-[#FAFAFA] dark:hover:bg-[#111]"
-                  }`}
+                    }`}
                   style={active ? { boxShadow: `inset 0 0 0 1.5px ${accent}` } : undefined}
                 >
                   <span

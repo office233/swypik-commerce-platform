@@ -8,6 +8,7 @@ import { markLocalOrderPaid, markLocalOrderPaymentFailed } from "@/lib/payments/
 import { attributeOrder } from "@/lib/algo/attribution";
 import { logger } from "@/lib/logger";
 import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/swyp/hooks";
+import { markStayBookingPaidByCard, markStayBookingCardFailed } from "@/lib/stays/stripe-payment";
 import { APP_URL } from "@/lib/app-url";
 import { maybeSendOrderConfirmation, reclaimSwypForDeadIntent } from "./shared";
 
@@ -28,6 +29,9 @@ export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
     );
     // SWYP: recompensă șofer + referral pasager.
     await onRidePaid(intent.metadata.ride_id, intent.id);
+  } else if (intent.metadata?.kind === "stay_booking" && intent.metadata?.stay_booking_id) {
+    // Stays: rezervare plătită cu cardul → confirmare + credit gazdă.
+    await markStayBookingPaidByCard(intent.metadata.stay_booking_id);
   } else {
     await handlePaymentIntentSucceeded(intent);
   }
@@ -44,6 +48,9 @@ export async function handlePaymentIntentFailed(event: Stripe.Event) {
         WHERE id = $1 AND payment_status IN ('unpaid', 'authorized')`,
       [intent.metadata.ride_id],
     );
+  }
+  if (intent.metadata?.kind === "stay_booking" && intent.metadata?.stay_booking_id) {
+    await markStayBookingCardFailed(intent.metadata.stay_booking_id);
   }
   // SWYP: eșec DEFINITIV (intent anulat) → recreditează integral partea
   // SWYP. Un simplu card declinat (requires_payment_method) mai poate fi

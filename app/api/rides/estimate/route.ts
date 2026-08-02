@@ -14,7 +14,6 @@ import { resolveRideCity, NoZoneError } from "@/lib/rides/city";
 import { RideEstimateSchema } from "@/lib/validation/rides";
 import { parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
-import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,14 +21,13 @@ export const dynamic = "force-dynamic";
 const log = logger.child({ route: "rides/estimate" });
 
 export async function POST(req: Request) {
-    if (!isEnabled("go")) return frozenResponse("go");
     const session = await getAuthSession();
     if (!session?.userId) {
-        return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+        return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
     }
     const rl = await rateLimit("rideEstimate", session.userId);
     if (!rl.success) {
-        return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+        return NextResponse.json({ error: "Prea multe cereri." }, { status: 429 });
     }
 
     const body = await req.json().catch(() => null);
@@ -51,7 +49,7 @@ export async function POST(req: Request) {
     } catch (err) {
         if (err instanceof NoZoneError || (err as Error).message === "no_zone") {
             return NextResponse.json(
-                { error: "Swypik Go is not available in your area yet.", code: "no_zone" },
+                { error: "Swypik Go nu e disponibil încă în zona ta.", code: "no_zone" },
                 { status: 422 },
             );
         }

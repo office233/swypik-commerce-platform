@@ -122,8 +122,8 @@ export default function GoClient() {
             setError(t("noZone"));
             out[c.id] = null;
           } else {
-            // Nu afișăm stringul brut din server (e în RO) — cheie tradusă.
-            setError(t("estimateError"));
+            const data = await res.json().catch(() => ({}));
+            if (data.error) setError(data.error);
             out[c.id] = null;
           }
         }),
@@ -161,14 +161,7 @@ export default function GoClient() {
         return;
       }
       if (!res.ok) {
-        // Mesajele serverului nu sunt localizate — mapăm pe chei traduse.
-        setError(
-          res.status === 422
-            ? t("noZone")
-            : res.status === 409
-              ? t("activeRide")
-              : t("orderError"),
-        );
+        setError(res.status === 422 ? t("noZone") : (data.error ?? t("orderError")));
         return;
       }
       router.push(`/go/${data.ride_id}`);

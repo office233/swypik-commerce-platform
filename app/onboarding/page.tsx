@@ -72,8 +72,8 @@ export default function OnboardingPage() {
                   onClick={() => toggleTopic(topic.id)}
                   className={`
                     flex items-center gap-2 p-4 rounded-2xl transition-all duration-300 ease-out transform
-                    ${isSelected 
-                      ? 'bg-[#0D0D0D]/20 border-2 border-[#0D0D0D] scale-105 shadow-[0_0_15px_rgba(16,163,127,0.3)]' 
+                    ${isSelected
+                      ? 'bg-[#0D0D0D]/20 border-2 border-[#0D0D0D] scale-105 shadow-[0_0_15px_rgba(16,163,127,0.3)]'
                       : 'bg-white/5 border-2 border-transparent hover:bg-white/10 hover:scale-102'
                     }
                   `}
@@ -90,21 +90,21 @@ export default function OnboardingPage() {
           <p className="text-sm font-medium text-gray-400">
             <span className={selected.size >= 3 ? "text-[#0D0D0D]" : "text-white"}>{selected.size}</span>/5 selectate
           </p>
-          
+
           <button
             onClick={handleContinue}
             disabled={selected.size < 3 || loading}
             className={`
               w-full py-4 rounded-full font-bold text-lg transition-all duration-300
-              ${selected.size >= 3 
-                ? 'bg-[#0D0D0D] hover:bg-[#0e8c6c] text-white shadow-[0_0_20px_rgba(16,163,127,0.4)]' 
+              ${selected.size >= 3
+                ? 'bg-[#0D0D0D] hover:bg-[#0e8c6c] text-white shadow-[0_0_20px_rgba(16,163,127,0.4)]'
                 : 'bg-white/10 text-gray-500 cursor-not-allowed'
               }
             `}
           >
             {loading ? "Se configurează..." : "Începe →"}
           </button>
-          
+
           <button
             onClick={handleSkip}
             className="text-sm text-gray-500 hover:text-white transition-colors"

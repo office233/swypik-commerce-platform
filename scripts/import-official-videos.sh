@@ -1,10 +1,9 @@
 #!/bin/bash
 # Import video-uri royalty-free (Pexels, licență liberă) pe profilul oficial Swypik,
 # legate de destinații Swypik Fly prin metadata {vertical:"fly", iata}.
-# Rulează pe VPS sau în WSL local. BASE_URL configurabil (default local).
+# Rulează PE VPS. Creează sesiune admin temporară pentru API.
 set -e
 PSQL="docker exec swypik-prod-postgres-1 psql -U swypik -d swypik_prod -tAc"
-BASE_URL="${BASE_URL:-http://127.0.0.1:3005}"
 
 OFFICIAL_ID=$($PSQL "SELECT id FROM users WHERE username='swypik' LIMIT 1;")
 echo "official: $OFFICIAL_ID"
@@ -17,7 +16,7 @@ ADMIN_SECRET=$(docker exec swypik-prod-web-next-1 printenv ADMIN_SECRET)
 import_one() {
   local url="$1" title="$2" desc="$3" iata="$4" city="$5"
   echo "--- $title ($iata)"
-  curl -s -X POST "$BASE_URL/api/admin/videos" \
+  curl -s -X POST https://swypik.com/api/admin/videos \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $ADMIN_SECRET" \
     -d "{\"action\":\"import_url\",\"sourceUrl\":\"$url\",\"title\":\"$title\",\"description\":\"$desc\",\"creatorId\":\"$OFFICIAL_ID\",\"tags\":[\"travel\",\"fly\",\"$iata\"],\"metadata\":{\"vertical\":\"fly\",\"iata\":\"$iata\",\"city\":\"$city\",\"source\":\"pexels\",\"license\":\"pexels-free\"}}" | head -c 300

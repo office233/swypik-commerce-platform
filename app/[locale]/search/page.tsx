@@ -47,11 +47,11 @@ export default async function SearchPage({
   const results = tooShort
     ? { videos: [], creators: [], products: [], hashtags: [] }
     : await searchAll(q).catch(() => ({
-        videos: [],
-        creators: [],
-        products: [],
-        hashtags: [],
-      }));
+      videos: [],
+      creators: [],
+      products: [],
+      hashtags: [],
+    }));
 
   // Batched aggregate fetch for product cards — single query, no N+1.
   const productIds = results.products.map((p: any) => String(p.id));

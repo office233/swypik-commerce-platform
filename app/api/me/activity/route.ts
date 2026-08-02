@@ -1,11 +1,12 @@
 /**
  * GET /api/me/activity — flux unificat de activitate al clientului:
- * comenzile Eats (local_orders) + cursele Go (rides), într-o singură listă
- * cronologică (desc). Paginat cu ?page=1&limit=20.
+ * comenzile Eats (local_orders) + cursele Go (rides) + comenzile Shop
+ * (commerce_orders), într-o singură listă cronologică (desc).
+ * Paginat cu ?page=1&limit=20.
  *
  * Răspuns: { success, items: ActivityItem[], page, limit, has_more }
  *   ActivityItem = {
- *     kind: "food_order" | "ride",
+ *     kind: "food_order" | "ride" | "shop_order",
  *     id, status, ts (ISO), total_cents, currency,
  *     title (nume restaurant / adresă destinație),
  *     subtitle (nr. comandă / adresă pickup),
@@ -20,7 +21,7 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 export const dynamic = "force-dynamic";
 
 type ActivityRow = {
-  kind: "food_order" | "ride";
+  kind: "food_order" | "ride" | "shop_order";
   id: string;
   status: string;
   ts: string;
@@ -72,6 +73,26 @@ export async function GET(req: NextRequest) {
           r.pickup_address                                AS subtitle
         FROM rides r
         WHERE r.rider_user_id = $1
+
+        UNION ALL
+
+        SELECT
+          'shop_order'::text                              AS kind,
+          co.id::text                                     AS id,
+          co.status                                       AS status,
+          COALESCE(co.placed_at, co.created_at)           AS ts,
+          co.total_cents                                  AS total_cents,
+          co.currency::text                               AS currency,
+          COALESCE(
+            (SELECT string_agg(coi.title, ', ' ORDER BY coi.created_at)
+               FROM (SELECT title, created_at FROM commerce_order_items
+                      WHERE order_id = co.id LIMIT 3) coi),
+            'Comandă produse'
+          )                                               AS title,
+          ('#' || left(co.id::text, 8))                   AS subtitle
+        FROM commerce_orders co
+        WHERE co.buyer_user_id = $1
+          AND co.status <> 'pending'
       ) activity
       ORDER BY ts DESC
       LIMIT $2 OFFSET $3
@@ -83,7 +104,12 @@ export async function GET(req: NextRequest) {
     const items = rows.slice(0, limit).map((r) => ({
       ...r,
       ts: new Date(r.ts).toISOString(),
-      href: r.kind === "food_order" ? `/food/orders/${r.id}` : `/go/${r.id}`,
+      href:
+        r.kind === "food_order"
+          ? `/food/orders/${r.id}`
+          : r.kind === "shop_order"
+            ? `/account/orders/${r.id}`
+            : `/go/${r.id}`,
     }));
 
     return NextResponse.json({ success: true, items, page, limit, has_more: hasMore });

@@ -209,6 +209,27 @@ export default function MerchantPanelClient() {
     if (res.ok) void loadMenu();
   }
 
+  async function editItemPrice(item: MenuItem): Promise<void> {
+    const input = window.prompt(`Preț nou pentru „${item.name}" (lei):`, (item.price_cents / 100).toFixed(2));
+    if (input === null) return;
+    const price = Number(input.replace(",", "."));
+    if (!Number.isFinite(price) || price <= 0) return;
+    const res = await fetch(`/api/merchants/${merchantId}/menu`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item_id: item.id, price }),
+    });
+    if (res.ok) void loadMenu();
+  }
+
+  async function deleteItem(item: MenuItem): Promise<void> {
+    if (!window.confirm(`Ștergi „${item.name}" din meniu?`)) return;
+    const res = await fetch(`/api/merchants/${merchantId}/menu?item_id=${item.id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) void loadMenu();
+  }
+
   if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
   if (!merchant) return <div className="p-8 text-center text-gray-500">Niciun comerciant.</div>;
@@ -320,13 +341,27 @@ export default function MerchantPanelClient() {
               <span className={it.is_available ? "" : "text-gray-400 line-through"}>
                 {it.name} — {lei(it.price_cents)} lei
               </span>
-              <button
-                onClick={() => void toggleItemAvailable(it)}
-                className={`rounded px-2 py-1 text-xs font-medium ${it.is_available ? "bg-gray-200 text-gray-700" : "bg-green-100 text-green-700"
-                  }`}
-              >
-                {it.is_available ? "Dezactivează" : "Activează"}
-              </button>
+              <span className="flex items-center gap-1.5">
+                <button
+                  onClick={() => void editItemPrice(it)}
+                  className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+                >
+                  Preț
+                </button>
+                <button
+                  onClick={() => void toggleItemAvailable(it)}
+                  className={`rounded px-2 py-1 text-xs font-medium ${it.is_available ? "bg-gray-200 text-gray-700" : "bg-green-100 text-green-700"
+                    }`}
+                >
+                  {it.is_available ? "Dezactivează" : "Activează"}
+                </button>
+                <button
+                  onClick={() => void deleteItem(it)}
+                  className="rounded bg-red-50 px-2 py-1 text-xs font-medium text-red-600"
+                >
+                  Șterge
+                </button>
+              </span>
             </li>
           ))}
         </ul>

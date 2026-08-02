@@ -69,14 +69,7 @@ export default function FlyClient() {
     // Randat doar după mount: `today`/`Date` diferă între server și client
     // și ar provoca hydration mismatch (secțiunea ar dispărea).
     const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        setMounted(true);
-        // Deep-link din feed: /fly?dest=BCN precompletează destinația.
-        const dest = new URLSearchParams(window.location.search).get("dest");
-        if (dest && /^[A-Za-z]{3}$/.test(dest)) {
-            setForm((f) => ({ ...f, destination: dest.toUpperCase() }));
-        }
-    }, []);
+    useEffect(() => setMounted(true), []);
     const [deals, setDeals] = useState<Deal[] | null>(null);
     useEffect(() => {
         fetch("/api/fly/deals?origin=OTP")

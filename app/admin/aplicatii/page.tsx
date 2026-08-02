@@ -86,14 +86,14 @@ async function loadAll(): Promise<UnifiedApp[]> {
              NULL AS city, ca.status, ca.created_at::text
         FROM creator_applications ca LEFT JOIN users u ON u.id = ca.user_id
        ORDER BY ca.created_at DESC LIMIT 50`),
-           safe(`SELECT 'restaurant' AS source, id::text, name,
+        safe(`SELECT 'restaurant' AS source, id::text, name,
                CONCAT(COALESCE(address, ''), ' · ', COALESCE(phone, '')) AS detail,
                location_city AS city, status, created_at::text
            FROM local_merchants WHERE seller_id IS NULL OR status = 'pending'
           ORDER BY created_at DESC LIMIT 50`),
     ]);
 
-        return [...couriers, ...franchises, ...sellers, ...hosts, ...creators, ...merchants]
+    return [...couriers, ...franchises, ...sellers, ...hosts, ...creators, ...merchants]
         .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 }
 
