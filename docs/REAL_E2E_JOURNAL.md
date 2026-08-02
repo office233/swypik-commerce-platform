@@ -84,6 +84,26 @@
 | Re-test checkout după rebuild | Stripe Elements se încarcă | în curs | ÎN CURS |
 | Re-test checkout după rebuild cu build-arg | pagina se randează | PASS: „Swypik Checkout" complet — produs, cantitate +/−, sumar, total 2.499,99 RON, iframe-uri Stripe încărcate (3) | PASS |
 | Payment intent | client_secret | 401 de la Stripe: `STRIPE_SECRET_KEY=sk_placeholder` în .env.production — NU există chei reale de test în mediu. UI-ul tratează grațios („Plățile cu cardul nu sunt disponibile momentan"). | **LIMITARE MEDIU** — documentat în BACKLOG: setați chei Stripe test (sk_test_/pk_test_) și re-testați plata cu 4242 4242 4242 4242 |
+
+## 2026-08-02 — P4 Fly (shopper, mobil)
+
+| Pas | Așteptat | Observat | Verdict |
+|---|---|---|---|
+| `/fly` — pagină + destinații populare cu prețuri live | se încarcă | grid destinații (Viena, Barcelona…), form căutare complet | PASS |
+| Click destinație Viena → căutare | rezultate reale | 20 zboruri Duffel/Lufthansa OTP→VIE, filtre (directe/ieftine/rapide), prețuri finale RON | PASS |
+| Selectare zbor 373,51 RON | formular pasageri | „Pasageri & plată" cu câmpuri complete; validare corectă (butoanele Wallet/Card dezactivate până la completare) | PASS |
+| Completare date pasager + Card | rezervare/plată | POST `/api/fly/orders` → 500: aceeași cheie `sk_placeholder`; UI arată clar „Rezervarea a eșuat" | LIMITARE MEDIU (aceeași cheie Stripe; fluxul e corect până la plată) |
+
+## 2026-08-02 — P5 Food + P6 Go (shopper, mobil)
+
+| Pas | Așteptat | Observat | Verdict |
+|---|---|---|---|
+| `/food` | listă restaurante | „Restaurantul Țest QA" afișat, badge ÎNCHIS, 45–60 min, livrare gratuită — comanda nu se poate testa (restaurantul e închis; corect ca logică de program) | PASS parțial (comanda blocată de program — de testat cu restaurant deschis) |
+| `/go` — adrese cu autocomplete | sugestii geocoding | sugestii reale (Nominatim) pentru Piața Unirii + Otopeni | PASS |
+| Estimare cursă | prețuri pe categorii | Economy 72 / Comfort 98 / Van 125 RON, ~49 min • 20.3 km | PASS |
+| Comandă Economy | cursă creată + dispatch | ride `f93070a8` creat, ecran „Căutăm un șofer în zonă… (2 km)" cu timer, SOS 112, Distribuie cursa | PASS |
+| Anulare gratuită | cursă anulată | „Cursă anulată — Anulare gratuită" + chestionar motiv | PASS |
+| Notă UX | — | după anulare, dialogul „De ce anulezi?" rămâne cu „Anulează cursa" disabled — ordinea e ciudată (anularea s-a făcut deja) | BACKLOG minor |
 ## 2026-08-02 — Redesign Explorează TikTok-style
 
 | Pas | Așteptat | Observat | Verdict |
