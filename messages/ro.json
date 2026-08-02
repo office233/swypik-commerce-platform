@@ -2959,5 +2959,10 @@
   "manageAvailabilityCalendar": {
     "blocheaza": "Blochează (",
     "deblocheaza": "Deblochează"
+  },
+  "livePage": {
+    "title": "Live acum",
+    "empty": "Niciun stream activ.",
+    "fallbackTitle": "Live stream"
   }
 }
