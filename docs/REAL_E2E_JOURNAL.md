@@ -114,6 +114,26 @@
 | Pagini seller (orders/products/listings/returns/settings/merchant) | 200 | toate 200 | PASS |
 | `/seller/payouts` | 200 | **500** — `column "stripe_payouts_enabled" does not exist`: pagina citește coloane Stripe Connect de pe `sellers`, dar migrarea 20260730_0013 le-a adăugat doar pe `couriers` | **FAIL P1 → FIXED** (08799656: migrare aditivă 20260802_0001, aplicată; pagina afișează corect „Cont Stripe Connect lipsă") |
 | `/admin` login cu parolă + 12 pagini (health/users/applications/refunds/commissions/creators/pricing/strikes/fleet/risk/hosts/reviews) | toate 200 | login 200, toate paginile 200 cu sesiune | PASS |
+
+## 2026-08-02 — SMOKE FINAL pe https://swypik.com
+
+20 rute cheie (home, explore, profil, auth, cart, checkout, fly, food, go, pay, search, cauze/developers/apps, live, seller, admin, health): **toate 200** (checkout 307 = redirect login, corect). Feed pin: clipul E2E primul, likes=1, comments=1 — datele de test persistă.
+
+## BILANȚ SESIUNE (2026-08-02)
+
+**Bug-uri REALE găsite testând ca om și FIXATE (9):**
+1. P0 — upload clip imposibil (presign pe hostname intern MinIO) — cd013c42
+2. P0 — checkout complet gol (cheia publică Stripe lipsea din bundle) — c96ef8b5+cdd424b4
+3. P1 — bio șters la fiecare salvare de profil — eab68282
+4. P1 — buton „Salvează" profil neapăsabil pe mobil (sub bottom-nav) — fbd2cf9a
+5. P1 — /seller/payouts 500 (coloane Stripe Connect lipsă pe sellers) — 08799656
+6. P1 — /cauze, /developers, /apps dădeau 404 (middleware) — 903b0bb9
+7. P1 — deep-link ?v= nu deschidea clipul țintit — dae0ee00
+8. P2 — 3 chei i18n lipsă accountEdit — 180aa17d
+9. P2 — search.spec E2E picat pe locale — 8bdbb99b
+
+**Redesign Explorează TikTok-style**: livrat (67d315ec) + validat vizual mobil + live.
+**Rămase în BACKLOG** (docs/BACKLOG.md): chei Stripe test (blocant plăți), UX toast coș, SW update, prompt login la 401, i18n /u/[username], food cu restaurant deschis.
 ## 2026-08-02 — Redesign Explorează TikTok-style
 
 | Pas | Așteptat | Observat | Verdict |
