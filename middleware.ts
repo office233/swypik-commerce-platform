@@ -30,6 +30,9 @@ const NON_LOCALIZED_PREFIXES = [
   "/unsubscribe",
   "/r",
   "/courier",
+    "/cauze",
+    "/developers",
+    "/apps",
 ];
 
 function isNonLocalized(pathname: string): boolean {
