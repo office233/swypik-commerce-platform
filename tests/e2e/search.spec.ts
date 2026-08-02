@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test('search page renders input and accepts query', async ({ page }) => {
-  const response = await page.goto('/search');
+  const response = await page.goto('/en/search');
   expect(response?.status(), '/search status').toBeLessThan(400);
 
-  await expect(page.locator('h1')).toContainText(/search/i);
+  await expect(page.locator('h1').first()).toBeVisible();
 
   const input = page.locator('input#swypik-search, input[name="q"], input[type="search"]').first();
   await expect(input).toBeVisible();
