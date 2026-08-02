@@ -21,9 +21,8 @@
 
 ## i18n / UI
 
-- [ ] 461 stringuri hardcodate în 126 fișiere `.tsx` (docs/HARDCODE_AUDIT.md) — fixare pe loturi; prioritate paginile publice `[locale]/`, apoi seller/admin/courier.
+- [ ] Explore: la like/save/follow ca nelogat, API-ul dă 401 dar UI-ul face doar revert silențios — deschide modal/redirect login (UX P1).
 
 ## Curățenie (Faza 4 — din docs/DEAD_CODE.md)
 
-- [ ] Ștergere scripturi VPS + one-shot; arhivare debug; `.gitignore` pentru `tmp-*`, `*.log`.
 - [ ] Componente/rute neimportate (rulează `scripts/audit-dead-code.mjs`).

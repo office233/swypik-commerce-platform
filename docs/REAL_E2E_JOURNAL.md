@@ -29,7 +29,15 @@
 
 ## Urmează
 
-- Re-test crawl după deploy 903b0bb9
-- Personaje P1–P7 în browser (mobil 390×844 + desktop)
-- Redesign Explorează TikTok-style
-- Smoke final pe https://swypik.com
+- Personaje P1–P7 cap-coadă în browser (mobil 390×844 + desktop)
+- Smoke final P1–P7 pe https://swypik.com
+
+## 2026-08-02 — Redesign Explorează TikTok-style
+
+| Pas | Așteptat | Observat | Verdict |
+|---|---|---|---|
+| Crawl re-test după fix middleware | /cauze /developers /apps = 200 | 200/200/200, crawl complet 0 FAIL | PASS |
+| Redesign: action rail dreapta (avatar+follow, like, comentarii, save, share cu contoare), snap-scroll, CommentsSheet bottom-sheet | UI TikTok-style pe mobil 390×844 | Rail vizibil cu toate 5 acțiunile, contoare 0 (date reale), cockpit produs păstrat cu Alternative+Cart; UI vechi „Merită/Nu merită"+coin-burst ELIMINAT din cod (commit 67d315ec) | PASS |
+| Verificare vizuală screenshot mobil | fără suprapuneri, gradient ok | OK (screenshot în sesiune) | PASS |
+| Like ca vizitator nelogat | 401 + invitație login | 401 primit, dar UI face doar revert silențios — fără prompt de login | **FAIL parțial → BACKLOG** (UX: deschide modal login la 401) |
+| Redesign live pe swypik.com | action-bar în HTML | prezent, /en/explore = 200 | PASS |
