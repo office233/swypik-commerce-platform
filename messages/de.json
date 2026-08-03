@@ -2970,5 +2970,29 @@
     "title": "Jetzt live",
     "empty": "Keine aktiven Streams.",
     "fallbackTitle": "Live-Stream"
+  },
+  "commentsSheet": {
+    "title": "Kommentare",
+    "total": "{count} insgesamt",
+    "close": "Kommentare schließen",
+    "loading": "Wird geladen...",
+    "retry": "Erneut versuchen",
+    "emptyTitle": "Noch keine Kommentare",
+    "emptySubtitle": "Starte die Unterhaltung über diesen Clip.",
+    "replyingTo": "Antwort an {name}",
+    "cancel": "Abbrechen",
+    "replyPlaceholder": "Antwort schreiben...",
+    "commentPlaceholder": "Kommentar hinzufügen...",
+    "send": "Kommentar senden",
+    "loadError": "Kommentare konnten nicht geladen werden.",
+    "emptyError": "Schreibe einen Kommentar, bevor du sendest.",
+    "tooLongError": "Der Kommentar darf höchstens 500 Zeichen lang sein.",
+    "submitError": "Kommentar wurde nicht gesendet.",
+    "sentToModeration": "Kommentar wurde zur Moderation gesendet.",
+    "now": "jetzt",
+    "reply": "Antworten",
+    "unlike": "Gefällt mir zurücknehmen",
+    "likeComment": "Kommentar gefällt mir",
+    "likeReply": "Antwort gefällt mir"
   }
 }

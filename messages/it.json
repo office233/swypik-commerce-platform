@@ -2970,5 +2970,29 @@
     "title": "In diretta ora",
     "empty": "Nessuno stream attivo.",
     "fallbackTitle": "Streaming dal vivo"
+  },
+  "commentsSheet": {
+    "title": "Commenti",
+    "total": "{count} in totale",
+    "close": "Chiudi i commenti",
+    "loading": "Caricamento...",
+    "retry": "Riprova",
+    "emptyTitle": "Ancora nessun commento",
+    "emptySubtitle": "Inizia la conversazione su questo clip.",
+    "replyingTo": "Rispondi a {name}",
+    "cancel": "Annulla",
+    "replyPlaceholder": "Scrivi una risposta...",
+    "commentPlaceholder": "Aggiungi un commento...",
+    "send": "Invia commento",
+    "loadError": "Impossibile caricare i commenti.",
+    "emptyError": "Scrivi un commento prima di inviare.",
+    "tooLongError": "Il commento deve contenere al massimo 500 caratteri.",
+    "submitError": "Il commento non è stato inviato.",
+    "sentToModeration": "Il commento è stato inviato alla moderazione.",
+    "now": "adesso",
+    "reply": "Rispondi",
+    "unlike": "Rimuovi mi piace",
+    "likeComment": "Mi piace il commento",
+    "likeReply": "Mi piace la risposta"
   }
 }

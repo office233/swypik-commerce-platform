@@ -2970,5 +2970,29 @@
     "title": "Ao vivo agora",
     "empty": "Nenhuma transmissão ativa.",
     "fallbackTitle": "Transmissão ao vivo"
+  },
+  "commentsSheet": {
+    "title": "Comentários",
+    "total": "{count} no total",
+    "close": "Fechar comentários",
+    "loading": "A carregar...",
+    "retry": "Tentar novamente",
+    "emptyTitle": "Ainda não há comentários",
+    "emptySubtitle": "Comece a conversa sobre este clipe.",
+    "replyingTo": "A responder a {name}",
+    "cancel": "Cancelar",
+    "replyPlaceholder": "Escreva uma resposta...",
+    "commentPlaceholder": "Adicione um comentário...",
+    "send": "Enviar comentário",
+    "loadError": "Não foi possível carregar os comentários.",
+    "emptyError": "Escreva um comentário antes de enviar.",
+    "tooLongError": "O comentário deve ter no máximo 500 caracteres.",
+    "submitError": "O comentário não foi enviado.",
+    "sentToModeration": "O comentário foi enviado para moderação.",
+    "now": "agora",
+    "reply": "Responder",
+    "unlike": "Remover gosto",
+    "likeComment": "Gostar do comentário",
+    "likeReply": "Gostar da resposta"
   }
 }

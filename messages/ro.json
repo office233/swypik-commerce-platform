@@ -2970,5 +2970,29 @@
     "title": "Live acum",
     "empty": "Niciun stream activ.",
     "fallbackTitle": "Live stream"
+  },
+  "commentsSheet": {
+    "title": "Comentarii",
+    "total": "{count} total",
+    "close": "Închide comentariile",
+    "loading": "Se încarcă...",
+    "retry": "Reîncearcă",
+    "emptyTitle": "Nu sunt comentarii încă",
+    "emptySubtitle": "Începe conversația despre clip.",
+    "replyingTo": "Răspunzi lui {name}",
+    "cancel": "Renunță",
+    "replyPlaceholder": "Scrie un răspuns...",
+    "commentPlaceholder": "Adaugă un comentariu...",
+    "send": "Trimite comentariul",
+    "loadError": "Nu am putut încărca comentariile.",
+    "emptyError": "Scrie un comentariu înainte să trimiți.",
+    "tooLongError": "Comentariul trebuie să aibă cel mult 500 de caractere.",
+    "submitError": "Comentariul nu a fost trimis.",
+    "sentToModeration": "Comentariul a fost trimis la moderare.",
+    "now": "acum",
+    "reply": "Răspunde",
+    "unlike": "Anulează aprecierea",
+    "likeComment": "Apreciază comentariul",
+    "likeReply": "Apreciază răspunsul"
   }
 }

@@ -2970,5 +2970,29 @@
     "title": "Live now",
     "empty": "No active streams.",
     "fallbackTitle": "Live stream"
+  },
+  "commentsSheet": {
+    "title": "Comments",
+    "total": "{count} total",
+    "close": "Close comments",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "emptyTitle": "No comments yet",
+    "emptySubtitle": "Start the conversation about this clip.",
+    "replyingTo": "Replying to {name}",
+    "cancel": "Cancel",
+    "replyPlaceholder": "Write a reply...",
+    "commentPlaceholder": "Add a comment...",
+    "send": "Send comment",
+    "loadError": "Could not load comments.",
+    "emptyError": "Write a comment before sending.",
+    "tooLongError": "Comment must be at most 500 characters.",
+    "submitError": "Comment was not sent.",
+    "sentToModeration": "Comment was sent to moderation.",
+    "now": "now",
+    "reply": "Reply",
+    "unlike": "Unlike",
+    "likeComment": "Like comment",
+    "likeReply": "Like reply"
   }
 }

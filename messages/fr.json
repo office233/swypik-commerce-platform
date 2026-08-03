@@ -2970,5 +2970,29 @@
     "title": "En direct",
     "empty": "Aucun stream actif.",
     "fallbackTitle": "Stream en direct"
+  },
+  "commentsSheet": {
+    "title": "Commentaires",
+    "total": "{count} au total",
+    "close": "Fermer les commentaires",
+    "loading": "Chargement...",
+    "retry": "Réessayer",
+    "emptyTitle": "Pas encore de commentaires",
+    "emptySubtitle": "Lancez la conversation sur ce clip.",
+    "replyingTo": "Réponse à {name}",
+    "cancel": "Annuler",
+    "replyPlaceholder": "Écrire une réponse...",
+    "commentPlaceholder": "Ajouter un commentaire...",
+    "send": "Envoyer le commentaire",
+    "loadError": "Impossible de charger les commentaires.",
+    "emptyError": "Écrivez un commentaire avant d'envoyer.",
+    "tooLongError": "Le commentaire doit contenir au plus 500 caractères.",
+    "submitError": "Le commentaire n'a pas été envoyé.",
+    "sentToModeration": "Le commentaire a été envoyé en modération.",
+    "now": "maintenant",
+    "reply": "Répondre",
+    "unlike": "Retirer le j'aime",
+    "likeComment": "Aimer le commentaire",
+    "likeReply": "Aimer la réponse"
   }
 }
