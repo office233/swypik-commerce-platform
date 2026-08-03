@@ -295,7 +295,9 @@
     "verificiScorulSwypikRecenziile": "Tu vérifies le Swypik Score, les avis et le prix.",
     "adaugiInCosSi": "Tu ajoutes au panier et paies en toute sécurité avec Stripe.",
     "primestiProdusulIn514": "Tu reçois le produit en 5-14 jours, avec retour garanti 14 jours.",
-    "confidentialitate": "Confidentialité"
+    "confidentialitate": "Confidentialité",
+    "aboutTitle": "À propos de Swypik",
+    "aboutDescription": "La plateforme roumaine de vidéo-commerce : découvrez des produits en clips, commandez à manger, voyagez et payez en SWYP."
   },
   "becomeaseller": {
     "zeroBataiDeCap": "Zéro prise de tête.",
@@ -444,7 +446,9 @@
     "insightBestValue": "Meilleur rapport qualité-prix de sa catégorie",
     "insightFastDelivery": "Livraison rapide — {days} jours",
     "deliveryDays": "{days, plural, one {# jour} other {# jours}}",
-    "seeAllDetails": "Voir tous les détails"
+    "seeAllDetails": "Voir tous les détails",
+    "produsAdaugatInCos": "{title} ajouté au panier",
+    "totBundleulAdaugat": "Tout le pack ajouté !"
   },
   "recorder": {
     "inchide": "Fermer",
@@ -1017,7 +1021,9 @@
     "usernameDejaFolosit": "@{value} est déjà pris",
     "continuaCuGoogle": "Continuer avec Google",
     "continuaCuApple": "Continuer avec Apple",
-    "sau": "ou"
+    "sau": "ou",
+    "partnerHeading": "Devenez partenaire Swypik",
+    "becomePartnerBtn": "Devenir partenaire"
   },
   "authReset": {
     "tokenLipsa": "Token manquant dans l'URL.",
@@ -1101,7 +1107,8 @@
     "anuleaza": "Annuler",
     "inapoiBtn": "Retour",
     "continuaBtn": "Continuer",
-    "publicaProdusul": "Publier le produit"
+    "publicaProdusul": "Publier le produit",
+    "seSalveaza": "Enregistrement..."
   },
   "creatorDashboard": {
     "titlu": "Tableau de bord Créateur",
@@ -2094,7 +2101,8 @@
     "submitting": "Envoi…",
     "submitOrder": "Commander — {total}",
     "adresaDeLivrare": "Adresse de livraison *",
-    "cashLaLivrare": "Paiement à la livraison"
+    "cashLaLivrare": "Paiement à la livraison",
+    "minOrder": "Commande minimale : {amount}"
   },
   "foodOrders": {
     "title": "Mes commandes",
@@ -2286,7 +2294,8 @@
   "productFeed": {
     "loadingClips": "Chargement des clips...",
     "added": "Ajouté",
-    "cart": "Panier"
+    "cart": "Panier",
+    "niciunClipDisponibil": "Aucun clip disponible"
   },
   "reviewList": {
     "empty": "Pas encore d'avis. Soyez le premier à donner le vôtre.",
@@ -2437,7 +2446,13 @@
     "linkRate": "Cours SWYP (API live)",
     "linkRateDesc": "le fonds de couverture et la formule, transparent",
     "linkPublicPage": "Page publique SWYP",
-    "linkPublicPageDesc": "tokenomics en direct, trésoreries et prise de valeur"
+    "linkPublicPageDesc": "tokenomics en direct, trésoreries et prise de valeur",
+    "depositOpen": "Déposer des SWYP",
+    "depositClose": "Fermer le dépôt",
+    "depositHint": "Envoyez des SWYP depuis votre portefeuille externe à votre adresse ci-dessous.",
+    "depositCopy": "Copier l'adresse",
+    "depositCopied": "Adresse copiée !",
+    "depositNote": "Les dépôts on-chain sont crédités automatiquement en quelques minutes."
   },
   "causesPanel": {
     "verifPending": "En attente",
@@ -2994,5 +3009,41 @@
     "unlike": "Retirer le j'aime",
     "likeComment": "Aimer le commentaire",
     "likeReply": "Aimer la réponse"
+  },
+  "hostPanel": {
+    "title": "Panneau hôte",
+    "subtitle": "Gérez vos propriétés Swypik Stays",
+    "notApprovedTitle": "Compte hôte non actif",
+    "notApprovedBody": "Postulez pour devenir hôte :",
+    "notApprovedLink": "Devenir hôte",
+    "addListing": "Ajouter une propriété",
+    "newListing": "Nouvelle propriété",
+    "fieldTitle": "Titre",
+    "titlePlaceholder": "Ex. : Appartement central 2 pièces",
+    "fieldDescription": "Description",
+    "descPlaceholder": "Décrivez la propriété...",
+    "pricePerNight": "Prix / nuit (RON)",
+    "maxGuests": "Invités max.",
+    "photo": "Photo",
+    "preview": "Aperçu",
+    "change": "Changer",
+    "uploading": "Envoi en cours...",
+    "choosePhoto": "Choisir une photo",
+    "photoRequired": "La photo est obligatoire",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "guests": "invités",
+    "published": "Publié",
+    "draft": "Brouillon",
+    "perNight": "/nuit",
+    "unpublish": "Retirer",
+    "publish": "Publier",
+    "deleteConfirm": "Supprimer cette propriété ?",
+    "delete": "Supprimer",
+    "calendar": "Calendrier",
+    "empty": "Aucune propriété. Ajoutez la première !",
+    "uploadFailed": "Échec de l'envoi.",
+    "createFailed": "Échec de la création.",
+    "actionFailed": "L'action a échoué."
   }
 }

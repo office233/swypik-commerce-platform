@@ -295,7 +295,9 @@
     "verificiScorulSwypikRecenziile": "Verifica a Swypik Score, avaliações e preço.",
     "adaugiInCosSi": "Adiciona ao carrinho e pagas de forma segura com Stripe.",
     "primestiProdusulIn514": "Recebes o produto em 5-14 dias, com devolução garantida 14 dias.",
-    "confidentialitate": "Privacidade"
+    "confidentialitate": "Privacidade",
+    "aboutTitle": "Sobre a Swypik",
+    "aboutDescription": "A plataforma romena de video-commerce: descubra produtos por clipes, peça comida, viaje e pague com SWYP."
   },
   "becomeaseller": {
     "zeroBataiDeCap": "Zero complicações.",
@@ -444,7 +446,9 @@
     "insightBestValue": "Melhor custo-benefício da categoria",
     "insightFastDelivery": "Entrega rápida — {days} dias",
     "deliveryDays": "{days, plural, one {# dia} other {# dias}}",
-    "seeAllDetails": "Ver todos os detalhes"
+    "seeAllDetails": "Ver todos os detalhes",
+    "produsAdaugatInCos": "{title} adicionado ao carrinho",
+    "totBundleulAdaugat": "Pacote inteiro adicionado!"
   },
   "recorder": {
     "inchide": "Fechar",
@@ -1017,7 +1021,9 @@
     "usernameDejaFolosit": "@{value} já está em uso",
     "continuaCuGoogle": "Continuar com Google",
     "continuaCuApple": "Continuar com Apple",
-    "sau": "ou"
+    "sau": "ou",
+    "partnerHeading": "Torne-se parceiro Swypik",
+    "becomePartnerBtn": "Tornar-se parceiro"
   },
   "authReset": {
     "tokenLipsa": "Token em falta no URL.",
@@ -1101,7 +1107,8 @@
     "anuleaza": "Cancelar",
     "inapoiBtn": "Voltar",
     "continuaBtn": "Continuar",
-    "publicaProdusul": "Publicar produto"
+    "publicaProdusul": "Publicar produto",
+    "seSalveaza": "A guardar..."
   },
   "creatorDashboard": {
     "titlu": "Dashboard do Criador",
@@ -2094,7 +2101,8 @@
     "submitting": "A enviar…",
     "submitOrder": "Pedir — {total}",
     "adresaDeLivrare": "Endereço de entrega *",
-    "cashLaLivrare": "Dinheiro na entrega"
+    "cashLaLivrare": "Dinheiro na entrega",
+    "minOrder": "Pedido mínimo: {amount}"
   },
   "foodOrders": {
     "title": "Meus pedidos",
@@ -2286,7 +2294,8 @@
   "productFeed": {
     "loadingClips": "Carregando clipes...",
     "added": "Adicionado",
-    "cart": "Carrinho"
+    "cart": "Carrinho",
+    "niciunClipDisponibil": "Nenhum clipe disponível"
   },
   "reviewList": {
     "empty": "Nenhuma avaliação ainda. Seja o primeiro a opinar.",
@@ -2437,7 +2446,13 @@
     "linkRate": "Taxa SWYP (API ao vivo)",
     "linkRateDesc": "o fundo de cobertura e a fórmula, transparente",
     "linkPublicPage": "Página pública SWYP",
-    "linkPublicPageDesc": "tokenomics ao vivo, tesourarias e como ganha valor"
+    "linkPublicPageDesc": "tokenomics ao vivo, tesourarias e como ganha valor",
+    "depositOpen": "Depositar SWYP",
+    "depositClose": "Fechar depósito",
+    "depositHint": "Envie SWYP da sua carteira externa para o seu endereço abaixo.",
+    "depositCopy": "Copiar endereço",
+    "depositCopied": "Endereço copiado!",
+    "depositNote": "Depósitos on-chain são creditados automaticamente em minutos."
   },
   "causesPanel": {
     "verifPending": "Pendente",
@@ -2994,5 +3009,41 @@
     "unlike": "Remover gosto",
     "likeComment": "Gostar do comentário",
     "likeReply": "Gostar da resposta"
+  },
+  "hostPanel": {
+    "title": "Painel do anfitrião",
+    "subtitle": "Gerencie suas propriedades Swypik Stays",
+    "notApprovedTitle": "Conta de anfitrião não ativa",
+    "notApprovedBody": "Candidate-se para ser anfitrião:",
+    "notApprovedLink": "Torne-se anfitrião",
+    "addListing": "Adicionar propriedade",
+    "newListing": "Nova propriedade",
+    "fieldTitle": "Título",
+    "titlePlaceholder": "Ex.: Apartamento central de 2 quartos",
+    "fieldDescription": "Descrição",
+    "descPlaceholder": "Descreva a propriedade...",
+    "pricePerNight": "Preço / noite (RON)",
+    "maxGuests": "Hóspedes máx.",
+    "photo": "Foto",
+    "preview": "Pré-visualização",
+    "change": "Alterar",
+    "uploading": "A carregar...",
+    "choosePhoto": "Escolha uma foto",
+    "photoRequired": "A foto é obrigatória",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "guests": "hóspedes",
+    "published": "Publicado",
+    "draft": "Rascunho",
+    "perNight": "/noite",
+    "unpublish": "Retirar",
+    "publish": "Publicar",
+    "deleteConfirm": "Eliminar esta propriedade?",
+    "delete": "Eliminar",
+    "calendar": "Calendário",
+    "empty": "Ainda sem propriedades. Adicione a primeira!",
+    "uploadFailed": "Falha no carregamento.",
+    "createFailed": "Falha na criação.",
+    "actionFailed": "A ação falhou."
   }
 }

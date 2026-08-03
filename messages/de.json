@@ -295,7 +295,9 @@
     "verificiScorulSwypikRecenziile": "Prüfe den Swypik Score, Bewertungen und Preis.",
     "adaugiInCosSi": "Lege in den Warenkorb und zahle sicher mit Stripe.",
     "primestiProdusulIn514": "Erhalte das Produkt in 5-14 Tagen mit 14 Tagen Rückgaberecht.",
-    "confidentialitate": "Datenschutz"
+    "confidentialitate": "Datenschutz",
+    "aboutTitle": "Über Swypik",
+    "aboutDescription": "Die rumänische Video-Commerce-Plattform: Entdecke Produkte über Clips, bestelle Essen, reise und bezahle mit SWYP."
   },
   "becomeaseller": {
     "zeroBataiDeCap": "Null Aufwand.",
@@ -444,7 +446,9 @@
     "insightBestValue": "Bestes Preis-Leistungs-Verhältnis seiner Kategorie",
     "insightFastDelivery": "Schnelle Lieferung — {days} Tage",
     "deliveryDays": "{days, plural, one {# Tag} other {# Tage}}",
-    "seeAllDetails": "Alle Details ansehen"
+    "seeAllDetails": "Alle Details ansehen",
+    "produsAdaugatInCos": "{title} zum Warenkorb hinzugefügt",
+    "totBundleulAdaugat": "Ganzes Bundle hinzugefügt!"
   },
   "recorder": {
     "inchide": "Schließen",
@@ -1017,7 +1021,9 @@
     "usernameDejaFolosit": "@{value} ist bereits vergeben",
     "continuaCuGoogle": "Mit Google fortfahren",
     "continuaCuApple": "Mit Apple fortfahren",
-    "sau": "oder"
+    "sau": "oder",
+    "partnerHeading": "Werde Swypik-Partner",
+    "becomePartnerBtn": "Partner werden"
   },
   "authReset": {
     "tokenLipsa": "Token in der URL fehlt.",
@@ -1101,7 +1107,8 @@
     "anuleaza": "Abbrechen",
     "inapoiBtn": "Zurück",
     "continuaBtn": "Weiter",
-    "publicaProdusul": "Produkt veröffentlichen"
+    "publicaProdusul": "Produkt veröffentlichen",
+    "seSalveaza": "Wird gespeichert..."
   },
   "creatorDashboard": {
     "titlu": "Creator-Dashboard",
@@ -2094,7 +2101,8 @@
     "submitting": "Wird gesendet…",
     "submitOrder": "Bestellen — {total}",
     "adresaDeLivrare": "Lieferadresse *",
-    "cashLaLivrare": "Barzahlung bei Lieferung"
+    "cashLaLivrare": "Barzahlung bei Lieferung",
+    "minOrder": "Mindestbestellung: {amount}"
   },
   "foodOrders": {
     "title": "Meine Bestellungen",
@@ -2286,7 +2294,8 @@
   "productFeed": {
     "loadingClips": "Clips werden geladen...",
     "added": "Hinzugefügt",
-    "cart": "Warenkorb"
+    "cart": "Warenkorb",
+    "niciunClipDisponibil": "Keine Clips verfügbar"
   },
   "reviewList": {
     "empty": "Noch keine Bewertungen. Sei der Erste mit einer Meinung.",
@@ -2437,7 +2446,13 @@
     "linkRate": "SWYP-Kurs (Live-API)",
     "linkRateDesc": "Deckungsfonds und Formel, transparent",
     "linkPublicPage": "Öffentliche SWYP-Seite",
-    "linkPublicPageDesc": "Live-Tokenomics, Treasuries und Wertentwicklung"
+    "linkPublicPageDesc": "Live-Tokenomics, Treasuries und Wertentwicklung",
+    "depositOpen": "SWYP einzahlen",
+    "depositClose": "Einzahlung schließen",
+    "depositHint": "Sende SWYP aus deiner externen Wallet an deine Adresse unten.",
+    "depositCopy": "Adresse kopieren",
+    "depositCopied": "Adresse kopiert!",
+    "depositNote": "On-Chain-Einzahlungen werden innerhalb von Minuten automatisch gutgeschrieben."
   },
   "causesPanel": {
     "verifPending": "Ausstehend",
@@ -2994,5 +3009,41 @@
     "unlike": "Gefällt mir zurücknehmen",
     "likeComment": "Kommentar gefällt mir",
     "likeReply": "Antwort gefällt mir"
+  },
+  "hostPanel": {
+    "title": "Gastgeber-Panel",
+    "subtitle": "Verwalte deine Swypik-Stays-Unterkünfte",
+    "notApprovedTitle": "Gastgeberkonto nicht aktiv",
+    "notApprovedBody": "Bewirb dich als Gastgeber:",
+    "notApprovedLink": "Gastgeber werden",
+    "addListing": "Unterkunft hinzufügen",
+    "newListing": "Neue Unterkunft",
+    "fieldTitle": "Titel",
+    "titlePlaceholder": "Z. B.: Zentrale 2-Zimmer-Wohnung",
+    "fieldDescription": "Beschreibung",
+    "descPlaceholder": "Beschreibe die Unterkunft...",
+    "pricePerNight": "Preis / Nacht (RON)",
+    "maxGuests": "Max. Gäste",
+    "photo": "Foto",
+    "preview": "Vorschau",
+    "change": "Ändern",
+    "uploading": "Wird hochgeladen...",
+    "choosePhoto": "Foto auswählen",
+    "photoRequired": "Foto ist erforderlich",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "guests": "Gäste",
+    "published": "Veröffentlicht",
+    "draft": "Entwurf",
+    "perNight": "/Nacht",
+    "unpublish": "Zurückziehen",
+    "publish": "Veröffentlichen",
+    "deleteConfirm": "Diese Unterkunft löschen?",
+    "delete": "Löschen",
+    "calendar": "Kalender",
+    "empty": "Noch keine Unterkünfte. Füge die erste hinzu!",
+    "uploadFailed": "Hochladen fehlgeschlagen.",
+    "createFailed": "Erstellung fehlgeschlagen.",
+    "actionFailed": "Aktion fehlgeschlagen."
   }
 }

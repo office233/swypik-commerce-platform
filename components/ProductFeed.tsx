@@ -563,7 +563,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
       <div className="feed-scroll flex items-center justify-center">
         <div className="px-8 text-center">
           <Package className="mx-auto mb-4 text-[#333]" size={48} />
-          <p className="font-black text-[#888]">Niciun clip disponibil</p>
+          <p className="font-black text-[#888]">{t("niciunClipDisponibil")}</p>
         </div>
       </div>
     );

@@ -381,7 +381,9 @@
     "verificiScorulSwypikRecenziile": "Verifici scorul Swypik, recenziile și prețul.",
     "adaugiInCosSi": "Adaugi în coș și plătești securizat cu Stripe.",
     "primestiProdusulIn514": "Primești produsul în 5-14 zile, cu retur garantat 14 zile.",
-    "confidentialitate": "Confidențialitate"
+    "confidentialitate": "Confidențialitate",
+    "aboutTitle": "Despre Swypik",
+    "aboutDescription": "Platforma românească de video-commerce: descoperă produse prin clipuri, comandă mâncare, călătorește și plătește cu SWYP."
   },
   "becomeaseller": {
     "zeroBataiDeCap": "Zero bătăi de cap.",
@@ -530,7 +532,9 @@
     "insightBestValue": "Best value în categoria sa",
     "insightFastDelivery": "Livrare rapidă — {days} zile",
     "deliveryDays": "{days, plural, one {# zi} few {# zile} other {# de zile}}",
-    "seeAllDetails": "Vezi toate detaliile"
+    "seeAllDetails": "Vezi toate detaliile",
+    "produsAdaugatInCos": "{title} adăugat în coș",
+    "totBundleulAdaugat": "Tot bundle-ul adăugat!"
   },
   "recorder": {
     "inchide": "Închide",
@@ -1103,7 +1107,9 @@
     "usernameDejaFolosit": "@{value} este deja folosit",
     "continuaCuGoogle": "Continuă cu Google",
     "continuaCuApple": "Continuă cu Apple",
-    "sau": "sau"
+    "sau": "sau",
+    "partnerHeading": "Devino partener Swypik",
+    "becomePartnerBtn": "Devino partener"
   },
   "authReset": {
     "tokenLipsa": "Token lipsă în URL.",
@@ -1187,7 +1193,8 @@
     "anuleaza": "Anulează",
     "inapoiBtn": "Înapoi",
     "continuaBtn": "Continuă",
-    "publicaProdusul": "Publică Produsul"
+    "publicaProdusul": "Publică Produsul",
+    "seSalveaza": "Se salvează..."
   },
   "creatorDashboard": {
     "titlu": "Dashboard Creator",
@@ -2094,7 +2101,8 @@
     "submitting": "Se trimite…",
     "submitOrder": "Comandă — {total}",
     "adresaDeLivrare": "Adresa de livrare *",
-    "cashLaLivrare": "Cash la livrare"
+    "cashLaLivrare": "Cash la livrare",
+    "minOrder": "Comandă minimă: {amount}"
   },
   "foodOrders": {
     "title": "Comenzile mele",
@@ -2286,7 +2294,8 @@
   "productFeed": {
     "loadingClips": "Se încarcă clipurile...",
     "added": "Adăugat",
-    "cart": "Coș"
+    "cart": "Coș",
+    "niciunClipDisponibil": "Niciun clip disponibil"
   },
   "reviewList": {
     "empty": "Niciun review încă. Fii primul care lasă o părere.",
@@ -2437,7 +2446,13 @@
     "linkRate": "Cursul SWYP (API live)",
     "linkRateDesc": "fondul de acoperire și formula, transparent",
     "linkPublicPage": "Pagina publică SWYP",
-    "linkPublicPageDesc": "tokenomics live, trezorerii și cum capătă valoare"
+    "linkPublicPageDesc": "tokenomics live, trezorerii și cum capătă valoare",
+    "depositOpen": "Depune SWYP",
+    "depositClose": "Închide depunerea",
+    "depositHint": "Trimite SWYP din portofelul extern la adresa ta de mai jos.",
+    "depositCopy": "Copiază adresa",
+    "depositCopied": "Adresă copiată!",
+    "depositNote": "Depozitele on-chain se creditează automat în câteva minute."
   },
   "causesPanel": {
     "verifPending": "În așteptare",
@@ -2994,5 +3009,41 @@
     "unlike": "Anulează aprecierea",
     "likeComment": "Apreciază comentariul",
     "likeReply": "Apreciază răspunsul"
+  },
+  "hostPanel": {
+    "title": "Panou gazdă",
+    "subtitle": "Gestionează-ți proprietățile Swypik Stays",
+    "notApprovedTitle": "Contul de gazdă nu e activ",
+    "notApprovedBody": "Aplică pentru a deveni gazdă:",
+    "notApprovedLink": "Devino gazdă",
+    "addListing": "Adaugă proprietate",
+    "newListing": "Proprietate nouă",
+    "fieldTitle": "Titlu",
+    "titlePlaceholder": "Ex: Apartament central cu 2 camere",
+    "fieldDescription": "Descriere",
+    "descPlaceholder": "Descrie proprietatea...",
+    "pricePerNight": "Preț / noapte (RON)",
+    "maxGuests": "Oaspeți maxim",
+    "photo": "Fotografie",
+    "preview": "Previzualizare",
+    "change": "Schimbă",
+    "uploading": "Se încarcă...",
+    "choosePhoto": "Alege o fotografie",
+    "photoRequired": "Fotografia este obligatorie",
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "guests": "oaspeți",
+    "published": "Publicat",
+    "draft": "Ciornă",
+    "perNight": "/noapte",
+    "unpublish": "Retrage",
+    "publish": "Publică",
+    "deleteConfirm": "Ștergi această proprietate?",
+    "delete": "Șterge",
+    "calendar": "Calendar",
+    "empty": "Nu ai încă proprietăți. Adaugă prima!",
+    "uploadFailed": "Încărcarea a eșuat.",
+    "createFailed": "Crearea a eșuat.",
+    "actionFailed": "Acțiunea a eșuat."
   }
 }

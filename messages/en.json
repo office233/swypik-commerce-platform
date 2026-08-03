@@ -381,7 +381,9 @@
     "verificiScorulSwypikRecenziile": "Check the Swypik Score, reviews, and price.",
     "adaugiInCosSi": "Add to cart and pay securely with Stripe.",
     "primestiProdusulIn514": "Get your product in 5-14 days, with 14-day returns guaranteed.",
-    "confidentialitate": "Privacy"
+    "confidentialitate": "Privacy",
+    "aboutTitle": "About Swypik",
+    "aboutDescription": "The Romanian video-commerce platform: discover products through clips, order food, travel and pay with SWYP."
   },
   "becomeaseller": {
     "zeroBataiDeCap": "Zero hassle.",
@@ -530,7 +532,9 @@
     "insightBestValue": "Best value in its category",
     "insightFastDelivery": "Fast delivery — {days} days",
     "deliveryDays": "{days, plural, one {# day} other {# days}}",
-    "seeAllDetails": "See all details"
+    "seeAllDetails": "See all details",
+    "produsAdaugatInCos": "{title} added to cart",
+    "totBundleulAdaugat": "Whole bundle added!"
   },
   "recorder": {
     "inchide": "Close",
@@ -1103,7 +1107,9 @@
     "usernameDejaFolosit": "@{value} is already taken",
     "continuaCuGoogle": "Continue with Google",
     "continuaCuApple": "Continue with Apple",
-    "sau": "or"
+    "sau": "or",
+    "partnerHeading": "Become a Swypik partner",
+    "becomePartnerBtn": "Become a partner"
   },
   "authReset": {
     "tokenLipsa": "Missing token in URL.",
@@ -1187,7 +1193,8 @@
     "anuleaza": "Cancel",
     "inapoiBtn": "Back",
     "continuaBtn": "Continue",
-    "publicaProdusul": "Publish product"
+    "publicaProdusul": "Publish product",
+    "seSalveaza": "Saving..."
   },
   "creatorDashboard": {
     "titlu": "Creator Dashboard",
@@ -2094,7 +2101,8 @@
     "submitting": "Sending…",
     "submitOrder": "Order — {total}",
     "adresaDeLivrare": "Delivery address *",
-    "cashLaLivrare": "Cash on delivery"
+    "cashLaLivrare": "Cash on delivery",
+    "minOrder": "Minimum order: {amount}"
   },
   "foodOrders": {
     "title": "My orders",
@@ -2286,7 +2294,8 @@
   "productFeed": {
     "loadingClips": "Loading clips...",
     "added": "Added",
-    "cart": "Cart"
+    "cart": "Cart",
+    "niciunClipDisponibil": "No clips available"
   },
   "reviewList": {
     "empty": "No reviews yet. Be the first to share your opinion.",
@@ -2437,7 +2446,13 @@
     "linkRate": "SWYP rate (live API)",
     "linkRateDesc": "the backing fund and the formula, transparent",
     "linkPublicPage": "SWYP public page",
-    "linkPublicPageDesc": "live tokenomics, treasuries and how it gains value"
+    "linkPublicPageDesc": "live tokenomics, treasuries and how it gains value",
+    "depositOpen": "Deposit SWYP",
+    "depositClose": "Close deposit",
+    "depositHint": "Send SWYP from your external wallet to your address below.",
+    "depositCopy": "Copy address",
+    "depositCopied": "Address copied!",
+    "depositNote": "On-chain deposits are credited automatically within minutes."
   },
   "causesPanel": {
     "verifPending": "Pending",
@@ -2994,5 +3009,41 @@
     "unlike": "Unlike",
     "likeComment": "Like comment",
     "likeReply": "Like reply"
+  },
+  "hostPanel": {
+    "title": "Host panel",
+    "subtitle": "Manage your Swypik Stays properties",
+    "notApprovedTitle": "Host account not active",
+    "notApprovedBody": "Apply to become a host:",
+    "notApprovedLink": "Become a host",
+    "addListing": "Add property",
+    "newListing": "New property",
+    "fieldTitle": "Title",
+    "titlePlaceholder": "E.g.: Central 2-room apartment",
+    "fieldDescription": "Description",
+    "descPlaceholder": "Describe the property...",
+    "pricePerNight": "Price / night (RON)",
+    "maxGuests": "Max guests",
+    "photo": "Photo",
+    "preview": "Preview",
+    "change": "Change",
+    "uploading": "Uploading...",
+    "choosePhoto": "Choose a photo",
+    "photoRequired": "Photo is required",
+    "save": "Save",
+    "cancel": "Cancel",
+    "guests": "guests",
+    "published": "Published",
+    "draft": "Draft",
+    "perNight": "/night",
+    "unpublish": "Unpublish",
+    "publish": "Publish",
+    "deleteConfirm": "Delete this property?",
+    "delete": "Delete",
+    "calendar": "Calendar",
+    "empty": "No properties yet. Add your first!",
+    "uploadFailed": "Upload failed.",
+    "createFailed": "Creation failed.",
+    "actionFailed": "Action failed."
   }
 }

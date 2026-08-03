@@ -295,7 +295,9 @@
     "verificiScorulSwypikRecenziile": "Verificas la puntuación Swypik, reseñas y precio.",
     "adaugiInCosSi": "Lo añades al carrito y pagas de forma segura con Stripe.",
     "primestiProdusulIn514": "Recibes el producto en 5-14 días, con devolución garantizada en 14 días.",
-    "confidentialitate": "Privacidad"
+    "confidentialitate": "Privacidad",
+    "aboutTitle": "Sobre Swypik",
+    "aboutDescription": "La plataforma rumana de video-commerce: descubre productos con clips, pide comida, viaja y paga con SWYP."
   },
   "becomeaseller": {
     "zeroBataiDeCap": "Sin complicaciones.",
@@ -444,7 +446,9 @@
     "insightBestValue": "La mejor relación calidad-precio de su categoría",
     "insightFastDelivery": "Entrega rápida — {days} días",
     "deliveryDays": "{days, plural, one {# día} other {# días}}",
-    "seeAllDetails": "Ver todos los detalles"
+    "seeAllDetails": "Ver todos los detalles",
+    "produsAdaugatInCos": "{title} añadido al carrito",
+    "totBundleulAdaugat": "¡Todo el paquete añadido!"
   },
   "recorder": {
     "inchide": "Cerrar",
@@ -1017,7 +1021,9 @@
     "usernameDejaFolosit": "@{value} ya está en uso",
     "continuaCuGoogle": "Continuar con Google",
     "continuaCuApple": "Continuar con Apple",
-    "sau": "o"
+    "sau": "o",
+    "partnerHeading": "Conviértete en socio de Swypik",
+    "becomePartnerBtn": "Hazte socio"
   },
   "authReset": {
     "tokenLipsa": "Falta el token en la URL.",
@@ -1101,7 +1107,8 @@
     "anuleaza": "Cancelar",
     "inapoiBtn": "Atrás",
     "continuaBtn": "Continuar",
-    "publicaProdusul": "Publicar producto"
+    "publicaProdusul": "Publicar producto",
+    "seSalveaza": "Guardando..."
   },
   "creatorDashboard": {
     "titlu": "Panel del creador",
@@ -2094,7 +2101,8 @@
     "submitting": "Enviando…",
     "submitOrder": "Pedir — {total}",
     "adresaDeLivrare": "Dirección de entrega *",
-    "cashLaLivrare": "Pago contra entrega"
+    "cashLaLivrare": "Pago contra entrega",
+    "minOrder": "Pedido mínimo: {amount}"
   },
   "foodOrders": {
     "title": "Mis pedidos",
@@ -2286,7 +2294,8 @@
   "productFeed": {
     "loadingClips": "Cargando clips...",
     "added": "Añadido",
-    "cart": "Cesta"
+    "cart": "Cesta",
+    "niciunClipDisponibil": "No hay clips disponibles"
   },
   "reviewList": {
     "empty": "Aún no hay reseñas. Sé el primero en opinar.",
@@ -2437,7 +2446,13 @@
     "linkRate": "Tipo SWYP (API en vivo)",
     "linkRateDesc": "el fondo de respaldo y la fórmula, transparente",
     "linkPublicPage": "Página pública de SWYP",
-    "linkPublicPageDesc": "tokenomics en vivo, tesorerías y cómo gana valor"
+    "linkPublicPageDesc": "tokenomics en vivo, tesorerías y cómo gana valor",
+    "depositOpen": "Depositar SWYP",
+    "depositClose": "Cerrar depósito",
+    "depositHint": "Envía SWYP desde tu billetera externa a tu dirección de abajo.",
+    "depositCopy": "Copiar dirección",
+    "depositCopied": "¡Dirección copiada!",
+    "depositNote": "Los depósitos on-chain se acreditan automáticamente en minutos."
   },
   "causesPanel": {
     "verifPending": "Pendiente",
@@ -2994,5 +3009,41 @@
     "unlike": "Quitar me gusta",
     "likeComment": "Me gusta el comentario",
     "likeReply": "Me gusta la respuesta"
+  },
+  "hostPanel": {
+    "title": "Panel de anfitrión",
+    "subtitle": "Gestiona tus propiedades de Swypik Stays",
+    "notApprovedTitle": "Cuenta de anfitrión no activa",
+    "notApprovedBody": "Solicita ser anfitrión:",
+    "notApprovedLink": "Conviértete en anfitrión",
+    "addListing": "Añadir propiedad",
+    "newListing": "Nueva propiedad",
+    "fieldTitle": "Título",
+    "titlePlaceholder": "Ej.: Apartamento céntrico de 2 habitaciones",
+    "fieldDescription": "Descripción",
+    "descPlaceholder": "Describe la propiedad...",
+    "pricePerNight": "Precio / noche (RON)",
+    "maxGuests": "Huéspedes máx.",
+    "photo": "Foto",
+    "preview": "Vista previa",
+    "change": "Cambiar",
+    "uploading": "Subiendo...",
+    "choosePhoto": "Elige una foto",
+    "photoRequired": "La foto es obligatoria",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "guests": "huéspedes",
+    "published": "Publicado",
+    "draft": "Borrador",
+    "perNight": "/noche",
+    "unpublish": "Retirar",
+    "publish": "Publicar",
+    "deleteConfirm": "¿Eliminar esta propiedad?",
+    "delete": "Eliminar",
+    "calendar": "Calendario",
+    "empty": "Aún no tienes propiedades. ¡Añade la primera!",
+    "uploadFailed": "Error al subir.",
+    "createFailed": "Error al crear.",
+    "actionFailed": "La acción falló."
   }
 }
