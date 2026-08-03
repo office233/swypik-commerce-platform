@@ -125,7 +125,8 @@ export async function POST(req: Request) {
     }
     const { order_id, tracking_number, tracking_url } = parsed.data;
     const trackingNumber = tracking_number;
-    const trackingUrl = tracking_url ?? `https://track24.net/?code=${encodeURIComponent(trackingNumber)}`;
+    const trackingTemplate = process.env.TRACKING_URL_TEMPLATE || "https://track24.net/?code={code}";
+    const trackingUrl = tracking_url ?? trackingTemplate.replace("{code}", encodeURIComponent(trackingNumber));
 
     const checkOrder = await dbQuery<{ status: string }>(
       `SELECT co.status

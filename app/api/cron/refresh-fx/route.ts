@@ -26,7 +26,8 @@ export async function GET(req: Request) {
   }
 
   return runCron("refresh-fx", async () => {
-  const url = `https://api.exchangerate.host/latest?base=EUR&symbols=${SYMBOLS.join(",")}`;
+  const fxApiBase = process.env.FX_API_URL || "https://api.exchangerate.host";
+  const url = `${fxApiBase}/latest?base=EUR&symbols=${SYMBOLS.join(",")}`;
   let data: { rates?: Record<string, number> } = {};
   try {
     const res = await fetch(url, { cache: "no-store" });
