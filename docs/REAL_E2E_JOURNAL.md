@@ -205,3 +205,9 @@
 
 Smoke prod: /explore, /u/abel_varga, /ro/account/preferences, /fly = 200.
 Nota BUG 4: cele 2 clipuri abel_varga erau deja failed+private in DB (nu a mai fost nevoie de UPDATE manual); cele 13 blocate global (conturi de test) au fost marcate failed de watchdog.
+
+### Validare vizuala browser (prod swypik.com, mobil 390x844)
+- Grila /u/qacreator2: href = /explore?v=<id>&creator_id=<uid> ✅
+- Player cu context: feed?creator_id → 1 clip (doar al creatorului), un singur handle in player ✅
+- Feed general fara context: 9 clipuri, neschimbat ✅
+- Deep-link ?v= fara context: clip tintit + feed general (compatibilitate share-uri vechi) ✅
