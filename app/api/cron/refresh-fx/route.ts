@@ -26,9 +26,11 @@ export async function GET(req: Request) {
   }
 
   return runCron("refresh-fx", async () => {
-    // frankfurter.app: gratuit, fara access_key, format compatibil {rates:{...}}.
+    // frankfurter: gratuit, fara access_key, format compatibil {rates:{...}}.
     // exchangerate.host a devenit paywalled (cere access_key) -> updated=0 silentios.
-    const fxApiBase = process.env.FX_API_URL || "https://api.frankfurter.app";
+    // 2026-08-03: domeniul canonic e api.frankfurter.dev/v1 (.app face 301 cu
+    // 522-uri intermitente pe Cloudflare -> FAIL-uri sporadice in cron).
+    const fxApiBase = process.env.FX_API_URL || "https://api.frankfurter.dev/v1";
     const accessKey = process.env.FX_API_ACCESS_KEY;
     const url = `${fxApiBase}/latest?base=EUR&symbols=${SYMBOLS.join(",")}${accessKey ? `&access_key=${accessKey}` : ""}`;
     let data: { rates?: Record<string, number> } = {};

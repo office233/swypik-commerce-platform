@@ -41,6 +41,13 @@ run_job() {
       date +%s > "${LASTOK_PREFIX}.${job}"
       return 0
       ;;
+    410)
+      # Feature inghetat intentionat (ex. process-payouts cand stripeConnect e
+      # frozen pentru MVP) — skip, nu FAIL: nu vrem zgomot in loguri/alerte.
+      echo "[cron] ${job} SKIP status=410 (feature_frozen)"
+      date +%s > "${LASTOK_PREFIX}.${job}"
+      return 0
+      ;;
     *)
       echo "[cron] ${job} FAIL status=${http_code} body=$(head -c 500 /tmp/cron.out 2>/dev/null | tr -d '\n')"
       return 1
