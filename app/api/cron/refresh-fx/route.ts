@@ -26,44 +26,52 @@ export async function GET(req: Request) {
   }
 
   return runCron("refresh-fx", async () => {
-  const fxApiBase = process.env.FX_API_URL || "https://api.exchangerate.host";
-  const url = `${fxApiBase}/latest?base=EUR&symbols=${SYMBOLS.join(",")}`;
-  let data: { rates?: Record<string, number> } = {};
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-      return NextResponse.json({ error: "upstream_failed", status: res.status }, { status: 502 });
-    }
-    data = await res.json();
-  } catch (err) {
-    return NextResponse.json({ error: "upstream_fetch_error", message: (err as Error).message }, { status: 502 });
-  }
-
-  const rates = data?.rates || {};
-  let updated = 0;
-  for (const quote of SYMBOLS) {
-    const rate = rates[quote];
-    if (typeof rate !== "number" || !isFinite(rate) || rate <= 0) continue;
+    // frankfurter.app: gratuit, fara access_key, format compatibil {rates:{...}}.
+    // exchangerate.host a devenit paywalled (cere access_key) -> updated=0 silentios.
+    const fxApiBase = process.env.FX_API_URL || "https://api.frankfurter.app";
+    const accessKey = process.env.FX_API_ACCESS_KEY;
+    const url = `${fxApiBase}/latest?base=EUR&symbols=${SYMBOLS.join(",")}${accessKey ? `&access_key=${accessKey}` : ""}`;
+    let data: { rates?: Record<string, number> } = {};
     try {
-      await dbQuery(
-        `INSERT INTO fx_rates (base, quote, rate, fetched_at)
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        return NextResponse.json({ error: "upstream_failed", status: res.status }, { status: 502 });
+      }
+      data = await res.json();
+    } catch (err) {
+      return NextResponse.json({ error: "upstream_fetch_error", message: (err as Error).message }, { status: 502 });
+    }
+
+    const rates = data?.rates || {};
+    let updated = 0;
+    for (const quote of SYMBOLS) {
+      const rate = rates[quote];
+      if (typeof rate !== "number" || !isFinite(rate) || rate <= 0) continue;
+      try {
+        await dbQuery(
+          `INSERT INTO fx_rates (base, quote, rate, fetched_at)
          VALUES ('EUR', $1, $2, now())
          ON CONFLICT (base, quote) DO UPDATE SET rate = EXCLUDED.rate, fetched_at = now()`,
-        [quote, rate],
-      );
-      updated++;
-    } catch (err) {
-      console.warn("[cron/refresh-fx] failed for", quote, (err as Error).message);
+          [quote, rate],
+        );
+        updated++;
+      } catch (err) {
+        console.warn("[cron/refresh-fx] failed for", quote, (err as Error).message);
+      }
     }
-  }
-  // Ensure EUR self-rate
-  await dbQuery(
-    `INSERT INTO fx_rates (base, quote, rate, fetched_at)
+    // Ensure EUR self-rate
+    await dbQuery(
+      `INSERT INTO fx_rates (base, quote, rate, fetched_at)
      VALUES ('EUR','EUR', 1.0, now())
      ON CONFLICT (base, quote) DO UPDATE SET rate = 1.0, fetched_at = now()`,
-  );
+    );
 
-  return NextResponse.json({ updated, ts: new Date().toISOString() });
+    if (updated === 0) {
+      // Nu masca esecul: upstream a raspuns 200 dar fara rate valide (ex. paywall).
+      return NextResponse.json({ error: "no_rates_updated", upstream: fxApiBase }, { status: 502 });
+    }
+
+    return NextResponse.json({ updated, ts: new Date().toISOString() });
   });
 }
 
