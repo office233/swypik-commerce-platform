@@ -3008,7 +3008,9 @@
     "reply": "Răspunde",
     "unlike": "Anulează aprecierea",
     "likeComment": "Apreciază comentariul",
-    "likeReply": "Apreciază răspunsul"
+    "likeReply": "Apreciază răspunsul",
+    "delete": "Șterge",
+    "deleteError": "Comentariul nu a putut fi șters."
   },
   "hostPanel": {
     "title": "Panou gazdă",

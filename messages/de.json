@@ -3008,7 +3008,9 @@
     "reply": "Antworten",
     "unlike": "Gefällt mir zurücknehmen",
     "likeComment": "Kommentar gefällt mir",
-    "likeReply": "Antwort gefällt mir"
+    "likeReply": "Antwort gefällt mir",
+    "delete": "Löschen",
+    "deleteError": "Kommentar konnte nicht gelöscht werden."
   },
   "hostPanel": {
     "title": "Gastgeber-Panel",

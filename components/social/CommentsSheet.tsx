@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Heart, Loader2, MessageCircle, RefreshCw, Reply, Send, X } from "lucide-react";
+import { Heart, Loader2, MessageCircle, RefreshCw, Reply, Send, Trash2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type CommentAuthor = {
@@ -68,6 +68,40 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
   const [count, setCount] = useState(() => parseCount(initialCount));
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [likePending, setLikePending] = useState<Set<string>>(new Set());
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [deletePending, setDeletePending] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/auth", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setViewerId(d?.customer?.id ?? d?.user?.id ?? null))
+      .catch(() => setViewerId(null));
+  }, [open]);
+
+  const deleteComment = useCallback(async (comment: CommentItem) => {
+    if (!videoId || deletePending.has(comment.id)) return;
+    setDeletePending((s) => { const n = new Set(s); n.add(comment.id); return n; });
+    try {
+      const res = await fetch(`/api/videos/${videoId}/comments?comment_id=${comment.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || t("deleteError"));
+      setComments((list) =>
+        list
+          .filter((c) => c.id !== comment.id)
+          .map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== comment.id) })),
+      );
+      const nextCount = Number(data.comment_count);
+      if (Number.isFinite(nextCount)) {
+        setCount(nextCount);
+        onCountChange?.(nextCount);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("deleteError"));
+    } finally {
+      setDeletePending((s) => { const n = new Set(s); n.delete(comment.id); return n; });
+    }
+  }, [videoId, deletePending, onCountChange, t]);
 
   const toggleCommentLike = useCallback(async (commentId: string) => {
     if (likePending.has(commentId)) return;
@@ -269,7 +303,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
           ) : (
             <div className="space-y-4">
               {comments.map((comment) => (
-                <CommentBlock key={comment.id} comment={comment} onReply={setReplyTo} onLike={toggleCommentLike} likedIds={likedIds} likingIds={likePending} />
+                <CommentBlock key={comment.id} comment={comment} onReply={setReplyTo} onLike={toggleCommentLike} likedIds={likedIds} likingIds={likePending} viewerId={viewerId} onDelete={deleteComment} deletingIds={deletePending} />
               ))}
             </div>
           )}
@@ -319,7 +353,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
   );
 }
 
-function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comment: CommentItem; onReply: (comment: CommentItem) => void; onLike: (id: string) => void; likedIds: Set<string>; likingIds: Set<string> }) {
+function CommentBlock({ comment, onReply, onLike, likedIds, likingIds, viewerId, onDelete, deletingIds }: { comment: CommentItem; onReply: (comment: CommentItem) => void; onLike: (id: string) => void; likedIds: Set<string>; likingIds: Set<string>; viewerId: string | null; onDelete: (comment: CommentItem) => void; deletingIds: Set<string> }) {
   const t = useTranslations("commentsSheet");
   return (
     <article>
@@ -349,6 +383,18 @@ function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comme
               <Reply size={13} />
               {t("reply")}
             </button>
+            {viewerId && comment.userId === viewerId && (
+              <button
+                type="button"
+                aria-label={t("delete")}
+                disabled={deletingIds.has(comment.id)}
+                onClick={() => onDelete(comment)}
+                className="inline-flex items-center gap-1 text-xs font-black text-[#6E6E80] disabled:opacity-60"
+              >
+                <Trash2 size={13} />
+                {t("delete")}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -381,6 +427,17 @@ function CommentBlock({ comment, onReply, onLike, likedIds, likingIds }: { comme
                   <button type="button" onClick={() => onReply(reply)} className="text-xs font-black text-[#6E6E80]">
                     {t("reply")}
                   </button>
+                  {viewerId && reply.userId === viewerId && (
+                    <button
+                      type="button"
+                      aria-label={t("delete")}
+                      disabled={deletingIds.has(reply.id)}
+                      onClick={() => onDelete(reply)}
+                      className="inline-flex items-center gap-1 text-xs font-black text-[#6E6E80] disabled:opacity-60"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

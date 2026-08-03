@@ -3008,7 +3008,9 @@
     "reply": "Répondre",
     "unlike": "Retirer le j'aime",
     "likeComment": "Aimer le commentaire",
-    "likeReply": "Aimer la réponse"
+    "likeReply": "Aimer la réponse",
+    "delete": "Supprimer",
+    "deleteError": "Impossible de supprimer le commentaire."
   },
   "hostPanel": {
     "title": "Panneau hôte",

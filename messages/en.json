@@ -3008,7 +3008,9 @@
     "reply": "Reply",
     "unlike": "Unlike",
     "likeComment": "Like comment",
-    "likeReply": "Like reply"
+    "likeReply": "Like reply",
+    "delete": "Delete",
+    "deleteError": "Could not delete the comment."
   },
   "hostPanel": {
     "title": "Host panel",

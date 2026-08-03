@@ -3008,7 +3008,9 @@
     "reply": "Responder",
     "unlike": "Quitar me gusta",
     "likeComment": "Me gusta el comentario",
-    "likeReply": "Me gusta la respuesta"
+    "likeReply": "Me gusta la respuesta",
+    "delete": "Eliminar",
+    "deleteError": "No se pudo eliminar el comentario."
   },
   "hostPanel": {
     "title": "Panel de anfitrión",

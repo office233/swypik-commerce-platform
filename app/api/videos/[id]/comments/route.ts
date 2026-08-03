@@ -368,3 +368,70 @@ export async function POST(
   }
 }
 
+/**
+ * DELETE /api/videos/[id]/comments?comment_id=... — autorul își șterge comentariul.
+ * Soft-delete (status='deleted'), decrementează comment_count pe video și
+ * reply_count pe părinte dacă e reply. (Audit 2026-08-03: ruta lipsea complet —
+ * UI-ul nu putea șterge comentarii.)
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const pool = getDb();
+  const client = await pool.connect();
+  try {
+    const { id: videoId } = await params;
+    const commentId = request.nextUrl.searchParams.get("comment_id")?.trim();
+    if (!commentId) {
+      return NextResponse.json({ error: "comment_id required" }, { status: 400 });
+    }
+    const session = await getOrCreateSocialUser();
+    if (!session.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await client.query("BEGIN");
+    const { rows } = await client.query(
+      `SELECT id, user_id, parent_comment_id FROM comments
+        WHERE id = $1 AND video_id = $2 AND status <> 'deleted'
+        FOR UPDATE`,
+      [commentId, videoId],
+    );
+    const comment = rows[0];
+    if (!comment) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+    }
+    if (comment.user_id !== session.userId) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await client.query(`UPDATE comments SET status = 'deleted' WHERE id = $1`, [commentId]);
+    const countRes = await client.query(
+      `UPDATE videos SET comment_count = GREATEST(comment_count - 1, 0)
+        WHERE id = $1 RETURNING comment_count`,
+      [videoId],
+    );
+    if (comment.parent_comment_id) {
+      await client.query(
+        `UPDATE comments SET reply_count = GREATEST(reply_count - 1, 0) WHERE id = $1`,
+        [comment.parent_comment_id],
+      );
+    }
+    await client.query("COMMIT");
+
+    return NextResponse.json({
+      success: true,
+      comment_count: Number(countRes.rows[0]?.comment_count ?? 0),
+    });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    logger.error({ err: error }, "[Comments API] DELETE Error:");
+    return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
