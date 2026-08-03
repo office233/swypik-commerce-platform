@@ -2,6 +2,23 @@
 
 > Actualizat 2026-08-02 (Faza 2). Prioritizare: P0 = risc financiar/securitate, P1 = important, P2 = nice-to-have.
 
+## Audit extern runda 2 (2026-08-03) — rămase conștient P1–P3
+
+| # | Problemă | Fișier | Sev. | Justificare amânare |
+|---|---|---|---|---|
+| 1 | P2P transfer on-chain fără idempotencyKey (dublu-tap = dublă emisie) | `app/api/swyp/transfer/route.ts:64` | P1 | Necesită migrare DB (UNIQUE user_id+key) + schimbare client; rate-limit strict există. De făcut într-un PR dedicat cu test de concurență. |
+| 2 | Cursor scan depozite fără tranzacție (FOR UPDATE în autocommit) | `lib/swyp/deposits.ts:33` | P1 | Cron-ul rulează single-instance în producție; tx_hash UNIQUE previne dublă creditare. Fix corect = advisory lock, planificat. |
+| 3 | `swypTransfer` deschide tranzacție separată în interiorul tranzacției stake (pool exhaustion teoretic) | `lib/swyp/staking.ts:137` | P1 | Necesită refactor swypTransfer parametrizabil cu query-runner — schimbare invazivă pe cod financiar; volum stake-uri actual mic. |
+| 4 | Datorie cash șofer nu scade referralDiscount | `lib/payments/mobility.ts:166` | P2 | Decizie de produs necesară (cine suportă discountul); contabilitatea actuală e conservatoare pentru platformă. |
+| 5 | Comentarii contradictorii referral (2% vs 50%) | `lib/drivers/referral.ts:11` | P2 | Doar documentație; valorile reale sunt constantele. |
+| 6 | COUNT(*) users pe fiecare mining status | `lib/swyp/mining.ts:44` | P2 | Sub 100k useri impact neglijabil; cache Redis planificat la scalare. |
+| 7 | Rate-limit fallback în memorie fără Redis | `lib/security/rate-limit.ts:80` | P2 | Producția ARE Redis configurat; riscul e doar la misconfig. |
+| 8 | Dust deposits marcate credited | `lib/swyp/deposits.ts:63` | P3 | Sume <0,01 SWYP; de adăugat status `dust` la următoarea migrare. |
+| 9 | `BigInt(Math.round(amountSwyp*100))` pe sume din JSON | `app/api/swyp/transfer:47` | P3 | Zod limitează plaja; parse pe string planificat. |
+| 10 | explorerUrl hardcodat ×4 în rute swyp | `app/api/swyp/*` | P3 | Există deja `SWYP_EXPLORER_URL` în chain-public.ts — de refolosit. |
+| 11 | aria-label RO/EN hardcodate (ChatInterface, ProductFeed, MobileDashboardNav, VerifiedBadge, VideoSection, colecții) | diverse | P2-P3 | Fix mecanic în lot separat; nu blochează fluxuri. |
+| 12 | `fmtLei` alias derutant în MenuClient | `MenuClient.tsx:209` | P3 | Redenumire cosmetică. |
+
 ## Securitate (din docs/SECURITY_AUDIT.md)
 
 - [ ] **P0 S1** — `POST /api/videos/[id]/view`: dedupe views cu fingerprint/user_id (afectează ranking + plăți creator). Repro: POST repetat prin proxy-uri.

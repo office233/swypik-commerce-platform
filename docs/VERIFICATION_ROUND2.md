@@ -61,3 +61,22 @@
 4. Faza B restantă: go vet/build, lint, vitest, docker build, crawl → `docs/CRAWL_REPORT.md`.
 5. Faza C: E2E P1–P7 conform `E:\Meister\PROMPT_MASTER_V2_VERIFICARE_SI_E2E.md`, jurnal în `docs/REAL_E2E_JOURNAL.md`.
 6. Faza E: 2 auditori externi finali.
+
+## 6. Faza E — Audit extern final (2026-08-03)
+
+### Auditor extern 1 (cod & securitate financiară) — 14 găsiri
+- **P0 #1 TOCTOU fond acoperire** (`lib/swyp/valuation.ts`): check + debit în tranzacții separate, `GREATEST(0,...)` masca minusul. **FIXAT**: check+debit atomic cu `FOR UPDATE`, debit fără GREATEST, compensare la eșec transfer. Commit `f47694a8`.
+- **P0 #2 pierdere principal la withdrawEarly** (`lib/swyp/staking.ts`): status setat înainte de transfer, fără compensare. **FIXAT**: try/catch cu redeschidere stake la eșec. Commit `f47694a8`.
+- **P1 oversell create-intent**: fără validare stoc + produse lipsă ignorate silențios. **FIXAT**: validare stoc bază+variantă, 400 la produs indisponibil. Commit `7233856c`.
+- Restul (P1×3, P2×5, P3×3): triate și documentate cu justificare în `docs/BACKLOG.md` §Audit extern runda 2.
+- Zone verificate fără probleme (cu dovada căutării): injecție SQL (toate $n), IDOR rute swyp (filtrate pe session.userId), secret exposure (AES-256-GCM), idempotență ledger (FOR UPDATE + UNIQUE).
+
+### Auditor extern 2 (i18n/UX/a11y) — 14 găsiri
+- **P0 #1 namespace `hostPanel` inexistent** (33 chei, Host Panel Stays rupt pe i18n în toate cele 7 limbi). **FIXAT**: namespace complet × 7 limbi. Commit `f47694a8` (lot i18n).
+- **P0 #2 chei `deposit*` lipsă din `payPage`** (6 chei). **FIXAT** × 7 limbi.
+- P1: `foodMenu.minOrder`, toast-uri hardcodate ChatInterface, empty-state ProductFeed. **FIXATE** (+ chei × 7 limbi).
+- P2–P3 (aria-labels hardcodate, fmtLei alias): în `docs/BACKLOG.md`.
+- Categorii verificate curate cu dovadă: cache logat/nelogat (0 pagini cu sesiune fără force-dynamic), funcții server→client (0 reale).
+
+### Verdict Faza E
+Toate P0-urile (4) fixate și comise; P1-urile funcționale (oversell, chei i18n user-facing) fixate; restul P1–P3 triate onest în BACKLOG cu justificare. Crawl post-fix: 116/116 pagini OK (`docs/CRAWL_REPORT.md`).
