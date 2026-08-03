@@ -51,6 +51,13 @@ export async function markStayBookingPaidByCard(bookingId: string): Promise<void
             });
         } catch (err) {
             logger.error({ err, bookingId: b.id }, "stay webhook: host credit failed (de reluat manual)");
+            // P0 audit 2026-08-03: issue de reconciliere, altfel banii gazdei se pierd tacut.
+            await dbQuery(
+                `INSERT INTO reconciliation_issues (kind, ref_id, details)
+                 VALUES ('stay_host_credit_failed', $1, $2)
+                 ON CONFLICT (kind, ref_id) WHERE resolved = false DO NOTHING`,
+                [b.id, JSON.stringify({ host_user_id: b.host_user_id, amount_cents: b.total_cents - commission })],
+            ).catch((e) => logger.error({ err: e }, "stay webhook: reconciliation issue insert failed"));
         }
     }
 

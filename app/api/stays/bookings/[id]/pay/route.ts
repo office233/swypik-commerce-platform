@@ -59,10 +59,17 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         return NextResponse.json({ error: "Plata a eșuat." }, { status: 500 });
     }
 
-    await dbQuery(
-        `UPDATE stay_bookings SET status='confirmed', payment_status='paid' WHERE id=$1::uuid`,
+    // Guard concurență (audit extern 2026-08-03): două cereri paralele treceau
+    // amândouă de check-ul de mai sus → dublu UPDATE + notificări duble.
+    // Debit-ul e idempotent (ledger), deci e suficient să câștige un singur UPDATE.
+    const upd = await dbQuery(
+        `UPDATE stay_bookings SET status='confirmed', payment_status='paid'
+          WHERE id=$1::uuid AND payment_status <> 'paid'`,
         [b.id],
     );
+    if ((upd.rowCount ?? 0) === 0) {
+        return NextResponse.json({ ok: true, alreadyPaid: true });
+    }
 
     if (b.host_user_id) {
         const commission = Math.round((b.total_cents * commissionPct()) / 100);
@@ -76,6 +83,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
             });
         } catch (err) {
             logger.error({ err, bookingId: b.id }, "stay pay: host credit failed (de reluat manual)");
+            // P0 audit 2026-08-03: nu doar log — inregistram issue de reconciliere
+            // ca banii gazdei sa nu se piarda tacut (cron reconcile-wallets alerteaza).
+            await dbQuery(
+                `INSERT INTO reconciliation_issues (kind, ref_id, details)
+                 VALUES ('stay_host_credit_failed', $1, $2)
+                 ON CONFLICT (kind, ref_id) WHERE resolved = false DO NOTHING`,
+                [b.id, JSON.stringify({ host_user_id: b.host_user_id, amount_cents: b.total_cents - commission })],
+            ).catch((e) => logger.error({ err: e }, "stay pay: reconciliation issue insert failed"));
         }
     }
 

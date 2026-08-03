@@ -32,7 +32,12 @@ export async function POST(req: Request) {
 
     // Resolve price/title from DB if not provided.
     let title: string = body.title ?? "";
+    // P2 audit 2026-08-03: pretul din body e DOAR fallback pentru produse
+    // externe (fara rand in marketplace_products). Daca produsul exista in DB,
+    // pretul DB il suprascrie mereu (mai jos) — dar inainte clientul putea
+    // afisa subtotal manipulat cand lookup-ul esua. Marcam sursa pretului.
     let priceCents: number = body.priceCents ?? 0;
+    let priceFromDb = false;
     let currency: string = (body.currency ?? cart.currency ?? "RON").toUpperCase();
     let image: string | null = body.image ?? null;
     let mpId: string | null = null;
@@ -55,7 +60,12 @@ export async function POST(req: Request) {
         }
         mpId = rows[0].id;
         if (!title) title = rows[0].title;
-        if (!priceCents && rows[0].price_cents) priceCents = Number(rows[0].price_cents);
+        if (rows[0].price_cents != null) {
+          // Pretul canonic vine intotdeauna din DB cand produsul exista —
+          // ignoram body.priceCents (client-controlled).
+          priceCents = Number(rows[0].price_cents);
+          priceFromDb = true;
+        }
         if (!image && rows[0].image_url) image = rows[0].image_url;
         currency = (rows[0].currency || currency).toUpperCase();
       }
@@ -70,13 +80,18 @@ export async function POST(req: Request) {
         );
         if (rows[0]) {
           mpVariantId = rows[0].id;
-          if (rows[0].price_cents) priceCents = Number(rows[0].price_cents);
+          if (rows[0].price_cents != null) {
+            priceCents = Number(rows[0].price_cents);
+            priceFromDb = true;
+          }
         }
       } catch { }
     }
 
     if (!title) title = "Produs";
     if (!Number.isFinite(priceCents) || priceCents < 0) priceCents = 0;
+    // Produs intern negasit in DB (lookup esuat) => nu acceptam pret din client.
+    if (!priceFromDb && mpId === null && body.priceCents != null) priceCents = 0;
 
     const metadata = { mergeable: true, image };
 
