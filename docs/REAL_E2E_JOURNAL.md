@@ -211,3 +211,21 @@ Nota BUG 4: cele 2 clipuri abel_varga erau deja failed+private in DB (nu a mai f
 - Player cu context: feed?creator_id → 1 clip (doar al creatorului), un singur handle in player ✅
 - Feed general fara context: 9 clipuri, neschimbat ✅
 - Deep-link ?v= fara context: clip tintit + feed general (compatibilitate share-uri vechi) ✅
+
+## 2026-08-03 — Testare manuala Setari (cont de test real, prod HTTPS)
+
+Cont: e2e_761181@test.swypik.local (sters din DB dupa test, DELETE 2 cu FK cascade).
+
+| Actiune | Rezultat |
+|---|---|
+| Signup + sesiune (cookie Secure, doar HTTPS) | PASS |
+| Editeaza profil (update_profile -> displayName persista) | PASS |
+| Comenzile mele (/api/auth/orders, lista corecta) | PASS |
+| Adrese CRUD (create id nou, PATCH label, DELETE, lista goala) | PASS |
+| Schimbare parola (set_password + relogin cu parola noua) | PASS |
+| Notificari (PATCH email_marketing/push_likes -> persista la GET) | PASS |
+| Deconectare (logout -> me=null) | PASS |
+| Gating admin user normal (/api/admin/users=404, /admin fara UI admin, mesaj Acces) | PASS |
+| CSRF activ (mutatii fara Origin corect -> {error:csrf}) | PASS |
+
+Toate cele 9 intrari din Setari functionale end-to-end. 0 bug-uri noi gasite la aceasta runda.
