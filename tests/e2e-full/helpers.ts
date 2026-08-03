@@ -23,7 +23,7 @@ export function collectIssues(page: Page): PageIssues {
     const url = res.url();
     if (res.status() >= 400 && url.startsWith(BASE)) {
       // Expected 401s on auth-check endpoints when logged out
-      if (res.status() === 401 && /\/api\/(auth|me|session)/.test(url)) return;
+        if (res.status() === 401 && /\/api\/(auth|me|session|swyp\/wallet)/.test(url)) return;
       issues.failedRequests.push(`${res.status()} ${url.slice(0, 200)}`);
     }
   });

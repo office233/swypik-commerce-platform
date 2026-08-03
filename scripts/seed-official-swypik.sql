@@ -11,7 +11,7 @@ VALUES (
   'creator',
   true,
   'Contul oficial Swypik ✈️ Descoperă destinații spectaculoase și rezervă direct din video.',
-  'https://swypik.com/icons/icon-512.png'
+  'https://swypik.com/icon-512.png'
 )
 ON CONFLICT ((lower(username))) DO UPDATE
 SET role = 'creator', is_verified = true, display_name = 'Swypik';
@@ -19,7 +19,7 @@ SET role = 'creator', is_verified = true, display_name = 'Swypik';
 INSERT INTO creator_profiles (user_id, handle, display_name, bio, avatar_url, category, website_url, verification_status, social_links)
 SELECT u.id, 'swypik', 'Swypik',
   'Contul oficial Swypik ✈️ Destinații spectaculoase, rezervi direct din video.',
-  'https://swypik.com/icons/icon-512.png',
+  'https://swypik.com/icon-512.png',
   'travel', 'https://swypik.com', 'verified',
   '{"website":"https://swypik.com"}'::jsonb
 FROM users u WHERE u.username = 'swypik'
