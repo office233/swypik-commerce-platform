@@ -177,3 +177,18 @@
 | Dispatch: oferta la curier online Bucuresti | oferta emisa | offer kind=delivery vizibil in poll (fix unaccent 83ed8491 activ) | PASS |
 | Curier: accept → picked_up → delivering → delivered | tranzitii ok | toate 200, comanda delivered | PASS |
 | Bani: ledger dupa livrare cash | debit curier + comision | curier debit 10050 (cash colectat), platforma credit 2010 (20% comision) | PASS |
+
+## 2026-08-03 — P1 Creator complet + SWYP + social
+
+| Pas | Asteptat | Observat | Verdict |
+|---|---|---|---|
+| Creator nou creator2@swypik.test: PATCH profil (nume+bio+website), PATCH partial bio | persista, nu sterge restul | display_name+bio persistate in DB, PATCH partial NU sterge celelalte campuri (regresia bio din 08-02 nu a revenit) | PASS |
+| Upload 3 clipuri (mp4 12s, mov 10s, mp4 8s) prin upload-session (presign→PUT MinIO→PATCH complete) | 3/3 procesate | toate: job=succeeded, asset=available, thumbnail generat; HLS pe cdn.swypik.com | PASS |
+| Cazuri limita: dublu-complete (idempotent), sizeBytes 2GB | fara dublare / respins | complete idempotent (acelasi videoId), 2GB → 'sizeBytes exceeds 1GB' | PASS |
+| Nota API: complete e PATCH (GET ?action=complete NU declanseaza job — UI foloseste corect PATCH) | — | comportament corect, doar scriptul de test gresise | INFO |
+| Publicare + aparitie in feed + editare titlu dupa publicare | in feed, editabil | in explore/feed (9 clipuri), titlu editat persistat | PASS |
+| Atasare produs la clip (product-tags overlay) | vizibil public | **FAIL**: PUT ok dar GET public gol — filtrul cerea moderation_status=approved desi feed-ul NU filtreaza (clip vizibil fara buton produs) → **FIXED** f9fbb9b4 (exclude doar rejected/is_hidden) | FAIL→FIXED |
+| Profil creator din 3 contexte (creator/alt user/anonim) | identic | /u/qacreator2: 4 referinte clip + nume identic in toate 3 (diferenta doar meniul propriu) | PASS |
+| SWYP: rewards automate (livrare la timp => 200 SWYP la curier-rider), rate backed | balante reale | wallet 220 SWYP, rate 0.0098 RON/SWYP backed=true | PASS |
+| SWYP withdraw 50 → chain + transfer on-chain 10 | tx hash | ambele cu txHash pe scan.swypik.com, balanta app 220→170 | PASS |
+| Comentarii: DELETE lipsea complet (nici ruta, nici buton) | owner poate sterge | **FIXED** fbff73d9: DELETE soft owner-only + contoare + buton UI + i18n ×7 | FAIL→FIXED |
