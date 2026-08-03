@@ -269,13 +269,13 @@ export default function UploadClient() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tags: [{ product_id: productId, start_ms: startMs, end_ms: null }] }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
-        // BUG 5 (2026-08-03): dupa publish userul era dus in dashboardul
-        // "Swypik Creator", dezorientant. Destinatia fireasca e clipul lui
-        // (pagina /v/<id> arata si statusul de procesare); draft-urile raman
-        // in dashboardul creator.
-        if (mode === "publish") router.push(`/v/${videoId}`);
+      // BUG 5 (2026-08-03): dupa publish userul era dus in dashboardul
+      // "Swypik Creator", dezorientant. Destinatia fireasca e clipul lui
+      // (pagina /v/<id> arata si statusul de procesare); draft-urile raman
+      // in dashboardul creator.
+      if (mode === "publish") router.push(`/v/${videoId}`);
       else router.push("/creator/drafts");
     } catch (err: any) {
       setErrorMsg(err.message || "Eroare.");
@@ -306,14 +306,13 @@ export default function UploadClient() {
           {[1, 2, 3].map((n) => (
             <span
               key={n}
-              className={`h-1.5 rounded-full transition-all ${
-                n === step ? "w-8 bg-gradient-to-r from-[#7C3AED] to-[#A855F7]" : n < step ? "w-4 bg-white/40" : "w-4 bg-white/10"
-              }`}
+              className={`h-1.5 rounded-full transition-all ${n === step ? "w-8 bg-gradient-to-r from-[#7C3AED] to-[#A855F7]" : n < step ? "w-4 bg-white/40" : "w-4 bg-white/10"
+                }`}
             />
           ))}
         </div>
         <Link href="/creator" className="text-xs font-bold text-white/50 hover:text-white">
-          
+
           {t("anuleaza")}
         </Link>
       </header>
@@ -434,60 +433,59 @@ function Step1(props: {
     <div className="space-y-6">
       {!previewUrl ? (
         <>
-        <Link
-          href="/reels/record"
-          className="relative block rounded-3xl bg-gradient-to-br from-[#EF4444] via-[#EC4899] to-[#A855F7] p-[2px] shadow-lg shadow-[#EC4899]/30 active:scale-[0.99] transition-transform"
-        >
-          <div className="rounded-[calc(1.5rem-2px)] bg-[#0D0D0D] px-6 py-5 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#EF4444] to-[#EC4899] flex items-center justify-center shadow-lg shrink-0">
-              <Camera size={26} className="text-white" />
+          <Link
+            href="/reels/record"
+            className="relative block rounded-3xl bg-gradient-to-br from-[#EF4444] via-[#EC4899] to-[#A855F7] p-[2px] shadow-lg shadow-[#EC4899]/30 active:scale-[0.99] transition-transform"
+          >
+            <div className="rounded-[calc(1.5rem-2px)] bg-[#0D0D0D] px-6 py-5 flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#EF4444] to-[#EC4899] flex items-center justify-center shadow-lg shrink-0">
+                <Camera size={26} className="text-white" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-base font-black text-white">{t("filmeazaCuCamera")}</p>
+                <p className="text-xs font-medium text-white/60 mt-0.5">{t("inregistreazaDirectDinBrowser")}</p>
+              </div>
+              <span className="text-white/40 text-xl">›</span>
             </div>
-            <div className="flex-1 text-left">
-              <p className="text-base font-black text-white">{t("filmeazaCuCamera")}</p>
-              <p className="text-xs font-medium text-white/60 mt-0.5">{t("inregistreazaDirectDinBrowser")}</p>
-            </div>
-            <span className="text-white/40 text-xl">›</span>
+          </Link>
+          <div className="flex items-center gap-3 py-1">
+            <div className="flex-1 h-px bg-white/10"></div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{t("sauIncarca")}</span>
+            <div className="flex-1 h-px bg-white/10"></div>
           </div>
-        </Link>
-        <div className="flex items-center gap-3 py-1">
-          <div className="flex-1 h-px bg-white/10"></div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{t("sauIncarca")}</span>
-          <div className="flex-1 h-px bg-white/10"></div>
-        </div>
-        <div
-          onDragEnter={(e) => {
-            e.preventDefault();
-            setDragActive(true);
-          }}
-          onDragOver={(e) => e.preventDefault()}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={onDrop}
-          className={`relative rounded-3xl border-2 border-dashed transition-all p-12 flex flex-col items-center justify-center text-center cursor-pointer ${
-            dragActive
-              ? "border-[#A855F7] bg-gradient-to-br from-[#7C3AED]/20 to-[#A855F7]/10"
-              : "border-white/10 bg-gradient-to-br from-[#7C3AED]/10 to-[#A855F7]/5 hover:border-white/20"
-          }`}
-          onClick={() => fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#A855F7] flex items-center justify-center mb-5 shadow-lg shadow-[#7C3AED]/40">
-            <UploadCloud size={36} className="text-white" />
-          </div>
-          <h2 className="text-xl font-black mb-2">{t("trageVideoulAici")}</h2>
-          <p className="text-sm text-white/60 mb-1">{t("sauApasaPentruA")}</p>
-          <p className="text-xs text-white/40">{t("mp4MovSauWebm")}</p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="video/mp4,video/quicktime,video/webm,video/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onPick(f);
+          <div
+            onDragEnter={(e) => {
+              e.preventDefault();
+              setDragActive(true);
             }}
-          />
-        </div>
+            onDragOver={(e) => e.preventDefault()}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={onDrop}
+            className={`relative rounded-3xl border-2 border-dashed transition-all p-12 flex flex-col items-center justify-center text-center cursor-pointer ${dragActive
+                ? "border-[#A855F7] bg-gradient-to-br from-[#7C3AED]/20 to-[#A855F7]/10"
+                : "border-white/10 bg-gradient-to-br from-[#7C3AED]/10 to-[#A855F7]/5 hover:border-white/20"
+              }`}
+            onClick={() => fileInputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#A855F7] flex items-center justify-center mb-5 shadow-lg shadow-[#7C3AED]/40">
+              <UploadCloud size={36} className="text-white" />
+            </div>
+            <h2 className="text-xl font-black mb-2">{t("trageVideoulAici")}</h2>
+            <p className="text-sm text-white/60 mb-1">{t("sauApasaPentruA")}</p>
+            <p className="text-xs text-white/40">{t("mp4MovSauWebm")}</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm,video/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onPick(f);
+              }}
+            />
+          </div>
         </>
       ) : (
         <div className="space-y-4">
@@ -498,7 +496,7 @@ function Step1(props: {
               onClick={onChangeFile}
               className="absolute top-4 right-4 bg-black/60 backdrop-blur rounded-full px-4 py-2 text-xs font-bold hover:bg-white/20"
             >
-              
+
               {t("schimba")}
             </button>
             <div className="absolute bottom-4 left-4 right-4 flex items-center gap-2 text-white/80">
@@ -515,7 +513,7 @@ function Step1(props: {
         onClick={onContinue}
         className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-[#7C3AED]/30 active:scale-[0.98] transition-transform"
       >
-        
+
         {t("continua")} <ArrowRight size={18} />
       </button>
     </div>
@@ -538,23 +536,23 @@ function Step2(props: {
     transcodeStatus === "uploading"
       ? uploadProgress
       : transcodeStatus === "processing"
-      ? Math.min(95, 100 + (Date.now() % 10))
-      : transcodeStatus === "ready"
-      ? 100
-      : transcodeStatus === "failed"
-      ? 100
-      : 0;
+        ? Math.min(95, 100 + (Date.now() % 10))
+        : transcodeStatus === "ready"
+          ? 100
+          : transcodeStatus === "failed"
+            ? 100
+            : 0;
 
   const label =
     transcodeStatus === "uploading"
       ? `Upload ${uploadProgress}%`
       : transcodeStatus === "processing"
-      ? "Procesare video..."
-      : transcodeStatus === "ready"
-      ? "Gata!"
-      : transcodeStatus === "failed"
-      ? "Eroare la procesare"
-      : t("initializare");
+        ? "Procesare video..."
+        : transcodeStatus === "ready"
+          ? "Gata!"
+          : transcodeStatus === "failed"
+            ? "Eroare la procesare"
+            : t("initializare");
 
   return (
     <div className="grid md:grid-cols-2 gap-6">
@@ -579,11 +577,10 @@ function Step2(props: {
           </div>
           <div className="h-3 bg-white/10 rounded-full overflow-hidden">
             <div
-              className={`h-full transition-all duration-500 ${
-                transcodeStatus === "failed"
+              className={`h-full transition-all duration-500 ${transcodeStatus === "failed"
                   ? "bg-red-500"
                   : "bg-gradient-to-r from-[#7C3AED] to-[#A855F7]"
-              }`}
+                }`}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -610,7 +607,7 @@ function Step2(props: {
             disabled={transcodeStatus !== "ready"}
             className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-30 active:scale-[0.98] transition-transform"
           >
-            
+
             {t("continuaLaDetalii")} <ArrowRight size={16} />
           </button>
         </div>
@@ -858,7 +855,7 @@ function Step3(props: {
               }}
               className="flex-1 h-11 rounded-xl border border-white/15 text-sm font-bold hover:bg-white/5"
             >
-              
+
               {t("anuleaza2")}
             </button>
             <button
@@ -912,14 +909,12 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
         role="switch"
         aria-checked={value}
         onClick={() => onChange(!value)}
-        className={`relative w-11 h-6 rounded-full transition-colors ${
-          value ? "bg-gradient-to-r from-[#7C3AED] to-[#A855F7]" : "bg-white/15"
-        }`}
+        className={`relative w-11 h-6 rounded-full transition-colors ${value ? "bg-gradient-to-r from-[#7C3AED] to-[#A855F7]" : "bg-white/15"
+          }`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-            value ? "translate-x-5" : ""
-          }`}
+          className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${value ? "translate-x-5" : ""
+            }`}
         />
       </button>
     </label>
