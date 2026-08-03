@@ -82,19 +82,39 @@ export async function POST(req: Request) {
       }
 
       const pgProduct = await getCheckoutProductById(productId);
-      if (!pgProduct) continue;
+      if (!pgProduct) {
+        return NextResponse.json(
+          { success: false, error: "Unul dintre produse nu mai este disponibil. Reîncarcă coșul." },
+          { status: 400 }
+        );
+      }
+
+      // Validare stoc (aliniat cu /api/checkout — fix oversell audit extern)
+      const baseStock = (pgProduct as any).metadata?.available_stock ?? (pgProduct as any).stock;
+      if (baseStock !== undefined && baseStock !== null && qty > Number(baseStock)) {
+        return NextResponse.json(
+          { success: false, error: `Stoc insuficient pentru "${pgProduct.title}". Ai cerut ${qty}, dar avem doar ${baseStock} disponibile.` },
+          { status: 400 }
+        );
+      }
 
       let variantPriceCents = Math.round(pgProduct.price * 100);
       let variantId: string | null = null;
 
       if (item.skuId) {
         const { rows } = await dbQuery(
-          `SELECT id, price_cents FROM marketplace_product_variants WHERE product_id = $1 AND sku = $2 LIMIT 1`,
+          `SELECT id, price_cents, inventory_quantity AS stock FROM marketplace_product_variants WHERE product_id = $1 AND sku = $2 LIMIT 1`,
           [pgProduct.productId, String(item.skuId)]
         );
         if (rows.length > 0 && Number(rows[0].price_cents) > 0) {
           variantId = String(rows[0].id);
           variantPriceCents = Number(rows[0].price_cents);
+        }
+        if (rows.length > 0 && rows[0].stock !== null && qty > Number(rows[0].stock)) {
+          return NextResponse.json(
+            { success: false, error: `Stoc insuficient pentru "${pgProduct.title}". Ai cerut ${qty}, dar avem doar ${rows[0].stock} disponibile.` },
+            { status: 400 }
+          );
         }
       }
 
