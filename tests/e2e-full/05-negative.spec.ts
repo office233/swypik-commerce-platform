@@ -3,7 +3,9 @@ import { BASE, ORIGIN } from './helpers';
 
 /** Faza 5 — Negative & edge. */
 
-test.skip(({}, testInfo) => testInfo.project.name !== 'desktop', 'faza 5 doar desktop');
+test.beforeEach(async ({}, testInfo) => {
+  testInfo.skip(testInfo.project.name !== 'desktop', 'faza 5 doar desktop');
+});
 
 test('404 personalizat pe rută inexistentă', async ({ page }) => {
   const res = await page.goto('/ruta-care-nu-exista-xyz', { waitUntil: 'domcontentloaded' });

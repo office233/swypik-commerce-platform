@@ -7,7 +7,9 @@ import { collectIssues, assertNoIssues, testEmail, apiSignup, uiLogin, TEST_PASS
  * (E2E_SELLER_EMAIL/E2E_SELLER_PASSWORD, E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD).
  */
 
-test.skip(({}, testInfo) => testInfo.project.name !== 'desktop', 'faza 4 doar desktop');
+test.beforeEach(async ({}, testInfo) => {
+  testInfo.skip(testInfo.project.name !== 'desktop', 'faza 4 doar desktop');
+});
 
 test('user normal: /admin refuzat + /api/admin/* 401/403/404', async ({ page, request }) => {
   const email = testEmail('_f4');

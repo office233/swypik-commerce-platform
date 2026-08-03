@@ -7,7 +7,9 @@ import { collectIssues, assertNoIssues, testEmail, TEST_PASSWORD, uiLogin } from
  */
 
 test.describe.configure({ mode: 'serial' });
-test.skip(({ browserName }, testInfo) => testInfo.project.name !== 'desktop', 'faza 3 doar desktop');
+test.beforeEach(async ({}, testInfo) => {
+  testInfo.skip(testInfo.project.name !== 'desktop', 'faza 3 doar desktop');
+});
 
 const email = testEmail('_f3');
 const username = `e2epw${Date.now().toString(36)}`;
