@@ -48,3 +48,16 @@
 ## Curățenie (Faza 4 — din docs/DEAD_CODE.md)
 
 - [ ] Componente/rute neimportate (rulează `scripts/audit-dead-code.mjs`).
+
+## Audit extern Valul 4 (2026-08-03) — triaj rămase P2/P3
+
+Fixate imediat (commit f21306db): P0 credit gazdă eșuat→reconciliation_issues (wallet+Stripe), P1 race dublu-pay stay booking, P2 preț client-controlled în coș.
+
+| Sev | Găsire | Fișier | Justificare amânare |
+|---|---|---|---|
+| P2 | moderation_status nefiltrat uniform (feed/profil/recommendations arată pending_review) | app/api/explore/feed/route.ts:723, users/profile/[username]/videos:44, feed/recommendations:58 | Decizie de PRODUS: azi pipeline-ul de moderare e manual și clipurile ar dispărea din feed la publicare (UX rău). Overlay-ul de produs a fost aliniat cu feed-ul (f9fbb9b4). De rezolvat când moderarea auto e activă: filtru uniform NOT IN ('rejected') + auto-approve la N minute. |
+| P2 | donations: Math.round(amount*100) pe float | app/api/donations/route.ts:73 | Impact max ±1 cent per donație; de trecut schema pe int cents la următorul refactor al rutei. |
+| P2 | live_streams.creator_id e text (JOIN pe ::text, fără FK/index) | app/api/live/streams/*.ts | Necesită migrare cu date existente; performanță acceptabilă la volumul actual (<100 streams). Migrare planificată. |
+| P2 | STAYS_COMMISSION_PCT vs BPS amestecate | lib/stays/booking.ts:20 | Env-ul actual nu setează PCT (fallback BPS corect =10%). De unificat pe BPS + validare la startup. |
+| P3 | bcrypt.compare catch{} fără log în TOTP backup codes | lib/auth/totp.ts:113 | Doar telemetrie lipsă, comportamentul e corect (cod invalid). |
+| P3 | sendEmail fire-and-forget fără void explicit | apply-seller:49, couriers:~93 | .catch() prezent — fără unhandled rejection; doar stil. |
