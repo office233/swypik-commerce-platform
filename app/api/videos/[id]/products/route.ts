@@ -45,7 +45,11 @@ export async function GET(
           AND vpl.placement = 'overlay'
           AND v.visibility = 'public'
           AND v.status = 'ready'
-          AND COALESCE(v.moderation_status, 'approved') = 'approved'
+                    -- Aliniat cu /api/explore/feed (care NU filtreaza pe moderation_status):
+                    -- clip vizibil in feed => overlay-ul de produs trebuie sa apara si el.
+                    -- Blocam doar respinsele explicit.
+                    AND COALESCE(v.moderation_status, 'approved') <> 'rejected'
+                    AND v.is_hidden = false
           AND p.status = 'active'
         ORDER BY vpl.sort_order ASC, vpl.created_at ASC
         LIMIT 10`,
