@@ -34,7 +34,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params;
 
     const { rows: merchants } = await dbQuery(
-      `SELECT id, name, status FROM local_merchants WHERE id = $1 OR slug = $1`,
+      // id e uuid, slug e text -> fara cast, pg nu poate rezolva "$1" pentru ambele (42883 text=uuid)
+      `SELECT id, name, status FROM local_merchants WHERE id::text = $1 OR slug = $1`,
       [id],
     );
     const merchant = merchants[0];
