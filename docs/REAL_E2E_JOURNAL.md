@@ -143,3 +143,37 @@
 | Verificare vizuală screenshot mobil | fără suprapuneri, gradient ok | OK (screenshot în sesiune) | PASS |
 | Like ca vizitator nelogat | 401 + invitație login | 401 primit, dar UI face doar revert silențios — fără prompt de login | **FAIL parțial → BACKLOG** (UX: deschide modal login la 401) |
 | Redesign live pe swypik.com | action-bar în HTML | prezent, /en/explore = 200 | PASS |
+
+## 2026-08-03 � Fix P1: FX mort silen?ios (din audit func?ional)
+
+| Pas | A?teptat | Observat | Verdict |
+|---|---|---|---|
+| Cauz�: api.exchangerate.host cere access_key (paywall) � 200 cu 0 rate, cron raporta OK | � | confirmat: `{"code":101,"missing_access_key"}`, fx_rates �nghe?ate 2026-07-29 | FAIL |
+| Fix: provider default frankfurter.app + FX_API_ACCESS_KEY op?ional + 502 la updated=0 | cron actualizeaz� ratele | commit `5cbd056c`, deploy wsl-deploy-web.sh, cron manual � `{"updated":10}` | **FIXED** |
+| Re-test prod | /api/fx cu rate proaspete | toate 11 valute fetched_at=2026-08-03, RON�EUR=0.1906 (5.2467) | PASS |
+
+## 2026-08-03 — GO E2E cu driver real (P4+P6) + 2 fixuri P1
+
+| Pas | Asteptat | Observat | Verdict |
+|---|---|---|---|
+| Bug dispatch: job city='București' (pricing_zones) vs courier city='Bucuresti' | oferte emise | 0 oferte, orice cursa murea in no_courier (confirmat pe 3 curse) | FAIL → **FIXED** commit 83ed8491 (unaccent in dispatch+surge) |
+| Bug meniu public: GET /api/merchants/[id]/menu | 200 | 500 'operator text=uuid' (id uuid OR slug text pe acelasi \) | FAIL → **FIXED** commit 5ebe9bc3 |
+| Driver: signup driver@swypik.test + legat de curier approved Bucuresti + online cu lat/lng | online | {success:true, online:true} | PASS |
+| Cursa rider@swypik.test Unirii→Victoriei (cash) | oferta la driver | offered=1, oferta vizibila in poll couriers/status | PASS (dupa fix) |
+| Accept → arriving → in_progress → completed | tranzitii + tarif final | toate 200, final_fare=2054 (=estimat, distance_source=estimate) | PASS |
+| Rating rider→driver (stars:5) | medie actualizata | {ok:true}, couriers.rating=5.00 | PASS |
+| Settlement cash | split corect | 'ride settled' split courier=2054, platform=0 (tier promo 0%), cash → fara ledger (corect) | PASS |
+| Nota: oferta expira in ~15s (OFFER_TTL) — prima incercare 'Offer expired' | — | de evaluat UX TTL | INFO |
+| Food: meniu QATEST creat prin API seller (3 categorii, 5 preparate) | meniu public vizibil | 200 dupa fix, meniul complet | PASS |
+
+## 2026-08-03 — FOOD E2E complet (P4+P5+P6) — deblocat dupa fixuri
+
+| Pas | Asteptat | Observat | Verdict |
+|---|---|---|---|
+| Meniu creat prin API seller (OTP login, 3 categorii + 5 preparate cu preturi) | 200 + public | toate create, meniu public 200 (dupa fix 5ebe9bc3) | PASS |
+| Restaurant deschis (is_open_override) + vizibil in /api/merchants | listat | listat cu adresa+telefon | PASS |
+| Comanda rider: 1 ciorba + 2 sarmale, cash | total corect | LO-07F65B0A, total_cents=10050 (24.50+2×38=100.50 RON) ✓ | PASS |
+| Merchant: accepted → preparing → ready (cu sesiune seller) | tranzitii ok | toate 200, timestamps | PASS |
+| Dispatch: oferta la curier online Bucuresti | oferta emisa | offer kind=delivery vizibil in poll (fix unaccent 83ed8491 activ) | PASS |
+| Curier: accept → picked_up → delivering → delivered | tranzitii ok | toate 200, comanda delivered | PASS |
+| Bani: ledger dupa livrare cash | debit curier + comision | curier debit 10050 (cash colectat), platforma credit 2010 (20% comision) | PASS |
