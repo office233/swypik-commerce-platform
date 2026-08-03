@@ -192,3 +192,16 @@
 | SWYP: rewards automate (livrare la timp => 200 SWYP la curier-rider), rate backed | balante reale | wallet 220 SWYP, rate 0.0098 RON/SWYP backed=true | PASS |
 | SWYP withdraw 50 → chain + transfer on-chain 10 | tx hash | ambele cu txHash pe scan.swypik.com, balanta app 220→170 | PASS |
 | Comentarii: DELETE lipsea complet (nici ruta, nici buton) | owner poate sterge | **FIXED** fbff73d9: DELETE soft owner-only + contoare + buton UI + i18n ×7 | FAIL→FIXED |
+
+## 2026-08-03 — Fix 5 bug-uri (profil feed context, rute produse, Setari, clipuri esuate, post-upload)
+
+| Bug | Cauza (fisier) | Fix | Verificare live |
+|---|---|---|---|
+| 1. Profil→clip sare in explore | ExploreClient ignora creator_id (API-ul il suporta deja) | context creator_id propagat in refetch+paginare, fara fallback la feed general | feed?creator_id=... → doar clipurile userului (1 creator distinct); feed general neschimbat (9 clipuri) — commit 5daea8f8 |
+| 2. Card produs → /product generic | href hardcodat | lib/products/product-route.ts: resolver central (cta_url → verticala → fallback /product/id), folosit in ProductDrawer+ExploreClient | produs Fly are metadata vertical=fly + cta_url=/fly?dest=CDG → ruta corecta — 5daea8f8 |
+| 3. Setari: Limba&moneda 404 (locale dublat '18 swypik'), Admin vizibil tuturor | LocaleSwitcher href relativ + lipsa gating | href absolut cu locale corect; intrari Admin/Devino seller gated pe rol (server-side ramane pe /admin + API 404 fara sesiune) | /ro+/en/account/preferences=200; /api/admin/users fara sesiune=404 — 41ecd372 |
+| 4. Clipuri esuate pe profil (abel_varga ×2) | grila nu filtra pe status | filtrare status=ready pe profil+feed; watchdog pas 5: uploading>6h fara job → failed+private | profil public abel_varga: {videos:[]}; watchdog rulat: abandonedUploadsFailed=13 → 0 blocate ramase — 41ecd372 |
+| 5. Post-upload → Creator Rewards | redirect gresit in UploadClient | publish → /v/<id> (clipul propriu), draft → /creator/drafts; intrare Creator Rewards in Setari ×7 limbi | cod confirmat + pagini 200 — 41ecd372 |
+
+Smoke prod: /explore, /u/abel_varga, /ro/account/preferences, /fly = 200.
+Nota BUG 4: cele 2 clipuri abel_varga erau deja failed+private in DB (nu a mai fost nevoie de UPDATE manual); cele 13 blocate global (conturi de test) au fost marcate failed de watchdog.
