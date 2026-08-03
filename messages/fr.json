@@ -140,7 +140,9 @@
   "settings": {
     "preferences": "Préférences",
     "selectLanguage": "Choisir la langue",
-    "selectCurrency": "Choisir la devise"
+    "selectCurrency": "Choisir la devise",
+    "adultInfo": "Le contenu pour adultes se trouve sur un site séparé, totalement isolé.",
+    "adultGo": "Aller sur 18.swypik.com"
   },
   "cookies": {
     "title": "Cookies & confidentialité",
@@ -1930,7 +1932,8 @@
     "itemSecuritate": "Sécurité et mot de passe",
     "itemSeller": "Tableau de bord vendeur",
     "itemSellerPending": "Candidature vendeur en cours d'examen",
-    "itemWallet": "Portefeuille SWYP"
+    "itemWallet": "Portefeuille SWYP",
+    "itemCreator": "Creator Studio et Récompenses"
   },
   "go": {
     "cancel": {

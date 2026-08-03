@@ -140,7 +140,9 @@
   "settings": {
     "preferences": "Einstellungen",
     "selectLanguage": "Sprache wählen",
-    "selectCurrency": "Währung wählen"
+    "selectCurrency": "Währung wählen",
+    "adultInfo": "Inhalte für Erwachsene befinden sich auf einer separaten, vollständig isolierten Website.",
+    "adultGo": "Zu 18.swypik.com"
   },
   "cookies": {
     "title": "Cookies & Datenschutz",
@@ -1930,7 +1932,8 @@
     "itemSecuritate": "Sicherheit & Passwort",
     "itemSeller": "Verkäufer-Dashboard",
     "itemSellerPending": "Verkäuferantrag in Prüfung",
-    "itemWallet": "SWYP-Wallet"
+    "itemWallet": "SWYP-Wallet",
+    "itemCreator": "Creator Studio & Prämien"
   },
   "go": {
     "cancel": {

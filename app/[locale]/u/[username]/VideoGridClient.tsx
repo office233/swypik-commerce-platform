@@ -78,7 +78,7 @@ export default function VideoGridClient({
         {videos.map((video) => (
           <Link
             key={video.id}
-              href={`/explore?v=${encodeURIComponent(video.id)}${creatorId ? `&creator_id=${encodeURIComponent(creatorId)}` : ""}`}
+            href={`/explore?v=${encodeURIComponent(video.id)}${creatorId ? `&creator_id=${encodeURIComponent(creatorId)}` : ""}`}
             className="group block"
           >
             <div className="relative aspect-[9/16] overflow-hidden bg-[#1A1A1A]">

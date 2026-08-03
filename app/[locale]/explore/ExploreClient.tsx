@@ -69,8 +69,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialVideoId = searchParams.get("v");
-    // Context de profil: player-ul navighează DOAR prin clipurile acestui creator.
-    const creatorContextId = searchParams.get("creator_id");
+  // Context de profil: player-ul navighează DOAR prin clipurile acestui creator.
+  const creatorContextId = searchParams.get("creator_id");
 
   const [videos, setVideos] = useState<any[]>(initialVideos || []);
   const [loading, setLoading] = useState((initialVideos?.length || 0) === 0);
@@ -171,10 +171,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
         const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
         const pinQs = initialVideoId ? `&v=${encodeURIComponent(initialVideoId)}` : "";
-          const creatorQs = creatorContextId ? `&creator_id=${encodeURIComponent(creatorContextId)}` : "";
+        const creatorQs = creatorContextId ? `&creator_id=${encodeURIComponent(creatorContextId)}` : "";
         const url = feedSource === "following"
-            ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}${pinQs}${creatorQs}`
-            : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}${pinQs}${creatorQs}`;
+          ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}${pinQs}${creatorQs}`
+          : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}${pinQs}${creatorQs}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
@@ -207,7 +207,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       return;
     }
     fetchVideos();
-    }, [feedSource, initialCategory, initialVideos, creatorContextId, initialVideoId]);
+  }, [feedSource, initialCategory, initialVideos, creatorContextId, initialVideoId]);
 
   // Load next page of videos (infinite scroll).
   const loadMoreVideos = useCallback(async () => {
@@ -218,8 +218,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
       const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
       const sourceQs = feedSource === "following" ? "&source=following" : "";
-        const creatorQs = creatorContextId ? `&creator_id=${encodeURIComponent(creatorContextId)}` : "";
-        const url = `/api/explore/feed?limit=30&page=${nextPage}${sourceQs}${catQs}${sessionQs}${creatorQs}`;
+      const creatorQs = creatorContextId ? `&creator_id=${encodeURIComponent(creatorContextId)}` : "";
+      const url = `/api/explore/feed?limit=30&page=${nextPage}${sourceQs}${catQs}${sessionQs}${creatorQs}`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
@@ -253,7 +253,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     } finally {
       loadingMoreRef.current = false;
     }
-    }, [feedSource, initialCategory, creatorContextId]);
+  }, [feedSource, initialCategory, creatorContextId]);
 
   // Trigger loadMore when user reaches the last ~3 videos.
   useEffect(() => {

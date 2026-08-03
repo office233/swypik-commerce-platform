@@ -226,7 +226,9 @@
   "settings": {
     "preferences": "Preferences",
     "selectLanguage": "Select language",
-    "selectCurrency": "Select currency"
+    "selectCurrency": "Select currency",
+    "adultInfo": "Adult content lives on a separate, fully isolated site.",
+    "adultGo": "Go to 18.swypik.com"
   },
   "cookies": {
     "title": "Cookies & Privacy",
@@ -2016,7 +2018,8 @@
     "itemSecuritate": "Security & password",
     "itemSeller": "Seller Dashboard",
     "itemSellerPending": "Seller application under review",
-    "itemWallet": "SWYP wallet"
+    "itemWallet": "SWYP wallet",
+    "itemCreator": "Creator Studio & Rewards"
   },
   "authForgot": {
     "title": "Forgot your password?",

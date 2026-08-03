@@ -135,7 +135,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
         if (cancelled || !j?.product) return;
         setData((cur) => ({ ...(cur || {}), ...j.product, id: cur?.id ?? j.product.id }));
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => !cancelled && setEnriching(false));
     return () => { cancelled = true; };
   }, [seed?.id, seed?.description]);
@@ -170,7 +170,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
   const inventoryLabel = data.inventoryStatus
     ? String(data.inventoryStatus).replace(/_/g, " ")
     : null;
-    const productHref = routeForProduct(data);
+  const productHref = routeForProduct(data);
 
   const applyOptimisticVote = (current: ProductData, vote: "worth_it" | "not_worth_it"): ProductData => {
     const currentVotes = current.votes || {};
@@ -361,7 +361,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
                 className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition active:scale-95 disabled:opacity-70 ${viewerVote === "worth_it" ? "border-[#10A37F] bg-[#10A37F] text-white" : "border-white/10 bg-white/10 text-white hover:bg-white/15"}`}
               >
                 {votePending === "worth_it" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="h-4 w-4" />}
-                
+
                 {t("merita")}
                 <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{worthIt}</span>
               </button>
@@ -373,7 +373,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
                 className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition active:scale-95 disabled:opacity-70 ${viewerVote === "not_worth_it" ? "border-red-400 bg-red-500 text-white" : "border-white/10 bg-white/10 text-white hover:bg-white/15"}`}
               >
                 {votePending === "not_worth_it" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="h-4 w-4" />}
-                
+
                 {t("nuMerita")}
                 <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{notWorthIt}</span>
               </button>

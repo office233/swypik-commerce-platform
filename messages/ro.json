@@ -226,7 +226,9 @@
   "settings": {
     "preferences": "Preferințe",
     "selectLanguage": "Alege limba",
-    "selectCurrency": "Alege moneda"
+    "selectCurrency": "Alege moneda",
+    "adultInfo": "Conținutul pentru adulți este pe un site separat, complet izolat.",
+    "adultGo": "Mergi la 18.swypik.com"
   },
   "cookies": {
     "title": "Cookie-uri & confidențialitate",
@@ -1467,7 +1469,8 @@
     "itemLimba": "Limbă & monedă",
     "itemNotificari": "Notificări",
     "itemSeDeconnect": "Se deconectează…",
-    "itemDeconnect": "Deconectează-te"
+    "itemDeconnect": "Deconectează-te",
+    "itemCreator": "Creator Studio & Recompense"
   },
   "verticals": {
     "railLabel": "Categorii",

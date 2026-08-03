@@ -271,7 +271,11 @@ export default function UploadClient() {
           body: JSON.stringify({ tags: [{ product_id: productId, start_ms: startMs, end_ms: null }] }),
         }).catch(() => {});
       }
-      if (mode === "publish") router.push("/creator/videos");
+        // BUG 5 (2026-08-03): dupa publish userul era dus in dashboardul
+        // "Swypik Creator", dezorientant. Destinatia fireasca e clipul lui
+        // (pagina /v/<id> arata si statusul de procesare); draft-urile raman
+        // in dashboardul creator.
+        if (mode === "publish") router.push(`/v/${videoId}`);
       else router.push("/creator/drafts");
     } catch (err: any) {
       setErrorMsg(err.message || "Eroare.");

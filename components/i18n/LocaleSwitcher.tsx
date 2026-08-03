@@ -32,7 +32,12 @@ export default function LocaleSwitcher({ className }: { className?: string }) {
         // fallback: set cookie direct
         document.cookie = `swypik_locale=${locale}; Path=/; Max-Age=31536000; SameSite=Lax`;
       }
-      window.location.reload();
+      // Navighează la același path cu noul prefix de locale — un simplu reload
+      // păstrează vechiul prefix din URL și limba nu se schimbă efectiv.
+      const { pathname, search, hash } = window.location;
+      const localePrefixRe = new RegExp(`^/(?:${LOCALES.join("|")})(?=/|$)`);
+      const stripped = pathname.replace(localePrefixRe, "") || "/";
+      window.location.href = `/${locale}${stripped === "/" ? "" : stripped}${search}${hash}`;
     });
   };
 

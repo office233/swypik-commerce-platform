@@ -83,11 +83,11 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const raw = sp.taxonomy_node_slug ?? sp.category ?? "";
   const category = Array.isArray(raw) ? (raw[0] || "") : (raw || "");
-    const rawCreator = sp.creator_id ?? "";
-    const creatorId = Array.isArray(rawCreator) ? (rawCreator[0] || "") : (rawCreator || "");
-    const rawV = sp.v ?? "";
-    const pinnedVideoId = Array.isArray(rawV) ? (rawV[0] || "") : (rawV || "");
-    const initialVideos = await fetchSeed(category, creatorId || undefined, pinnedVideoId || undefined);
+  const rawCreator = sp.creator_id ?? "";
+  const creatorId = Array.isArray(rawCreator) ? (rawCreator[0] || "") : (rawCreator || "");
+  const rawV = sp.v ?? "";
+  const pinnedVideoId = Array.isArray(rawV) ? (rawV[0] || "") : (rawV || "");
+  const initialVideos = await fetchSeed(category, creatorId || undefined, pinnedVideoId || undefined);
   return (
     <>
       <LiveBadge />

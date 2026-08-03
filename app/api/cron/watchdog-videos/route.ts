@@ -110,6 +110,22 @@ async function runWatchdog() {
       RETURNING v.id`
   );
 
+  // 5) BUG 4 (2026-08-03): clipuri blocate in `uploading` FARA niciun job de
+  //    procesare (userul a abandonat inainte de action=complete). Pasul 4 nu
+  //    le prinde niciodata (JOIN pe jobs). Dupa 6h le marcam failed+hidden ca
+  //    sa nu ramana carduri moarte in UI-ul proprietarului.
+  const abandoned = await dbQuery<{ id: string }>(
+    `UPDATE videos v
+        SET status='failed',
+            visibility='private',
+            is_hidden=true,
+            updated_at=NOW()
+      WHERE v.status = 'uploading'
+        AND v.created_at < NOW() - INTERVAL '6 hours'
+        AND NOT EXISTS (SELECT 1 FROM video_processing_jobs j WHERE j.video_id = v.id)
+      RETURNING v.id`
+  );
+
   return {
     resetRunning: resetRunning.rowCount ?? resetRunning.rows.length,
     failedExceeded: failedExceeded.rowCount ?? failedExceeded.rows.length,
@@ -117,6 +133,7 @@ async function runWatchdog() {
     reenqueued,
     reenqueueFailed,
     videosMarkedFailed: recovered.rowCount ?? recovered.rows.length,
+    abandonedUploadsFailed: abandoned.rowCount ?? abandoned.rows.length,
     ts: new Date().toISOString(),
   };
 }
