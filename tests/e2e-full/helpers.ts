@@ -16,6 +16,9 @@ export function collectIssues(page: Page): PageIssues {
       const text = msg.text();
       // Ignore known benign noise (3rd-party, favicon, aborted media)
       if (/favicon|ERR_ABORTED|net::ERR_FAILED.*(hls|\.m3u8|\.ts\b)/i.test(text)) return;
+        // 401 pe check-uri best-effort de sesiune (wallet SWYP) când ești nelogat = comportament așteptat
+        const locUrl = msg.location()?.url ?? '';
+        if (/status of 401/.test(text) && /\/api\/(auth|me|session|swyp\/wallet)/.test(locUrl)) return;
       issues.consoleErrors.push(text.slice(0, 300));
     }
   });

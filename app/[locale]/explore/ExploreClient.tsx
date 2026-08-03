@@ -385,6 +385,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
 
     try {
       const res = await fetch(`/api/videos/${videoId}/like`, { method: "POST" });
+        if (res.status === 401) {
+          router.push(`/auth/login?next=${encodeURIComponent(`/explore?v=${videoId}`)}`);
+          throw new Error("unauthorized");
+        }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Like failed");
 
@@ -408,7 +412,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       });
       updateVideo(videoId, { likes: String(previousCount), viewer: { liked: wasLiked } });
     }
-  }, [likedVideos, trackEvent, updateVideo, videos]);
+  }, [likedVideos, trackEvent, updateVideo, videos, router]);
 
   const handleSave = useCallback(async (videoId: string) => {
     haptic("tap");
@@ -430,6 +434,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
 
     try {
       const res = await fetch(`/api/videos/${videoId}/save`, { method: "POST" });
+        if (res.status === 401) {
+          router.push(`/auth/login?next=${encodeURIComponent(`/explore?v=${videoId}`)}`);
+          throw new Error("unauthorized");
+        }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Save failed");
 
@@ -453,7 +461,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       });
       updateVideo(videoId, { saves: String(previousCount), viewer: { saved: wasSaved } });
     }
-  }, [savedVideos, trackEvent, updateVideo, videos]);
+  }, [savedVideos, trackEvent, updateVideo, videos, router]);
 
   const handleShare = useCallback(async (videoId: string) => {
     haptic("tap");

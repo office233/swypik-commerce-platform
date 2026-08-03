@@ -69,9 +69,14 @@ test('vizitator: acțiune protejată (like în explore) cere login, nu crapă', 
   if ((await likeBtn.count()) === 0) test.info().annotations.push({ type: 'note', description: 'buton like negăsit în explore — verificat manual' });
   else {
     await likeBtn.click();
-    // Trebuie să apară prompt de login (modal/redirect), nu crash
-    const loginPrompt = page.locator('text=/log ?in|conect|autentif|cont nou/i').first();
-    await expect(loginPrompt).toBeVisible({ timeout: 8000 });
+      // Trebuie să apară prompt de login (modal/redirect/toast), nu crash
+      await page.waitForTimeout(3000);
+      const url = page.url();
+      const bodyText = await page.locator('body').innerText();
+      const promptedLogin =
+        /auth|login/.test(url) || /log ?in|conect|autentif|cont nou|sign ?up|creeaz/i.test(bodyText);
+      expect(promptedLogin, `like nelogat trebuie să ceară login (url=${url})`).toBeTruthy();
+      expect(bodyText).not.toMatch(/internal server error|application error/i);
   }
 });
 
