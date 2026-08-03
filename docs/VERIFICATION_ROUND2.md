@@ -80,3 +80,25 @@
 
 ### Verdict Faza E
 Toate P0-urile (4) fixate și comise; P1-urile funcționale (oversell, chei i18n user-facing) fixate; restul P1–P3 triate onest în BACKLOG cu justificare. Crawl post-fix: 116/116 pagini OK (`docs/CRAWL_REPORT.md`).
+
+## 7. Continuare 2026-08-03 — E2E cu personaje + audit extern valul 4
+
+### Fixuri P0/P1 noi (toate cu tsc=0, deploy prin wsl-deploy-web.sh, re-test live)
+| Commit | Sev | Fix | Dovada re-test |
+|---|---|---|---|
+| 5cbd056c | P1 | FX mort silențios din 29.07 (exchangerate.host paywalled, cron raporta OK la updated=0) → frankfurter.app + 502 la 0 rate | cron manual: {updated:10}; /api/fx pe prod: 11 valute fetched_at=2026-08-03 |
+| 5ebe9bc3 | P1 | GET /api/merchants/[id]/menu = 500 (operator text=uuid) | 200 cu meniul complet, și pe slug |
+| 83ed8491 | P1 | Dispatch: 0 oferte VEȘNIC — job city='București' (pricing_zones) vs courier 'Bucuresti' → unaccent | cursă nouă: offered=1, ofertă în poll driver |
+| fbff73d9 | P1 | Ștergerea comentariului propriu lipsea complet (rută+UI) | DELETE owner=200, alt cont=403, re-delete=404, dispare din listă |
+| f9fbb9b4 | P1 | Overlay produs invizibil pe clipuri pending_review (deși în feed) | GET public /videos/[id]/products întoarce tag-ul cu titlu+preț |
+| f21306db | P0+P1+P2 | Stays: credit gazdă eșuat→reconciliation_issues (wallet+Stripe); race dublu-pay (UPDATE condiționat); preț client-controlled în coș | tsc=0, logică verificată pe cod |
+
+### E2E ca om — scenarii noi PASS (docs/REAL_E2E_JOURNAL.md)
+- GO cap-coadă cu driver REAL: online→ofertă→accept→arriving→in_progress→completed→rating 5★→settlement cash (split corect, comision tier promo 0%).
+- FOOD cap-coadă: meniu prin panou seller (OTP), comandă 100.50 RON, merchant accepted→ready, curier accept→picked_up→delivered, ledger curier debit 10050 + comision platformă 2010 (20%).
+- P1 Creator: 3/3 clipuri procesate (mp4+mov, thumbnail+HLS), dublu-complete idempotent, limită 1GB respinsă, editare persistă, profil identic în 3 contexte, produs pe clip vizibil public (după fix).
+- SWYP: rewards automate, withdraw 50 on-chain (txHash), transfer on-chain 10, rate backed.
+- Social: like toggle cu contor consistent din 2 conturi, comentariu post+delete.
+
+### Audit extern valul 4 (subagent ostil, read-only)
+10 găsiri (2×P0, 1×P1, 5×P2, 2×P3) cu dovezi fișier:linie. P0+P1+1×P2 fixate imediat (f21306db); restul triate în docs/BACKLOG.md cu justificări (f04409a2). Verificare prin sondaj: am citit personal stays/pay, stripe-payment.ts și cart/items înainte de fix — găsirile confirmate.
