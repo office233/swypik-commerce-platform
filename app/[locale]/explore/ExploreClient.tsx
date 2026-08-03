@@ -180,10 +180,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       try {
         const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
         const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
-          const pinQs = initialVideoId ? `&v=${encodeURIComponent(initialVideoId)}` : "";
+        const pinQs = initialVideoId ? `&v=${encodeURIComponent(initialVideoId)}` : "";
         const url = feedSource === "following"
-           ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}${pinQs}`
-           : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}${pinQs}`;
+          ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}${pinQs}`
+          : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}${pinQs}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
@@ -805,58 +805,33 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                   </div>
                 )}
 
-                {nearActive && video.product?.id && (
-                  <section className="product-cockpit" aria-label={t("actiuniProdus", { name: video.product?.title || video.product?.id || video.id })}>
-                    <div className="cockpit-meta">
-                      <Link
-                        href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
-                        className="creator-link"
-                      >
-                        @{(video.creator as any)?.username || video.creator?.name || 'Swypik'}
-                        {(video.creator as any)?.verified && <VerifiedBadge size={13} className="ml-1 align-middle" />}
-                      </Link>
-                      <span className="verdict-pill"><Sparkles size={12} />{t(getProductVerdictKey(video.product))}</span>
-                    </div>
-
-                    <button type="button" className="cockpit-main" onClick={() => { haptic("tap"); openProduct(video); }} aria-label="Deschide produsul">
-                      <span className="cockpit-image">
+                {nearActive && (
+                  <div className="bottom-content">
+                    <Link
+                      href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
+                      className="creator-name"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#fff', textDecoration: 'none' }}
+                    >
+                      @{(video.creator as any)?.username || video.creator?.name || 'swypik'}
+                      {(video.creator as any)?.verified && <VerifiedBadge size={14} />}
+                    </Link>
+                    {(video.description || video.title) && (
+                      <p className="video-desc">{video.description || video.title}</p>
+                    )}
+                    {video.product?.id && (
+                      <button type="button" className="product-chip" onClick={() => { haptic("tap"); openProduct(video); }}>
                         {video.product.image ? (
-                          <Image src={video.product.image} alt="" width={52} height={52} unoptimized />
-                        ) : (
-                          <ShoppingCart size={22} color="rgba(255,255,255,0.7)" />
-                        )}
-                      </span>
-                      <span style={{ minWidth: 0, textAlign: 'left' }}>
-                        <span className="cockpit-title">{video.product.name || 'Produs Swypik'}</span>
-                        <span className="cockpit-sub">
-                          <span className="cockpit-price">{video.product.priceDisplay || video.product.price || t("veziPret")}</span>
-                          <span>{video.product.deliveryLabel || 'Livrare la checkout'}</span>
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={video.product.image} alt="" />
+                        ) : null}
+                        <span className="chip-label">{video.product.name || video.product.title || 'Produs'}</span>
+                        <span className="chip-price">{video.product.priceDisplay || video.product.price || t("veziPret")}</span>
+                        <span className="chip-buy" onClick={(e) => { e.stopPropagation(); handleAddProductToCart(video); }} role="button" aria-label={t("cos")}>
+                          <ShoppingCart size={14} color="#fff" />
                         </span>
-                      </span>
-                      <span className="cockpit-score">
-                        <span className="score-badge">{video.product.swypikScore ?? '—'}</span>
-                        <span className="score-label">Score</span>
-                      </span>
-                    </button>
-
-                    <div className="cockpit-actions cockpit-two">
-                      <button
-                        type="button"
-                        className="cockpit-btn"
-                        onClick={() => router.push(`/search?q=${encodeURIComponent(video.product.name || video.product.title || '')}`)}
-                      >
-                        <Scale />Alternative
                       </button>
-                      <button
-                        type="button"
-                        className="cockpit-btn primary"
-                        onClick={() => handleAddProductToCart(video)}
-                        disabled={cartBusyProductId === String(video.product.id)}
-                      >
-                        <ShoppingCart />{t("cos")}
-                      </button>
-                    </div>
-                  </section>
+                    )}
+                  </div>
                 )}
 
                 {nearActive && (

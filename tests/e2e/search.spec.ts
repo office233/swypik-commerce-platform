@@ -13,7 +13,7 @@ test('search page renders input and accepts query', async ({ page }) => {
   await input.press('Enter');
 
   // After submit either query string updates or page navigates — wait briefly
-  await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+  await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => { });
 
   // Must not be a 5xx error page
   const body = await page.locator('body').innerText();

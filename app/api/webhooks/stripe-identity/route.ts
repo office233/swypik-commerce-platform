@@ -65,6 +65,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  // Idempotency (audit 2026-08-02): atomic claim against processed_stripe_events,
+  // same mechanism as the main Stripe webhook. Prevents replay of captured
+  // (signature-valid) events — e.g. re-approving a since-rejected KYC.
+  try {
+    const { rows: claimRows } = await dbQuery<{ event_id: string }>(
+      `INSERT INTO processed_stripe_events (event_id, event_type)
+       VALUES ($1, $2)
+       ON CONFLICT (event_id) DO NOTHING
+       RETURNING event_id`,
+      [event.id, event.type]
+    );
+    if (claimRows.length === 0) {
+      console.info(`[stripe-identity webhook] duplicate event, skipping: ${event.id} (${event.type})`);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+  } catch (err) {
+    console.error(`[stripe-identity webhook] idempotency claim failed for ${event.id}:`, err);
+    // 500 → Stripe will retry; better than processing a possibly-duplicate event.
+    return NextResponse.json({ error: "Idempotency claim failed" }, { status: 500 });
+  }
+
   try {
     if (event.type.startsWith("identity.verification_session.")) {
       const verification = event.data.object as Stripe.Identity.VerificationSession;

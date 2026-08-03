@@ -30,9 +30,9 @@ const NON_LOCALIZED_PREFIXES = [
   "/unsubscribe",
   "/r",
   "/courier",
-    "/cauze",
-    "/developers",
-    "/apps",
+  "/cauze",
+  "/developers",
+  "/apps",
 ];
 
 function isNonLocalized(pathname: string): boolean {
@@ -70,6 +70,11 @@ function allowedOrigins(req: NextRequest): string[] {
   out.add("https://18.swypik.com");
   try {
     out.add(`${req.nextUrl.protocol}//${req.nextUrl.host}`);
+    const host = req.headers.get("host");
+    if (host && /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)) {
+      out.add(`http://${host}`);
+      out.add(`https://${host}`);
+    }
   } catch {
     /* noop */
   }

@@ -353,7 +353,7 @@ export default function EditProfilePage() {
                 onClick={() => setLinks((prev) => [...prev, { label: "", url: "" }])}
                 className="min-h-[44px] w-full rounded-xl border border-dashed border-white/20 text-sm font-bold text-white/60 hover:bg-white/5"
               >
-                
+
                 {t("adaugaLink")}
               </button>
             )}
@@ -386,8 +386,8 @@ export default function EditProfilePage() {
       )}
 
       {/* Sticky save bar */}
-        {/* deasupra bottom-nav (h-16, z-30) — altfel nav-ul interceptează click-urile pe mobil */}
-        <div className="fixed bottom-16 inset-x-0 z-40 bg-black/95 backdrop-blur border-t border-white/10" style={{ bottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}>
+      {/* deasupra bottom-nav (h-16, z-30) — altfel nav-ul interceptează click-urile pe mobil */}
+      <div className="fixed bottom-16 inset-x-0 z-40 bg-black/95 backdrop-blur border-t border-white/10" style={{ bottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}>
         <div className="max-w-2xl mx-auto px-4 py-3 flex gap-3">
           <button
             type="button"

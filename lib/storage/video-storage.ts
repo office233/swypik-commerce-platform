@@ -50,27 +50,27 @@ function getS3Client(): S3Client {
   return _client;
 }
 
-  /**
-   * Client pentru URL-uri presemnate folosite DIN BROWSER.
-   * Semnătura SigV4 include host-ul, deci nu putem doar rescrie URL-ul:
-   * semnăm direct pe endpointul public (S3_UPLOAD_PUBLIC_ENDPOINT,
-   * ex. https://cdn.swypik.com → tunel spre MinIO). Fallback: clientul intern.
-   */
-  function getPresignClient(): S3Client {
-    const publicEndpoint = firstEnv("S3_UPLOAD_PUBLIC_ENDPOINT");
-    if (!publicEndpoint) return getS3Client();
-    if (_presignClient) return _presignClient;
-    const accessKeyId = firstEnv("S3_ACCESS_KEY", "S3_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID");
-    const secretAccessKey = firstEnv("S3_SECRET_KEY", "S3_SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY");
-    if (!accessKeyId || !secretAccessKey) return getS3Client();
-    _presignClient = new S3Client({
-      region: firstEnv("S3_REGION", "R2_REGION", "AWS_REGION") || "auto",
-      endpoint: publicEndpoint,
-      credentials: { accessKeyId, secretAccessKey },
-      forcePathStyle: true,
-    });
-    return _presignClient;
-  }
+/**
+ * Client pentru URL-uri presemnate folosite DIN BROWSER.
+ * Semnătura SigV4 include host-ul, deci nu putem doar rescrie URL-ul:
+ * semnăm direct pe endpointul public (S3_UPLOAD_PUBLIC_ENDPOINT,
+ * ex. https://cdn.swypik.com → tunel spre MinIO). Fallback: clientul intern.
+ */
+function getPresignClient(): S3Client {
+  const publicEndpoint = firstEnv("S3_UPLOAD_PUBLIC_ENDPOINT");
+  if (!publicEndpoint) return getS3Client();
+  if (_presignClient) return _presignClient;
+  const accessKeyId = firstEnv("S3_ACCESS_KEY", "S3_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID");
+  const secretAccessKey = firstEnv("S3_SECRET_KEY", "S3_SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY");
+  if (!accessKeyId || !secretAccessKey) return getS3Client();
+  _presignClient = new S3Client({
+    region: firstEnv("S3_REGION", "R2_REGION", "AWS_REGION") || "auto",
+    endpoint: publicEndpoint,
+    credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
+  });
+  return _presignClient;
+}
 
 function getBucket(): string {
   const bucket = firstEnv("S3_BUCKET", "S3_MEDIA_BUCKET", "R2_BUCKET");

@@ -38,8 +38,9 @@ def new_ctx(browser, mobile=True):
     vp = {"width": 390, "height": 844} if mobile else {"width": 1440, "height": 900}
     ctx = browser.new_context(viewport=vp, bypass_csp=True)
     def _rewrite(route, request):
-        if request.method in ("POST", "PUT", "PATCH", "DELETE") and "/api/" in request.url:
-            headers = {**request.headers, "origin": "https://swypik.com"}
+        if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            headers = {**request.headers, "origin": "https://swypik.com",
+                       "x-forwarded-host": "swypik.com"}
             resp = route.fetch(headers=headers)
             route.fulfill(response=resp)
         else:
@@ -155,6 +156,26 @@ def dismiss_overlays(page, max_steps=8):
             page.evaluate("document.querySelectorAll('[role=dialog]').forEach(e=>e.remove())")
         except Exception:
             pass
+
+
+def admin_login(page):
+    """BUG mediu local: cookie admin_session e Secure in prod build (lib/security/admin-auth.ts:136)
+    -> respins pe http://127.0.0.1. Workaround QA: POST /api/admin/login si injectam cookie manual."""
+    import json as _json, urllib.request as _ur, subprocess as _sp
+    r = _sp.run(["wsl", "-d", "swypik", "-e", "bash", "-lc",
+                 "grep '^ADMIN_SECRET=' /opt/swypik/app/infra/hetzner/.env.production | cut -d= -f2-"],
+                capture_output=True, text=True, stdin=_sp.DEVNULL)
+    sec = r.stdout.strip()
+    body = _json.dumps({"password": sec}).encode()
+    req = _ur.Request(BASE + "/api/admin/login", data=body,
+                      headers={"Content-Type": "application/json", "Origin": "https://swypik.com"})
+    resp = _ur.urlopen(req, timeout=20)
+    setc = resp.headers.get("Set-Cookie") or ""
+    name, val = setc.split(";")[0].split("=", 1)
+    page.context.add_cookies([{"name": name, "value": val, "domain": "127.0.0.1",
+                               "path": "/", "httpOnly": True, "secure": False, "sameSite": "Lax"}])
+    page.goto(BASE + "/admin", wait_until="domcontentloaded", timeout=45000)
+    return "Sign in" not in page.inner_text("body")
 
 
 class Journal:

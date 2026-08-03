@@ -682,11 +682,11 @@ export default function PayClient() {
                                 await eth.request({
                                     method: "wallet_addEthereumChain",
                                     params: [{
-                                            chainId: SWYP_CHAIN_ID_HEX,
-                                            chainName: SWYP_CHAIN_NAME,
-                                            nativeCurrency: SWYP_NATIVE_CURRENCY,
-                                            rpcUrls: [SWYP_PUBLIC_RPC_URL],
-                                            blockExplorerUrls: [SWYP_EXPLORER_URL],
+                                        chainId: SWYP_CHAIN_ID_HEX,
+                                        chainName: SWYP_CHAIN_NAME,
+                                        nativeCurrency: SWYP_NATIVE_CURRENCY,
+                                        rpcUrls: [SWYP_PUBLIC_RPC_URL],
+                                        blockExplorerUrls: [SWYP_EXPLORER_URL],
                                     }],
                                 });
                             } catch { /* utilizatorul a refuzat */ }

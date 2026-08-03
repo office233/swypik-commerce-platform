@@ -312,7 +312,7 @@ async function evaluateFraudRisk(orderId: string): Promise<void> {
   }
 
   // User-level auto-block check (only for authenticated buyers, only on review+ scores)
-    if (o.buyer_user_id && risk.score >= FRAUD_REVIEW_SCORE) {
+  if (o.buyer_user_id && risk.score >= FRAUD_REVIEW_SCORE) {
     try {
       const { maybeAutoBlockUser } = await import("@/lib/risk/user-block");
       await maybeAutoBlockUser({

@@ -509,10 +509,10 @@ export async function GET(request: NextRequest) {
     const rawSessionId = (searchParams.get("session_id") || "").trim();
     const viewerSessionId = SESSION_RE.test(rawSessionId) ? rawSessionId : null;
 
-      // Deep-link `?v=<uuid>`: clipul cerut se prinde PRIMUL în pagina 1,
-      // altfel linkul de pe profil deschide feed-ul pe alt video.
-      const rawPinnedId = (searchParams.get("v") || "").trim();
-      const pinnedVideoId = page === 1 && new RegExp(UUID_SQL_RE, "i").test(rawPinnedId) ? rawPinnedId : null;
+    // Deep-link `?v=<uuid>`: clipul cerut se prinde PRIMUL în pagina 1,
+    // altfel linkul de pe profil deschide feed-ul pe alt video.
+    const rawPinnedId = (searchParams.get("v") || "").trim();
+    const pinnedVideoId = page === 1 && new RegExp(UUID_SQL_RE, "i").test(rawPinnedId) ? rawPinnedId : null;
 
     // Fetch extra rows when quality filtering is active so the default feed can
     // skip low-quality products without looking empty.
@@ -533,11 +533,11 @@ export async function GET(request: NextRequest) {
       queryParams.push(taxonomySlugParam);
       taxonomyParam = `$${queryParams.length}`;
     }
-      let pinnedParam = "";
-      if (pinnedVideoId) {
-        queryParams.push(pinnedVideoId);
-        pinnedParam = `$${queryParams.length}`;
-      }
+    let pinnedParam = "";
+    if (pinnedVideoId) {
+      queryParams.push(pinnedVideoId);
+      pinnedParam = `$${queryParams.length}`;
+    }
 
     const feedWeights = await loadFeedWeights();
     const equityExpr = buildEquityExpr(feedWeights, Boolean(userId) || Boolean(viewerSessionId));

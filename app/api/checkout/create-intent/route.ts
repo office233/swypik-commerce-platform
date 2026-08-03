@@ -272,6 +272,16 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     logger.error({ err: error }, "[Create Intent Error]");
     if (claimedKey) await idempotencyRelease(`checkout:${claimedKey}`);
-    return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
+    const type = (error as { type?: string } | null)?.type ?? "";
+    if (type === "StripeAuthenticationError" || type === "StripePermissionError") {
+      return NextResponse.json(
+        { success: false, error: "Plățile cu cardul nu sunt disponibile momentan. Te rugăm să încerci mai târziu." },
+        { status: 503 }
+      );
+    }
+    return NextResponse.json(
+      { success: false, error: "A apărut o eroare la inițierea plății. Te rugăm să încerci din nou." },
+      { status: 500 }
+    );
   }
 }
