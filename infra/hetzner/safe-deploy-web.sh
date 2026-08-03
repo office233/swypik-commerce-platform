@@ -14,6 +14,7 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/swypik/app}"
 COMPOSE_FILE="${COMPOSE_FILE:-${APP_DIR}/infra/hetzner/docker-compose.prod.yml}"
+COMPOSE_OVERRIDE="${COMPOSE_OVERRIDE:-${APP_DIR}/infra/hetzner/docker-compose.vps.yml}"
 ENV_FILE="${ENV_FILE:-${APP_DIR}/infra/hetzner/.env.production}"
 SERVICE="${SERVICE:-web-next}"
 IMAGE="${IMAGE:-swypik-prod-web-next:latest}"
@@ -66,7 +67,7 @@ export BUILD_COMMIT="$COMMIT_LONG"
 export BUILD_TIME="$BUILD_TIME"
 export DEPLOYED_AT="$BUILD_TIME"
 
-COMPOSE=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
+COMPOSE=(docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" --env-file "$ENV_FILE")
 
 # BUILD_NO_CACHE=1 force-rebuild fără cache (recovery dacă cache layers au ENV-uri stale)
 BUILD_ARGS=()
