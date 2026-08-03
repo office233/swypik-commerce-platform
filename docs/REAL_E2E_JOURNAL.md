@@ -229,3 +229,9 @@ Cont: e2e_761181@test.swypik.local (sters din DB dupa test, DELETE 2 cu FK casca
 | CSRF activ (mutatii fara Origin corect -> {error:csrf}) | PASS |
 
 Toate cele 9 intrari din Setari functionale end-to-end. 0 bug-uri noi gasite la aceasta runda.
+
+## 2026-08-03 - Clarificare Descopera produsele + Missions (BUG 5.3)
+
+- **Missions** = sistem de gamificare functional: pagini /missions + /missions/[slug] (200 live), backend complet (app/api/admin/missions/submissions, creator_mission_submissions in DB). Cardul din pagina de cont (AccountPageClient.tsx:312, href=/missions) e intentionat - recomandare: PASTRARE ca atare.
+- **Descopera produsele** = card CTA spre explore (texte in messages/ro.json: descoperaProdusePrinClipuri, incepeSaDescoperi) - functional, duce corect in feed. PASTRARE.
+- Ambele sunt functionale, nu schelete; nu necesita mutare in navigatie. /ro/creator = 200 (Creator Rewards accesibil si din Setari dupa fix).
