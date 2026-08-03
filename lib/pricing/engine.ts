@@ -107,11 +107,11 @@ export async function computeAutoSurge(city: string, at: Date): Promise<number> 
     const { rows } = await dbQuery<{ demand: string; supply: string }>(
       `SELECT
          (SELECT count(*) FROM dispatch_jobs dj
-           WHERE lower(dj.city) = lower($1)
+           WHERE unaccent(lower(dj.city)) = unaccent(lower($1))
              AND dj.created_at > $2::timestamptz - interval '15 minutes'
              AND dj.status IN ('searching', 'assigned')) AS demand,
          (SELECT count(*) FROM couriers
-           WHERE lower(city) = lower($1) AND is_online) AS supply`,
+           WHERE unaccent(lower(city)) = unaccent(lower($1)) AND is_online) AS supply`,
       [city, at.toISOString()],
     );
     const demand = Number(rows[0]?.demand ?? 0);

@@ -88,7 +88,9 @@ async function emitWaveOffers(job: DispatchJob): Promise<number> {
               ))
             ELSE NULL END AS distance_km
        FROM couriers c
-      WHERE lower(c.city) = lower($1)
+            -- unaccent: jobul vine cu orasul din pricing_zones (cu diacritice, ex. "București"),
+            -- curierii isi scriu orasul liber (ex. "Bucuresti") -> fara unaccent nu se potrivesc niciodata.
+            WHERE unaccent(lower(c.city)) = unaccent(lower($1))
         AND c.is_online
         AND c.verification_status = 'approved'
         AND c.kind = $7
