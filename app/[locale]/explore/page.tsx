@@ -61,10 +61,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-async function fetchSeed(category: string): Promise<any[]> {
+async function fetchSeed(category: string, creatorId?: string, pinnedVideoId?: string): Promise<any[]> {
   try {
     const h = await headers();
-    const qs = category ? `&taxonomy_node_slug=${encodeURIComponent(category)}` : "";
+    let qs = category ? `&taxonomy_node_slug=${encodeURIComponent(category)}` : "";
+    if (creatorId) qs += `&creator_id=${encodeURIComponent(creatorId)}`;
+    if (pinnedVideoId) qs += `&v=${encodeURIComponent(pinnedVideoId)}`;
     const res = await fetch(`${getRequestBaseUrl(h)}/api/explore/feed?limit=30${qs}`, {
       cache: "no-store",
       headers: { cookie: h.get("cookie") || "" },
@@ -81,7 +83,11 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const raw = sp.taxonomy_node_slug ?? sp.category ?? "";
   const category = Array.isArray(raw) ? (raw[0] || "") : (raw || "");
-  const initialVideos = await fetchSeed(category);
+    const rawCreator = sp.creator_id ?? "";
+    const creatorId = Array.isArray(rawCreator) ? (rawCreator[0] || "") : (rawCreator || "");
+    const rawV = sp.v ?? "";
+    const pinnedVideoId = Array.isArray(rawV) ? (rawV[0] || "") : (rawV || "");
+    const initialVideos = await fetchSeed(category, creatorId || undefined, pinnedVideoId || undefined);
   return (
     <>
       <LiveBadge />

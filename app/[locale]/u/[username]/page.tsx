@@ -195,6 +195,7 @@ export default async function UserProfilePage({ params }: Props) {
         {videos.length > 0 ? (
           <VideoGridClient
             username={(profile.username || username) as string}
+              creatorId={profile.id}
             initialVideos={videos.map((v) => ({
               id: v.id,
               title: v.title,

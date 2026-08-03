@@ -360,7 +360,7 @@ export async function POST(
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => {});
+    await client.query("ROLLBACK").catch(() => { });
     logger.error({ err: error }, "[Comments API] POST Error:");
     return NextResponse.json({ error: "Failed to post comment" }, { status: 500 });
   } finally {
@@ -427,7 +427,7 @@ export async function DELETE(
       comment_count: Number(countRes.rows[0]?.comment_count ?? 0),
     });
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => {});
+    await client.query("ROLLBACK").catch(() => { });
     logger.error({ err: error }, "[Comments API] DELETE Error:");
     return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
   } finally {

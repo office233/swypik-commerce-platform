@@ -240,10 +240,10 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
             current.map((comment) =>
               comment.id === posted.parentCommentId
                 ? {
-                    ...comment,
-                    replyCount: comment.replyCount + 1,
-                    replies: [...comment.replies, posted],
-                  }
+                  ...comment,
+                  replyCount: comment.replyCount + 1,
+                  replies: [...comment.replies, posted],
+                }
                 : comment,
             ),
           );

@@ -25,10 +25,12 @@ function formatCount(value: number) {
 
 export default function VideoGridClient({
   username,
+  creatorId,
   initialVideos,
   initialHasMore,
 }: {
   username: string;
+  creatorId?: string;
   initialVideos: Video[];
   initialHasMore: boolean;
 }) {
@@ -76,7 +78,7 @@ export default function VideoGridClient({
         {videos.map((video) => (
           <Link
             key={video.id}
-            href={`/explore?v=${encodeURIComponent(video.id)}`}
+              href={`/explore?v=${encodeURIComponent(video.id)}${creatorId ? `&creator_id=${encodeURIComponent(creatorId)}` : ""}`}
             className="group block"
           >
             <div className="relative aspect-[9/16] overflow-hidden bg-[#1A1A1A]">

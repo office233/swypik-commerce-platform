@@ -488,10 +488,14 @@ export async function GET(request: NextRequest) {
     const sourceParam = searchParams.get("source");
     const taxonomySlugParam = (searchParams.get("taxonomy_node_slug") || searchParams.get("category") || "").trim();
     const onlyFollowing = sourceParam === "following";
-    const hideSoftCommerce = !taxonomySlugParam && sourceParam !== "following" && searchParams.get("include_soft_commerce") !== "1";
+      // Context de profil: `creator_id=<uuid>` limitează feed-ul la clipurile unui singur creator
+      // (folosit de player-ul deschis din grila de profil).
+      const rawCreatorId = (searchParams.get("creator_id") || "").trim();
+      const creatorIdParamValue = new RegExp(UUID_SQL_RE, "i").test(rawCreatorId) ? rawCreatorId : null;
+      const hideSoftCommerce = !taxonomySlugParam && !creatorIdParamValue && sourceParam !== "following" && searchParams.get("include_soft_commerce") !== "1";
     const minScoreParam = searchParams.get("min_score");
     const minScoreRaw = minScoreParam == null ? NaN : Number(minScoreParam);
-    const minSwypikScore = taxonomySlugParam || onlyFollowing
+      const minSwypikScore = taxonomySlugParam || onlyFollowing || creatorIdParamValue
       ? 1
       : Number.isFinite(minScoreRaw)
         ? Math.max(1, Math.min(99, Math.round(minScoreRaw)))
@@ -538,11 +542,19 @@ export async function GET(request: NextRequest) {
       queryParams.push(pinnedVideoId);
       pinnedParam = `$${queryParams.length}`;
     }
+      let creatorParam = "";
+      if (creatorIdParamValue) {
+        queryParams.push(creatorIdParamValue);
+        creatorParam = `$${queryParams.length}`;
+      }
 
     const feedWeights = await loadFeedWeights();
     const equityExpr = buildEquityExpr(feedWeights, Boolean(userId) || Boolean(viewerSessionId));
     const equityJoins = buildEquityJoins(Boolean(userId), Boolean(viewerSessionId), userParam, sessionParam);
-    const orderClause = buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr);
+      // În context de profil păstrăm exact ordinea din grila de profil (published_at DESC).
+      const orderClause = creatorParam
+        ? `v.published_at DESC NULLS LAST, v.created_at DESC`
+        : buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr);
     const scoreSelect =
       sort === "popular"
         ? `, ${ENGAGEMENT_EXPR} AS engagement_score`
@@ -740,6 +752,7 @@ export async function GET(request: NextRequest) {
             ELSE true
           END
         ${onlyFollowing && userId ? `AND EXISTS (SELECT 1 FROM follows f2 WHERE f2.follower_user_id = ${userParam} AND f2.following_user_id = v.creator_id)` : ''}
+          ${creatorParam ? `AND v.creator_id = ${creatorParam}::uuid` : ''}
         ${userId ? `AND NOT EXISTS (SELECT 1 FROM user_hidden_videos uhv WHERE uhv.user_id = ${userParam} AND uhv.video_id = v.id)` : ''}
       ${taxonomySlugParam ? `AND mp.taxonomy_node_slug IN (
         WITH RECURSIVE descendants AS (

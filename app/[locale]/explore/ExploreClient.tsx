@@ -11,6 +11,7 @@ import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
 import { trackEvent as trackFeedEvent, trackWatchTime, flushWatchTime, resetWatchTime, getSessionId } from "@/lib/feed/track";
 import { useTranslations } from "next-intl";
+import { routeForProduct } from "@/lib/products/product-route";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
@@ -68,6 +69,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialVideoId = searchParams.get("v");
+    // Context de profil: player-ul navighează DOAR prin clipurile acestui creator.
+    const creatorContextId = searchParams.get("creator_id");
 
   const [videos, setVideos] = useState<any[]>(initialVideos || []);
   const [loading, setLoading] = useState((initialVideos?.length || 0) === 0);
@@ -168,9 +171,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
         const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
         const pinQs = initialVideoId ? `&v=${encodeURIComponent(initialVideoId)}` : "";
+          const creatorQs = creatorContextId ? `&creator_id=${encodeURIComponent(creatorContextId)}` : "";
         const url = feedSource === "following"
-          ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}${pinQs}`
-          : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}${pinQs}`;
+            ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}${pinQs}${creatorQs}`
+            : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}${pinQs}${creatorQs}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
@@ -189,6 +193,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         setLoading(false);
       }
     }
+    // Seed-ul din RSC e deja filtrat pe creator_id și pinned pe ?v= (explore/page.tsx).
     if (initialVideos && initialVideos.length >= 20 && feedSource === 'foryou') {
       // skip initial fetch only when the server provided a full first batch
       const seeded = initialVideos;
@@ -202,7 +207,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       return;
     }
     fetchVideos();
-  }, [feedSource, initialCategory, initialVideos]);
+    }, [feedSource, initialCategory, initialVideos, creatorContextId, initialVideoId]);
 
   // Load next page of videos (infinite scroll).
   const loadMoreVideos = useCallback(async () => {
@@ -213,7 +218,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
       const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
       const sourceQs = feedSource === "following" ? "&source=following" : "";
-      const url = `/api/explore/feed?limit=30&page=${nextPage}${sourceQs}${catQs}${sessionQs}`;
+        const creatorQs = creatorContextId ? `&creator_id=${encodeURIComponent(creatorContextId)}` : "";
+        const url = `/api/explore/feed?limit=30&page=${nextPage}${sourceQs}${catQs}${sessionQs}${creatorQs}`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
@@ -247,7 +253,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     } finally {
       loadingMoreRef.current = false;
     }
-  }, [feedSource, initialCategory]);
+    }, [feedSource, initialCategory, creatorContextId]);
 
   // Trigger loadMore when user reaches the last ~3 videos.
   useEffect(() => {
@@ -844,7 +850,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
           }}
           onBuyNow={() => {
             trackEvent(activeProduct.videoId, "buy_now", { product_id: activeProduct.id, surface: "product_drawer" });
-            router.push(`/product/${activeProduct.id}`);
+            router.push(routeForProduct(activeProduct));
           }}
         />
       )}

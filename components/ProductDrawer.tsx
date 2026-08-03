@@ -7,6 +7,7 @@ import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { getSessionId, trackEvent as trackFeedEvent } from "@/lib/feed/track";
 import { isCurrency, type Currency } from "@/lib/i18n/config";
 import { useTranslations } from "next-intl";
+import { routeForProduct } from "@/lib/products/product-route";
 
 export interface ProductData {
   id: string | number;
@@ -169,6 +170,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
   const inventoryLabel = data.inventoryStatus
     ? String(data.inventoryStatus).replace(/_/g, " ")
     : null;
+    const productHref = routeForProduct(data);
 
   const applyOptimisticVote = (current: ProductData, vote: "worth_it" | "not_worth_it"): ProductData => {
     const currentVotes = current.votes || {};
@@ -383,7 +385,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
           </p>
 
           <a
-            href={`/product/${data.id}`}
+            href={productHref}
             className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors mb-6 group border border-white/10"
           >
             <div className="flex items-center gap-3">
