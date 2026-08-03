@@ -205,15 +205,27 @@ export async function withdrawEarly(userId: string, stakeId: string): Promise<bo
         [stakeId, userId],
     );
     if (!rows[0]) return false;
-    await swypTransfer({
-        from: { pool: "staking" },
-        to: { userId },
-        amountUnits: BigInt(rows[0].amount_units),
-        kind: "transfer",
-        refType: "stake_release",
-        refId: stakeId,
-        description: "Retragere anticipată — principal integral, fără bonus",
-    });
+    try {
+        await swypTransfer({
+            from: { pool: "staking" },
+            to: { userId },
+            amountUnits: BigInt(rows[0].amount_units),
+            kind: "transfer",
+            refType: "stake_release",
+            refId: stakeId,
+            description: "Retragere anticipată — principal integral, fără bonus",
+        });
+    } catch (err) {
+        // Compensare: dacă transferul principalului eșuează, redeschide stake-ul
+        // ca userul să nu piardă fondurile (transferul e idempotent pe stake_release/stakeId).
+        await dbQuery(
+            `UPDATE swyp_stakes SET status = 'active', closed_at = NULL
+              WHERE id = $1 AND status = 'withdrawn_early'`,
+            [stakeId],
+        ).catch(() => { /* dacă și revertul pică, rămâne urmă în log pentru reconciliere */ });
+        log.error({ err, stakeId, userId }, "withdrawEarly: transfer principal esuat - stake redeschis");
+        throw err;
+    }
     return true;
 }
 

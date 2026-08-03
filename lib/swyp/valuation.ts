@@ -179,24 +179,49 @@ export async function redeemSwypForPayment(args: {
     const needUnits = centsToUnits(BigInt(args.cents), rate);
     if (needUnits <= 0n) return { ok: false, reason: "no_rate" };
 
-    // Fondul trebuie să poată acoperi suma (nu poate intra pe minus).
-    const { rows: fund } = await dbQuery<{ balance_cents: string }>(
-        `SELECT balance_cents FROM swyp_backing_fund WHERE id = 1`,
-    );
-    const balance = BigInt(fund[0]?.balance_cents ?? "0");
-    if (balance < BigInt(args.cents)) {
-        return { ok: false, reason: "insufficient_fund" };
-    }
-
-    // Rezerva anti-run: redeem-ul nu poate duce fondul sub pragul lunar.
-    const floor = await redeemFloorCents(balance);
-    if (floor > 0n && balance - BigInt(args.cents) < floor) {
-        log.warn(
-            { balance: balance.toString(), floor: floor.toString(), cents: args.cents },
-            "swyp.redeem.reserve_protection",
+    // Debit-first, atomic: check + debit fond în ACEEAȘI tranzacție cu FOR UPDATE
+    // (fix TOCTOU: două redeem-uri concurente nu mai pot trece amândouă de check).
+    let fundDebited = false;
+    const guard = await withTransaction(async (q) => {
+        const { rows: fund } = await q<{ balance_cents: string }>(
+            `SELECT balance_cents FROM swyp_backing_fund WHERE id = 1 FOR UPDATE`,
         );
-        return { ok: false, reason: "reserve_protection" };
-    }
+        const balance = BigInt(fund[0]?.balance_cents ?? "0");
+        if (balance < BigInt(args.cents)) {
+            return { reason: "insufficient_fund" as const };
+        }
+        // Rezerva anti-run: redeem-ul nu poate duce fondul sub pragul lunar.
+        const floor = await redeemFloorCents(balance);
+        if (floor > 0n && balance - BigInt(args.cents) < floor) {
+            log.warn(
+                { balance: balance.toString(), floor: floor.toString(), cents: args.cents },
+                "swyp.redeem.reserve_protection",
+            );
+            return { reason: "reserve_protection" as const };
+        }
+        const { rows: ins } = await q<{ id: string }>(
+            `INSERT INTO swyp_backing_ledger (direction, amount_cents, ref_type, ref_id, rate_microcents_per_unit, note)
+       VALUES ('out', $1, $2, $3, $4, 'plata cu SWYP')
+       ON CONFLICT (direction, ref_type, ref_id) DO NOTHING
+       RETURNING id::text`,
+            [args.cents, args.refType, args.refId, rate.rate_microcents_per_unit.toString()],
+        );
+        if (ins.length > 0) {
+            // debit fără GREATEST — checkul de mai sus garantează non-negativ sub lock
+            await q(
+                `UPDATE swyp_backing_fund
+            SET balance_cents = balance_cents - $1,
+                total_out_cents = total_out_cents + $1,
+                updated_at = now()
+          WHERE id = 1`,
+                [args.cents],
+            );
+            return { reason: null, debited: true };
+        }
+        return { reason: null, debited: false }; // deja aplicat (idempotent)
+    });
+    if (guard.reason) return { ok: false, reason: guard.reason };
+    fundDebited = Boolean(guard.debited);
 
     try {
         const transfer = await swypTransfer({
@@ -214,26 +239,28 @@ export async function redeemSwypForPayment(args: {
             return { ok: true, units_spent: needUnits, cents_covered: args.cents, already: true };
         }
 
-        await withTransaction(async (q) => {
-            await q(
-                `INSERT INTO swyp_backing_ledger (direction, amount_cents, ref_type, ref_id, rate_microcents_per_unit, note)
-         VALUES ('out', $1, $2, $3, $4, 'plata cu SWYP')
-         ON CONFLICT (direction, ref_type, ref_id) DO NOTHING`,
-                [args.cents, args.refType, args.refId, rate.rate_microcents_per_unit.toString()],
-            );
-            await q(
-                `UPDATE swyp_backing_fund
-            SET balance_cents = GREATEST(0, balance_cents - $1),
-                total_out_cents = total_out_cents + $1,
-                updated_at = now()
-          WHERE id = 1`,
-                [args.cents],
-            );
-        });
-
         return { ok: true, units_spent: needUnits, cents_covered: args.cents, already: false };
     } catch (err) {
         log.warn({ err, userId: args.userId, cents: args.cents }, "redeem swyp failed");
+        // Compensare: transferul userului a eșuat — anulează debitul de fond aplicat mai sus.
+        if (fundDebited) {
+            await withTransaction(async (q) => {
+                await q(
+                    `DELETE FROM swyp_backing_ledger WHERE direction = 'out' AND ref_type = $1 AND ref_id = $2`,
+                    [args.refType, args.refId],
+                );
+                await q(
+                    `UPDATE swyp_backing_fund
+                SET balance_cents = balance_cents + $1,
+                    total_out_cents = total_out_cents - $1,
+                    updated_at = now()
+              WHERE id = 1`,
+                    [args.cents],
+                );
+            }).catch((revertErr) =>
+                log.error({ revertErr, refType: args.refType, refId: args.refId }, "redeem revert failed - necesita reconciliere manuala"),
+            );
+        }
         return { ok: false, reason: "insufficient_swyp" };
     }
 }
