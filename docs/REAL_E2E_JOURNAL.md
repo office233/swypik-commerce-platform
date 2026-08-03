@@ -235,3 +235,7 @@ Toate cele 9 intrari din Setari functionale end-to-end. 0 bug-uri noi gasite la 
 - **Missions** = sistem de gamificare functional: pagini /missions + /missions/[slug] (200 live), backend complet (app/api/admin/missions/submissions, creator_mission_submissions in DB). Cardul din pagina de cont (AccountPageClient.tsx:312, href=/missions) e intentionat - recomandare: PASTRARE ca atare.
 - **Descopera produsele** = card CTA spre explore (texte in messages/ro.json: descoperaProdusePrinClipuri, incepeSaDescoperi) - functional, duce corect in feed. PASTRARE.
 - Ambele sunt functionale, nu schelete; nu necesita mutare in navigatie. /ro/creator = 200 (Creator Rewards accesibil si din Setari dupa fix).
+
+### BUG 5.3 — Clarificare 'Descopera produsele' + 'Missions' (raport, fara modificari)
+- **Missions** (/[locale]/missions + /api/missions + /api/admin/missions): pagina FUNCTIONALA (200, i18n complet) de 'creator missions' — branduri posteaza briefuri cu premii SWYP/RON (tabele creator_missions + creator_mission_submissions). In DB: **0 misiuni** → pagina afiseaza corect empty-state. VERDICT: functionala dar nefolosita; recomand PASTRARE + link din Creator Rewards cand exista primele misiuni reale (nu adaug navigatie pentru o lista goala).
+- **'Descopera produsele'**: NU e o pagina — e empty-state-ul din contul nou ('Exploreaza feed-ul sau magazinul...') + CTA-uri de onboarding din pagina Creator. Dupa fixul redirectului post-upload (→ /v/<id>), fluxul nu mai trece pe acolo accidental. VERDICT: nimic de mutat/reparat.
