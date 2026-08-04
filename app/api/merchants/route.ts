@@ -10,7 +10,7 @@ import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { MerchantCreateSchema, MerchantUpdateSchema, parseBody } from "@/lib/validation/schemas";
-import { isOpenNow } from "@/lib/merchants/hours";
+import { isOpenNow, hasKnownHours } from "@/lib/merchants/hours";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -40,6 +40,9 @@ export async function GET(req: Request) {
     const kind = url.searchParams.get("kind")?.trim() || null;
     const cuisine = url.searchParams.get("cuisine")?.trim() || null;
     const onlyOpen = url.searchParams.get("open") === "1";
+    const lat = Number(url.searchParams.get("lat"));
+    const lng = Number(url.searchParams.get("lng"));
+    const hasGeo = Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0;
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 24, 1), 100);
     const page = Math.max(Number(url.searchParams.get("page")) || 1, 1);
 
@@ -59,13 +62,25 @@ export async function GET(req: Request) {
       where.push(`$${params.length} = ANY(cuisine_types)`);
     }
 
+    // Filtrare geo: doar comercianți în a căror rază de livrare se află clientul.
+    // Distanță haversine aproximată (suficientă la <50km).
+    let distanceSelect = "NULL::float AS distance_km";
+    if (hasGeo) {
+      params.push(lat, lng);
+      const pLat = `$${params.length - 1}::float`, pLng = `$${params.length}::float`;
+      const distExpr = `(6371 * acos(least(1, cos(radians(${pLat})) * cos(radians(location_lat)) * cos(radians(location_lng) - radians(${pLng})) + sin(radians(${pLat})) * sin(radians(location_lat)))))`;
+      distanceSelect = `${distExpr} AS distance_km`;
+      where.push(`location_lat IS NOT NULL AND location_lng IS NOT NULL AND ${distExpr} <= COALESCE(delivery_radius_km, 5.0)`);
+    }
+
     params.push(limit, (page - 1) * limit);
     const { rows } = await dbQuery(
       `SELECT ${PUBLIC_COLS},
+              ${distanceSelect},
               (SELECT count(1) FROM menu_items mi WHERE mi.merchant_id = m.id AND mi.is_available) AS menu_count
          FROM local_merchants m
         WHERE ${where.join(" AND ")}
-        ORDER BY rating DESC NULLS LAST, created_at DESC
+        ORDER BY ${hasGeo ? "distance_km ASC NULLS LAST," : ""} rating DESC NULLS LAST, created_at DESC
         LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params,
     );
@@ -74,6 +89,7 @@ export async function GET(req: Request) {
     const merchants = rows.map((m: any) => ({
       ...m,
       is_open: isOpenNow(m.opening_hours, m.is_open_override),
+      hours_known: hasKnownHours(m.opening_hours) || m.is_open_override != null,
     }));
 
     return NextResponse.json({

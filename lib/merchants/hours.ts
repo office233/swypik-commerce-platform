@@ -14,6 +14,23 @@ export type OpeningHours = Partial<Record<DayKey, [string, string][]>>;
 
 const DAYS: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
+/** Ora locală România (serverul rulează pe UTC). */
+function nowInRomania(now: Date): { minutes: number; dayIdx: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Bucharest",
+    hour: "numeric", minute: "numeric", weekday: "short", hour12: false,
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  const wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday"));
+  const h = Number(get("hour")) % 24;
+  return { minutes: h * 60 + Number(get("minute")), dayIdx: wd === -1 ? now.getDay() : wd };
+}
+
+/** Programul e necunoscut (obiect gol — ex. profil importat din OSM fără ore)? */
+export function hasKnownHours(hours: unknown): boolean {
+  return !!hours && typeof hours === "object" && Object.keys(hours as object).length > 0;
+}
+
 function toMinutes(hhmm: string): number | null {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
   if (!m) return null;
@@ -38,9 +55,9 @@ export function isOpenNow(
   const oh = (hours ?? {}) as OpeningHours;
   if (!oh || typeof oh !== "object" || Object.keys(oh).length === 0) return false;
 
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-  const today = DAYS[now.getDay()];
-  const yesterday = DAYS[(now.getDay() + 6) % 7];
+  const { minutes: nowMin, dayIdx } = nowInRomania(now);
+  const today = DAYS[dayIdx];
+  const yesterday = DAYS[(dayIdx + 6) % 7];
 
   // interval normal, azi
   for (const [from, to] of oh[today] ?? []) {
