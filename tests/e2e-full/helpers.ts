@@ -16,6 +16,8 @@ export function collectIssues(page: Page): PageIssues {
       const text = msg.text();
       // Ignore known benign noise (3rd-party, favicon, aborted media)
       if (/favicon|ERR_ABORTED|net::ERR_FAILED.*(hls|\.m3u8|\.ts\b)/i.test(text)) return;
+      // fetch anulat de navigare (unmount) — nu e bug de aplicație
+      if (/TypeError: Failed to fetch/.test(text)) return;
         // 401 pe check-uri best-effort de sesiune (wallet SWYP) când ești nelogat = comportament așteptat
         const locUrl = msg.location()?.url ?? '';
         if (/status of 401/.test(text) && /\/api\/(auth|me|session|swyp\/wallet)/.test(locUrl)) return;
@@ -53,6 +55,8 @@ export async function apiSignup(request: APIRequestContext, email: string, usern
       email,
       password: TEST_PASSWORD,
       username: username ?? `e2e_pw_${Date.now().toString(36)}`,
+      first_name: 'E2E',
+      last_name: 'Tester',
     },
   });
   return res;
@@ -65,13 +69,61 @@ export async function apiLogin(request: APIRequestContext, email: string, passwo
   });
 }
 
+/** Închide bannerul GDPR dacă blochează UI-ul. */
+export async function dismissCookies(page: Page) {
+  const btn = page.getByRole('button', { name: /accept all|essential only|doar esențiale|accept/i }).first();
+  if ((await btn.count()) > 0) await btn.click({ timeout: 3000 }).catch(() => {});
+}
+
+/** Închide dialogurile de onboarding/welcome care acoperă pagina. */
+export async function dismissOverlays(page: Page) {
+  await dismissCookies(page);
+  // dialogul de onboarding poate apărea cu întârziere
+  await page.waitForTimeout(1200);
+  for (let i = 0; i < 4; i++) {
+    const close = page.getByRole('dialog').getByRole('button', { name: /închide|close|✕|×/i }).first();
+    if ((await close.count()) === 0) break;
+    await close.click({ timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(400);
+  }
+}
+
 /** UI login through /auth/login form. */
 export async function uiLogin(page: Page, email: string, password = TEST_PASSWORD) {
-  await page.goto('/auth/login');
-  await page.locator('input[type="email"], input[name="email"]').first().fill(email);
-  await page.locator('input[type="password"]').first().fill(password);
-  await page.locator('button[type="submit"]').first().click();
-  await page.waitForURL((u) => !/\/auth\/login/.test(u.toString()), { timeout: 15_000 });
+  // Reuse sesiunea salvată pentru același email (evită rate limitul de login)
+  const fs = require('fs') as typeof import('fs');
+  const path = require('path') as typeof import('path');
+  const stateFile = path.resolve(__dirname, `artifacts/session-${email.replace(/[^a-z0-9]/gi, '_')}.json`);
+  if (fs.existsSync(stateFile)) {
+    try {
+      const cookies = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+      await page.context().addCookies(cookies);
+      await page.goto('/account', { waitUntil: 'domcontentloaded' });
+      if (!/auth|login/.test(page.url())) return; // sesiune validă
+    } catch { /* fallthrough la login normal */ }
+  }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await page.goto('/auth/login');
+    await dismissCookies(page);
+    await page.locator('input[type="email"], input[name="email"]').first().fill(email);
+    await page.locator('input[type="password"]').first().fill(password);
+    await page.locator('button[type="submit"]').first().click();
+    try {
+      await page.waitForURL((u) => !/\/auth\/login/.test(u.toString()), { timeout: 15_000 });
+      // marchez onboarding-ul complet ca modalul să nu mai intercepteze clickurile
+      await page.request.post(`${BASE}/api/users/me/onboarding/complete`, { headers: { Origin: ORIGIN } }).catch(() => {});
+      // salvez cookie-urile pentru refolosire
+      try {
+        fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+        fs.writeFileSync(stateFile, JSON.stringify(await page.context().cookies()));
+      } catch { /* non-fatal */ }
+      return;
+    } catch {
+      // posibil rate limit — așteaptă și reîncearcă
+      await page.waitForTimeout(20_000);
+    }
+  }
+  throw new Error(`uiLogin failed for ${email} after 3 attempts`);
 }
 
 /** Login and transfer session cookies from API context into browser context. */

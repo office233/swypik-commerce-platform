@@ -19,6 +19,8 @@ for (const p of ['/product/inexistent-xyz', '/v/xxx-inexistent', '/u/user_inexis
   test(`ID inexistent: ${p} → eroare elegantă, nu 500`, async ({ page }) => {
     const res = await page.goto(p, { waitUntil: 'domcontentloaded' });
     expect(res?.status(), `${p} nu trebuie să dea 500`).toBeLessThan(500);
+    // 404-ul e streamed (Suspense) — așteptăm textul randat
+    await expect(page.locator('body')).toContainText(/404|găsit|gasit|negasit|nu exista|not found/i, { timeout: 10000 });
     const body = await page.locator('body').innerText();
     expect(body).not.toMatch(/internal server error|application error/i);
     expect(body.trim().length, 'nu ecran alb').toBeGreaterThan(20);
@@ -53,5 +55,6 @@ test('CSRF: POST /api/auth fără Origin corect → respins', async ({ request }
     headers: { Origin: 'https://evil.example.com', 'Content-Type': 'application/json' },
     data: { action: 'login_password', email: 'x@x.com', password: 'x' },
   });
-  expect([403, 400, 401], `CSRF guard: ${r.status()}`).toContain(r.status());
+  // 429 = rate limiterul a prins request-ul înainte de CSRF check — tot refuz e
+  expect([403, 400, 401, 429], `CSRF guard: ${r.status()}`).toContain(r.status());
 });

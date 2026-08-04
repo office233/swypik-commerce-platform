@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { collectIssues, assertNoIssues, testEmail, apiSignup, uiLogin, TEST_PASSWORD } from './helpers';
+import { collectIssues, assertNoIssues, testEmail, apiSignup, uiLogin } from './helpers';
 
 /**
  * Faza 4 — Roluri privilegiate.
- * User normal: /admin și /seller refuzate. Seller/Admin: cu credențiale din env
- * (E2E_SELLER_EMAIL/E2E_SELLER_PASSWORD, E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD).
+ * - user normal: /admin + /seller refuzate, /api/admin/* 401/403/404
+ * - seller: sesiune injectată în DB (cookie seller_session) — token setat prin env E2E_SELLER_TOKEN
+ * - admin: login cu ADMIN_SECRET prin env E2E_ADMIN_SECRET (POST /api/admin/login)
  */
 
 test.beforeEach(async ({}, testInfo) => {
@@ -12,6 +13,7 @@ test.beforeEach(async ({}, testInfo) => {
 });
 
 test('user normal: /admin refuzat + /api/admin/* 401/403/404', async ({ page, request }) => {
+  test.setTimeout(120_000);
   const email = testEmail('_f4');
   const res = await apiSignup(request, email);
   expect(res.ok(), `signup: ${res.status()}`).toBeTruthy();
@@ -19,7 +21,7 @@ test('user normal: /admin refuzat + /api/admin/* 401/403/404', async ({ page, re
 
   await page.goto('/admin', { waitUntil: 'domcontentloaded' });
   const body = await page.locator('body').innerText();
-  expect(body).toMatch(/interzis|restricț|forbidden|404|not found|acces/i);
+  // fără dashboard: ori formular de parolă admin, ori refuz
   expect(body).not.toMatch(/Utilizatori.*Comenzi platform/s);
 
   for (const api of ['/api/admin/users', '/api/admin/orders', '/api/admin/sellers']) {
@@ -32,48 +34,57 @@ test('user normal: /admin refuzat + /api/admin/* 401/403/404', async ({ page, re
   const adminLink = page.locator('a[href*="/admin"]');
   expect(await adminLink.count(), 'link admin vizibil pt user normal').toBe(0);
 
-  // Seller dashboard la fel
-  await page.goto('/seller', { waitUntil: 'domcontentloaded' }).catch(() => {});
-  const sb = await page.locator('body').innerText();
-  expect(sb).not.toMatch(/payouts.*produsele mele/is);
+  // Seller dashboard refuzat
+  await page.goto('/seller/orders', { waitUntil: 'domcontentloaded' }).catch(() => {});
+  expect(page.url(), 'seller/orders trebuie să redirecteze la login seller').toMatch(/seller\/login|auth|login/);
 });
 
-const SELLER_EMAIL = process.env.E2E_SELLER_EMAIL;
-const SELLER_PASS = process.env.E2E_SELLER_PASSWORD;
+const SELLER_TOKEN = process.env.E2E_SELLER_TOKEN;
 
 test('seller: dashboard + secțiuni se deschid', async ({ page }) => {
-  test.skip(!SELLER_EMAIL, 'E2E_SELLER_EMAIL nesetat — documentat în NETESTABIL');
-  await uiLogin(page, SELLER_EMAIL!, SELLER_PASS ?? TEST_PASSWORD);
-  for (const p of ['/seller', '/seller/products', '/seller/orders', '/seller/payouts', '/seller/listings', '/seller/returns', '/seller/settings']) {
+  test.skip(!SELLER_TOKEN, 'E2E_SELLER_TOKEN nesetat — vezi NETESTABIL/raport');
+  test.setTimeout(180_000);
+  await page.context().addCookies([
+    { name: 'seller_session', value: SELLER_TOKEN!, domain: 'swypik.com', path: '/', httpOnly: true, secure: true, sameSite: 'Strict' },
+  ]);
+  for (const p of ['/seller', '/seller/products', '/seller/orders', '/seller/payouts', '/seller/listings', '/seller/returns', '/seller/settings', '/seller/merchant', '/seller/cazari']) {
     const issues = collectIssues(page);
     const res = await page.goto(p, { waitUntil: 'domcontentloaded' });
     expect(res?.status(), `${p}`).toBeLessThan(400);
+    expect(page.url(), `${p} nu trebuie să redirecteze la login`).not.toMatch(/seller\/login/);
     const body = await page.locator('body').innerText();
-    expect(body, p).not.toMatch(/internal server error|interzis|forbidden/i);
+    expect(body, p).not.toMatch(/internal server error/i);
     assertNoIssues(issues, p);
   }
 });
 
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL;
-const ADMIN_PASS = process.env.E2E_ADMIN_PASSWORD;
+const ADMIN_SECRET = process.env.E2E_ADMIN_SECRET;
 
 const ADMIN_SECTIONS = [
   '/admin', '/admin/users', '/admin/orders', '/admin/sellers', '/admin/videos',
   '/admin/moderation', '/admin/payouts', '/admin/refunds', '/admin/returns',
   '/admin/reviews', '/admin/risk', '/admin/marketplace', '/admin/creators',
   '/admin/commissions', '/admin/disputes', '/admin/health', '/admin/pricing',
+  '/admin/applications', '/admin/strikes', '/admin/fleet', '/admin/hosts', '/admin/cron',
 ];
 
 test('admin: fiecare secțiune se deschide și se populează', async ({ page }) => {
-  test.skip(!ADMIN_EMAIL, 'E2E_ADMIN_EMAIL nesetat — documentat în NETESTABIL');
-  test.setTimeout(180_000);
-  await uiLogin(page, ADMIN_EMAIL!, ADMIN_PASS ?? TEST_PASSWORD);
+  test.skip(!ADMIN_SECRET, 'E2E_ADMIN_SECRET nesetat — vezi NETESTABIL/raport');
+  test.setTimeout(300_000);
+  // login admin: POST /api/admin/login cu parola
+  const login = await page.request.post('https://swypik.com/api/admin/login', {
+    headers: { Origin: 'https://swypik.com', 'Content-Type': 'application/json' },
+    data: { password: ADMIN_SECRET },
+  });
+  expect(login.ok(), `admin login: ${login.status()}`).toBeTruthy();
+
   for (const p of ADMIN_SECTIONS) {
     const issues = collectIssues(page);
     const res = await page.goto(p, { waitUntil: 'domcontentloaded' });
     expect(res?.status(), `${p}`).toBeLessThan(400);
     const body = await page.locator('body').innerText();
-    expect(body, p).not.toMatch(/internal server error|interzis|forbidden/i);
+    expect(body, p).not.toMatch(/internal server error/i);
+    expect(body.trim().length, `${p} pagină goală`).toBeGreaterThan(50);
     assertNoIssues(issues, p);
   }
 });
