@@ -43,6 +43,7 @@ export async function POST(req: Request) {
     let mpId: string | null = null;
     let mpVariantId: string | null = null;
 
+    let productExistsInDb = false;
     try {
       const { rows } = await dbQuery<any>(
         `SELECT id, title, price_cents, currency, image_url, listing_type
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
         [productId],
       );
       if (rows[0]) {
+        productExistsInDb = true;
         // Anunțurile (imobiliare/auto/servicii) nu se cumpără prin coș —
         // au formular de contact în loc de checkout.
         if (rows[0].listing_type === "listing") {
@@ -86,6 +88,20 @@ export async function POST(req: Request) {
           }
         }
       } catch { }
+    }
+
+    // Produs intern (UUID-like, fara prefix de sursa externa) inexistent in DB
+    // => refuzam adaugarea. Inainte, un productId inventat intra ca "produs
+    // fantoma" cu pret 0 si polua cosul (BUG-hunt 2026-08-04). Externe (AliExpress
+    // etc., cu prefix `ae:`/`ext:` sau non-UUID) raman permise ca fallback.
+    if (!productExistsInDb) {
+      const looksInternal = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
+      if (looksInternal) {
+        return NextResponse.json(
+          { success: false, error: "Produsul nu a fost găsit." },
+          { status: 404, headers: NO_STORE },
+        );
+      }
     }
 
     if (!title) title = "Produs";
