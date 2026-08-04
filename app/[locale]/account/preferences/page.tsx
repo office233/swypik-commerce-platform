@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
+import { ArrowLeft, Globe, Coins } from "lucide-react";
 import LocaleSwitcher from "@/components/i18n/LocaleSwitcher";
 import { CurrencySwitcher } from "@/components/i18n/CurrencyProvider";
 
@@ -12,45 +14,52 @@ export default async function PreferencesPage() {
   const tSettings = await getTranslations("settings");
 
   return (
-    <main className="mx-auto max-w-lg p-4 text-white">
-      <h1 className="text-xl font-semibold mb-6">{tSettings("preferences")}</h1>
-
-      <section className="space-y-5">
-        <div>
-          <label className="block text-sm text-white/70 mb-1">
-            {tSettings("selectLanguage")}
-          </label>
-          <LocaleSwitcher className="w-full rounded-lg bg-white/10 px-3 py-2 text-white" />
-        </div>
-
-        <div>
-          <label className="block text-sm text-white/70 mb-1">
-            {tSettings("selectCurrency")}
-          </label>
-          <CurrencySwitcher className="w-full rounded-lg bg-white/10 px-3 py-2 text-white" />
-        </div>
-
-        <p className="text-xs text-white/40">
-          {tCommon("language")} / {tCommon("currency")}
-        </p>
-      </section>
-
-      {/* Swypik 18+ runs on a separate site/app (18.swypik.com).
-          The activation card lives there; from here we just link out. */}
-      <section className="mt-8 rounded-xl border border-white/10 bg-white/5 p-4">
-        <h2 className="text-sm font-semibold mb-1">Swypik 18+</h2>
-        <p className="text-xs text-white/60 mb-3">
-          {tSettings("adultInfo")}
-        </p>
-        <a
-          href="https://18.swypik.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-500"
+    <main className="min-h-screen bg-[#0D0D0D] text-white mobile-page-bottom">
+      <header className="relative z-30 bg-[#0D0D0D]/95 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center justify-between">
+        <Link
+          href="/account/settings"
+          className="grid h-11 w-11 place-items-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition"
+          aria-label={tCommon("language")}
         >
-          {tSettings("adultGo")} →
-        </a>
-      </section>
+          <ArrowLeft size={22} />
+        </Link>
+        <h1 className="text-lg font-black">{tSettings("preferences")}</h1>
+        <div className="w-11" aria-hidden="true" />
+      </header>
+
+      <div className="mx-auto max-w-md px-4 py-6">
+        <section className="space-y-4">
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+            <label className="flex items-center gap-2 text-sm font-semibold text-white/80 mb-2">
+              <Globe size={16} className="text-[#F5A623]" />
+              {tSettings("selectLanguage")}
+            </label>
+            <LocaleSwitcher className="w-full rounded-xl border border-white/10 bg-[#1A1A1A] px-3 py-3 text-white text-[15px] appearance-none" />
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+            <label className="flex items-center gap-2 text-sm font-semibold text-white/80 mb-2">
+              <Coins size={16} className="text-[#F5A623]" />
+              {tSettings("selectCurrency")}
+            </label>
+            <CurrencySwitcher className="w-full rounded-xl border border-white/10 bg-[#1A1A1A] px-3 py-3 text-white text-[15px] appearance-none" />
+          </div>
+        </section>
+
+        {/* Swypik 18+ rulează pe site separat (18.swypik.com) — doar link discret. */}
+        <section className="mt-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-1">Swypik 18+</h2>
+          <p className="text-xs text-white/50 mb-3">{tSettings("adultInfo")}</p>
+          <a
+            href="https://18.swypik.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/10"
+          >
+            {tSettings("adultGo")} →
+          </a>
+        </section>
+      </div>
     </main>
   );
 }
