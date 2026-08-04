@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   try {
     const data = await getPublicUserProfile(username, { limit: 1 });
-    if (!data) return { title: "Profil negasit - Swypik" };
+    if (!data) return { title: "Profil negasit - Swypik", robots: { index: false, follow: false } };
 
     return {
       title: `${data.profile.displayName} (${data.profile.handle}) - Swypik`,
