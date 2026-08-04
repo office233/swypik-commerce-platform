@@ -1,3 +1,0 @@
-./postgres_store.go
-./redis_publisher.go
-./service.go
