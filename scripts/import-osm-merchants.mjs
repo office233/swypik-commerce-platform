@@ -1,0 +1,253 @@
+#!/usr/bin/env node
+/**
+ * Import restaurante/localuri din OpenStreetMap (Overpass API) ca profiluri
+ * "unclaimed" (seller_id NULL) în local_merchants.
+ *
+ * Acoperă și mediul rural: rulează pe județ întreg (admin_level=4/6) sau pe oraș.
+ *
+ * Utilizare:
+ *   DATABASE_URL=postgres://... node scripts/import-osm-merchants.mjs --city "Focșani"
+ *   DATABASE_URL=postgres://... node scripts/import-osm-merchants.mjs --county "Vrancea"
+ *   ... [--status pending|active] [--dry-run]
+ *
+ * Idempotent: ON CONFLICT (osm_type, osm_id) DO UPDATE (doar câmpuri OSM,
+ * nu suprascrie profiluri revendicate - skip dacă seller_id IS NOT NULL).
+ * Atribuire date: © OpenStreetMap contributors (ODbL).
+ */
+import pg from "pg";
+
+const OVERPASS_URL = process.env.OVERPASS_URL || "https://overpass-api.de/api/interpreter";
+
+// ---------- argumente ----------
+const args = process.argv.slice(2);
+function argVal(name) {
+  const i = args.indexOf(name);
+  return i !== -1 ? args[i + 1] : undefined;
+}
+const city = argVal("--city");
+const county = argVal("--county");
+const importStatus = argVal("--status") || "active";
+const dryRun = args.includes("--dry-run");
+
+if ((!city && !county) || (city && county)) {
+  console.error('Utilizare: --city "Focșani" SAU --county "Vrancea" [--status pending|active] [--dry-run]');
+  process.exit(1);
+}
+if (!["pending", "active"].includes(importStatus)) {
+  console.error("--status trebuie să fie pending sau active");
+  process.exit(1);
+}
+const dbUrl = process.env.DATABASE_URL;
+if (!dbUrl && !dryRun) {
+  console.error("Setează DATABASE_URL în env (sau folosește --dry-run).");
+  process.exit(1);
+}
+
+// ---------- helpers ----------
+function slugify(input) {
+  return input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70);
+}
+
+/** amenity OSM -> kind local_merchants */
+const AMENITIES = ["restaurant", "fast_food", "cafe", "pub", "bar", "ice_cream"];
+function kindFor(tags) {
+  // toate localurile de mâncare le tratăm ca 'restaurant' (CHECK-ul tabelei)
+  return "restaurant";
+}
+
+/** cuisine OSM "pizza;kebab" -> text[] normalizat */
+const CUISINE_MAP = {
+  regional: "romaneasca", romanian: "romaneasca", local: "romaneasca",
+  kebab: "kebab", pizza: "pizza", burger: "burger", sandwich: "sandvisuri",
+  chicken: "pui", fish: "peste", seafood: "peste", sushi: "sushi",
+  asian: "asiatica", chinese: "asiatica", japanese: "asiatica", thai: "asiatica",
+  italian: "italiana", turkish: "turceasca", greek: "greceasca",
+  american: "americana", mexican: "mexicana", indian: "indiana",
+  coffee_shop: "cafenea", cake: "cofetarie", ice_cream: "inghetata",
+  bakery: "patiserie", pastry: "patiserie", grill: "gratar", barbecue: "gratar",
+  vegetarian: "vegetariana", vegan: "vegana", international: "internationala",
+};
+function cuisinesFor(tags) {
+  const out = new Set();
+  const raw = (tags.cuisine || "").toLowerCase();
+  for (const c of raw.split(/[;,]/)) {
+    const k = c.trim().replace(/\s+/g, "_");
+    if (!k) continue;
+    out.add(CUISINE_MAP[k] || k.replace(/_/g, " "));
+  }
+  if (out.size === 0) {
+    if (tags.amenity === "fast_food") out.add("fast food");
+    else if (tags.amenity === "cafe") out.add("cafenea");
+    else if (tags.amenity === "ice_cream") out.add("inghetata");
+    else out.add("romaneasca");
+  }
+  return [...out].slice(0, 5);
+}
+
+const DAYS = { Mo: "mon", Tu: "tue", We: "wed", Th: "thu", Fr: "fri", Sa: "sat", Su: "sun" };
+const DAY_ORDER = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+/** Parser best-effort pentru opening_hours OSM simple ("Mo-Fr 09:00-22:00; Sa 10:00-23:00").
+ *  Formate exotice -> {} (necunoscut). */
+function openingHoursFor(raw) {
+  if (!raw) return {};
+  if (/24\s*\/\s*7/.test(raw)) {
+    const all = {}; for (const d of Object.values(DAYS)) all[d] = [["00:00", "23:59"]];
+    return all;
+  }
+  const out = {};
+  try {
+    for (const part of raw.split(";")) {
+      const m = part.trim().match(/^([A-Za-z,\- ]+)?\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+      if (!m) continue;
+      const [, daysRaw, from, to] = m;
+      let days = [];
+      if (!daysRaw || !daysRaw.trim()) days = DAY_ORDER;
+      else {
+        for (const seg of daysRaw.split(",")) {
+          const s = seg.trim();
+          const range = s.match(/^([A-Z][a-z])\s*-\s*([A-Z][a-z])$/);
+          if (range) {
+            const a = DAY_ORDER.indexOf(range[1]), b = DAY_ORDER.indexOf(range[2]);
+            if (a !== -1 && b !== -1 && a <= b) days.push(...DAY_ORDER.slice(a, b + 1));
+          } else if (DAY_ORDER.includes(s)) days.push(s);
+        }
+      }
+      for (const d of days) {
+        const key = DAYS[d];
+        if (!key) continue;
+        (out[key] ||= []).push([from.padStart(5, "0"), to.padStart(5, "0")]);
+      }
+    }
+  } catch { return {}; }
+  return out;
+}
+
+function addressFor(tags) {
+  const parts = [];
+  if (tags["addr:street"]) {
+    parts.push(`${tags["addr:street"]}${tags["addr:housenumber"] ? " " + tags["addr:housenumber"] : ""}`);
+  }
+  const loc = tags["addr:city"] || tags["addr:village"] || tags["addr:hamlet"];
+  if (loc) parts.push(loc);
+  return parts.join(", ") || null;
+}
+
+// ---------- Overpass ----------
+const amenityRe = AMENITIES.join("|");
+const areaFilter = city
+  ? `area["name"="${city}"]["boundary"="administrative"]["admin_level"~"8|9"]->.a;`
+  : `area["name"="${county}"]["boundary"="administrative"]["admin_level"="4"]->.a;`;
+
+const query = `
+[out:json][timeout:120];
+${areaFilter}
+(
+  nwr["amenity"~"^(${amenityRe})$"]["name"](area.a);
+);
+out center tags;
+`;
+
+console.log(`Interoghez Overpass pentru ${city ? "orașul " + city : "județul " + county}...`);
+const res = await fetch(OVERPASS_URL, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded",
+    "User-Agent": "SwypikFoodImport/1.0 (contact@swypik.com)",
+  },
+  body: "data=" + encodeURIComponent(query),
+});
+if (!res.ok) {
+  console.error(`Overpass a răspuns ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  process.exit(1);
+}
+const data = await res.json();
+const elements = (data.elements || []).filter((e) => e.tags?.name);
+console.log(`Găsite ${elements.length} localuri cu nume în OSM.`);
+
+// ---------- transformare ----------
+const rows = elements.map((e) => {
+  const t = e.tags;
+  const lat = e.lat ?? e.center?.lat ?? null;
+  const lng = e.lon ?? e.center?.lon ?? null;
+  const locCity =
+    t["addr:city"] || t["addr:village"] || t["addr:hamlet"] || (city || null);
+  return {
+    osm_type: e.type,
+    osm_id: e.id,
+    name: t.name.trim().slice(0, 120),
+    slug: `${slugify(t.name)}-${e.type.charAt(0)}${e.id}`,
+    kind: kindFor(t),
+    cuisine_types: cuisinesFor(t),
+    phone: t.phone || t["contact:phone"] || null,
+    email: t.email || t["contact:email"] || null,
+    address: addressFor(t),
+    location_city: locCity,
+    location_lat: lat,
+    location_lng: lng,
+    opening_hours: openingHoursFor(t.opening_hours),
+    description: t.description || null,
+  };
+});
+
+if (dryRun) {
+  for (const r of rows.slice(0, 20)) {
+    console.log(`- ${r.name} [${r.cuisine_types.join(",")}] ${r.location_city ?? "?"} (${r.osm_type}/${r.osm_id})`);
+  }
+  console.log(`\nDRY RUN: ${rows.length} rânduri (afișate primele 20). Nimic scris în DB.`);
+  process.exit(0);
+}
+
+// ---------- upsert ----------
+const client = new pg.Client({ connectionString: dbUrl });
+await client.connect();
+let inserted = 0, updated = 0, skippedClaimed = 0;
+try {
+  await client.query("BEGIN");
+  for (const r of rows) {
+    const q = await client.query(
+      `INSERT INTO local_merchants
+         (kind, name, slug, description, cuisine_types, phone, email, address,
+          location_country, location_city, location_lat, location_lng,
+          opening_hours, status, source, osm_type, osm_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'RO',$9,$10,$11,$12,$13,'osm',$14,$15)
+       ON CONFLICT (osm_type, osm_id) WHERE osm_id IS NOT NULL
+       DO UPDATE SET
+         name = EXCLUDED.name,
+         cuisine_types = EXCLUDED.cuisine_types,
+         phone = COALESCE(local_merchants.phone, EXCLUDED.phone),
+         email = COALESCE(local_merchants.email, EXCLUDED.email),
+         address = COALESCE(EXCLUDED.address, local_merchants.address),
+         location_city = COALESCE(EXCLUDED.location_city, local_merchants.location_city),
+         location_lat = EXCLUDED.location_lat,
+         location_lng = EXCLUDED.location_lng,
+         opening_hours = CASE WHEN local_merchants.opening_hours = '{}'::jsonb
+                              THEN EXCLUDED.opening_hours ELSE local_merchants.opening_hours END,
+         updated_at = now()
+       WHERE local_merchants.seller_id IS NULL
+       RETURNING (xmax = 0) AS is_insert`,
+      [
+        r.kind, r.name, r.slug, r.description, r.cuisine_types, r.phone, r.email,
+        r.address, r.location_city, r.location_lat, r.location_lng,
+        JSON.stringify(r.opening_hours), importStatus, r.osm_type, r.osm_id,
+      ]
+    );
+    if (q.rowCount === 0) skippedClaimed++;
+    else if (q.rows[0].is_insert) inserted++;
+    else updated++;
+  }
+  await client.query("COMMIT");
+} catch (e) {
+  await client.query("ROLLBACK");
+  console.error("Eroare, rollback:", e.message);
+  process.exit(1);
+} finally {
+  await client.end();
+}
+console.log(`Gata: ${inserted} inserate, ${updated} actualizate, ${skippedClaimed} sărite (revendicate).`);
+console.log("Date © OpenStreetMap contributors (ODbL).");

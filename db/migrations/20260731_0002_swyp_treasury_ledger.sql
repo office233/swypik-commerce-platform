@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS swyp_emission_rules (
 );
 
 INSERT INTO swyp_emission_rules (action, amount_units, daily_cap_units, requires_paid_tx, enabled) VALUES
-  ('mining_daily',            1000,  1000, false, true),   -- 10 SWYP/zi bază
+  ('mining_daily',            1000,  2000, false, true),   -- 10 SWYP/zi bază (cap = bază×2, acoperă streak +100%)
   ('referral_validated',      5000,  25000, true,  true),  -- 50 SWYP, max 5/zi, DOAR după plata invitatului
   ('go_ride_completed',       2000,  20000, true,  true),  -- 20 SWYP/cursă
   ('eats_delivery_on_time',   1500,  30000, true,  true),

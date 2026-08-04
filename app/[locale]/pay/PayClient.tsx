@@ -89,6 +89,7 @@ export default function PayClient() {
     const [history, setHistory] = useState<LedgerRow[]>([]);
     const [mining, setMining] = useState<Mining | null>(null);
     const [busy, setBusy] = useState(false);
+    const [miningMsg, setMiningMsg] = useState<string | null>(null);
     const [unauthorized, setUnauthorized] = useState(false);
     const [shareUrl, setShareUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
@@ -150,6 +151,7 @@ export default function PayClient() {
 
     const act = useCallback(async (action: "start" | "claim") => {
         setBusy(true);
+        setMiningMsg(null);
         try {
             const res = await fetch("/api/swyp/mining", {
                 method: "POST",
@@ -159,11 +161,23 @@ export default function PayClient() {
             const data = await res.json();
             if (data.status) setMining(data.status);
             else if (data.mining) setMining(data.mining);
+            // Claim eșuat → mesaj vizibil, nu eșec silențios.
+            if (action === "claim" && data.claimed === false) {
+                const reasons: Record<string, string> = {
+                    no_session: t("errNoSession"),
+                    not_finished: t("errNotFinished"),
+                    award_rejected: t("errAwardRejected"),
+                    rate_limited: t("errRateLimited"),
+                };
+                setMiningMsg(reasons[data.reason ?? data.error] ?? t("errNetwork"));
+            }
             await load();
+        } catch {
+            setMiningMsg(t("errNetwork"));
         } finally {
             setBusy(false);
         }
-    }, [load]);
+    }, [load, t]);
 
     const ratePerSession = useMemo(() => (mining ? fmtSwyp(mining.rateUnits) : "—"), [mining]);
     // Rata pe oră (sesiune de 24h) — afișaj stil Pi: "0,42 SWYP/h"
@@ -496,6 +510,9 @@ export default function PayClient() {
                                 >
                                     {busy ? <Loader2 className="animate-spin" /> : t("claim", { amount: ratePerSession })}
                                 </button>
+                            )}
+                            {miningMsg && (
+                                <p className="text-[12px] font-bold text-[#FF5A5F] text-center max-w-xs">{miningMsg}</p>
                             )}
                         </div>
 
