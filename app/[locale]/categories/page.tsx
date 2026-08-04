@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { getAppBaseUrl, getRequestBaseUrl } from "@/lib/url";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +101,7 @@ export default async function CategoriesPage() {
   return (
     <main className="min-h-screen text-neutral-900" style={{ backgroundColor: BG }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
+        __html: safeJsonLd({
           "@context": "https://schema.org",
           "@type": "CollectionPage",
           name: labels.title,
@@ -110,7 +111,7 @@ export default async function CategoriesPage() {
         })
       }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
+        __html: safeJsonLd({
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           itemListElement: [
