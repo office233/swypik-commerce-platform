@@ -11,7 +11,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Banknote, CheckCircle2, Clock, CreditCard, MapPin, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react";
 import { haptic } from "@/lib/haptic";
-import { isOpenNow } from "@/lib/merchants/hours";
+import { isOpenNow, hasKnownHours } from "@/lib/merchants/hours";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { useTranslations } from "next-intl";
 import EatsPaymentModal from "@/components/payments/EatsPaymentModal";
@@ -114,6 +114,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
 
   const cartKey = `swypik_food_cart_${merchant.id}`;
   const open = isOpenNow(merchant.opening_hours, merchant.is_open_override);
+  const hoursKnown = hasKnownHours(merchant.opening_hours) || merchant.is_open_override != null;
 
   useEffect(() => {
     fetch(`/api/merchants/${merchant.id}/menu`)
@@ -412,9 +413,13 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               {merchant.delivery_fee_cents === 0 ? t("freeDelivery") : fmtLei(merchant.delivery_fee_cents)}
             </span>
             {merchant.min_order_cents > 0 && <span>{t("minOrder", { amount: fmtLei(merchant.min_order_cents) })}</span>}
-            <span className={`font-black ${open ? "" : "text-red-600"}`} style={open ? { color: ACCENT } : undefined}>
-              {open ? t("open") : t("closed")}
-            </span>
+            {hoursKnown ? (
+              <span className={`font-black ${open ? "" : "text-red-600"}`} style={open ? { color: ACCENT } : undefined}>
+                {open ? t("open") : t("closed")}
+              </span>
+            ) : (
+              <span className="font-black text-[#6E6E80]">{t("hoursUnknown")}</span>
+            )}
           </div>
         </div>
       </div>
@@ -428,7 +433,10 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
             ))}
           </div>
         ) : menu.length === 0 ? (
-          <p className="py-12 text-center text-sm text-[#6E6E80]">{t("menuLoading")}</p>
+          <div className="py-12 text-center">
+            <p className="text-sm font-bold">{t("noMenuYet")}</p>
+            <p className="mx-auto mt-1 max-w-xs text-xs text-[#6E6E80]">{t("noMenuYetSub")}</p>
+          </div>
         ) : (
           menu.map((section) => (
             <section key={section.id ?? "other"} className="mb-6">
