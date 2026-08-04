@@ -140,9 +140,31 @@ function addressFor(tags) {
 
 // ---------- Overpass ----------
 const amenityRe = AMENITIES.join("|");
-const areaFilter = city
-  ? `area["name"="${city}"]["boundary"="administrative"]["admin_level"~"8|9"]->.a;`
-  : `area["name"="${county}"]["boundary"="administrative"]["admin_level"="4"]->.a;`;
+/** Coduri ISO 3166-2 pentru județe — interogare mult mai rapidă decât după nume. */
+const COUNTY_ISO = {
+  alba: "RO-AB", arad: "RO-AR", arges: "RO-AG", bacau: "RO-BC", bihor: "RO-BH",
+  "bistrita-nasaud": "RO-BN", botosani: "RO-BT", brasov: "RO-BV", braila: "RO-BR",
+  bucuresti: "RO-B", buzau: "RO-BZ", "caras-severin": "RO-CS", calarasi: "RO-CL",
+  cluj: "RO-CJ", constanta: "RO-CT", covasna: "RO-CV", dambovita: "RO-DB",
+  dolj: "RO-DJ", galati: "RO-GL", giurgiu: "RO-GR", gorj: "RO-GJ",
+  harghita: "RO-HR", hunedoara: "RO-HD", ialomita: "RO-IL", iasi: "RO-IS",
+  ilfov: "RO-IF", maramures: "RO-MM", mehedinti: "RO-MH", mures: "RO-MS",
+  neamt: "RO-NT", olt: "RO-OT", prahova: "RO-PH", "satu mare": "RO-SM",
+  salaj: "RO-SJ", sibiu: "RO-SB", suceava: "RO-SV", teleorman: "RO-TR",
+  timis: "RO-TM", tulcea: "RO-TL", vaslui: "RO-VS", valcea: "RO-VL", vrancea: "RO-VN",
+};
+function countyIso(name) {
+  const key = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return COUNTY_ISO[key];
+}
+let areaFilter;
+if (city) {
+  areaFilter = `area["name"="${city}"]["boundary"="administrative"]["admin_level"~"8|9"]->.a;`;
+} else {
+  const iso = countyIso(county);
+  if (!iso) { console.error(`Județ necunoscut: ${county}`); process.exit(1); }
+  areaFilter = `area["ISO3166-2"="${iso}"]->.a;`;
+}
 
 const query = `
 [out:json][timeout:120];
@@ -154,19 +176,39 @@ out center tags;
 `;
 
 console.log(`Interoghez Overpass pentru ${city ? "orașul " + city : "județul " + county}...`);
-const res = await fetch(OVERPASS_URL, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-    "User-Agent": "SwypikFoodImport/1.0 (contact@swypik.com)",
-  },
-  body: "data=" + encodeURIComponent(query),
-});
-if (!res.ok) {
-  console.error(`Overpass a răspuns ${res.status}: ${(await res.text()).slice(0, 300)}`);
+const MIRRORS = [
+  OVERPASS_URL,
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
+];
+async function fetchOverpass() {
+  let lastErr = "";
+  for (const url of [...new Set(MIRRORS)]) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "SwypikFoodImport/1.0 (contact@swypik.com)",
+          },
+          body: "data=" + encodeURIComponent(query),
+        });
+        if (res.ok) return res.json();
+        lastErr = `${url} -> HTTP ${res.status}`;
+        console.warn(`  ${lastErr}, ${attempt < 2 ? "retry în 15s" : "trec la următorul mirror"}...`);
+      } catch (e) {
+        lastErr = `${url} -> ${e.message}`;
+        console.warn(`  ${lastErr}`);
+      }
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 15000));
+    }
+  }
+  console.error(`Toate mirror-urile Overpass au eșuat. Ultima eroare: ${lastErr}`);
   process.exit(1);
 }
-const data = await res.json();
+const data = await fetchOverpass();
 const elements = (data.elements || []).filter((e) => e.tags?.name);
 console.log(`Găsite ${elements.length} localuri cu nume în OSM.`);
 
