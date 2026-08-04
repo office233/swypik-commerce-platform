@@ -7,7 +7,6 @@ import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/sessio
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { VideoCommentPostSchema, parseBody } from "@/lib/validation/schemas";
-import { UUID_RE } from "@/lib/validation/uuid";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -46,9 +45,6 @@ export async function GET(
 ) {
   try {
     const { id: videoId } = await params;
-    if (!UUID_RE.test(videoId)) {
-      return NextResponse.json({ comments: [], page: 1, totalCount: 0, hasMore: false });
-    }
     const limit = parseLimit(request.nextUrl.searchParams.get("limit"));
     const page = parsePositiveInt(request.nextUrl.searchParams.get("page"), 1);
     const offset = (page - 1) * limit;
@@ -153,9 +149,6 @@ export async function POST(
   try {
     const { id: videoId } = await params;
     const rawBody = await request.json().catch(() => null);
-    if (!UUID_RE.test(videoId)) {
-      return NextResponse.json({ error: "Video not found" }, { status: 404 });
-    }
     const parsedBody = parseBody(VideoCommentPostSchema, rawBody);
     if (!parsedBody.ok) {
       return NextResponse.json({ error: parsedBody.error }, { status: 400 });

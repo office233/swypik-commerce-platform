@@ -43,19 +43,15 @@ export async function POST(
         following = false;
       } else {
         // Follow
-        const insertRes = await client.query(
-          "INSERT INTO follows (follower_user_id, following_user_id) VALUES ($1, $2) ON CONFLICT (follower_user_id, following_user_id) DO NOTHING RETURNING id",
+        await client.query(
+          "INSERT INTO follows (follower_user_id, following_user_id) VALUES ($1, $2)",
           [currentUserId, followingUserId]
         );
-        // Dublu-click concurent: al doilea request nu insereaza (ON CONFLICT)
-        // => nu spamam feed_events cu creator_followed duplicat.
-        if (insertRes.rows.length > 0) {
-          await client.query(
-            `INSERT INTO feed_events (actor_user_id, event_type, audience, score, source, metadata)
-             VALUES ($1, 'creator_followed', 'global', 3, 'next-follow', $2::jsonb)`,
-            [currentUserId, JSON.stringify({ following_user_id: followingUserId })]
-          );
-        }
+        await client.query(
+          `INSERT INTO feed_events (actor_user_id, event_type, audience, score, source, metadata)
+           VALUES ($1, 'creator_followed', 'global', 3, 'next-follow', $2::jsonb)`,
+          [currentUserId, JSON.stringify({ following_user_id: followingUserId })]
+        );
         following = true;
       }
 
