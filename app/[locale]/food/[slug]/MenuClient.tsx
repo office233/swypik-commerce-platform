@@ -379,6 +379,8 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
         {merchant.image_url && (
           <Image src={merchant.image_url} alt={merchant.name} fill sizes="100vw" className="object-cover" />
         )}
+        {/* gradient jos ca textul cardului să nu pară lipit pe poză */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent" />
         <button
           type="button"
           onClick={() => router.push("/food")}
@@ -390,7 +392,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
       </div>
 
       <div className="px-4">
-        <div className="-mt-6 rounded-2xl border border-[#E5E5E5] bg-white p-4 shadow-sm">
+        <div className="relative z-10 -mt-6 rounded-2xl border border-[#E5E5E5] bg-white p-4 shadow-lg">
           <div className="flex items-start justify-between gap-2">
             <h1 className="text-lg font-black leading-tight">{merchant.name}</h1>
             {merchant.rating != null && (
