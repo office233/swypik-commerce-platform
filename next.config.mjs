@@ -51,6 +51,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'commons.wikimedia.org' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'https', hostname: 'cdn.swypik.com' },
       { protocol: 'https', hostname: 'media.swypik.com' },
     ],

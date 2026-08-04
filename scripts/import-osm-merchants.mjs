@@ -138,6 +138,31 @@ function addressFor(tags) {
   return parts.join(", ") || null;
 }
 
+/** Poza reală a localului, dacă există în OSM (tag `image` sau Wikimedia Commons — licențe libere). */
+function imageFor(tags) {
+  const img = tags.image || tags["image:0"];
+  if (img && /^https?:\/\//.test(img)) return img.split(";")[0].trim();
+  const wc = tags.wikimedia_commons;
+  if (wc && wc.startsWith("File:")) {
+    return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(wc.slice(5))}?width=800`;
+  }
+  return null;
+}
+
+/** Reverse-geocoding Nominatim pentru localuri fără addr:city (max 1 req/s — politica lor). */
+async function reverseCity(lat, lng) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=13&accept-language=ro`,
+      { headers: { "User-Agent": "SwypikFoodImport/1.0 (contact@swypik.com)" } },
+    );
+    if (!res.ok) return null;
+    const d = await res.json();
+    const a = d.address ?? {};
+    return a.city || a.town || a.village || a.municipality || null;
+  } catch { return null; }
+}
+
 // ---------- Overpass ----------
 const amenityRe = AMENITIES.join("|");
 /** Coduri ISO 3166-2 pentru județe — interogare mult mai rapidă decât după nume. */
@@ -234,8 +259,19 @@ const rows = elements.map((e) => {
     location_lng: lng,
     opening_hours: openingHoursFor(t.opening_hours),
     description: t.description || null,
+    image_url: imageFor(t),
   };
 });
+
+// Completează orașul lipsă prin reverse-geocoding (respectăm 1 req/s Nominatim).
+const missingCity = rows.filter((r) => !r.location_city && r.location_lat != null);
+if (missingCity.length > 0 && !dryRun) {
+  console.log(`Reverse-geocoding pentru ${missingCity.length} localuri fără oraș (1/s)...`);
+  for (const r of missingCity) {
+    r.location_city = await reverseCity(r.location_lat, r.location_lng);
+    await new Promise((res) => setTimeout(res, 1100));
+  }
+}
 
 if (dryRun) {
   for (const r of rows.slice(0, 20)) {
@@ -256,8 +292,8 @@ try {
       `INSERT INTO local_merchants
          (kind, name, slug, description, cuisine_types, phone, email, address,
           location_country, location_city, location_lat, location_lng,
-          opening_hours, status, source, osm_type, osm_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'RO',$9,$10,$11,$12,$13,'osm',$14,$15)
+         opening_hours, status, source, osm_type, osm_id, image_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'RO',$9,$10,$11,$12,$13,'osm',$14,$15,$16)
        ON CONFLICT (osm_type, osm_id) WHERE osm_id IS NOT NULL
        DO UPDATE SET
          name = EXCLUDED.name,
@@ -270,13 +306,15 @@ try {
          location_lng = EXCLUDED.location_lng,
          opening_hours = CASE WHEN local_merchants.opening_hours = '{}'::jsonb
                               THEN EXCLUDED.opening_hours ELSE local_merchants.opening_hours END,
+         image_url = CASE WHEN EXCLUDED.image_url IS NOT NULL THEN EXCLUDED.image_url
+                          ELSE local_merchants.image_url END,
          updated_at = now()
        WHERE local_merchants.seller_id IS NULL
        RETURNING (xmax = 0) AS is_insert`,
       [
         r.kind, r.name, r.slug, r.description, r.cuisine_types, r.phone, r.email,
         r.address, r.location_city, r.location_lat, r.location_lng,
-        JSON.stringify(r.opening_hours), importStatus, r.osm_type, r.osm_id,
+        JSON.stringify(r.opening_hours), importStatus, r.osm_type, r.osm_id, r.image_url,
       ]
     );
     if (q.rowCount === 0) skippedClaimed++;
