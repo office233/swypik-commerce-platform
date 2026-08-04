@@ -99,9 +99,15 @@ export async function POST(req: Request) {
             } else if (type === "video") {
                 // Aprobare: clipul devine vizibil in feed. Respingere: ramane
                 // ascuns si primeste motivul in metadata (creatorul il vede in dashboard).
+                // BUG FIX 2026-08-04: feed-ul filtreaza pe visibility='public' —
+                // aprobarea trebuie sa si PUBLICE clipul (visibility + is_draft +
+                // published_at), altfel nu aparea niciodata in feed.
                 const { rowCount } = await dbQuery(
                     `UPDATE videos
                         SET moderation_status = $2,
+                            visibility = CASE WHEN $2 = 'approved' THEN 'public' ELSE visibility END,
+                            is_draft = CASE WHEN $2 = 'approved' THEN false ELSE is_draft END,
+                            published_at = CASE WHEN $2 = 'approved' THEN COALESCE(published_at, NOW()) ELSE published_at END,
                             metadata = COALESCE(metadata, '{}'::jsonb)
                                        || jsonb_build_object('moderation_reason', $3::text),
                             updated_at = NOW()
