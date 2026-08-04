@@ -49,21 +49,31 @@ export async function POST(
         liked = false;
         likeCount = parseInt(updateRes.rows[0]?.like_count || "0", 10);
       } else {
-        await client.query(
-          "INSERT INTO likes (user_id, video_id) VALUES ($1, $2)",
+        const insertRes = await client.query(
+          "INSERT INTO likes (user_id, video_id) VALUES ($1, $2) ON CONFLICT (user_id, video_id) WHERE video_id IS NOT NULL DO NOTHING RETURNING id",
           [userId, videoId]
         );
-        const updateRes = await client.query(
-          "UPDATE videos SET like_count = like_count + 1 WHERE id = $1 RETURNING like_count",
-          [videoId]
-        );
-        await client.query(
-          `INSERT INTO feed_events (actor_user_id, video_id, event_type, audience, score, source, metadata)
-           VALUES ($1, $2, 'video_liked', 'global', 5, 'next-like', '{}'::jsonb)`,
-          [userId, videoId]
-        );
+        // Dublu-click concurent: al doilea request nu insereaza (ON CONFLICT) =>
+        // nu incrementam de doua ori si nu spamam feed_events.
+        if (insertRes.rows.length > 0) {
+          const updateRes = await client.query(
+            "UPDATE videos SET like_count = like_count + 1 WHERE id = $1 RETURNING like_count",
+            [videoId]
+          );
+          await client.query(
+            `INSERT INTO feed_events (actor_user_id, video_id, event_type, audience, score, source, metadata)
+             VALUES ($1, $2, 'video_liked', 'global', 5, 'next-like', '{}'::jsonb)`,
+            [userId, videoId]
+          );
+          likeCount = parseInt(updateRes.rows[0]?.like_count || "0", 10);
+        } else {
+          const curRes = await client.query(
+            "SELECT like_count FROM videos WHERE id = $1",
+            [videoId]
+          );
+          likeCount = parseInt(curRes.rows[0]?.like_count || "0", 10);
+        }
         liked = true;
-        likeCount = parseInt(updateRes.rows[0]?.like_count || "0", 10);
       }
 
       await client.query("COMMIT");
