@@ -14,6 +14,7 @@ import { useTranslations } from "next-intl";
 
 const ACCENT = "#2DBE60"; // verdele Swypik Food
 const CITY_KEY = "swypik_city";
+const GEO_KEY = "swypik_geo"; // {lat,lng,t}
 
 interface Merchant {
   id: string;
@@ -29,6 +30,8 @@ interface Merchant {
   rating: number | null;
   image_url: string | null;
   is_open: boolean;
+  hours_known?: boolean;
+  distance_km?: number | null;
   menu_count: number;
 }
 
@@ -49,16 +52,45 @@ export default function FoodClient() {
   const [cuisine, setCuisine] = useState<string | null>(null);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoState, setGeoState] = useState<"idle" | "asking" | "ok" | "denied">("idle");
 
   useEffect(() => {
     setCity(localStorage.getItem(CITY_KEY));
+    try {
+      const cached = JSON.parse(localStorage.getItem(GEO_KEY) ?? "null");
+      if (cached?.lat && Date.now() - (cached.t ?? 0) < 30 * 60 * 1000) {
+        setGeo({ lat: cached.lat, lng: cached.lng });
+        setGeoState("ok");
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const askLocation = useCallback(() => {
+    if (!("geolocation" in navigator)) return;
+    setGeoState("asking");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const g = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        localStorage.setItem(GEO_KEY, JSON.stringify({ ...g, t: Date.now() }));
+        setGeo(g);
+        setGeoState("ok");
+      },
+      () => setGeoState("denied"),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
+    );
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const qs = new URLSearchParams({ kind: "restaurant", limit: "40" });
-      if (city) qs.set("city", city);
+      if (geo) {
+        qs.set("lat", String(geo.lat));
+        qs.set("lng", String(geo.lng));
+      } else if (city) {
+        qs.set("city", city);
+      }
       if (cuisine) qs.set("cuisine", cuisine);
       const res = await fetch(`/api/merchants?${qs}`);
       const data = await res.json();
@@ -66,7 +98,7 @@ export default function FoodClient() {
     } finally {
       setLoading(false);
     }
-  }, [city, cuisine]);
+  }, [city, cuisine, geo]);
 
   useEffect(() => {
     void load();
@@ -109,8 +141,21 @@ export default function FoodClient() {
             className="ml-auto inline-flex h-9 items-center gap-1 rounded-full bg-white/85 px-3 text-xs font-bold transition active:scale-95"
           >
             <MapPin size={14} className="shrink-0" style={{ color: ACCENT }} />
-            <span className="max-w-[110px] truncate">{city ?? t("chooseCity")}</span>
+            <span className="max-w-[110px] truncate">
+              {geoState === "ok" ? t("nearMe") : city ?? t("chooseCity")}
+            </span>
           </button>
+          {geoState !== "ok" && (
+            <button
+              type="button"
+              onClick={askLocation}
+              aria-label={t("useMyLocation")}
+              className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs font-bold text-white transition active:scale-95"
+              style={{ backgroundColor: ACCENT }}
+            >
+              {geoState === "asking" ? "…" : "GPS"}
+            </button>
+          )}
         </div>
 
         {/* Tipuri de bucătărie */}
@@ -195,7 +240,7 @@ export default function FoodClient() {
                   ) : (
                     <div className="grid h-full place-items-center"><UtensilsCrossed size={28} /></div>
                   )}
-                  {!m.is_open && (
+                  {!m.is_open && m.hours_known !== false && (
                     <div className="absolute inset-0 grid place-items-center bg-black/55">
                       <span className="text-[10px] font-black uppercase text-white">{t("closed")}</span>
                     </div>
@@ -215,6 +260,12 @@ export default function FoodClient() {
                     <p className="mt-0.5 truncate text-xs text-[#6E6E80]">{m.cuisine_types.join(" · ")}</p>
                   )}
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-[#6E6E80]">
+                    {m.distance_km != null && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin size={12} />
+                        {Number(m.distance_km) < 1 ? `${Math.round(Number(m.distance_km) * 1000)} m` : `${Number(m.distance_km).toFixed(1)} km`}
+                      </span>
+                    )}
                     <span className="inline-flex items-center gap-1">
                       <Clock size={12} />
                       {m.avg_prep_minutes + 25}–{m.avg_prep_minutes + 40} min
