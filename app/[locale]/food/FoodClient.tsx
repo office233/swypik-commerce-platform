@@ -67,7 +67,10 @@ export default function FoodClient() {
   }, []);
 
   const askLocation = useCallback(() => {
-    if (!("geolocation" in navigator)) return;
+    if (!("geolocation" in navigator)) {
+      alert(t("geoUnsupported"));
+      return;
+    }
     setGeoState("asking");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -76,10 +79,14 @@ export default function FoodClient() {
         setGeo(g);
         setGeoState("ok");
       },
-      () => setGeoState("denied"),
+      (err) => {
+        setGeoState("denied");
+        // 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+        alert(err.code === 1 ? t("geoDenied") : t("geoFailed"));
+      },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
     );
-  }, []);
+  }, [t]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,6 +117,10 @@ export default function FoodClient() {
     if (c?.trim()) {
       localStorage.setItem(CITY_KEY, c.trim());
       setCity(c.trim());
+      // orașul ales manual are prioritate — dezactivăm filtrarea GPS
+      localStorage.removeItem(GEO_KEY);
+      setGeo(null);
+      setGeoState("idle");
     }
   };
 

@@ -89,21 +89,21 @@ export async function POST(req: Request) {
                 [id, approve ? "verified" : "rejected"]
             );
             updated = rowCount ?? 0;
-                } else if (type === "developer") {
-                        const { rowCount } = await dbQuery(
-                                `UPDATE developer_accounts SET status = $2, updated_at = NOW()
+        } else if (type === "developer") {
+            const { rowCount } = await dbQuery(
+                `UPDATE developer_accounts SET status = $2, updated_at = NOW()
                                     WHERE id = $1 AND status = 'pending'`,
-                                [id, approve ? "approved" : "rejected"]
-                        );
-                        updated = rowCount ?? 0;
-            } else if (type === "video") {
-                // Aprobare: clipul devine vizibil in feed. Respingere: ramane
-                // ascuns si primeste motivul in metadata (creatorul il vede in dashboard).
-                // BUG FIX 2026-08-04: feed-ul filtreaza pe visibility='public' —
-                // aprobarea trebuie sa si PUBLICE clipul (visibility + is_draft +
-                // published_at), altfel nu aparea niciodata in feed.
-                const { rowCount } = await dbQuery(
-                    `UPDATE videos
+                [id, approve ? "approved" : "rejected"]
+            );
+            updated = rowCount ?? 0;
+        } else if (type === "video") {
+            // Aprobare: clipul devine vizibil in feed. Respingere: ramane
+            // ascuns si primeste motivul in metadata (creatorul il vede in dashboard).
+            // BUG FIX 2026-08-04: feed-ul filtreaza pe visibility='public' —
+            // aprobarea trebuie sa si PUBLICE clipul (visibility + is_draft +
+            // published_at), altfel nu aparea niciodata in feed.
+            const { rowCount } = await dbQuery(
+                `UPDATE videos
                         SET moderation_status = $2,
                             visibility = CASE WHEN $2 = 'approved' THEN 'public' ELSE visibility END,
                             is_draft = CASE WHEN $2 = 'approved' THEN false ELSE is_draft END,
@@ -112,24 +112,24 @@ export async function POST(req: Request) {
                                        || jsonb_build_object('moderation_reason', $3::text),
                             updated_at = NOW()
                       WHERE id = $1 AND moderation_status = 'pending_review'`,
-                    [id, approve ? "approved" : "rejected", reason ?? ""]
-                );
-                updated = rowCount ?? 0;
+                [id, approve ? "approved" : "rejected", reason ?? ""]
+            );
+            updated = rowCount ?? 0;
 
-                if (updated > 0 && approve) {
-                    const { rows: vRows } = await dbQuery<{ creator_id: string; title: string | null }>(
-                        `SELECT creator_id, title FROM videos WHERE id = $1`,
-                        [id]
+            if (updated > 0 && approve) {
+                const { rows: vRows } = await dbQuery<{ creator_id: string; title: string | null }>(
+                    `SELECT creator_id, title FROM videos WHERE id = $1`,
+                    [id]
+                );
+                const v = vRows[0];
+                if (v?.creator_id) {
+                    notifyFollowersNewPost(v.creator_id, id, {
+                        title: v.title ? `Clip nou: ${v.title}` : undefined,
+                    }).catch((e) =>
+                        logger.warn({ err: e, videoId: id }, "new_post fan-out failed")
                     );
-                    const v = vRows[0];
-                    if (v?.creator_id) {
-                        notifyFollowersNewPost(v.creator_id, id, {
-                            title: v.title ? `Clip nou: ${v.title}` : undefined,
-                        }).catch((e) =>
-                            logger.warn({ err: e, videoId: id }, "new_post fan-out failed")
-                        );
-                    }
                 }
+            }
         }
 
         if (updated === 0) {
