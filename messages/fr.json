@@ -75,6 +75,7 @@
     "inchide": "Fermer",
     "probeazaVirtual": "Essayer virtuellement",
     "adaugatInCos": "Ajouté au panier !",
+    "addToCartError": "Impossible d'ajouter cet article au panier. Réessaie.",
     "ariaPagina": "Fiche produit : {title}",
     "ariaSelectColor": "Choisir la couleur {color}",
     "livrareGratuita": "GRATUIT",

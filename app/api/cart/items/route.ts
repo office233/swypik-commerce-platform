@@ -95,34 +95,26 @@ export async function POST(req: Request) {
 
     const metadata = { mergeable: true, image };
 
-    // Try UPSERT (sum quantity if same product+variant exist).
-    const { rows: existing } = await dbQuery<{ id: string; quantity: number }>(
-      `SELECT id, quantity FROM cart_items
-       WHERE cart_id = $1 AND external_product_id = $2
-         AND COALESCE(external_variant_id,'') = COALESCE($3,'')
-         AND (metadata->>'mergeable') = 'true'
-       LIMIT 1`,
-      [cart.cartId, productId, variantId],
+    // Atomic UPSERT — se bazeaza pe indexul unic partial
+    // cart_items_cart_external_variant_uidx (cart_id, external_product_id,
+    // COALESCE(external_variant_id,'')) WHERE metadata->>'mergeable' = 'true'.
+    // Folosirea ON CONFLICT ... DO UPDATE evita race condition-ul de "lost update"
+    // cand acelasi produs e adaugat concurent (dublu-tap / mai multe taburi):
+    // varianta veche SELECT+UPDATE pierdea incremente sub concurenta.
+    const upsert = await dbQuery<{ id: string }>(
+      `INSERT INTO cart_items
+         (cart_id, external_product_id, external_variant_id, marketplace_product_id, marketplace_variant_id,
+          title, quantity, currency, unit_amount_cents, metadata)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)
+       ON CONFLICT (cart_id, external_product_id, COALESCE(external_variant_id,''))
+         WHERE (metadata->>'mergeable') = 'true'
+       DO UPDATE SET
+         quantity = LEAST(99, cart_items.quantity + EXCLUDED.quantity),
+         updated_at = now()
+       RETURNING id`,
+      [cart.cartId, productId, variantId, mpId, mpVariantId, title, quantity, currency, priceCents, JSON.stringify(metadata)],
     );
-    let itemId: string;
-    if (existing[0]) {
-      const newQty = Math.min(99, existing[0].quantity + quantity);
-      await dbQuery(
-        `UPDATE cart_items SET quantity = $1, updated_at = now() WHERE id = $2`,
-        [newQty, existing[0].id],
-      );
-      itemId = existing[0].id;
-    } else {
-      const ins = await dbQuery<{ id: string }>(
-        `INSERT INTO cart_items
-           (cart_id, external_product_id, external_variant_id, marketplace_product_id, marketplace_variant_id,
-            title, quantity, currency, unit_amount_cents, metadata)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)
-         RETURNING id`,
-        [cart.cartId, productId, variantId, mpId, mpVariantId, title, quantity, currency, priceCents, JSON.stringify(metadata)],
-      );
-      itemId = ins.rows[0].id;
-    }
+    const itemId = upsert.rows[0].id;
     await dbQuery(`UPDATE carts SET updated_at = now() WHERE id = $1`, [cart.cartId]);
 
     const items = await loadCartItems(cart.cartId);

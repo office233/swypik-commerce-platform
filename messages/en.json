@@ -161,6 +161,7 @@
     "inchide": "Close",
     "probeazaVirtual": "Try virtually",
     "adaugatInCos": "Added to cart!",
+    "addToCartError": "We couldn't add this item to your cart. Please try again.",
     "ariaPagina": "Product page: {title}",
     "ariaSelectColor": "Select color {color}",
     "livrareGratuita": "FREE",

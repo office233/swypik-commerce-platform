@@ -75,6 +75,7 @@
     "inchide": "Schließen",
     "probeazaVirtual": "Virtuell anprobieren",
     "adaugatInCos": "In den Warenkorb gelegt!",
+    "addToCartError": "Dieser Artikel konnte nicht in den Warenkorb gelegt werden. Bitte versuche es erneut.",
     "ariaPagina": "Produktseite: {title}",
     "ariaSelectColor": "Farbe {color} wählen",
     "livrareGratuita": "KOSTENLOS",

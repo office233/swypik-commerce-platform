@@ -360,36 +360,36 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                   <p className="text-sm">{t("nuAiPublicatInca")}</p>
                 </div>
               ) : (
-                  videos.map((vid, i) => {
-                    // BUG 4 (2026-08-03): proprietarul vede badge de stare pentru
-                    // clipurile neprocesate; doar clipurile ready sunt clickabile.
-                    const isReady = vid.status === "ready";
-                    const isFailed = vid.status === "failed";
-                    const inner = (
-                      <>
-                        {vid.thumbnail_url && (
-                          <Image src={vid.thumbnail_url} className={`w-full h-full object-cover ${!isReady ? "opacity-40" : ""}`} alt="Video" fill sizes="(max-width: 640px) 50vw, 33vw" unoptimized />
-                        )}
-                        {!isReady && (
-                          <span className={`absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${isFailed ? "bg-red-500/90 text-white" : "bg-amber-500/90 text-black"}`}>
-                            {isFailed ? t("clipEsuat") : t("clipInProcesare")}
-                          </span>
-                        )}
-                        <div className="absolute bottom-1 left-2 flex items-center gap-1 text-[10px] font-bold">
-                          <Heart size={10} /> {vid.likes_count || 0}
-                        </div>
-                      </>
-                    );
-                    return isReady ? (
-                      <Link key={vid.id || i} href={`/v/${vid.id}`} className="aspect-[9/16] bg-white/5 relative group cursor-pointer block">
-                        {inner}
-                      </Link>
-                    ) : (
-                      <div key={vid.id || i} className="aspect-[9/16] bg-white/5 relative">
-                        {inner}
+                videos.map((vid, i) => {
+                  // BUG 4 (2026-08-03): proprietarul vede badge de stare pentru
+                  // clipurile neprocesate; doar clipurile ready sunt clickabile.
+                  const isReady = vid.status === "ready";
+                  const isFailed = vid.status === "failed";
+                  const inner = (
+                    <>
+                      {vid.thumbnail_url && (
+                        <Image src={vid.thumbnail_url} className={`w-full h-full object-cover ${!isReady ? "opacity-40" : ""}`} alt="Video" fill sizes="(max-width: 640px) 50vw, 33vw" unoptimized />
+                      )}
+                      {!isReady && (
+                        <span className={`absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${isFailed ? "bg-red-500/90 text-white" : "bg-amber-500/90 text-black"}`}>
+                          {isFailed ? t("clipEsuat") : t("clipInProcesare")}
+                        </span>
+                      )}
+                      <div className="absolute bottom-1 left-2 flex items-center gap-1 text-[10px] font-bold">
+                        <Heart size={10} /> {vid.likes_count || 0}
                       </div>
-                    );
-                  })
+                    </>
+                  );
+                  return isReady ? (
+                    <Link key={vid.id || i} href={`/v/${vid.id}`} className="aspect-[9/16] bg-white/5 relative group cursor-pointer block">
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div key={vid.id || i} className="aspect-[9/16] bg-white/5 relative">
+                      {inner}
+                    </div>
+                  );
+                })
               )}
             </div>
           )}

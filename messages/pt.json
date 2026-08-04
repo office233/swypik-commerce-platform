@@ -75,6 +75,7 @@
     "inchide": "Fechar",
     "probeazaVirtual": "Experimentar virtualmente",
     "adaugatInCos": "Adicionado ao carrinho!",
+    "addToCartError": "Não foi possível adicionar este item ao carrinho. Tente novamente.",
     "ariaPagina": "Página do produto: {title}",
     "ariaSelectColor": "Escolher cor {color}",
     "livrareGratuita": "GRÁTIS",

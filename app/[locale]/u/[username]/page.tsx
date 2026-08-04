@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isHTTPAccessFallbackError } from "next/dist/client/components/http-access-fallback/http-access-fallback";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -60,6 +61,9 @@ export default async function UserProfilePage({ params }: Props) {
     const viewerUserId = await getCurrentViewerUserId();
     data = await getPublicUserProfile(username, { viewerUserId, limit: 24 });
   } catch (error) {
+    // notFound() aruncă intern un NEXT_NOT_FOUND — nu îl înghiți în catch,
+    // altfel pagina cade pe ProfileLoadError cu status HTTP 200 (bug SEO).
+    if (isHTTPAccessFallbackError(error)) throw error;
     console.error("[User Profile Page] Load Error:", error);
     return <ProfileLoadError />;
   }

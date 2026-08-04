@@ -75,6 +75,7 @@
     "inchide": "Chiudi",
     "probeazaVirtual": "Prova virtuale",
     "adaugatInCos": "Aggiunto al carrello!",
+    "addToCartError": "Impossibile aggiungere questo articolo al carrello. Riprova.",
     "ariaPagina": "Pagina prodotto: {title}",
     "ariaSelectColor": "Scegli il colore {color}",
     "livrareGratuita": "GRATIS",

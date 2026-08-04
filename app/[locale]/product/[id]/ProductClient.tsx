@@ -53,6 +53,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
   const [liked, setLiked] = useState(false);
   const [savePending, setSavePending] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
 
   const toggleSave = async () => {
     if (savePending) return;
@@ -216,7 +217,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
 
     // Server-side cart (DB) — POST upserts the item under the active cart.
     try {
-      await fetch("/api/cart/items", {
+      const resp = await fetch("/api/cart/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -230,8 +231,22 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           currency: "RON",
         }),
       });
-    } catch (e) {
-      // Silent fail — UI still shows added confirmation; user can retry from /cart.
+      if (!resp.ok) {
+        // Backend a respins (ex. anunt necumparabil, stoc, validare).
+        // Nu mai afisam confirmarea falsa de "adaugat" — aratam eroarea reala.
+        let msg = t("addToCartError");
+        try {
+          const data = await resp.json();
+          if (data?.error && typeof data.error === "string") msg = data.error;
+        } catch { /* raspuns non-JSON */ }
+        setCartError(msg);
+        setTimeout(() => setCartError(null), 4000);
+        return;
+      }
+    } catch {
+      setCartError(t("addToCartError"));
+      setTimeout(() => setCartError(null), 4000);
+      return;
     }
 
     setAddedToCart(true);
@@ -673,6 +688,13 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#0D0D0D] px-5 py-2.5 text-sm font-black text-white shadow-xl animate-slideUp">
 
           {t("adaugatInCos")}
+        </div>
+      )}
+
+      {/* Toast eroare — API a respins add-to-cart (ex. anunt necumparabil, stoc) */}
+      {cartError && (
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 max-w-[90vw] rounded-2xl bg-red-600 px-5 py-2.5 text-center text-sm font-bold text-white shadow-xl animate-slideUp">
+          {cartError}
         </div>
       )}
     </main>

@@ -939,6 +939,11 @@ export async function getCheckoutProductById(id: string) {
       SELECT p.*
       FROM marketplace_products p
       WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND p.effective_label = 'safe'
+        -- Doar produse clasice pot fi cumpărate prin checkout-ul de coș.
+        -- Verticalele (listing = zbor/cazare) au fluxuri proprii de rezervare
+        -- cu prețuri dinamice; un `listing` prin checkout ar crea o comandă
+        -- clasică cu prețul static din DB, ocolind rezervarea reală.
+        AND COALESCE(p.listing_type, 'product') = 'product'
         AND (p.id::text = $1 OR p.supplier_product_id = $1 OR p.external_product_id = $1)
       ORDER BY
         CASE

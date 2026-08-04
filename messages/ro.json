@@ -161,6 +161,7 @@
     "inchide": "Închide",
     "probeazaVirtual": "Probează virtual",
     "adaugatInCos": "Adăugat în coș!",
+    "addToCartError": "Nu am putut adăuga produsul în coș. Încearcă din nou.",
     "ariaPagina": "Pagină produs: {title}",
     "ariaSelectColor": "Selectează culoarea {color}",
     "livrareGratuita": "GRATUITĂ",
