@@ -61,6 +61,11 @@ async function loadUserBySessionToken(sessionToken: string): Promise<UserRow | n
          AND us.expires_at > now()
          AND us.revoked_at IS NULL
          AND COALESCE(us.metadata->>'type', 'session') = 'session'
+         -- Conturile suspendate/banate/sterse nu mai pot actiona nici cu o
+         -- sesiune inca valida (defense-in-depth pe langa revocarea sesiunilor
+         -- din fluxul de suspendare admin — vezi BUG-hunt 2026-08-04).
+         AND COALESCE(u.status, 'active') NOT IN ('suspended', 'banned', 'deleted')
+         AND (u.suspended_until IS NULL OR u.suspended_until <= now())
        LIMIT 1`,
       [hashSessionToken(sessionToken)],
     );
@@ -74,7 +79,11 @@ async function loadUserById(userId: string): Promise<UserRow | null> {
   try {
     const { rows } = await dbQuery<UserRow>(
       `SELECT id AS user_id, email, display_name, username, role
-       FROM users WHERE id = $1 LIMIT 1`,
+       FROM users
+       WHERE id = $1
+         AND COALESCE(status, 'active') NOT IN ('suspended', 'banned', 'deleted')
+         AND (suspended_until IS NULL OR suspended_until <= now())
+       LIMIT 1`,
       [userId],
     );
     return rows[0] || null;

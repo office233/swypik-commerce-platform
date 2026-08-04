@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { ChevronRight } from "lucide-react";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
+import { safeJsonLd } from "@/lib/seo/json-ld";
 import {
   LOCALE_COOKIE,
   CURRENCY_COOKIE,
@@ -167,7 +168,7 @@ export default async function CategoryPage({
           return (
             <script
               type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+              dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
             />
           );
         })()}

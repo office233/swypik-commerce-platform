@@ -103,6 +103,11 @@ async function resolveUserSession(sessionToken: string): Promise<string | null> 
        WHERE session_token_hash = $1
          AND expires_at > NOW()
          AND revoked_at IS NULL
+         AND user_id IN (
+           SELECT id FROM users
+           WHERE COALESCE(status, 'active') NOT IN ('suspended', 'banned', 'deleted')
+             AND (suspended_until IS NULL OR suspended_until <= NOW())
+         )
        LIMIT 1`,
       [tokenHash],
     );
