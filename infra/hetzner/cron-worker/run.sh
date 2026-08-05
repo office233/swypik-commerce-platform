@@ -116,6 +116,9 @@ while true; do
     run_job reconcile-wallets POST
     run_job indexnow GET
     run_job bing-url-submit GET
+    # Recuperare SWYP din checkout-uri abandonate (idempotent prin ledger ref).
+    # (Audit 2026-08-05: ruta exista dar nu era programata — SWYP ramanea blocat.)
+    run_job reclaim-abandoned-swyp GET
   fi
 
   sleep 60
