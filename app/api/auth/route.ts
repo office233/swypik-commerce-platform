@@ -45,7 +45,20 @@ const SELLER_COOKIE_NAME = "seller_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 const isProd = process.env.NODE_ENV === "production";
 const SECURE_FLAG = isProd ? "; Secure" : "";
-const COOKIE_DOMAIN_FLAG = isProd ? "; Domain=swypik.com" : "";
+
+// Extract domain from APP_URL (e.g., https://swypik.com → swypik.com)
+function getCookieDomain(): string | undefined {
+  if (!isProd) return undefined;
+  try {
+    const url = new URL(APP_URL);
+    return url.hostname;
+  } catch {
+    return undefined;
+  }
+}
+
+const COOKIE_DOMAIN = getCookieDomain();
+const COOKIE_DOMAIN_FLAG = COOKIE_DOMAIN ? `; Domain=${COOKIE_DOMAIN}` : "";
 const VERIFICATION_GRACE_DAYS = 7;
 
 /* ────────────────────────────────────────── helpers ──── */
@@ -248,7 +261,7 @@ async function issueSessionResponse(
 
   if (alreadyOnboarded) {
     response.cookies.set("swypik_onboarded", "1", {
-      domain: isProd ? "swypik.com" : undefined,
+      domain: COOKIE_DOMAIN,
       path: "/",
       maxAge: 60 * 60 * 24 * 730,
       sameSite: "lax",

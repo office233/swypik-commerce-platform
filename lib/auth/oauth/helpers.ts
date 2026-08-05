@@ -160,11 +160,8 @@ export function clearStateCookie(): string {
 export function getOAuthRedirectBase(): string {
   const v = process.env.OAUTH_REDIRECT_BASE;
   if (v) return v;
-  if (process.env.NODE_ENV === "production") {
-    console.error("[oauth] OAUTH_REDIRECT_BASE nu este setat în producție — fallback la https://swypik.com");
-    return APP_URL;
-  }
-  return "http://localhost:3000";
+  // In any environment, prefer APP_URL (config-driven)
+  return APP_URL;
 }
 
 export function isSafeRedirect(next: string | null | undefined): string {

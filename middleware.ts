@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/lib/i18n/routing";
 import { LOCALES } from "@/lib/i18n/config";
+import { APP_URL } from "@/lib/app-url";
 
 const ONBOARDING_PATH = "/onboarding";
 
@@ -63,11 +64,36 @@ const CSRF_EXEMPT_PREFIXES = [
 
 function allowedOrigins(req: NextRequest): string[] {
   const out = new Set<string>();
+  
+  // 1) Use explicitly configured site URLs first
   const envSite = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
   if (envSite) out.add(envSite.replace(/\/$/, ""));
-  out.add("https://swypik.com");
-  out.add("https://www.swypik.com");
-  out.add("https://18.swypik.com");
+  
+  // 2) Add APP_URL as base allowed origin
+  if (APP_URL) {
+    out.add(APP_URL);
+    // Add www variant
+    try {
+      const url = new URL(APP_URL);
+      const domain = url.hostname;
+      if (!domain.startsWith("www.")) {
+        out.add(`${url.protocol}//www.${domain}`);
+      }
+    } catch {
+      /* noop */
+    }
+  }
+  
+  // 3) Add extra allowed origins from env (comma-separated, e.g., "https://18.swypik.com,https://staging.swypik.com")
+  const extraOrigins = process.env.ALLOWED_ORIGINS_EXTRA;
+  if (extraOrigins) {
+    extraOrigins.split(",").forEach((origin) => {
+      const trimmed = origin.trim();
+      if (trimmed) out.add(trimmed);
+    });
+  }
+  
+  // 4) Allow current request host (localhost in dev)
   try {
     out.add(`${req.nextUrl.protocol}//${req.nextUrl.host}`);
     const host = req.headers.get("host");
@@ -78,6 +104,7 @@ function allowedOrigins(req: NextRequest): string[] {
   } catch {
     /* noop */
   }
+  
   return Array.from(out);
 }
 
