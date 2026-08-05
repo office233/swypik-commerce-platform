@@ -243,3 +243,10 @@ Toate cele 9 intrari din Setari functionale end-to-end. 0 bug-uri noi gasite la 
 ## 2026-08-04 - BUG-01 REZOLVAT: /u/[username] inexistent -> 404 (era 200)
 Cauza reala: loading.tsx in app/[locale]/u/[username]/ crea un Suspense boundary; streaming-ul pornea inainte de notFound(), deci statusul ramanea 200. Fixuri cumulative: ec266315 (isHTTPAccessFallbackError rethrow), 0c82fd13 (sters not-found.tsx local), 83947749 (sters loading.tsx - fixul decisiv).
 Verificare live: /u/inexistent=404, /u/UPPERCASE=404, /en/u/inexistent=404, profil real=200, /explore=200.
+
+## 2026-08-05 - Fix imagine moarta restaurant (regresie e2e /food)
+
+- Suita Playwright e2e-full a prins console error 404 pe /food (desktop+mobile): restaurantul "Snack Grill" (local_merchants 1e1bd296) avea image_url Unsplash mort (photo-1612392062798 -> 404).
+- Fix: UPDATE local_merchants SET image_url la o poza Unsplash valida (photo-1552566626, testata 200). Scan complet catalog: 0 alte imagini moarte.
+- Re-test: /food + /explore PASS (desktop+mobile); suita completa 92 passed, 52 skipped, 0 fail.
+- Fix aplicat doar in DB (date, nu cod) - nu necesita commit/deploy.
