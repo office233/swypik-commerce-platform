@@ -1,7 +1,36 @@
-# AUDIT TOTAL — 2026-08-05 (UPDATED)
+# AUDIT TOTAL — 2026-08-05 (UPDATED — Runda 2)
 
 > Auditor: Claude Code. Metodă: modul cu modul (audit → fix → verificare → commit).
 > Baseline la start: `npx tsc --noEmit` = 0 erori · `.i18n-baseline.json` = 162 keys (all 7 langs synchronized) · working tree curat.
+
+## RUNDA 2 (aceeași zi) — re-audit independent
+
+Re-verificare a fixurilor din Runda 1 (toate confirmate reale în cod: timing-safe pe live/daily-maintenance, FX fără STATIC_RATES, cookie domain dinamic) + vânătoare nouă de hardcodări/bug-uri. Găsite și reparate:
+
+| Găsit | Severitate | Fix | Commit |
+|---|---|---|---|
+| **Ruta `app/api/cron/watchdog-rides` ștearsă accidental** în `8384daa7` — cron-worker o apela la 10 min și primea **404** (curse Go stale nu se mai anulau; `docker logs` pline de FAIL) | 🔴 P1 | Restaurată din `327586fc`, schema `rides` verificată compatibilă (cancelled_by/cancel_reason/job_id există) | c5f5fea6 |
+| **`reclaim-abandoned-swyp` neprogramat** — ruta există, dar nu apărea în `run.sh` → SWYP rezervat la checkout abandonat rămânea blocat | 🟠 P2 | Programat zilnic (GET) în `infra/hetzner/cron-worker/run.sh` | c19b0606 |
+| **Drift migrații real**: `20260513_0008_feed_prefs_and_hidden` + `20260730_0004` aplicate în prod fără fișier pe disc | 🟠 P2 | Baseline stubs adăugate; `check-migration-drift.sh` fără versiuni necontabilizate | d367cd80 |
+| Emailuri hardcodate: `support@swypik.com` (checkout create-intent, email reject aplicații), `hello@swypik.com` (about page), `contact@swypik.com` (User-Agent Nominatim) | 🟡 P3 | Totul prin `lib/contact.ts` (SUPPORT_EMAIL/HELLO_EMAIL) + `APP_URL` | 7f52faf2 |
+| Dead ref: `sync:catalog` → `scripts/sync-catalog.mjs` inexistent | 🟡 P3 | Șters din `package.json` | 02fa7bcf |
+| `.env.example` incomplet: ~29 env vars folosite în `app/lib` nedocumentate (SWYP_CHAIN_*, FX_API_*, VIDEO_ALERT_*, VIDEO_WATCHDOG_*, CRON_INTERNAL_BASE etc.) | 🟡 P3 | Documentate toate + tooling `tools/audit-greps.sh`/`audit-smoke.sh` | 81ae3f0f |
+| `.env.local` stale: DATABASE_URL prin tunel SSH către VPS 178.105.46.66 (nu mai există) → `test:payments` pică cu ECONNREFUSED 15433 | 🟡 P3 | Marcat stale cu instrucțiuni (fișier ne-comis, doar local) | — |
+
+**Triaje (hituri OK, nu bug-uri)**:
+- „SQLi" în `i18n/preferences`, `live/streams/[id]`, `notification-preferences` — false-positive: coloane whitelisted, valori parametrizate ✅
+- `admin/cron/[jobName]/trigger` — nu compară secretul, îl injectează server-side după `hasAdminSession()` ✅
+- Feed `* 0.45`, saves `* 0.18` — euristici de ranking/metrici sintetice pe engagement, nu bani (marcate `SYNTHETIC_*`; de discutat ca produs dacă metricile sintetice rămân)
+- `lib/app-url.ts:8` — fallback prod legitim; `lib/url.ts:29` localhost doar non-prod ✅
+- `unsubscribeToken` fallback „swypik-unsubscribe-fallback" — doar dacă lipsesc APP_ENCRYPTION_KEY/SESSION_SECRET, cu logger.error în prod ✅
+- `indexnow` vs `indexnow-submit` — a doua e variantă manuală/ad-hoc, neprogramată intenționat (păstrată)
+
+**Verificări Runda 2**: tsc = 0 erori · `test:workers` 7/7 passed · messages/*.json valide, 7 limbi × 2610 chei sincronizate perfect · smoke live: /en 200, /api/health 200, /ro→/ 307 (locale default, corect) · drift check curat.
+
+**Rămase (nu blochează)**:
+- `test:payments`/`test:dispatch` cer DB de test — nu există swypik_dev în WSL (DECIZIE: creez una sau testele rulează doar în CI?)
+- Texte RO hardcodate în erori API admin (~7 rute) + `legal/cookies/page.tsx` — sub baseline i18n existent (460 hits), de extras la modulul i18n
+- Metrici sintetice în feed (saves/shares/viewers fabricate) — decizie de produs
 
 ## REZUMAT EXECUTIV
 
