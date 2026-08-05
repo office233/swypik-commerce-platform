@@ -3,6 +3,30 @@
 > Auditor: Claude Code. Metodă: modul cu modul (audit → fix → verificare → commit).
 > Baseline la start: `npx tsc --noEmit` = 0 erori · `.i18n-baseline.json` = 162 keys (all 7 langs synchronized) · working tree curat.
 
+## RUNDA 3 (aceeași zi) — securitate + robustețe live
+
+**Enumerare IDOR** (`tools/audit-idor-enum.sh`): 119 rute API cu parametri dinamici. Scanate cele „no-session" pe cale statică — TOATE au verificare (isAdminRequest / requireApprovedDeveloper cu `WHERE developer_id=$` / getSellerSessionId cu `ownsMerchant` / order_lookup_token). Zero IDOR reale.
+
+**Probe live fără sesiune** (`tools/audit-live-probes.sh`, cu warmup anti-cold-compile):
+
+| Probă | Rezultat | Verdict |
+|---|---|---|
+| PATCH `/api/admin/fleet/{uuid}` fără sesiune | 401 | ✅ |
+| PATCH `/api/admin/fleet-partners/{uuid}` | 401 | ✅ |
+| POST `/api/developers/apps/{uuid}/rotate-secret` | 401 | ✅ |
+| POST `/api/seller/orders/{uuid}/refund` | 410 (feature returns off) | ✅ gated |
+| GET `/api/orders/{uuid random}` (IDOR lookup) | 404 (nu expune date) | ✅ |
+| POST `/api/orders/{uuid}/return` body gol / JSON invalid | 410/400 (nu 500) | ✅ |
+| order-lookup rate-limit 30/min | 404 constant, fără 5xx | ✅ |
+
+**Robustețe** (`tools/audit-quality.sh`): 
+- 18 `void notify*/dispatch*/sendPush*` — TOATE triate: funcțiile țintă (`notifyUser`, `notifyHostNewBooking`, `notifyGuestBookingConfirmed`, `notifyCancellation`, `dispatchAppWebhook`) au `try/catch` intern + `.catch()` pe fiecare push/email → best-effort by design, nu floating promise periculos. ✅
+- 5 `.catch(()=>{})` pe rute admin (courier-payouts, role, suspend) — pe operații non-critice (notificare best-effort după mutația deja comisă). ✅
+- Componente-mamut (>500 linii, doar de listat): `lib/db/product-queries.ts` (1300), `app/api/auth/route.ts` (1157), `AuthFormClient.tsx` (935) — refactor prioritate joasă.
+- Zero rute cu `req.json()` fără catch → niciun 500 pe payload malformat.
+
+**Verdict Runda 3**: fără bug-uri noi de reparat — auth-gating, IDOR, input-validation și rate-limiting confirmate live. Tooling de audit lăsat în `tools/` pentru re-rulare (commit `308bb05b`).
+
 ## RUNDA 2 (aceeași zi) — re-audit independent
 
 Re-verificare a fixurilor din Runda 1 (toate confirmate reale în cod: timing-safe pe live/daily-maintenance, FX fără STATIC_RATES, cookie domain dinamic) + vânătoare nouă de hardcodări/bug-uri. Găsite și reparate:
