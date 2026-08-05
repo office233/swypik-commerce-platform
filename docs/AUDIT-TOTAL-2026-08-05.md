@@ -27,6 +27,12 @@ Re-verificare a fixurilor din Runda 1 (toate confirmate reale în cod: timing-sa
 
 **Verificări Runda 2**: tsc = 0 erori · `test:workers` 7/7 passed · messages/*.json valide, 7 limbi × 2610 chei sincronizate perfect · smoke live: /en 200, /api/health 200, /ro→/ 307 (locale default, corect) · drift check curat.
 
+**Dovezi live post-deploy (2026-08-05, WSL)**:
+- `GET /api/cron/watchdog-rides` (x-cron-secret) → `200 {"ok":true,"cancelled_no_driver":0,"dispatch_jobs_closed":0,"stale_active_reported":0}` — rulare dublă identică (idempotent); fără secret → 401. Înainte de fix: 404 în `docker logs cron-worker`.
+- `GET /api/cron/reclaim-abandoned-swyp` (Bearer) → `200 {"ok":true,"candidates":0,"reclaimed":0,"skipped":0,"errors":[]}` — dublu, idempotent; acum programat zilnic (run.sh nou confirmat în container).
+- Site: `localhost:3005/en` → 200, `swypik.com/en` → 200; 13 containere healthy; 0 FAIL în logs cron-worker după deploy.
+- **Descoperit la deploy**: repo-ul `/opt/swypik/app` era pe detached HEAD la `23c98524`, cu 28 commit-uri în urmă față de origin/main + un commit local (`ac375865`, cherry-pick deja existent upstream — skipped la rebase) → repus pe main, rebased pe origin/main, redeploy. Deploy-ul „verificat" în Runda 1 rula de fapt COD VECHI (de-asta cron-worker încă dădea 404 pe watchdog-rides).
+
 **Rămase (nu blochează)**:
 - `test:payments`/`test:dispatch` cer DB de test — nu există swypik_dev în WSL (DECIZIE: creez una sau testele rulează doar în CI?)
 - Texte RO hardcodate în erori API admin (~7 rute) + `legal/cookies/page.tsx` — sub baseline i18n existent (460 hits), de extras la modulul i18n
