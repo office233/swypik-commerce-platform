@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/web-push";
+import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,7 +10,12 @@ function verifyInternal(req: NextRequest): boolean {
   const secret = process.env.INTERNAL_SECRET;
   if (!secret) return false;
   const got = req.headers.get("x-internal");
-  return got === secret;
+  if (!got || got.length !== secret.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(got), Buffer.from(secret));
+  } catch {
+    return false;
+  }
 }
 
 function extractKey(path: string): string | null {
