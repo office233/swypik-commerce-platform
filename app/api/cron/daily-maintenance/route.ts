@@ -21,6 +21,7 @@ import { NextResponse } from "next/server";
 import { demoteInactiveFoundingDrivers } from "@/lib/drivers/tiers";
 import { processMaturedStakes } from "@/lib/swyp/staking";
 import { logger } from "@/lib/logger";
+import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -38,7 +39,11 @@ const DAILY_JOBS = [
 
 async function handle(req: Request) {
     const secret = process.env.CRON_SECRET;
-    if (!secret || req.headers.get("x-cron-secret") !== secret) {
+    if (!secret) {
+        return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const got = req.headers.get("x-cron-secret");
+    if (!got || got.length !== secret.length || !timingSafeEqual(Buffer.from(got), Buffer.from(secret))) {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
