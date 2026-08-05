@@ -4,7 +4,7 @@ import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { APP_URL } from "@/lib/app-url";
-import { SUPPORT_EMAIL } from "@/lib/contact";
+import { HELLO_EMAIL, SUPPORT_EMAIL } from "@/lib/contact";
 
 export async function generateMetadata({
   params,
@@ -51,7 +51,7 @@ export default function AboutPage() {
 
       <h2 className="text-xl font-semibold mt-8 mb-3">Contact</h2>
       <p className="text-zinc-700">
-        Email: <a className="underline" href="mailto:hello@swypik.com">hello@swypik.com</a><br />
+        Email: <a className="underline" href={`mailto:${HELLO_EMAIL}`}>{HELLO_EMAIL}</a><br />
         Suport: <a className="underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
       </p>
 

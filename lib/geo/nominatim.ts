@@ -7,11 +7,13 @@
  */
 import { getRedis } from "@/lib/redis";
 import { logger } from "@/lib/logger";
+import { APP_URL } from "@/lib/app-url";
+import { HELLO_EMAIL } from "@/lib/contact";
 
 const log = logger.child({ mod: "geo-nominatim" });
 
 const BASE = process.env.NOMINATIM_URL || "https://nominatim.openstreetmap.org";
-const USER_AGENT = "Swypik/1.0 (https://swypik.com; contact@swypik.com)";
+const USER_AGENT = `Swypik/1.0 (${APP_URL}; ${HELLO_EMAIL})`;
 const CACHE_TTL_SECONDS = 24 * 3600;
 
 export type GeoResult = {

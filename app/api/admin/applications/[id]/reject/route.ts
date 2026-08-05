@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { getDb } from "@/lib/db";
 import { sendEmail } from "@/lib/email/service";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -113,7 +114,7 @@ export async function POST(
             <p>Dupa analiza, aplicatia ta a fost <strong>respinsa</strong> din urmatorul motiv:</p>
             <blockquote style="margin:12px 0;padding:10px 14px;background:#f6f6f6;border-left:3px solid #ccc;color:#333;font-style:italic">${safeReason}</blockquote>
             <p>Poti reaplica oricand dupa ce remediezi aspectele mentionate.</p>
-            <p style="margin-top:24px;color:#666;font-size:12px">Pentru intrebari, scrie-ne la support@swypik.com.</p>
+            <p style="margin-top:24px;color:#666;font-size:12px">Pentru intrebari, scrie-ne la ${SUPPORT_EMAIL}.</p>
           </div>
         `,
       });

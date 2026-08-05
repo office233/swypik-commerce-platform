@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCheckoutProductById } from "@/lib/db/product-queries";
 import { dbQuery } from "@/lib/db";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 import { resolveCheckoutAttribution } from "@/lib/checkout/attribution";
 import { getStripe } from "@/lib/stripe/checkout";
 import crypto from "crypto";
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
       if (await isUserFraudBlocked(uid)) {
         logger.warn({ uid }, "[checkout] fraud-blocked user attempted checkout");
         return NextResponse.json(
-          { success: false, error: "Contul nu poate plasa comenzi momentan. Te rugăm contactează support@swypik.com." },
+          { success: false, error: `Contul nu poate plasa comenzi momentan. Te rugăm contactează ${SUPPORT_EMAIL}.` },
           { status: 403 }
         );
       }
