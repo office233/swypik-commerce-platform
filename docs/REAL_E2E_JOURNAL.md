@@ -239,3 +239,7 @@ Toate cele 9 intrari din Setari functionale end-to-end. 0 bug-uri noi gasite la 
 ### BUG 5.3 — Clarificare 'Descopera produsele' + 'Missions' (raport, fara modificari)
 - **Missions** (/[locale]/missions + /api/missions + /api/admin/missions): pagina FUNCTIONALA (200, i18n complet) de 'creator missions' — branduri posteaza briefuri cu premii SWYP/RON (tabele creator_missions + creator_mission_submissions). In DB: **0 misiuni** → pagina afiseaza corect empty-state. VERDICT: functionala dar nefolosita; recomand PASTRARE + link din Creator Rewards cand exista primele misiuni reale (nu adaug navigatie pentru o lista goala).
 - **'Descopera produsele'**: NU e o pagina — e empty-state-ul din contul nou ('Exploreaza feed-ul sau magazinul...') + CTA-uri de onboarding din pagina Creator. Dupa fixul redirectului post-upload (→ /v/<id>), fluxul nu mai trece pe acolo accidental. VERDICT: nimic de mutat/reparat.
+
+## 2026-08-04 - BUG-01 REZOLVAT: /u/[username] inexistent -> 404 (era 200)
+Cauza reala: loading.tsx in app/[locale]/u/[username]/ crea un Suspense boundary; streaming-ul pornea inainte de notFound(), deci statusul ramanea 200. Fixuri cumulative: ec266315 (isHTTPAccessFallbackError rethrow), 0c82fd13 (sters not-found.tsx local), 83947749 (sters loading.tsx - fixul decisiv).
+Verificare live: /u/inexistent=404, /u/UPPERCASE=404, /en/u/inexistent=404, profil real=200, /explore=200.
