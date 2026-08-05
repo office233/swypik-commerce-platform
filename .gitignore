@@ -53,3 +53,4 @@ tsc_out.txt
 *.tsx.new
 build_*.log
 knip_out.txt
+workers/**/__pycache__/
