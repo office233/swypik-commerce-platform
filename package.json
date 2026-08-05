@@ -17,7 +17,6 @@
     "test:payments": "tsx scripts/test-payments.ts",
     "payouts:process": "node scripts/process-payouts.mjs",
     "worker:dispatch": "node scripts/dispatch-worker.mjs",
-    "sync:catalog": "node scripts/sync-catalog.mjs",
     "ci": "npm run lint && npm run typecheck && npm run build && npm run test:platform && npm run test:workers",
     "ci:social": "npm run ci",
     "test:e2e": "playwright test",
