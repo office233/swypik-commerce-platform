@@ -227,9 +227,7 @@
   "settings": {
     "preferences": "Preferințe",
     "selectLanguage": "Alege limba",
-    "selectCurrency": "Alege moneda",
-    "adultInfo": "Conținutul pentru adulți este pe un site separat, complet izolat.",
-    "adultGo": "Mergi la 18.swypik.com"
+    "selectCurrency": "Alege moneda"
   },
   "cookies": {
     "title": "Cookie-uri & confidențialitate",
@@ -938,30 +936,6 @@
     "panaAcum": "până acum",
     "peSwypik": "pe Swypik",
     "swypikSocialShoppingUnde": "Swypik · social shopping unde comunitatea decide ce merită."
-  },
-  "ageverificationAgeVerification": {
-    "verificareVarsta": "Verificare vârstă",
-    "necesarPentruAAccesa": "Necesar pentru a accesa conținutul 18+ pe Swypik.",
-    "verificatLa": "Verificat la:",
-    "dataNasterii": "Data nașterii:",
-    "expiraLa": "Expiră la:",
-    "folosimStripeIdentityPentru": "Folosim Stripe Identity pentru a verifica documentul tău. Datele sunt procesate de Stripe\n            conform GDPR. Stocăm doar data nașterii și țara documentului.",
-    "afiseazaContinut18": "Afișează conținut 18+",
-    "activeazaPentruAVedea": "Activează pentru a vedea videoclipuri și produse pentru adulți în feed.",
-    "errStart": "Nu am putut porni verificarea.",
-    "errNecunoscuta": "Eroare necunoscută.",
-    "errOptIn": "Nu am putut salva preferința.",
-    "ctaReverifica": "Reverifică (înlocuiește documentul)",
-    "ctaReia": "Reia verificarea",
-    "ctaVerifica": "Verifică-mi vârsta",
-    "statusCurent": "Status curent",
-    "statusNeverificat": "Neverificat",
-    "statusPending": "În curs de verificare",
-    "statusVerificat": "Verificat",
-    "statusRespins": "Respins",
-    "statusExpirat": "Expirat",
-    "motivRespingere": "Motiv respingere: {reason}",
-    "btnSePregateste": "Se pregătește..."
   },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Cererea de retur a fost înregistrată. Te vom contacta în curând.",
@@ -2400,7 +2374,7 @@
     "errNetwork": "✗ Eroare de rețea.",
     "sendOpen": "↗️ Trimite SWYP către o adresă",
     "sendClose": "✕ Închide",
-    "sendToPlaceholder": "Adresa destinatarului (0x…)",
+    "sendToPlaceholder": "Utilizator (@nume) sau adresă 0x…",
     "sendAmountPlaceholder": "Suma SWYP (min. 0,01)",
     "errAddress": "✗ Adresă invalidă (format 0x… + 40 caractere hex).",
     "errMinSend": "✗ Suma minimă e 0,01 SWYP.",
@@ -2412,6 +2386,9 @@
     "errSelfTransfer": "Nu poți trimite către propria adresă.",
     "errChainBalance": "Sold on-chain insuficient (sumă + gas). Retrage întâi SWYP pe chain.",
     "errChainFailed": "Chain indisponibil momentan — nimic nu a fost trimis.",
+    "errUserNotFound": "Utilizatorul nu există",
+    "errRecipientNoWallet": "Destinatarul nu are portofel SWYP",
+    "errUnknownRecipient": "Adresa nu aparține niciunui utilizator Swypik",
     "sendNote": "Se trimite din portofelul tău on-chain (nu din soldul din aplicație). Taxa de rețea (~0,00002 SWYP) se plătește din același portofel.",
     "miningTitle": "Mining zilnic",
     "perHour": "⚡ {rate} SWYP/h",

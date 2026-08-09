@@ -361,10 +361,12 @@ export default function PayClient() {
                                     <button
                                         onClick={async () => {
                                             const amount = Number(sendAmount.replace(",", "."));
-                                            if (!/^0x[0-9a-fA-F]{40}$/.test(sendTo)) { setSendMsg(t("errAddress")); return; }
+                                            const isAddress = /^0x[0-9a-fA-F]{40}$/.test(sendTo);
+                                            const isUsername = /^@?[a-zA-Z0-9_.]{2,32}$/.test(sendTo);
+                                            if (!isAddress && !isUsername) { setSendMsg(t("errAddress")); return; }
                                             if (!Number.isFinite(amount) || amount < 0.01) { setSendMsg(t("errMinSend")); return; }
                                             setConfirmModal({
-                                                text: t("sendConfirm", { amount, address: `${sendTo.slice(0, 10)}…${sendTo.slice(-8)}` }),
+                                                text: t("sendConfirm", { amount, address: isAddress ? `${sendTo.slice(0, 10)}…${sendTo.slice(-8)}` : `@${sendTo.replace(/^@/, "")}` }),
                                                 onYes: async () => {
                                                     setSendBusy(true);
                                                     setSendMsg(null);
@@ -373,11 +375,16 @@ export default function PayClient() {
                                                         const res = await fetch("/api/swyp/transfer", {
                                                             method: "POST",
                                                             headers: { "Content-Type": "application/json" },
-                                                            body: JSON.stringify({ toAddress: sendTo, amountSwyp: amount }),
+                                                            body: JSON.stringify(
+                                                                /^0x[0-9a-fA-F]{40}$/.test(sendTo)
+                                                                    ? { toAddress: sendTo, amountSwyp: amount }
+                                                                    : { toUsername: sendTo.replace(/^@/, ""), amountSwyp: amount },
+                                                            ),
                                                         });
                                                         const data = await res.json();
                                                         if (data.success) {
-                                                            setSendMsg(data.pending ? t("sendPending") : t("sendOk"));
+                                                            const okMsg = data.pending ? t("sendPending") : t("sendOk");
+                                                            setSendMsg(data.recipient ? `${okMsg} → @${data.recipient}` : okMsg);
                                                             setSendTxUrl(data.explorerUrl);
                                                             setSendTo(""); setSendAmount("");
                                                         } else {
@@ -389,6 +396,9 @@ export default function PayClient() {
                                                                 insufficient_chain_balance: t("errChainBalance"),
                                                                 rate_limited: t("errRateLimited"),
                                                                 chain_failed: t("errChainFailed"),
+                                                                user_not_found: t("errUserNotFound"),
+                                                                recipient_no_wallet: t("errRecipientNoWallet"),
+                                                                unknown_recipient_address: t("errUnknownRecipient"),
                                                             };
                                                             setSendMsg(`${reasons[data.error] ?? data.error}`);
                                                         }

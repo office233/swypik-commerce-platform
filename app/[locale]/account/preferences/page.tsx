@@ -45,20 +45,6 @@ export default async function PreferencesPage() {
             <CurrencySwitcher className="w-full rounded-xl border border-white/10 bg-[#1A1A1A] px-3 py-3 text-white text-[15px] appearance-none" />
           </div>
         </section>
-
-        {/* Swypik 18+ rulează pe site separat (18.swypik.com) — doar link discret. */}
-        <section className="mt-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-1">Swypik 18+</h2>
-          <p className="text-xs text-white/50 mb-3">{tSettings("adultInfo")}</p>
-          <a
-            href="https://18.swypik.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/10"
-          >
-            {tSettings("adultGo")} →
-          </a>
-        </section>
       </div>
     </main>
   );

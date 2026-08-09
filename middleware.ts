@@ -64,11 +64,11 @@ const CSRF_EXEMPT_PREFIXES = [
 
 function allowedOrigins(req: NextRequest): string[] {
   const out = new Set<string>();
-  
+
   // 1) Use explicitly configured site URLs first
   const envSite = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
   if (envSite) out.add(envSite.replace(/\/$/, ""));
-  
+
   // 2) Add APP_URL as base allowed origin
   if (APP_URL) {
     out.add(APP_URL);
@@ -83,8 +83,8 @@ function allowedOrigins(req: NextRequest): string[] {
       /* noop */
     }
   }
-  
-  // 3) Add extra allowed origins from env (comma-separated, e.g., "https://18.swypik.com,https://staging.swypik.com")
+
+  // 3) Add extra allowed origins from env (comma-separated, e.g., "https://staging.swypik.com")
   const extraOrigins = process.env.ALLOWED_ORIGINS_EXTRA;
   if (extraOrigins) {
     extraOrigins.split(",").forEach((origin) => {
@@ -92,7 +92,7 @@ function allowedOrigins(req: NextRequest): string[] {
       if (trimmed) out.add(trimmed);
     });
   }
-  
+
   // 4) Allow current request host (localhost in dev)
   try {
     out.add(`${req.nextUrl.protocol}//${req.nextUrl.host}`);
@@ -104,7 +104,7 @@ function allowedOrigins(req: NextRequest): string[] {
   } catch {
     /* noop */
   }
-  
+
   return Array.from(out);
 }
 

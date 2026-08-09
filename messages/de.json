@@ -141,9 +141,7 @@
   "settings": {
     "preferences": "Einstellungen",
     "selectLanguage": "Sprache wählen",
-    "selectCurrency": "Währung wählen",
-    "adultInfo": "Inhalte für Erwachsene befinden sich auf einer separaten, vollständig isolierten Website.",
-    "adultGo": "Zu 18.swypik.com"
+    "selectCurrency": "Währung wählen"
   },
   "cookies": {
     "title": "Cookies & Datenschutz",
@@ -852,30 +850,6 @@
     "panaAcum": "bisher",
     "peSwypik": "auf Swypik",
     "swypikSocialShoppingUnde": "Swypik · Social Shopping, wo die Community entscheidet."
-  },
-  "ageverificationAgeVerification": {
-    "verificareVarsta": "Altersverifikation",
-    "necesarPentruAAccesa": "Erforderlich, um auf 18+-Inhalte auf Swypik zuzugreifen.",
-    "verificatLa": "Verifiziert am:",
-    "dataNasterii": "Geburtsdatum:",
-    "expiraLa": "Verfällt am:",
-    "folosimStripeIdentityPentru": "Wir verwenden Stripe Identity zur Dokumentenverifikation. Die Daten werden von Stripe gemäß GDPR verarbeitet. Wir speichern nur das Geburtsdatum und das Land des Dokuments.",
-    "afiseazaContinut18": "18+-Inhalte anzeigen",
-    "activeazaPentruAVedea": "Aktivieren, um Videos und Produkte für Erwachsene im Feed zu sehen.",
-    "btnSePregateste": "Wird vorbereitet...",
-    "ctaReia": "Verifizierung fortsetzen",
-    "ctaReverifica": "Erneut verifizieren (Dokument ersetzen)",
-    "ctaVerifica": "Mein Alter verifizieren",
-    "errNecunoscuta": "Unbekannter Fehler.",
-    "errOptIn": "Die Einstellung konnte nicht gespeichert werden.",
-    "errStart": "Die Verifizierung konnte nicht gestartet werden.",
-    "motivRespingere": "Ablehnungsgrund: {reason}",
-    "statusCurent": "Aktueller Status",
-    "statusExpirat": "Abgelaufen",
-    "statusNeverificat": "Nicht verifiziert",
-    "statusPending": "Verifizierung läuft",
-    "statusRespins": "Abgelehnt",
-    "statusVerificat": "Verifiziert"
   },
   "ordersOrderReturnButton": {
     "cerereaDeReturA": "Rückgabeanfrage eingegangen. Wir kontaktieren dich bald.",
@@ -2400,7 +2374,7 @@
     "errNetwork": "✗ Netzwerkfehler.",
     "sendOpen": "↗️ SWYP an eine Adresse senden",
     "sendClose": "✕ Schließen",
-    "sendToPlaceholder": "Empfängeradresse (0x…)",
+    "sendToPlaceholder": "Benutzer (@name) oder 0x…-Adresse",
     "sendAmountPlaceholder": "SWYP-Betrag (mind. 0,01)",
     "errAddress": "✗ Ungültige Adresse (0x… + 40 Hex-Zeichen).",
     "errMinSend": "✗ Mindestbetrag ist 0,01 SWYP.",
@@ -2412,6 +2386,9 @@
     "errSelfTransfer": "Du kannst nicht an deine eigene Adresse senden.",
     "errChainBalance": "On-Chain-Guthaben reicht nicht (Betrag + Gas). Hebe zuerst SWYP on-chain ab.",
     "errChainFailed": "Chain momentan nicht erreichbar — nichts wurde gesendet.",
+    "errUserNotFound": "Benutzer nicht gefunden",
+    "errRecipientNoWallet": "Empfänger hat kein SWYP-Wallet",
+    "errUnknownRecipient": "Adresse gehört keinem Swypik-Benutzer",
     "sendNote": "Wird aus deinem On-Chain-Wallet gesendet (nicht aus dem App-Guthaben). Die Netzwerkgebühr (~0,00002 SWYP) zahlt dasselbe Wallet.",
     "miningTitle": "Tägliches Mining",
     "perHour": "⚡ {rate} SWYP/h",

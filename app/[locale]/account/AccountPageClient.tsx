@@ -381,7 +381,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                     </>
                   );
                   return isReady ? (
-                    <Link key={vid.id || i} href={`/v/${vid.id}`} className="aspect-[9/16] bg-white/5 relative group cursor-pointer block">
+                    <Link key={vid.id || i} href={`/explore?v=${vid.id}`} className="aspect-[9/16] bg-white/5 relative group cursor-pointer block">
                       {inner}
                     </Link>
                   ) : (

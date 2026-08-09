@@ -1,7 +1,11 @@
 /**
  * POST /api/swyp/transfer — P2P on-chain: SWYP din portofelul custodial al
- * userului către ORICE adresă Swypik Chain.
- *   { toAddress: "0x...", amountSwyp: number }
+ * userului către UN ALT UTILIZATOR SWYPIK (transparență totală user↔bani).
+ *   { toUsername: "nume", amountSwyp: number }  SAU  { toAddress: "0x...", amountSwyp: number }
+ *
+ * REGULĂ (2026-08-09): adresa destinație TREBUIE să aparțină unui utilizator
+ * înregistrat (swyp_chain_wallets). Transferurile către adrese externe sunt
+ * refuzate — fiecare unitate SWYP rămâne atribuibilă unui cont de pe site.
  *
  * Siguranță:
  *  - validare adresă EVM strictă; interzis transfer către propria adresă;
@@ -34,11 +38,47 @@ export const POST = withErrorHandling(async (req: Request) => {
     if (!limited.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
     const body = await req.json().catch(() => ({}));
-    const toAddress = String(body?.toAddress ?? "").trim();
+    let toAddress = String(body?.toAddress ?? "").trim();
+    const toUsername = String(body?.toUsername ?? "").trim().replace(/^@/, "");
     const amountSwyp = Number(body?.amountSwyp);
 
-    if (!ADDRESS_RE.test(toAddress)) {
-        return NextResponse.json({ success: false, error: "invalid_address" }, { status: 400 });
+    // Rezolvare username -> adresă (calea preferată, transparentă)
+    let recipientUserId: string | null = null;
+    let recipientUsername: string | null = null;
+    if (toUsername) {
+        const { rows: urows } = await dbQuery<{ id: string; username: string; address: string | null }>(
+            `SELECT u.id::text, u.username, w.address
+               FROM users u
+               LEFT JOIN swyp_chain_wallets w ON w.user_id = u.id
+              WHERE lower(u.username) = lower($1)`,
+            [toUsername],
+        );
+        if (urows.length === 0) {
+            return NextResponse.json({ success: false, error: "user_not_found" }, { status: 404 });
+        }
+        if (!urows[0].address) {
+            return NextResponse.json({ success: false, error: "recipient_no_wallet" }, { status: 400 });
+        }
+        recipientUserId = urows[0].id;
+        recipientUsername = urows[0].username;
+        toAddress = urows[0].address;
+    } else {
+        if (!ADDRESS_RE.test(toAddress)) {
+            return NextResponse.json({ success: false, error: "invalid_address" }, { status: 400 });
+        }
+        // Transparență: adresa TREBUIE să aparțină unui utilizator înregistrat.
+        const { rows: wrows } = await dbQuery<{ user_id: string; username: string }>(
+            `SELECT w.user_id::text, u.username
+               FROM swyp_chain_wallets w
+               JOIN users u ON u.id = w.user_id
+              WHERE lower(w.address) = lower($1)`,
+            [toAddress],
+        );
+        if (wrows.length === 0) {
+            return NextResponse.json({ success: false, error: "unknown_recipient_address" }, { status: 400 });
+        }
+        recipientUserId = wrows[0].user_id;
+        recipientUsername = wrows[0].username;
     }
     if (!Number.isFinite(amountSwyp) || amountSwyp <= 0) {
         return NextResponse.json({ success: false, error: "invalid_amount" }, { status: 400 });
@@ -81,6 +121,7 @@ export const POST = withErrorHandling(async (req: Request) => {
         return NextResponse.json({
             success: true,
             txHash,
+            recipient: recipientUsername,
             explorerUrl: `https://scan.swypik.com/tx/${txHash}`,
         });
     } catch (err) {
@@ -110,11 +151,17 @@ export const GET = withErrorHandling(async () => {
     if (!session) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
 
     const { rows } = await dbQuery(
-        `SELECT id::text, from_address, to_address, amount_units::text, status, tx_hash, created_at
-       FROM swyp_p2p_transfers
-      WHERE user_id = $1
-      ORDER BY created_at DESC
-      LIMIT 50`,
+                `SELECT t.id::text, t.from_address, t.to_address, t.amount_units::text, t.status, t.tx_hash, t.created_at,
+                                uf.username AS from_username,
+                                ut.username AS to_username
+             FROM swyp_p2p_transfers t
+             LEFT JOIN swyp_chain_wallets wf ON lower(wf.address) = lower(t.from_address)
+             LEFT JOIN users uf ON uf.id = wf.user_id
+             LEFT JOIN swyp_chain_wallets wt ON lower(wt.address) = lower(t.to_address)
+             LEFT JOIN users ut ON ut.id = wt.user_id
+            WHERE t.user_id = $1
+            ORDER BY t.created_at DESC
+            LIMIT 50`,
         [session.userId],
     );
     return NextResponse.json({ success: true, transfers: rows });
