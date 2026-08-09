@@ -286,8 +286,15 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
             }
             trackEvent(videoId, "impression");
 
-            // 3s view timer with cleanup on unobserve
-            const t = window.setTimeout(() => sendView(videoId), 3000);
+            // REAL VIEWS (2026-08-09): view doar după 3s de REDARE EFECTIVĂ
+            // (nu doar vizibilitate). Dacă clipul e în pauză / nu a pornit
+            // (autoplay blocat), view-ul NU se contorizează.
+            const t = window.setTimeout(() => {
+              const v = videoRefs.current.get(videoId);
+              if (v && !v.paused && !v.ended && v.currentTime > 0) {
+                sendView(videoId);
+              }
+            }, 3000);
             (el as any).__viewTimer = t;
           } else {
             if (videoEl) videoEl.pause();

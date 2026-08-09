@@ -102,35 +102,39 @@ async function aggregate(days: number) {
 }
 
 async function syncVideoCounters() {
-  // Resync videos.{view_count,like_count,save_count,share_count,comment_count}
-  // from the lifetime sum in video_stats_daily so the aggregate columns
-  // reflect reality after re-aggregation.
+  // ANTI-FAKE (2026-08-09): like/save/comment se sincronizează EXACT din
+  // tabelele-sursă (likes, saves, comments) — nu din evenimente. Evenimentele
+  // (like + video_liked) numărau dublu și unlike nu scădea niciodată
+  // (GREATEST doar creștea) → contoare umflate = "like-uri false".
+  // Views rămân pe evenimente calificate (>=3s redare, o dată/clip/sesiune),
+  // dar tot exact (nu GREATEST): views = max(evenimente calificate istorice).
   const result = await dbQuery<{ id: string }>(
-    `WITH lifetime AS (
-       SELECT video_id,
-              SUM(views)    AS views,
-              SUM(likes)    AS likes,
-              SUM(saves)    AS saves,
-              SUM(shares)   AS shares,
-              SUM(comments) AS comments
-         FROM video_stats_daily
-        GROUP BY video_id
+    `WITH truth AS (
+       SELECT v.id,
+              (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)                    AS likes,
+              (SELECT COUNT(*) FROM comments c
+                  WHERE c.video_id = v.id AND c.status NOT IN ('deleted','hidden'))      AS comments,
+              (SELECT COUNT(*) FROM feed_events fe
+                 WHERE fe.video_id = v.id AND fe.event_type IN ('save','video_saved'))  AS saves,
+              (SELECT COUNT(*) FROM feed_events fe
+                 WHERE fe.video_id = v.id AND fe.event_type IN ('share','video_shared')) AS shares,
+                (SELECT COUNT(DISTINCT COALESCE(fe.session_id, fe.ip_hash, fe.id::text)) FROM feed_events fe
+                  WHERE fe.video_id = v.id AND fe.event_type IN ('video_view','video_viewed')) AS views
+         FROM videos v
      )
      UPDATE videos v
-        SET view_count    = GREATEST(v.view_count,    l.views),
-            like_count    = GREATEST(v.like_count,    l.likes),
-            save_count    = GREATEST(v.save_count,    l.saves),
-            share_count   = GREATEST(v.share_count,   l.shares),
-            comment_count = GREATEST(v.comment_count, l.comments)
-       FROM lifetime l
-      WHERE v.id = l.video_id
-        AND (
-          v.view_count    < l.views    OR
-          v.like_count    < l.likes    OR
-          v.save_count    < l.saves    OR
-          v.share_count   < l.shares   OR
-          v.comment_count < l.comments
-        )
+        SET like_count    = t.likes,
+            comment_count = t.comments,
+            save_count    = t.saves,
+            share_count   = t.shares,
+            view_count    = GREATEST(v.view_count, t.views)
+       FROM truth t
+      WHERE v.id = t.id
+        AND (v.like_count    <> t.likes
+          OR v.comment_count <> t.comments
+          OR v.save_count    <> t.saves
+          OR v.share_count   <> t.shares
+          OR v.view_count    <  t.views)
       RETURNING v.id`
   );
   return result.rowCount ?? result.rows.length;

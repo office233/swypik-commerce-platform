@@ -532,7 +532,22 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     sendFeedEvent(isNextLiked ? "video_like" : "video_unlike", product, { position: currentIdx });
     const videoId = videoEventId(product);
     if (videoId) {
-      fetch(`/api/videos/${videoId}/like`, { method: "POST" }).catch(() => { });
+      // REAL LIKES (2026-08-09): serverul e sursa adevărului. Dacă like-ul e
+      // refuzat (nelogat / rate-limited / eroare), revertăm UI-ul — fără
+      // inimioare false care nu există în DB.
+      fetch(`/api/videos/${videoId}/like`, { method: "POST" })
+        .then(async (res) => {
+          if (!res.ok) {
+            setLikes((prev) => ({ ...prev, [product.id]: !isNextLiked }));
+            if (res.status === 401) router.push("/auth?next=/explore");
+            return;
+          }
+          const data = await res.json().catch(() => null);
+          if (data && typeof data.liked === "boolean") {
+            setLikes((prev) => ({ ...prev, [product.id]: data.liked }));
+          }
+        })
+        .catch(() => setLikes((prev) => ({ ...prev, [product.id]: !isNextLiked })));
     }
     if (isNextLiked) {
       setHeartBurst(product.id);
