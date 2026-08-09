@@ -151,7 +151,7 @@ export const GET = withErrorHandling(async () => {
     if (!session) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
 
     const { rows } = await dbQuery(
-                `SELECT t.id::text, t.from_address, t.to_address, t.amount_units::text, t.status, t.tx_hash, t.created_at,
+        `SELECT t.id::text, t.from_address, t.to_address, t.amount_units::text, t.status, t.tx_hash, t.created_at,
                                 uf.username AS from_username,
                                 ut.username AS to_username
              FROM swyp_p2p_transfers t

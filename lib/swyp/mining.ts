@@ -88,17 +88,21 @@ export async function computeMiningRate(userId: string): Promise<{
 
 /** Streak curent: nr. de zile consecutive cu sesiuni revendicate (min 1). */
 async function getStreakDays(userId: string): Promise<number> {
-    // O singură interogare (înainte erau două identice) pentru ultima sesiune
-    // revendicată: ne trebuie și momentul, și streak-ul de atunci.
-    const { rows } = await dbQuery<{ claimed_at: string; streak_days: number }>(
-        `SELECT claimed_at::text, streak_days FROM swyp_mining_sessions
+    // ANTI-CHEAT (2026-08-09): grația se măsoară de la ends_at (când sesiunea
+    // s-a încheiat efectiv), NU de la claimed_at. Altfel puteai lipsi oricât:
+    // claim întârziat -> claimed_at devine "acum" -> streak continua ilegal.
+    const { rows } = await dbQuery<{ ends_at: string; claimed_at: string; streak_days: number }>(
+        `SELECT ends_at::text, claimed_at::text, streak_days FROM swyp_mining_sessions
                     WHERE user_id = $1 AND claimed_at IS NOT NULL
                     ORDER BY claimed_at DESC LIMIT 1`,
         [userId],
     );
     if (!rows[0]) return 1;
     const { graceHours } = await miningParams();
-    const hoursSince = (Date.now() - new Date(rows[0].claimed_at).getTime()) / 3_600_000;
+    // Referința = sfârșitul sesiunii precedente; claim-ul întârziat nu mai
+    // resetează ceasul în favoarea userului.
+    const anchor = Math.min(new Date(rows[0].ends_at).getTime(), new Date(rows[0].claimed_at).getTime());
+    const hoursSince = (Date.now() - anchor) / 3_600_000;
     // fereastră de grație: revendici în interval ⇒ streak-ul continuă
     if (hoursSince > graceHours) return 1;
     return (rows[0].streak_days ?? 0) + 1;

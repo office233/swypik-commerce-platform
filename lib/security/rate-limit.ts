@@ -193,6 +193,7 @@ export const RATE_LIMITS = {
   rideAction: { limit: 60, window: 60 } as RateLimitConfig,           // tranziții status / rating / anulare
   geoSearch: { limit: 30, window: 60 } as RateLimitConfig,           // proxy Nominatim (search + reverse, per IP)
   swypMining: { limit: 10, window: 60 } as RateLimitConfig,          // start/claim sesiune mining SWYP
+  swypMiningVerify: { limit: 30, window: 60 } as RateLimitConfig,    // verificare publică mining (per IP)
   swypWithdraw: { limit: 3, window: 300 } as RateLimitConfig,        // retrageri on-chain (operațiune scumpă)
   swypTransfer: { limit: 5, window: 300 } as RateLimitConfig,        // transferuri P2P on-chain
   swypStake: { limit: 10, window: 300 } as RateLimitConfig,          // stake/unstake SWYP

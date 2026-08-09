@@ -95,6 +95,9 @@ while true; do
     run_job fly-price-watch GET
     # Integritatea economiei SWYP: invariant supply + hash-chain ledger (2026-08-01)
     run_job verify-supply POST
+    # Reconciliere on-chain <-> identitati: alerta pe adrese neetichetate care
+    # primesc fonduri (transparenta user<->bani, 2026-08-09)
+    run_job swyp-reconcile POST
   fi
   # Every 4 hours
   if [ $((TICK % 14400)) -lt 60 ]; then
