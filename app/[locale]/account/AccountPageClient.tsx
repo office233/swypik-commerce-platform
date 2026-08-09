@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, Compass, User } from "lucide-react";
+import { Settings, Plus, Video, Heart, Package, Grid, Bookmark, Trophy, Coins, ChevronRight, Compass, User, MoreVertical, Trash2, Eye, EyeOff } from "lucide-react";
 import PushNotificationCard from "@/components/push/PushNotificationCard";
 import MyModes from "@/components/account/MyModes";
 import { useTranslations } from "next-intl";
@@ -23,6 +23,49 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
   const [activeTab, setActiveTab] = useState<"videos" | "orders" | "saved">("videos");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [challengesCount, setChallengesCount] = useState<number | null>(null);
+  const [videoMenu, setVideoMenu] = useState<string | null>(null);
+  const [videoBusy, setVideoBusy] = useState<string | null>(null);
+
+  // Opțiuni pe clip (proprietar): ștergere + comutare vizibilitate.
+  const deleteVideo = useCallback(async (videoId: string) => {
+    if (!window.confirm("Ștergi definitiv acest clip?")) return;
+    setVideoBusy(videoId);
+    try {
+      const res = await fetch(`/api/creator/videos/${videoId}`, { method: "DELETE" });
+      if (res.ok) {
+        setVideos((prev) => prev.filter((v) => v.id !== videoId));
+      } else {
+        window.alert("Nu am putut șterge clipul. Încearcă din nou.");
+      }
+    } catch {
+      window.alert("Eroare de rețea. Încearcă din nou.");
+    } finally {
+      setVideoBusy(null);
+      setVideoMenu(null);
+    }
+  }, []);
+
+  const toggleVisibility = useCallback(async (videoId: string, current: string) => {
+    const next = current === "public" ? "private" : "public";
+    setVideoBusy(videoId);
+    try {
+      const res = await fetch(`/api/creator/videos/${videoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: next }),
+      });
+      if (res.ok) {
+        setVideos((prev) => prev.map((v) => (v.id === videoId ? { ...v, visibility: next } : v)));
+      } else {
+        window.alert("Nu am putut schimba vizibilitatea.");
+      }
+    } catch {
+      window.alert("Eroare de rețea. Încearcă din nou.");
+    } finally {
+      setVideoBusy(null);
+      setVideoMenu(null);
+    }
+  }, []);
 
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -381,12 +424,54 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                     </>
                   );
                   return isReady ? (
-                    <Link key={vid.id || i} href={`/explore?v=${vid.id}`} className="aspect-[9/16] bg-white/5 relative group cursor-pointer block">
-                      {inner}
-                    </Link>
+                    <div key={vid.id || i} className="aspect-[9/16] bg-white/5 relative group">
+                      <Link href={`/explore?v=${vid.id}`} className="absolute inset-0 cursor-pointer block">
+                        {inner}
+                      </Link>
+                      {/* Meniu opțiuni proprietar (ca pe TikTok/IG) */}
+                      <button
+                        aria-label="Opțiuni clip"
+                        onClick={(e) => { e.preventDefault(); setVideoMenu(videoMenu === vid.id ? null : vid.id); }}
+                        className="absolute top-1 right-1 z-10 rounded-full bg-black/60 p-1.5 text-white opacity-80 hover:opacity-100"
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                      {videoMenu === vid.id && (
+                        <div className="absolute top-8 right-1 z-20 w-44 rounded-xl border border-white/10 bg-[#1A1A1A] py-1 shadow-xl">
+                          <button
+                            disabled={videoBusy === vid.id}
+                            onClick={() => toggleVisibility(vid.id, vid.visibility)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
+                          >
+                            {vid.visibility === "public" ? <EyeOff size={13} /> : <Eye size={13} />}
+                            {vid.visibility === "public" ? "Fă privat" : "Fă public"}
+                          </button>
+                          <button
+                            disabled={videoBusy === vid.id}
+                            onClick={() => deleteVideo(vid.id)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+                          >
+                            <Trash2 size={13} />
+                            Șterge clipul
+                          </button>
+                        </div>
+                      )}
+                      {vid.visibility === "private" && (
+                        <span className="absolute bottom-1 right-1 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white/80">Privat</span>
+                      )}
+                    </div>
                   ) : (
                     <div key={vid.id || i} className="aspect-[9/16] bg-white/5 relative">
                       {inner}
+                      {/* Clipurile eșuate/în procesare pot fi șterse direct */}
+                      <button
+                        aria-label="Șterge clipul"
+                        disabled={videoBusy === vid.id}
+                        onClick={() => deleteVideo(vid.id)}
+                        className="absolute top-1 right-1 z-10 rounded-full bg-black/60 p-1.5 text-red-400 opacity-80 hover:opacity-100 disabled:opacity-40"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   );
                 })

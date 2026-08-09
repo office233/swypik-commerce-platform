@@ -53,6 +53,7 @@ export async function GET() {
         LIMIT 1
       ) va ON true
       WHERE v.creator_id = $1
+        AND v.status <> 'deleted'
       ORDER BY v.created_at DESC
       LIMIT 50
       `,

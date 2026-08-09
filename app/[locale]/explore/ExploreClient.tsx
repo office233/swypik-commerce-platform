@@ -622,11 +622,13 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         .action-btn .icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); transition: transform 0.15s; }
         .action-btn:active .icon-wrap { transform: scale(0.85); }
         .action-btn .count { font-size: 12px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,0.8); margin-top: 0; line-height: 1.2; min-height: 14px; }
-        .creator-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; overflow: hidden; position: relative; margin-bottom: 14px; padding: 0; background: #1a1a1a; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .creator-avatar-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 20px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%); }
-        .creator-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .avatar-plus { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; background: transparent; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; border: 0; color: transparent; transition: transform 0.15s; z-index: 2; }
-        .avatar-plus::before { content: "+"; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #7C3AED; color: #fff; font-size: 16px; font-weight: 700; border: 2px solid #000; line-height: 1; }
+        /* overflow:visible ca plusul de follow să nu fie tăiat; rotunjirea o face img/fallback. */
+        .creator-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; overflow: visible; position: relative; margin-bottom: 14px; padding: 0; background: #1a1a1a; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .creator-avatar-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 20px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%); border-radius: 50%; }
+        .creator-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        /* Curat (2026-08-09): plus mic sub avatar, nu overlay 44px peste poza. */
+        .avatar-plus { position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); width: 22px; height: 22px; min-width: 22px; min-height: 22px; border-radius: 50%; background: #7C3AED; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; border: 2px solid #000; color: #fff; transition: transform 0.15s; z-index: 2; }
+        .avatar-plus::before { content: "+"; font-size: 15px; font-weight: 700; line-height: 1; }
         .avatar-plus:active { transform: translateX(-50%) scale(0.85); }
         .bottom-content { position: absolute; bottom: var(--feed-content-bottom); left: max(14px, calc(14px + env(safe-area-inset-left, 0px))); right: max(78px, calc(78px + env(safe-area-inset-right, 0px))); max-width: min(70vw, calc(100% - 92px)); z-index: 20; pointer-events: auto; }
         .creator-name { font-weight: 700; font-size: 15px; text-shadow: 0 1px 4px rgba(0,0,0,0.9); margin-bottom: 6px; }

@@ -118,7 +118,7 @@ async function syncVideoCounters() {
                  WHERE fe.video_id = v.id AND fe.event_type IN ('save','video_saved'))  AS saves,
               (SELECT COUNT(*) FROM feed_events fe
                  WHERE fe.video_id = v.id AND fe.event_type IN ('share','video_shared')) AS shares,
-                (SELECT COUNT(DISTINCT COALESCE(fe.session_id, fe.ip_hash, fe.id::text)) FROM feed_events fe
+                      (SELECT COUNT(DISTINCT COALESCE(fe.ip_hash, fe.session_id, fe.id::text)) FROM feed_events fe
                   WHERE fe.video_id = v.id AND fe.event_type IN ('video_view','video_viewed')) AS views
          FROM videos v
      )

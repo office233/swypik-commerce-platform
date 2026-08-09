@@ -25,8 +25,9 @@ export async function POST(
 
     const ip = getClientIP(req);
 
-    // Per-IP+video throttle: 1 view per 30s for same video (counter-inflation guard)
-    const perVideo = await rateLimit("videoViewPerVideo", `${ip}:${videoId}`, { limit: 1, window: 30 });
+    // REAL VIEWS (2026-08-09): 1 view / 24h per IP+video — ca pe TikTok/YouTube.
+    // Re-vizionările aceleiași persoane în aceeași zi NU umflă contorul.
+    const perVideo = await rateLimit("videoViewPerVideo", `${ip}:${videoId}`, { limit: 1, window: 86400 });
     if (!perVideo.success) {
       return NextResponse.json({ views: null, throttled: true });
     }
