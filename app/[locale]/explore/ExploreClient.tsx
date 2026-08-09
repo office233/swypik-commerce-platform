@@ -392,10 +392,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
 
     try {
       const res = await fetch(`/api/videos/${videoId}/like`, { method: "POST" });
-        if (res.status === 401) {
-          router.push(`/auth/login?next=${encodeURIComponent(`/explore?v=${videoId}`)}`);
-          throw new Error("unauthorized");
-        }
+      if (res.status === 401) {
+        router.push(`/auth/login?next=${encodeURIComponent(`/explore?v=${videoId}`)}`);
+        throw new Error("unauthorized");
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Like failed");
 
@@ -441,10 +441,10 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
 
     try {
       const res = await fetch(`/api/videos/${videoId}/save`, { method: "POST" });
-        if (res.status === 401) {
-          router.push(`/auth/login?next=${encodeURIComponent(`/explore?v=${videoId}`)}`);
-          throw new Error("unauthorized");
-        }
+      if (res.status === 401) {
+        router.push(`/auth/login?next=${encodeURIComponent(`/explore?v=${videoId}`)}`);
+        throw new Error("unauthorized");
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Save failed");
 

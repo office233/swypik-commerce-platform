@@ -376,7 +376,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                         </span>
                       )}
                       <div className="absolute bottom-1 left-2 flex items-center gap-1 text-[10px] font-bold">
-                        <Heart size={10} /> {vid.likes_count || 0}
+                        <Heart size={10} /> {vid.like_count ?? vid.likes_count ?? 0}
                       </div>
                     </>
                   );

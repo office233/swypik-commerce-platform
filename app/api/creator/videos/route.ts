@@ -31,6 +31,7 @@ export async function GET() {
         v.product_refs,
         v.visibility,
         v.view_count,
+        v.like_count,
         v.created_at,
         pref.product_id,
         p.title          AS product_title,
@@ -76,6 +77,7 @@ export async function GET() {
         id: r.id,
         status: r.status,
         video_url: r.video_url,
+        thumbnail_url: r.thumbnail_url || null,
         description: r.description || r.title,
         created_at: r.created_at,
         product_title: r.product_title || null,
@@ -84,6 +86,7 @@ export async function GET() {
         duration_ms: r.duration_ms,
         visibility: r.visibility,
         view_count: r.view_count,
+        like_count: r.like_count ?? 0,
       };
     });
 
