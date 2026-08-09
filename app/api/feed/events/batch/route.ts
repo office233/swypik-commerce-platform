@@ -85,9 +85,11 @@ export async function POST(req: Request) {
   }
 
   // Rate limit on the shared session (count = batch size, fallback: 1 hit per
-  // batch through the rateLimit helper). Use the first session as identifier.
-  const sessionForLimit = accepted[0].session_id;
-  const { success } = await rateLimit("feed_event_batch", sessionForLimit, {
+  // batch through the rateLimit helper).
+  // ANTI-FRAUD (2026-08-09): cheia e IP-ul (server-side), NU session_id din
+  // body — session_id e controlat de client și permitea ocolirea completă a
+  // limitei prin rotirea sesiunii la fiecare batch.
+  const { success } = await rateLimit("feed_event_batch", getClientIP(req), {
     limit: 20, // 20 batches/min = up to 1000 events/min per session
     window: 60,
   });

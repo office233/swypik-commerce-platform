@@ -98,19 +98,23 @@ const TRENDING_EXPR = `(
 
 // Ranking from real engagement events (last 14 days). Scored per video.
 // Mirrors /api/feed/recommendations weights.
+// ANTI-FRAUD (2026-08-09): semnalele puternice (save/share/like/purchase/
+// add_to_cart/comment/follow) se numără DOAR de la utilizatori autentificați
+// (actor_user_id IS NOT NULL) și DEDUPLICAT per user — telemetria anonimă
+// injectabilă în masă nu mai poate umfla ranking-ul (audit vuln. #9).
 const RANK_SCORE_EXPR = `(
   SELECT (
       CASE WHEN v.duration_ms IS NULL OR v.duration_ms <= 0 THEN 0 ELSE LEAST(COALESCE(SUM(fe.watch_ms)::numeric, 0) / v.duration_ms, 50) END * 5
-    + COUNT(*) FILTER (WHERE fe.event_type = 'save')           * 3
-    + COUNT(*) FILTER (WHERE fe.event_type = 'share')          * 2
-    + COUNT(*) FILTER (WHERE fe.event_type = 'like')           * 1.5
+    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'save'  AND fe.actor_user_id IS NOT NULL) * 3
+    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'share' AND fe.actor_user_id IS NOT NULL) * 2
+    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'like'  AND fe.actor_user_id IS NOT NULL) * 1.5
     + COUNT(*) FILTER (WHERE fe.event_type = 'completion')     * 5
-    + COUNT(*) FILTER (WHERE fe.event_type = 'add_to_cart')    * 4
-    + COUNT(*) FILTER (WHERE fe.event_type = 'purchase')       * 8
+    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'add_to_cart' AND fe.actor_user_id IS NOT NULL) * 4
+    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'purchase'    AND fe.actor_user_id IS NOT NULL) * 8
     + COUNT(*) FILTER (WHERE fe.event_type = 'more_like_this') * 4
     + COUNT(*) FILTER (WHERE fe.event_type = 'product_click')  * 1
-    + COUNT(*) FILTER (WHERE fe.event_type = 'comment')        * 4
-    + COUNT(*) FILTER (WHERE fe.event_type = 'follow')         * 4
+    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'comment' AND fe.actor_user_id IS NOT NULL) * 4
+    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'follow'  AND fe.actor_user_id IS NOT NULL) * 4
     - COUNT(*) FILTER (WHERE fe.event_type = 'skip_fast')      * 4
     - COUNT(*) FILTER (WHERE fe.event_type = 'not_interested') * 6
     - COUNT(*) FILTER (WHERE fe.event_type = 'report')         * 10

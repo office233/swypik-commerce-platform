@@ -5,7 +5,7 @@ import { moderateText } from "@/lib/moderation/moderateText";
 import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { VideoCommentPostSchema, parseBody } from "@/lib/validation/schemas";
 import { UUID_RE } from "@/lib/validation/uuid";
 
@@ -171,6 +171,11 @@ export async function POST(
 
     const rl = await rateLimit("videoComment", session.userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    // ANTI-FRAUD (2026-08-09): limită suplimentară pe IP — userId-ul anonim
+    // se poate roti prin ștergerea cookie-ului la fiecare request (vuln. #3).
+    const ipForLimit = getClientIP(request);
+    const rlIp = await rateLimit("videoComment", `ip:${ipForLimit}`, { limit: 15, window: 60 });
+    if (!rlIp.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     const requestedParentCommentId =
       typeof body?.parent_comment_id === "string" && body.parent_comment_id.trim()
         ? body.parent_comment_id.trim()

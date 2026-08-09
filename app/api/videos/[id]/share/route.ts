@@ -47,7 +47,10 @@ export async function POST(
       );
 
       const countRes = await client.query(
-        "UPDATE videos SET share_count = share_count + 1 WHERE id = $1 RETURNING share_count",
+        // ANTI-FRAUD (2026-08-09): contorul = numărul real din tabela shares
+        // (sursa adevărului), nu incrementare oarbă — evită double-counting
+        // cu cron-ul de resync (audit vuln. #4).
+        "UPDATE videos SET share_count = (SELECT COUNT(*) FROM shares WHERE video_id = $1) WHERE id = $1 RETURNING share_count",
         [videoId]
       );
       const shareCount = parseInt(countRes.rows[0]?.share_count || "0", 10);

@@ -103,22 +103,20 @@ async function aggregate(days: number) {
 
 async function syncVideoCounters() {
   // ANTI-FAKE (2026-08-09): like/save/comment se sincronizează EXACT din
-  // tabelele-sursă (likes, saves, comments) — nu din evenimente. Evenimentele
-  // (like + video_liked) numărau dublu și unlike nu scădea niciodată
-  // (GREATEST doar creștea) → contoare umflate = "like-uri false".
-  // Views rămân pe evenimente calificate (>=3s redare, o dată/clip/sesiune),
-  // dar tot exact (nu GREATEST): views = max(evenimente calificate istorice).
+  // tabelele-sursă (likes, saves, shares, comments) — NU din feed_events,
+  // care sunt telemetrie NEAUTENTIFICATĂ, injectabilă anonim în masă
+  // (audit anti-fraud 2026-08-09, vuln. #1). Views = vizitatori unici
+  // (ip_hash prioritar), sincronizat EXACT (fără GREATEST — vuln. #5:
+  // valorile frauduloase rămâneau blocate pentru totdeauna).
   const result = await dbQuery<{ id: string }>(
     `WITH truth AS (
        SELECT v.id,
               (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)                    AS likes,
               (SELECT COUNT(*) FROM comments c
                   WHERE c.video_id = v.id AND c.status NOT IN ('deleted','hidden'))      AS comments,
-              (SELECT COUNT(*) FROM feed_events fe
-                 WHERE fe.video_id = v.id AND fe.event_type IN ('save','video_saved'))  AS saves,
-              (SELECT COUNT(*) FROM feed_events fe
-                 WHERE fe.video_id = v.id AND fe.event_type IN ('share','video_shared')) AS shares,
-                      (SELECT COUNT(DISTINCT COALESCE(fe.ip_hash, fe.session_id, fe.id::text)) FROM feed_events fe
+              (SELECT COUNT(DISTINCT s.user_id) FROM saves s WHERE s.video_id = v.id)   AS saves,
+              (SELECT COUNT(*) FROM shares sh WHERE sh.video_id = v.id)                 AS shares,
+              (SELECT COUNT(DISTINCT COALESCE(fe.ip_hash, fe.session_id, fe.id::text)) FROM feed_events fe
                   WHERE fe.video_id = v.id AND fe.event_type IN ('video_view','video_viewed')) AS views
          FROM videos v
      )
@@ -127,14 +125,14 @@ async function syncVideoCounters() {
             comment_count = t.comments,
             save_count    = t.saves,
             share_count   = t.shares,
-            view_count    = GREATEST(v.view_count, t.views)
+            view_count    = t.views
        FROM truth t
       WHERE v.id = t.id
         AND (v.like_count    <> t.likes
           OR v.comment_count <> t.comments
           OR v.save_count    <> t.saves
           OR v.share_count   <> t.shares
-          OR v.view_count    <  t.views)
+          OR v.view_count    <> t.views)
       RETURNING v.id`
   );
   return result.rowCount ?? result.rows.length;
