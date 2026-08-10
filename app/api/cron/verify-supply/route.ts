@@ -56,6 +56,19 @@ async function saveCheckpoint(cp: Checkpoint): Promise<void> {
 
 /** Verifică hash-chain-ul incremental de la checkpoint. Returnează id-ul primei intrări corupte sau null. */
 async function verifyChainIncremental(): Promise<{ badId: string | null; checked: number }> {
+    // 2026-08-10 (fals pozitiv confirmat): verificarea citea lanțul FĂRĂ
+    // advisory lock-ul folosit de scriitori (swyp_ledger_chain) → putea vedea
+    // o intrare comisă înaintea predecesoarei ei logice și alerta degeaba.
+    // Luăm același lock într-o tranzacție scurtă doar pentru fereastra de citire.
+    await dbQuery(`SELECT pg_advisory_lock(hashtext('swyp_ledger_chain'))`, []);
+    try {
+        return await verifyChainLocked();
+    } finally {
+        await dbQuery(`SELECT pg_advisory_unlock(hashtext('swyp_ledger_chain'))`, []).catch(() => undefined);
+    }
+}
+
+async function verifyChainLocked(): Promise<{ badId: string | null; checked: number }> {
     const cp = await getCheckpoint();
     let lastHash = cp.last_hash;
     let lastId = BigInt(cp.last_id);
