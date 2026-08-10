@@ -17,10 +17,16 @@ const BASE_URL = (() => {
   const v = process.env.STUDIAI_BASE_URL;
   if (v) return v;
   if (process.env.NODE_ENV === "production") {
-    logger.error(
-      { env: "STUDIAI_BASE_URL" },
-      "STUDIAI_BASE_URL nu este setat în producție — apelurile LLM vor eșua până la configurare"
-    );
+    // 2026-08-10: logăm DOAR dacă LLM-ul e efectiv activat (există chei). Fără
+    // chei configurate, funcțiile AI se auto-dezactivează (isStudiAIConfigured),
+    // deci nu are rost să spamăm loguri cu un "error" pentru o funcție opțională.
+    const hasKeys = Boolean(process.env.STUDIAI_API_KEYS || process.env.STUDIAI_API_KEY);
+    if (hasKeys) {
+      logger.error(
+        { env: "STUDIAI_BASE_URL" },
+        "STUDIAI_API_KEY setat dar STUDIAI_BASE_URL lipsește — apelurile LLM vor eșua. Setează STUDIAI_BASE_URL."
+      );
+    }
     return "";
   }
   return DEV_BASE_URL;
