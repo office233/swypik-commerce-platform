@@ -5,6 +5,7 @@ import { runCron } from "@/lib/cron/runCron";
 import { publishProcessVideoJob } from "@/lib/video/redis-queue";
 import type { ProcessVideoJobPayload } from "@/lib/video/upload-session";
 import { timingSafeEqual } from "crypto";
+import { notifyUser } from "@/lib/notifications/dispatch";
 
 export const dynamic = "force-dynamic";
 
@@ -134,8 +135,52 @@ async function runWatchdog() {
     reenqueueFailed,
     videosMarkedFailed: recovered.rowCount ?? recovered.rows.length,
     abandonedUploadsFailed: abandoned.rowCount ?? abandoned.rows.length,
+    creatorsNotified: await notifyCreatorsOnStatusChange(),
     ts: new Date().toISOString(),
   };
+}
+
+/**
+ * Restanță audit 2026-08-10: creatorul nu afla niciodată că videoclipul e
+ * gata sau a eșuat. Notificăm idempotent (NOT EXISTS pe notifications cu
+ * același video) pentru clipurile care au trecut în ready/failed în ultimele
+ * 24h. Tipul `upload_processed` există deja în CHECK constraint + dispatch.
+ */
+async function notifyCreatorsOnStatusChange(): Promise<number> {
+  const { rows } = await dbQuery<{
+    id: string; creator_id: string; status: string; title: string | null;
+  }>(
+    `SELECT v.id, v.creator_id, v.status, v.title
+       FROM videos v
+      WHERE v.status IN ('ready','failed')
+        AND v.updated_at > NOW() - INTERVAL '24 hours'
+        AND NOT EXISTS (
+          SELECT 1 FROM notifications n
+           WHERE n.video_id = v.id
+             AND n.notification_type IN ('upload_processed','system')
+             AND n.metadata->>'watchdog_status' IS NOT NULL
+        )
+      LIMIT 50`,
+  );
+  let sent = 0;
+  for (const v of rows) {
+    const isReady = v.status === "ready";
+    await notifyUser(v.creator_id, {
+      type: isReady ? "upload_processed" : "system",
+      targetType: "video",
+      targetId: v.id,
+      payload: {
+        watchdog_status: v.status,
+        title: isReady ? "Videoclipul tău este gata 🎬" : "Procesarea clipului a eșuat",
+        body: isReady
+          ? `„${v.title ?? "Clipul"}" e publicat și vizibil pe profil.`
+          : `„${v.title ?? "Clipul"}" nu a putut fi procesat. Încearcă să-l reîncarci.`,
+        url: isReady ? `/explore?v=${v.id}` : "/account",
+      },
+    }).catch(() => undefined);
+    sent++;
+  }
+  return sent;
 }
 
 async function GET_impl(req: Request) {
