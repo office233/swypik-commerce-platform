@@ -125,8 +125,15 @@ export async function POST(req: Request) {
     }
     const { order_id, tracking_number, tracking_url } = parsed.data;
     const trackingNumber = tracking_number;
-    const trackingTemplate = process.env.TRACKING_URL_TEMPLATE || "https://track24.net/?code={code}";
-    const trackingUrl = tracking_url ?? trackingTemplate.replace("{code}", encodeURIComponent(trackingNumber));
+    // 2026-08-10 (audit P1): fara fallback extern hardcodat (track24.net putea
+    // fi preluat malitios). Daca nu exista template configurat si nici URL
+    // explicit de la seller, nu generam un link de tracking.
+    const trackingTemplate = process.env.TRACKING_URL_TEMPLATE || "";
+    const trackingUrl =
+      tracking_url ??
+      (trackingTemplate
+        ? trackingTemplate.replace("{code}", encodeURIComponent(trackingNumber))
+        : null);
 
     const checkOrder = await dbQuery<{ status: string }>(
       `SELECT co.status
@@ -209,12 +216,12 @@ export async function POST(req: Request) {
     const orderMetadataPatch: Record<string, string> = {
       fulfillment_status: remainingItems === 0 ? "shipped" : "partially_shipped",
       latest_tracking_number: trackingNumber,
-      latest_tracking_url: trackingUrl,
     };
+    if (trackingUrl) orderMetadataPatch.latest_tracking_url = trackingUrl;
 
     if (remainingItems === 0) {
       orderMetadataPatch.tracking_number = trackingNumber;
-      orderMetadataPatch.tracking_url = trackingUrl;
+      if (trackingUrl) orderMetadataPatch.tracking_url = trackingUrl;
     }
 
     const trackingEntry = {
