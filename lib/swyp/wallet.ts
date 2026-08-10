@@ -15,11 +15,20 @@ import { dbQuery } from "@/lib/db";
 
 const ALGO = "aes-256-gcm";
 
+// 2026-08-10 (audit P1): salt fix pentru derivarea cheii — permite o migrare
+// viitoare la scrypt/HKDF fără a schimba cheile deja criptate. Momentan
+// păstrăm SHA-256 (deterministă, necesară pentru decriptarea cheilor existente),
+// dar izolăm derivarea într-o funcție unică ca punct de schimbare.
+const KEY_DERIVATION_LABEL = "swyp-wallet:";
+
 function encryptionKey(): Buffer {
     const secret = process.env.SWYP_WALLET_KEY || process.env.AUTH_SECRET;
     if (!secret) throw new Error("SWYP_WALLET_KEY/AUTH_SECRET lipsește — nu pot cripta chei");
-    // derivare deterministă pe 32 bytes
-    return createHash("sha256").update(`swyp-wallet:${secret}`).digest();
+    // Derivare deterministă pe 32 bytes. NOTĂ: nu e KDF cu cost (scrypt/argon2)
+    // pentru că trebuie să fie reproductibilă la decriptarea cheilor deja
+    // stocate. Securitatea depinde de entropia AUTH_SECRET (≥32 bytes random),
+    // nu de rezistența la brute-force pe parolă. Vezi audit P1.
+    return createHash("sha256").update(`${KEY_DERIVATION_LABEL}${secret}`).digest();
 }
 
 function encrypt(plain: string): string {
