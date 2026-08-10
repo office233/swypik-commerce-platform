@@ -25,23 +25,31 @@ function bufferMultiplier(): number {
 }
 
 async function fetchLiveRates(): Promise<Record<string, number> | null> {
-    try {
-        const r = await fetch("https://api.frankfurter.app/latest?from=RON&to=EUR,GBP,USD,CHF", {
-            signal: AbortSignal.timeout(5000),
-        });
-        if (!r.ok) return null;
-        const j = (await r.json()) as { rates?: Record<string, number> };
-        if (!j.rates) return null;
-        // frankfurter dă RON→X; noi vrem X→RON, deci inversăm.
-        const out: Record<string, number> = { RON: 1 };
-        for (const [cur, v] of Object.entries(j.rates)) {
-            if (v > 0) out[cur] = 1 / v;
+    // Fix 2026-08-10: timeout-ul de 5s cădea frecvent (loguri pline de
+    // TimeoutError în fly-price-watch). Acum: 10s + un retry; fallback-urile
+    // (Redis 24h / DB / env) rămân neschimbate, deci eșecul e oricum non-fatal.
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+            const r = await fetch("https://api.frankfurter.app/latest?from=RON&to=EUR,GBP,USD,CHF", {
+                signal: AbortSignal.timeout(10_000),
+            });
+            if (!r.ok) return null;
+            const j = (await r.json()) as { rates?: Record<string, number> };
+            if (!j.rates) return null;
+            // frankfurter dă RON→X; noi vrem X→RON, deci inversăm.
+            const out: Record<string, number> = { RON: 1 };
+            for (const [cur, v] of Object.entries(j.rates)) {
+                if (v > 0) out[cur] = 1 / v;
+            }
+            return out;
+        } catch (err) {
+            if (attempt === 2) {
+                logger.warn({ err }, "fly fx: live rate fetch failed");
+                return null;
+            }
         }
-        return out;
-    } catch (err) {
-        logger.warn({ err }, "fly fx: live rate fetch failed");
-        return null;
     }
+    return null;
 }
 
 /** Query DB table fx_rates for stored rates (cron updates these). */
