@@ -15,6 +15,7 @@ import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,7 +92,7 @@ export const POST = withErrorHandling(async function POST(req: Request) {
             (title, description, slug, image_url, price_cents, currency, status,
              listing_type, taxonomy_node_slug, location_country, location_city,
              metadata)
-         VALUES ($1,$2,$3,$4,$5,'RON','draft','listing',$6,'RO',$7,$8::jsonb)
+         VALUES ($1,$2,$3,$4,$5,$9,'draft','listing',$6,'RO',$7,$8::jsonb)
          RETURNING id::text`,
         [
             d.title, d.description ?? null, slug, d.imageUrl ?? null, d.pricePerNightCents,
@@ -106,6 +107,7 @@ export const POST = withErrorHandling(async function POST(req: Request) {
                 max_guests: d.maxGuests ?? app.max_guests,
                 price_unit: "night",
             }),
+            DEFAULT_CURRENCY,
         ],
     );
     logger.info({ listingId: rows[0].id, host: session.userId }, "host listing created (draft)");
