@@ -47,12 +47,16 @@ export async function POST() {
     if (!stripeAccountId) {
       const account = await stripe.accounts.create({
         type: "express",
-        country: "RO",
+        // 2026-08-10 (audit P1): țara + tipul de business din config, cu
+        // fallback RO/company. Permite onboarding Stripe Connect în alte țări
+        // fără schimbare de cod (STRIPE_CONNECT_COUNTRY / STRIPE_CONNECT_BUSINESS_TYPE).
+        country: process.env.STRIPE_CONNECT_COUNTRY || "RO",
         email: seller.email,
         capabilities: {
           transfers: { requested: true },
         },
-        business_type: "company",
+        business_type:
+          (process.env.STRIPE_CONNECT_BUSINESS_TYPE as "company" | "individual") || "company",
         metadata: {
           seller_id: sellerId,
           seller_name: seller.name || "",
