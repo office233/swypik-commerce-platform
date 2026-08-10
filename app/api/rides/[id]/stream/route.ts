@@ -47,8 +47,10 @@ export async function GET(
         if (closed) return;
         try {
           controller.enqueue(encoder.encode(chunk));
-        } catch {
-          // controller closed
+        } catch (err) {
+          // controller închis — marcăm stream-ul ca oprit ca să nu mai încercăm
+          // (evită bucle de enqueue pe controller mort). Nu logăm (zgomot).
+          closed = true;
         }
       };
 
