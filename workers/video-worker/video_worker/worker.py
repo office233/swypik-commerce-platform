@@ -162,9 +162,31 @@ def _download_http(url: str, destination: Path, timeout: int = 120) -> None:
 
     Uses the stdlib so the worker has no extra dependency. Follows redirects.
     Raises on non-2xx responses or content < 1KB (likely an error body).
+
+    Anti-SSRF (audit 2026-08-10): refuză scheme non-http(s), IP-uri private/
+    link-local (RFC-1918, 169.254.x — metadata cloud) și loopback, atât la
+    rezolvarea inițială cât și implicit prin verificarea hostului.
     """
     import urllib.request
     import urllib.error
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise RuntimeError(f"Blocked non-http(s) source URL scheme: {parsed.scheme}")
+    host = parsed.hostname or ""
+    if not host:
+        raise RuntimeError("Blocked source URL without host")
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror as exc:
+        raise RuntimeError(f"Could not resolve source host {host}: {exc}") from exc
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            raise RuntimeError(f"Blocked source URL resolving to non-public IP: {host} -> {ip}")
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(

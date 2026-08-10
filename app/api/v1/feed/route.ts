@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { SYNTHETIC_LIKES_PER_ORDER, SYNTHETIC_COMMENTS_PER_ORDER } from "@/lib/config/synthetic-engagement";
 import { searchProducts } from "@/lib/db/product-queries";
 import { proxyToSocialApi } from "@/lib/social/proxy";
 import { getOptionalSocialUserId } from "@/lib/social/session";
@@ -46,8 +45,9 @@ type ExploreVideo = {
 };
 
 function toFeedItem(product: FeedProduct, index: number, seed: number) {
-  const likes = product.likes || Math.max(3, Math.round((product.orders || 30) * SYNTHETIC_LIKES_PER_ORDER));
-  const comments = product.commentCount || Math.max(1, Math.round((product.orders || 30) * SYNTHETIC_COMMENTS_PER_ORDER));
+  // 2026-08-10: fara engagement sintetic — doar numere reale (0 daca nu exista).
+  const likes = product.likes || 0;
+  const comments = product.commentCount || 0;
   const productId = String(product.pgId || product.product_id || product.productId || product.id);
   const numericProductId = Number(product.pgId || product.id);
   const videoId = product.video_id || product.videoId || (product.video ? `product_${product.id}` : `feed_${product.id}`);
@@ -92,8 +92,8 @@ function toFeedItem(product: FeedProduct, index: number, seed: number) {
     stats: {
       likes,
       comments,
-      saves: Math.max(1, Math.round(likes * 0.18)),
-      shares: Math.max(1, Math.round(likes * 0.07)),
+      saves: 0,
+      shares: 0,
       orders: product.orders || 0,
     },
     ranking: {

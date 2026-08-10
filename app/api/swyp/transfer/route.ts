@@ -24,6 +24,7 @@ import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { getOrCreateChainWallet, getPrivateKey } from "@/lib/swyp/wallet";
 import { submitUserTransfer, waitForChainReceipt, InsufficientChainBalanceError } from "@/lib/swyp/chain";
+import { SWYP_EXPLORER_URL } from "@/lib/swyp/chain-public";
 
 export const dynamic = "force-dynamic";
 
@@ -122,7 +123,7 @@ export const POST = withErrorHandling(async (req: Request) => {
             success: true,
             txHash,
             recipient: recipientUsername,
-            explorerUrl: `https://scan.swypik.com/tx/${txHash}`,
+            explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}`,
         });
     } catch (err) {
         if (txHash) {
@@ -132,7 +133,7 @@ export const POST = withErrorHandling(async (req: Request) => {
                 success: true,
                 pending: true,
                 txHash,
-                explorerUrl: `https://scan.swypik.com/tx/${txHash}`,
+                explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}`,
             });
         }
         const reason = err instanceof InsufficientChainBalanceError ? "insufficient_chain_balance" : "chain_failed";

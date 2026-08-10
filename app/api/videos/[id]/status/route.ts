@@ -117,9 +117,8 @@ export async function GET(_req: Request, context: RouteContext) {
     durationMs: firstNumber(video, "duration_ms") ?? firstNumber(asset, "duration_ms", "duration_seconds"),
     width: firstNumber(video, "width") ?? firstNumber(asset, "width"),
     height: firstNumber(video, "height") ?? firstNumber(asset, "height"),
-    rawKey: firstString(asset, "raw_key", "object_key") || firstString(uploadSession, "raw_object_key", "object_key"),
-    hlsMasterKey: firstString(asset, "hls_master_key") || firstString(job, "hls_master_key"),
-    thumbnailKey: firstString(asset, "thumbnail_key") || firstString(job, "thumbnail_key"),
-    previewKey: firstString(asset, "preview_key") || firstString(job, "preview_key"),
+    // 2026-08-10 (audit P0): cheile interne S3 (raw_key/hls_master_key/etc.)
+    // NU se mai expun public — endpoint fara autentificare; clientul are
+    // nevoie doar de playbackUrl/thumbnailUrl.
   }, { headers: { "Cache-Control": "no-store" } });
 }

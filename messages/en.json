@@ -2090,7 +2090,10 @@
     "submitOrder": "Order — {total}",
     "adresaDeLivrare": "Delivery address *",
     "cashLaLivrare": "Cash on delivery",
-    "minOrder": "Minimum order: {amount}"
+    "minOrder": "Minimum order: {amount}",
+    "menuLoadError": "Menu could not load",
+    "menuLoadErrorSub": "Check your connection and try again.",
+    "retry": "Retry"
   },
   "foodOrders": {
     "title": "My orders",

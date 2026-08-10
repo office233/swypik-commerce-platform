@@ -2090,7 +2090,10 @@
     "submitOrder": "Commander — {total}",
     "adresaDeLivrare": "Adresse de livraison *",
     "cashLaLivrare": "Paiement à la livraison",
-    "minOrder": "Commande minimale : {amount}"
+    "minOrder": "Commande minimale : {amount}",
+    "menuLoadError": "Le menu n'a pas pu être chargé",
+    "menuLoadErrorSub": "Vérifie ta connexion et réessaie.",
+    "retry": "Réessayer"
   },
   "foodOrders": {
     "title": "Mes commandes",

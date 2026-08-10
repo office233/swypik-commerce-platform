@@ -2090,7 +2090,10 @@
     "submitOrder": "Comandă — {total}",
     "adresaDeLivrare": "Adresa de livrare *",
     "cashLaLivrare": "Cash la livrare",
-    "minOrder": "Comandă minimă: {amount}"
+    "minOrder": "Comandă minimă: {amount}",
+    "menuLoadError": "Meniul nu s-a putut încărca",
+    "menuLoadErrorSub": "Verifică conexiunea și încearcă din nou.",
+    "retry": "Reîncearcă"
   },
   "foodOrders": {
     "title": "Comenzile mele",

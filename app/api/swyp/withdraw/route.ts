@@ -19,6 +19,7 @@ import { logger } from "@/lib/logger";
 import { swypTransfer, SwypInsufficientFundsError } from "@/lib/swyp/ledger";
 import { getOrCreateChainWallet } from "@/lib/swyp/wallet";
 import { submitFromTreasury, waitForChainReceipt } from "@/lib/swyp/chain";
+import { SWYP_EXPLORER_URL } from "@/lib/swyp/chain-public";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,7 @@ export const POST = withErrorHandling(async (req: Request) => {
         return NextResponse.json({
             success: true,
             txHash,
-            explorerUrl: `https://scan.swypik.com/tx/${txHash}`,
+            explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}`,
             address: wallet.address,
         });
     } catch (err) {
@@ -105,7 +106,7 @@ export const POST = withErrorHandling(async (req: Request) => {
                 success: true,
                 pending: true,
                 txHash,
-                explorerUrl: `https://scan.swypik.com/tx/${txHash}`,
+                explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}`,
                 address: wallet.address,
             });
         }

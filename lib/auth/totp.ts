@@ -1,6 +1,7 @@
 import * as OTPAuth from "otpauth";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import { logger } from "@/lib/logger";
 
 const ISSUER = "Swypik";
 
@@ -110,7 +111,11 @@ export async function consumeBackupCode(
         const remaining = hashedList.filter((_, idx) => idx !== i);
         return { matched: true, remaining };
       }
-    } catch {}
+    } catch (err) {
+      // 2026-08-10 (audit P1): hash corupt în DB blochează userul silențios —
+      // logăm pentru diagnostic (fără date sensibile).
+      logger.warn({ err, index: i }, "[2fa] bcrypt.compare failed on backup code hash");
+    }
   }
   return { matched: false, remaining: hashedList };
 }

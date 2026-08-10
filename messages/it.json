@@ -2090,7 +2090,10 @@
     "submitOrder": "Ordina — {total}",
     "adresaDeLivrare": "Indirizzo di consegna *",
     "cashLaLivrare": "Contanti alla consegna",
-    "minOrder": "Ordine minimo: {amount}"
+    "minOrder": "Ordine minimo: {amount}",
+    "menuLoadError": "Impossibile caricare il menu",
+    "menuLoadErrorSub": "Controlla la connessione e riprova.",
+    "retry": "Riprova"
   },
   "foodOrders": {
     "title": "I miei ordini",

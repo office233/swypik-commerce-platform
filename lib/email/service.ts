@@ -28,8 +28,10 @@ export function unsubscribeToken(email: string): string {
   let secret = process.env.APP_ENCRYPTION_KEY || process.env.SESSION_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
-      logger.error(
-        "APP_ENCRYPTION_KEY/SESSION_SECRET lipsesc în producție — tokenurile de unsubscribe folosesc un fallback NESIGUR. Setează APP_ENCRYPTION_KEY."
+      // 2026-08-10 (audit P0): fail-loud în producție — un fallback public ar
+      // permite forjarea tokenurilor de unsubscribe pentru orice adresă.
+      throw new Error(
+        "APP_ENCRYPTION_KEY/SESSION_SECRET lipsesc în producție — refuz generarea tokenurilor de unsubscribe cu secret public."
       );
     }
     secret = "swypik-unsubscribe-fallback";

@@ -2090,7 +2090,10 @@
     "submitOrder": "Pedir — {total}",
     "adresaDeLivrare": "Endereço de entrega *",
     "cashLaLivrare": "Dinheiro na entrega",
-    "minOrder": "Pedido mínimo: {amount}"
+    "minOrder": "Pedido mínimo: {amount}",
+    "menuLoadError": "Não foi possível carregar o menu",
+    "menuLoadErrorSub": "Verifica a tua ligação e tenta novamente.",
+    "retry": "Tentar novamente"
   },
   "foodOrders": {
     "title": "Meus pedidos",

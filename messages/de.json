@@ -2090,7 +2090,10 @@
     "submitOrder": "Bestellen — {total}",
     "adresaDeLivrare": "Lieferadresse *",
     "cashLaLivrare": "Barzahlung bei Lieferung",
-    "minOrder": "Mindestbestellung: {amount}"
+    "minOrder": "Mindestbestellung: {amount}",
+    "menuLoadError": "Speisekarte konnte nicht geladen werden",
+    "menuLoadErrorSub": "Prüfe deine Verbindung und versuche es erneut.",
+    "retry": "Erneut versuchen"
   },
   "foodOrders": {
     "title": "Meine Bestellungen",

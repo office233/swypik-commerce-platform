@@ -84,6 +84,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
   const fmt = useFormatPrice();
   const t = useTranslations("foodMenu");
   const [menu, setMenu] = useState<MenuSection[]>([]);
+  const [menuError, setMenuError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [picker, setPicker] = useState<MenuItem | null>(null);
@@ -118,10 +119,15 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
 
   useEffect(() => {
     fetch(`/api/merchants/${merchant.id}/menu`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) setMenu(d.menu ?? []);
+      .then((r) => {
+        if (!r.ok) throw new Error(`menu ${r.status}`);
+        return r.json();
       })
+      .then((d) => {
+        if (d.success) { setMenu(d.menu ?? []); setMenuError(false); }
+        else setMenuError(true);
+      })
+      .catch(() => setMenuError(true))
       .finally(() => setLoading(false));
     try {
       const saved = localStorage.getItem(cartKey);
@@ -436,8 +442,17 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           </div>
         ) : menu.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-sm font-bold">{t("noMenuYet")}</p>
-            <p className="mx-auto mt-1 max-w-xs text-xs text-[#6E6E80]">{t("noMenuYetSub")}</p>
+            <p className="text-sm font-bold">{menuError ? t("menuLoadError") : t("noMenuYet")}</p>
+            <p className="mx-auto mt-1 max-w-xs text-xs text-[#6E6E80]">{menuError ? t("menuLoadErrorSub") : t("noMenuYetSub")}</p>
+            {menuError && (
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-3 rounded-xl border border-black/10 px-4 py-2 text-xs font-bold"
+              >
+                {t("retry")}
+              </button>
+            )}
           </div>
         ) : (
           menu.map((section) => (

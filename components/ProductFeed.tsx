@@ -1,12 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  SYNTHETIC_LIKES_PER_ORDER,
-  SYNTHETIC_COMMENTS_PER_ORDER,
-  SYNTHETIC_DEFAULT_ORDERS_LIKES,
-  SYNTHETIC_DEFAULT_ORDERS_COMMENTS,
-} from "@/lib/config/synthetic-engagement";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -157,13 +151,12 @@ function aiOverlay(product: FeedProduct) {
 }
 
 function getRealLikes(product: FeedProduct) {
-  const seed = product.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return product.likes || Math.floor((product.orders || SYNTHETIC_DEFAULT_ORDERS_LIKES) * SYNTHETIC_LIKES_PER_ORDER) + (seed % 150);
+  // 2026-08-10: fara engagement sintetic — doar numere reale (0 daca nu exista).
+  return product.likes || 0;
 }
 
 function getRealComments(product: FeedProduct) {
-  const seed = product.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return product.commentCount || Math.floor((product.orders || SYNTHETIC_DEFAULT_ORDERS_COMMENTS) * SYNTHETIC_COMMENTS_PER_ORDER) + (seed % 30);
+  return product.commentCount || 0;
 }
 
 /**

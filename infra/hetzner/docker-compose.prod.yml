@@ -366,7 +366,10 @@ services:
       - .env.production
     ports:
       - "127.0.0.1:8888:8888"
-      - "1935:1935"
+      # 2026-08-10 (audit P0): RTMP legat pe loopback — ingest-ul public nu e
+      # posibil oricum prin tunelul Cloudflare (nu face passthrough RTMP);
+      # expunerea 0.0.0.0 permitea stream-uri nesolicitate din LAN.
+      - "127.0.0.1:1935:1935"
       - "127.0.0.1:9997:9997"
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
