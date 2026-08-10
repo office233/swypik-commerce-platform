@@ -110,7 +110,7 @@ export async function POST(req: Request) {
            LEFT JOIN local_merchants m   ON m.id = lo.merchant_id
            LEFT JOIN rides r             ON r.id = j.ride_id
           WHERE o.courier_id = $1 AND o.response IS NULL AND o.expires_at > now()`,
-              [rows[0].id, DEFAULT_CURRENCY],
+                [rows[0].id, DEFAULT_CURRENCY],
             );
             offers = pending;
         }

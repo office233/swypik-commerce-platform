@@ -3,6 +3,10 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
   applied_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- 2026-08-10 (audit P2): tot fișierul înfășurat în tranzacție — DDL parțial
+-- aplicat la o întrerupere lăsa schema inconsistentă.
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS carts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   external_cart_id text UNIQUE,
@@ -147,3 +151,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS marketplace_products_supplier_uidx
 INSERT INTO schema_migrations (version)
 VALUES ('20260511_0002_commerce_operational_tables')
 ON CONFLICT (version) DO NOTHING;
+
+COMMIT;
