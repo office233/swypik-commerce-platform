@@ -21,6 +21,7 @@ import crypto from "crypto";
 
 import { logger } from "@/lib/logger";
 import { APP_URL } from "@/lib/app-url";
+import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
 function parsePositiveInt(val: unknown, fallback: number, max: number): number {
   const n = Number(val);
   if (!Number.isInteger(n) || n < 1) return fallback;
@@ -33,7 +34,7 @@ function ronToCents(value: number): number {
 
 async function persistOpenCheckoutSession(items: CheckoutItem[], sessionId: string, expiresAt?: number | null, customerEmail?: string) {
   const client = await getDb().connect();
-  const currency = "RON";
+  const currency = DEFAULT_CURRENCY;
   const subtotalCents = items.reduce((sum, item) => sum + ronToCents(item.price) * item.quantity, 0);
   const orderLookupToken = crypto.randomBytes(24).toString("hex");
   const metadata = {

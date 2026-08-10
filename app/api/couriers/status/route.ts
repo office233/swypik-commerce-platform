@@ -10,6 +10,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { CourierStatusSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 import { publishJobEvent } from "@/lib/dispatch/engine";
+import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,14 +103,14 @@ export async function POST(req: Request) {
                         COALESCE(m.name, 'Swypik Go')                    AS merchant_name,
                         COALESCE(m.address, r.pickup_address)            AS pickup_address,
                         COALESCE(lo.delivery_fee_cents, r.estimated_fare_cents) AS delivery_fee_cents,
-                        COALESCE(lo.currency, r.currency, 'RON')         AS currency
+                        COALESCE(lo.currency, r.currency, $2)           AS currency
            FROM dispatch_offers o
            JOIN dispatch_jobs j          ON j.id = o.job_id
            LEFT JOIN local_orders lo     ON lo.id = o.order_id
            LEFT JOIN local_merchants m   ON m.id = lo.merchant_id
            LEFT JOIN rides r             ON r.id = j.ride_id
           WHERE o.courier_id = $1 AND o.response IS NULL AND o.expires_at > now()`,
-                [rows[0].id],
+              [rows[0].id, DEFAULT_CURRENCY],
             );
             offers = pending;
         }

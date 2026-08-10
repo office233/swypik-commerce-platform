@@ -15,7 +15,13 @@ export function isLocale(value: unknown): value is Locale {
 
 export const CURRENCIES = ["RON", "EUR", "USD", "GBP"] as const;
 export type Currency = (typeof CURRENCIES)[number];
-export const DEFAULT_CURRENCY: Currency = "RON";
+// 2026-08-10 (audit P1): moneda implicită a platformei — configurabilă prin env
+// (PLATFORM_DEFAULT_CURRENCY), cu fallback RON. Sursa de adevăr pentru toate
+// default-urile de monedă din server/DB.
+export const DEFAULT_CURRENCY: Currency = ((): Currency => {
+  const raw = (process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || process.env.PLATFORM_DEFAULT_CURRENCY || "").toUpperCase();
+  return (CURRENCIES as readonly string[]).includes(raw) ? (raw as Currency) : "RON";
+})();
 
 export function isCurrency(value: unknown): value is Currency {
   return typeof value === "string" && (CURRENCIES as readonly string[]).includes(value);

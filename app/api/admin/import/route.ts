@@ -6,6 +6,7 @@ import { dbQuery } from "@/lib/db";
 import { isAdminRequest } from "@/lib/security/admin-auth";
 
 import { logger } from "@/lib/logger";
+import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
 export const dynamic = "force-dynamic";
 
 /* ------------------------------------------------------------------ */
@@ -197,10 +198,10 @@ export async function POST(req: Request) {
             source_type, metadata
           ) VALUES (
             $1, $2, $3, $4, $5,
-            'RON', $6, 'active', $7,
+            $8, $6, 'active', $7,
             'manual', jsonb_build_object('imported_via', 'csv_bulk', 'imported_at', now()::text)
           ) RETURNING id`,
-          [title, slug, description, imageUrl, category, priceCents, inventoryStatus]
+          [title, slug, description, imageUrl, category, priceCents, inventoryStatus, DEFAULT_CURRENCY]
         );
         if (insRows[0]?.id) {
           autoEmbedProduct(insRows[0].id, title, description);
