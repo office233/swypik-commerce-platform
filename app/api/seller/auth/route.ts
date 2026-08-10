@@ -72,7 +72,7 @@ export async function POST(req: Request) {
         const otpToken = `otp:${otp}`;
         const otpHash = hashToken(otpToken);
 
-        try { await getRedis().del(`seller-otp-attempts:${otpHash}`); } catch {}
+        try { await getRedis().del(`seller-otp-attempts:${otpHash}`); } catch { }
 
         await dbQuery(
           `INSERT INTO seller_sessions (seller_id, token, expires_at, created_at)
@@ -80,7 +80,10 @@ export async function POST(req: Request) {
           [sellerId, otpHash],
         );
 
-        if (!isProd || normalizedEmail.endsWith("@swypik.test")) {
+        // 2026-08-10 (audit P1): OTP în log DOAR în afara producției — condiția
+        // @swypik.test permitea expunerea codului în prod pentru orice email de
+        // test. În producție OTP-ul nu apare niciodată în loguri.
+        if (!isProd) {
           logger.warn({ to: normalizedEmail.replace(/(.{2}).*@/, "$1***@"), otp }, "[SELLER OTP] dev mode code");
         }
         sendMagicLink(normalizedEmail, otp).catch((e) =>
@@ -118,9 +121,9 @@ export async function POST(req: Request) {
       try {
         attempts = await getRedis().incr(attemptsKey);
         if (attempts === 1) await getRedis().expire(attemptsKey, 900);
-      } catch {}
+      } catch { }
       if (attempts > 5) {
-        await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [otpHash]).catch(() => {});
+        await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [otpHash]).catch(() => { });
         return NextResponse.json(
           { success: false, error: "Prea multe încercări. Solicită un cod nou." },
           { status: 429 },
@@ -148,7 +151,7 @@ export async function POST(req: Request) {
       }
 
       await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [otpHash]);
-      try { await getRedis().del(attemptsKey); } catch {}
+      try { await getRedis().del(attemptsKey); } catch { }
 
       const sessionToken = crypto.randomBytes(32).toString("hex");
       const sessionHash = hashToken(sessionToken);
