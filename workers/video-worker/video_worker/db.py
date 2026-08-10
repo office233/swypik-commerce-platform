@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from .config import Settings
@@ -13,6 +14,11 @@ class DatabaseUnavailableError(RuntimeError):
 class PostgresRepository:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        # 2026-08-10 (audit P1): pool de conexiuni reutilizabile în loc de o
+        # conexiune nouă per operație (fiecare job deschidea 4-5 conexiuni →
+        # risc de epuizare max_connections sub burst). Pool lazy, thread-safe.
+        self._pool = None
+        self._pool_lock = threading.Lock()
 
     def try_claim(self, job: VideoJob) -> bool:
         """Atomically claim a job: flip status queued->running only if still queued.
@@ -41,7 +47,7 @@ class PostgresRepository:
                     )
                     return cursor.fetchone() is not None
         finally:
-            connection.close()
+            self._release(connection)
 
     def mark_processing(self, job: VideoJob) -> None:
         self._execute_job_and_asset(
@@ -114,7 +120,7 @@ class PostgresRepository:
                     if video_sql and video_params:
                         cursor.execute(video_sql, video_params)
         finally:
-            connection.close()
+            self._release(connection)
 
     def _connect(self):
         try:
@@ -123,7 +129,38 @@ class PostgresRepository:
             raise DatabaseUnavailableError(
                 "psycopg is not installed; install requirements.txt to enable Postgres updates"
             ) from exc
+        # Pool lazy (psycopg_pool) cu fallback la conexiune directă dacă pool-ul
+        # nu e disponibil. getconn/putconn e gestionat de _borrow().
+        if self._pool is None:
+            with self._pool_lock:
+                if self._pool is None:
+                    try:
+                        from psycopg_pool import ConnectionPool
+                        self._pool = ConnectionPool(
+                            self.settings.database_url,
+                            min_size=1,
+                            max_size=4,
+                            open=True,
+                            timeout=10,
+                        )
+                    except ImportError:
+                        self._pool = False  # marcaj: pool indisponibil → conexiuni directe
+        if self._pool:
+            return self._pool.getconn()
         return psycopg.connect(self.settings.database_url)
+
+    def _release(self, connection) -> None:
+        """Întoarce conexiunea în pool (dacă există) sau o închide."""
+        if self._pool:
+            try:
+                self._pool.putconn(connection)
+                return
+            except Exception:
+                pass
+        try:
+            connection.close()
+        except Exception:
+            pass
 
 
 def _format_table(sql: str, placeholder: str, table_name: str) -> str:
