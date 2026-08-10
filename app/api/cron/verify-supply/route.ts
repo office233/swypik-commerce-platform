@@ -75,13 +75,20 @@ async function verifyChainLocked(): Promise<{ badId: string | null; checked: num
     let checked = 0;
     for (; ;) {
         const { rows } = await dbQuery<{
-            id: string; from_pool: string | null; from_user_id: string | null;
+            id_text: string; id_num: string; from_pool: string | null; from_user_id: string | null;
             to_pool: string | null; to_user_id: string | null; amount_units: string;
             kind: string; ref_type: string; ref_id: string; prev_hash: string; entry_hash: string;
         }>(
-            `SELECT id::text, from_pool, from_user_id::text, to_pool, to_user_id::text,
-              amount_units::text, kind, ref_type, ref_id, prev_hash, entry_hash
-         FROM swyp_ledger_entries WHERE id > $1 ORDER BY id ASC LIMIT 1000`,
+            // 2026-08-10 (BUG REAL găsit): `SELECT id::text ... ORDER BY id ASC`
+            // — alias-ul `id` din lista SELECT (acum text) umbrește coloana la
+            // ORDER BY, deci Postgres sortează LEXICOGRAFIC ("10" < "9") și
+            // bucla vede id=10 înainte de id=9 → lastHash rămâne al checkpoint-ului
+            // și hash-ul id=10 pică = FALS POZITIV "hash chain broken at id=10".
+            // Fix: aliasez explicit coloana text (id_text) și sortez pe id real.
+            `SELECT id::text AS id_text, id AS id_num,
+                            from_pool, from_user_id::text, to_pool, to_user_id::text,
+                            amount_units::text, kind, ref_type, ref_id, prev_hash, entry_hash
+                 FROM swyp_ledger_entries WHERE id > $1 ORDER BY id_num ASC LIMIT 1000`,
             [lastId.toString()],
         );
         if (rows.length === 0) break;
@@ -97,10 +104,10 @@ async function verifyChainLocked(): Promise<{ badId: string | null; checked: num
             ].join("|");
             const expected = createHash("sha256").update(payload).digest("hex");
             if (r.prev_hash !== lastHash || r.entry_hash !== expected) {
-                return { badId: r.id, checked };
+                return { badId: r.id_text, checked };
             }
             lastHash = r.entry_hash;
-            lastId = BigInt(r.id);
+            lastId = BigInt(r.id_text);
             checked++;
         }
     }
