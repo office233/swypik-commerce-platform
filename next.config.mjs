@@ -102,7 +102,11 @@ const nextConfig = {
       },
       {
         // All pages: security + performance headers
-        source: '/:path*',
+        // 2026-08-11 (audit): CSP-ul global NU se aplică pe dashboard-urile
+        // sensibile (admin/seller/creator/courier) — acolo middleware-ul
+        // setează CSP nonce-based per request, iar regula de aici l-ar
+        // suprascrie (next.config headers se aplică peste cele din middleware).
+        source: '/((?!admin|seller|creator|courier).*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
@@ -112,6 +116,19 @@ const nextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
           { key: 'Content-Security-Policy', value: cspHeader },
           { key: 'Content-Security-Policy-Report-Only', value: cspReportOnly },
+        ],
+      },
+      {
+        // Dashboard-urile sensibile: aceleași security headers, DAR fără CSP
+        // (vine din middleware, nonce-based).
+        source: '/(admin|seller|creator|courier)(/.*)?',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=(self)' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
         ],
       },
       {
