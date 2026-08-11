@@ -10,6 +10,7 @@ import { buildCartCookie, getOrCreateCart, loadCartItems } from "@/lib/cart/sess
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { CartItemAddSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     // afisa subtotal manipulat cand lookup-ul esua. Marcam sursa pretului.
     let priceCents: number = body.priceCents ?? 0;
     let priceFromDb = false;
-    let currency: string = (body.currency ?? cart.currency ?? "RON").toUpperCase();
+    let currency: string = (body.currency ?? cart.currency ?? DEFAULT_CURRENCY).toUpperCase();
     let image: string | null = body.image ?? null;
     let mpId: string | null = null;
     let mpVariantId: string | null = null;

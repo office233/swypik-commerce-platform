@@ -8,13 +8,14 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { buildCartCookie, getOrCreateCart, loadCartItems } from "@/lib/cart/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
 async function GET_impl() {
   const cart = await getOrCreateCart({ create: false });
   if (!cart) {
-    return NextResponse.json({ items: [], subtotalCents: 0, currency: "RON" }, { headers: NO_STORE });
+    return NextResponse.json({ items: [], subtotalCents: 0, currency: DEFAULT_CURRENCY }, { headers: NO_STORE });
   }
   const items = await loadCartItems(cart.cartId);
   const subtotalCents = items.reduce((s, i) => s + i.priceCents * i.quantity, 0);

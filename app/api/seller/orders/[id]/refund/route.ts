@@ -122,10 +122,16 @@ export async function POST(
       refundCurrency = String(refund.currency || "ron").toUpperCase();
     } catch (stripeError: any) {
       logger.error({ err: stripeError }, "[Seller Refund] Stripe refund error:");
+        // 2026-08-11 (audit P1): nu expunem mesajul brut Stripe la client —
+        // poate conține detalii interne (ID-uri, chei, structura contului).
+        // Trimitem doar un cod sigur; detaliile complete rămân în loguri.
+        const safeCode =
+          typeof stripeError?.code === "string" ? stripeError.code : "stripe_error";
       return NextResponse.json(
         {
           success: false,
-          error: `Eroare Stripe la restituire: ${stripeError.message || "Eroare necunoscuta"}`,
+            error: "Restituirea nu a putut fi procesată. Încearcă din nou sau contactează suportul.",
+            code: safeCode,
         },
         { status: 502 }
       );

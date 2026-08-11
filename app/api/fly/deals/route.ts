@@ -71,7 +71,8 @@ if (process.env.REDIS_URL) {
                 country: d.country,
                 image: d.image,
                 fromCents: cheapest,
-                currency: offers[0]?.currency ?? "RON",
+                // Căutarea e făcută în EUR — fallback-ul trebuie să fie tot EUR, nu RON.
+                currency: offers[0]?.currency ?? "EUR",
             } satisfies Deal;
         }),
     );
@@ -80,7 +81,7 @@ if (process.env.REDIS_URL) {
         .map((r, i) =>
             r.status === "fulfilled"
                 ? r.value
-                : ({ ...targets[i], fromCents: null, currency: "RON" } satisfies Deal),
+                : ({ ...targets[i], fromCents: null, currency: "EUR" } satisfies Deal),
         )
         // Cele cu preț găsit primele, sortate crescător.
         .sort((a, b) => {

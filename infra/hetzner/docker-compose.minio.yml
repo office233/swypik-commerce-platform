@@ -1,6 +1,8 @@
 services:
   minio:
-    image: minio/minio:latest
+    # 2026-08-11 (audit): pinned — "latest" putea aduce breaking changes la restart.
+    # Aceeași versiune ca în docker-compose.social.yml.
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     container_name: swypik-minio
     command: server /data --console-address ":9001"
     environment:
