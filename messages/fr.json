@@ -2786,7 +2786,9 @@
     "selecteaza35IntereseFeedul": "Choisis 3–5 centres d'intérêt. Ton fil sera personnalisé instantanément."
   },
   "sellerLayout": {
-    "sellerAccount": "Compte Vendeur"
+    "sellerAccount": "Compte Vendeur",
+    "localDelivery": "Local & livraison",
+    "stays": "Hébergements"
   },
   "sellerReturns": {
     "acceptAria": "Acceptez la demande et remboursez l'argent"

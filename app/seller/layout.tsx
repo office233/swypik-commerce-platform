@@ -14,20 +14,20 @@ import {
   User,
 } from "lucide-react";
 
-const sellerNavItems = [
-  { href: "/seller", icon: "barChart3", label: "Dashboard" },
-  { href: "/seller/products", icon: "package", label: "Produsele mele" },
-  { href: "/seller/orders", icon: "shoppingBag", label: "Comenzi" },
-  { href: "/seller/merchant", icon: "utensilsCrossed", label: "Local & livrări" },
-  { href: "/seller/cazari", icon: "home", label: "Cazări" },
-  { href: "/seller/payouts", icon: "coins", label: "Payouts" },
-  { href: "/seller/returns", icon: "undo2", label: "Retururi" },
-  { href: "/seller/settings", icon: "settings", label: "Setări" },
-];
-
 export default async function SellerLayout({ children }: { children: ReactNode }) {
   const t = await getTranslations("sellerLayout");
   const td = await getTranslations("sellerdashboard");
+  // Construit din traduceri (nu hardcodat) → meniul mobil urmează limba activă.
+  const sellerNavItems = [
+    { href: "/seller", icon: "barChart3", label: td("dashboard") },
+    { href: "/seller/products", icon: "package", label: td("produseleMele") },
+    { href: "/seller/orders", icon: "shoppingBag", label: td("comenzi") },
+    { href: "/seller/merchant", icon: "utensilsCrossed", label: t("localDelivery") },
+    { href: "/seller/cazari", icon: "home", label: t("stays") },
+    { href: "/seller/payouts", icon: "coins", label: td("payouts") },
+    { href: "/seller/returns", icon: "undo2", label: td("retururi") },
+    { href: "/seller/settings", icon: "settings", label: td("setari") },
+  ];
   return (
     <div className="min-h-screen bg-[#F7F7F8] flex">
       {/* Sidebar */}

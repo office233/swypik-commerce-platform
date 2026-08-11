@@ -2786,7 +2786,9 @@
     "selecteaza35IntereseFeedul": "Selectează 3-5 interese. Feed-ul tău va fi personalizat instant."
   },
   "sellerLayout": {
-    "sellerAccount": "Cont Vânzător"
+    "sellerAccount": "Cont Vânzător",
+    "localDelivery": "Local & livrări",
+    "stays": "Cazări"
   },
   "sellerReturns": {
     "acceptAria": "Acceptă cererea și restituie banii"

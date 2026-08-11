@@ -2786,7 +2786,9 @@
     "selecteaza35IntereseFeedul": "Scegli 3–5 interessi. Il tuo feed sarà personalizzato all'istante."
   },
   "sellerLayout": {
-    "sellerAccount": "Account Venditore"
+    "sellerAccount": "Account Venditore",
+    "localDelivery": "Locale e consegna",
+    "stays": "Soggiorni"
   },
   "sellerReturns": {
     "acceptAria": "Accetta la richiesta e rimborsa il denaro"

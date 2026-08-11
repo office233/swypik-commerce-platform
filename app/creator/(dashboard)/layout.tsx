@@ -14,19 +14,19 @@ import {
   UserRound,
 } from "lucide-react";
 
-const creatorNavItems = [
-  { href: "/creator", icon: "barChart3", label: "Dashboard" },
-  { href: "/upload", icon: "upload", label: "Încarcă" },
-  { href: "/creator/videos", icon: "clapperboard", label: "Clipurile Mele" },
-  { href: "/creator/drafts", icon: "fileText", label: "Schițe" },
-  { href: "/creator/analytics", icon: "trendingUp", label: "Analytics" },
-  { href: "/creator/earnings", icon: "coins", label: "Câștiguri" },
-  { href: "/creator/payouts", icon: "banknote", label: "Plăți" },
-  { href: "/creator/live", icon: "circleDot", label: "Live" },
-];
-
 export default function CreatorLayout({ children }: { children: ReactNode }) {
   const t = useTranslations("creatordashboard");
+  // Construit din traduceri (nu hardcodat) → meniul mobil urmează limba activă.
+  const creatorNavItems = [
+    { href: "/creator", icon: "barChart3", label: t("dashboard") },
+    { href: "/upload", icon: "upload", label: t("incarcaVideo") },
+    { href: "/creator/videos", icon: "clapperboard", label: t("clipurileMele") },
+    { href: "/creator/drafts", icon: "fileText", label: t("schite") },
+    { href: "/creator/analytics", icon: "trendingUp", label: t("analytics") },
+    { href: "/creator/earnings", icon: "coins", label: t("castiguri") },
+    { href: "/creator/payouts", icon: "banknote", label: t("plati") },
+    { href: "/creator/live", icon: "circleDot", label: t("live") },
+  ];
   return (
     <div className="min-h-screen bg-[#F7F7F8] flex">
       {/* Sidebar */}
