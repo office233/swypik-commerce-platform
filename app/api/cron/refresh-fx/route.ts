@@ -33,18 +33,48 @@ export async function GET(req: Request) {
     const fxApiBase = process.env.FX_API_URL || "https://api.frankfurter.dev/v1";
     const accessKey = process.env.FX_API_ACCESS_KEY;
     const url = `${fxApiBase}/latest?base=EUR&symbols=${SYMBOLS.join(",")}${accessKey ? `&access_key=${accessKey}` : ""}`;
-    let data: { rates?: Record<string, number> } = {};
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) {
-        return NextResponse.json({ error: "upstream_failed", status: res.status }, { status: 502 });
+    // 2026-08-11 (audit): frankfurter.dev da intermitent 520/522 (Cloudflare).
+    // Facem retry + fallback pe un al doilea provider gratuit (open.er-api.com)
+    // ca sa nu ramanem cu rate vechi din cauza unui hiccup de retea.
+    let rates: Record<string, number> = {};
+    let source = "frankfurter";
+    let lastStatus = 0;
+    for (let attempt = 0; attempt < 2 && Object.keys(rates).length === 0; attempt++) {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        lastStatus = res.status;
+        if (res.ok) {
+          const data = (await res.json()) as { rates?: Record<string, number> };
+          rates = data?.rates || {};
+        }
+      } catch {
+        /* retry / fallback */
       }
-      data = await res.json();
-    } catch (err) {
-      return NextResponse.json({ error: "upstream_fetch_error", message: (err as Error).message }, { status: 502 });
+      if (Object.keys(rates).length === 0 && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
     }
-
-    const rates = data?.rates || {};
+    if (Object.keys(rates).length === 0) {
+      // Fallback: open.er-api.com (gratuit, fara cheie, alt CDN).
+      try {
+        const res = await fetch("https://open.er-api.com/v6/latest/EUR", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as { rates?: Record<string, number> };
+          if (data?.rates) {
+            rates = data.rates;
+            source = "er-api";
+          }
+        }
+      } catch {
+        /* raportam mai jos */
+      }
+    }
+    if (Object.keys(rates).length === 0) {
+      return NextResponse.json(
+        { error: "upstream_failed", status: lastStatus || 502 },
+        { status: 502 },
+      );
+    }
     let updated = 0;
     for (const quote of SYMBOLS) {
       const rate = rates[quote];
@@ -73,7 +103,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "no_rates_updated", upstream: fxApiBase }, { status: 502 });
     }
 
-    return NextResponse.json({ updated, ts: new Date().toISOString() });
+    return NextResponse.json({ updated, source, ts: new Date().toISOString() });
   });
 }
 
