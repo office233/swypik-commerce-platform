@@ -2944,7 +2944,12 @@
     "incarcaVideo": "Subir vídeo",
     "castiguri": "Ganancias",
     "plati": "Pagos",
-    "contCreator": "Cuenta de creador"
+    "contCreator": "Cuenta de creador",
+    "dashboard": "Panel",
+    "clipurileMele": "Mis clips",
+    "analytics": "Analíticas",
+    "live": "En vivo",
+    "statusAprobat": "Estado: Aprobado"
   },
   "becomeacreatorBecomeCreatorButton": {
     "seActiveaza": "Activando..."
@@ -3044,5 +3049,15 @@
     "uploadFailed": "Error al subir.",
     "createFailed": "Error al crear.",
     "actionFailed": "La acción falló."
+  },
+  "sellerdashboard": {
+    "produseleMele": "Mis productos",
+    "comenzi": "Pedidos",
+    "payouts": "Pagos",
+    "retururi": "Devoluciones",
+    "setari": "Ajustes",
+    "statusActiv": "Estado: Activo",
+    "contSeller": "Cuenta de vendedor",
+    "dashboard": "Panel"
   }
 }

@@ -2944,7 +2944,12 @@
     "incarcaVideo": "Video hochladen",
     "castiguri": "Einnahmen",
     "plati": "Auszahlungen",
-    "contCreator": "Creator-Konto"
+    "contCreator": "Creator-Konto",
+    "dashboard": "Dashboard",
+    "clipurileMele": "Meine Clips",
+    "analytics": "Analytics",
+    "live": "Live",
+    "statusAprobat": "Status: Genehmigt"
   },
   "becomeacreatorBecomeCreatorButton": {
     "seActiveaza": "Wird aktiviert..."
@@ -3044,5 +3049,15 @@
     "uploadFailed": "Hochladen fehlgeschlagen.",
     "createFailed": "Erstellung fehlgeschlagen.",
     "actionFailed": "Aktion fehlgeschlagen."
+  },
+  "sellerdashboard": {
+    "produseleMele": "Meine Produkte",
+    "comenzi": "Bestellungen",
+    "payouts": "Auszahlungen",
+    "retururi": "Retouren",
+    "setari": "Einstellungen",
+    "statusActiv": "Status: Aktiv",
+    "contSeller": "Verkäuferkonto",
+    "dashboard": "Dashboard"
   }
 }

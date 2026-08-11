@@ -27,6 +27,7 @@ const sellerNavItems = [
 
 export default async function SellerLayout({ children }: { children: ReactNode }) {
   const t = await getTranslations("sellerLayout");
+  const td = await getTranslations("sellerdashboard");
   return (
     <div className="min-h-screen bg-[#F7F7F8] flex">
       {/* Sidebar */}
@@ -39,22 +40,22 @@ export default async function SellerLayout({ children }: { children: ReactNode }
 
         <nav className="flex-1 p-4 space-y-2">
           <Link href="/seller" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#0D0D0D] transition">
-            <BarChart3 size={18} /> Dashboard
+            <BarChart3 size={18} /> {td("dashboard")}
           </Link>
           <Link href="/seller/products" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Package size={18} /> Produsele mele
+            <Package size={18} /> {td("produseleMele")}
           </Link>
           <Link href="/seller/orders" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <ShoppingBag size={18} /> Comenzi
+            <ShoppingBag size={18} /> {td("comenzi")}
           </Link>
           <Link href="/seller/payouts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Coins size={18} /> Payouts
+            <Coins size={18} /> {td("payouts")}
           </Link>
           <Link href="/seller/returns" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Undo2 size={18} /> Retururi
+            <Undo2 size={18} /> {td("retururi")}
           </Link>
           <Link href="/seller/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Settings size={18} /> Setări
+            <Settings size={18} /> {td("setari")}
           </Link>
         </nav>
 
@@ -65,7 +66,7 @@ export default async function SellerLayout({ children }: { children: ReactNode }
             </div>
             <div>
               <p className="text-xs font-black text-[#0D0D0D]">{t("sellerAccount")}</p>
-              <p className="text-[10px] text-[#6E6E80]">Status: Activ</p>
+              <p className="text-[10px] text-[#6E6E80]">{td("statusActiv")}</p>
             </div>
           </div>
         </div>

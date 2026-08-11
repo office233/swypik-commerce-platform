@@ -2944,7 +2944,12 @@
     "incarcaVideo": "Carica video",
     "castiguri": "Guadagni",
     "plati": "Pagamenti",
-    "contCreator": "Account creator"
+    "contCreator": "Account creator",
+    "dashboard": "Dashboard",
+    "clipurileMele": "I miei clip",
+    "analytics": "Analisi",
+    "live": "Live",
+    "statusAprobat": "Stato: Approvato"
   },
   "becomeacreatorBecomeCreatorButton": {
     "seActiveaza": "Attivazione..."
@@ -3044,5 +3049,15 @@
     "uploadFailed": "Caricamento non riuscito.",
     "createFailed": "Creazione non riuscita.",
     "actionFailed": "Azione non riuscita."
+  },
+  "sellerdashboard": {
+    "produseleMele": "I miei prodotti",
+    "comenzi": "Ordini",
+    "payouts": "Pagamenti",
+    "retururi": "Resi",
+    "setari": "Impostazioni",
+    "statusActiv": "Stato: Attivo",
+    "contSeller": "Account venditore",
+    "dashboard": "Dashboard"
   }
 }

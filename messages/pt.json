@@ -2944,7 +2944,12 @@
     "incarcaVideo": "Carregar vídeo",
     "castiguri": "Ganhos",
     "plati": "Pagamentos",
-    "contCreator": "Conta de criador"
+    "contCreator": "Conta de criador",
+    "dashboard": "Painel",
+    "clipurileMele": "Meus clipes",
+    "analytics": "Análises",
+    "live": "Ao vivo",
+    "statusAprobat": "Estado: Aprovado"
   },
   "becomeacreatorBecomeCreatorButton": {
     "seActiveaza": "A ativar..."
@@ -3044,5 +3049,15 @@
     "uploadFailed": "Falha no carregamento.",
     "createFailed": "Falha na criação.",
     "actionFailed": "A ação falhou."
+  },
+  "sellerdashboard": {
+    "produseleMele": "Meus produtos",
+    "comenzi": "Pedidos",
+    "payouts": "Pagamentos",
+    "retururi": "Devoluções",
+    "setari": "Definições",
+    "statusActiv": "Estado: Ativo",
+    "contSeller": "Conta de vendedor",
+    "dashboard": "Painel"
   }
 }

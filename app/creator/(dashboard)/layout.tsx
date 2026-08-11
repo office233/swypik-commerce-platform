@@ -39,10 +39,10 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
 
         <nav className="flex-1 p-4 space-y-2">
           <Link href="/creator" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#0D0D0D] transition">
-            <BarChart3 size={18} /> Dashboard
+            <BarChart3 size={18} /> {t("dashboard")}
           </Link>
           <Link href="/creator/videos" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <Clapperboard size={18} /> Clipurile Mele
+            <Clapperboard size={18} /> {t("clipurileMele")}
           </Link>
           <Link href="/creator/drafts" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <FileText size={18} />  {t("schite")}
@@ -51,7 +51,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
             <Upload size={18} />  {t("incarcaVideo")}
           </Link>
           <Link href="/creator/analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
-            <TrendingUp size={18} /> Analytics
+            <TrendingUp size={18} /> {t("analytics")}
           </Link>
           <Link href="/creator/earnings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#F7F7F8] text-sm font-bold text-[#6E6E80] transition">
             <Coins size={18} />  {t("castiguri")}
@@ -68,7 +68,7 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
             </div>
             <div>
               <p className="text-xs font-black text-[#0D0D0D]">{t("contCreator")}</p>
-              <p className="text-[10px] text-[#6E6E80]">Status: Aprobat</p>
+              <p className="text-[10px] text-[#6E6E80]">{t("statusAprobat")}</p>
             </div>
           </div>
         </div>

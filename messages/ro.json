@@ -2944,7 +2944,12 @@
     "incarcaVideo": "Încarcă Video",
     "castiguri": "Câștiguri",
     "plati": "Plăți",
-    "contCreator": "Cont Creator"
+    "contCreator": "Cont Creator",
+    "dashboard": "Dashboard",
+    "clipurileMele": "Clipurile Mele",
+    "analytics": "Analytics",
+    "live": "Live",
+    "statusAprobat": "Status: Aprobat"
   },
   "becomeacreatorBecomeCreatorButton": {
     "seActiveaza": "Se activează..."
@@ -3044,5 +3049,15 @@
     "uploadFailed": "Încărcarea a eșuat.",
     "createFailed": "Crearea a eșuat.",
     "actionFailed": "Acțiunea a eșuat."
+  },
+  "sellerdashboard": {
+    "produseleMele": "Produsele mele",
+    "comenzi": "Comenzi",
+    "payouts": "Payouts",
+    "retururi": "Retururi",
+    "setari": "Setări",
+    "statusActiv": "Status: Activ",
+    "contSeller": "Cont Seller",
+    "dashboard": "Dashboard"
   }
 }
