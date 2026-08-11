@@ -29,12 +29,31 @@ export const TIER_COMMISSION_PCT: Record<CommissionTier, number> = {
     standard20: 20,
 };
 
-/** Zile de promo 0% comision de la aprobare. */
+/** Zile de promo 0% comision de la aprobare (default; valoarea live vine din DB). */
 export const PROMO_DAYS = 60;
-/** Fereastra de activitate pentru păstrarea treptei founding15. */
+/** Fereastra de activitate pentru păstrarea treptei founding15 (default). */
 export const FOUNDING_ACTIVITY_WINDOW_DAYS = 90;
-/** Curse minime în fereastră pentru păstrarea treptei founding15. */
+/** Curse minime în fereastră pentru păstrarea treptei founding15 (default). */
 export const FOUNDING_MIN_RIDES = 50;
+
+/**
+ * 2026-08-11 (audit): parametrii operaționali sunt configurabili LIVE din
+ * platform_config (chei: promo_days, founding_activity_window_days,
+ * founding_min_rides) — schimbarea lor nu mai necesită redeploy.
+ * Constantele de mai sus rămân fallback.
+ */
+export async function getTierParams(): Promise<{
+    promoDays: number;
+    activityWindowDays: number;
+    minRides: number;
+}> {
+    const [promoDays, activityWindowDays, minRides] = await Promise.all([
+        configInt("promo_days", PROMO_DAYS),
+        configInt("founding_activity_window_days", FOUNDING_ACTIVITY_WINDOW_DAYS),
+        configInt("founding_min_rides", FOUNDING_MIN_RIDES),
+    ]);
+    return { promoDays, activityWindowDays, minRides };
+}
 
 /** Numărul implicit de locuri, dacă platform_config lipsește. */
 const DEFAULT_FOUNDING_SLOTS = 500;
@@ -103,9 +122,10 @@ export type AssignResult = {
  * aprobările concurente.
  */
 export async function assignTierOnApproval(courierId: string): Promise<AssignResult> {
-    const [foundingTotal, earlyTotal] = await Promise.all([
+    const [foundingTotal, earlyTotal, tierParams] = await Promise.all([
         configInt("founding_slots_total", DEFAULT_FOUNDING_SLOTS),
         configInt("early_slots_total", DEFAULT_EARLY_SLOTS),
+        getTierParams(),
     ]);
 
     return withTransaction(async (q) => {
@@ -145,13 +165,13 @@ export async function assignTierOnApproval(courierId: string): Promise<AssignRes
         else tier = "standard20";
 
         const activityDeadline =
-            tier === "founding15" ? `now() + interval '${FOUNDING_ACTIVITY_WINDOW_DAYS} days'` : "NULL";
+            tier === "founding15" ? `now() + interval '${tierParams.activityWindowDays} days'` : "NULL";
 
         const { rows: upd } = await q<{ promo_zero_until: string }>(
             `UPDATE couriers
           SET commission_tier = $2,
               tier_assigned_at = now(),
-              promo_zero_until = now() + interval '${PROMO_DAYS} days',
+              promo_zero_until = now() + interval '${tierParams.promoDays} days',
               tier_activity_deadline = ${activityDeadline},
               tier_rides_count = 0
         WHERE id = $1
@@ -208,6 +228,7 @@ export async function effectiveCommissionPct(
  * imediat (a îndeplinit condiția) și contorul repornește.
  */
 export async function recordTierRide(courierId: string): Promise<void> {
+    const { activityWindowDays, minRides } = await getTierParams();
     await dbQuery(
         `UPDATE couriers
         SET tier_rides_count = tier_rides_count + 1
@@ -217,11 +238,11 @@ export async function recordTierRide(courierId: string): Promise<void> {
     await dbQuery(
         `UPDATE couriers
         SET tier_rides_count = 0,
-            tier_activity_deadline = now() + interval '${FOUNDING_ACTIVITY_WINDOW_DAYS} days'
+            tier_activity_deadline = now() + interval '${activityWindowDays} days'
       WHERE id = $1
         AND commission_tier = 'founding15'
         AND tier_rides_count >= $2`,
-        [courierId, FOUNDING_MIN_RIDES],
+        [courierId, minRides],
     );
 }
 
@@ -230,6 +251,7 @@ export async function recordTierRide(courierId: string): Promise<void> {
  * Rulat zilnic din cron. Returnează numărul de retrogradări.
  */
 export async function demoteInactiveFoundingDrivers(): Promise<number> {
+    const { minRides } = await getTierParams();
     const { rows } = await dbQuery<{ id: string }>(
         `UPDATE couriers
         SET commission_tier = 'early18',
@@ -240,7 +262,7 @@ export async function demoteInactiveFoundingDrivers(): Promise<number> {
         AND tier_activity_deadline < now()
         AND tier_rides_count < $1
       RETURNING id`,
-        [FOUNDING_MIN_RIDES],
+        [minRides],
     );
     if (rows.length > 0) {
         log.info({ count: rows.length }, "founding drivers demoted for inactivity");

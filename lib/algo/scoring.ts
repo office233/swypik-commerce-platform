@@ -30,6 +30,12 @@ export type FeedWeights = {
   rotation_penalty: number;
   fund_min_watch_ms: number;
   fund_payout_min_cents: number;
+  // 2026-08-11 (audit): ponderile engagement din feed-ul explore — tunabile
+  // live din feed_weights (DB) fără redeploy, ca restul algoritmului.
+  eng_view: number;
+  eng_like: number;
+  eng_share: number;
+  eng_comment: number;
 };
 
 export const DEFAULT_FEED_WEIGHTS: FeedWeights = {
@@ -46,6 +52,10 @@ export const DEFAULT_FEED_WEIGHTS: FeedWeights = {
   rotation_penalty: 6,
   fund_min_watch_ms: 3000,
   fund_payout_min_cents: 1000,
+  eng_view: 1,
+  eng_like: 5,
+  eng_share: 10,
+  eng_comment: 3,
 };
 
 function envOverride(key: keyof FeedWeights, fallback: number): number {

@@ -90,20 +90,24 @@ const TITLE_SPAM_RE = /(amazon|hot[ -]?selling|shop products?|must[ -]?have|vira
 const TITLE_GENERIC_RE = /\b(woman clothing|women clothing|for women women|female ladies|new fashion|summer sale|spring summer)\b/i;
 const BRAND_RISK_RE = /\b(amazon|tiktok|shein|zara|nike|adidas|louis vuitton|gucci|prada|chanel)\b/i;
 
-const ENGAGEMENT_EXPR = `(
-  COALESCE(v.view_count, 0) * 1
-  + COALESCE(v.like_count, 0) * 5
-  + COALESCE(v.share_count, 0) * 10
-  + COALESCE(v.comment_count, 0) * 3
+// 2026-08-11 (audit): ponderile vin din feed_weights (DB) / env FEED_ENG_* /
+// defaults (view=1, like=5, share=10, comment=3) — tunabile fără redeploy.
+// Valorile sunt numerice, validate în loadFeedWeights (nu user input) — safe în SQL.
+function buildEngagementExpr(w: { eng_view: number; eng_like: number; eng_share: number; eng_comment: number }): string {
+  return `(
+  COALESCE(v.view_count, 0) * ${w.eng_view}
+  + COALESCE(v.like_count, 0) * ${w.eng_like}
+  + COALESCE(v.share_count, 0) * ${w.eng_share}
+  + COALESCE(v.comment_count, 0) * ${w.eng_comment}
 )`;
+}
 
-const TRENDING_EXPR = `(
-  (COALESCE(v.view_count, 0) * 1
-   + COALESCE(v.like_count, 0) * 5
-   + COALESCE(v.share_count, 0) * 10
-   + COALESCE(v.comment_count, 0) * 3)
+function buildTrendingExpr(w: { eng_view: number; eng_like: number; eng_share: number; eng_comment: number }): string {
+  return `(
+  ${buildEngagementExpr(w)}
   / GREATEST(1, EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / 3600)
 )`;
+}
 
 
 
@@ -174,14 +178,16 @@ function buildOrderClause(
   hasUser: boolean,
   hasSession: boolean,
   equityExpr: string,
+  engagementExpr: string,
+  trendingExpr: string,
 ): string {
   const penalty = buildPenaltyExpr(hasUser, hasSession);
   const affinity = buildAffinityExpr(hasUser);
   switch (sort) {
     case "popular":
-      return `${ENGAGEMENT_EXPR} + ${penalty} + ${equityExpr} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
+      return `${engagementExpr} + ${penalty} + ${equityExpr} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
     case "trending":
-      return `${TRENDING_EXPR} + ${penalty} + ${equityExpr} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
+      return `${trendingExpr} + ${penalty} + ${equityExpr} + (random() * 3) DESC, v.published_at DESC NULLS LAST, random()`;
     case "recent":
     default:
       // Real engagement (mat view) + freshness + personalization - repetition penalty + exploration jitter.
@@ -564,17 +570,19 @@ export async function GET(request: NextRequest) {
     }
 
     const feedWeights = await loadFeedWeights();
+    const engagementExpr = buildEngagementExpr(feedWeights);
+    const trendingExpr = buildTrendingExpr(feedWeights);
     const equityExpr = buildEquityExpr(feedWeights, Boolean(userId) || Boolean(viewerSessionId));
     const equityJoins = buildEquityJoins(Boolean(userId), Boolean(viewerSessionId), userParam, sessionParam);
     // În context de profil păstrăm exact ordinea din grila de profil (published_at DESC).
     const orderClause = creatorParam
       ? `v.published_at DESC NULLS LAST, v.created_at DESC`
-      : buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr);
+      : buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr, engagementExpr, trendingExpr);
     const scoreSelect =
       sort === "popular"
-        ? `, ${ENGAGEMENT_EXPR} AS engagement_score`
+        ? `, ${engagementExpr} AS engagement_score`
         : sort === "trending"
-          ? `, ${TRENDING_EXPR} AS trending_score`
+          ? `, ${trendingExpr} AS trending_score`
           : "";
     const softCommerceClause = hideSoftCommerce ? `
               AND COALESCE(mp.title, '') !~* '${DEFAULT_FEED_SOFT_BLOCK_SQL_RE}'

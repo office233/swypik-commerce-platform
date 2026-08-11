@@ -9,7 +9,7 @@ import { isAdminRequest } from "@/lib/security/admin-auth";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
-import { assignTierOnApproval, TIER_COMMISSION_PCT, PROMO_DAYS } from "@/lib/drivers/tiers";
+import { assignTierOnApproval, getTierParams, TIER_COMMISSION_PCT } from "@/lib/drivers/tiers";
 import { getOrCreateDriverCode } from "@/lib/drivers/referral";
 import { APP_URL } from "@/lib/app-url";
 
@@ -88,9 +88,10 @@ export async function PATCH(
         if (courier.email && (action === "approve" || action === "reject")) {
             const kindLabel = courier.kind === "driver" ? "șofer Swypik Go" : "curier Swypik Food";
             const tierPct = tier ? TIER_COMMISSION_PCT[tier as keyof typeof TIER_COMMISSION_PCT] : null;
+            const { promoDays } = await getTierParams();
             const tierHtml =
                 tierPct !== null
-                    ? `<p><strong>Comisionul tău: 0% în primele ${PROMO_DAYS} de zile</strong>, apoi ${tierPct}% pe viață${tier === "founding15" ? " (Founding Driver — primii 500)" : ""
+                    ? `<p><strong>Comisionul tău: 0% în primele ${promoDays} de zile</strong>, apoi ${tierPct}% pe viață${tier === "founding15" ? " (Founding Driver — primii 500)" : ""
                     }.</p>`
                     : "";
             const codeHtml = referralCode

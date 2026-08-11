@@ -709,7 +709,9 @@ export const NotificationsMarkReadSchema = z.union([
 ]);
 export type NotificationsMarkReadInput = z.infer<typeof NotificationsMarkReadSchema>;
 
-const ALLOWED_COUNTRY_CODES = [
+// 2026-08-11 (audit): unica sursă de adevăr pentru țările suportate la livrare
+// (exportată — folosită și în app/api/users/me/addresses).
+export const ALLOWED_COUNTRY_CODES = [
   "RO", "MD", "BG", "HU", "DE", "FR", "IT", "ES", "NL", "BE", "AT", "PL", "GB",
 ] as const;
 

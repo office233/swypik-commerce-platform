@@ -2,7 +2,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
-import { UserAddressCreateSchema, parseBody } from "@/lib/validation/schemas";
+import { UserAddressCreateSchema, parseBody, ALLOWED_COUNTRY_CODES } from "@/lib/validation/schemas";
 import { rateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,8 @@ type Address = {
   created_at: string;
 };
 
-const ALLOWED_COUNTRIES = ["RO", "MD", "BG", "HU", "DE", "FR", "IT", "ES", "NL", "BE", "AT", "PL", "GB"];
+// 2026-08-11 (audit): lista vine din lib/validation/schemas — o singură sursă.
+const ALLOWED_COUNTRIES: readonly string[] = ALLOWED_COUNTRY_CODES;
 
 function validate(body: Record<string, unknown>): { ok: true; data: Omit<Address, "id" | "created_at"> } | { ok: false; error: string } {
   const recipient_name = String(body.recipient_name || "").trim();

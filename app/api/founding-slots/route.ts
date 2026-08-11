@@ -3,19 +3,19 @@
  * Public (alimentează contorul de pe /join). Cache 60s.
  */
 import { NextResponse } from "next/server";
-import { getTierSlots, TIER_COMMISSION_PCT, PROMO_DAYS } from "@/lib/drivers/tiers";
+import { getTierSlots, getTierParams, TIER_COMMISSION_PCT } from "@/lib/drivers/tiers";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const slots = await getTierSlots();
+    const [slots, tierParams] = await Promise.all([getTierSlots(), getTierParams()]);
     return NextResponse.json(
       {
         slots,
         tiers: TIER_COMMISSION_PCT,
-        promo_days: PROMO_DAYS,
+        promo_days: tierParams.promoDays,
       },
       { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
     );
