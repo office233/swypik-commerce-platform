@@ -47,9 +47,11 @@ export async function GET(req: Request) {
         nights: TRIP_NIGHTS[d.iata] ?? 4,
         flightFromCents: d.fromCents, // preț final RON, dus, markup inclus
         currency: "RON",
-        staysAvailable: isExternalStaysConfigured() && false, // TODO: true la activarea furnizorului (RateHawk/Duffel)
+        // 2026-08-11 (audit): era `&& false` hardcodat — acum reflectă realitatea:
+        // true când un furnizor extern (RateHawk/Duffel) e configurat prin env.
+        staysAvailable: isExternalStaysConfigured(),
         departDate,
     }));
 
-    return NextResponse.json({ origin, packages, staysComingSoon: true });
+    return NextResponse.json({ origin, packages, staysComingSoon: !isExternalStaysConfigured() });
 }

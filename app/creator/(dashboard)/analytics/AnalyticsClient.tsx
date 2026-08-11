@@ -259,10 +259,10 @@ export default function AnalyticsClient() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white border border-[#E5E5E5] rounded-2xl p-5">
-          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Top tari</h3>
+          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Top țări</h3>
           {!data || data.audienceTopCountries.length === 0 ? (
             <p className="text-sm text-[#6E6E80] py-8 text-center">
-              Coming soon - colectam geo-locatie in pipeline-ul de evenimente.
+              Datele despre țările audienței apar aici după primele vizualizări.
             </p>
           ) : (
             <ul className="space-y-2">
@@ -276,10 +276,10 @@ export default function AnalyticsClient() {
           )}
         </div>
         <div className="bg-white border border-[#E5E5E5] rounded-2xl p-5">
-          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Varsta</h3>
+          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Vârstă</h3>
           {!data || data.audienceAgeBuckets.length === 0 ? (
             <p className="text-sm text-[#6E6E80] py-8 text-center">
-              Coming soon - necesita analytics pipeline cu date demografice.
+              Distribuția pe vârste apare aici când avem suficiente date despre audiență.
             </p>
           ) : (
             <ul className="space-y-2">
