@@ -19,9 +19,9 @@ type Address = {
   postal_code: string;
   country_code: string;
   is_default: boolean;
-    lat: number | null;
-    lng: number | null;
-    details: string | null;
+  lat: number | null;
+  lng: number | null;
+  details: string | null;
   created_at: string;
 };
 
@@ -52,9 +52,9 @@ function validate(body: Record<string, unknown>): { ok: true; data: Omit<Address
       postal_code,
       country_code,
       is_default: Boolean(body.is_default),
-        lat: body.lat != null && Number.isFinite(Number(body.lat)) ? Number(body.lat) : null,
-        lng: body.lng != null && Number.isFinite(Number(body.lng)) ? Number(body.lng) : null,
-        details: body.details ? String(body.details).trim().slice(0, 500) || null : null,
+      lat: body.lat != null && Number.isFinite(Number(body.lat)) ? Number(body.lat) : null,
+      lng: body.lng != null && Number.isFinite(Number(body.lng)) ? Number(body.lng) : null,
+      details: body.details ? String(body.details).trim().slice(0, 500) || null : null,
     },
   };
 }
@@ -110,9 +110,9 @@ async function POST_impl(req: Request) {
       data.postal_code,
       data.country_code,
       isDefault,
-        data.lat ?? null,
-        data.lng ?? null,
-        data.details ?? null,
+      data.lat ?? null,
+      data.lng ?? null,
+      data.details ?? null,
     ],
   );
   return NextResponse.json({ success: true, id: rows[0].id });

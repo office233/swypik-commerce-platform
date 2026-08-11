@@ -226,7 +226,7 @@ export function middleware(request: NextRequest) {
       "",
     );
     if (target) return redirectTo(request, target, target === "/account");
-    return NextResponse.next();
+    return applyStrictCsp(request, pathname);
   }
 
   // 3) Verificăm gating ÎNAINTE de next-intl (pentru rute localizate),
@@ -254,6 +254,64 @@ export function middleware(request: NextRequest) {
 
   // 4) Delegăm restul (locale resolution, rewrite, cookie set) către next-intl.
   return intlMiddleware(request);
+}
+
+// ---------- CSP nonce-based (rute sensibile) ----------
+//
+// 2026-08-11 (audit): nonce per-request + 'strict-dynamic' pe dashboard-urile
+// sensibile NON-localizate (admin, seller, creator, courier), unde controlăm
+// noi NextResponse.next() și putem forwarda header-ele de request din care
+// Next.js extrage nonce-ul pentru scripturile lui inline. Rutele localizate
+// (checkout/account) trec prin next-intl (răspuns construit de el) — acolo
+// rămâne CSP-ul global din next.config.mjs; extindere ulterioară daco vrem.
+// Pe rutele cu nonce, XSS-ul injectat NU mai poate executa scripturi inline
+// arbitrare — doar scripturile cu nonce-ul curent (+ lanțul lor, strict-dynamic).
+const STRICT_CSP_PREFIXES = ["/admin", "/seller", "/creator", "/courier"];
+
+function wantsStrictCsp(canonicalPath: string): boolean {
+  return STRICT_CSP_PREFIXES.some(
+    (p) => canonicalPath === p || canonicalPath.startsWith(`${p}/`),
+  );
+}
+
+function buildStrictCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    // strict-dynamic: scripturile cu nonce pot încărca alte scripturi (Next chunks);
+    // https: + unsafe-inline sunt fallback IGNORATE de browserele moderne când
+    // există nonce — rămân doar pentru browsere vechi fără strict-dynamic.
+    `script-src 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline'`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com",
+    "connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com",
+    "frame-src https://js.stripe.com https://hooks.stripe.com",
+    "font-src 'self' data:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://checkout.stripe.com",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
+function applyStrictCsp(request: NextRequest, canonicalPath: string): NextResponse {
+  if (request.method !== "GET" || !wantsStrictCsp(canonicalPath)) {
+    return NextResponse.next();
+  }
+  // Nonce criptografic per request (Edge runtime: Web Crypto).
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const nonce = btoa(String.fromCharCode(...bytes));
+  const csp = buildStrictCsp(nonce);
+  // Next.js extrage nonce-ul din header-ul CSP al REQUEST-ului forwarded și
+  // îl aplică automat scripturilor lui inline la randarea dinamică.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("content-security-policy", csp);
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
+  res.headers.set("Content-Security-Policy", csp);
+  return res;
 }
 
 export const config = {
