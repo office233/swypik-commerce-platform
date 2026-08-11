@@ -25,7 +25,10 @@ async function handle(req: Request): Promise<Response> {
         email = email || (form.get("email") as string | null);
         token = token || (form.get("t") as string | null);
       }
-    } catch {}
+    } catch {
+      // body malformat (JSON/form invalid) — rămânem pe params din query string;
+      // validarea email+token de mai jos respinge cererea dacă lipsesc.
+    }
   }
 
   if (!email || !token) {

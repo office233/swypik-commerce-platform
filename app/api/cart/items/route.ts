@@ -9,6 +9,7 @@ import { dbQuery } from "@/lib/db";
 import { buildCartCookie, getOrCreateCart, loadCartItems } from "@/lib/cart/session";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { CartItemAddSchema, parseBody } from "@/lib/validation/schemas";
+import { logger } from "@/lib/logger";
 
 const NO_STORE = { "Cache-Control": "private, no-store" } as Record<string, string>;
 
@@ -71,7 +72,10 @@ export async function POST(req: Request) {
         if (!image && rows[0].image_url) image = rows[0].image_url;
         currency = (rows[0].currency || currency).toUpperCase();
       }
-    } catch { /* table shape may differ; ignore */ }
+    } catch (err) {
+      // schema poate diferi între medii; nu blocăm adăugarea în coș, dar logăm
+      logger.warn({ err, productId }, "cart.items: resolve produs din DB a eșuat");
+    }
 
     if (variantId) {
       try {
@@ -87,7 +91,9 @@ export async function POST(req: Request) {
             priceFromDb = true;
           }
         }
-      } catch { }
+      } catch (err) {
+        logger.warn({ err, variantId }, "cart.items: resolve varianta din DB a eșuat");
+      }
     }
 
     // Produs intern (UUID-like, fara prefix de sursa externa) inexistent in DB

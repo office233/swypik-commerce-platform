@@ -121,7 +121,11 @@ export async function POST(req: Request) {
       try {
         attempts = await getRedis().incr(attemptsKey);
         if (attempts === 1) await getRedis().expire(attemptsKey, 900);
-      } catch { }
+      } catch (err) {
+        // Redis indisponibil: nu putem rate-limita per-OTP. Fail-safe: logăm
+        // și tratăm ca prima încercare (rate-limit pe IP e deja aplicat mai sus).
+        logger.warn({ err }, "seller.auth: contorul de încercări OTP (Redis) a eșuat");
+      }
       if (attempts > 5) {
         await dbQuery(`DELETE FROM seller_sessions WHERE token = $1`, [otpHash]).catch(() => { });
         return NextResponse.json(
