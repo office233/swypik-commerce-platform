@@ -113,13 +113,16 @@ async function handlePOST(req: Request) {
   }
   const products = await processProducts();
   const videos = await processVideos();
-  return NextResponse.json({
-    ok: true,
-    products: products.done,
-    videos: videos.done,
-    errors: products.errors + videos.errors,
-    lastError: products.lastError || videos.lastError || null,
-  });
+  const errors = products.errors + videos.errors;
+  const done = products.done + videos.done;
+  const lastError = products.lastError || videos.lastError || null;
+  // 2026-08-11 (audit): esec TOTAL (0 procesate, doar erori — ex. token
+  // lipsa) nu mai raporteaza ok:true — cron-worker-ul il vede ca FAIL.
+  const totalFailure = errors > 0 && done === 0;
+  return NextResponse.json(
+    { ok: !totalFailure, products: products.done, videos: videos.done, errors, lastError },
+    { status: totalFailure ? 502 : 200 },
+  );
 }
 
 async function handleGET(req: Request) {

@@ -36,6 +36,8 @@ export type FeedWeights = {
   eng_like: number;
   eng_share: number;
   eng_comment: number;
+  /** Ponderea similarității semantice (pgvector) cu gustul viewerului. */
+  w_taste: number;
 };
 
 export const DEFAULT_FEED_WEIGHTS: FeedWeights = {
@@ -56,6 +58,7 @@ export const DEFAULT_FEED_WEIGHTS: FeedWeights = {
   eng_like: 5,
   eng_share: 10,
   eng_comment: 3,
+  w_taste: 12,
 };
 
 function envOverride(key: keyof FeedWeights, fallback: number): number {
