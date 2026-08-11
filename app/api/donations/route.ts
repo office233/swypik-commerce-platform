@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { dbQuery, withTransaction } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
+import { getStripe } from "@/lib/stripe/checkout";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { DonationCreateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
@@ -81,16 +82,47 @@ export async function POST(req: Request) {
       return rows[0];
     });
 
-    // Fără procesator încă: răspundem cu pending + instrucțiuni.
-    // Când Stripe e configurat, aici se creează PaymentIntent.
-    return NextResponse.json({
-      success: true,
-      donation,
-      payment: {
-        status: "pending",
-        note: "Plățile online se activează în curând. Donația a fost înregistrată.",
-      },
-    });
+    // 2026-08-11 (audit): plata REALĂ cu Stripe Payment Element. Donația
+    // rămâne `pending` până confirmă webhook-ul (payment_intent.succeeded,
+    // metadata.kind = "donation") — nu confirmăm fără bani încasați.
+    try {
+      const stripe = getStripe();
+      const intent = await stripe.paymentIntents.create(
+        {
+          amount: donation.amount_cents,
+          currency: String(donation.currency || "RON").trim().toLowerCase(),
+          automatic_payment_methods: { enabled: true },
+          receipt_email: d.donor_email ?? undefined,
+          metadata: {
+            kind: "donation",
+            donation_id: donation.id,
+            campaign_id: d.campaign_id,
+          },
+          description: "Donație Swypik Cares",
+        },
+        { idempotencyKey: `donation-${donation.id}` },
+      );
+      await dbQuery(
+        `UPDATE donations SET payment_intent_id = $2 WHERE id = $1`,
+        [donation.id, intent.id],
+      );
+      return NextResponse.json({
+        success: true,
+        donation,
+        payment: { status: "requires_payment", clientSecret: intent.client_secret },
+      });
+    } catch (stripeErr) {
+      // Stripe indisponibil/neconfigurat: păstrăm donația pending (comportament vechi).
+      logger.error({ err: stripeErr }, "[donations] stripe intent failed");
+      return NextResponse.json({
+        success: true,
+        donation,
+        payment: {
+          status: "pending",
+          note: "Plata online e momentan indisponibilă. Donația a fost înregistrată.",
+        },
+      });
+    }
   } catch (error: unknown) {
     logger.error({ err: error }, "[donations] POST error");
     return NextResponse.json({ success: false, error: "Eroare la înregistrarea donației." }, { status: 500 });

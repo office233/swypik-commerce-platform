@@ -33,9 +33,34 @@ export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
   } else if (intent.metadata?.kind === "stay_booking" && intent.metadata?.stay_booking_id) {
     // Stays: rezervare plătită cu cardul → confirmare + credit gazdă.
     await markStayBookingPaidByCard(intent.metadata.stay_booking_id);
+  } else if (intent.metadata?.kind === "donation" && intent.metadata?.donation_id) {
+    // Swypik Cares: donație plătită → paid + agregate campanie (idempotent
+    // prin guard-ul payment_status='pending').
+    await markDonationPaid(intent.metadata.donation_id);
   } else {
     await handlePaymentIntentSucceeded(intent);
   }
+}
+
+async function markDonationPaid(donationId: string): Promise<void> {
+  const { rows } = await dbQuery<{ campaign_id: string; amount_cents: number }>(
+    `UPDATE donations
+        SET payment_status = 'paid', paid_at = now()
+      WHERE id = $1::uuid AND payment_status = 'pending'
+      RETURNING campaign_id, amount_cents`,
+    [donationId],
+  );
+  const d = rows[0];
+  if (!d) return; // deja procesată (retry webhook) sau inexistentă
+  await dbQuery(
+    `UPDATE donation_campaigns
+        SET raised_cents = raised_cents + $2,
+            donors_count = donors_count + 1,
+            updated_at = now()
+      WHERE id = $1::uuid`,
+    [d.campaign_id, d.amount_cents],
+  );
+  logger.info({ donationId, campaignId: d.campaign_id, amountCents: d.amount_cents }, "[donations] paid via webhook");
 }
 
 export async function handlePaymentIntentFailed(event: Stripe.Event) {
@@ -52,6 +77,18 @@ export async function handlePaymentIntentFailed(event: Stripe.Event) {
   }
   if (intent.metadata?.kind === "stay_booking" && intent.metadata?.stay_booking_id) {
     await markStayBookingCardFailed(intent.metadata.stay_booking_id);
+  }
+  if (
+    intent.metadata?.kind === "donation" &&
+    intent.metadata?.donation_id &&
+    intent.status === "canceled"
+  ) {
+    // Doar la anulare DEFINITIVĂ — un card declinat mai poate fi reîncercat.
+    await dbQuery(
+      `UPDATE donations SET payment_status = 'failed'
+        WHERE id = $1::uuid AND payment_status = 'pending'`,
+      [intent.metadata.donation_id],
+    );
   }
   // SWYP: eșec DEFINITIV (intent anulat) → recreditează integral partea
   // SWYP. Un simplu card declinat (requires_payment_method) mai poate fi
