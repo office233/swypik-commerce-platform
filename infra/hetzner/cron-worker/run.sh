@@ -59,10 +59,13 @@ while true; do
   TICK=$(date +%s)
   echo "${TICK}" > "${HEARTBEAT}"
 
+  # Every minute — trending aproape real-time (2026-08-11: era la 5 min;
+  # REFRESH CONCURRENTLY pe video_rank_14d e ieftin la scara actuala).
+  run_job refresh-rank POST
+
   # Every 5 min
   if [ $((TICK % 300)) -lt 60 ]; then
     run_job publish-scheduled POST
-    run_job refresh-rank POST
     # Dispecerizarea curselor Go / livrarilor Food — fara asta comenzile
     # raman neatribuite. (Adaugat 2026-07-31: ruta exista dar nu era programata.)
     run_job dispatch-tick POST

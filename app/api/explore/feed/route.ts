@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
-import { loadFeedWeights, type FeedWeights } from "@/lib/algo/scoring";
+import { loadFeedWeightsForViewer, type FeedWeights } from "@/lib/algo/scoring";
 
 import { logger } from "@/lib/logger";
 import { formatMoneyCents } from "@/lib/i18n/currency";
@@ -592,7 +592,10 @@ export async function GET(request: NextRequest) {
       creatorParam = `$${queryParams.length}`;
     }
 
-    const feedWeights = await loadFeedWeights();
+    // A/B: split determinist pe viewer (user > sesiune); fara chei b:* in DB e inert.
+    const { weights: feedWeights, abVariant } = await loadFeedWeightsForViewer(
+      userId || viewerSessionId || null,
+    );
     const engagementExpr = buildEngagementExpr(feedWeights);
     const trendingExpr = buildTrendingExpr(feedWeights);
     const equityExpr = buildEquityExpr(feedWeights, Boolean(userId) || Boolean(viewerSessionId));
@@ -925,7 +928,7 @@ export async function GET(request: NextRequest) {
       const hasMore = qualityFilteredVideos.length > limit || rows.length >= queryLimit;
 
       const cacheHeaders = { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" };
-      return NextResponse.json({ videos, page, hasMore }, { headers: cacheHeaders });
+      return NextResponse.json({ videos, page, hasMore, ab: abVariant }, { headers: cacheHeaders });
     }
 
     // No videos available

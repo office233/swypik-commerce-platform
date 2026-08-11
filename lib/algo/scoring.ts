@@ -101,6 +101,66 @@ export function _clearFeedWeightsCache(): void {
   cache = null;
 }
 
+// ---------- A/B testing pe ponderi (2026-08-11) ----------
+//
+// Varianta B: chei `b:<weight_key>` în feed_weights (ex. `b:w_taste` = 20).
+// Split determinist pe viewer (hash FNV-1a pe userId/sessionId, % 100 <
+// FEED_AB_PERCENT → varianta B). Fără chei b:* în DB, A/B e inert.
+// Expunerea variantei se întoarce ca `abVariant` pentru logging/analiză.
+
+const AB_PERCENT = (() => {
+  const n = Number(process.env.FEED_AB_PERCENT);
+  return Number.isFinite(n) && n > 0 && n <= 100 ? Math.trunc(n) : 50;
+})();
+
+function fnv1a(str: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+let bCache: { overrides: Partial<Record<keyof FeedWeights, number>>; loadedAt: number } | null = null;
+
+async function loadBOverrides(): Promise<Partial<Record<keyof FeedWeights, number>>> {
+  if (bCache && Date.now() - bCache.loadedAt < CACHE_TTL_MS) return bCache.overrides;
+  const overrides: Partial<Record<keyof FeedWeights, number>> = {};
+  try {
+    const { rows } = await dbQuery<{ key: string; value: string }>(
+      `SELECT key, value FROM feed_weights WHERE key LIKE 'b:%'`
+    );
+    for (const row of rows) {
+      const k = row.key.slice(2) as keyof FeedWeights;
+      const num = Number(row.value);
+      if (k in DEFAULT_FEED_WEIGHTS && Number.isFinite(num)) overrides[k] = num;
+    }
+  } catch {
+    /* fara tabel/chei — A/B inert */
+  }
+  bCache = { overrides, loadedAt: Date.now() };
+  return overrides;
+}
+
+export type AbFeedWeights = { weights: FeedWeights; abVariant: "a" | "b" | null };
+
+/**
+ * Ponderi cu A/B: viewerul primește determinist varianta A (baseline) sau B
+ * (override-uri `b:*` din feed_weights). Fără override-uri → abVariant null.
+ */
+export async function loadFeedWeightsForViewer(
+  viewerKey: string | null,
+): Promise<AbFeedWeights> {
+  const weights = await loadFeedWeights();
+  if (!viewerKey) return { weights, abVariant: null };
+  const overrides = await loadBOverrides();
+  if (Object.keys(overrides).length === 0) return { weights, abVariant: null };
+  const inB = fnv1a(viewerKey) % 100 < AB_PERCENT;
+  if (!inB) return { weights, abVariant: "a" };
+  return { weights: { ...weights, ...overrides }, abVariant: "b" };
+}
+
 export type VideoScoringInput = {
   /** Vârsta clipului în ore (de la published_at). */
   ageHours: number;
