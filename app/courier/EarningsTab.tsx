@@ -22,9 +22,12 @@ type EarningsData = {
   balance_cents: number;
   periods: { today: Bucket; week: Bucket; month: Bucket };
   payouts: Payout[];
+  min_payout_cents?: number;
 };
 
-const MIN_PAYOUT_CENTS = 5000;
+// 2026-08-11 (audit): fallback local; valoarea reală vine din API
+// (min_payout_cents, sincronizată cu env PAYOUT_MIN_CENTS pe server).
+const MIN_PAYOUT_CENTS_FALLBACK = 5000;
 const ron = (c: number) => (c / 100).toFixed(2);
 
 const PERIOD_LABELS: Record<string, string> = { today: "Azi", week: "Săptămâna asta", month: "Luna asta" };
@@ -59,10 +62,12 @@ export default function EarningsTab() {
     void load();
   }, [load]);
 
+  const minPayoutCents = data?.min_payout_cents ?? MIN_PAYOUT_CENTS_FALLBACK;
+
   async function requestPayout() {
     const cents = Math.round(Number(amount.replace(",", ".")) * 100);
-    if (!Number.isFinite(cents) || cents < MIN_PAYOUT_CENTS) {
-      setMsg(`Suma minimă e ${MIN_PAYOUT_CENTS / 100} RON.`);
+    if (!Number.isFinite(cents) || cents < minPayoutCents) {
+      setMsg(`Suma minimă e ${minPayoutCents / 100} RON.`);
       return;
     }
     setBusy(true);
@@ -136,7 +141,7 @@ export default function EarningsTab() {
       {/* Retragere */}
       <div className="rounded-xl border bg-white p-4 shadow-sm">
         <h3 className="font-semibold">Retrage bani</h3>
-        <p className="mt-1 text-xs text-gray-500">Minim {MIN_PAYOUT_CENTS / 100} RON. Se aprobă manual.</p>
+        <p className="mt-1 text-xs text-gray-500">Minim {minPayoutCents / 100} RON. Se aprobă manual.</p>
         <div className="mt-3 space-y-2">
           <input
             inputMode="decimal"

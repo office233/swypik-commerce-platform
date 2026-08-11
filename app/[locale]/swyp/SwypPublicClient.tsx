@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { Coins, ShieldCheck, ArrowUpRight, Wallet, Landmark, TrendingUp, Store, PiggyBank, Divide, Copy } from "lucide-react";
+import { SWYP_CHAIN_ID, SWYP_CHAIN_NAME, SWYP_NATIVE_CURRENCY, SWYP_PUBLIC_RPC_URL, SWYP_EXPLORER_URL } from "@/lib/swyp/chain-public";
 
 type Supply = {
     totalSupplySwyp: string;
@@ -169,7 +170,7 @@ export default function SwypPublicClient() {
                     <p className="mt-2 text-[11px] text-white/30">{t("verifyNote")}</p>
 
                     <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] divide-y divide-white/[0.05] overflow-hidden">
-                        <a href="https://scan.swypik.com" target="_blank" rel="noopener noreferrer"
+                        <a href={SWYP_EXPLORER_URL} target="_blank" rel="noopener noreferrer"
                             className="flex items-center justify-between px-4 py-4 hover:bg-white/[0.04] transition">
                             <span>
                                 <span className="block text-xs font-bold text-white/85">{t("linkExplorer")}</span>
@@ -180,7 +181,9 @@ export default function SwypPublicClient() {
 
                         <button
                             onClick={async () => {
-                                const cfg = "Network: Swypik Chain\nRPC: https://rpc.swypik.com\nChain ID: 643366\nSymbol: SWYP\nExplorer: https://scan.swypik.com";
+                                // 2026-08-11 (audit): construit din constantele env-backed — nu mai poate
+                                // rămâne desincronizat la schimbarea RPC/explorer-ului.
+                                const cfg = `Network: ${SWYP_CHAIN_NAME}\nRPC: ${SWYP_PUBLIC_RPC_URL}\nChain ID: ${SWYP_CHAIN_ID}\nSymbol: ${SWYP_NATIVE_CURRENCY.symbol}\nExplorer: ${SWYP_EXPLORER_URL}`;
                                 await navigator.clipboard.writeText(cfg).catch(() => { });
                                 setRpcCopied(true);
                                 setTimeout(() => setRpcCopied(false), 2500);

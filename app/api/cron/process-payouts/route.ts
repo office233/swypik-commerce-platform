@@ -41,7 +41,12 @@ import { runCron } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
-const RETURN_WINDOW_DAYS = 14;
+// 2026-08-11 (audit): fereastra de retur configurabilă prin env — schimbarea
+// politicii de retur nu mai necesită redeploy de cod.
+const RETURN_WINDOW_DAYS =
+  Number(process.env.RETURN_WINDOW_DAYS) > 0
+    ? Math.trunc(Number(process.env.RETURN_WINDOW_DAYS))
+    : 14;
 // How long a claim is considered "in-flight" before another worker may retry it.
 const CLAIM_TTL_MINUTES = 10;
 

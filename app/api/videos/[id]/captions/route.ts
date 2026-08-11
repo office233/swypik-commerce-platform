@@ -52,7 +52,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Secure against SSRF: only allow our trusted media bucket domains
   try {
     const parsedUrl = new URL(audioUrl);
+    // 2026-08-11 (audit): host media derivat din S3_PUBLIC_URL (env).
+    let mediaHost = "media.swypik.com";
+    try {
+      mediaHost = new URL(process.env.S3_PUBLIC_URL || "https://media.swypik.com").hostname;
+    } catch { /* fallback prod */ }
     const allowedHosts = [
+      mediaHost,
       "media.swypik.com",
       "swypik.com"
     ];

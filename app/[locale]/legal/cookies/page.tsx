@@ -1,6 +1,7 @@
 import ResetConsentButton from "./ResetConsentButton";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { PRIVACY_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Politica de cookies — Swypik",
@@ -64,7 +65,7 @@ export default async function CookiesPage() {
       <p><ResetConsentButton /></p>
 
       <h2>Contact</h2>
-      <p>Intrebari: <a href="mailto:privacy@swypik.com">privacy@swypik.com</a></p>
+      <p>Intrebari: <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a></p>
     </>
   );
 }

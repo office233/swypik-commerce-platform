@@ -72,8 +72,19 @@ const DEFAULT_FEED_SOFT_BLOCK_SQL_RE = [
   "slip sleep",
 ].join("|");
 const SESSION_RE = /^[A-Za-z0-9._:-]{8,80}$/;
-const MEDIA_PUBLIC_HOST = "media.swypik.com";
-const DEFAULT_MIN_SWYPIK_SCORE = 40;
+// 2026-08-11 (audit): host media derivat din S3_PUBLIC_URL (env), fallback prod.
+const MEDIA_PUBLIC_HOST = (() => {
+  try {
+    return new URL(process.env.S3_PUBLIC_URL || "https://media.swypik.com").hostname;
+  } catch {
+    return "media.swypik.com";
+  }
+})();
+// Scor minim de calitate pentru feed — configurabil fără redeploy de cod.
+const DEFAULT_MIN_SWYPIK_SCORE =
+  Number(process.env.FEED_MIN_SWYPIK_SCORE) > 0
+    ? Math.trunc(Number(process.env.FEED_MIN_SWYPIK_SCORE))
+    : 40;
 
 const TITLE_SPAM_RE = /(amazon|hot[ -]?selling|shop products?|must[ -]?have|viral product|dropship|wholesale|factory direct|ce certified|luxury|high[ -]?end|202[5-9])/i;
 const TITLE_GENERIC_RE = /\b(woman clothing|women clothing|for women women|female ladies|new fashion|summer sale|spring summer)\b/i;

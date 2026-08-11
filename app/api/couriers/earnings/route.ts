@@ -104,11 +104,19 @@ export const GET = withErrorHandling(async function GET() {
     [session.userId],
   );
 
+  // 2026-08-11 (audit): pragul minim de payout expus în API ca UI-ul să fie
+  // sincronizat cu env (PAYOUT_MIN_CENTS) — înainte era hardcodat și în client.
+  const minPayoutCents =
+    Number(process.env.PAYOUT_MIN_CENTS) > 0
+      ? Math.trunc(Number(process.env.PAYOUT_MIN_CENTS))
+      : 5000;
+
   return NextResponse.json({
     balance_cents,
     periods,
     entries,
     payouts,
     currency: "RON",
+    min_payout_cents: minPayoutCents,
   });
 });

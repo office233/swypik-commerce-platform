@@ -37,16 +37,16 @@ export async function GET(req: Request) {
     // v2 = prețuri în RON (bust cache-ul vechi în EUR/GBP).
     const cacheKey = `fly:deals:v2:${origin}:${departDate}`;
 
-if (process.env.REDIS_URL) {
-    try {
-      const redis = getRedis();
-      const cached = await redis.get(cacheKey);
-      if (cached) {
-        return NextResponse.json({ origin, deals: JSON.parse(cached) as Deal[], cached: true });
-      }
-    } catch (err) {
-      logger.warn({ err }, "fly deals: cache read failed");
-    }
+    if (process.env.REDIS_URL) {
+        try {
+            const redis = getRedis();
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                return NextResponse.json({ origin, deals: JSON.parse(cached) as Deal[], cached: true });
+            }
+        } catch (err) {
+            logger.warn({ err }, "fly deals: cache read failed");
+        }
     }
 
     const targets = POPULAR_DESTINATIONS.filter((d) => d.iata !== origin);
@@ -90,13 +90,13 @@ if (process.env.REDIS_URL) {
             return a.fromCents - b.fromCents;
         });
 
-if (process.env.REDIS_URL) {
-    try {
-      const redis = getRedis();
-      await redis.set(cacheKey, JSON.stringify(deals), "EX", TTL_SECONDS);
-    } catch (err) {
-      logger.warn({ err }, "fly deals: cache write failed");
-    }
+    if (process.env.REDIS_URL) {
+        try {
+            const redis = getRedis();
+            await redis.set(cacheKey, JSON.stringify(deals), "EX", TTL_SECONDS);
+        } catch (err) {
+            logger.warn({ err }, "fly deals: cache write failed");
+        }
     }
 
     return NextResponse.json({ origin, departDate, deals, cached: false });

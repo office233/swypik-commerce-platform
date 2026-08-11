@@ -122,16 +122,16 @@ export async function POST(
       refundCurrency = String(refund.currency || "ron").toUpperCase();
     } catch (stripeError: any) {
       logger.error({ err: stripeError }, "[Seller Refund] Stripe refund error:");
-        // 2026-08-11 (audit P1): nu expunem mesajul brut Stripe la client —
-        // poate conține detalii interne (ID-uri, chei, structura contului).
-        // Trimitem doar un cod sigur; detaliile complete rămân în loguri.
-        const safeCode =
-          typeof stripeError?.code === "string" ? stripeError.code : "stripe_error";
+      // 2026-08-11 (audit P1): nu expunem mesajul brut Stripe la client —
+      // poate conține detalii interne (ID-uri, chei, structura contului).
+      // Trimitem doar un cod sigur; detaliile complete rămân în loguri.
+      const safeCode =
+        typeof stripeError?.code === "string" ? stripeError.code : "stripe_error";
       return NextResponse.json(
         {
           success: false,
-            error: "Restituirea nu a putut fi procesată. Încearcă din nou sau contactează suportul.",
-            code: safeCode,
+          error: "Restituirea nu a putut fi procesată. Încearcă din nou sau contactează suportul.",
+          code: safeCode,
         },
         { status: 502 }
       );
@@ -142,8 +142,8 @@ export async function POST(
     // hibridă (refundată la Stripe, dar plătibilă în continuare de cronul de
     // payout). Un singur BEGIN/COMMIT pentru tot.
     const { sellerClawback, creatorClawback } = await withTransaction(async (q) => {
-    await q(
-      `UPDATE commerce_orders
+      await q(
+        `UPDATE commerce_orders
        SET status = 'refunded',
            metadata = metadata || jsonb_build_object(
              'refunded_at', NOW()::text,
@@ -153,31 +153,31 @@ export async function POST(
              'return_status', 'refunded'
            )
        WHERE id = $1::uuid`,
-      [orderId, sellerId, refundId, refundStatus]
-    );
+        [orderId, sellerId, refundId, refundStatus]
+      );
 
-    // Stamp refund metadata on every item belonging to this seller (informational).
-    await q(
-      `UPDATE commerce_order_items
+      // Stamp refund metadata on every item belonging to this seller (informational).
+      await q(
+        `UPDATE commerce_order_items
          SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
                'refund_id', $3::text,
                'refund_status', $4::text
              )
        WHERE order_id = $1::uuid
          AND metadata->>'seller_id' = $2`,
-      [orderId, sellerId, refundId, refundStatus]
-    );
+        [orderId, sellerId, refundId, refundStatus]
+      );
 
-    // SELLER payout state lives in metadata->>'seller_payout_status'.
-    // Items already 'paid' must NOT be flipped to 'refunded' (the Stripe transfer
-    // already moved money). Flag them for manual clawback and emit a structured
-    // log line so ops can pick it up from `docker logs`.
-    const { rows: sellerClawback } = await q<{
-      id: string;
-      amount_cents: number | null;
-      transfer_id: string | null;
-    }>(
-      `UPDATE commerce_order_items
+      // SELLER payout state lives in metadata->>'seller_payout_status'.
+      // Items already 'paid' must NOT be flipped to 'refunded' (the Stripe transfer
+      // already moved money). Flag them for manual clawback and emit a structured
+      // log line so ops can pick it up from `docker logs`.
+      const { rows: sellerClawback } = await q<{
+        id: string;
+        amount_cents: number | null;
+        transfer_id: string | null;
+      }>(
+        `UPDATE commerce_order_items
          SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
                'refunded_after_seller_payout', true,
                'refunded_after_seller_payout_at', NOW()::text,
@@ -189,12 +189,12 @@ export async function POST(
        RETURNING id,
                  NULLIF(metadata->>'seller_payout_cents','')::int AS amount_cents,
                  metadata->>'seller_transfer_id' AS transfer_id`,
-      [orderId, sellerId, refundId]
-    );
-    // Items not yet paid out to the seller: safe to mark as refunded so the
-    // payout cron skips them even before the order-status guard kicks in.
-    await q(
-      `UPDATE commerce_order_items
+        [orderId, sellerId, refundId]
+      );
+      // Items not yet paid out to the seller: safe to mark as refunded so the
+      // payout cron skips them even before the order-status guard kicks in.
+      await q(
+        `UPDATE commerce_order_items
          SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
                'seller_payout_status', 'refunded',
                'seller_payout_refunded_at', NOW()::text
@@ -205,19 +205,19 @@ export async function POST(
            metadata->>'seller_payout_status' IS NULL
            OR metadata->>'seller_payout_status' IN ('pending','no_account','restricted','failed')
          )`,
-      [orderId, sellerId]
-    );
+        [orderId, sellerId]
+      );
 
-    // CREATOR payout state lives in the dedicated `payout_status` column
-    // (see migration 20260514_0003_order_item_payout_status_check.sql).
-    // Same rule: don't overwrite 'paid' - flag for manual clawback.
-    const { rows: creatorClawback } = await q<{
-      id: string;
-      amount_cents: number | null;
-      transfer_id: string | null;
-      creator_id: string | null;
-    }>(
-      `UPDATE commerce_order_items
+      // CREATOR payout state lives in the dedicated `payout_status` column
+      // (see migration 20260514_0003_order_item_payout_status_check.sql).
+      // Same rule: don't overwrite 'paid' - flag for manual clawback.
+      const { rows: creatorClawback } = await q<{
+        id: string;
+        amount_cents: number | null;
+        transfer_id: string | null;
+        creator_id: string | null;
+      }>(
+        `UPDATE commerce_order_items
          SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
                'refunded_after_creator_payout', true,
                'refunded_after_creator_payout_at', NOW()::text
@@ -230,22 +230,22 @@ export async function POST(
                  commissionable_amount_cents AS amount_cents,
                  metadata->>'creator_transfer_id' AS transfer_id,
                  creator_id::text AS creator_id`,
-      [orderId, sellerId]
-    );
-    // Creator items not yet paid: flip column to 'refunded' so payout cron
-    // skips them (cron filters payout_status IN (NULL,'pending')).
-    await q(
-      `UPDATE commerce_order_items
+        [orderId, sellerId]
+      );
+      // Creator items not yet paid: flip column to 'refunded' so payout cron
+      // skips them (cron filters payout_status IN (NULL,'pending')).
+      await q(
+        `UPDATE commerce_order_items
          SET payout_status = 'refunded'
        WHERE order_id = $1::uuid
          AND metadata->>'seller_id' = $2
          AND (payout_status IS NULL
               OR payout_status IN ('pending','not_connected','no_account','restricted','failed'))`,
-      [orderId, sellerId]
-    );
+        [orderId, sellerId]
+      );
 
-    await q(
-      `INSERT INTO payment_transactions (
+      await q(
+        `INSERT INTO payment_transactions (
         order_id, provider, provider_payment_id, transaction_type,
         status, currency, amount_cents, processed_at, metadata
       ) VALUES ($1, 'stripe', $2, 'refund', $3, $4, $5, now(), $6::jsonb)
@@ -254,17 +254,17 @@ export async function POST(
         status = EXCLUDED.status,
         processed_at = EXCLUDED.processed_at,
         metadata = payment_transactions.metadata || EXCLUDED.metadata`,
-      [
-        orderId,
-        refundId,
-        refundStatus === "succeeded" ? "succeeded" : "pending",
-        refundCurrency,
-        refundAmountCents,
-        JSON.stringify({ payment_intent: paymentIntentId, seller_id: sellerId }),
-      ]
-    );
+        [
+          orderId,
+          refundId,
+          refundStatus === "succeeded" ? "succeeded" : "pending",
+          refundCurrency,
+          refundAmountCents,
+          JSON.stringify({ payment_intent: paymentIntentId, seller_id: sellerId }),
+        ]
+      );
 
-    return { sellerClawback, creatorClawback };
+      return { sellerClawback, creatorClawback };
     });
 
     // Alerte de reconciliere manuală — după commit, ca logarea să nu țină
