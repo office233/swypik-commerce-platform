@@ -197,6 +197,17 @@ export function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // 1b) Anti-scanner: boți trimit POST cu header `Next-Action` malformat (ex. "x")
+  //     pe pagini publice → Next.js aruncă "Server Reference ID did not match"
+  //     și umple logurile. Un ID valid de server action e hex de 40 caractere.
+  //     Respingem devreme cu 400, fără să atingem runtime-ul de server actions.
+  if (request.method === "POST") {
+    const nextAction = request.headers.get("next-action");
+    if (nextAction && !/^[0-9a-f]{40}$/i.test(nextAction)) {
+      return new NextResponse(null, { status: 400 });
+    }
+  }
+
   // 2) Rute non-localizate: aplicăm DOAR auth gating, fără next-intl.
   if (isNonLocalized(pathname)) {
     const cookies = request.cookies;
