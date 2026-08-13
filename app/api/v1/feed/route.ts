@@ -35,6 +35,7 @@ type ExploreVideo = {
   id: string | number;
   url?: string | null;
   hlsUrl?: string | null;
+  fallbackUrl?: string | null;
   thumbnail?: string | null;
   likes?: unknown;
   comments?: unknown;
@@ -126,7 +127,15 @@ function toExploreFeedItem(video: ExploreVideo, index: number, seed: number) {
     },
     video: {
       hlsUrl: video.hlsUrl || null,
-      mp4Url: video.url || null,
+      // 2026-08-13 (audit): mp4Url primea `video.url` care e chiar master.m3u8
+      // (HLS) => playerele care prefera progressive mp4 incercau sa redea un
+      // playlist ca mp4 si esuau. Servim doar un mp4 real (fallbackUrl).
+      mp4Url:
+        video.fallbackUrl && !/\.m3u8(\?|$)/i.test(video.fallbackUrl)
+          ? video.fallbackUrl
+          : video.url && !/\.m3u8(\?|$)/i.test(video.url)
+            ? video.url
+            : null,
       posterUrl: video.thumbnail || null,
       status: video.url ? "ready" : "poster_only",
     },
