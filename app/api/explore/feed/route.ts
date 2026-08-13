@@ -72,14 +72,6 @@ const DEFAULT_FEED_SOFT_BLOCK_SQL_RE = [
   "slip sleep",
 ].join("|");
 const SESSION_RE = /^[A-Za-z0-9._:-]{8,80}$/;
-// 2026-08-11 (audit): host media derivat din S3_PUBLIC_URL (env), fallback prod.
-const MEDIA_PUBLIC_HOST = (() => {
-  try {
-    return new URL(process.env.S3_PUBLIC_URL || "https://media.swypik.com").hostname;
-  } catch {
-    return "media.swypik.com";
-  }
-})();
 // Scor minim de calitate pentru feed — configurabil fără redeploy de cod.
 const DEFAULT_MIN_SWYPIK_SCORE =
   Number(process.env.FEED_MIN_SWYPIK_SCORE) > 0
@@ -306,17 +298,12 @@ function formatMoney(cents: number | null, currency: string): string | null {
   return formatMoneyCents(cents, currency);
 }
 
+// 2026-08-13 (audit): NU mai rescriem catre /media/... — nu exista nicio ruta
+// app/media si niciun rewrite in next.config, deci toate URL-urile rescrise
+// dadeau 404 => niciun clip nu se incarca in feed. Servim direct URL-ul public
+// (S3_PUBLIC_URL / cdn.swypik.com), permis deja in CSP (media-src/connect-src).
 function toMediaProxyUrl(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname === MEDIA_PUBLIC_HOST) {
-      return `/media${parsed.pathname}${parsed.search}`;
-    }
-  } catch {
-    return url;
-  }
-  return url;
+  return url || null;
 }
 
 function clampScore(score: number): number {
