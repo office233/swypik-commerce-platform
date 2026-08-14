@@ -169,11 +169,11 @@ export default function OnboardingModal({ initialCreators }: Props) {
           {step === 1 && (
             <div className="space-y-5 text-center">
               <h2 id="onboarding-title" className="text-2xl font-bold">
-                
+
                 {t("bunVenitPeSwypik")}
               </h2>
               <p className="text-sm text-black/70">
-                
+
                 {t("descoperaProdusePrinClipuri")}
               </p>
               <div className="grid grid-cols-3 gap-3 mt-6">
@@ -220,13 +220,12 @@ export default function OnboardingModal({ initialCreators }: Props) {
                       onClick={() => toggleInterest(topic.id)}
                       disabled={full}
                       aria-pressed={active}
-                      className={`px-3.5 py-2 rounded-full text-sm font-medium border transition ${
-                        active
+                      className={`px-3.5 py-2 rounded-full text-sm font-medium border transition ${active
                           ? "bg-black text-white border-black"
                           : full
                             ? "bg-white text-black/30 border-black/10 cursor-not-allowed"
                             : "bg-white text-black border-black/15 hover:border-black/40"
-                      }`}
+                        }`}
                     >
                       {topic.label}
                     </button>
@@ -259,17 +258,17 @@ export default function OnboardingModal({ initialCreators }: Props) {
           {step === 3 && (
             <div className="space-y-4">
               <h2 id="onboarding-title" className="text-xl font-bold">
-                
+
                 {t("urmaresteCreatori")}
               </h2>
               <p className="text-sm text-black/60">
-                
+
                 {t("alegeCativaCreatoriCa")}
               </p>
 
               {creators.length === 0 ? (
                 <p className="text-sm text-black/50 py-6 text-center">
-                  
+
                   {t("nuSuntSugestiiDisponibile")}
                 </p>
               ) : (
@@ -308,9 +307,8 @@ export default function OnboardingModal({ initialCreators }: Props) {
                           type="button"
                           disabled={isPending}
                           onClick={() => void toggleFollow(c.id)}
-                          className={`mt-auto w-full px-3 py-1.5 rounded-full text-xs font-semibold transition ${
-                            isFollowing ? "bg-black/10 text-black" : "bg-black text-white hover:bg-black/85"
-                          } disabled:opacity-50`}
+                          className={`mt-auto w-full px-3 py-1.5 rounded-full text-xs font-semibold transition ${isFollowing ? "bg-black/10 text-black" : "bg-black text-white hover:bg-black/85"
+                            } disabled:opacity-50`}
                         >
                           {isFollowing ? "Urmărit" : "Urmărește"}
                         </button>
@@ -322,7 +320,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
 
               <div className="flex items-center justify-between gap-3 pt-2">
                 <span className="text-xs text-black/60">
-                  
+
                   {t("aiUrmarit")} {following.size} {following.size === 1 ? "creator" : "creatori"}
                 </span>
                 <button
@@ -330,7 +328,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
                   onClick={() => setStep(4)}
                   className="px-5 py-2.5 rounded-full bg-black text-white text-sm font-semibold hover:bg-black/85 transition"
                 >
-                  
+
                   {t("continua")}
                 </button>
               </div>
@@ -340,11 +338,11 @@ export default function OnboardingModal({ initialCreators }: Props) {
           {step === 4 && (
             <div className="space-y-5 text-center">
               <h2 id="onboarding-title" className="text-2xl font-bold">
-                
+
                 {t("incepeSaDescoperi")}
               </h2>
               <p className="text-sm text-black/70">
-                
+
                 {t("feedulTauEGata")}
               </p>
               <div className="py-6">
@@ -357,7 +355,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
                 onClick={() => void goToFeed()}
                 className="w-full py-3 rounded-full bg-black text-white font-semibold hover:bg-black/85 transition"
               >
-                
+
                 {t("mergiLaFeed")}
               </button>
             </div>

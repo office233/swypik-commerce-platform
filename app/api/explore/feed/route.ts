@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { loadFeedWeightsForViewer, type FeedWeights } from "@/lib/algo/scoring";
+import { TOPICS, topicSearchTerms } from "@/lib/topics";
 
 import { logger } from "@/lib/logger";
 import { formatMoneyCents } from "@/lib/i18n/currency";
@@ -191,18 +192,33 @@ function buildTasteExpr(hasUser: boolean, userParam: string, wTaste: number): st
 // (`user_interests`, weight 2.0, source 'onboarding') sau învățate din
 // more_like_this / not_interested. Spre deosebire de taste vector (pgvector),
 // acesta funcționează din primul clip, fără embeddings — exact ce lipsea unui
-// user nou. Se potrivește pe tag-urile clipului (v.tags) și pe taxonomia
-// produsului atașat. Ponderea vine din feed_weights (w_interest), tunabilă
-// fără redeploy; 0 => dezactivat.
+// user nou.
+//
+// 2026-08-14 (fix): match pe SINONIME, nu pe topicul exact. Tag-urile reale
+// sunt `travel`/`fly`/`AMS`/`tech`, iar topicurile sunt `gadgets`/`ai`/… →
+// egalitatea strictă dădea ZERO match și boost-ul era inert. Vezi
+// TOPIC_SYNONYMS în lib/topics.ts. Ponderea vine din feed_weights
+// (w_interest), tunabilă fără redeploy; 0 => dezactivat.
 function buildInterestExpr(hasUser: boolean, userParam: string, wInterest: number): string {
   if (!hasUser || !Number.isFinite(wInterest) || wInterest <= 0) return "0";
+  // Mapare topic -> sinonime, inline în SQL ca VALUES (lista e mică și statică,
+  // provine din cod, nu din user input => safe).
+  const rows = TOPICS.map((t) => {
+    const terms = topicSearchTerms(t.id)
+      .map((s) => `'${s.replace(/'/g, "''")}'`)
+      .join(",");
+    return `('${t.id}', ARRAY[${terms}]::text[])`;
+  }).join(",\n        ");
   return `(COALESCE((
     SELECT SUM(GREATEST(-1, LEAST(1, ui.weight / 5.0))) * ${wInterest}
       FROM user_interests ui
+      LEFT JOIN (VALUES
+        ${rows}
+      ) AS syn(topic, terms) ON syn.topic = ui.topic
      WHERE ui.user_id = ${userParam}::uuid
        AND (
-         ui.topic = ANY(COALESCE(v.tags, ARRAY[]::text[]))
-         OR COALESCE(mp.taxonomy_node_slug, '') ILIKE '%' || ui.topic || '%'
+         COALESCE(v.tags, ARRAY[]::text[]) && COALESCE(syn.terms, ARRAY[ui.topic]::text[])
+         OR COALESCE(mp.taxonomy_node_slug, '') = ANY(COALESCE(syn.terms, ARRAY[ui.topic]::text[]))
        )
   ), 0))`;
 }
