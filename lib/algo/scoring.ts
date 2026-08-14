@@ -38,6 +38,12 @@ export type FeedWeights = {
   eng_comment: number;
   /** Ponderea similarității semantice (pgvector) cu gustul viewerului. */
   w_taste: number;
+  /**
+   * Ponderea intereselor EXPLICITE (user_interests: onboarding +
+   * more_like_this / not_interested). Rezolvă cold start-ul: funcționează
+   * din primul clip, fără embeddings.
+   */
+  w_interest: number;
 };
 
 export const DEFAULT_FEED_WEIGHTS: FeedWeights = {
@@ -59,6 +65,7 @@ export const DEFAULT_FEED_WEIGHTS: FeedWeights = {
   eng_share: 10,
   eng_comment: 3,
   w_taste: 12,
+  w_interest: 10,
 };
 
 function envOverride(key: keyof FeedWeights, fallback: number): number {

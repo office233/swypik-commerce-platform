@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, BadgeCheck, ShoppingBag, Video, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { TOPICS } from "@/lib/topics";
 
 export type SuggestedCreator = {
   id: string;
@@ -19,6 +20,13 @@ type Props = {
   initialCreators: SuggestedCreator[];
 };
 
+// Cold start (2026-08-14): fara interese explicite, feed-ul unui user nou nu
+// are niciun semnal de personalizare (taste vector pgvector e gol pana strange
+// istoric). 3-7 interese la onboarding populeaza `user_interests` (weight 2.0,
+// source 'onboarding') si dau boost imediat in ranking.
+const MIN_INTERESTS = 3;
+const MAX_INTERESTS = 7;
+
 function formatCount(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
@@ -29,10 +37,13 @@ export default function OnboardingModal({ initialCreators }: Props) {
   const t = useTranslations("onboardingModal");
   const router = useRouter();
   const [open, setOpen] = useState(true);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [creators] = useState<SuggestedCreator[]>(initialCreators);
   const [following, setFollowing] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [interests, setInterests] = useState<Set<string>>(new Set());
+  const [savingInterests, setSavingInterests] = useState(false);
+  const [interestsError, setInterestsError] = useState("");
 
   const completeOnboarding = useCallback(async () => {
     try {
@@ -48,6 +59,40 @@ export default function OnboardingModal({ initialCreators }: Props) {
     setOpen(false);
     await completeOnboarding();
   }, [completeOnboarding]);
+
+  const toggleInterest = useCallback((id: string) => {
+    setInterestsError("");
+    setInterests((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < MAX_INTERESTS) next.add(id);
+      return next;
+    });
+  }, []);
+
+  const saveInterests = useCallback(async () => {
+    if (interests.size < MIN_INTERESTS) {
+      setInterestsError(`Alege cel puțin ${MIN_INTERESTS} interese.`);
+      return;
+    }
+    setSavingInterests(true);
+    setInterestsError("");
+    try {
+      const res = await fetch("/api/onboarding/interests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topics: Array.from(interests) }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      setStep(3);
+    } catch {
+      // Nu blocam onboarding-ul daca salvarea esueaza — userul merge mai departe.
+      setInterestsError("Nu am putut salva preferințele, dar poți continua.");
+      setStep(3);
+    } finally {
+      setSavingInterests(false);
+    }
+  }, [interests]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -112,7 +157,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
         </button>
 
         <div className="flex items-center gap-1.5 px-5 pt-5">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <span
               key={s}
               className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? "bg-black" : "bg-black/15"}`}
@@ -156,6 +201,62 @@ export default function OnboardingModal({ initialCreators }: Props) {
           )}
 
           {step === 2 && (
+            <div className="space-y-4">
+              <h2 id="onboarding-title" className="text-xl font-bold">
+                Ce te interesează?
+              </h2>
+              <p className="text-sm text-black/60">
+                Alege {MIN_INTERESTS}–{MAX_INTERESTS} subiecte ca să-ți construim feed-ul de la primul clip.
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {TOPICS.map((topic) => {
+                  const active = interests.has(topic.id);
+                  const full = !active && interests.size >= MAX_INTERESTS;
+                  return (
+                    <button
+                      key={topic.id}
+                      type="button"
+                      onClick={() => toggleInterest(topic.id)}
+                      disabled={full}
+                      aria-pressed={active}
+                      className={`px-3.5 py-2 rounded-full text-sm font-medium border transition ${
+                        active
+                          ? "bg-black text-white border-black"
+                          : full
+                            ? "bg-white text-black/30 border-black/10 cursor-not-allowed"
+                            : "bg-white text-black border-black/15 hover:border-black/40"
+                      }`}
+                    >
+                      {topic.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {interestsError && (
+                <p className="text-sm text-red-600" role="alert">
+                  {interestsError}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-sm text-black/60">
+                  {interests.size}/{MAX_INTERESTS} alese
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void saveInterests()}
+                  disabled={savingInterests || interests.size < MIN_INTERESTS}
+                  className="px-5 py-2.5 rounded-full bg-black text-white text-sm font-semibold hover:bg-black/85 transition disabled:opacity-40"
+                >
+                  {savingInterests ? "Se salvează…" : t("continua")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
             <div className="space-y-4">
               <h2 id="onboarding-title" className="text-xl font-bold">
                 
@@ -226,7 +327,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setStep(3)}
+                  onClick={() => setStep(4)}
                   className="px-5 py-2.5 rounded-full bg-black text-white text-sm font-semibold hover:bg-black/85 transition"
                 >
                   
@@ -236,7 +337,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-5 text-center">
               <h2 id="onboarding-title" className="text-2xl font-bold">
                 

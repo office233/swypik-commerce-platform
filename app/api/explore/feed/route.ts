@@ -187,6 +187,26 @@ function buildTasteExpr(hasUser: boolean, userParam: string, wTaste: number): st
   ), 0))`;
 }
 
+// 2026-08-14 (cold start): boost pe interesele EXPLICITE alese la onboarding
+// (`user_interests`, weight 2.0, source 'onboarding') sau învățate din
+// more_like_this / not_interested. Spre deosebire de taste vector (pgvector),
+// acesta funcționează din primul clip, fără embeddings — exact ce lipsea unui
+// user nou. Se potrivește pe tag-urile clipului (v.tags) și pe taxonomia
+// produsului atașat. Ponderea vine din feed_weights (w_interest), tunabilă
+// fără redeploy; 0 => dezactivat.
+function buildInterestExpr(hasUser: boolean, userParam: string, wInterest: number): string {
+  if (!hasUser || !Number.isFinite(wInterest) || wInterest <= 0) return "0";
+  return `(COALESCE((
+    SELECT SUM(GREATEST(-1, LEAST(1, ui.weight / 5.0))) * ${wInterest}
+      FROM user_interests ui
+     WHERE ui.user_id = ${userParam}::uuid
+       AND (
+         ui.topic = ANY(COALESCE(v.tags, ARRAY[]::text[]))
+         OR COALESCE(mp.taxonomy_node_slug, '') ILIKE '%' || ui.topic || '%'
+       )
+  ), 0))`;
+}
+
 function buildOrderClause(
   sort: SortMode,
   hasUser: boolean,
@@ -195,6 +215,7 @@ function buildOrderClause(
   engagementExpr: string,
   trendingExpr: string,
   tasteExpr: string,
+  interestExpr: string,
 ): string {
   const penalty = buildPenaltyExpr(hasUser, hasSession);
   const affinity = buildAffinityExpr(hasUser);
@@ -208,7 +229,7 @@ function buildOrderClause(
       // Real engagement (mat view) + freshness + personalization - repetition penalty + exploration jitter.
       // Final tie-breaker random() so videos with identical scores don't always
       // appear in the same order across requests.
-      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${tasteExpr} + ${penalty} + ${equityExpr} + ${EXPLORATION_EXPR} DESC, v.published_at DESC NULLS LAST, random()`;
+      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${tasteExpr} + ${interestExpr} + ${penalty} + ${equityExpr} + ${EXPLORATION_EXPR} DESC, v.published_at DESC NULLS LAST, random()`;
   }
 }
 
@@ -588,10 +609,11 @@ export async function GET(request: NextRequest) {
     const equityExpr = buildEquityExpr(feedWeights, Boolean(userId) || Boolean(viewerSessionId));
     const equityJoins = buildEquityJoins(Boolean(userId), Boolean(viewerSessionId), userParam, sessionParam);
     const tasteExpr = buildTasteExpr(Boolean(userId), userParam, feedWeights.w_taste);
+    const interestExpr = buildInterestExpr(Boolean(userId), userParam, feedWeights.w_interest);
     // În context de profil păstrăm exact ordinea din grila de profil (published_at DESC).
     const orderClause = creatorParam
       ? `v.published_at DESC NULLS LAST, v.created_at DESC`
-      : buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr, engagementExpr, trendingExpr, tasteExpr);
+      : buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr, engagementExpr, trendingExpr, tasteExpr, interestExpr);
     const scoreSelect =
       sort === "popular"
         ? `, ${engagementExpr} AS engagement_score`
