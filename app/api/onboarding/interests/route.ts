@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { TOPICS } from "@/lib/topics";
-import { getOptionalSocialUserId, getOrCreateSocialUser } from "@/lib/social/session";
+import {
+  getOptionalSocialUserId,
+  getOrCreateSocialUser,
+  signAnonValue,
+  ANON_SESSION_COOKIE,
+} from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
@@ -41,11 +46,16 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ ok: true, topics_saved: topics.length });
 
     if (session.anonSessionId) {
-      response.cookies.set("anon_session", session.anonSessionId, {
+      // 2026-08-14 (bug): cookie-ul se seta NESEMNAT, dar `parseSignedAnon`
+      // respinge UUID-urile brute ca „legacy" (anti-impersonare). Rezultat:
+      // POST salva interesele, iar la următorul request userul era altul —
+      // interesele rămâneau orfane și cold start-ul nu funcționa deloc.
+      response.cookies.set(ANON_SESSION_COOKIE, signAnonValue(session.anonSessionId), {
         path: "/",
         maxAge: 60 * 60 * 24 * 365, // 1 year
         httpOnly: true,
         sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
       });
     }
 
