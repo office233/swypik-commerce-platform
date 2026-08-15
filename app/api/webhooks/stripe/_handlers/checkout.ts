@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import crypto from "crypto";
 import { getStripe } from "@/lib/stripe/checkout";
-import { dbQuery } from "@/lib/db";
+import { dbQuery, withTransaction, type TxQuery } from "@/lib/db";
 import { routeOrder } from "@/lib/fulfillment/order-router";
 import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 import { logger } from "@/lib/logger";
@@ -69,21 +69,28 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     shipping_address: shippingAddress,
   };
 
-  const { rows: existing } = await dbQuery(
-    `SELECT order_id AS id
-     FROM checkout_sessions
-     WHERE provider = 'stripe' AND provider_session_id = $1
-     LIMIT 1`,
-    [session.id]
-  );
+  // P0-01: comanda, liniile, sesiunea de checkout și tranzacția de plată se
+  // persistă ATOMIC. Altfel un crash între INSERT-uri lăsa o comandă `paid`
+  // fără items, iar retry-ul Stripe crea un duplicat (checkout_sessions nu
+  // apucase să fie scris). `FOR UPDATE` pe lookup serializează retry-urile
+  // concurente ale aceluiași eveniment.
+  const orderId = await withTransaction(async (q) => {
+    const { rows: existing } = await q<{ id: string }>(
+      `SELECT cs.order_id AS id
+         FROM checkout_sessions cs
+        WHERE cs.provider = 'stripe' AND cs.provider_session_id = $1
+        LIMIT 1
+        FOR UPDATE`,
+      [session.id]
+    );
 
-  let orderId = existing[0]?.id;
-  const metadata = existing.length > 0
-    ? baseMetadata
-    : { ...baseMetadata, order_lookup_token: crypto.randomBytes(24).toString("hex") };
-  if (existing.length > 0) {
-    await dbQuery(
-      `UPDATE commerce_orders
+    let currentOrderId: string | undefined = existing[0]?.id;
+    const metadata = existing.length > 0
+      ? baseMetadata
+      : { ...baseMetadata, order_lookup_token: crypto.randomBytes(24).toString("hex") };
+    if (existing.length > 0) {
+      await q(
+        `UPDATE commerce_orders
        SET status = 'paid',
            currency = upper($2),
            subtotal_cents = $3,
@@ -94,50 +101,55 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
            placed_at = COALESCE(placed_at, now()),
            metadata = metadata || $4::jsonb
        WHERE id = $1`,
-      [orderId, session.currency || "ron", totalCents, JSON.stringify(metadata), taxCents, taxCountry, taxIdCollected]
-    );
-  } else {
-    const { rows: orderRows } = await dbQuery(
-      `INSERT INTO commerce_orders (
+        [currentOrderId, session.currency || "ron", totalCents, JSON.stringify(metadata), taxCents, taxCountry, taxIdCollected]
+      );
+    } else {
+      const { rows: orderRows } = await q<{ id: string }>(
+        `INSERT INTO commerce_orders (
         status, currency, subtotal_cents, total_cents, tax_cents, tax_country, tax_id_collected, placed_at, metadata
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), $8::jsonb)
       RETURNING id`,
-      ["paid", String(session.currency || "ron").toUpperCase(), totalCents, totalCents, taxCents, taxCountry, taxIdCollected, JSON.stringify(metadata)]
-    );
-    orderId = orderRows[0]?.id;
-  }
-  if (!orderId) throw new Error(`Could not persist order for Stripe session ${session.id}`);
+        ["paid", String(session.currency || "ron").toUpperCase(), totalCents, totalCents, taxCents, taxCountry, taxIdCollected, JSON.stringify(metadata)]
+      );
+      currentOrderId = orderRows[0]?.id;
+    }
+    if (!currentOrderId) throw new Error(`Could not persist order for Stripe session ${session.id}`);
 
-  await persistOrderItems(orderId, items);
+    await persistOrderItems(q, currentOrderId, items);
 
-  const { rows: sessionRows } = await dbQuery(
-    `INSERT INTO checkout_sessions (
+    const { rows: sessionRows } = await q<{ id: string }>(
+      `INSERT INTO checkout_sessions (
       order_id, provider, provider_session_id, status, currency, amount_total_cents,
       completed_at, metadata
     ) VALUES ($1, 'stripe', $2, 'completed', $3, $4, now(), $5::jsonb)
     ON CONFLICT (provider, provider_session_id)
     DO UPDATE SET status = 'completed', completed_at = now(), order_id = EXCLUDED.order_id
     RETURNING id`,
-    [orderId, session.id, String(session.currency || "ron").toUpperCase(), totalCents, JSON.stringify(metadata)]
-  );
+      [currentOrderId, session.id, String(session.currency || "ron").toUpperCase(), totalCents, JSON.stringify(metadata)]
+    );
 
-  await dbQuery(
-    `INSERT INTO payment_transactions (
+    await q(
+      `INSERT INTO payment_transactions (
       order_id, checkout_session_id, provider, provider_payment_id, transaction_type,
       status, currency, amount_cents, processed_at, metadata
     ) VALUES ($1, $2, 'stripe', $3, 'payment', 'succeeded', $4, $5, now(), $6::jsonb)
     ON CONFLICT (provider, provider_payment_id, transaction_type)
     DO UPDATE SET status = 'succeeded', processed_at = now(), order_id = EXCLUDED.order_id`,
-    [
-      orderId,
-      sessionRows[0]?.id,
-      String(session.payment_intent || `checkout_${session.id}`),
-      String(session.currency || "ron").toUpperCase(),
-      totalCents,
-      JSON.stringify(metadata),
-    ]
-  );
+      [
+        currentOrderId,
+        sessionRows[0]?.id,
+        String(session.payment_intent || `checkout_${session.id}`),
+        String(session.currency || "ron").toUpperCase(),
+        totalCents,
+        JSON.stringify(metadata),
+      ]
+    );
 
+    return currentOrderId;
+  });
+
+  // Side-effects (email, ledger SWYP, webhooks, fulfillment) rulează DUPĂ
+  // commit: nu trebuie să țină tranzacția deschisă și nu se pot da rollback.
   await maybeSendOrderConfirmation(orderId);
 
   // FRONT 4 — webhooks către apps terțe instalate (fire-and-forget)
@@ -173,7 +185,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 }
 
-async function persistOrderItems(orderId: string, items: Array<{
+async function persistOrderItems(q: TxQuery, orderId: string, items: Array<{
   id: string;
   name: string;
   unitAmountCents: number;
@@ -188,14 +200,14 @@ async function persistOrderItems(orderId: string, items: Array<{
     const externalLineItemId = pgId ? `${pgId}:${skuId || "default"}` : item.id;
     let variantId: string | null = null;
     if (pgId && skuId) {
-      const { rows } = await dbQuery<{ id: string }>(
+      const { rows } = await q<{ id: string }>(
         `SELECT id::text AS id FROM marketplace_product_variants WHERE product_id = $1 AND sku = $2 LIMIT 1`,
         [pgId, skuId],
       );
       variantId = rows[0]?.id || null;
     }
 
-    await dbQuery(
+    await q(
       `INSERT INTO commerce_order_items (
         order_id, product_id, variant_id, external_line_item_id, title, quantity, currency,
         unit_amount_cents, gross_amount_cents, commissionable_amount_cents, metadata, created_at
@@ -239,19 +251,27 @@ async function persistOrderItems(orderId: string, items: Array<{
     // RETURNING: if the clamped value hit 0 while quantity sold exceeded what
     // was left, that's an OVERSELL — payment already succeeded, so we log it
     // loudly for ops follow-up (refund/backorder) instead of hiding it.
+    //
+    // P0-01: rulăm acum într-o tranzacție deschisă de apelant. Decrementarea
+    // e best-effort (o eroare aici NU trebuie să anuleze comanda plătită), dar
+    // în Postgres orice eroare abortează tranzacția — deci izolăm fiecare
+    // încercare într-un SAVEPOINT pe care îl derulăm înapoi la eșec.
     if (skuId && pgId) {
       try {
-        const { rows: stockRows } = await dbQuery<{ inventory_quantity: number }>(
+        await q("SAVEPOINT stock_deduct");
+        const { rows: stockRows } = await q<{ inventory_quantity: number }>(
           `UPDATE marketplace_product_variants
              SET inventory_quantity = GREATEST(0, inventory_quantity - $1)
            WHERE product_id = $2 AND sku = $3
            RETURNING inventory_quantity`,
           [item.quantity, String(pgId), String(skuId)]
         );
+        await q("RELEASE SAVEPOINT stock_deduct");
         if (stockRows[0] && stockRows[0].inventory_quantity === 0) {
           logger.warn({ productId: pgId, sku: skuId, qtySold: item.quantity }, "[Stripe Webhook] OVERSELL RISK: variant stock hit 0 after sale — verify no oversell");
         }
       } catch (e) {
+        await q("ROLLBACK TO SAVEPOINT stock_deduct").catch(() => undefined);
         logger.error({ err: e }, `[Stripe Webhook] Error deducting variant stock for product ${pgId} SKU ${skuId}`);
       }
     } else if (skuId) {
@@ -259,20 +279,26 @@ async function persistOrderItems(orderId: string, items: Array<{
       // warning since this is ambiguous if SKUs collide across products.
       logger.warn(`[Stripe Webhook] Decrementing variant stock without product_id scope (SKU ${skuId}); SKU collisions across products may decrement the wrong row.`);
       try {
-        await dbQuery(
+        await q("SAVEPOINT stock_deduct");
+        await q(
           `UPDATE marketplace_product_variants SET inventory_quantity = GREATEST(0, inventory_quantity - $1) WHERE sku = $2`,
           [item.quantity, String(skuId)]
         );
+        await q("RELEASE SAVEPOINT stock_deduct");
       } catch (e) {
+        await q("ROLLBACK TO SAVEPOINT stock_deduct").catch(() => undefined);
         logger.error({ err: e }, `[Stripe Webhook] Error deducting variant stock for SKU ${skuId}`);
       }
     } else if (pgId) {
       try {
-        await dbQuery(
+        await q("SAVEPOINT stock_deduct");
+        await q(
           `UPDATE marketplace_products SET inventory_quantity = GREATEST(0, inventory_quantity - $1) WHERE id = $2`,
           [item.quantity, String(pgId)]
         );
+        await q("RELEASE SAVEPOINT stock_deduct");
       } catch (e) {
+        await q("ROLLBACK TO SAVEPOINT stock_deduct").catch(() => undefined);
         logger.error({ err: e }, `[Stripe Webhook] Error deducting product stock for ID ${pgId}`);
       }
     }

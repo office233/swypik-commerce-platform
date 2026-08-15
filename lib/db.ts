@@ -43,6 +43,16 @@ export function getDb() {
 }
 
 /**
+ * Semnătura funcției de query primite în callback-ul `withTransaction`.
+ * Exportată ca să poată fi tipizate funcțiile care participă la o tranzacție
+ * deschisă de apelant (ex. `swypTransferInTx`).
+ */
+export type TxQuery = <R = any>(
+  text: string,
+  params?: unknown[],
+) => Promise<{ rows: R[]; rowCount: number }>;
+
+/**
  * Rulează un set de query-uri într-o singură tranzacție.
  * Commit automat la succes, ROLLBACK la orice excepție.
  *
@@ -53,7 +63,7 @@ export function getDb() {
  *   });
  */
 export async function withTransaction<T>(
-  fn: (query: <R = any>(text: string, params?: unknown[]) => Promise<{ rows: R[]; rowCount: number }>) => Promise<T>,
+  fn: (query: TxQuery) => Promise<T>,
 ): Promise<T> {
   const client = await getPool().connect();
   try {
