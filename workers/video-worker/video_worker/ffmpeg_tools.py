@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import shutil
 from dataclasses import dataclass
@@ -11,6 +12,27 @@ from .config import Variant
 
 class FfmpegMissingError(RuntimeError):
     pass
+
+
+class FfmpegTimeoutError(RuntimeError):
+    """ffmpeg a depășit bugetul de timp alocat și a fost omorât."""
+
+
+#: Bugetul implicit (secunde) pentru o singură comandă ffmpeg. Suprascriere via
+#: FFMPEG_TIMEOUT_SECONDS. Fără el, un fișier sursă malformat blochează la
+#: infinit bucla single-threaded din main.py → toată coada de transcodare stă.
+DEFAULT_FFMPEG_TIMEOUT_SECONDS = 900
+
+
+def _ffmpeg_timeout_seconds() -> int:
+    raw = os.environ.get("FFMPEG_TIMEOUT_SECONDS")
+    if not raw:
+        return DEFAULT_FFMPEG_TIMEOUT_SECONDS
+    try:
+        value = int(raw)
+    except ValueError:
+        return DEFAULT_FFMPEG_TIMEOUT_SECONDS
+    return value if value > 0 else DEFAULT_FFMPEG_TIMEOUT_SECONDS
 
 
 CommandRunner = Callable[[list[str]], None]
@@ -160,11 +182,19 @@ class FfmpegTranscoder:
 
     @staticmethod
     def _default_runner(command: list[str]) -> None:
+        timeout_s = _ffmpeg_timeout_seconds()
         try:
-            subprocess.run(command, check=True, capture_output=True, text=True)
+            subprocess.run(
+                command, check=True, capture_output=True, text=True, timeout=timeout_s
+            )
         except FileNotFoundError as exc:
             raise FfmpegMissingError(
                 "ffmpeg is not installed or is not on PATH; install ffmpeg to process videos"
+            ) from exc
+        except subprocess.TimeoutExpired as exc:
+            # subprocess.run omoară procesul copil înainte de a ridica excepția.
+            raise FfmpegTimeoutError(
+                f"ffmpeg command timed out after {timeout_s}s: {' '.join(command[:3])}"
             ) from exc
         except subprocess.CalledProcessError as exc:
             stderr = (exc.stderr or "").strip()
