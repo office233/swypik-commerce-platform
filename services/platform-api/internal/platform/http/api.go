@@ -543,11 +543,33 @@ func requiresInternalAuth(r *http.Request) bool {
 	if strings.HasPrefix(r.URL.Path, "/v1/admin/") {
 		return true
 	}
+	// 2026-08-15 (audit): webhook-urile de la procesatorii de plăți NU pot
+	// trimite X-Swypik-Internal-Secret — ele se autentifică prin semnătură
+	// HMAC, verificată în handler (vezi stripeWebhook → RecordStripeWebhook,
+	// care validează Stripe-Signature + fereastra anti-replay de ±5 min).
+	// Fără excepția asta, orice webhook Stripe primea 401 și evenimentul de
+	// plată se pierdea tăcut.
+	if isSignatureAuthenticatedWebhook(r.URL.Path) {
+		return false
+	}
 	switch r.Method {
 	case http.MethodGet, http.MethodHead, http.MethodOptions:
 		return false
 	default:
 		return true
+	}
+}
+
+// isSignatureAuthenticatedWebhook enumeră explicit (allow-list, nu prefix
+// generic) rutele care își fac singure verificarea criptografică de
+// autenticitate. Lista e închisă intenționat: o rută nouă trebuie adăugată
+// conștient aici, altfel rămâne protejată implicit de secretul intern.
+func isSignatureAuthenticatedWebhook(path string) bool {
+	switch path {
+	case "/v1/payments/webhooks/stripe":
+		return true
+	default:
+		return false
 	}
 }
 

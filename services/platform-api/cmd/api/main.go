@@ -91,6 +91,16 @@ func main() {
 		log.Info("REDIS_URL not set, running without streams/cache")
 	}
 
+	// 2026-08-15 (audit): webhook-ul Stripe se autentifică prin semnătură HMAC,
+	// deci nu mai trece prin secretul intern. Dacă STRIPE_WEBHOOK_SECRET
+	// lipsește, validSignature() returnează mereu false → TOATE evenimentele
+	// de plată ar fi respinse tăcut, la runtime. Preferăm să nu pornim deloc
+	// decât să pierdem plăți fără ca cineva să observe.
+	if isProd && strings.TrimSpace(cfg.StripeWebhookSecret) == "" {
+		log.Error("FATAL: STRIPE_WEBHOOK_SECRET is required in production (webhook-urile de plată ar fi respinse silențios)")
+		os.Exit(1)
+	}
+
 	// ── Repositories ──────────────────────────────────────────────
 	var feedRepo feed.Repository
 	var socialStore social.Store
