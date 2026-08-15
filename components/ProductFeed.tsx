@@ -315,9 +315,14 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     const flushOnHide = () => {
       if (document.visibilityState === "hidden") flushFeedEvents(true);
     };
-    window.addEventListener("pagehide", () => flushFeedEvents(true));
+    // P2-04: handler cu referință stabilă — un listener anonim nu poate fi
+    // scos la cleanup, așa că se acumula câte unul la fiecare remount al
+    // feed-ului (navigare SPA înapoi), producând flush-uri duplicate.
+    const flushOnPageHide = () => flushFeedEvents(true);
+    window.addEventListener("pagehide", flushOnPageHide);
     document.addEventListener("visibilitychange", flushOnHide);
     return () => {
+      window.removeEventListener("pagehide", flushOnPageHide);
       document.removeEventListener("visibilitychange", flushOnHide);
       flushFeedEvents(true);
     };
