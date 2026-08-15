@@ -31,12 +31,30 @@ export async function GET(
     const priceRon = Number(prod.price ?? 0);
     const priceRonCents = Math.round(priceRon * 100);
     let converted = priceRon;
+    // 2026-08-15 (CRITIC): dacă rata lipsește, `convert()` întoarce NaN și
+    // `converted` rămânea suma în RON — dar răspunsul o eticheta drept
+    // EUR/USD. Un produs de 500 RON apărea ca „500 EUR" (~5x preț real),
+    // încălcare directă de conformitate (preț afișat ≠ preț real).
+    // Acum: dacă nu putem converti, raportăm ONEST moneda RON.
+    let effectiveCurrency = targetCurrency;
     if (targetCurrency !== "RON" && priceRonCents > 0) {
+      let ok = false;
       try {
         const c = await convert(priceRonCents, "RON", targetCurrency);
-        if (isFinite(c) && c > 0) converted = c / 100;
+        if (isFinite(c) && c > 0) {
+          converted = c / 100;
+          ok = true;
+        }
       } catch (e) {
         logger.warn({ err: e }, "[Product Detail API] fx convert failed");
+      }
+      if (!ok) {
+        logger.warn(
+          { targetCurrency, productId: id },
+          "[Product Detail API] rata FX indisponibila — servim pretul in RON",
+        );
+        effectiveCurrency = "RON";
+        converted = priceRon;
       }
     }
 
@@ -44,12 +62,12 @@ export async function GET(
       return NextResponse.json({
         ...d,
         product: { ...prod, price: converted, priceRon },
-        currency: targetCurrency,
+        currency: effectiveCurrency,
       });
     }
     return NextResponse.json({
       ...d,
-      currency: targetCurrency,
+      currency: effectiveCurrency,
       price: converted,
       priceRon,
     });

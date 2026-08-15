@@ -46,5 +46,11 @@ jobs:
       - name: Typecheck
         run: npm run typecheck --if-present
 
+      # 2026-08-15 (audit): testele unitare (vitest, tests/unit/*) existau dar
+      # NU rulau nicăieri — nici în ci.yml, nici în scriptul `npm run ci`.
+      # Puteai sparge checkout/ledger/scoring fără ca nimic să te oprească.
+      - name: Unit tests
+        run: npm test
+
       - name: Build
         run: npm run build
