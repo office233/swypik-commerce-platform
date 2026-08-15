@@ -12,7 +12,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "crypto";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { autoEmbedVideo } from "@/lib/ai/auto-embed";
 
 export const dynamic = "force-dynamic";
@@ -66,9 +66,15 @@ async function handlePOST(req: Request) {
   return run(req);
 }
 
-async function GET_impl(req: Request) { return runCron("publish-scheduled", () => handleGET(req as any)); }
+async function GET_impl(req: Request) {
+  const res = await runCron("publish-scheduled", () => handleGET(req as any));
+  return res ?? cronSkippedResponse("publish-scheduled");
+}
 
-async function POST_impl(req: Request) { return runCron("publish-scheduled", () => handlePOST(req as any)); }
+async function POST_impl(req: Request) {
+  const res = await runCron("publish-scheduled", () => handlePOST(req as any));
+  return res ?? cronSkippedResponse("publish-scheduled");
+}
 
 export const GET = withErrorHandling(GET_impl);
 export const POST = withErrorHandling(POST_impl);

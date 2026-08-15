@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return runCron("refresh-fx", async () => {
+  const res = await runCron("refresh-fx", async () => {
     // frankfurter: gratuit, fara access_key, format compatibil {rates:{...}}.
     // exchangerate.host a devenit paywalled (cere access_key) -> updated=0 silentios.
     // 2026-08-03: domeniul canonic e api.frankfurter.dev/v1 (.app face 301 cu
@@ -105,6 +105,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ updated, source, ts: new Date().toISOString() });
   });
+  return res ?? cronSkippedResponse("refresh-fx");
 }
 
 export async function POST(req: Request) {

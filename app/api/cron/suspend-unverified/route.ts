@@ -16,7 +16,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "crypto";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -77,4 +77,7 @@ async function handleGET(req: Request) {
   });
 }
 
-export async function GET(req: Request) { return runCron("suspend-unverified", () => handleGET(req as any)); }
+export async function GET(req: Request) {
+  const res = await runCron("suspend-unverified", () => handleGET(req as any));
+  return res ?? cronSkippedResponse("suspend-unverified");
+}

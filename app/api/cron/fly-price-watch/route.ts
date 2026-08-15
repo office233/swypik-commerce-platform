@@ -11,7 +11,7 @@
 import { withErrorHandling } from "@/lib/api-handler";
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { timingSafeEqual } from "crypto";
 import { duffelProvider } from "@/lib/fly/duffel";
 import { getMarketMin, isMarketConfigured } from "@/lib/fly/market";
@@ -41,8 +41,7 @@ async function GET_impl(req: NextRequest) {
     if (!(await authorize(req))) {
         return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
-    return NextResponse.json(
-        await runCron("fly-price-watch", async () => {
+    const result = await runCron("fly-price-watch", async () => {
             const departDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
             let scanned = 0;
             let beaten = 0;
@@ -128,8 +127,9 @@ async function GET_impl(req: NextRequest) {
                 depart_date: departDate,
                 alerts,
             };
-        }),
-    );
+    });
+    if (result === null) return cronSkippedResponse("fly-price-watch");
+    return NextResponse.json(result);
 }
 
 export const GET = withErrorHandling(GET_impl);

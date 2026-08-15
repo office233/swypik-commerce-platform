@@ -14,7 +14,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -89,6 +89,7 @@ async function handle(req: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   const result = await runCron("watchdog-rides", runWatchdog);
+  if (result === null) return cronSkippedResponse("watchdog-rides");
   return NextResponse.json({ ok: true, ...result });
 }
 

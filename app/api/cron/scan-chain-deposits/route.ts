@@ -11,7 +11,7 @@
 import { NextResponse } from "next/server";
 import { withErrorHandling } from "@/lib/api-handler";
 import { timingSafeEqual } from "node:crypto";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { scanChainDeposits } from "@/lib/swyp/deposits";
 import { logger } from "@/lib/logger";
 
@@ -49,6 +49,7 @@ async function handle(req: Request) {
       credited: r.credited,
     };
   });
+  if (result === null) return cronSkippedResponse("scan-chain-deposits");
   return NextResponse.json({ success: true, ...result });
 }
 

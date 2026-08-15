@@ -3,7 +3,7 @@ import { timingSafeEqual } from "crypto";
 import { dbQuery } from "@/lib/db";
 import { labelProduct } from "@/lib/moderation/labelProduct";
 import { labelVideo } from "@/lib/moderation/labelVideo";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +99,7 @@ export async function POST(req: Request): Promise<Response> {
       videos: { picked: videoRows.length, done: videosDone, errors: videosErrors },
     };
   });
+  if (result === null) return cronSkippedResponse("classify-pending");
   return NextResponse.json(result);
 }
 

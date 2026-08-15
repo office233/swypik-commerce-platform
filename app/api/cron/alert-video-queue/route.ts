@@ -2,7 +2,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { checkQueue } from "@/lib/health";
 import { sendEmail } from "@/lib/email/service";
 
@@ -189,10 +189,11 @@ async function GET_impl(req: Request) {
   if (!authorize(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return runCron("alert-video-queue", async () => {
+  const res = await runCron("alert-video-queue", async () => {
     const summary = await run();
     return NextResponse.json(summary);
   });
+  return res ?? cronSkippedResponse("alert-video-queue");
 }
 
 async function POST_impl(req: Request) {

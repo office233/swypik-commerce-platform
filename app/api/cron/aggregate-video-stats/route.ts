@@ -2,7 +2,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -156,10 +156,11 @@ async function GET_impl(req: Request) {
   if (!authorize(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return runCron("aggregate-video-stats", async () => {
+  const res = await runCron("aggregate-video-stats", async () => {
     const summary = await run();
     return NextResponse.json(summary);
   });
+  return res ?? cronSkippedResponse("aggregate-video-stats");
 }
 
 async function POST_impl(req: Request) {

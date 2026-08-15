@@ -1,7 +1,7 @@
 import { withErrorHandling } from "@/lib/api-handler";
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +23,7 @@ async function GET_impl(req: NextRequest) {
   if (!(await authorize(req))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  return NextResponse.json(
-    await runCron("cleanup-tokens", async () => {
+  const result = await runCron("cleanup-tokens", async () => {
       const r1 = await dbQuery(
         "DELETE FROM password_reset_tokens WHERE expires_at < NOW() - INTERVAL '7 days'"
       ).catch(() => ({ rowCount: 0 } as any));
@@ -44,8 +43,9 @@ async function GET_impl(req: NextRequest) {
         sessions_deleted: r2.rowCount ?? 0,
         sessions_anonymized: r3.rowCount ?? 0,
       };
-    })
-  );
+  });
+  if (result === null) return cronSkippedResponse("cleanup-tokens");
+  return NextResponse.json(result);
 }
 
 export const GET = withErrorHandling(GET_impl);

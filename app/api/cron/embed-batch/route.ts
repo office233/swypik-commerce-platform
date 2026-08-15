@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { dbQuery } from "@/lib/db";
 import { embed, toPgVector, EmbeddingError } from "@/lib/ai/embeddings";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +129,12 @@ async function handleGET(req: Request) {
   return POST(req);
 }
 
-export async function GET(req: Request) { return runCron("embed-batch", () => handleGET(req as any)); }
+export async function GET(req: Request) {
+  const res = await runCron("embed-batch", () => handleGET(req as any));
+  return res ?? cronSkippedResponse("embed-batch");
+}
 
-export async function POST(req: Request) { return runCron("embed-batch", () => handlePOST(req as any)); }
+export async function POST(req: Request) {
+  const res = await runCron("embed-batch", () => handlePOST(req as any));
+  return res ?? cronSkippedResponse("embed-batch");
+}

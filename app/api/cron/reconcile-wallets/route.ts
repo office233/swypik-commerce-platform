@@ -17,7 +17,7 @@ import { NextResponse } from "next/server";
 import { withErrorHandling } from "@/lib/api-handler";
 import { timingSafeEqual } from "node:crypto";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -119,6 +119,7 @@ async function handle(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const result = await runCron("reconcile-wallets", reconcile);
+  if (result === null) return cronSkippedResponse("reconcile-wallets");
   return NextResponse.json({ success: true, ...result });
 }
 

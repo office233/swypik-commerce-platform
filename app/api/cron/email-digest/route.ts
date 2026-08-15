@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { sendEmail, unsubscribeUrl } from "@/lib/email/service";
 import { APP_URL } from "@/lib/app-url";
 import { formatMoneyCents } from "@/lib/i18n/currency";
@@ -182,6 +182,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const result = await runCron("email-digest", runDigest);
+  if (result === null) return cronSkippedResponse("email-digest");
   return NextResponse.json({ ok: true, ...result });
 }
 

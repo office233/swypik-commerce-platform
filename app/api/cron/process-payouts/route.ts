@@ -37,7 +37,7 @@ import { dbQuery } from "@/lib/db";
 import { CREATOR_COMMISSION_BPS, applyBps } from "@/lib/config/commerce";
 import { getStripe } from "@/lib/stripe/checkout";
 import { timingSafeEqual } from "crypto";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
 
@@ -345,6 +345,7 @@ async function handleGET(req: Request) {
 
 export async function GET(req: Request) {
   const result = await runCron("process-payouts", () => handleGET(req as any));
+  if (result === null) return cronSkippedResponse("process-payouts");
   // Auth failures return a NextResponse — propagate it as-is; otherwise serialize the plain result for cron observability.
   if (result instanceof Response) return result;
   return NextResponse.json(result);

@@ -21,7 +21,7 @@ import {
 import { timingSafeEqual } from "crypto";
 
 import { logger } from "@/lib/logger";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { APP_URL } from "@/lib/app-url";
 export const dynamic = "force-dynamic";
 
@@ -192,4 +192,7 @@ async function handleGET(req: Request) {
 
 export const POST = GET;
 
-export async function GET(req: Request) { return runCron("abandoned-cart", () => handleGET(req as any)); }
+export async function GET(req: Request) {
+  const res = await runCron("abandoned-cart", () => handleGET(req as any));
+  return res ?? cronSkippedResponse("abandoned-cart");
+}

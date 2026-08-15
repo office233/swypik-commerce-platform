@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { dbQuery } from "@/lib/db";
 import { sendEmail } from "@/lib/email/service";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { logger } from "@/lib/logger";
 import { APP_URL } from "@/lib/app-url";
 
@@ -49,7 +49,7 @@ async function handle(req: Request) {
     return NextResponse.json({ success: true, skipped: true, reason: "no_alert_email_configured" });
   }
 
-  return runCron("alert-dispute-deadlines", async () => {
+  const res = await runCron("alert-dispute-deadlines", async () => {
     const { rows } = await dbQuery<Row>(
       `SELECT d.dispute_id,
               d.amount_cents,
@@ -155,6 +155,7 @@ async function handle(req: Request) {
 
     return NextResponse.json({ success: true, alerted: rows.length, totalAtRiskCents, sent });
   });
+  return res ?? cronSkippedResponse("alert-dispute-deadlines");
 }
 
 export const GET = handle;

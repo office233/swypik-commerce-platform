@@ -1,7 +1,7 @@
 import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { runCron } from "@/lib/cron/runCron";
+import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { publishProcessVideoJob } from "@/lib/video/redis-queue";
 import type { ProcessVideoJobPayload } from "@/lib/video/upload-session";
 import { timingSafeEqual } from "crypto";
@@ -187,10 +187,11 @@ async function GET_impl(req: Request) {
   if (!(await authorize(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return runCron("watchdog-videos", async () => {
+  const res = await runCron("watchdog-videos", async () => {
     const summary = await runWatchdog();
     return NextResponse.json(summary);
   });
+  return res ?? cronSkippedResponse("watchdog-videos");
 }
 
 async function POST_impl(req: Request) {
