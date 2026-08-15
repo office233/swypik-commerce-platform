@@ -17,7 +17,7 @@
  * Unitate: 1 SWYP = 100 units (bigint). Folosim `bigint` JS pentru sume.
  */
 import { createHash } from "crypto";
-import { dbQuery, withTransaction } from "@/lib/db";
+import { dbQuery, withTransaction, type TxQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 export type SwypParty =
@@ -86,13 +86,28 @@ function isPool(p: SwypParty): p is { pool: string } & SwypParty {
 /**
  * Transfer atomic SWYP între două părți (pool sau user).
  * Idempotent după (refType, refId, kind).
+ *
+ * Deschide o tranzacție proprie. Când apelantul are deja o tranzacție
+ * deschisă (și vrea ca mutarea de sold să fie atomică împreună cu propriile
+ * lui scrieri), folosește `swypTransferInTx(q, args)`.
  */
 export async function swypTransfer(args: SwypTransferArgs): Promise<SwypTransferResult> {
+    return withTransaction((q) => swypTransferInTx(q, args));
+}
+
+/**
+ * Varianta care participă la o tranzacție deschisă de apelant. Aceleași
+ * garanții ca `swypTransfer`, dar commit-ul/rollback-ul aparțin apelantului.
+ */
+export async function swypTransferInTx(
+    q: TxQuery,
+    args: SwypTransferArgs,
+): Promise<SwypTransferResult> {
     const amount = BigInt(args.amountUnits);
     if (amount <= 0n) throw new Error("amount_units must be a positive integer");
     const { from, to, kind, refType, refId, description, metadata, dailyCapUnits } = args;
 
-    return withTransaction(async (q) => {
+    {
         // 1. Idempotency check (în tx; duplicatele concurente se serializează pe UNIQUE).
         const existing = await q<SwypLedgerEntry>(
             `SELECT ${ENTRY_COLS} FROM swyp_ledger_entries
@@ -225,7 +240,7 @@ export async function swypTransfer(args: SwypTransferArgs): Promise<SwypTransfer
             "swyp.ledger.applied",
         );
         return { entry: inserted.rows[0], alreadyApplied: false };
-    });
+    }
 }
 
 /** Soldul SWYP al unui user, în subunități (0 dacă nu are wallet). */

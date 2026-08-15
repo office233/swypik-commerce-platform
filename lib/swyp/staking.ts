@@ -13,7 +13,7 @@
  */
 import { dbQuery, withTransaction } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { swypTransfer } from "./ledger";
+import { swypTransfer, swypTransferInTx } from "./ledger";
 import { getSwypRate } from "./valuation";
 
 const log = logger.child({ mod: "swyp/staking" });
@@ -46,27 +46,36 @@ export async function createStake(userId: string, amountUnits: bigint, term: Sta
 
     const apyBps = await apyForTerm(term);
 
-    const { rows } = await dbQuery<{ id: string; matures_at: string }>(
-        `INSERT INTO swyp_stakes (user_id, amount_units, term_months, apy_bps, matures_at)
+    // P1-03: rândul de stake și blocarea subunităților în pool-ul 'staking' se
+    // scriu ATOMIC. Varianta anterioară insera stake-ul, apoi bloca fondurile
+    // pe altă conexiune, cu ștergere compensatorie în catch — dacă procesul
+    // murea între cele două, rămânea un stake 'active' cu `ledger_lock_id`
+    // NULL, pe care `processMaturedStakes` îl plătea la maturitate din pool
+    // deși userul nu depusese nimic (creare de valoare din nimic).
+    let stake: { id: string; matures_at: string };
+    try {
+        stake = await withTransaction(async (q) => {
+            const { rows } = await q<{ id: string; matures_at: string }>(
+                `INSERT INTO swyp_stakes (user_id, amount_units, term_months, apy_bps, matures_at)
      VALUES ($1, $2, $3, $4, now() + ($3 || ' months')::interval)
      RETURNING id::text, matures_at::text`,
-        [userId, amountUnits.toString(), term, apyBps],
-    );
-    const stake = rows[0];
-
-    try {
-        const t = await swypTransfer({
-            from: { userId },
-            to: { pool: "staking" },
-            amountUnits,
-            kind: "transfer",
-            refType: "stake_lock",
-            refId: stake.id,
-            description: `Stake ${term} luni @ ${apyBps / 100}% APY`,
+                [userId, amountUnits.toString(), term, apyBps],
+            );
+            const created = rows[0];
+            const t = await swypTransferInTx(q, {
+                from: { userId },
+                to: { pool: "staking" },
+                amountUnits,
+                kind: "transfer",
+                refType: "stake_lock",
+                refId: created.id,
+                description: `Stake ${term} luni @ ${apyBps / 100}% APY`,
+            });
+            await q(`UPDATE swyp_stakes SET ledger_lock_id = $2 WHERE id = $1`, [created.id, t.entry.id]);
+            return created;
         });
-        await dbQuery(`UPDATE swyp_stakes SET ledger_lock_id = $2 WHERE id = $1`, [stake.id, t.entry.id]);
     } catch (err) {
-        await dbQuery(`DELETE FROM swyp_stakes WHERE id = $1 AND ledger_lock_id IS NULL`, [stake.id]);
+        // ROLLBACK a eliminat deja rândul de stake — nimic de compensat.
         log.warn({ err, userId, amountUnits: amountUnits.toString() }, "stake lock failed");
         return { ok: false, reason: "insufficient_funds" };
     }
@@ -117,7 +126,11 @@ export async function processMaturedStakes(limit = 50): Promise<{ processed: num
     const { rows: due } = await dbQuery<{ id: string; user_id: string; amount_units: string; apy_bps: number; term_months: number }>(
         `SELECT id::text, user_id::text, amount_units::text, apy_bps, term_months
        FROM swyp_stakes
-            WHERE status IN ('active', 'bonus_pending') AND matures_at <= now()
+              WHERE status IN ('active', 'bonus_pending') AND matures_at <= now()
+             -- P1-03: nu plăti niciodată un stake pentru care blocarea în
+             -- pool nu s-a confirmat în ledger (rânduri orfane rămase din
+             -- crash-uri anterioare creării atomice).
+             AND ledger_lock_id IS NOT NULL
       ORDER BY matures_at ASC LIMIT $1`,
         [limit],
     );
@@ -145,7 +158,10 @@ export async function processMaturedStakes(limit = 50): Promise<{ processed: num
             if (!locked.rows[0]) return 0n; // alt proces îl are; îl reia data viitoare
 
             // Principalul: idempotent pe stake id — la reprocesare e no-op.
-            await swypTransfer({
+            // P1-03: `swypTransferInTx` participă la ACEASTĂ tranzacție. Varianta
+            // `swypTransfer` lua altă conexiune din pool → mutarea de sold se
+            // commit-uia independent de UPDATE-ul de status de mai jos.
+            await swypTransferInTx(q, {
                 from: { pool: "staking" },
                 to: { userId: s.user_id },
                 amountUnits: principal,
@@ -156,7 +172,7 @@ export async function processMaturedStakes(limit = 50): Promise<{ processed: num
             });
 
             if (bonus > 0n) {
-                await swypTransfer({
+                await swypTransferInTx(q, {
                     from: { pool: "rewards" },
                     to: { userId: s.user_id },
                     amountUnits: bonus,
@@ -198,35 +214,37 @@ export async function processMaturedStakes(limit = 50): Promise<{ processed: num
 
 /** Retragere anticipată: principal integral, bonus 0. */
 export async function withdrawEarly(userId: string, stakeId: string): Promise<boolean> {
-    const { rows } = await dbQuery<{ amount_units: string }>(
-        `UPDATE swyp_stakes SET status = 'withdrawn_early', closed_at = now(), bonus_units = 0
+    // P1-03: închiderea stake-ului și eliberarea principalului trebuie să fie
+    // ATOMICE. Varianta anterioară făcea UPDATE (commit) și abia apoi
+    // transferul, cu compensare în catch — compensarea nu rulează dacă
+    // procesul e omorât între cele două, iar userul rămânea cu stake-ul
+    // închis și fără bani.
+    return withTransaction(async (q) => {
+        const { rows } = await q<{ amount_units: string }>(
+            `UPDATE swyp_stakes SET status = 'withdrawn_early', closed_at = now(), bonus_units = 0
       WHERE id = $1 AND user_id = $2 AND status = 'active'
       RETURNING amount_units::text`,
-        [stakeId, userId],
-    );
-    if (!rows[0]) return false;
-    try {
-        await swypTransfer({
-            from: { pool: "staking" },
-            to: { userId },
-            amountUnits: BigInt(rows[0].amount_units),
-            kind: "transfer",
-            refType: "stake_release",
-            refId: stakeId,
-            description: "Retragere anticipată — principal integral, fără bonus",
-        });
-    } catch (err) {
-        // Compensare: dacă transferul principalului eșuează, redeschide stake-ul
-        // ca userul să nu piardă fondurile (transferul e idempotent pe stake_release/stakeId).
-        await dbQuery(
-            `UPDATE swyp_stakes SET status = 'active', closed_at = NULL
-              WHERE id = $1 AND status = 'withdrawn_early'`,
-            [stakeId],
-        ).catch(() => { /* dacă și revertul pică, rămâne urmă în log pentru reconciliere */ });
-        log.error({ err, stakeId, userId }, "withdrawEarly: transfer principal esuat - stake redeschis");
-        throw err;
-    }
-    return true;
+            [stakeId, userId],
+        );
+        if (!rows[0]) return false;
+        try {
+            await swypTransferInTx(q, {
+                from: { pool: "staking" },
+                to: { userId },
+                amountUnits: BigInt(rows[0].amount_units),
+                kind: "transfer",
+                refType: "stake_release",
+                refId: stakeId,
+                description: "Retragere anticipată — principal integral, fără bonus",
+            });
+        } catch (err) {
+            // ROLLBACK-ul tranzacției readuce automat stake-ul la 'active';
+            // nu mai e nevoie de compensare manuală.
+            log.error({ err, stakeId, userId }, "withdrawEarly: transfer principal esuat - tranzactie anulata");
+            throw err;
+        }
+        return true;
+    });
 }
 
 /** Stake-urile userului + statistici globale. */
