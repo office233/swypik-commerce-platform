@@ -4,6 +4,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { isVideoInteractableTx } from "@/lib/video/interactable";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,12 @@ export async function POST(
         saved = false;
         saveCount = parseInt(countRes.rows[0]?.save_count || "0", 10);
       } else {
+        // P2-01: salvare NOUĂ doar pe conținut încă vizibil. Ștergerea din
+        // colecție (ramura de mai sus) rămâne mereu permisă.
+        if (!(await isVideoInteractableTx(client, videoId))) {
+          await client.query("ROLLBACK");
+          return NextResponse.json({ error: "video_not_available" }, { status: 404 });
+        }
         await client.query(
           "INSERT INTO saves (user_id, video_id, collection_name) VALUES ($1, $2, $3)",
           [userId, videoId, collectionName]

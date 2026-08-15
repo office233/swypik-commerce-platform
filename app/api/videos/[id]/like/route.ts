@@ -5,6 +5,7 @@ import { notifyUser } from "@/lib/notifications/dispatch";
 import { logger } from "@/lib/logger";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { isVideoInteractableTx } from "@/lib/video/interactable";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,12 @@ export async function POST(
         liked = false;
         likeCount = parseInt(updateRes.rows[0]?.like_count || "0", 10);
       } else {
+        // P2-01: like NOU doar pe conținut încă vizibil. Unlike-ul (ramura de
+        // mai sus) rămâne permis indiferent de starea curentă a videoclipului.
+        if (!(await isVideoInteractableTx(client, videoId))) {
+          await client.query("ROLLBACK");
+          return NextResponse.json({ error: "video_not_available" }, { status: 404 });
+        }
         const insertRes = await client.query(
           "INSERT INTO likes (user_id, video_id) VALUES ($1, $2) ON CONFLICT (user_id, video_id) WHERE video_id IS NOT NULL DO NOTHING RETURNING id",
           [userId, videoId]

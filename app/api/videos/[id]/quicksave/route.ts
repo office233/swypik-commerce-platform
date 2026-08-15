@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery, getDb } from "@/lib/db";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { isVideoInteractable } from "@/lib/video/interactable";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -34,6 +35,11 @@ export async function POST(
 
     const rl = await rateLimit("videoQuicksave", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
+    // P2-01: quicksave e engagement NOU — refuzat pe conținut retras/privat.
+    if (!(await isVideoInteractable(videoId))) {
+      return NextResponse.json({ error: "video_not_available" }, { status: 404 });
+    }
 
     const body = await req.json().catch(() => ({}));
     const explicitCollectionId =
