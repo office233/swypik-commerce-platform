@@ -1731,7 +1731,7 @@ CREATE TABLE public.cron_runs (
     duration_ms integer,
     result jsonb,
     error text,
-    CONSTRAINT cron_runs_status_check CHECK ((status = ANY (ARRAY['running'::text, 'success'::text, 'failed'::text])))
+    CONSTRAINT cron_runs_status_check CHECK ((status = ANY (ARRAY['running'::text, 'success'::text, 'failed'::text, 'skipped'::text])))
 );
 
 --
@@ -7117,6 +7117,12 @@ CREATE INDEX cron_job_runs_job_started_idx ON public.cron_job_runs USING btree (
 --
 
 CREATE INDEX cron_job_runs_status_idx ON public.cron_job_runs USING btree (status) WHERE (status = 'failed'::text);
+
+--
+-- Name: cron_runs_skipped_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX cron_runs_skipped_idx ON public.cron_runs USING btree (job_name, completed_at DESC) WHERE (status = 'skipped'::text);
 
 --
 -- Name: daily_challenges_active_idx; Type: INDEX; Schema: public; Owner: -
