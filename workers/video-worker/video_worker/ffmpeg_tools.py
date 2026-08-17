@@ -37,6 +37,40 @@ def _ffmpeg_timeout_seconds() -> int:
 
 CommandRunner = Callable[[list[str]], None]
 
+#: Durata țintă a unui segment HLS (secunde).
+HLS_SEGMENT_SECONDS = 6
+
+#: Cadre pe secundă impuse la ieșire. Fără o rată fixă nu putem calcula un GOP
+#: care să corespundă exact duratei de segment.
+OUTPUT_FPS = 24
+
+#: Distanța dintre keyframe-uri, în cadre. `-hls_time` e doar o *sugestie*:
+#: ffmpeg poate tăia un segment numai pe un keyframe. Cu GOP-ul implicit
+#: (250 de cadre ≈ 10.4s la 24fps) segmentele ieșeau de ~10.4s în loc de 6s,
+#: exact ce s-a observat în producție. Un GOP de 48 de cadre = 2s se împarte
+#: exact în 6s, deci segmentele ies fix la durata cerută.
+GOP_SIZE = OUTPUT_FPS * 2
+
+
+def _codec_string(variant: Variant) -> str:
+    """Atributul CODECS pentru EXT-X-STREAM-INF (RFC 6381).
+
+    Fără CODECS, playerul trebuie să descarce câte un segment din fiecare
+    variantă ca să afle ce conține — întârzie startul redării, iar unele
+    playere (Safari/AVPlayer) resping direct varianta.
+
+    `avc1.4d40XX`: 4d = profil Main, XX = nivelul × 10 în hexazecimal.
+    `mp4a.40.2`: AAC-LC.
+    """
+    pixels = variant.width * variant.height
+    if pixels <= 640 * 360:
+        level = "1e"  # 3.0
+    elif pixels <= 1280 * 720:
+        level = "1f"  # 3.1
+    else:
+        level = "28"  # 4.0
+    return f"avc1.4d40{level},mp4a.40.2"
+
 
 @dataclass(frozen=True)
 class TranscodeResult:
@@ -101,6 +135,19 @@ class FfmpegTranscoder:
             "main",
             "-preset",
             "veryfast",
+            # Rată de cadre fixă + GOP fix: obligatorii ca `-hls_time` să fie
+            # respectat și ca variantele să aibă keyframe-uri aliniate între
+            # ele (altfel comutarea de calitate produce un salt vizibil).
+            "-r",
+            str(OUTPUT_FPS),
+            "-g",
+            str(GOP_SIZE),
+            "-keyint_min",
+            str(GOP_SIZE),
+            # Fără asta, ffmpeg mai inserează keyframe-uri la schimbările de
+            # scenă, ceea ce desincronizează segmentele între variante.
+            "-sc_threshold",
+            "0",
             "-b:v",
             variant.bitrate,
             "-maxrate",
@@ -114,7 +161,7 @@ class FfmpegTranscoder:
             "-b:a",
             "128k",
             "-hls_time",
-            "6",
+            str(HLS_SEGMENT_SECONDS),
             "-hls_playlist_type",
             "vod",
             "-hls_segment_filename",
@@ -174,7 +221,9 @@ class FfmpegTranscoder:
             bandwidth = _bitrate_to_bandwidth(variant.bitrate)
             lines.extend(
                 [
-                    f"#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},RESOLUTION={variant.width}x{variant.height}",
+                    f"#EXT-X-STREAM-INF:BANDWIDTH={bandwidth}"
+                    f",RESOLUTION={variant.width}x{variant.height}"
+                    f',CODECS="{_codec_string(variant)}"',
                     f"{variant.name}/index.m3u8",
                 ]
             )

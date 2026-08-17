@@ -50,7 +50,10 @@ class S3Storage:
                 str(path),
                 bucket,
                 key,
-                ExtraArgs={"ContentType": content_type},
+                ExtraArgs={
+                    "ContentType": content_type,
+                    "CacheControl": _cache_control(path),
+                },
             )
             uploaded_keys.append(key)
 
@@ -82,3 +85,19 @@ def _content_type(path: Path) -> str:
         return "video/mp2t"
     guessed, _ = mimetypes.guess_type(path.name)
     return guessed or "application/octet-stream"
+
+
+#: Un segment .ts e imutabil: numele lui conține indexul, iar conținutul nu se
+#: schimbă niciodată după transcodare. Poate fi ținut în cache la nesfârșit.
+IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+#: Playlist-urile NU pot fi imutabile. Dacă master.m3u8 sau index.m3u8 e prins
+#: într-un cache de un an, o re-transcodare (variantă nouă, corecție) nu mai
+#: ajunge niciodată la playerele care au deja versiunea veche.
+PLAYLIST_CACHE_CONTROL = "public, max-age=60"
+
+
+def _cache_control(path: Path) -> str:
+    if path.suffix == ".m3u8":
+        return PLAYLIST_CACHE_CONTROL
+    return IMMUTABLE_CACHE_CONTROL

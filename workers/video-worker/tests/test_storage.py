@@ -1,5 +1,6 @@
 from video_worker.config import Settings
 from video_worker.storage import S3Storage
+from video_worker.storage import IMMUTABLE_CACHE_CONTROL, PLAYLIST_CACHE_CONTROL
 
 
 class FakeS3Client:
@@ -47,3 +48,30 @@ def test_upload_directory_uses_target_bucket_for_r2_urls_and_content_types(tmp_p
     assert content_types["videos/asset_1/master.m3u8"] == "application/vnd.apple.mpegurl"
     assert content_types["videos/asset_1/720p/segment_00000.ts"] == "video/mp2t"
     assert content_types["videos/asset_1/preview.mp4"] == "video/mp4"
+
+
+def test_upload_directory_caches_segments_forever_but_not_playlists(tmp_path):
+    """Segmentele sunt imutabile; playlist-urile nu au voie sa fie.
+
+    Daca master.m3u8 prinde max-age=1 an, o re-transcodare nu mai ajunge
+    niciodata la playerele care au deja versiunea veche in cache.
+    """
+    output_dir = tmp_path / "hls"
+    (output_dir / "720p").mkdir(parents=True)
+    (output_dir / "master.m3u8").write_text("#EXTM3U\n", encoding="utf-8")
+    (output_dir / "720p" / "index.m3u8").write_text("#EXTM3U\n", encoding="utf-8")
+    (output_dir / "720p" / "segment_00000.ts").write_bytes(b"segment")
+    (output_dir / "thumbnail.jpg").write_bytes(b"jpg")
+
+    storage = S3Storage(Settings.from_env({"S3_BUCKET": "b"}))
+    client = FakeS3Client()
+    storage._client = client
+
+    storage.upload_directory(output_dir, "processed-videos", "videos/asset_1")
+    cache = {key: extra["CacheControl"] for _, _, key, extra in client.uploads}
+
+    assert cache["videos/asset_1/720p/segment_00000.ts"] == IMMUTABLE_CACHE_CONTROL
+    assert "immutable" in cache["videos/asset_1/720p/segment_00000.ts"]
+    assert cache["videos/asset_1/master.m3u8"] == PLAYLIST_CACHE_CONTROL
+    assert cache["videos/asset_1/720p/index.m3u8"] == PLAYLIST_CACHE_CONTROL
+    assert "immutable" not in cache["videos/asset_1/master.m3u8"]

@@ -5,6 +5,9 @@ import pytest
 from video_worker.config import Variant
 from video_worker.ffmpeg_tools import (
     DEFAULT_FFMPEG_TIMEOUT_SECONDS,
+    GOP_SIZE,
+    HLS_SEGMENT_SECONDS,
+    OUTPUT_FPS,
     FfmpegMissingError,
     FfmpegTimeoutError,
     FfmpegTranscoder,
@@ -12,6 +15,49 @@ from video_worker.ffmpeg_tools import (
 )
 
 
+def _arg_after(command, flag):
+    return command[command.index(flag) + 1]
+
+
+def test_variant_command_pins_gop_so_hls_time_is_respected():
+    """`-hls_time` e ignorat fara GOP fix: ffmpeg taie doar pe keyframe-uri.
+
+    Cu GOP-ul implicit (250 cadre) segmentele ieseau de ~10.4s in loc de 6s.
+    """
+    command = FfmpegTranscoder._variant_command(
+        Path("in.mp4"),
+        Path("out/360p/index.m3u8"),
+        Variant(name="360p", width=640, height=360, bitrate="800k"),
+    )
+
+    assert _arg_after(command, "-g") == str(GOP_SIZE)
+    assert _arg_after(command, "-keyint_min") == str(GOP_SIZE)
+    assert _arg_after(command, "-r") == str(OUTPUT_FPS)
+    # keyframe-uri suplimentare la schimbarea de scena ar desincroniza variantele
+    assert _arg_after(command, "-sc_threshold") == "0"
+    # invariantul care conteaza: durata segmentului trebuie sa fie un multiplu
+    # intreg de GOP-uri, altfel ffmpeg rotunjeste in sus si iar ratam tinta.
+    gop_seconds = GOP_SIZE / OUTPUT_FPS
+    assert HLS_SEGMENT_SECONDS % gop_seconds == 0
+    assert _arg_after(command, "-hls_time") == str(HLS_SEGMENT_SECONDS)
+
+
+def test_master_playlist_declares_codecs_per_variant(tmp_path):
+    """Fara CODECS, playerul descarca segmente ca sa ghiceasca continutul."""
+    master = tmp_path / "master.m3u8"
+    FfmpegTranscoder._write_master_playlist(
+        master,
+        [
+            Variant(name="360p", width=640, height=360, bitrate="800k"),
+            Variant(name="720p", width=1280, height=720, bitrate="2500k"),
+        ],
+    )
+    content = master.read_text(encoding="utf-8")
+
+    assert 'CODECS="avc1.4d401e,mp4a.40.2"' in content  # Main @ L3.0
+    assert 'CODECS="avc1.4d401f,mp4a.40.2"' in content  # Main @ L3.1
+    assert content.count("CODECS=") == 2
+    assert "RESOLUTION=1280x720" in content
 def test_transcoder_reports_missing_ffmpeg(monkeypatch, tmp_path):
     monkeypatch.setattr("video_worker.ffmpeg_tools.shutil.which", lambda _: None)
     source = tmp_path / "input.mp4"
