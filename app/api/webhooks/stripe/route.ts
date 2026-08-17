@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/checkout";
 import { dbQuery } from "@/lib/db";
 import { logCheckoutEvent } from "@/lib/security/audit-log";
+import { getClientIP } from "@/lib/security/rate-limit";
 import type Stripe from "stripe";
 
 import { logger } from "@/lib/logger";
@@ -45,10 +46,23 @@ async function getRawBody(req: Request): Promise<Buffer> {
 }
 
 export async function POST(req: Request) {
+  // 2026-08-17 (audit): cele 6 `webhook_fail` din `checkout_audit_log` aveau
+  // `client_ip` gol, așa că nu s-a putut stabili cine trimitea cereri cu
+  // semnătură invalidă. Folosim `getClientIP` — același helper ca restul
+  // rutelor (43 de fișiere) — nu o a treia variantă locală.
+  //
+  // NU citim `cf-connecting-ip`: e un header pe care oricine îl poate
+  // trimite direct către origine, iar `getClientIP` îl ignoră deliberat
+  // (vezi comentariul din lib/security/rate-limit.ts). Dovadă că helperul
+  // funcționează prin tunelul actual: `checkout_audit_log` conține
+  // 92.180.72.182 (IP public real) scris de app/api/checkout/route.ts:159,
+  // care folosește exact acest helper.
+  const clientIp = getClientIP(req);
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
     logger.error("[Stripe Webhook] STRIPE_WEBHOOK_SECRET is not configured");
     await logCheckoutEvent("webhook_fail", {
+      clientIp,
       error: "STRIPE_WEBHOOK_SECRET is not configured",
       payload: { stage: "configuration" },
     });
@@ -62,6 +76,7 @@ export async function POST(req: Request) {
     const signature = req.headers.get("stripe-signature");
     if (!signature) {
       await logCheckoutEvent("webhook_fail", {
+        clientIp,
         error: "Missing Stripe signature",
         payload: { stage: "signature" },
       });
@@ -71,6 +86,7 @@ export async function POST(req: Request) {
   } catch (err: unknown) {
     console.error("[Stripe Webhook] Signature verification failed:", err instanceof Error ? err.message : String(err));
     await logCheckoutEvent("webhook_fail", {
+      clientIp,
       error: (err instanceof Error && err.message) || "Signature verification failed",
       payload: { stage: "signature" },
     });
