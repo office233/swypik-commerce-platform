@@ -1,5 +1,149 @@
 #!/bin/bash
-set -e
-cd /opt/swypik/app
-git pull --ff-only 2>&1 | tail -1
-docker compose -f infra/hetzner/docker-compose.prod.yml -f infra/hetzner/docker-compose.vps.yml -f infra/hetzner/docker-compose.minio.yml --env-file infra/hetzner/.env.production up -d --build web-next 2>&1 | tail -3
+#
+# wsl-deploy-web.sh [serviciu...] — deploy pe producția din WSL (distro `swypik`).
+#
+# DE CE A FOST REFĂCUT (2026-08-17):
+#   Versiunea anterioară rula `up -d --build web-next` — UN SINGUR serviciu — și
+#   raporta succes. Consecință reală: fix-ul P1-01 (timeout ffmpeg, `video-worker`)
+#   a stat 2 zile în `main`, comis și pushed, fără să ruleze în producție. Nimic
+#   nu semnala asta: `git pull` zicea ok, containerul era `healthy`, site-ul 200.
+#   Același tipar se produsese pe 10 august (imagine veche de 22h după un deploy
+#   „reușit").
+#
+# CE FACE ACUM:
+#   - fără argumente  → rebuild TOATE serviciile care conțin cod din repo;
+#   - cu argumente    → rebuild doar serviciile cerute (validate față de listă);
+#   - afișează hash-ul imaginii ÎNAINTE și DUPĂ pentru fiecare serviciu;
+#   - iese cu cod ≠ 0 dacă vreun serviciu atins a rămas pe același hash.
+#
+#   Ultima regulă e esența: „a rulat fără eroare" nu înseamnă „a livrat cod nou".
+#   Docker reutilizează silent imaginea din cache dacă nu detectează schimbări,
+#   iar un `git pull` fără efect nu produce niciun avertisment.
+#
+# UTILIZARE:
+#   bash scripts/wsl-deploy-web.sh                       # tot codul de aplicație
+#   bash scripts/wsl-deploy-web.sh web-next              # doar frontend/API
+#   bash scripts/wsl-deploy-web.sh video-worker cron-worker
+#   NO_PULL=1 bash scripts/wsl-deploy-web.sh             # fără `git pull`
+#
+# EXIT: 0 = toate serviciile atinse au imagine nouă
+#       1 = cel puțin un serviciu a rămas pe același hash (deploy incomplet)
+#       2 = eroare de configurare/rulare
+
+set -uo pipefail
+
+APP_DIR=${APP_DIR:-/opt/swypik/app}
+cd "$APP_DIR" || { echo "EROARE: $APP_DIR inaccesibil" >&2; exit 2; }
+
+COMPOSE=(docker compose
+	-f infra/hetzner/docker-compose.prod.yml
+	-f infra/hetzner/docker-compose.vps.yml
+	-f infra/hetzner/docker-compose.minio.yml
+	--env-file infra/hetzner/.env.production)
+
+# Serviciile cu `build:` în compose — singurele care conțin cod din repo și deci
+# pot rămâne în urmă la un deploy parțial. Verificat 2026-08-17:
+#   web-next      → context /opt/swypik/app          (Next.js: app/, lib/, components/)
+#   platform-api  → context services/platform-api    (Go)
+#   video-worker  → context workers/video-worker     (Python: transcodare HLS)
+#   cron-worker   → context infra/hetzner/cron-worker (run.sh — declanșator de cron)
+# Restul sunt imagini externe pinned (postgres, redis, minio, mediamtx) sau
+# dezactivate prin `profiles: [disabled]` (caddy, pgbouncer) — nu se reconstruiesc.
+CODE_SERVICES=(web-next platform-api video-worker cron-worker)
+
+is_code_service() {
+	local s
+	for s in "${CODE_SERVICES[@]}"; do [[ "$s" == "$1" ]] && return 0; done
+	return 1
+}
+
+# --- ce reconstruim -----------------------------------------------------------
+if [[ $# -gt 0 ]]; then
+	TARGETS=("$@")
+	for t in "${TARGETS[@]}"; do
+		if ! is_code_service "$t"; then
+			echo "EROARE: '$t' nu e un serviciu cu cod de aplicație." >&2
+			echo "Disponibile: ${CODE_SERVICES[*]}" >&2
+			exit 2
+		fi
+	done
+else
+	TARGETS=("${CODE_SERVICES[@]}")
+fi
+
+echo "=== deploy: ${TARGETS[*]} ==="
+
+# --- git pull -----------------------------------------------------------------
+if [[ "${NO_PULL:-0}" != "1" ]]; then
+	BEFORE_SHA=$(git rev-parse --short HEAD)
+	git pull --ff-only 2>&1 | tail -2
+	AFTER_SHA=$(git rev-parse --short HEAD)
+	if [[ "$BEFORE_SHA" == "$AFTER_SHA" ]]; then
+		echo "NOTĂ: HEAD neschimbat ($AFTER_SHA) — codul era deja la zi sau nu s-a"
+		echo "      publicat nimic. Rebuild-ul continuă, dar dacă aștepți cod nou,"
+		echo "      verifică întâi că ai dat push."
+	else
+		echo "git: $BEFORE_SHA -> $AFTER_SHA"
+	fi
+else
+	echo "git pull sărit (NO_PULL=1). HEAD=$(git rev-parse --short HEAD)"
+fi
+
+# --- hash-uri înainte ---------------------------------------------------------
+# Un serviciu poate avea mai multe replici (video-worker are 3); ne uităm la
+# imaginea containerului, nu la tag — tagul poate rămâne identic peste un build nou.
+declare -A IMG_BEFORE
+container_for() {
+	"${COMPOSE[@]}" ps -q "$1" 2>/dev/null | head -1
+}
+image_of() {
+	local cid="$1"
+	[[ -n "$cid" ]] && docker inspect --format='{{.Image}}' "$cid" 2>/dev/null || echo "none"
+}
+
+echo
+echo "--- imagini ÎNAINTE ---"
+for svc in "${TARGETS[@]}"; do
+	IMG_BEFORE[$svc]=$(image_of "$(container_for "$svc")")
+	printf '  %-14s %s\n' "$svc" "${IMG_BEFORE[$svc]}"
+done
+
+# --- build --------------------------------------------------------------------
+echo
+echo "--- build + up ---"
+if ! "${COMPOSE[@]}" up -d --build "${TARGETS[@]}" 2>&1 | tail -12; then
+	echo "EROARE: docker compose up a eșuat." >&2
+	exit 2
+fi
+
+# --- hash-uri după + verdict --------------------------------------------------
+echo
+echo "--- imagini DUPĂ ---"
+FAILED=()
+for svc in "${TARGETS[@]}"; do
+	after=$(image_of "$(container_for "$svc")")
+	if [[ "$after" == "${IMG_BEFORE[$svc]}" ]]; then
+		printf '  %-14s %s  <-- NESCHIMBAT\n' "$svc" "$after"
+		FAILED+=("$svc")
+	else
+		printf '  %-14s %s  (era %s)\n' "$svc" "$after" "${IMG_BEFORE[$svc]:0:19}"
+	fi
+done
+
+echo
+echo "--- stare containere ---"
+"${COMPOSE[@]}" ps --format '  {{.Name}}: {{.Status}}' 2>/dev/null || docker ps --format '  {{.Names}}: {{.Status}}'
+
+if [[ ${#FAILED[@]} -gt 0 ]]; then
+	echo
+	echo ">>> DEPLOY INCOMPLET: hash identic pentru: ${FAILED[*]}"
+	echo "    Serviciile de mai sus rulează ACELAȘI cod ca înainte."
+	echo "    Cauze uzuale: (a) nu s-a publicat nimic nou (git push lipsă),"
+	echo "    (b) build cache — forțează:"
+	echo "        ${COMPOSE[*]} build --no-cache ${FAILED[*]}"
+	echo "        ${COMPOSE[*]} up -d --force-recreate ${FAILED[*]}"
+	exit 1
+fi
+
+echo
+echo ">>> OK: toate serviciile atinse rulează imagini noi."

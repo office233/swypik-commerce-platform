@@ -171,6 +171,95 @@ Ordinea recomandată la deploy:
 
 ---
 
+## 7b. Deploy pe producție (WSL) — și capcana deploy-ului parțial
+
+**Producția rulează în WSL local**, distro `swypik`, containere `swypik-prod-*`.
+Nu pe VPS extern. Repo-ul de deploy e `/opt/swypik/app`, un clone separat care
+trage din `origin` — deci **orice commit trebuie mai întâi `git push`**, altfel
+`git pull` de pe prod nu are ce aduce.
+
+```bash
+bash scripts/wsl-deploy-web.sh                    # tot codul de aplicație
+bash scripts/wsl-deploy-web.sh web-next           # doar un serviciu
+bash scripts/wsl-deploy-web.sh video-worker cron-worker
+NO_PULL=1 bash scripts/wsl-deploy-web.sh          # fără git pull
+```
+
+### Serviciile care conțin cod din repo
+
+Doar acestea au `build:` în compose și pot rămâne în urmă la un deploy parțial:
+
+| Serviciu | Context de build | Ce conține |
+| --- | --- | --- |
+| `web-next` | `/opt/swypik/app` | Next.js: `app/`, `lib/`, `components/`, rutele API |
+| `platform-api` | `services/platform-api` | Go: upload video, feed |
+| `video-worker` | `workers/video-worker` | Python: transcodare HLS (3 replici) |
+| `cron-worker` | `infra/hetzner/cron-worker` | `run.sh` — declanșatorul joburilor cron |
+
+Restul sunt imagini externe pinned (`postgres`, `redis`, `minio`, `mediamtx`) sau
+dezactivate prin `profiles: [disabled]` (`caddy`, `pgbouncer`). Nu se reconstruiesc.
+
+### ⚠️ Capcana: „deploy reușit" ≠ „cod nou în producție"
+
+Două incidente reale, același tipar:
+
+- **10 august** — `git pull` a raportat „Already up to date", dar imaginea
+  `web-next` era veche de 22 de ore. Commit-ul era pushed; containerul rula cod vechi.
+- **17 august** — deploy-ul a reconstruit corect `web-next`, dar scriptul de atunci
+  avea hardcodat `up -d --build web-next`. Fix-ul **P1-01** (timeout `ffmpeg`, care
+  împiedică blocarea întregii cozi de transcodare) stătea de 2 zile în `main`,
+  comis și pushed, **fără să ruleze**. Imaginea `video-worker` era din 10 august.
+
+De ce nu se observă: `git pull` reușește, `docker compose up` iese cu 0,
+containerul e `healthy`, site-ul răspunde 200. Niciun semnal de eroare.
+
+**Regula: singura dovadă că s-a livrat cod nou e schimbarea hash-ului imaginii.**
+Scriptul o verifică automat și iese cu cod ≠ 0 dacă vreun serviciu atins a rămas
+pe același hash. Nu te baza pe absența erorilor.
+
+### Verificare manuală după deploy
+
+```bash
+# hash + data imaginii
+docker inspect --format='{{.Image}} {{.Created}}' swypik-prod-web-next-1
+docker inspect --format='{{.Image}} {{.Created}}' swypik-prod-video-worker-1
+
+# build id-ul Next.js (se schimbă la fiecare build)
+docker exec swypik-prod-web-next-1 sh -c 'cat .next/BUILD_ID'
+
+# fix-ul e chiar în bundle? (exemplu: un string introdus de fix)
+docker exec swypik-prod-web-next-1 sh -c "grep -rl 'video_not_available' .next/server | head -3"
+
+# pentru workerii Python, verifică fișierul sursă din container
+docker exec swypik-prod-video-worker-1 sh -c "grep -n 'FFMPEG_TIMEOUT_SECONDS' /app/video_worker/ffmpeg_tools.py"
+```
+
+Dacă hash-ul a rămas identic, forțează:
+
+```bash
+cd /opt/swypik/app
+docker compose -f infra/hetzner/docker-compose.prod.yml \
+  -f infra/hetzner/docker-compose.vps.yml \
+  -f infra/hetzner/docker-compose.minio.yml \
+  --env-file infra/hetzner/.env.production \
+  build --no-cache <serviciu>
+```
+
+### Ordinea la un deploy cu migrație
+
+Migrația **înaintea** deploy-ului, dacă noul cod scrie valori pe care schema veche
+le respinge. Exemplu concret: `runCron` a început să scrie `status='skipped'` în
+`cron_runs`, valoare pe care `cron_runs_status_check` nu o accepta încă —
+deploy-ul înainte de migrație ar fi produs erori la fiecare skip.
+
+După orice migrație, resincronizează oglinda schemei:
+
+```bash
+bash scripts/db/check-schema-drift.sh --write && git add db/schema.sql
+```
+
+---
+
 ## 8. Note de securitate
 
 - Toți identificatorii publici (slug-uri, token-uri de claim) sunt generați cu
