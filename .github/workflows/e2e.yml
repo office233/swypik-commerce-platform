@@ -16,6 +16,11 @@ jobs:
     timeout-minutes: 15
     env:
       PLAYWRIGHT_BASE_URL: ${{ github.event.inputs.base_url || 'https://swypik.com' }}
+      # Din 2026-08-17, playwright.config.ts refuză producția fără acest flag.
+      # Aici e intenționat: jobul rulează DOAR proiectul `mobile` (tests/e2e),
+      # ale cărui spec-uri sunt read-only — a11y, seo, perf, homepage, search.
+      # Proiectele `full-*` (tests/e2e-full) fac signup real și NU sunt incluse.
+      ALLOW_PROD_E2E: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
