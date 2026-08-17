@@ -101,6 +101,11 @@ while true; do
     # Reconciliere on-chain <-> identitati: alerta pe adrese neetichetate care
     # primesc fonduri (transparenta user<->bani, 2026-08-09)
     run_job swyp-reconcile POST
+    # Sanatatea platilor: alerta cand se incearca si esueaza tot. Adaugat
+    # 2026-08-17 dupa ce prod a rulat cu chei Stripe placeholder 15 zile,
+    # 13 comenzi failed / 0 paid, fara ca nimeni sa observe. Cauza era deja
+    # in checkout_audit_log; lipsea doar cine s-o citeasca.
+    run_job checkout-health GET
   fi
   # Every 4 hours
   if [ $((TICK % 14400)) -lt 60 ]; then
