@@ -20,7 +20,7 @@ import { NextResponse } from "next/server";
 import { withErrorHandling } from "@/lib/api-handler";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
-import { dbQuery } from "@/lib/db";
+import { dbQuery, withTransaction } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { getOrCreateChainWallet, getPrivateKey } from "@/lib/swyp/wallet";
 import { submitUserTransfer, waitForChainReceipt, InsufficientChainBalanceError } from "@/lib/swyp/chain";
@@ -99,52 +99,82 @@ export const POST = withErrorHandling(async (req: Request) => {
         return NextResponse.json({ success: false, error: "wallet_unavailable" }, { status: 500 });
     }
 
-    const { rows } = await dbQuery<{ id: string }>(
-        `INSERT INTO swyp_p2p_transfers (user_id, from_address, to_address, amount_units)
-     VALUES ($1, $2, $3, $4) RETURNING id::text`,
-        [session.userId, wallet.address, toAddress, units.toString()],
-    );
-    const transferId = rows[0].id;
+    // P1-02: serializăm transferurile ACELUIAȘI user. Fără lock, două cereri
+    // concurente citeau amândouă același sold on-chain în `submitUserTransfer`
+    // (TOCTOU) și derivau ACELAȘI nonce prin `getTransactionCount` — una era
+    // respinsă cu "nonce too low", sau ambele treceau cu sold insuficient
+    // pentru a doua. Lock-ul e legat de tranzacția-santinelă: se eliberează
+    // garantat la COMMIT/ROLLBACK, deci nu rămâne blocat dacă procesul moare.
+    //
+    // Tranzacția ține DOAR lock-ul; scrierile de stare merg prin `dbQuery` pe
+    // alte conexiuni, ca să fie vizibile imediat (hash-ul persistat înainte de
+    // wait rămâne recuperabil chiar dacă santinela cade).
+    return withTransaction(async (q) => {
+        await q(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`swyp_p2p:${session.userId}`]);
 
-    let txHash: `0x${string}` | null = null;
-    try {
-        txHash = await submitUserTransfer(pk as `0x${string}`, toAddress as `0x${string}`, wei);
-        await dbQuery(
-            `UPDATE swyp_p2p_transfers SET status='submitted', tx_hash=$2, updated_at=now() WHERE id=$1`,
-            [transferId, txHash],
+        const { rows } = await dbQuery<{ id: string }>(
+            `INSERT INTO swyp_p2p_transfers (user_id, from_address, to_address, amount_units)
+     VALUES ($1, $2, $3, $4) RETURNING id::text`,
+            [session.userId, wallet.address, toAddress, units.toString()],
         );
-        await waitForChainReceipt(txHash);
-        await dbQuery(
-            `UPDATE swyp_p2p_transfers SET status='sent', updated_at=now() WHERE id=$1`,
-            [transferId],
-        );
-        logger.info({ userId: session.userId, transferId, txHash, toAddress }, "swyp.transfer.sent");
-        return NextResponse.json({
-            success: true,
-            txHash,
-            recipient: recipientUsername,
-            explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}`,
-        });
-    } catch (err) {
-        if (txHash) {
-            // emisă dar neconfirmată în timeout — rămâne 'submitted', nu e eșec
-            logger.error({ err, transferId, txHash }, "swyp.transfer.receipt_timeout");
+        const transferId = rows[0].id;
+
+        let txHash: `0x${string}` | null = null;
+        try {
+            txHash = await submitUserTransfer(pk as `0x${string}`, toAddress as `0x${string}`, wei);
+            await dbQuery(
+                `UPDATE swyp_p2p_transfers SET status='submitted', tx_hash=$2, updated_at=now() WHERE id=$1`,
+                [transferId, txHash],
+            );
+
+            // P1-02: o tranzacție poate fi minată ȘI `reverted`. Înainte, orice
+            // receipt însemna succes, deci transferul se marca 'sent' chiar dacă
+            // on-chain eșuase — userul vedea confirmare pentru bani netrimiși.
+            const receipt = await waitForChainReceipt(txHash);
+            if (receipt.status !== "success") {
+                await dbQuery(
+                    `UPDATE swyp_p2p_transfers SET status='failed', error='reverted', updated_at=now() WHERE id=$1`,
+                    [transferId],
+                );
+                logger.error({ transferId, txHash, status: receipt.status }, "swyp.transfer.reverted");
+                return NextResponse.json(
+                    { success: false, error: "tx_reverted", txHash, explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}` },
+                    { status: 502 },
+                );
+            }
+
+            await dbQuery(
+                `UPDATE swyp_p2p_transfers SET status='sent', updated_at=now() WHERE id=$1`,
+                [transferId],
+            );
+            logger.info({ userId: session.userId, transferId, txHash, toAddress }, "swyp.transfer.sent");
             return NextResponse.json({
                 success: true,
-                pending: true,
                 txHash,
+                recipient: recipientUsername,
                 explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}`,
             });
+        } catch (err) {
+            if (txHash) {
+                // emisă dar neconfirmată în timeout — rămâne 'submitted', nu e eșec
+                logger.error({ err, transferId, txHash }, "swyp.transfer.receipt_timeout");
+                return NextResponse.json({
+                    success: true,
+                    pending: true,
+                    txHash,
+                    explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}`,
+                });
+            }
+            const reason = err instanceof InsufficientChainBalanceError ? "insufficient_chain_balance" : "chain_failed";
+            await dbQuery(
+                `UPDATE swyp_p2p_transfers SET status='failed', error=$2, updated_at=now() WHERE id=$1`,
+                [transferId, reason],
+            );
+            logger.error({ err, transferId }, "swyp.transfer.failed");
+            const status = reason === "insufficient_chain_balance" ? 400 : 502;
+            return NextResponse.json({ success: false, error: reason }, { status });
         }
-        const reason = err instanceof InsufficientChainBalanceError ? "insufficient_chain_balance" : "chain_failed";
-        await dbQuery(
-            `UPDATE swyp_p2p_transfers SET status='failed', error=$2, updated_at=now() WHERE id=$1`,
-            [transferId, reason],
-        );
-        logger.error({ err, transferId }, "swyp.transfer.failed");
-        const status = reason === "insufficient_chain_balance" ? 400 : 502;
-        return NextResponse.json({ success: false, error: reason }, { status });
-    }
+    });
 });
 
 export const GET = withErrorHandling(async () => {

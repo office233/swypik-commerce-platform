@@ -7,7 +7,7 @@
  *
  * Cheia trezoreriei stă DOAR pe server (env), nu în repo.
  */
-import { createPublicClient, createWalletClient, http, defineChain } from "viem";
+import { createPublicClient, createWalletClient, http, defineChain, type TransactionReceipt } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { SWYP_CHAIN_ID, SWYP_CHAIN_NAME, SWYP_NATIVE_CURRENCY, SWYP_EXPLORER_URL } from "./chain-public";
 
@@ -46,10 +46,12 @@ export function unitsToWei(units: bigint): bigint {
 /**
  * Trimite SWYP nativ din trezoreria REWARDS către o adresă.
  * Returnează hash-ul tranzacției după includere în bloc.
+ * Aruncă `ChainTxRevertedError` dacă tranzacția a fost minată dar a eșuat.
  */
 export async function sendFromTreasury(to: `0x${string}`, units: bigint): Promise<`0x${string}`> {
     const hash = await submitFromTreasury(to, units);
-    await waitForChainReceipt(hash);
+    const receipt = await waitForChainReceipt(hash);
+    if (receipt.status !== "success") throw new ChainTxRevertedError(hash);
     return hash;
 }
 
@@ -64,10 +66,17 @@ export async function submitFromTreasury(to: `0x${string}`, units: bigint): Prom
     return wallet.sendTransaction({ to, value: unitsToWei(units) });
 }
 
-/** Așteaptă includerea în bloc (blocuri la 5s). */
-export async function waitForChainReceipt(hash: `0x${string}`): Promise<void> {
+/**
+ * Așteaptă includerea în bloc (blocuri la 5s) și RETURNEAZĂ receipt-ul.
+ *
+ * P1-02: versiunea anterioară arunca receipt-ul, deci apelanții nu puteau
+ * distinge o tranzacție minată cu succes de una minată dar `reverted` — ambele
+ * ajungeau pe calea de succes și se marcau `sent`. Folosiți `receipt.status`
+ * (`"success"` / `"reverted"`) înainte de a declara transferul reușit.
+ */
+export async function waitForChainReceipt(hash: `0x${string}`): Promise<TransactionReceipt> {
     const timeout = Number(process.env.SWYP_CHAIN_RECEIPT_TIMEOUT_MS ?? 30_000);
-    await publicClient().waitForTransactionReceipt({ hash, timeout });
+    return publicClient().waitForTransactionReceipt({ hash, timeout });
 }
 
 /** Soldul on-chain al unei adrese, în wei. */
@@ -106,5 +115,13 @@ export class InsufficientChainBalanceError extends Error {
     constructor(public balance: bigint, public required: bigint) {
         super("sold on-chain insuficient (suma + gas)");
         this.name = "InsufficientChainBalanceError";
+    }
+}
+
+/** Tranzacție inclusă în bloc, dar cu `status: "reverted"`. */
+export class ChainTxRevertedError extends Error {
+    constructor(public readonly hash: `0x${string}`) {
+        super(`tranzacție reverted on-chain: ${hash}`);
+        this.name = "ChainTxRevertedError";
     }
 }

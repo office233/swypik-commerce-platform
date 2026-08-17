@@ -85,7 +85,23 @@ export const POST = withErrorHandling(async (req: Request) => {
             `UPDATE swyp_withdrawals SET status='submitted', tx_hash=$2 WHERE id=$1`,
             [withdrawalId, txHash],
         );
-        await waitForChainReceipt(txHash);
+        // P1-02: o tranzacție minată poate avea `status: "reverted"`. Fără
+        // verificare, retragerea se marca 'sent' și userul primea confirmare
+        // deși SWYP-ul nu ajunsese în portofel — iar soldul intern rămânea
+        // debitat. Aici NU refundăm automat: tx-ul e pe chain și reconcilierea
+        // decide (aceeași prudență ca la timeout).
+        const receipt = await waitForChainReceipt(txHash);
+        if (receipt.status !== "success") {
+            await dbQuery(
+                `UPDATE swyp_withdrawals SET status='failed', error='reverted', completed_at=now() WHERE id=$1`,
+                [withdrawalId],
+            );
+            logger.error({ withdrawalId, txHash, status: receipt.status }, "swyp.withdraw.reverted");
+            return NextResponse.json(
+                { success: false, error: "tx_reverted", txHash, explorerUrl: `${SWYP_EXPLORER_URL}/tx/${txHash}` },
+                { status: 502 },
+            );
+        }
         await dbQuery(
             `UPDATE swyp_withdrawals SET status='sent', tx_hash=$2, completed_at=now() WHERE id=$1`,
             [withdrawalId, txHash],
