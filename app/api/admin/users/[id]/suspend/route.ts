@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { getDb } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,12 +63,27 @@ export async function POST(
         ]
       );
       await client.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [id]);
-      await client.query(`DELETE FROM seller_sessions WHERE seller_id IN (SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`, [id]).catch(()=>{});
+      // 2026-08-15 (audit, CRITIC): aici era `.catch(()=>{})`. Dacă ștergerea
+      // sesiunilor de vânzător eșua, eroarea era înghițită — dar Postgres
+      // marchează tranzacția ca „aborted", deci COMMIT-ul următor eșua oricum.
+      // Rezultatul era o suspendare parțială raportată ca succes: utilizator
+      // „suspendat" în UI, dar cu sesiunea de vânzător încă activă.
+      // Revocarea sesiunilor face parte din actul de suspendare — dacă pică,
+      // întreaga operație trebuie anulată.
+      await client.query(`DELETE FROM seller_sessions WHERE seller_id IN (SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`, [id]);
       await client.query("COMMIT");
     } catch (e) {
-      try { await client.query("ROLLBACK"); } catch {}
+      // ROLLBACK-ul e best-effort: dacă și el eșuează (conexiune pierdută),
+      // nu vrem să mascăm eroarea originală, care e cea relevantă.
+      try { await client.query("ROLLBACK"); } catch { /* eroarea originală se propagă mai jos */ }
       throw e;
     }
+  } catch (e) {
+    logger.error({ err: e, userId: id }, "[admin/users/suspend] suspendare eșuată — tranzacție anulată");
+    return NextResponse.json(
+      { error: "Suspendarea nu a putut fi finalizată. Nicio modificare nu a fost aplicată." },
+      { status: 500 },
+    );
   } finally {
     client.release();
   }

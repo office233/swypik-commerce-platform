@@ -2,6 +2,7 @@ import { dbQuery } from "@/lib/db";
 import { PLATFORM_COMMISSION_BPS, applyBps } from "@/lib/config/commerce";
 import { sendSellerNewOrderAlert } from "@/lib/email/service";
 import { logger } from "@/lib/logger";
+import { notifyOps } from "@/lib/ops/alerts";
 
 const log = logger.child({ service: "order-router" });
 
@@ -34,6 +35,9 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
 
   const updates: Promise<any>[] = [];
 
+  /** Iteme plătite pentru care nu există cheie de corelare — vezi alerta de mai jos. */
+  const orphanItems: OrderItem[] = [];
+
   for (const item of items) {
     const sellerId = item.metadata?.seller_id;
     const source = item.metadata?.source || "manual";
@@ -60,7 +64,27 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
     const stripeLineItemId = (item as any).id || item.metadata?.stripe_line_item_id || null;
 
     if (!externalLineItemId && !stripeLineItemId) {
-      console.warn(`[Order Router] item missing both external_line_item_id key and stripe_line_item_id — skipping update`, { orderId, title: item.title });
+      // 2026-08-15 (audit, ÎNALT): aici era `console.warn` + `continue`.
+      // Itemul e DEJA PLĂTIT (routeOrder rulează după confirmarea Stripe), dar
+      // fără cheie de corelare nu-i putem seta `source_status` → rămâne orfan:
+      // clientul a plătit, produsul nu pleacă spre niciun seller și nimeni nu
+      // află. Un `console.warn` într-un log rotit nu e un mecanism de alertare.
+      // Acum: log critic structurat + alertă ops persistată în `ops_alert_log`
+      // (DLQ-ul nostru) și trimisă pe webhook, cu tot ce trebuie pentru
+      // reconciliere manuală.
+      orphanItems.push(item);
+      log.error(
+        {
+          order_id: orderId,
+          title: item.title,
+          product_id: item.productId,
+          sku_id: item.skuId ?? null,
+          quantity: item.quantity,
+          price: item.price,
+          seller_id: sellerId ?? null,
+        },
+        "ITEM PLĂTIT ORFAN: lipsesc și external_line_item_id, și stripe_line_item_id — necesită reconciliere manuală",
+      );
       continue;
     }
 
@@ -106,10 +130,57 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
     updates.push(dbQuery(query, params));
   }
 
+  // Alertă unică per comandă, nu una per item — cooldown-ul din notifyOps e pe
+  // `key`, iar orderId e stabil, deci reîncercările nu spamează canalul.
+  if (orphanItems.length > 0) {
+    await notifyOps({
+      key: `order_orphan_items:${orderId}`,
+      severity: "critical",
+      title: `Comandă plătită cu ${orphanItems.length} item(e) orfan(e)`,
+      detail:
+        `Comanda ${orderId} conține iteme fără external_line_item_id și fără ` +
+        `stripe_line_item_id. Nu li s-a putut seta source_status, deci NU vor ` +
+        `ajunge la niciun seller și nu apar în coada manuală de fulfillment.\n\n` +
+        orphanItems
+          .map((it) => `• ${it.title} ×${it.quantity} (product_id=${it.productId})`)
+          .join("\n"),
+      link: `/admin/orders/${orderId}`,
+      payload: {
+        order_id: orderId,
+        orphan_count: orphanItems.length,
+        items: orphanItems.map((it) => ({
+          title: it.title,
+          product_id: it.productId,
+          sku_id: it.skuId ?? null,
+          quantity: it.quantity,
+          price: it.price,
+        })),
+      },
+    }).catch((err) => {
+      // Alerta nu trebuie să arunce mai departe — comanda e deja plătită și
+      // restul rutării trebuie să continue. Dar eșecul ei se loghează.
+      log.error({ err, order_id: orderId }, "nu am putut trimite alerta pentru iteme orfane");
+    });
+  }
+
   try {
     await Promise.all(updates);
   } catch (dbErr) {
-    console.error(`[Order Router] Error updating source_status for items`, dbErr);
+    // 2026-08-15 (audit): eșecul aici lasă itemele fără `source_status`, deci
+    // invizibile pentru fulfillment — aceeași consecință ca itemele orfane.
+    log.error({ err: dbErr, order_id: orderId }, "eșec la actualizarea source_status — iteme posibil neprocesate");
+    await notifyOps({
+      key: `order_status_update_failed:${orderId}`,
+      severity: "critical",
+      title: "Eșec la marcarea itemelor unei comenzi plătite",
+      detail:
+        `UPDATE-ul de source_status a eșuat pentru comanda ${orderId}. ` +
+        `Itemele pot rămâne neprocesate. Verifică manual starea comenzii.`,
+      link: `/admin/orders/${orderId}`,
+      payload: { order_id: orderId, error: String(dbErr) },
+    }).catch((err) => {
+      log.error({ err, order_id: orderId }, "nu am putut trimite alerta pentru eșecul de update");
+    });
   }
 
   let customerName = 'X';

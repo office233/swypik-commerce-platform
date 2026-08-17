@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { getDb } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +43,13 @@ export async function POST(
       if (oldRole !== role) {
         await client.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [id]);
         if (oldRole === "seller") {
-          await client.query(`DELETE FROM seller_sessions WHERE seller_id IN (SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`, [id]).catch(()=>{});
+          // 2026-08-15 (audit, CRITIC): aici era `.catch(()=>{})`. La
+          // retrogradarea unui vânzător, dacă ștergerea sesiunilor eșua,
+          // eroarea dispărea — iar utilizatorul rămânea cu o sesiune de
+          // vânzător validă deși nu mai avea rolul. Escaladare de privilegii
+          // persistentă. Revocarea e parte din schimbarea de rol: dacă pică,
+          // rolul NU trebuie schimbat.
+          await client.query(`DELETE FROM seller_sessions WHERE seller_id IN (SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`, [id]);
         }
       }
       await client.query(
@@ -57,9 +64,16 @@ export async function POST(
       await client.query("COMMIT");
       return NextResponse.json({ ok: true, role });
     } catch (e) {
-      try { await client.query("ROLLBACK"); } catch {}
+      // ROLLBACK best-effort; eroarea originală rămâne cea propagată.
+      try { await client.query("ROLLBACK"); } catch { /* vezi catch-ul de mai jos */ }
       throw e;
     }
+  } catch (e) {
+    logger.error({ err: e, userId: id, role }, "[admin/users/role] schimbare de rol eșuată — tranzacție anulată");
+    return NextResponse.json(
+      { error: "Rolul nu a putut fi schimbat. Nicio modificare nu a fost aplicată." },
+      { status: 500 },
+    );
   } finally {
     client.release();
   }
