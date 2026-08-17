@@ -75,6 +75,37 @@ fi
 
 echo "=== deploy: ${TARGETS[*]} ==="
 
+# --- 3.2 git pull + re-exec ---------------------------------------------------
+# Scriptul se auto-actualizează prin `git pull`, dar bash citește fișierul o
+# singură dată, la pornire. Consecință reală (17 august): prima rulare a
+# versiunii noi a executat de fapt versiunea VECHE (`--build web-next`), a
+# raportat exit 0 și a lăsat 3 din 4 servicii nereconstruite — exact eroarea pe
+# care versiunea nouă fusese scrisă să o prevină.
+#
+# Fix: după pull, dacă scriptul s-a schimbat, ne re-executăm o singură dată.
+# `DEPLOY_REEXEC` previne bucla infinită: a doua instanță nu mai face pull.
+if [[ "${NO_PULL:-0}" != "1" && "${DEPLOY_REEXEC:-0}" != "1" ]]; then
+	BEFORE_SHA=$(git rev-parse --short HEAD)
+	SELF_HASH_BEFORE=$(sha256sum "$0" 2>/dev/null | cut -d' ' -f1)
+	git pull --ff-only 2>&1 | tail -2
+	AFTER_SHA=$(git rev-parse --short HEAD)
+	SELF_HASH_AFTER=$(sha256sum "$0" 2>/dev/null | cut -d' ' -f1)
+
+	if [[ "$BEFORE_SHA" == "$AFTER_SHA" ]]; then
+		echo "NOTĂ: HEAD neschimbat ($AFTER_SHA) — codul era deja la zi sau nu s-a"
+		echo "      publicat nimic. Rebuild-ul continuă, dar dacă aștepți cod nou,"
+		echo "      verifică întâi că ai dat push."
+	else
+		echo "git: $BEFORE_SHA -> $AFTER_SHA"
+	fi
+
+	if [[ "$SELF_HASH_BEFORE" != "$SELF_HASH_AFTER" ]]; then
+		echo ">>> scriptul de deploy s-a actualizat — repornesc cu versiunea nouă"
+		export DEPLOY_REEXEC=1
+		exec bash "$0" "$@"
+	fi
+fi
+
 # --- 3.1 verificare spațiu ----------------------------------------------------
 # INCIDENT 2026-08-17: discul gazdă s-a umplut în timpul unui rebuild (cache-ul
 # BuildKit ajunsese la 64 GB). VHDX-ul WSL nu a mai putut scrie, filesystem-ul
@@ -116,20 +147,10 @@ if [[ "${PRUNE:-0}" == "1" ]]; then
 	docker builder prune -af 2>&1 | tail -2
 fi
 
-# --- git pull -----------------------------------------------------------------
-if [[ "${NO_PULL:-0}" != "1" ]]; then
-	BEFORE_SHA=$(git rev-parse --short HEAD)
-	git pull --ff-only 2>&1 | tail -2
-	AFTER_SHA=$(git rev-parse --short HEAD)
-	if [[ "$BEFORE_SHA" == "$AFTER_SHA" ]]; then
-		echo "NOTĂ: HEAD neschimbat ($AFTER_SHA) — codul era deja la zi sau nu s-a"
-		echo "      publicat nimic. Rebuild-ul continuă, dar dacă aștepți cod nou,"
-		echo "      verifică întâi că ai dat push."
-	else
-		echo "git: $BEFORE_SHA -> $AFTER_SHA"
-	fi
-else
+if [[ "${NO_PULL:-0}" == "1" ]]; then
 	echo "git pull sărit (NO_PULL=1). HEAD=$(git rev-parse --short HEAD)"
+elif [[ "${DEPLOY_REEXEC:-0}" == "1" ]]; then
+	echo "(rulare re-executată după actualizarea scriptului; HEAD=$(git rev-parse --short HEAD))"
 fi
 
 # --- hash-uri înainte ---------------------------------------------------------
