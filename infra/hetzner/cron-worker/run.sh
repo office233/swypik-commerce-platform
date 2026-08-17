@@ -110,6 +110,12 @@ while true; do
   # Every 4 hours
   if [ $((TICK % 14400)) -lt 60 ]; then
     run_job abandoned-cart POST
+    # Detector de tacere pe backup: alerteaza daca nu a mai venit niciun raport
+    # de backup reusit de peste 48h. Adaugat 2026-08-17, dupa ce backup-ul a
+    # stat rupt 15 zile (bit de executie pierdut la git pull) fara ca nimic sa
+    # semnaleze. Scriptul care nu porneste nu poate raporta ca a esuat --
+    # singurul semnal ramas e absenta heartbeat-ului.
+    run_job backup-report GET
   fi
   # Weekly Monday 09:00 — email digest
   DOW=$(date -u +%u); HOUR=$(date -u +%H); MIN=$(date -u +%M)
