@@ -245,23 +245,32 @@ export async function rateLimit(
 
 /**
  * Extract client IP from request headers.
- * Caddy sets X-Real-IP from the connecting peer — that's non-spoofable.
- * If X-Real-IP is absent (non-prod / direct connections), fall back to the LAST
- * hop in X-Forwarded-For (the IP closest to our proxy), never the first
- * (which a remote client can prepend).
- */
-/**
- * Extract client IP from request headers.
  *
- * Caddy is the only ingress; it strips client-sent X-Real-IP / X-Forwarded-For /
- * CF-Connecting-IP / True-Client-IP at the site level, then re-sets them
- * upstream from Caddy's own `{client_ip}` (non-spoofable).
+ * PREMISA DE SECURITATE: ingress-ul suprascrie `X-Real-IP` cu adresa reală a
+ * conexiunii, deci valoarea trimisă de client e înlocuită, nu păstrată.
  *
- * We therefore TRUST only X-Real-IP. CF-Connecting-IP is intentionally ignored
- * because production traffic does NOT go through Cloudflare — accepting it would
- * re-introduce the rate-limit bypass that was closed in the Caddyfile (2026-05-20).
- * X-Forwarded-For is used only as a last-resort fallback for dev / direct calls
- * (when running outside Caddy); we take the LAST hop, never the first.
+ * ATENȚIE — GARANTUL S-A SCHIMBAT (actualizat 2026-08-17):
+ *   Comentariul anterior spunea că garantul e Caddy. Caddy NU mai rulează
+ *   (`profiles: [disabled]` în docker-compose.prod.yml). Ingress-ul de azi e
+ *   `cloudflared` (proces de sistem, tunel → 127.0.0.1:3005), care setează el
+ *   însuși `X-Real-IP` — comportament implicit, nu configurat: config.yml n-are
+ *   nicio directivă de headere.
+ *
+ *   Verificat empiric 2026-08-17: două cereri prin tunel către o rută
+ *   rate-limitată, cu `X-Real-IP` falsificat diferit (203.0.113.7 și
+ *   198.51.100.9), au produs în Redis o SINGURĂ cheie —
+ *   `rl:local:geoSearch:<IP real>`. Spoofing-ul nu trece.
+ *
+ *   ORICE SCHIMBARE DE INGRESS (nginx, expunere directă, alt tunel) TREBUIE SĂ
+ *   PĂSTREZE ACEASTĂ GARANȚIE. Altfel rate-limit-ul devine ocolibil de oricine
+ *   trimite un `X-Real-IP` fals, fără ca nimic să semnaleze regresia.
+ *
+ * CF-Connecting-IP e ignorat deliberat: traficul de producție nu trece prin
+ * Cloudflare ca reverse-proxy HTTP care să-l valideze, deci ar fi un header
+ * pe care oricine ajunge la origine îl poate inventa (bypass închis 2026-05-20).
+ * X-Forwarded-For e doar fallback pentru dev / apeluri directe; luăm ULTIMUL
+ * hop (cel mai apropiat de proxy-ul nostru), niciodată primul — pe acela un
+ * client remote îl poate prefixa.
  */
 export function getClientIP(req: Request): string {
   const real = req.headers.get("x-real-ip");

@@ -87,11 +87,16 @@ export async function idempotencyRelease(key: string): Promise<void> {
 export function clientIp(req: Request): string {
   const h = (req as any).headers;
   if (!h) return "unknown";
-  // Prefer X-Real-IP (set by Caddy from its own connection — not spoofable).
+  // Preferăm X-Real-IP: ingress-ul îl suprascrie cu adresa reală a conexiunii,
+  // deci nu e spoofabil. Garantul e `cloudflared` de la dezactivarea lui Caddy
+  // — vezi explicația detaliată și dovada empirică din
+  // lib/security/rate-limit.ts (getClientIP), sursa de adevăr pentru premisa
+  // asta. Helperul de acolo e folosit în 43 de fișiere; ăsta, în 7. Pentru cod
+  // nou preferă `getClientIP` — sunt logic identici, iar duplicarea e istorică.
   const real = h.get?.("x-real-ip");
   if (real) return String(real).trim();
-  // Fallback: take the LAST hop in XFF (the IP closest to our trusted proxy),
-  // not the first (which an attacker can prepend).
+  // Fallback: ULTIMUL hop din XFF (cel mai apropiat de proxy-ul de încredere),
+  // niciodată primul — pe acela un atacator îl poate prefixa.
   const xff = h.get?.("x-forwarded-for") || h.get?.("X-Forwarded-For");
   if (xff) {
     const parts = String(xff).split(",").map((s) => s.trim()).filter(Boolean);
