@@ -172,12 +172,41 @@ for svc in "${TARGETS[@]}"; do
 	printf '  %-14s %s\n' "$svc" "${IMG_BEFORE[$svc]}"
 done
 
-# --- build --------------------------------------------------------------------
+# --- 3.3 build SECVENȚIAL -----------------------------------------------------
+# Un serviciu pe rând, nu `up -d --build svc1 svc2 svc3`.
+# Motiv (17 august): rebuild-ul simultan al celor 4 servicii a produs un vârf de
+# consum pe disc (fiecare build își are propriul context + layere intermediare),
+# care a umplut partiția gazdă. Secvențial, vârful e ~o pătrime, iar dacă
+# spațiul se termină, se oprește la primul serviciu — celelalte rămân intacte.
+# În plus, la eșec știm exact CARE serviciu a picat.
 echo
-echo "--- build + up ---"
-if ! "${COMPOSE[@]}" up -d --build "${TARGETS[@]}" 2>&1 | tail -12; then
-	echo "EROARE: docker compose up a eșuat." >&2
-	exit 2
+echo "--- build + up (secvențial) ---"
+BUILD_FAILED=()
+for svc in "${TARGETS[@]}"; do
+	echo
+	echo "  [$svc] build..."
+	# Verificăm spațiul înaintea FIECĂRUI serviciu: un build poate consuma
+	# zeci de GB, iar pragul putea fi trecut de build-ul precedent.
+	free_kb=$(df --output=avail -k "$DOCKER_ROOT" 2>/dev/null | tail -1 | tr -d ' ')
+	if [[ -n "$free_kb" ]] && (( free_kb < MIN_FREE_GB * 1024 * 1024 )); then
+		echo "  [$svc] OPRIT: spațiu sub ${MIN_FREE_GB} GB după build-urile precedente." >&2
+		BUILD_FAILED+=("$svc")
+		break
+	fi
+
+	out=$("${COMPOSE[@]}" up -d --build "$svc" 2>&1)
+	rc=$?
+	echo "$out" | tail -8
+	if (( rc != 0 )); then
+		echo "  [$svc] EȘEC (rc=$rc)" >&2
+		BUILD_FAILED+=("$svc")
+	fi
+done
+
+if (( ${#BUILD_FAILED[@]} > 0 )); then
+	echo
+	echo ">>> BUILD EȘUAT pentru: ${BUILD_FAILED[*]}" >&2
+	echo "    Serviciile de mai sus rulează în continuare imaginea veche." >&2
 fi
 
 # --- hash-uri după + verdict --------------------------------------------------
