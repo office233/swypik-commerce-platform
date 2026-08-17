@@ -4,6 +4,82 @@ Ghid operațional: variabile de mediu, chei, cron, webhook-uri Stripe, migrări.
 
 ---
 
+## 0. Cum se face deploy (și de ce arată așa scriptul)
+
+```bash
+wsl -d swypik -e bash /opt/swypik/app/scripts/wsl-deploy-web.sh            # tot codul
+wsl -d swypik -e bash /opt/swypik/app/scripts/wsl-deploy-web.sh web-next   # un serviciu
+PRUNE=1 bash scripts/wsl-deploy-web.sh                                     # curăță cache-ul întâi
+MIN_FREE_GB=20 bash scripts/wsl-deploy-web.sh                              # prag de spațiu mai strict
+NO_PULL=1 bash scripts/wsl-deploy-web.sh                                   # fără git pull
+```
+
+Coduri de ieșire: `0` toate serviciile au imagine nouă · `1` deploy incomplet
+(hash identic) · `2` eroare de configurare, spațiu insuficient sau build eșuat.
+
+### Servicii cu cod de aplicație
+
+| Serviciu | Context build | Conținut |
+| --- | --- | --- |
+| `web-next` | `/opt/swypik/app` | Next.js: `app/`, `lib/`, `components/` |
+| `platform-api` | `services/platform-api` | Go |
+| `video-worker` | `workers/video-worker` | Python, transcodare HLS |
+| `cron-worker` | `infra/hetzner/cron-worker` | `run.sh`, declanșator de cron |
+
+Restul (`postgres`, `redis`, `minio`, `mediamtx`) sunt imagini externe pinned;
+`caddy` și `pgbouncer` sunt dezactivate prin `profiles: [disabled]`.
+
+### Trei capcane care ne-au costat producția
+
+**1. Deploy parțial raportat ca succes** (10 și 17 august)
+Scriptul rula `up -d --build web-next` — un singur serviciu. Fix-ul P1-01
+(timeout ffmpeg în `video-worker`) a stat 2 zile în `main`, comis și pushed,
+fără să ruleze în producție. Nimic nu semnala asta.
+*Acum:* rebuild pentru toate serviciile cu cod, cu hash-ul imaginii comparat
+înainte/după și `exit 1` dacă vreunul a rămas identic.
+
+**2. Scriptul care se auto-actualizează** (17 august)
+`git pull` e în interiorul scriptului, dar bash citește fișierul o singură dată
+la pornire. Prima rulare a versiunii noi a executat de fapt versiunea *veche*
+adusă de propriul pull, a raportat `exit 0` și a lăsat 3 din 4 servicii
+nereconstruite — exact eroarea pe care versiunea nouă o prevenea.
+*Acum:* se compară `sha256` al scriptului înainte/după pull și, dacă s-a
+schimbat, se face `exec` o singură dată (`DEPLOY_REEXEC=1` previne bucla).
+
+**3. Discul plin → producție căzută** (17 august, ~40 min downtime)
+Cache-ul BuildKit ajunsese la **64,81 GB** (63,67 recuperabili, 0 activ).
+Rebuild-ul paralel al celor 4 servicii a consumat ultimii GB de pe `D:`.
+VHDX-ul WSL nu a mai putut crește → filesystem-ul distro-ului s-a remontat
+`emergency_ro` → binarele au început să dea `Input/output error` → daemonul
+Docker a murit → **502 pe swypik.com**.
+
+Capcana specifică: `df` din interiorul WSL raporta **885 GB liberi** în timp ce
+partiția gazdă avea **0,03 GB**. VHDX-ul crește dinamic, deci spațiul văzut din
+distro nu spune nimic despre spațiul real.
+
+*Acum:* scriptul verifică ambele niveluri (`DockerRootDir` **și** `/mnt/d`) și
+refuză să pornească sub 10 GB; build secvențial, cu recheck între servicii.
+
+*Recuperare, dacă se repetă:* eliberează spațiu pe gazdă, apoi `wsl --shutdown`
+și repornește distro-ul — `emergency_ro` nu dispare de la sine, oricât spațiu
+ai elibera între timp. Containerele au `restart: unless-stopped` și revin singure.
+
+*Notă:* după acel incident, layerele imaginii `golang` scrise în `emergency_ro`
+au rămas cu binare de 0 bytes. Dacă un build Go eșuează cu
+`"/bin/api": not found`, verifică întâi `docker run --rm golang:<tag> go version`.
+
+### Igienă periodică
+
+```bash
+docker system df                 # cât ocupă imagini / volume / build cache
+docker builder prune -af         # cache-ul de build crește nelimitat implicit
+```
+
+Cache-ul de build nu are limită implicită și a fost cauza-rădăcină a
+incidentului. Merită rulat lunar sau după o serie de rebuild-uri.
+
+---
+
 ## 1. Verificarea configurației
 
 Înainte de orice deploy:
