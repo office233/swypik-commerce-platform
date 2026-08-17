@@ -16,7 +16,7 @@
  * ca bigint — fără floating point pe bani.
  */
 import { dbQuery, withTransaction } from "@/lib/db";
-import { swypTransfer } from "./ledger";
+import { swypTransferInTx } from "./ledger";
 import { logger } from "@/lib/logger";
 
 const log = logger.child({ mod: "swyp/valuation" });
@@ -179,88 +179,77 @@ export async function redeemSwypForPayment(args: {
     const needUnits = centsToUnits(BigInt(args.cents), rate);
     if (needUnits <= 0n) return { ok: false, reason: "no_rate" };
 
-    // Debit-first, atomic: check + debit fond în ACEEAȘI tranzacție cu FOR UPDATE
-    // (fix TOCTOU: două redeem-uri concurente nu mai pot trece amândouă de check).
-    let fundDebited = false;
-    const guard = await withTransaction(async (q) => {
-        const { rows: fund } = await q<{ balance_cents: string }>(
-            `SELECT balance_cents FROM swyp_backing_fund WHERE id = 1 FOR UPDATE`,
-        );
-        const balance = BigInt(fund[0]?.balance_cents ?? "0");
-        if (balance < BigInt(args.cents)) {
-            return { reason: "insufficient_fund" as const };
-        }
-        // Rezerva anti-run: redeem-ul nu poate duce fondul sub pragul lunar.
-        const floor = await redeemFloorCents(balance);
-        if (floor > 0n && balance - BigInt(args.cents) < floor) {
-            log.warn(
-                { balance: balance.toString(), floor: floor.toString(), cents: args.cents },
-                "swyp.redeem.reserve_protection",
+    // P1-06: debitul fondului de acoperire ȘI transferul subunităților userului
+    // se fac în ACEEAȘI tranzacție (`swypTransferInTx`). Varianta anterioară
+    // le rula în două tranzacții separate, cu compensare manuală în `catch` —
+    // compensarea NU rulează dacă procesul e omorât între ele (deploy, OOM,
+    // restart). Efectul era dublu-negativ: fondul scădea, dar subunitățile
+    // rămâneau la user, deci `rate = fond / circulație` scădea pentru TOȚI
+    // deținătorii — exact scenariul pe care `redeemFloorCents` îl previne.
+    // Acum ROLLBACK-ul anulează automat ambele; nu mai există fereastră.
+    try {
+        return await withTransaction(async (q) => {
+            const { rows: fund } = await q<{ balance_cents: string }>(
+                `SELECT balance_cents FROM swyp_backing_fund WHERE id = 1 FOR UPDATE`,
             );
-            return { reason: "reserve_protection" as const };
-        }
-        const { rows: ins } = await q<{ id: string }>(
-            `INSERT INTO swyp_backing_ledger (direction, amount_cents, ref_type, ref_id, rate_microcents_per_unit, note)
+            const balance = BigInt(fund[0]?.balance_cents ?? "0");
+            if (balance < BigInt(args.cents)) {
+                return { ok: false, reason: "insufficient_fund" as const };
+            }
+            // Rezerva anti-run: redeem-ul nu poate duce fondul sub pragul lunar.
+            const floor = await redeemFloorCents(balance);
+            if (floor > 0n && balance - BigInt(args.cents) < floor) {
+                log.warn(
+                    { balance: balance.toString(), floor: floor.toString(), cents: args.cents },
+                    "swyp.redeem.reserve_protection",
+                );
+                return { ok: false, reason: "reserve_protection" as const };
+            }
+            const { rows: ins } = await q<{ id: string }>(
+                `INSERT INTO swyp_backing_ledger (direction, amount_cents, ref_type, ref_id, rate_microcents_per_unit, note)
        VALUES ('out', $1, $2, $3, $4, 'plata cu SWYP')
        ON CONFLICT (direction, ref_type, ref_id) DO NOTHING
        RETURNING id::text`,
-            [args.cents, args.refType, args.refId, rate.rate_microcents_per_unit.toString()],
-        );
-        if (ins.length > 0) {
-            // debit fără GREATEST — checkul de mai sus garantează non-negativ sub lock
-            await q(
-                `UPDATE swyp_backing_fund
+                [args.cents, args.refType, args.refId, rate.rate_microcents_per_unit.toString()],
+            );
+            if (ins.length > 0) {
+                // debit fără GREATEST — checkul de mai sus garantează non-negativ sub lock
+                await q(
+                    `UPDATE swyp_backing_fund
             SET balance_cents = balance_cents - $1,
                 total_out_cents = total_out_cents + $1,
                 updated_at = now()
           WHERE id = 1`,
-                [args.cents],
-            );
-            return { reason: null, debited: true };
-        }
-        return { reason: null, debited: false }; // deja aplicat (idempotent)
-    });
-    if (guard.reason) return { ok: false, reason: guard.reason };
-    fundDebited = Boolean(guard.debited);
-
-    try {
-        const transfer = await swypTransfer({
-            from: { userId: args.userId },
-            to: { pool: "rewards" },
-            amountUnits: needUnits,
-            kind: "spend",
-            refType: args.refType,
-            refId: args.refId,
-            description: `Plată cu SWYP (${args.cents} cents)`,
-            metadata: { rate_microcents_per_unit: rate.rate_microcents_per_unit.toString() },
-        });
-
-        if (transfer.alreadyApplied) {
-            return { ok: true, units_spent: needUnits, cents_covered: args.cents, already: true };
-        }
-
-        return { ok: true, units_spent: needUnits, cents_covered: args.cents, already: false };
-    } catch (err) {
-        log.warn({ err, userId: args.userId, cents: args.cents }, "redeem swyp failed");
-        // Compensare: transferul userului a eșuat — anulează debitul de fond aplicat mai sus.
-        if (fundDebited) {
-            await withTransaction(async (q) => {
-                await q(
-                    `DELETE FROM swyp_backing_ledger WHERE direction = 'out' AND ref_type = $1 AND ref_id = $2`,
-                    [args.refType, args.refId],
-                );
-                await q(
-                    `UPDATE swyp_backing_fund
-                SET balance_cents = balance_cents + $1,
-                    total_out_cents = total_out_cents - $1,
-                    updated_at = now()
-              WHERE id = 1`,
                     [args.cents],
                 );
-            }).catch((revertErr) =>
-                log.error({ revertErr, refType: args.refType, refId: args.refId }, "redeem revert failed - necesita reconciliere manuala"),
-            );
-        }
+            }
+            // `ins.length === 0` → debitul de fond era deja aplicat (idempotent).
+            // Transferul de subunități are propria idempotență, pe aceeași cheie
+            // (refType, refId, kind='spend'), deci îl apelăm oricum: dacă lipsea
+            // (crash între cele două scrieri, în datele vechi), acum se repară.
+            const transfer = await swypTransferInTx(q, {
+                from: { userId: args.userId },
+                to: { pool: "rewards" },
+                amountUnits: needUnits,
+                kind: "spend",
+                refType: args.refType,
+                refId: args.refId,
+                description: `Plată cu SWYP (${args.cents} cents)`,
+                metadata: { rate_microcents_per_unit: rate.rate_microcents_per_unit.toString() },
+            });
+
+            return {
+                ok: true as const,
+                units_spent: needUnits,
+                cents_covered: args.cents,
+                already: transfer.alreadyApplied,
+            };
+        });
+    } catch (err) {
+        // ROLLBACK a anulat deja debitul de fond — nimic de compensat manual.
+        // Cauza uzuală: soldul SWYP al userului nu acoperă `needUnits`
+        // (SwypInsufficientFundsError din ledger).
+        log.warn({ err, userId: args.userId, cents: args.cents }, "redeem swyp failed - tranzactie anulata");
         return { ok: false, reason: "insufficient_swyp" };
     }
 }
