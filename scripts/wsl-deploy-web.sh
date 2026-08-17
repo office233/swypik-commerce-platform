@@ -25,6 +25,8 @@
 #   bash scripts/wsl-deploy-web.sh web-next              # doar frontend/API
 #   bash scripts/wsl-deploy-web.sh video-worker cron-worker
 #   NO_PULL=1 bash scripts/wsl-deploy-web.sh             # fără `git pull`
+#   MIN_FREE_GB=20 bash scripts/wsl-deploy-web.sh        # alt prag de spațiu
+#   PRUNE=1 bash scripts/wsl-deploy-web.sh               # curăță build cache întâi
 #
 # EXIT: 0 = toate serviciile atinse au imagine nouă
 #       1 = cel puțin un serviciu a rămas pe același hash (deploy incomplet)
@@ -72,6 +74,47 @@ else
 fi
 
 echo "=== deploy: ${TARGETS[*]} ==="
+
+# --- 3.1 verificare spațiu ----------------------------------------------------
+# INCIDENT 2026-08-17: discul gazdă s-a umplut în timpul unui rebuild (cache-ul
+# BuildKit ajunsese la 64 GB). VHDX-ul WSL nu a mai putut scrie, filesystem-ul
+# distro-ului a intrat în `emergency_ro`, daemonul Docker a murit și producția a
+# căzut cu 502. În plus, layerele scrise în timpul incidentului au rămas corupte.
+# Un build oprit din lipsă de spațiu e recuperabil; unul care umple discul, nu.
+MIN_FREE_GB=${MIN_FREE_GB:-10}
+DOCKER_ROOT=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || echo /var/lib/docker)
+avail_kb=$(df --output=avail -k "$DOCKER_ROOT" 2>/dev/null | tail -1 | tr -d ' ')
+if [[ -n "$avail_kb" ]]; then
+	avail_gb=$((avail_kb / 1024 / 1024))
+	echo "spațiu liber în $DOCKER_ROOT: ${avail_gb} GB (prag ${MIN_FREE_GB} GB)"
+	if (( avail_kb < MIN_FREE_GB * 1024 * 1024 )); then
+		echo "EROARE: sub ${MIN_FREE_GB} GB liberi — refuz să pornesc build-ul." >&2
+		echo "        Eliberează spațiu: docker builder prune -af && docker image prune -f" >&2
+		echo "        (build cache actual: $(docker system df --format '{{.Type}} {{.Size}}' 2>/dev/null | grep -i 'build cache' || echo 'necunoscut'))" >&2
+		exit 2
+	fi
+else
+	echo "AVERTISMENT: nu pot citi spațiul din $DOCKER_ROOT — continui fără verificare." >&2
+fi
+
+# Spațiul de pe gazda Windows: VHDX-ul crește dinamic, deci `df` din WSL poate
+# raporta sute de GB liberi în timp ce partiția care găzduiește VHDX-ul e plină.
+# Exact asta s-a întâmplat pe 17 august: WSL vedea spațiu, Windows nu mai avea.
+host_free_kb=$(df --output=avail -k /mnt/d 2>/dev/null | tail -1 | tr -d ' ')
+if [[ -n "$host_free_kb" ]]; then
+	host_free_gb=$((host_free_kb / 1024 / 1024))
+	echo "spațiu liber pe gazdă (/mnt/d, unde stă VHDX-ul): ${host_free_gb} GB"
+	if (( host_free_kb < MIN_FREE_GB * 1024 * 1024 )); then
+		echo "EROARE: gazda are sub ${MIN_FREE_GB} GB liberi — VHDX-ul nu poate crește." >&2
+		echo "        Asta a cauzat incidentul din 17 august (emergency_ro + 502)." >&2
+		exit 2
+	fi
+fi
+
+if [[ "${PRUNE:-0}" == "1" ]]; then
+	echo "--- curăț build cache (PRUNE=1) ---"
+	docker builder prune -af 2>&1 | tail -2
+fi
 
 # --- git pull -----------------------------------------------------------------
 if [[ "${NO_PULL:-0}" != "1" ]]; then
