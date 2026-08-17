@@ -75,8 +75,41 @@ docker system df                 # cât ocupă imagini / volume / build cache
 docker builder prune -af         # cache-ul de build crește nelimitat implicit
 ```
 
-Cache-ul de build nu are limită implicită și a fost cauza-rădăcină a
-incidentului. Merită rulat lunar sau după o serie de rebuild-uri.
+Cache-ul de build a fost cauza-rădăcină a incidentului. Din 17 august e limitat
+prin `/etc/docker/daemon.json`:
+
+```json
+{ "builder": { "gc": { "enabled": true, "defaultKeepStorage": "10GB",
+  "policy": [ { "keepStorage": "10GB", "all": true } ] } } }
+```
+
+GC-ul taie cache-ul la 10 GB pe măsură ce se fac build-uri. Fișierul nu exista
+înainte; după modificare e nevoie de `sudo service docker restart` (containerele
+revin singure în ~15 s prin `restart: unless-stopped`).
+
+### Alertă de spațiu
+
+`app/api/cron/disk-watch/route.ts` alertează prin `notifyOps` sub 15 GB liberi
+(`critical` sub 5 GB). Pragul: `DISK_WATCH_MIN_FREE_GB`.
+
+Măsurătoarea vine din afara containerelor, prin `scripts/disk-watch.sh`, pentru
+că **niciun container nu vede discul gazdei** — nu există bind mount-uri, iar
+`df` dinăuntru raportează capacitatea VHDX-ului, nu partiția fizică. În timpul
+incidentului containerele „vedeau" 885 GB liberi cu gazda la 0,03 GB.
+
+Instalare în crontab-ul gazdei WSL (după ce ruta e deployată):
+
+```bash
+crontab -e
+0 * * * * /opt/swypik/app/scripts/disk-watch.sh >> /var/log/swypik-disk-watch.log 2>&1
+```
+
+Verificare că funcționează:
+```bash
+bash /opt/swypik/app/scripts/disk-watch.sh          # așteptat: http 200 + GB liberi
+DISK_WATCH_MIN_FREE_GB=2000                          # forțează alerta, apoi scoate-l
+psql -c "SELECT alert_key, alerted_at FROM ops_alert_log ORDER BY alerted_at DESC LIMIT 3;"
+```
 
 ---
 
