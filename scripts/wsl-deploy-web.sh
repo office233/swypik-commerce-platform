@@ -87,7 +87,25 @@ echo "=== deploy: ${TARGETS[*]} ==="
 if [[ "${NO_PULL:-0}" != "1" && "${DEPLOY_REEXEC:-0}" != "1" ]]; then
 	BEFORE_SHA=$(git rev-parse --short HEAD)
 	SELF_HASH_BEFORE=$(sha256sum "$0" 2>/dev/null | cut -d' ' -f1)
-	git pull --ff-only 2>&1 | tail -2
+	# INCIDENT 2026-08-18: `git pull` a eșuat cu "Aborting" (un fișier avea
+	# modul schimbat local), scriptul a ignorat codul de ieșire și a
+	# reconstruit vesel codul VECHI, raportând succes — hash-ul imaginii chiar
+	# se schimbase, deci nici verificarea de la final n-a prins nimic.
+	# Un pull eșuat trebuie să oprească deploy-ul, nu să fie o notă în log.
+	pull_out=$(git pull --ff-only 2>&1); pull_rc=$?
+	echo "$pull_out" | tail -3
+	if (( pull_rc != 0 )); then
+		echo >&2
+		echo "EROARE: 'git pull' a eșuat (cod $pull_rc). OPRESC deploy-ul." >&2
+		echo "        Altfel aș reconstrui codul vechi și aș raporta succes." >&2
+		echo >&2
+		echo "        Stare locală care blochează pull-ul:" >&2
+		git status --porcelain >&2
+		echo >&2
+		echo "        Dacă sunt doar schimbări de mod (100644 <-> 100755) lăsate în" >&2
+		echo "        urmă de un chmod manual:  git checkout -- <fișier>" >&2
+		exit 2
+	fi
 	AFTER_SHA=$(git rev-parse --short HEAD)
 	SELF_HASH_AFTER=$(sha256sum "$0" 2>/dev/null | cut -d' ' -f1)
 
@@ -171,6 +189,17 @@ for svc in "${TARGETS[@]}"; do
 	IMG_BEFORE[$svc]=$(image_of "$(container_for "$svc")")
 	printf '  %-14s %s\n' "$svc" "${IMG_BEFORE[$svc]}"
 done
+
+# --- metadate de release ------------------------------------------------------
+# `/api/health` raporta commit="unknown" fiindcă build args-urile astea nu erau
+# populate niciodată. Fără ele, singurul mod de a afla ce versiune rulează era
+# `docker inspect` din interiorul WSL — exact ce nu ai la îndemână când canalul
+# de comandă e mort. Acum răspunsul e într-un GET public.
+export BUILD_COMMIT="$(git rev-parse --short HEAD)"
+export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+export DEPLOYED_AT="$BUILD_TIME"
+echo
+echo "--- metadate release: commit=$BUILD_COMMIT build_time=$BUILD_TIME ---"
 
 # --- 3.3 build SECVENȚIAL -----------------------------------------------------
 # Un serviciu pe rând, nu `up -d --build svc1 svc2 svc3`.
