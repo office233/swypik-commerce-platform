@@ -3,13 +3,19 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
 
 const isDev = process.env.NODE_ENV === "development";
+// Sentry trimite evenimentele prin XHR către `https://<org>.ingest.sentry.io`.
+// Fără intrarea asta în `connect-src`, browserul le blochează chiar dacă DSN-ul
+// e corect — iar eșecul e tăcut: Sentry pare configurat, dar nu ajunge nimic.
+// Ținut într-o constantă fiindcă CSP-ul e definit în TREI locuri (aici de două
+// ori + `middleware.ts`); a fost deja o sursă de divergență.
+const SENTRY_CONNECT_SRC = "https://*.ingest.sentry.io";
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
     media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com;
-  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com;
+  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC};
   frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
   object-src 'none';
@@ -24,7 +30,7 @@ const cspReportOnly = `
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com;
-  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com;
+  connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC};
   frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
   object-src 'none';
