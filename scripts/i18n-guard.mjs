@@ -78,7 +78,21 @@ if (!Object.keys(missing).length) ok(`chei complete: ${roKeys.length} chei × ${
 // ── 3. Hardcodări în cod ──────────────────────────────────────
 // Baseline: hardcodările istorice (majoritatea în backoffice) sunt tolerate;
 // blocăm doar CREȘTEREA numărului (cod nou netradus). Baseline în .i18n-baseline.json.
-try {
+//
+// `scan-hardcoded.mjs` a fost șters în commitul 80b08aae ("107 scripturi
+// one-off consumate"), dar apelul de aici a rămas. Rezultatul: gardianul
+// trecea verificările 1 și 2, apoi murea cu MODULE_NOT_FOUND și ieșea cu 1 —
+// deci ORICE commit pe `messages/`, `app/` sau `components/` ar fi fost
+// blocat, indiferent cât de corecte erau traducerile. Nu s-a observat fiindcă
+// hook-ul era dezactivat local (`core.hooksPath=/dev/null`).
+//
+// Acum verificarea lipsă e semnalată, nu fatală: mai bine două verificări
+// care chiar rulează decât trei dintre care una omoară tot.
+const SCANNER = "scripts/scan-hardcoded.mjs";
+if (!fs.existsSync(SCANNER)) {
+    console.log(`⚠ ${SCANNER} lipsește — verificarea de hardcodări e SĂRITĂ.`);
+    console.log("  Cheile lipsă și JSON-ul stricat se verifică în continuare.");
+} else try {
     const out = execSync("node scripts/scan-hardcoded.mjs", { encoding: "utf8" });
     const m = out.match(/files:\s*(\d+)\s*hits:\s*(\d+)/);
     const hits = m ? +m[2] : 0;
