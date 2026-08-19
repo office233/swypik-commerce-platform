@@ -149,15 +149,23 @@ fi
 # Spațiul de pe gazda Windows: VHDX-ul crește dinamic, deci `df` din WSL poate
 # raporta sute de GB liberi în timp ce partiția care găzduiește VHDX-ul e plină.
 # Exact asta s-a întâmplat pe 17 august: WSL vedea spațiu, Windows nu mai avea.
-host_free_kb=$(df --output=avail -k /mnt/d 2>/dev/null | tail -1 | tr -d ' ')
+#
+# Partiția verificată trebuie să fie cea care GĂZDUIEȘTE VHDX-ul. Din 19 august
+# distro-ul stă la `E:\wsl\swypik\ext4.vhdx`, nu pe `D:`. Verificarea rămasă pe
+# `/mnt/d` ar fi fost mai rea decât lipsa ei: ar fi confirmat 148 GB liberi în
+# timp ce partiția care contează se umplea.
+HOST_MOUNT=${HOST_MOUNT:-/mnt/e}
+host_free_kb=$(df --output=avail -k "$HOST_MOUNT" 2>/dev/null | tail -1 | tr -d ' ')
 if [[ -n "$host_free_kb" ]]; then
 	host_free_gb=$((host_free_kb / 1024 / 1024))
-	echo "spațiu liber pe gazdă (/mnt/d, unde stă VHDX-ul): ${host_free_gb} GB"
+	echo "spațiu liber pe gazdă (${HOST_MOUNT}, unde stă VHDX-ul): ${host_free_gb} GB"
 	if (( host_free_kb < MIN_FREE_GB * 1024 * 1024 )); then
 		echo "EROARE: gazda are sub ${MIN_FREE_GB} GB liberi — VHDX-ul nu poate crește." >&2
 		echo "        Asta a cauzat incidentul din 17 august (emergency_ro + 502)." >&2
 		exit 2
 	fi
+else
+	echo "AVERTISMENT: nu pot citi spațiul din ${HOST_MOUNT} — continui fără verificarea gazdei." >&2
 fi
 
 if [[ "${PRUNE:-0}" == "1" ]]; then

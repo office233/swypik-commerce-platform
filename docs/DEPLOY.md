@@ -57,8 +57,25 @@ Capcana specifică: `df` din interiorul WSL raporta **885 GB liberi** în timp c
 partiția gazdă avea **0,03 GB**. VHDX-ul crește dinamic, deci spațiul văzut din
 distro nu spune nimic despre spațiul real.
 
-*Acum:* scriptul verifică ambele niveluri (`DockerRootDir` **și** `/mnt/d`) și
-refuză să pornească sub 10 GB; build secvențial, cu recheck între servicii.
+*Acum:* scriptul verifică ambele niveluri (`DockerRootDir` **și** partiția
+gazdă) și refuză să pornească sub 10 GB; build secvențial, cu recheck între
+servicii.
+
+> **Actualizare 19 august — distro-ul s-a mutat pe `E:`.**
+> VHDX-ul e la `E:\wsl\swypik\ext4.vhdx` (era `D:\Swypik\wsl\swypik\`).
+> Era umflat de 5,4×: 73,2 GB pe disc, 23 GB folosiți în interior, din care
+> 11,59 GB build cache cu 0 activ. După `docker builder prune -af` +
+> export/import: **13,64 GB**. Recuperat 73 GB pe `D:`. Downtime 21 min.
+>
+> Monitorizarea a fost mutată odată cu el, pe `/mnt/e`
+> (`scripts/disk-watch.sh`, `scripts/wsl-deploy-web.sh`). Lăsată pe `/mnt/d`,
+> ar fi fost mai rea decât inexistentă: raporta 148 GB liberi de pe o partiție
+> care nu mai are legătură cu problema, în timp ce `E:` s-ar fi putut umple în
+> tăcere. Aceeași capcană ca pe 17 august, doar mai greu de observat.
+>
+> La o mutare viitoare: `DISK_WATCH_MOUNT` și `HOST_MOUNT` sunt suprascriabile
+> din mediu, iar `.wslconfig` are `swapFile` cu cale absolută — se actualizează
+> și el.
 
 *Recuperare, dacă se repetă:* eliberează spațiu pe gazdă, apoi `wsl --shutdown`
 și repornește distro-ul — `emergency_ro` nu dispare de la sine, oricât spațiu

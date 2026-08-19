@@ -6,9 +6,18 @@
 #   Containerele nu au niciun bind mount din gazdă, iar `df` dinăuntru vede
 #   capacitatea VHDX-ului, nu partiția fizică:
 #     în container: overlay 1006.9G, 937.5G liberi
-#     pe gazdă:     /mnt/d              75G liberi
+#     pe gazdă:     /mnt/e             378G liberi
 #   În timpul incidentului din 17 august, containerele „vedeau" 885 GB liberi
 #   în timp ce gazda avea 0,03 GB — de aceea nimic nu a semnalat problema.
+#
+# CE PARTIȚIE MĂSURĂM (actualizat 2026-08-19):
+#   Pe cea care găzduiește VHDX-ul distro-ului, fiindcă doar acolo crește
+#   consumul când build-urile umflă discul. Distro-ul a fost mutat de pe `D:`
+#   pe `E:\wsl\swypik\ext4.vhdx`; scriptul măsura în continuare `/mnt/d`, adică
+#   o partiție care nu mai are legătură cu problema. Ar fi raportat vesel 148 GB
+#   liberi în timp ce `E:` se umplea — exact incidentul din 17 august, doar că
+#   de data asta fără niciun semnal.
+#   Dacă muți iar distro-ul, schimbă `DISK_WATCH_MOUNT` sau linia de mai jos.
 #
 # INSTALARE (crontab-ul utilizatorului care rulează stack-ul, orar):
 #   0 * * * * /opt/swypik/app/scripts/disk-watch.sh >> /var/log/swypik-disk-watch.log 2>&1
@@ -19,7 +28,7 @@
 
 set -uo pipefail
 
-MOUNT=${DISK_WATCH_MOUNT:-/mnt/d}
+MOUNT=${DISK_WATCH_MOUNT:-/mnt/e}
 WEB=${DISK_WATCH_URL:-http://localhost:3005}
 ENV_FILE=${DISK_WATCH_ENV:-/opt/swypik/app/infra/hetzner/.env.production}
 
