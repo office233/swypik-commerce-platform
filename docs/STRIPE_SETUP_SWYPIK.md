@@ -95,7 +95,7 @@ Rezultatul verificării trebuie să arate `sk_test_…`, `whsec_…`, `pk_test_�
 cd /opt/swypik/app
 # pk publishable trebuie exportat ca env ca să ajungă build-arg în compose
 export NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$(grep '^NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=' infra/hetzner/.env.production | cut -d= -f2-)
-bash scripts/wsl-deploy-web.sh
+bash scripts/deploy/wsl-deploy-web.sh
 unset NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ```
 
@@ -142,7 +142,7 @@ docker exec swypik-prod-postgres-1 psql -U swypik -d swypik_prod -tA \
 ```bash
 cd /opt/swypik/app/infra/hetzner
 cp .env.production.bak.<timestamp> .env.production
-cd /opt/swypik/app && bash scripts/wsl-deploy-web.sh
+cd /opt/swypik/app && bash scripts/deploy/wsl-deploy-web.sh
 ```
 
 ---
