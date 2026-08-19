@@ -25,6 +25,13 @@ services:
         BUILD_TIME: ${BUILD_TIME:-unknown}
         DEPLOYED_AT: ${DEPLOYED_AT:-unknown}
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+        # Sentry pentru browser. La fel ca la Stripe: NEXT_PUBLIC_* se coace în
+        # bundle la BUILD. Setat doar în .env.production, ar merge Sentry pe
+        # server (instrumentation.ts citește SENTRY_DSN la runtime) dar NU în
+        # browser — jumătate de instrumentare, fără niciun semn că lipsește.
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: ${NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE:-}
+        SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       dockerfile_inline: |
         # ── Build stage ──
         FROM node:20.19.0-alpine AS builder
@@ -43,6 +50,13 @@ services:
         # fara ARG aici cheia Stripe ajunge "" si checkout-ul crapa.
         ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        ARG NEXT_PUBLIC_SENTRY_DSN
+        ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+        ARG NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
+        ENV NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=$NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
+        # Folosit și de `instrumentation-client.ts` la build, și de server la runtime.
+        ARG SENTRY_ENVIRONMENT
+        ENV SENTRY_ENVIRONMENT=$SENTRY_ENVIRONMENT
         RUN npm run build
 
         # ── Runtime stage ──
