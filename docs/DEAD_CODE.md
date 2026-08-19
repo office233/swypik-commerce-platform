@@ -2,6 +2,29 @@
 
 > Faza 0 (2026-08-02). Statusuri: ȘTERGE (sigur), ARHIVEAZĂ (mută în `scripts/archive/`), PĂSTREAZĂ (justificat). Ștergerea efectivă = Faza 4, cu commit dedicat.
 
+> **Actualizare 2026-08-19 — `scripts/` reorganizat.**
+> Inventarul de mai jos vorbește despre „170+ fișiere"; între timp s-a curățat
+> deja jumătate, iar pe 19 august cele 86 rămase au fost grupate în directoare
+> tematice. Vezi **`scripts/README.md`** pentru structura actuală și pentru
+> lista completă a ce rulează automat.
+>
+> Ce s-a consolidat atunci:
+> - `archive/` + `_archive/` → un singur `_archive/` (30 fișiere)
+> - **7 scripturi de backup → 1.** Cele 5 din `scripts/` sunt arhivate: țintesc
+>   containerul `swypik-postgres`, dezafectat odată cu VPS-ul (acum
+>   `swypik-prod-postgres-1`). Sursa de adevăr: `infra/hetzner/backup-postgres.sh`.
+>   Contrazice secțiunea „PĂSTREAZĂ — Backup" de mai jos, scrisă înainte de
+>   migrarea în WSL.
+> - `wsl-sync-i18n.sh`, `wsl-sync-tsc.sh` arhivate (cale moartă `/mnt/e/Meister`)
+> - `swypik-reclassify-taxonomy.service` arhivat: referea un script deja șters
+>   pe 5 august, în `375be6b9`
+> - `test-deployment.sh` era comis cu CRLF — nu putea rula deloc în Linux
+>
+> Ce **nu** s-a mai confirmat din inventarul de mai jos: `check-independence.sh`
+> și `seed-taxonomy-i18n.mjs` erau propuse la ȘTERGE/ARHIVEAZĂ, dar au fost
+> păstrate în `diag/`, respectiv `data/` — costul păstrării unui script de
+> diagnostic e zero, cel al negăsirii lui la nevoie nu.
+
 ## 1. Fișiere temporare în root-ul app/
 
 | Fișier | Verdict |
