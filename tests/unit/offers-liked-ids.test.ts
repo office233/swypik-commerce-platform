@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseIds } from "@/app/api/feed/offers/liked/route";
+import { parseLikedIds as parseIds } from "@/lib/feed/liked-ids";
 
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";

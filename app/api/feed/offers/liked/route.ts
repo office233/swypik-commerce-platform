@@ -2,28 +2,10 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { rateLimit } from "@/lib/security/rate-limit";
-import { isUuid } from "@/lib/validation/uuid";
+import { MAX_LIKED_IDS, parseLikedIds } from "@/lib/feed/liked-ids";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
-
-/** Peste atâtea id-uri într-un request, refuzăm — o pagină de feed are 12. */
-const MAX_IDS = 50;
-
-type ParsedIds =
-    | { ok: true; ids: string[] }
-    | { ok: false; error: "too_many_ids" | "invalid_id" };
-
-/**
- * Extras din handler ca să poată fi testat fără DB, cookies sau Redis.
- * Aici stă toată logica pe care o poate strica o modificare neatentă.
- */
-export function parseIds(raw: string | null): ParsedIds {
-    const ids = [...new Set((raw ?? "").split(",").map((s) => s.trim()).filter(Boolean))];
-    if (ids.length > MAX_IDS) return { ok: false, error: "too_many_ids" };
-    if (!ids.every(isUuid)) return { ok: false, error: "invalid_id" };
-    return { ok: true, ids };
-}
 
 /**
  * GET /api/feed/offers/liked?ids=a,b,c — ce a dat viewerul like, din setul cerut.
@@ -49,11 +31,11 @@ export function parseIds(raw: string | null): ParsedIds {
 export async function GET(request: Request) {
     try {
         const raw = new URL(request.url).searchParams.get("ids") ?? "";
-        const parsed = parseIds(raw);
+        const parsed = parseLikedIds(raw);
         if (!parsed.ok) {
             return NextResponse.json(
                 parsed.error === "too_many_ids"
-                    ? { error: "too_many_ids", max: MAX_IDS }
+                    ? { error: "too_many_ids", max: MAX_LIKED_IDS }
                     : { error: "invalid_id" },
                 { status: 400 },
             );
