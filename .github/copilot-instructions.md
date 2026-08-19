@@ -4,7 +4,7 @@
 - **VPS 178.105.46.66 NU mai are nimic Swypik/multi-erp** (șters definitiv). Acolo e DOAR Meister ERP — nu-l atinge.
 - Producția: WSL distro `swypik` pe acest PC → servită public prin **Cloudflare Tunnel** → https://swypik.com
 - Cod sursă (unde editezi): `E:\Meister\swypik\app` → commit → push `origin main`
-- Deploy: `wsl -d swypik` → `cd /opt/swypik/app && git pull origin main` → rebuild (vezi `scripts/wsl-build-web.sh` + `wsl-start-web.sh`)
+- Deploy: `wsl -d swypik` → `cd /opt/swypik/app && git pull origin main` → rebuild (vezi `scripts/deploy/wsl-build-web.sh` + `wsl-start-web.sh`)
 - Test rapid local: http://localhost:3005 · Verificare completă: `scripts/wsl-final-check.sh`
 
 ## Reguli tehnice

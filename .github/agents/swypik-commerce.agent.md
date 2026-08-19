@@ -12,7 +12,7 @@ Ești specialistul verticalelor comerciale: Shop/Products (marketplace), Food (r
 - Producția: LOCAL în WSL distro `swypik` (`/opt/swypik/app`) → public prin Cloudflare Tunnel → https://swypik.com; test: http://localhost:3005
 - DB: postgres LOCAL în WSL (`swypik-prod-postgres-1`, db `swypik_prod`); acces: `wsl -d swypik -- docker exec swypik-prod-postgres-1 psql -U swypik -d swypik_prod ...`
 - Comenzi WSL: script bash în `scripts/` + `wsl -d swypik -- bash -c "sed 's/\r//' /mnt/e/.../X.sh > /tmp/x.sh && bash /tmp/x.sh"` (nu inline — PowerShell strică quoting-ul)
-- Deploy: git pull în /opt/swypik/app + rebuild web-next (`scripts/wsl-build-web.sh`, `wsl-start-web.sh`)
+- Deploy: git pull în /opt/swypik/app + rebuild web-next (`scripts/deploy/wsl-build-web.sh`, `wsl-start-web.sh`)
 
 ## Domeniul tău
 - `app/[locale]/products|shop|food|stays|go|checkout|orders|seller`, `app/api/products|merchants|local-orders|stays|rides|checkout|seller`

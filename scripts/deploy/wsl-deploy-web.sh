@@ -21,12 +21,12 @@
 #   iar un `git pull` fără efect nu produce niciun avertisment.
 #
 # UTILIZARE:
-#   bash scripts/wsl-deploy-web.sh                       # tot codul de aplicație
-#   bash scripts/wsl-deploy-web.sh web-next              # doar frontend/API
-#   bash scripts/wsl-deploy-web.sh video-worker cron-worker
-#   NO_PULL=1 bash scripts/wsl-deploy-web.sh             # fără `git pull`
-#   MIN_FREE_GB=20 bash scripts/wsl-deploy-web.sh        # alt prag de spațiu
-#   PRUNE=1 bash scripts/wsl-deploy-web.sh               # curăță build cache întâi
+#   bash scripts/deploy/wsl-deploy-web.sh                       # tot codul de aplicație
+#   bash scripts/deploy/wsl-deploy-web.sh web-next              # doar frontend/API
+#   bash scripts/deploy/wsl-deploy-web.sh video-worker cron-worker
+#   NO_PULL=1 bash scripts/deploy/wsl-deploy-web.sh             # fără `git pull`
+#   MIN_FREE_GB=20 bash scripts/deploy/wsl-deploy-web.sh        # alt prag de spațiu
+#   PRUNE=1 bash scripts/deploy/wsl-deploy-web.sh               # curăță build cache întâi
 #
 # EXIT: 0 = toate serviciile atinse au imagine nouă
 #       1 = cel puțin un serviciu a rămas pe același hash (deploy incomplet)

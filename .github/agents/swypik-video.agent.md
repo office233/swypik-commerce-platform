@@ -12,7 +12,7 @@ Ești specialistul modulului VIDEO al Swypik: feed TikTok-style, explore, reels,
 - Producția rulează LOCAL în WSL distro `swypik`: `/opt/swypik/app`, servită public prin Cloudflare Tunnel → https://swypik.com
 - Test local: http://localhost:3005
 - Comenzi în WSL: scrie script bash în `scripts/`, apoi `wsl -d swypik -- bash -c "sed 's/\r//' /mnt/e/Meister/swypik/app/scripts/X.sh > /tmp/x.sh && bash /tmp/x.sh"` (PowerShell strică quoting-ul inline!)
-- Deploy: `wsl -d swypik` → `cd /opt/swypik/app && git pull origin main` → rebuild web-next cu compose din `infra/hetzner/` (vezi `scripts/wsl-build-web.sh`, `wsl-start-web.sh`)
+- Deploy: `wsl -d swypik` → `cd /opt/swypik/app && git pull origin main` → rebuild web-next cu compose din `infra/hetzner/` (vezi `scripts/deploy/wsl-build-web.sh`, `wsl-start-web.sh`)
 - Containere video: `swypik-prod-video-worker-1..3` (LOCAL în WSL, nu pe VPS)
 
 ## Domeniul tău

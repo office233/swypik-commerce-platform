@@ -7,11 +7,11 @@ Ghid operațional: variabile de mediu, chei, cron, webhook-uri Stripe, migrări.
 ## 0. Cum se face deploy (și de ce arată așa scriptul)
 
 ```bash
-wsl -d swypik -e bash /opt/swypik/app/scripts/wsl-deploy-web.sh            # tot codul
-wsl -d swypik -e bash /opt/swypik/app/scripts/wsl-deploy-web.sh web-next   # un serviciu
-PRUNE=1 bash scripts/wsl-deploy-web.sh                                     # curăță cache-ul întâi
-MIN_FREE_GB=20 bash scripts/wsl-deploy-web.sh                              # prag de spațiu mai strict
-NO_PULL=1 bash scripts/wsl-deploy-web.sh                                   # fără git pull
+wsl -d swypik -e bash /opt/swypik/app/scripts/deploy/wsl-deploy-web.sh            # tot codul
+wsl -d swypik -e bash /opt/swypik/app/scripts/deploy/wsl-deploy-web.sh web-next   # un serviciu
+PRUNE=1 bash scripts/deploy/wsl-deploy-web.sh                                     # curăță cache-ul întâi
+MIN_FREE_GB=20 bash scripts/deploy/wsl-deploy-web.sh                              # prag de spațiu mai strict
+NO_PULL=1 bash scripts/deploy/wsl-deploy-web.sh                                   # fără git pull
 ```
 
 Coduri de ieșire: `0` toate serviciile au imagine nouă · `1` deploy incomplet
@@ -68,7 +68,7 @@ servicii.
 > export/import: **13,64 GB**. Recuperat 73 GB pe `D:`. Downtime 21 min.
 >
 > Monitorizarea a fost mutată odată cu el, pe `/mnt/e`
-> (`scripts/disk-watch.sh`, `scripts/wsl-deploy-web.sh`). Lăsată pe `/mnt/d`,
+> (`scripts/disk-watch.sh`, `scripts/deploy/wsl-deploy-web.sh`). Lăsată pe `/mnt/d`,
 > ar fi fost mai rea decât inexistentă: raporta 148 GB liberi de pe o partiție
 > care nu mai are legătură cu problema, în timp ce `E:` s-ar fi putut umple în
 > tăcere. Aceeași capcană ca pe 17 august, doar mai greu de observat.
@@ -305,10 +305,10 @@ trage din `origin` — deci **orice commit trebuie mai întâi `git push`**, alt
 `git pull` de pe prod nu are ce aduce.
 
 ```bash
-bash scripts/wsl-deploy-web.sh                    # tot codul de aplicație
-bash scripts/wsl-deploy-web.sh web-next           # doar un serviciu
-bash scripts/wsl-deploy-web.sh video-worker cron-worker
-NO_PULL=1 bash scripts/wsl-deploy-web.sh          # fără git pull
+bash scripts/deploy/wsl-deploy-web.sh                    # tot codul de aplicație
+bash scripts/deploy/wsl-deploy-web.sh web-next           # doar un serviciu
+bash scripts/deploy/wsl-deploy-web.sh video-worker cron-worker
+NO_PULL=1 bash scripts/deploy/wsl-deploy-web.sh          # fără git pull
 ```
 
 ### Serviciile care conțin cod din repo

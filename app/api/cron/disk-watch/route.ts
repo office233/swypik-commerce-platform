@@ -47,7 +47,7 @@ export const dynamic = "force-dynamic";
 /**
  * Prag de alertare, în GB.
  *
- * 15 e deliberat peste cei 10 GB la care `scripts/wsl-deploy-web.sh` refuză să
+ * 15 e deliberat peste cei 10 GB la care `scripts/deploy/wsl-deploy-web.sh` refuză să
  * pornească un build: vrem alerta ÎNAINTE ca deploy-ul să fie blocat, nu după.
  */
 const DEFAULT_THRESHOLD_GB = 15;
@@ -110,7 +110,7 @@ async function POST_impl(req: NextRequest) {
       detail: [
         `Prag de alertare: ${min} GB. Liber acum: ${freeGb} GB.`,
         "",
-        "Sub 10 GB, scripts/wsl-deploy-web.sh refuză să pornească un build.",
+        "Sub 10 GB, scripts/deploy/wsl-deploy-web.sh refuză să pornească un build.",
         "Dacă discul se umple complet, VHDX-ul WSL nu mai poate crește și",
         "filesystem-ul distro-ului intră în emergency_ro — Docker moare și",
         "site-ul cade cu 502 (s-a întâmplat pe 2026-08-17).",
