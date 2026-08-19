@@ -4,7 +4,7 @@
  * OfferCard — un „post” din feed-ul social de pe home.
  * Stil Facebook: header brand, poză mare, preț + reducere, like/share.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Heart, MessageCircle, Share2, ShoppingBag, Star } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -29,6 +29,24 @@ export default function OfferCard({ post, onOpen, priority = false }: Props) {
     const [likeCount, setLikeCount] = useState(post.likeCount);
     const [shareCount, setShareCount] = useState(post.shareCount);
     const [pop, setPop] = useState(false);
+
+    // `liked` e state local ca să avem update optimist la click. Dar asta îl
+    // rupe de prop: `useState` citește valoarea o singură dată, la montare.
+    // Feed-ul hidratează `viewerLiked` după ce pagina s-a randat (starea de
+    // like nu poate veni din SSR — homepage-ul e cache-uit global), iar cardul
+    // păstrează aceeași `key`, deci nu se remontează. Fără sincronizarea de
+    // mai jos, răspunsul hidratării ar ajunge în props și n-ar schimba nimic
+    // pe ecran.
+    //
+    // Sincronizăm doar când prop-ul chiar se schimbă față de ce am primit
+    // ultima dată, nu la fiecare randare: altfel am călca peste un click
+    // optimist al utilizatorului cu valoarea veche din props.
+    const lastPropLiked = useRef(post.viewerLiked);
+    useEffect(() => {
+        if (post.viewerLiked === lastPropLiked.current) return;
+        lastPropLiked.current = post.viewerLiked;
+        setLiked(post.viewerLiked);
+    }, [post.viewerLiked]);
 
     async function toggleLike() {
         haptic("tap");

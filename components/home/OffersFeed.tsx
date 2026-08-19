@@ -93,6 +93,57 @@ export default function OffersFeed({ initialItems = [], category, onOpenProduct 
         load(true, filters, category, 0);
     }, [filters, category, load]);
 
+    // Hidratarea like-urilor pentru cardurile venite din SSR.
+    //
+    // `app/[locale]/page.tsx` produce ofertele printr-un `unstable_cache` cu
+    // cheie globală, deci `viewerLiked` e obligatoriu `false` acolo: un cache
+    // partajat nu are voie să conțină starea unui utilizator anume. Rezultatul
+    // vizibil era că, după refresh, inimile reveneau la gri deși like-ul era
+    // salvat în DB.
+    //
+    // Cardurile aduse ulterior prin `load()` NU au nevoie de asta —
+    // `/api/feed/offers` calculează `viewerLiked` corect, fiind necache-uit.
+    // De aceea hidratăm o singură dată, doar setul inițial.
+    const hydratedRef = useRef(false);
+    useEffect(() => {
+        if (hydratedRef.current || initialItems.length === 0) return;
+        hydratedRef.current = true;
+
+        const ids = initialItems.map((p) => p.id);
+        const controller = new AbortController();
+
+        (async () => {
+            try {
+                const res = await fetch(`/api/feed/offers/liked?ids=${ids.join(",")}`, {
+                    credentials: "include",
+                    signal: controller.signal,
+                });
+                if (!res.ok) return;
+                const data: { liked?: string[] } = await res.json();
+                const likedSet = new Set(data.liked ?? []);
+                if (likedSet.size === 0) return;
+
+                // Actualizăm doar cardurile care chiar se schimbă. Fără asta,
+                // fiecare card s-ar re-randa degeaba la fiecare hidratare.
+                setItems((prev) => {
+                    let changed = false;
+                    const next = prev.map((p) => {
+                        const liked = likedSet.has(p.id);
+                        if (liked === p.viewerLiked) return p;
+                        changed = true;
+                        return { ...p, viewerLiked: liked };
+                    });
+                    return changed ? next : prev;
+                });
+            } catch {
+                // Hidratarea e un plus, nu o cerință: dacă pică, feed-ul rămâne
+                // funcțional cu inimile pe gri. Nu arătăm nicio eroare.
+            }
+        })();
+
+        return () => controller.abort();
+    }, [initialItems]);
+
     // Scroll infinit
     useEffect(() => {
         const el = sentinelRef.current;
