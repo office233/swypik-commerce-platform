@@ -21,9 +21,15 @@ după ce faci cu el.
 Restul joburilor recurente **nu** sunt scripturi de aici: rulează din
 `infra/hetzner/cron-worker/run.sh`, care lovește rute `/api/cron/*`.
 
-> `core.hooksPath` e setat local pe `/dev/null` în acest clone, deci hook-ul de
-> pre-commit **nu rulează**. `i18n-guard.mjs` funcționează (validează 2607 chei
-> × 6 limbi) — doar nu e chemat. Reactivare: `git config --unset core.hooksPath`.
+> Hook-ul de pre-commit a fost **reactivat** pe 19 august
+> (`git config core.hooksPath .githooks`) — era dezactivat local, pe `/dev/null`.
+> Reactivarea a scos la iveală că `i18n-guard.mjs` era rupt: apela
+> `scan-hardcoded.mjs`, șters în `80b08aae`, și ieșea cu 1 după ce trecea
+> celelalte verificări. Ar fi blocat orice commit pe UI. Reparat în `ad8327d8`:
+> verificarea lipsă e acum sărită cu avertisment, nu fatală.
+>
+> `core.hooksPath` e configurație **locală**, nu se propagă prin git. Pe un
+> clone nou trebuie rulat din nou.
 
 ## Directoare
 
@@ -58,6 +64,8 @@ Restul joburilor recurente **nu** sunt scripturi de aici: rulează din
 3. Mutarea unui script referit din crontab se face **împreună** cu actualizarea
    crontab-ului, dar abia **după** ce deploy-ul a dus fișierul în `/opt`
    (vezi nota din `docs/DEPLOY.md`).
-4. Scripturile `.sh` se scriu cu terminații LF. Repo-ul nu are `.gitattributes`;
-   un fișier comis cu CRLF nu rulează în Linux — s-a întâmplat deja cu
-   `test-deployment.sh`.
+4. Scripturile `.sh` se scriu cu terminații LF — impus acum de `.gitattributes`
+   (`*.sh text eol=lf`). Un fișier comis cu CRLF nu rulează în Linux; s-a
+   întâmplat cu `test-deployment.sh`.
+5. Pe un clone nou: `git config core.hooksPath .githooks`, altfel gardianul
+   i18n nu rulează la commit.
