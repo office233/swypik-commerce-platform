@@ -37,7 +37,7 @@ log() {
 # --- alertare -----------------------------------------------------------------
 # Raportăm rezultatul aplicației, care are deja `notifyOps` (dedup + cooldown +
 # persistare în `ops_alert_log`). Scriptul nu decide gravitatea, doar transmite
-# faptele — aceeași separare ca la `scripts/disk-watch.sh`.
+# faptele — aceeași separare ca la `scripts/ops/disk-watch.sh`.
 #
 # LIMITĂ CUNOSCUTĂ: dacă scriptul nu pornește deloc (bit de execuție lipsă,
 # fișier șters), nimic de aici nu rulează. Acel caz e acoperit din partea

@@ -68,7 +68,7 @@ servicii.
 > export/import: **13,64 GB**. Recuperat 73 GB pe `D:`. Downtime 21 min.
 >
 > Monitorizarea a fost mutată odată cu el, pe `/mnt/e`
-> (`scripts/disk-watch.sh`, `scripts/deploy/wsl-deploy-web.sh`). Lăsată pe `/mnt/d`,
+> (`scripts/ops/disk-watch.sh`, `scripts/deploy/wsl-deploy-web.sh`). Lăsată pe `/mnt/d`,
 > ar fi fost mai rea decât inexistentă: raporta 148 GB liberi de pe o partiție
 > care nu mai are legătură cu problema, în timp ce `E:` s-ar fi putut umple în
 > tăcere. Aceeași capcană ca pe 17 august, doar mai greu de observat.
@@ -109,7 +109,7 @@ revin singure în ~15 s prin `restart: unless-stopped`).
 `app/api/cron/disk-watch/route.ts` alertează prin `notifyOps` sub 15 GB liberi
 (`critical` sub 5 GB). Pragul: `DISK_WATCH_MIN_FREE_GB`.
 
-Măsurătoarea vine din afara containerelor, prin `scripts/disk-watch.sh`, pentru
+Măsurătoarea vine din afara containerelor, prin `scripts/ops/disk-watch.sh`, pentru
 că **niciun container nu vede discul gazdei** — nu există bind mount-uri, iar
 `df` dinăuntru raportează capacitatea VHDX-ului, nu partiția fizică. În timpul
 incidentului containerele „vedeau" 885 GB liberi cu gazda la 0,03 GB.
@@ -118,12 +118,27 @@ Instalare în crontab-ul gazdei WSL (după ce ruta e deployată):
 
 ```bash
 crontab -e
-0 * * * * /opt/swypik/app/scripts/disk-watch.sh >> /var/log/swypik-disk-watch.log 2>&1
+0 * * * * /opt/swypik/app/scripts/ops/disk-watch.sh >> /var/log/swypik-disk-watch.log 2>&1
 ```
+
+> **DE FĂCUT LA URMĂTORUL DEPLOY (19 august).** Scriptul s-a mutat din
+> `scripts/` în `scripts/ops/`, dar crontab-ul de pe gazdă indică încă
+> `/opt/swypik/app/scripts/disk-watch.sh`. Linia NU a fost schimbată
+> intenționat: `/opt` e o copie separată a repo-ului, actualizată abia la
+> `git pull`-ul din deploy. Schimbată acum, cron-ul ar fi rulat un fișier
+> inexistent — adică fix eșecul tăcut pe care monitorizarea trebuie să-l
+> prevină.
+>
+> Imediat **după** primul deploy care aduce mutarea:
+> ```bash
+> crontab -l | sed 's#scripts/disk-watch.sh#scripts/ops/disk-watch.sh#' | crontab -
+> crontab -l | grep disk-watch          # confirmă calea nouă
+> bash /opt/swypik/app/scripts/ops/disk-watch.sh   # confirmă că rulează
+> ```
 
 Verificare că funcționează:
 ```bash
-bash /opt/swypik/app/scripts/disk-watch.sh          # așteptat: http 200 + GB liberi
+bash /opt/swypik/app/scripts/ops/disk-watch.sh          # așteptat: http 200 + GB liberi
 DISK_WATCH_MIN_FREE_GB=2000                          # forțează alerta, apoi scoate-l
 psql -c "SELECT alert_key, alerted_at FROM ops_alert_log ORDER BY alerted_at DESC LIMIT 3;"
 ```

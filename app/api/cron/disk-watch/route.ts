@@ -25,10 +25,10 @@
  *   Cea care găzduiește VHDX-ul. Din 19 august e `E:` (`/mnt/e`), nu `D:` —
  *   distro-ul a fost mutat. Ruta nu presupune nimic: primește `mount` în body
  *   și îl folosește doar în textul alertei, ca să se vadă la ce se referă
- *   cifra. Sursa adevărului e `scripts/disk-watch.sh`, un singur loc de
+ *   cifra. Sursa adevărului e `scripts/ops/disk-watch.sh`, un singur loc de
  *   schimbat la o mutare viitoare.
  *
- * APELARE (din crontab-ul gazdei, orar) — vezi `scripts/disk-watch.sh`:
+ * APELARE (din crontab-ul gazdei, orar) — vezi `scripts/ops/disk-watch.sh`:
  *   FREE_GB=$(df --output=avail -k /mnt/e | tail -1 | awk '{print int($1/1024/1024)}')
  *   curl -s -X POST -H "x-cron-secret: $CRON_SECRET" \
  *        -H 'content-type: application/json' \

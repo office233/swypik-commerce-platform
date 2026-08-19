@@ -20,7 +20,7 @@
 #   Dacă muți iar distro-ul, schimbă `DISK_WATCH_MOUNT` sau linia de mai jos.
 #
 # INSTALARE (crontab-ul utilizatorului care rulează stack-ul, orar):
-#   0 * * * * /opt/swypik/app/scripts/disk-watch.sh >> /var/log/swypik-disk-watch.log 2>&1
+#   0 * * * * /opt/swypik/app/scripts/ops/disk-watch.sh >> /var/log/swypik-disk-watch.log 2>&1
 #
 # Pragul se configurează din `DISK_WATCH_MIN_FREE_GB` în mediul aplicației
 # (implicit 15 GB). Scriptul doar raportează cifra; decizia de alertare e în
