@@ -75,7 +75,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
             "CNP-ul gazdelor este criptat AES-256-GCM în baza de date. Nu este stocat niciodată în clar, nu apare public și, în panoul de administrare, se afișează doar mascat (ex: 1••••••••7890). Îl decriptăm exclusiv pentru raportarea fiscală obligatorie sau la solicitarea autorităților.",
             "Parolele sunt stocate ca hash criptografic — nici noi nu le putem citi.",
             "Datele cardurilor bancare nu ajung niciodată pe serverele noastre: plățile sunt procesate de Stripe, furnizor certificat PCI-DSS.",
-            "Adresa IP și user-agent-ul sunt anonimizate automat după 90 de zile.",
+            "Adresa IP și user-agent-ul sunt anonimizate automat: după 90 de zile pentru sesiuni, notificări și analiza de conținut, respectiv 180 de zile pentru jurnalele de plăți și semnalele antifraudă, unde termenul mai lung e necesar investigării unei fraude semnalate târziu.",
         ],
     },
     {
@@ -122,6 +122,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
                 ["Facturi și documente fiscale", "10 ani (obligație legală)"],
                 ["CNP și date de raportare DAC7", "conform termenului fiscal aplicabil"],
                 ["Adresă IP, user-agent", "90 de zile, apoi anonimizare"],
+                ["Adresă IP în jurnale de plăți și antifraudă", "180 de zile, apoi anonimizare"],
                 ["Sesiuni expirate", "30 de zile"],
                 ["Registrul SWYP", "permanent, dezlegat de identitate la ștergerea contului"],
             ],
