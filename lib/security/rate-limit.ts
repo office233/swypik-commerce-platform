@@ -144,6 +144,10 @@ export const RATE_LIMITS = {
   orderReturnPhotos: { limit: 5, window: 60 } as RateLimitConfig,
   stripeOnboarding: { limit: 5, window: 600 } as RateLimitConfig,
   stripeLoginLink: { limit: 10, window: 60 } as RateLimitConfig,
+  // Export GDPR: 14 interogări pe cont, deci scump. 3 la 10 minute e generos
+  // pentru un drept pe care un om îl exercită de câteva ori în viață, dar
+  // suficient de strâns cât să nu poată fi folosit ca amplificator pe DB.
+  accountExport: { limit: 3, window: 600 } as RateLimitConfig,
   // ── Added 2026-05-26: rate-limit hardening pass ────────────────────
   oauthCallback: { limit: 10, window: 60 } as RateLimitConfig,        // OAuth code exchange (Apple/Google)
   twoFactor: { limit: 5, window: 60 } as RateLimitConfig,             // 2FA enable/disable/regen (brute-force guard)

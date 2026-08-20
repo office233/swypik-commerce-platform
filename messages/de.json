@@ -589,7 +589,11 @@
     "conturiConectate": "Verbundene Konten",
     "deconecteaza": "Abmelden",
     "ascunde": "Ausblenden",
-    "arata": "Anzeigen"
+    "arata": "Anzeigen",
+    "confidentialitate": "Datenschutz",
+    "descarcaDateleDescriere": "Lade eine Datei mit deinen personenbezogenen Daten bei Swypik herunter: Konto, Adressen, Bestellungen, Aktivität und SWYP-Punkte. Ohne Passwörter oder Kartendaten.",
+    "descarcaDatele": "Meine Daten herunterladen (JSON)",
+    "stergereContNota": "Für die Löschung deines Kontos oder andere DSGVO-Rechte schreib uns an privacy@swypik.com. Wir antworten innerhalb von 30 Tagen."
   },
   "orders": {
     "seIncarcaComanda": "Bestellung wird geladen...",

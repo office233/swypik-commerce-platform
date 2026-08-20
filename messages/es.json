@@ -589,7 +589,11 @@
     "conturiConectate": "Cuentas conectadas",
     "deconecteaza": "Desconectar",
     "ascunde": "Ocultar",
-    "arata": "Mostrar"
+    "arata": "Mostrar",
+    "confidentialitate": "Privacidad",
+    "descarcaDateleDescriere": "Descarga un archivo con tus datos personales de Swypik: cuenta, direcciones, pedidos, actividad y puntos SWYP. No incluye contraseñas ni datos de tarjeta.",
+    "descarcaDatele": "Descargar mis datos (JSON)",
+    "stergereContNota": "Para eliminar tu cuenta o ejercer otros derechos del RGPD, escríbenos a privacy@swypik.com. Respondemos en un máximo de 30 días."
   },
   "orders": {
     "seIncarcaComanda": "Cargando pedido...",

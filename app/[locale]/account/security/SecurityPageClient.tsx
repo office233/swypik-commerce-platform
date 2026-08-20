@@ -467,6 +467,23 @@ export default function SecurityPageClient({
           </ul>
         )}
       </section>
+
+      {/* Confidențialitate — dreptul de acces și portabilitate (GDPR art. 15, 20).
+          Politica promitea „să primești o copie" din 31 iulie; până acum nu
+          exista niciun mecanism. Descărcarea e directă, fără cerere pe email. */}
+      <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <h2 className="text-lg font-black">{t("confidentialitate")}</h2>
+        <p className="mt-1 text-sm text-white/60">{t("descarcaDateleDescriere")}</p>
+        <a
+          href="/api/account/export"
+          download
+          className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-white hover:border-[#7C3AED]/50"
+        >
+          <Download className="h-4 w-4" />
+          {t("descarcaDatele")}
+        </a>
+        <p className="mt-3 text-xs text-white/40">{t("stergereContNota")}</p>
+      </section>
     </main>
   );
 }

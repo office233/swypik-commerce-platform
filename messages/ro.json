@@ -675,7 +675,11 @@
     "conturiConectate": "Conturi conectate",
     "deconecteaza": "Deconectează",
     "ascunde": "Ascunde",
-    "arata": "Arată"
+    "arata": "Arată",
+    "confidentialitate": "Confidențialitate",
+    "descarcaDateleDescriere": "Descarcă un fișier cu datele tale personale de pe Swypik: cont, adrese, comenzi, activitate și puncte SWYP. Nu conține parole sau date de card.",
+    "descarcaDatele": "Descarcă datele mele (JSON)",
+    "stergereContNota": "Pentru ștergerea contului sau alte drepturi GDPR, scrie-ne la privacy@swypik.com. Îți răspundem în cel mult 30 de zile."
   },
   "orders": {
     "seIncarcaComanda": "Se încarcă comanda...",

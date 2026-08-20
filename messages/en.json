@@ -675,7 +675,11 @@
     "conturiConectate": "Connected accounts",
     "deconecteaza": "Disconnect",
     "ascunde": "Hide",
-    "arata": "Show"
+    "arata": "Show",
+    "confidentialitate": "Privacy",
+    "descarcaDateleDescriere": "Download a file with your personal data from Swypik: account, addresses, orders, activity and SWYP points. It contains no passwords or card details.",
+    "descarcaDatele": "Download my data (JSON)",
+    "stergereContNota": "To delete your account or exercise other GDPR rights, email us at privacy@swypik.com. We reply within 30 days."
   },
   "orders": {
     "seIncarcaComanda": "Loading order...",
