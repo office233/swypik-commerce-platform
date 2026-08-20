@@ -6,10 +6,22 @@
  * și acest fișier — altfel politica devine falsă, ceea ce e o încălcare GDPR
  * în sine (principiul transparenței, art. 5(1)(a)).
  *
- * Ultima verificare față de cod: 31 iulie 2026.
+ * Ultima verificare față de cod: 20 august 2026.
+ *
+ * AUDIT 2026-08-20 — ce s-a corectat și de ce:
+ *   Secțiunea „Drepturile tale" promitea șapte drepturi „exercitabile gratuit"
+ *   fără să existe niciun mecanism: zero rute de export, zero buton de ștergere.
+ *   Mai grav, tabelul de retenție promitea „ștergere definitivă în 30 de zile",
+ *   dar `users` are 101 constrângeri copil, dintre care 5 (swyp_ledger_entries,
+ *   messages, flight_bookings, product_safety_labels) blochează un DELETE.
+ *   Ștergerea completă nu era doar neimplementată — era imposibilă structural.
+ *
+ *   O politică ce promite ce nu poți livra e ea însăși o încălcare (art. 5(1)(a),
+ *   transparență). Acum textul descrie ce se întâmplă efectiv: export automat,
+ *   restul pe email, cu excepțiile din art. 17(3) explicate pe nume.
  */
 
-export const PRIVACY_LAST_UPDATED = "31 iulie 2026";
+export const PRIVACY_LAST_UPDATED = "20 august 2026";
 
 export type PrivacySection = {
     id: string;
@@ -106,26 +118,57 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
             headers: ["Tip de date", "Perioadă"],
             rows: [
                 ["Cont activ", "cât timp ai contul deschis"],
-                ["După ștergerea contului", "30 de zile, apoi ștergere definitivă"],
+                ["După ștergerea contului", "30 de zile, apoi ștergere sau anonimizare (vezi 8.2)"],
                 ["Facturi și documente fiscale", "10 ani (obligație legală)"],
                 ["CNP și date de raportare DAC7", "conform termenului fiscal aplicabil"],
                 ["Adresă IP, user-agent", "90 de zile, apoi anonimizare"],
                 ["Sesiuni expirate", "30 de zile"],
+                ["Registrul SWYP", "permanent, dezlegat de identitate la ștergerea contului"],
             ],
         },
     },
     {
         id: "drepturi",
         title: "8. Drepturile tale",
-        body: ["Conform GDPR, ai următoarele drepturi, pe care le poți exercita gratuit:"],
+        body: [
+            "Conform GDPR, ai următoarele drepturi, pe care le poți exercita gratuit:",
+        ],
         bullets: [
-            "Acces — să afli ce date avem despre tine și să primești o copie.",
-            "Rectificare — să corectezi datele greșite (majoritatea direct din contul tău).",
-            "Ștergere — să ceri eliminarea datelor, cu excepția celor pe care legea ne obligă să le păstrăm (ex. facturi).",
-            "Restricționare — să ceri limitarea prelucrării cât timp verificăm o contestație.",
-            "Portabilitate — să primești datele într-un format structurat, citibil automat.",
-            "Opoziție — să te opui prelucrărilor bazate pe interes legitim.",
-            "Retragerea consimțământului — oricând, pentru analiză și marketing.",
+            "Acces și portabilitate — descarci singur, imediat, un fișier JSON cu datele tale, din Contul meu → Confidențialitate. Dacă preferi alt format sau ai nevoie de ceva ce nu apare acolo, scrie-ne la privacy@swypik.com.",
+            "Rectificare — îți corectezi singur datele de profil, adresele și preferințele din contul tău. Pentru date pe care nu le poți edita (ex. cele dintr-o factură deja emisă), scrie-ne.",
+            "Ștergere — ne scrii la privacy@swypik.com. Îți ștergem sau anonimizăm datele, cu excepțiile explicate mai jos, care sunt prevăzute de GDPR art. 17(3).",
+            "Restricționare — să ceri limitarea prelucrării cât timp verificăm o contestație. Cerere pe email.",
+            "Opoziție — să te opui prelucrărilor bazate pe interes legitim (securitate, prevenirea fraudei). Cerere pe email.",
+            "Retragerea consimțământului — oricând, singur, din bannerul de cookie-uri sau din setările de confidențialitate. Nu afectează accesul la serviciu.",
+        ],
+    },
+    {
+        id: "cum-exerciti",
+        title: "8.1. Cum trimiți o cerere și ce se întâmplă cu ea",
+        body: [
+            "Trimite cererea la privacy@swypik.com de pe adresa de email cu care ți-ai făcut contul. Dacă scrii de pe altă adresă, îți vom cere să confirmi identitatea — nu ca să îngreunăm procesul, ci pentru că a preda datele cuiva care se dă drept tine ar fi tot o încălcare.",
+            "Scrie clar ce drept vrei să exerciți. Îți confirmăm primirea și îți răspundem în cel mult 30 de zile, termenul legal. Dacă cererea e complexă, te anunțăm din timp — GDPR permite o prelungire de încă două luni, dar numai cu motivare.",
+            "Cererile se procesează manual, de o persoană. Nu există un buton automat pentru ștergere, iar asta e o alegere deliberată: o cerere de ștergere e ireversibilă și merită verificată.",
+        ],
+    },
+    {
+        id: "limite-stergere",
+        title: "8.2. Ce NU putem șterge și de ce",
+        body: [
+            "Vrem să fim exacți aici, pentru că majoritatea politicilor sunt vagi tocmai în acest punct. Când ceri ștergerea contului, unele date rămân:",
+        ],
+        bullets: [
+            "Facturile și documentele fiscale — 10 ani, obligație legală (Codul fiscal, Legea contabilității 82/1991). GDPR art. 17(3)(b) prevede explicit această excepție.",
+            "Înregistrările din registrul SWYP — tranzacțiile cu puncte de loialitate sunt înlănțuite criptografic, fiecare intrare confirmând-o pe precedenta. Ștergerea unei intrări ar invalida tot lanțul care urmează, inclusiv al altor utilizatori. Păstrăm înregistrarea, dar o dezlegăm de identitatea ta: rămâne suma și data, nu și cine ești.",
+            "Datele necesare apărării unui drept în justiție sau soluționării unei dispute în curs — pe durata acesteia (art. 17(3)(e)).",
+        ],
+    },
+    {
+        id: "ce-inseamna-stergere",
+        title: "8.3. Ce înseamnă concret „ștergere”",
+        body: [
+            "Pentru datele care nu intră în excepțiile de mai sus, ștergem rândurile. Pentru cele care trebuie păstrate, aplicăm anonimizarea: înlocuim numele, emailul și telefonul cu valori care nu duc la tine, astfel încât înregistrarea contabilă rămâne validă, dar nu mai e o dată cu caracter personal.",
+            "Contul devine inaccesibil imediat ce procesăm cererea. Ștergerea propriu-zisă se finalizează în cel mult 30 de zile.",
         ],
     },
     {
