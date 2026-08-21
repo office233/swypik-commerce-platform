@@ -142,7 +142,7 @@ async function GET_impl(req: NextRequest) {
       return { lastBackupAt: last?.completed_at ?? null, ageHours, maxAgeHours: maxAge, alerted: false };
     }
 
-    await notifyOps({
+    const sent = await notifyOps({
       key: "backup_stale",
       severity: "critical",
       title:
@@ -164,7 +164,16 @@ async function GET_impl(req: NextRequest) {
       cooldownMin: 360,
     });
 
-    return { lastBackupAt: last?.completed_at ?? null, ageHours, maxAgeHours: maxAge, alerted: true };
+    return {
+      lastBackupAt: last?.completed_at ?? null,
+      ageHours,
+      maxAgeHours: maxAge,
+      // `notifyOps` întoarce `false` dacă cooldown-ul (6h) a suprimat
+      // trimiterea. Raportarea unui `alerted: true` neadevărat ar face ca o
+      // verificare manuală să confirme o alertă care n-a plecat.
+      alerted: sent,
+      suppressedByCooldown: !sent,
+    };
   });
 
   if (result === null) return cronSkippedResponse("backup-watchdog");

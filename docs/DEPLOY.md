@@ -121,7 +121,14 @@ crontab -e
 0 * * * * /opt/swypik/app/scripts/ops/disk-watch.sh >> /var/log/swypik-disk-watch.log 2>&1
 ```
 
-> **DE FĂCUT LA URMĂTORUL DEPLOY (19 august).** Scriptul s-a mutat din
+> **⚠ ÎNCĂ NEFĂCUT — MONITORIZAREA DE DISC E OPRITĂ DIN 19 AUGUST.**
+>
+> Confirmat pe 21 august prin `cron_runs`: ultima rulare `disk-watch` e
+> `2026-08-19T13:19`, deși celelalte joburi orare rulează normal. Pasul de mai
+> jos a fost documentat, deploy-ul s-a făcut — dar comanda nu a fost executată.
+> Avertismentul a devenit exact defectul pe care îl prevedea.
+>
+> Scriptul s-a mutat din
 > `scripts/` în `scripts/ops/`, dar crontab-ul de pe gazdă indică încă
 > `/opt/swypik/app/scripts/disk-watch.sh`. Linia NU a fost schimbată
 > intenționat: `/opt` e o copie separată a repo-ului, actualizată abia la
@@ -129,12 +136,17 @@ crontab -e
 > inexistent — adică fix eșecul tăcut pe care monitorizarea trebuie să-l
 > prevină.
 >
-> Imediat **după** primul deploy care aduce mutarea:
+> Deploy-ul a fost făcut pe 19 august (`8f525c3f` și anterioare). Rulează acum:
 > ```bash
 > crontab -l | sed 's#scripts/disk-watch.sh#scripts/ops/disk-watch.sh#' | crontab -
 > crontab -l | grep disk-watch          # confirmă calea nouă
 > bash /opt/swypik/app/scripts/ops/disk-watch.sh   # confirmă că rulează
 > ```
+>
+> **Lecția, pentru data viitoare:** un pas manual amânat până după deploy nu
+> are cine să-l reamintească. Documentul l-a descris corect, dar documentele nu
+> execută. Dacă pasul e obligatoriu, locul lui e în scriptul de deploy, nu
+> într-un avertisment.
 
 Verificare că funcționează:
 ```bash

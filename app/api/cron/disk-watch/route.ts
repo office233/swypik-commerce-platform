@@ -103,7 +103,11 @@ async function POST_impl(req: NextRequest) {
     // Sub prag: cu cât e mai puțin spațiu, cu atât alerta e mai gravă și mai
     // frecventă. Sub 5 GB suntem la câteva build-uri de repetarea incidentului.
     const critical = freeGb < 5;
-    await notifyOps({
+    // `notifyOps` întoarce `false` când cooldown-ul a suprimat trimiterea.
+    // Ignorând valoarea, ruta raporta `alerted: true` și când nu plecase
+    // nimic — deci un test manual „văd alerted:true, deci merge" putea trece
+    // fără ca vreo alertă să existe. Diferențiem cele două stări.
+    const sent = await notifyOps({
       key: `disk_low:${mount}`,
       severity: critical ? "critical" : "warning",
       title: `Spațiu redus pe gazdă: ${freeGb} GB liberi (${mount})`,
@@ -124,7 +128,12 @@ async function POST_impl(req: NextRequest) {
       cooldownMin: critical ? 30 : 180,
     });
 
-    return { freeGb, thresholdGb: min, mount, alerted: true, critical };
+    return {
+      freeGb, thresholdGb: min, mount, critical,
+      alerted: sent,
+      // `true` = sub prag, dar alerta a fost înghițită de cooldown.
+      suppressedByCooldown: !sent,
+    };
   });
 
   if (result === null) return cronSkippedResponse("disk-watch");

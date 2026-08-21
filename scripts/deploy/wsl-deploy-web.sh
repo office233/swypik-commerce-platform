@@ -28,6 +28,20 @@
 #   MIN_FREE_GB=20 bash scripts/deploy/wsl-deploy-web.sh        # alt prag de spațiu
 #   PRUNE=1 bash scripts/deploy/wsl-deploy-web.sh               # curăță build cache întâi
 #
+# ⚠ ARGUMENTUL E O CAPCANĂ (constatat 2026-08-21):
+#   Scriptul a fost refăcut tocmai pentru problema „un serviciu deployat,
+#   restul nu". Apoi am reintrodus-o manual: toate deploy-urile din 18-19
+#   august au fost rulate cu `web-next` explicit, deși `run.sh` (cron-worker)
+#   se schimbase pe 17. Rezultatul — `checkout-health` și `backup-report`
+#   au stat 4 zile în `main` fără să ruleze vreodată, exact ca fix-ul ffmpeg
+#   din incidentul care a motivat rescrierea.
+#
+#   Regula, de acum: **nu da argumente decât dacă ești sigur că doar acel
+#   serviciu s-a schimbat.** Verificare rapidă înainte de deploy:
+#     git diff --name-only <ultimul-deploy>..HEAD | cut -d/ -f1-3 | sort -u
+#   Dacă apar `infra/hetzner/cron-worker`, `workers/`, sau `services/`,
+#   rulează scriptul FĂRĂ argumente.
+#
 # EXIT: 0 = toate serviciile atinse au imagine nouă
 #       1 = cel puțin un serviciu a rămas pe același hash (deploy incomplet)
 #       2 = eroare de configurare/rulare

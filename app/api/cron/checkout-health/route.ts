@@ -146,7 +146,10 @@ async function POST_or_GET(req: NextRequest) {
       // Diagnosticul e un bonus; lipsa lui nu blochează alerta.
     }
 
-    await notifyOps({
+    // Vezi disk-watch: valoarea returnată distinge „alertă trimisă" de
+    // „alertă suprimată de cooldown". Fără ea, `alerted: true` e o afirmație
+    // pe care nimeni n-a verificat-o.
+    const sent = await notifyOps({
       key: "checkout_health",
       severity: total ? "critical" : "warning",
       title: total
@@ -174,7 +177,11 @@ async function POST_or_GET(req: NextRequest) {
       cooldownMin: total ? 120 : 360,
     });
 
-    return { failed, succeeded, attempts, ratio, alerted: true, critical: total, lastError };
+    return {
+      failed, succeeded, attempts, ratio, critical: total, lastError,
+      alerted: sent,
+      suppressedByCooldown: !sent,
+    };
   });
 
   if (result === null) return cronSkippedResponse("checkout-health");
