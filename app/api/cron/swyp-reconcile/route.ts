@@ -63,7 +63,7 @@ async function handle(req: Request) {
     const pub = publicClient();
     const treasury = treasuryAddress().toLowerCase();
     const head = await pub.getBlockNumber();
-    let from = (await getCursor()) + 1n;
+    const from = (await getCursor()) + 1n;
     if (from > head) return NextResponse.json({ ok: true, scanned: 0, unknown: [] });
     const to = head - from >= BigInt(MAX_BLOCKS_PER_RUN) ? from + BigInt(MAX_BLOCKS_PER_RUN) - 1n : head;
 

@@ -33,7 +33,7 @@ export async function scanChainDeposits(): Promise<DepositScanResult> {
     const { rows: cur } = await dbQuery<{ last_block: string }>(
         `SELECT last_block::text FROM swyp_chain_scan_cursor WHERE id = 1 FOR UPDATE`,
     );
-    let from = BigInt(cur[0]?.last_block ?? "0") + 1n;
+    const from = BigInt(cur[0]?.last_block ?? "0") + 1n;
     if (from > head) return { fromBlock: from, toBlock: head, found: 0, credited: 0 };
     const to = head - from >= BigInt(MAX_BLOCKS_PER_RUN) ? from + BigInt(MAX_BLOCKS_PER_RUN) - 1n : head;
 

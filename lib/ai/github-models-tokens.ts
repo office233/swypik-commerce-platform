@@ -22,7 +22,7 @@ type SessionCache = {
   expiresAt: number; // unix seconds
 };
 
-let _memCache: Map<string, SessionCache> = new Map();
+const _memCache: Map<string, SessionCache> = new Map();
 let _diskLoaded = false;
 
 const EDITOR_HEADERS: Record<string, string> = {

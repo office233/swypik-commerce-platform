@@ -201,7 +201,7 @@ function translateQuery(query: string): string {
 }
 
 function cleanCheaperQuery(message: string) {
-  let cleaned = message
+  const cleaned = message
     .replace(/prea scump/gi, "")
     .replace(/mai ieftin/gi, "")
     .replace(/ieftin/gi, "")

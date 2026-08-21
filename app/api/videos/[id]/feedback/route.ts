@@ -48,7 +48,7 @@ export async function POST(
     }
 
     // Upsert logic
-    let weightDelta = action === "more_like_this" ? 0.5 : -1.0;
+    const weightDelta = action === "more_like_this" ? 0.5 : -1.0;
     
     // Check current weight
     const currentRes = await dbQuery(
