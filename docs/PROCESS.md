@@ -84,3 +84,20 @@ procesul rezolvă singur clasa de probleme care ne-a costat cel mai mult.
 - Semgrep — există deja `.semgrepignore` din 15 mai, dar nu rulează nicăieri
 - verificare că fișierele referite din crontab și systemd chiar există —
   singura idee de aici care ar fi prins o problemă din categoria „decalaj"
+
+## Regula `no-explicit-any`: două niveluri
+
+`.eslintrc.json` tratează `any` diferit după cât costă greșeala:
+
+| Unde | Nivel |
+|---|---|
+| `app/api/webhooks`, `app/api/checkout`, `app/api/orders`, `lib/stripe`, `lib/payments`, `lib/swyp`, `lib/security` | **`error`** |
+| restul repo-ului | `warn` |
+
+Zonele care mișcă bani au fost curățate complet (commit `24a9471f`), deci
+pragul e zero și se poate menține. Un `any` acolo a ascuns deja un log care
+raporta mereu `0` și o nepotrivire de formă la fulfillment — ambele invizibile
+pentru `tsc` tocmai pentru că `as any` îi spunea să nu se uite.
+
+Restul rămâne pe `warn`: 494 de apariții nu se curăță într-o sesiune, iar un
+CI roșu permanent nu mai e citit de nimeni.

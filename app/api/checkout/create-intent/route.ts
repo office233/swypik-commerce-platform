@@ -55,7 +55,10 @@ export async function POST(req: Request) {
 
     // Idempotency: return cached response if present
     if (idempotencyKey) {
-      const cached = await idempotencyGet<any>(`checkout:${idempotencyKey}`);
+      // Răspunsul cache-uit se retrimite ca atare către client; nu îi citim
+      // câmpurile, deci `unknown` e suficient și corect. `any` ar fi permis
+      // accidental acces netipat la un corp de răspuns care s-ar putea schimba.
+      const cached = await idempotencyGet<unknown>(`checkout:${idempotencyKey}`);
       if (cached) {
         return NextResponse.json(cached);
       }

@@ -11,5 +11,21 @@
     "@typescript-eslint/no-require-imports": "warn",
     "@typescript-eslint/ban-ts-comment": "warn",
     "@typescript-eslint/triple-slash-reference": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "app/api/webhooks/**/*.ts",
+        "app/api/checkout/**/*.ts",
+        "app/api/orders/**/*.ts",
+        "lib/stripe/**/*.ts",
+        "lib/payments/**/*.ts",
+        "lib/swyp/**/*.ts",
+        "lib/security/**/*.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "error"
+      }
+    }
+  ]
 }
