@@ -82,9 +82,8 @@ export async function POST(
   }
 
   const meta = rows[0].metadata || {};
-  const evidence = Array.isArray((meta as any).return_evidence_urls)
-    ? ((meta as any).return_evidence_urls as unknown[])
-    : [];
+  const returnEvidence = (meta as { return_evidence_urls?: unknown }).return_evidence_urls;
+  const evidence = Array.isArray(returnEvidence) ? returnEvidence : [];
   if (evidence.length >= MAX_PHOTOS) {
     return NextResponse.json(
       { error: `Limită de ${MAX_PHOTOS} fotografii atinsă.` },

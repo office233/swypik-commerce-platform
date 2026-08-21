@@ -36,19 +36,39 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     amountTotalCents: li.amount_total || 0,
     quantity: li.quantity || 1,
     currency: li.currency,
-    metadata: typeof li.price?.product === "object" && li.price.product ? (li.price.product as any).metadata || {} : {},
+    // `price.product` e `string | Product | DeletedProduct`. Doar `Product` are
+    // `metadata`; îngustăm la ce citim în loc să dezactivăm verificarea.
+    metadata:
+      typeof li.price?.product === "object" && li.price.product
+        ? ((li.price.product as { metadata?: Record<string, string> }).metadata ?? {})
+        : {},
   }));
 
   const totalCents = session.amount_total || 0;
   const totalRon = totalCents / 100;
-  const taxCents = (session as any).total_details?.amount_tax || 0;
+  const taxCents = session.total_details?.amount_tax ?? 0;
   const taxCountry = session.customer_details?.address?.country || null;
-  const taxIds = (session.customer_details as any)?.tax_ids;
+  // `tax_ids` apare pe `customer_details` doar când sesiunea a fost creată cu
+  // `tax_id_collection` activ, deci nu e în tipul de bază.
+  const taxIds = (session.customer_details as { tax_ids?: Array<{ type: string; value: string | null }> } | null)
+    ?.tax_ids;
   const taxIdCollected = Array.isArray(taxIds) && taxIds.length > 0
     ? `${taxIds[0].type}:${taxIds[0].value}`
     : null;
-  const sessionAny = session as any;
-  const shipping = sessionAny.shipping_details || sessionAny.shipping;
+  // `shipping_details` a înlocuit `shipping` în API-ul Stripe; citim ambele ca
+  // să acoperim sesiuni vechi. Niciunul nu e în tipul curent al SDK-ului.
+  type StripeShipping = {
+    name?: string | null;
+    address?: {
+      line1?: string | null; line2?: string | null; city?: string | null;
+      state?: string | null; postal_code?: string | null; country?: string | null;
+    } | null;
+  };
+  const sessionShipping = session as unknown as {
+    shipping_details?: StripeShipping | null;
+    shipping?: StripeShipping | null;
+  };
+  const shipping = sessionShipping.shipping_details || sessionShipping.shipping;
   const shippingAddress = shipping ? {
     name: shipping.name,
     line1: shipping.address?.line1,
@@ -178,8 +198,32 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // --- Fulfillment Orchestration ---
   try {
-    const fulfillmentPlan = await routeOrder(orderId, items as any);
-    logger.info({ order_id: orderId, plan_summary: { groups: Array.isArray((fulfillmentPlan as any)?.groups) ? (fulfillmentPlan as any).groups.length : 0 } }, "[Stripe Webhook] fulfillment plan generated");
+    // NEPOTRIVIRE DE FORMĂ, mascată până acum de `as any`:
+    // `items` construit mai sus are {id, name, price, ...}, dar `OrderItem`
+    // (lib/fulfillment/order-router.ts) cere {productId, title, quantity, price}.
+    // Deci `routeOrder` primea obiecte fără `productId` — cheia după care își
+    // grupează itemele. Convertim explicit, ca nepotrivirea să fie vizibilă.
+    const routableItems = items.map((i) => ({
+      productId: String(i.metadata?.product_id ?? i.metadata?.pg_id ?? i.id),
+      title: i.name,
+      quantity: i.quantity,
+      price: i.price,
+      metadata: i.metadata,
+    }));
+    const fulfillmentPlan = await routeOrder(orderId, routableItems);
+    // Logul citea `fulfillmentPlan.groups`, câmp care NU EXISTĂ pe
+    // `FulfillmentPlan` ({manual, localSellers}) — deci raporta mereu 0.
+    // `as any` a ascuns și asta. Acum logăm ce chiar există.
+    logger.info(
+      {
+        order_id: orderId,
+        plan_summary: {
+          manual: fulfillmentPlan.manual.length,
+          selleri: Object.keys(fulfillmentPlan.localSellers).length,
+        },
+      },
+      "[Stripe Webhook] fulfillment plan generated",
+    );
   } catch (err) {
     logger.error({ err: err }, `[Stripe Webhook] Fulfillment routing failed for Order ${orderId}:`);
   }

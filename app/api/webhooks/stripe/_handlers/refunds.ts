@@ -102,7 +102,10 @@ export async function handleChargeRefunded(event: Stripe.Event) {
 }
 
 export async function handleIntentDead(event: Stripe.Event) {
-  const objId = (event.data.object as any).id;
+  // `event.data.object` e o uniune peste toate obiectele Stripe. Toate au `id`,
+  // dar TypeScript nu poate demonstra asta pe o uniune atât de largă. Îngustăm
+  // la exact ce citim, în loc să dezactivăm verificarea cu `as any`.
+  const objId = (event.data.object as { id: string }).id;
   await dbQuery(
     "UPDATE commerce_orders SET status='cancelled', metadata = metadata || jsonb_build_object('cancelled_at', NOW()::text, 'cancelled_event', $2::text) WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'sessionId' = $1 OR metadata->>'stripe_session_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
     [objId, event.type]

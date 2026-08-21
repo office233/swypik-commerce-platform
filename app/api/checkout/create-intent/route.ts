@@ -91,7 +91,13 @@ export async function POST(req: Request) {
       }
 
       // Validare stoc (aliniat cu /api/checkout — fix oversell audit extern)
-      const baseStock = (pgProduct as any).metadata?.available_stock ?? (pgProduct as any).stock;
+      // Tip explicit în loc de `as any`: aici se decide dacă vindem sau nu un
+      // produs fără stoc, deci e ultimul loc unde vrem verificarea dezactivată.
+      const stockSource = pgProduct as {
+        metadata?: { available_stock?: number | string | null } | null;
+        stock?: number | string | null;
+      };
+      const baseStock = stockSource.metadata?.available_stock ?? stockSource.stock;
       if (baseStock !== undefined && baseStock !== null && qty > Number(baseStock)) {
         return NextResponse.json(
           { success: false, error: `Stoc insuficient pentru "${pgProduct.title}". Ai cerut ${qty}, dar avem doar ${baseStock} disponibile.` },

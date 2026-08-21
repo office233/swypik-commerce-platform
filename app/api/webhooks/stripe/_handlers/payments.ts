@@ -214,14 +214,17 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
         [orderId]
       );
       const items = itemRows.map((r) => ({
-        productId: r.product_id || (r.metadata?.pg_id ?? r.metadata?.product_id ?? ""),
-        skuId: r.metadata?.sku_id || r.metadata?.skuId,
+        // `metadata` e `Record<string, unknown>`, deci câmpurile ei ies ca
+        // `unknown`. Convertim explicit la string: `as any` ascundea doar
+        // faptul că un `pg_id` numeric ar fi ajuns netransformat.
+        productId: r.product_id || String(r.metadata?.pg_id ?? r.metadata?.product_id ?? ""),
+        skuId: (r.metadata?.sku_id ?? r.metadata?.skuId) as string | undefined,
         title: r.title,
         quantity: Number(r.quantity) || 1,
         price: Number(r.unit_amount_cents || 0) / 100,
         metadata: r.metadata || {},
       }));
-      await routeOrder(orderId, items as any);
+      await routeOrder(orderId, items);
     } catch (err) {
       logger.error({ err, orderId }, "[Stripe Webhook] routeOrder failed after payment_intent.succeeded");
     }

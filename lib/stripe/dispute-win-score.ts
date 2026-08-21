@@ -82,7 +82,10 @@ const REASON_BASELINE: Record<string, number> = {
 
 function has(ev: EvidenceFields, key: string): boolean {
   if (!ev || typeof ev !== "object") return false;
-  const v = (ev as any)[key];
+  // Acces prin index pe un tip cu chei cunoscute: `Record<string, unknown>` e
+  // exact ce trebuie, iar `unknown` ne obligă să verificăm tipul mai jos —
+  // spre deosebire de `as any`, care ar fi lăsat orice să treacă.
+  const v = (ev as Record<string, unknown>)[key];
   return typeof v === "string" && v.trim().length > 0;
 }
 
@@ -194,7 +197,7 @@ export function scoreDispute(input: {
   hasOrderLink?: boolean;
 }): WinScore {
   const reason = (input.reason || "general").toLowerCase();
-  const ev: Record<string, unknown> = (input.evidence as any) || {};
+  const ev: Record<string, unknown> = (input.evidence as Record<string, unknown> | undefined) ?? {};
   const hasOrderLink = Boolean(input.hasOrderLink);
 
   const baseline = computeRaw(reason, ev, hasOrderLink);
