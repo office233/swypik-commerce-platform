@@ -27,7 +27,7 @@ Future Redis Stream entries can use either fields or a JSON `payload` field shap
 ## Local Setup
 
 ```powershell
-cd D:\Swypik\workers\ai-worker
+cd E:\Swypik\swypik\app\workers\ai-worker
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
