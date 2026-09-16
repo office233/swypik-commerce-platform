@@ -90,12 +90,13 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: false,
-          // Conservative buffer for vertical feed swiping — we don't need to
-          // buffer ahead aggressively because the user may swipe away.
           startLevel: 0,
           capLevelToPlayerSize: true,
-          maxBufferLength: 8,
-          maxMaxBufferLength: 16,
+          // Calibrare buffer fluid fără sacadare (buffer înainte 14s, rezervă maximă 30s)
+          maxBufferLength: 14,
+          maxMaxBufferLength: 30,
+          backBufferLength: 10,
+          maxBufferSize: 30 * 1000 * 1000,
         });
         hlsInstance = hls;
         hls.on(Hls.Events.ERROR, (_event, data) => {

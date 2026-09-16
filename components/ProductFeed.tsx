@@ -666,8 +666,9 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   loop
                   muted={isMuted}
                   playsInline
-                  preload={idx === currentIdx ? "auto" : "metadata"}
+                  preload="auto"
                   autoPlay={idx === currentIdx}
+                  style={{ transform: "translateZ(0)", willChange: "transform", backfaceVisibility: "hidden" }}
                   className="absolute inset-0 h-full w-full object-cover"
                   onError={() => setVideoErrors((prev) => ({ ...prev, [product.id]: true }))}
                 />
