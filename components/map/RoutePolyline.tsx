@@ -72,24 +72,46 @@ export default function RoutePolyline({
 
   return (
     <>
-      {/* Casing exterior de adâncime (Road casing) */}
-      <Polyline
-        positions={routeCoords}
-        pathOptions={{
-          color: casingColor,
-          weight: 7,
-          opacity: 0.35,
-          lineCap: "round",
-          lineJoin: "round",
-        }}
-      />
-      {/* Linie principală de navigare */}
+      {/* 1. Neon ambient glow (estompare luminoasă exterioară) */}
       <Polyline
         positions={routeCoords}
         pathOptions={{
           color,
-          weight: 4.5,
-          opacity: 0.95,
+          weight: 14,
+          opacity: 0.22,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+      {/* 2. Casing exterior de adâncime (Road asphalt boundary) */}
+      <Polyline
+        positions={routeCoords}
+        pathOptions={{
+          color: casingColor,
+          weight: 8,
+          opacity: 0.7,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+      {/* 3. Traseu principal de navigare stil Bolt / Uber */}
+      <Polyline
+        positions={routeCoords}
+        pathOptions={{
+          color,
+          weight: 5,
+          opacity: 0.98,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+      {/* 4. Miez luminos interior (Fiber-optic highlight) */}
+      <Polyline
+        positions={routeCoords}
+        pathOptions={{
+          color: "#FFFFFF",
+          weight: 1.8,
+          opacity: 0.8,
           lineCap: "round",
           lineJoin: "round",
         }}

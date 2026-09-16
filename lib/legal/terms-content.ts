@@ -31,7 +31,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
         id: "parti",
         title: "1. Cine suntem și ce accepți",
         body: [
-            "Swypik este o platformă online operată de Swypik Technology („Swypik”, „noi”). Prin crearea unui cont sau prin plasarea unei comenzi, accepți acești Termeni. Dacă nu ești de acord cu ei, te rugăm să nu folosești platforma.",
+            "Swypik este o platformă digitală integrată și marketplace multi-serviciu operat de Swypik Technology S.R.L. („Swypik”, „noi”), societate înregistrată în România. Prin crearea unui cont sau prin plasarea unei comenzi, accepți acești Termeni. Dacă nu ești de acord cu ei, te rugăm să nu folosești platforma.",
             "Acești Termeni se completează cu Politica de confidențialitate și cu Politica de cookie-uri.",
         ],
     },
@@ -48,6 +48,8 @@ export const TERMS_SECTIONS: TermsSection[] = [
                 ["Stays (gazde Swypik)", "intermediar + procesator plăți", "gazda"],
                 ["Fly (bilete avion)", "vânzător (merchant of record)", "Swypik"],
                 ["Go, Send, Move", "intermediar", "șoferul/curierul"],
+                ["Swypik Cares", "facilitator tehnic și de donații (0% comision)", "cauza verificată"],
+                ["SWYP Pay", "furnizor de portofel intern și plăți", "Swypik"],
             ],
         },
         bullets: [
@@ -78,6 +80,8 @@ export const TERMS_SECTIONS: TermsSection[] = [
                 ["Stays (cazări)", "10% din valoarea rezervării"],
                 ["Fly (zboruri)", "10% din tariful net, minimum 15 lei"],
                 ["Food, Shop, Go", "conform contractului cu partenerul"],
+                ["Swypik Cares (cauze caritabile)", "0% comision platformă (100% ajunge la cauză)"],
+                ["SWYP Pay (portofel intern)", "0% comision pe transferuri între utilizatori"],
             ],
         },
         bullets: [

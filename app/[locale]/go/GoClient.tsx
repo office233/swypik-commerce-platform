@@ -23,6 +23,7 @@ import {
   Wind,
   VolumeX,
   Luggage,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { haptic } from "@/lib/haptic";
@@ -169,16 +170,50 @@ export default function GoClient() {
     );
   }, [pickup, t]);
 
-  // Șoferi activi simulați în jur (dau viață hărții ca în Uber/Bolt)
-  const nearbyDrivers = useMemo<NearbyDriver[]>(() => {
-    const origin = pickup ?? BUCHAREST;
-    return [
-      { id: "drv-1", lat: origin.lat + 0.0031, lng: origin.lng + 0.0028, heading: 45, eta: "2 min" },
-      { id: "drv-2", lat: origin.lat - 0.0039, lng: origin.lng + 0.0036, heading: 135, eta: "3 min" },
-      { id: "drv-3", lat: origin.lat + 0.0024, lng: origin.lng - 0.0042, heading: 275, eta: "4 min" },
-      { id: "drv-4", lat: origin.lat - 0.0019, lng: origin.lng - 0.0031, heading: 215, eta: "3 min" },
-    ];
-  }, [pickup]);
+  // Șoferi activi pe hartă cu simulare dinamică a deplasării (Live Crawl stil Uber & Bolt)
+  const [nearbyDrivers, setNearbyDrivers] = useState<NearbyDriver[]>([
+    { id: "drv-1", lat: BUCHAREST.lat + 0.0031, lng: BUCHAREST.lng + 0.0028, heading: 45, eta: "2 min" },
+    { id: "drv-2", lat: BUCHAREST.lat - 0.0039, lng: BUCHAREST.lng + 0.0036, heading: 135, eta: "3 min" },
+    { id: "drv-3", lat: BUCHAREST.lat + 0.0024, lng: BUCHAREST.lng - 0.0042, heading: 275, eta: "4 min" },
+    { id: "drv-4", lat: BUCHAREST.lat - 0.0019, lng: BUCHAREST.lng - 0.0031, heading: 215, eta: "3 min" },
+  ]);
+
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
+  const [safetyPin] = useState(() => Math.floor(1000 + Math.random() * 9000).toString());
+
+  // Repoziționează mașinile când utilizatorul își alege locația de pornire
+  useEffect(() => {
+    if (!pickup) return;
+    setNearbyDrivers([
+      { id: "drv-1", lat: pickup.lat + 0.0028, lng: pickup.lng + 0.0025, heading: 45, eta: "2 min" },
+      { id: "drv-2", lat: pickup.lat - 0.0032, lng: pickup.lng + 0.0031, heading: 135, eta: "3 min" },
+      { id: "drv-3", lat: pickup.lat + 0.0021, lng: pickup.lng - 0.0038, heading: 275, eta: "4 min" },
+      { id: "drv-4", lat: pickup.lat - 0.0017, lng: pickup.lng - 0.0026, heading: 215, eta: "3 min" },
+    ]);
+  }, [pickup?.lat, pickup?.lng]);
+
+  // Simulare fluidă de deplasare a mașinilor pe străzi (actualizare heading și mișcare organică la 2.2 secunde)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNearbyDrivers((drivers) =>
+        drivers.map((d) => {
+          const rad = (d.heading * Math.PI) / 180;
+          const step = 0.00012; // deplasare realistă ~13 metri
+          const deltaLat = Math.cos(rad) * step;
+          const deltaLng = Math.sin(rad) * step;
+          const newHeading = (d.heading + (Math.random() * 12 - 6) + 360) % 360;
+          return {
+            ...d,
+            lat: d.lat + deltaLat,
+            lng: d.lng + deltaLng,
+            heading: Math.round(newHeading),
+          };
+        }),
+      );
+    }, 2200);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLocateMe = useCallback(() => {
     haptic("tap");
@@ -258,7 +293,7 @@ export default function GoClient() {
           pickup,
           dropoff,
           vehicle_class: vehicleClass,
-          payment_method: useSwyp ? "swyp" : "cash",
+          payment_method: paymentMethod,
           use_swyp: useSwyp && !!swypInfo,
         }),
       });
@@ -335,7 +370,25 @@ export default function GoClient() {
         </button>
       </div>
 
-      {/* Hartă interactivă CartoDB Voyager */}
+      {/* Banner flotant stadiu trafic în timp real (stil Uber & Bolt) */}
+      {selected ? (
+        <div className="absolute top-18 inset-x-4 z-20 pointer-events-none flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-950/90 dark:bg-black/95 backdrop-blur-md text-white shadow-2xl border border-white/15 animate-in fade-in slide-in-from-top-2 duration-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[11px] font-black tracking-tight">Trafic optim</span>
+            <span className="text-white/30 text-[10px]">•</span>
+            <span className="text-amber-400 text-[11px] font-black">~{selected.duration_min} min</span>
+            <span className="text-white/60 text-[10px] font-semibold">({selected.distance_km.toFixed(1)} km)</span>
+            {arrivalTime ? (
+              <span className="text-[9.5px] font-extrabold bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-md border border-emerald-500/30">
+                Sosire {arrivalTime}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Hartă interactivă Swypik Go */}
       <div className="relative flex-1">
         <MapView
           center={pickup ?? BUCHAREST}
@@ -365,6 +418,19 @@ export default function GoClient() {
             />
           ))}
         </MapView>
+
+        {/* Buton Plutitor Swypik Shield (Siguranță Cursă stil Bolt / Uber) */}
+        <div className="absolute left-4 bottom-4 z-[400] pointer-events-auto">
+          <button
+            type="button"
+            onClick={() => setShowSafetyModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl border border-black/10 dark:border-white/10 text-neutral-900 dark:text-neutral-100 hover:scale-105 active:scale-95 transition"
+            aria-label="Opțiuni Siguranță Swypik Shield"
+          >
+            <ShieldCheck size={16} className="text-emerald-500" />
+            <span className="text-[11px] font-black tracking-tight">Siguranță</span>
+          </button>
+        </div>
       </div>
 
       {/* Panou de comandă inferior — stil Uber / Bolt Super-App */}
@@ -540,51 +606,61 @@ export default function GoClient() {
           </button>
         </div>
 
-        {/* Plată cu SWYP Pay (-10% reducere) */}
-        {swypInfo ? (
-          <button
-            type="button"
-            onClick={() => {
-              haptic("tap");
-              setUseSwyp((v) => !v);
-            }}
-            aria-pressed={useSwyp}
-            className={`mt-3 flex w-full items-center justify-between rounded-2xl border p-3 text-left transition ${
-              useSwyp
-                ? "border-amber-400 bg-amber-50/70 shadow-sm"
-                : "border-neutral-200 bg-neutral-50/50 hover:bg-neutral-50"
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-400 text-black flex items-center justify-center font-black text-sm shrink-0 shadow-sm">
-                🪙
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-neutral-900">Plătește cu SWYP Pay</span>
-                  <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-amber-500 text-black uppercase tracking-wider">
-                    -10% REDUCERE
-                  </span>
-                </div>
-                <span className="block text-[11px] text-neutral-500 font-medium">
-                  Sold: {swypInfo.balanceSwyp.toFixed(0)} SWYP ({(swypInfo.balanceSwyp * swypInfo.ronPerSwyp).toFixed(2)} lei)
-                </span>
-              </div>
-            </div>
-
-            <span
-              className={`h-5 w-9 shrink-0 rounded-full p-0.5 transition ${
-                useSwyp ? "bg-amber-500" : "bg-neutral-300"
+        {/* Selector Metodă de Plată (stil Bolt Super-App) */}
+        <div className="mt-3 flex items-center justify-between rounded-2xl bg-neutral-50 p-2 border border-neutral-200/90">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                setPaymentMethod("card");
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition ${
+                paymentMethod === "card"
+                  ? "bg-neutral-900 text-white shadow-sm"
+                  : "text-neutral-600 hover:text-neutral-900"
               }`}
             >
-              <span
-                className={`block h-4 w-4 rounded-full bg-white transition shadow-sm ${
-                  useSwyp ? "translate-x-4" : ""
-                }`}
-              />
-            </span>
-          </button>
-        ) : null}
+              <span>💳</span>
+              <span>Card</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                setPaymentMethod("cash");
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition ${
+                paymentMethod === "cash"
+                  ? "bg-neutral-900 text-white shadow-sm"
+                  : "text-neutral-600 hover:text-neutral-900"
+              }`}
+            >
+              <span>💵</span>
+              <span>Numerar</span>
+            </button>
+          </div>
+
+          {/* Toggle SWYP Pay (-10% reducere pe cursă) */}
+          {swypInfo ? (
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                setUseSwyp((v) => !v);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[11px] transition ${
+                useSwyp
+                  ? "bg-amber-400 text-black shadow-sm ring-2 ring-amber-400/40"
+                  : "bg-neutral-200/80 text-neutral-700 hover:bg-neutral-300"
+              }`}
+            >
+              <span>🪙</span>
+              <span>SWYP Pay</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-black/10 text-black font-black">-10%</span>
+            </button>
+          ) : null}
+        </div>
 
         {/* Buton principal Comandă Cursă */}
         <button
@@ -609,6 +685,98 @@ export default function GoClient() {
           )}
         </button>
       </div>
+
+      {/* Modal Swypik Shield (Opțiuni de Siguranță stil Uber/Bolt) */}
+      {showSafetyModal ? (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl bg-white p-6 shadow-2xl border border-neutral-200 animate-in slide-in-from-bottom-6 duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h2 className="text-[17px] font-black text-neutral-900 tracking-tight">Swypik Shield</h2>
+                  <p className="text-[11px] text-neutral-500 font-medium">Siguranță garantată pentru fiecare cursă</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSafetyModal(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2.5 mb-5">
+              {/* Cod PIN Securitate */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-neutral-50 border border-neutral-200">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">🔢</span>
+                  <div>
+                    <span className="block text-xs font-black text-neutral-900">Cod PIN Cursă</span>
+                    <span className="block text-[10px] text-neutral-500">Confirmă codul cu șoferul înainte de plecare</span>
+                  </div>
+                </div>
+                <span className="text-base font-black tracking-widest text-emerald-600 bg-white px-2.5 py-1 rounded-xl border border-emerald-200 shadow-xs">
+                  {safetyPin}
+                </span>
+              </div>
+
+              {/* Partajare traseu */}
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  const text = `Urmărește cursa mea pe Swypik Go: https://swypik.com/go`;
+                  if (navigator.share) {
+                    navigator.share({ title: "Cursa mea Swypik Go", text, url: "https://swypik.com/go" }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(text);
+                    alert("Link-ul cursei a fost copiat!");
+                  }
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 transition text-left"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">📱</span>
+                  <div>
+                    <span className="block text-xs font-black text-neutral-900">Trimite cursa prietenilor</span>
+                    <span className="block text-[10px] text-neutral-500">Traseu și mașină vizibile în timp real</span>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-emerald-600">Partajează →</span>
+              </button>
+
+              {/* Buton 112 Urgență */}
+              <a
+                href="tel:112"
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-rose-50 hover:bg-rose-100 border border-rose-200 transition text-left"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">🚨</span>
+                  <div>
+                    <span className="block text-xs font-black text-rose-700">Apel Urgență 112</span>
+                    <span className="block text-[10px] text-rose-600">
+                      GPS: {pickup ? `${pickup.lat.toFixed(4)}, ${pickup.lng.toFixed(4)}` : "Disponibil live"}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-rose-700">Apelează</span>
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowSafetyModal(false)}
+              className="w-full py-3 rounded-2xl bg-neutral-950 text-white font-black text-xs uppercase tracking-wider"
+            >
+              Închide
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
