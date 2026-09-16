@@ -1,20 +1,99 @@
 "use client";
 
-/** RoutePolyline — linia pickup → dropoff (linie dreaptă stilizată; OSM nu dă rutare gratuită fără server extern). */
+/**
+ * RoutePolyline — traseu realist de navigare pe străzi (OSRM public routing cu fallback haversine).
+ * Redă o linie de rută dublă (casing de adâncime + traseu de navigare luminos) stil Uber / Google Maps.
+ */
+import { useEffect, useState } from "react";
 import { Polyline } from "react-leaflet";
+
+type Point = { lat: number; lng: number };
+
+const routeCache = new Map<string, [number, number][]>();
 
 export default function RoutePolyline({
   points,
-  color = "#0D0D0D",
+  color = "#10B981",
+  casingColor = "#0D0D0D",
 }: {
-  points: { lat: number; lng: number }[];
+  points: Point[];
   color?: string;
+  casingColor?: string;
 }) {
-  if (points.length < 2) return null;
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>(() =>
+    points.map((p) => [p.lat, p.lng] as [number, number]),
+  );
+
+  useEffect(() => {
+    if (points.length < 2) return;
+    const p1 = points[0];
+    const p2 = points[points.length - 1];
+    const key = `${p1.lat.toFixed(4)},${p1.lng.toFixed(4)}-${p2.lat.toFixed(4)},${p2.lng.toFixed(4)}`;
+
+    if (routeCache.has(key)) {
+      setRouteCoords(routeCache.get(key)!);
+      return;
+    }
+
+    let isMounted = true;
+    const controller = new AbortController();
+
+    async function fetchRoadRoute() {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${p1.lng},${p1.lat};${p2.lng},${p2.lat}?overview=full&geometries=geojson`;
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) throw new Error("OSRM error");
+        const data = await res.json();
+        const coords = data?.routes?.[0]?.geometry?.coordinates;
+        if (Array.isArray(coords) && coords.length > 0) {
+          // OSRM dă [lng, lat] -> Leaflet vrea [lat, lng]
+          const mapped = coords.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
+          routeCache.set(key, mapped);
+          if (isMounted) setRouteCoords(mapped);
+          return;
+        }
+      } catch {
+        // Fallback la punctele directe
+      }
+      if (isMounted) {
+        setRouteCoords(points.map((p) => [p.lat, p.lng] as [number, number]));
+      }
+    }
+
+    void fetchRoadRoute();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [points]);
+
+  if (routeCoords.length < 2) return null;
+
   return (
-    <Polyline
-      positions={points.map((p) => [p.lat, p.lng] as [number, number])}
-      pathOptions={{ color, weight: 4, opacity: 0.75, dashArray: "8 10" }}
-    />
+    <>
+      {/* Casing exterior de adâncime (Road casing) */}
+      <Polyline
+        positions={routeCoords}
+        pathOptions={{
+          color: casingColor,
+          weight: 7,
+          opacity: 0.35,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+      {/* Linie principală de navigare */}
+      <Polyline
+        positions={routeCoords}
+        pathOptions={{
+          color,
+          weight: 4.5,
+          opacity: 0.95,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+    </>
   );
 }

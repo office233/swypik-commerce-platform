@@ -16,6 +16,7 @@
 import { useEffect } from "react";
 import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
+import { Plus, Minus, Navigation } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 // Fix icon-uri default Leaflet în bundler (altfel marker-ele apar sparte).
@@ -38,6 +39,10 @@ export type MapViewProps = {
   fitBounds?: { lat: number; lng: number }[] | null;
   /** Click pe hartă — folosit pentru ajustarea pinului de livrare. */
   onMapClick?: (p: { lat: number; lng: number }) => void;
+  /** Callback pentru butonul „Locația mea”. */
+  onLocate?: () => void;
+  /** Afișează controalele moderne de zoom/locate (implicit: true). */
+  showControls?: boolean;
 };
 
 function ClickCapture({ onMapClick }: { onMapClick: (p: { lat: number; lng: number }) => void }) {
@@ -55,23 +60,62 @@ function MapController({ flyTo, fitBounds }: Pick<MapViewProps, "flyTo" | "fitBo
     if (fitBounds && fitBounds.length >= 2) {
       map.fitBounds(
         L.latLngBounds(fitBounds.map((p) => [p.lat, p.lng] as [number, number])),
-        { padding: [48, 48] },
+        { padding: [56, 56], maxZoom: 16 },
       );
     } else if (flyTo) {
-      map.flyTo([flyTo.lat, flyTo.lng], Math.max(map.getZoom(), 14));
+      map.flyTo([flyTo.lat, flyTo.lng], Math.max(map.getZoom(), 15), { duration: 1.2 });
     }
   }, [map, flyTo, fitBounds]);
   return null;
 }
 
+function ModernMapControls({ onLocate }: { onLocate?: () => void }) {
+  const map = useMap();
+  return (
+    <div className="absolute right-4 top-20 z-[400] flex flex-col gap-2.5 pointer-events-auto">
+      <div className="flex flex-col overflow-hidden rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-black/5 ring-1 ring-black/5">
+        <button
+          type="button"
+          aria-label="Apropie harta"
+          onClick={() => map.zoomIn()}
+          className="flex h-11 w-11 items-center justify-center text-neutral-800 hover:bg-neutral-100 active:bg-neutral-200 border-b border-black/5 transition"
+        >
+          <Plus size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label="Depărtează harta"
+          onClick={() => map.zoomOut()}
+          className="flex h-11 w-11 items-center justify-center text-neutral-800 hover:bg-neutral-100 active:bg-neutral-200 transition"
+        >
+          <Minus size={18} />
+        </button>
+      </div>
+
+      {onLocate && (
+        <button
+          type="button"
+          aria-label="Locația mea"
+          onClick={onLocate}
+          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-black/5 ring-1 ring-black/5 text-neutral-800 hover:bg-neutral-100 active:scale-95 transition"
+        >
+          <Navigation size={18} className="text-amber-500 fill-amber-500" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function MapView({
   center,
-  zoom = 13,
+  zoom = 14,
   className,
   children,
   flyTo,
   fitBounds,
   onMapClick,
+  onLocate,
+  showControls = true,
 }: MapViewProps) {
   return (
     <MapContainer
@@ -81,9 +125,15 @@ export default function MapView({
       zoomControl={false}
       attributionControl={false}
     >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      {/* CartoDB Voyager — design ultra-curat stil Apple Maps / Uber / Bolt, fără elemente redundante */}
+      <TileLayer
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
+        maxZoom={20}
+      />
       <MapController flyTo={flyTo} fitBounds={fitBounds} />
       {onMapClick && <ClickCapture onMapClick={onMapClick} />}
+      {showControls && <ModernMapControls onLocate={onLocate} />}
       {children}
     </MapContainer>
   );

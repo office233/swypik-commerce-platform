@@ -14,10 +14,33 @@ import { SUPPORT_EMAIL } from "@/lib/contact";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { X, ChevronRight, Smartphone, Shirt, Home, Sparkles, Dumbbell, Baby, Car, PawPrint, BookOpen, Watch, Tag, UtensilsCrossed, Plane, BedDouble, Coins, type LucideIcon } from "lucide-react";
+import {
+    X,
+    ChevronRight,
+    Smartphone,
+    Shirt,
+    Home,
+    Sparkles,
+    Dumbbell,
+    Baby,
+    Car,
+    PawPrint,
+    BookOpen,
+    Watch,
+    Tag,
+    UtensilsCrossed,
+    Plane,
+    BedDouble,
+    Coins,
+    Users,
+    Gift,
+    HeartHandshake,
+    Wallet,
+    Store,
+    type LucideIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
-import { VERTICAL_CATALOG as VERTICALS } from "@/lib/verticals/catalog";
 import LocaleQuickPicker from "@/components/i18n/LocaleQuickPicker";
 
 export type CategoryNode = {
@@ -43,22 +66,122 @@ function nodeSlug(c: CategoryNode): string {
 }
 
 /**
- * DOAR verticalele funcționale — cu pagină dedicată și flux complet
- * (căutare/comandă/plată). Restul catalogului (28 de verticale) merge pe
- * feed generic /v/<id>, care e momentan GOL (0 produse, 0 video-uri
- * publicate) — nu le expunem ca să nu ducem userul în pagini fără conținut.
- *
- * Cum activezi una nouă: adaug-o aici DOAR după ce are pagină proprie
- * funcțională sau conținut real în feed.
+ * Super-App Modules — toate cele 10 module active ale ecosistemului Swypik.
+ * Fiecare modul are rută dedicată, icon, culori de brand și etichetă clară.
  */
-const LIVE_VERTICALS: { id: string; href: string; note: string }[] = [
-    { id: "squad", href: "/squad", note: "Squad Buy -30%" },
-    { id: "eats", href: "/food", note: "Mâncare" },
-    { id: "go", href: "/go", note: "Transport" },
-    { id: "stays", href: "/stays", note: "Cazări" },
-    { id: "fly", href: "/fly", note: "Zboruri" },
-    { id: "cares", href: "/cares", note: "Donații 0% Fee" },
-    { id: "pay", href: "/pay", note: "Moneda SWYP" },
+export type SuperAppModule = {
+    id: string;
+    brand: string;
+    label: string;
+    badge?: string;
+    badgeColor?: string;
+    accent: string;
+    Icon: LucideIcon;
+    href?: string;
+    isAction?: boolean;
+};
+
+const SUPERAPP_MODULES: SuperAppModule[] = [
+    {
+        id: "squad",
+        brand: "Swypik Squad",
+        label: "Cumpărături în grup -30%",
+        badge: "-30%",
+        badgeColor: "bg-fuchsia-600 text-white",
+        accent: "#D946EF",
+        Icon: Users,
+        href: "/squad",
+    },
+    {
+        id: "mystery",
+        brand: "Mystery Drop",
+        label: "Cutia Zilei • Cadou Gratuit",
+        badge: "Cadou",
+        badgeColor: "bg-amber-500 text-black",
+        accent: "#F59E0B",
+        Icon: Gift,
+        isAction: true,
+    },
+    {
+        id: "food",
+        brand: "Swypik Food",
+        label: "Restaurante & Livrare Rapidă",
+        badge: "Eats",
+        badgeColor: "bg-emerald-600 text-white",
+        accent: "#10B981",
+        Icon: UtensilsCrossed,
+        href: "/food",
+    },
+    {
+        id: "go",
+        brand: "Swypik Go",
+        label: "Curse Urbane & Transport",
+        badge: "Ride",
+        badgeColor: "bg-amber-500 text-black",
+        accent: "#F59E0B",
+        Icon: Car,
+        href: "/go",
+    },
+    {
+        id: "stays",
+        brand: "Swypik Stays",
+        label: "Cazări, Vile & Hoteluri",
+        badge: "Hotel",
+        badgeColor: "bg-teal-600 text-white",
+        accent: "#0D9488",
+        Icon: BedDouble,
+        href: "/stays",
+    },
+    {
+        id: "fly",
+        brand: "Swypik Fly",
+        label: "Bilete de Avion & Zboruri",
+        badge: "Zbor",
+        badgeColor: "bg-sky-600 text-white",
+        accent: "#0284C7",
+        Icon: Plane,
+        href: "/fly",
+    },
+    {
+        id: "cares",
+        brand: "Swypik Cares",
+        label: "Donații & Cauze Caritabile",
+        badge: "0% Fee",
+        badgeColor: "bg-rose-600 text-white",
+        accent: "#E11D48",
+        Icon: HeartHandshake,
+        href: "/cares",
+    },
+    {
+        id: "pay",
+        brand: "SWYP Pay",
+        label: "Portofel Digital (-10% Cashback)",
+        badge: "-10%",
+        badgeColor: "bg-indigo-600 text-white",
+        accent: "#7C3AED",
+        Icon: Wallet,
+        href: "/pay",
+    },
+    {
+        id: "seller",
+        brand: "Portal Comercianți",
+        label: "ERP Magazine, Ads & Squad",
+        badge: "Business",
+        badgeColor: "bg-violet-700 text-white",
+        accent: "#6D28D9",
+        Icon: Store,
+        href: "/seller",
+    },
+    {
+        id: "creator",
+        brand: "Creator Studio",
+        label: "Monetizare & Clipurile mele",
+        badge: "Creator",
+        badgeColor: "bg-pink-600 text-white",
+        accent: "#EC4899",
+        Icon: Sparkles,
+        href: "/creator",
+    },
 ];
 
 /** Icon fallback pe categorii marketplace frecvente. */
@@ -77,18 +200,8 @@ function categoryIcon(name: string): LucideIcon {
     return Tag;
 }
 
-/** Iconițe lucide pentru verticalele live (înlocuiesc emoji din catalog). */
-const VERTICAL_ICONS: Record<string, LucideIcon> = {
-    eats: UtensilsCrossed,
-    fly: Plane,
-    stays: BedDouble,
-    go: Car,
-    pay: Coins,
-};
-
 export default function CategorySidebar({ categories, activeCategory, onSelectCategory, open, onOpenChange }: Props) {
     const t = useTranslations("homeFeed");
-    const tv = useTranslations("verticals");
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
 
@@ -104,6 +217,20 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
         };
     }, [open, onOpenChange]);
 
+    const handleModuleClick = (m: SuperAppModule) => {
+        haptic("tap");
+        onOpenChange(false);
+        if (m.isAction && m.id === "mystery") {
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("open-mystery-drop"));
+            }
+            return;
+        }
+        if (m.href) {
+            router.push(m.href);
+        }
+    };
+
     const goVertical = (href: string) => {
         haptic("tap");
         onOpenChange(false);
@@ -115,20 +242,6 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
         onOpenChange(false);
         onSelectCategory(slug);
     };
-
-    /** Serviciile active — datele vin din catalog, lista din LIVE_VERTICALS. */
-    const verticalItems = LIVE_VERTICALS.flatMap((lv) => {
-        const v = VERTICALS.find((x) => x.id === lv.id);
-        if (!v) return [];
-        return [{
-            id: v.id,
-            brand: v.brand,
-            Icon: VERTICAL_ICONS[v.id] ?? Tag,
-            accent: v.accent,
-            href: lv.href,
-            label: lv.note,
-        }];
-    });
 
     if (!mounted || !open) return null;
 
@@ -153,26 +266,33 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
-                    <p className="pb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">{t("categories")}</p>
-                    <div className="space-y-2.5">
-                        {verticalItems.map((v) => (
+                    <p className="pb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#A1A1AA]">Module Swypik Super-App</p>
+                    <div className="space-y-2">
+                        {SUPERAPP_MODULES.map((v) => (
                             <button
                                 key={v.id}
                                 type="button"
-                                onClick={() => goVertical(v.href)}
-                                className="group flex w-full items-center gap-3 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+                                onClick={() => handleModuleClick(v)}
+                                className="group flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
                             >
                                 <span
-                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                                    style={{ backgroundColor: `${v.accent}1A` }}
+                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition group-hover:scale-105"
+                                    style={{ backgroundColor: `${v.accent}18` }}
                                 >
                                     <v.Icon size={20} style={{ color: v.accent }} />
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                    <span className="block text-[15px] font-extrabold text-[#0D0D0D]">{v.brand}</span>
-                                    <span className="block text-[12px] font-semibold text-[#6E6E80]">{v.label}</span>
+                                    <span className="flex items-center gap-2">
+                                        <span className="text-[14px] font-extrabold text-[#0D0D0D] truncate">{v.brand}</span>
+                                        {v.badge && (
+                                            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase tracking-tight ${v.badgeColor || "bg-violet-600 text-white"}`}>
+                                                {v.badge}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span className="block text-[11px] font-medium text-[#6E6E80] truncate">{v.label}</span>
                                 </span>
-                                <ChevronRight size={18} className="shrink-0 transition group-hover:translate-x-0.5" style={{ color: v.accent }} />
+                                <ChevronRight size={16} className="shrink-0 text-[#A1A1AA] transition group-hover:translate-x-0.5 group-hover:text-black" />
                             </button>
                         ))}
                     </div>

@@ -259,9 +259,9 @@ export default function RideClient({ rideId }: { rideId: string }) {
         <div className="relative flex h-[100dvh] flex-col bg-neutral-50">
             <div className="relative flex-1">
                 {pickup ? (
-                    <MapView center={pickup} className="absolute inset-0 z-0 h-full w-full">
-                        <LiveMarker position={pickup} kind="pickup" />
-                        {dropoff ? <LiveMarker position={dropoff} kind="dropoff" /> : null}
+                    <MapView center={pickup} fitBounds={dropoff ? [pickup, dropoff] : null} className="absolute inset-0 z-0 h-full w-full">
+                        <LiveMarker position={pickup} kind="pickup" label={ride.pickup_address} />
+                        {dropoff ? <LiveMarker position={dropoff} kind="dropoff" label={ride.dropoff_address} /> : null}
                         {driverPos ? <LiveMarker position={driverPos} kind="driver" label={driver?.full_name} /> : null}
                         {dropoff ? <RoutePolyline points={[pickup, dropoff]} /> : null}
                     </MapView>

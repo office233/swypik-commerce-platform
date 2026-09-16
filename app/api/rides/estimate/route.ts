@@ -22,10 +22,9 @@ const log = logger.child({ route: "rides/estimate" });
 
 export async function POST(req: Request) {
     const session = await getAuthSession();
-    if (!session?.userId) {
-        return NextResponse.json({ error: "Autentificare necesară." }, { status: 401 });
-    }
-    const rl = await rateLimit("rideEstimate", session.userId);
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "guest";
+    const identifier = session?.userId || `ip:${clientIp}`;
+    const rl = await rateLimit("rideEstimate", identifier);
     if (!rl.success) {
         return NextResponse.json({ error: "Prea multe cereri." }, { status: 429 });
     }
