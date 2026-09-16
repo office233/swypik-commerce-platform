@@ -433,49 +433,72 @@ export default function GoClient() {
         </div>
       </div>
 
-      {/* Panou de comandă inferior — stil Uber / Bolt Super-App */}
-      <div className="z-10 rounded-t-3xl bg-white p-4 sm:p-5 pb-24 sm:pb-28 shadow-[0_-12px_40px_rgba(0,0,0,0.14)] border-t border-neutral-100 max-h-[66vh] overflow-y-auto">
-        {/* Indicator drag / mânere */}
-        <div className="w-10 h-1 rounded-full bg-neutral-200 mx-auto mb-3" />
+      {/* Panou de comandă inferior — Super-App Mobility Luxury (Uber Black & Bolt Executive) */}
+      <div className="z-10 rounded-t-3xl bg-white p-4 sm:p-5 pb-24 sm:pb-28 shadow-[0_-16px_48px_rgba(0,0,0,0.16)] border-t border-neutral-100 max-h-[68vh] overflow-y-auto">
+        {/* Indicator drag */}
+        <div className="w-12 h-1.2 rounded-full bg-neutral-200 mx-auto mb-3.5" />
 
-        <div className="flex items-center justify-between mb-3">
+        {/* Header cu tipografie Luxury Executive */}
+        <div className="flex items-center justify-between mb-3.5">
           <div>
-            <h1 className="text-[16px] font-black tracking-tight text-neutral-900">Unde mergi azi?</h1>
-            <p className="text-[11px] text-neutral-500 font-medium">Curse rapide cu șoferi verificați</p>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                ✦ Swypik Ride • Mobilitate Premium
+              </span>
+            </div>
+            <h1 className="text-[18px] font-black tracking-tight text-neutral-950 leading-tight">
+              Unde dorești să călătorești?
+            </h1>
           </div>
-          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center gap-1.5 shadow-sm">
-            <Clock size={12} className="text-emerald-600" /> Sosire în ~2-3 min
-          </span>
+          <div className="flex flex-col items-end">
+            <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shadow-xs">
+              <Clock size={12} className="text-emerald-600" /> ~2-3 min
+            </span>
+            <span className="text-[9px] font-bold text-neutral-400 mt-0.5">Șoferi activi acum</span>
+          </div>
         </div>
 
-        {/* Câmpuri Adrese cu buton Inversare (⇅) */}
-        <div className="relative space-y-2">
-          <AddressAutocomplete
-            placeholder="Punct de preluare (locația ta)"
-            value={pickup?.address}
-            onSelect={setPickup}
-            onClear={() => setPickup(null)}
-            icon={<span className="block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 shrink-0" />}
-          />
+        {/* Card conectat de călătorie (Preluare → Traseu → Destinație) */}
+        <div className="relative rounded-2xl bg-neutral-50/90 p-2.5 border border-neutral-200/90 shadow-xs space-y-2">
+          {/* Traseu vertical stil fir luminos */}
+          <div className="absolute left-[25px] top-[26px] bottom-[26px] w-[2px] bg-gradient-to-b from-emerald-500 via-neutral-300 to-rose-500 pointer-events-none rounded-full" />
 
+          {/* Adresă Preluare */}
+          <div className="relative pl-6">
+            <AddressAutocomplete
+              placeholder="Punct de preluare (locația ta)"
+              value={pickup?.address}
+              onSelect={setPickup}
+              onClear={() => setPickup(null)}
+              icon={<span className="block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 shrink-0" />}
+            />
+          </div>
+
+          {/* Buton Inversare (⇅) integrat fluid */}
           {pickup && dropoff && (
-            <button
-              type="button"
-              onClick={swapLocations}
-              className="absolute right-3 top-[34px] z-10 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-white shadow-md transition hover:scale-105 active:scale-90"
-              aria-label="Inversează adresele"
-            >
-              <ArrowUpDown size={12} />
-            </button>
+            <div className="relative flex justify-end pr-2 -my-2 z-10">
+              <button
+                type="button"
+                onClick={swapLocations}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-white shadow-md transition hover:scale-110 active:scale-90"
+                aria-label="Inversează adresele"
+              >
+                <ArrowUpDown size={12} />
+              </button>
+            </div>
           )}
 
-          <AddressAutocomplete
-            placeholder="Introdu adresa de destinație..."
-            value={dropoff?.address}
-            onSelect={setDropoff}
-            onClear={() => setDropoff(null)}
-            icon={<span className="block h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-100 shrink-0" />}
-          />
+          {/* Adresă Destinație */}
+          <div className="relative pl-6">
+            <AddressAutocomplete
+              placeholder="Unde dorești să mergi? (introdu destinația)"
+              value={dropoff?.address}
+              onSelect={setDropoff}
+              onClear={() => setDropoff(null)}
+              icon={<span className="block h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-100 shrink-0" />}
+            />
+          </div>
         </div>
 
         {/* Destinații rapide din București */}
@@ -497,8 +520,8 @@ export default function GoClient() {
           ))}
         </div>
 
-        {/* Selector Clase Vehicule */}
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        {/* Selector Clase Vehicule — Carduri Luxury */}
+        <div className="mt-3.5 grid grid-cols-3 gap-2.5">
           {CLASSES.map((c) => {
             const isSel = vehicleClass === c.id;
             return (
@@ -509,21 +532,33 @@ export default function GoClient() {
                   haptic("tap");
                   setVehicleClass(c.id);
                 }}
-                className={`relative rounded-2xl p-2.5 text-center transition duration-200 active:scale-[0.98] border ${
+                className={`relative flex flex-col justify-between rounded-2xl p-3 text-left transition-all duration-200 active:scale-[0.98] border ${
                   isSel
-                    ? "border-neutral-950 bg-neutral-950 text-white shadow-lg ring-2 ring-neutral-950/15"
-                    : "border-neutral-200/90 bg-white hover:border-neutral-300 text-neutral-800 shadow-sm"
+                    ? "border-neutral-950 bg-neutral-950 text-white shadow-xl ring-2 ring-neutral-950/25"
+                    : "border-neutral-200/90 bg-white hover:border-neutral-300 text-neutral-800 shadow-xs hover:shadow-sm"
                 }`}
               >
-                <div className="flex justify-center mb-1">
-                  <c.Icon size={22} className={isSel ? "text-amber-400" : "text-neutral-700"} />
+                {isSel && (
+                  <div className="absolute -top-2 right-2 px-1.5 py-0.5 rounded-full bg-emerald-500 text-[8px] font-black uppercase tracking-wider text-black shadow-sm">
+                    Selectat
+                  </div>
+                )}
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`p-1.5 rounded-xl ${isSel ? "bg-white/10" : "bg-neutral-100"}`}>
+                    <c.Icon size={20} className={isSel ? "text-amber-400" : "text-neutral-800"} />
+                  </div>
+                  <span className={`text-[10px] font-black ${isSel ? "text-emerald-400" : "text-neutral-500"}`}>
+                    {c.defaultEta}
+                  </span>
                 </div>
-                <div className="text-[12px] font-black truncate">{c.name}</div>
-                <div className={`text-[12px] font-black mt-0.5 ${isSel ? "text-amber-300" : "text-neutral-900"}`}>
-                  {loading ? "…" : fmt(estimates[c.id])}
-                </div>
-                <div className={`text-[9px] font-semibold mt-0.5 truncate ${isSel ? "text-neutral-400" : "text-neutral-400"}`}>
-                  {c.seats} locuri • {c.defaultEta}
+                <div>
+                  <div className="text-[12.5px] font-black tracking-tight truncate">{c.name}</div>
+                  <div className={`text-[14px] font-black mt-0.5 tracking-tight ${isSel ? "text-amber-300" : "text-neutral-950"}`}>
+                    {loading ? "…" : fmt(estimates[c.id])}
+                  </div>
+                  <div className={`text-[9.5px] font-semibold mt-0.5 truncate ${isSel ? "text-neutral-400" : "text-neutral-400"}`}>
+                    👤 {c.seats} locuri
+                  </div>
                 </div>
               </button>
             );
@@ -662,26 +697,31 @@ export default function GoClient() {
           ) : null}
         </div>
 
-        {/* Buton principal Comandă Cursă */}
+        {/* Buton principal Comandă Cursă — High-Impact CTA */}
         <button
           type="button"
           disabled={!pickup || !dropoff || !selected || ordering}
           onClick={order}
-          className="mt-3.5 w-full rounded-2xl bg-[#0D0D0D] hover:bg-neutral-800 active:scale-[0.99] py-3.5 text-[15px] font-black text-white shadow-xl transition disabled:opacity-40 flex items-center justify-center gap-2"
+          className="mt-4 w-full rounded-2xl bg-neutral-950 hover:bg-neutral-900 active:scale-[0.99] py-4 text-white shadow-2xl transition disabled:opacity-40 flex flex-col items-center justify-center gap-0.5"
         >
           {ordering ? (
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-[14px] font-black">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              <span>Se caută cel mai apropiat șofer...</span>
+              <span>Se alocă cel mai apropiat șofer...</span>
             </span>
           ) : selected ? (
             <>
-              <span>Cheamă {CLASSES.find((c) => c.id === vehicleClass)?.name}</span>
-              <span className="text-amber-400 font-extrabold">•</span>
-              <span>{fmt(selected)}</span>
+              <div className="flex items-center gap-2 text-[15px] font-black tracking-tight">
+                <span>COMANDĂ {CLASSES.find((c) => c.id === vehicleClass)?.name.toUpperCase()}</span>
+                <span className="text-amber-400 font-extrabold">•</span>
+                <span className="text-amber-300">{fmt(selected)}</span>
+              </div>
+              <span className="text-[10px] font-medium text-neutral-400">
+                ✓ Tarif fix garantat • Șofer confirmat în ~30 secunde
+              </span>
             </>
           ) : (
-            <span>Alege destinația</span>
+            <span className="text-[14px] font-black">Alege destinația pentru a comanda</span>
           )}
         </button>
       </div>

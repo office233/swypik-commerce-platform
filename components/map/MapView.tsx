@@ -45,6 +45,8 @@ export type MapViewProps = {
   showControls?: boolean;
   /** Mod de afișare hartă: light (curat stil Uber/Bolt) sau dark (Uber Black nocturn) */
   initialTheme?: "light" | "dark";
+  /** Mod 3D Perspective activat (implicit: true pentru experiență imersivă) */
+  initial3D?: boolean;
 };
 
 function ClickCapture({ onMapClick }: { onMapClick: (p: { lat: number; lng: number }) => void }) {
@@ -75,10 +77,14 @@ function ModernMapControls({
   onLocate,
   isDark,
   onToggleTheme,
+  is3D,
+  onToggle3D,
 }: {
   onLocate?: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  is3D: boolean;
+  onToggle3D: () => void;
 }) {
   const map = useMap();
   return (
@@ -102,6 +108,22 @@ function ModernMapControls({
           <Minus size={18} />
         </button>
       </div>
+
+      {/* Comutare mod 3D Perspective / 2D Classic */}
+      <button
+        type="button"
+        aria-label={is3D ? "Comută la modul 2D" : "Comută la modul 3D"}
+        onClick={onToggle3D}
+        className={`flex h-11 w-11 items-center justify-center rounded-2xl backdrop-blur-md shadow-xl border transition active:scale-95 ${
+          is3D
+            ? "bg-neutral-950 text-white border-emerald-500/50 shadow-emerald-950/30 ring-2 ring-emerald-500/25"
+            : "bg-white/95 dark:bg-zinc-900/95 border-black/10 dark:border-white/10 text-neutral-800 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-zinc-800"
+        }`}
+      >
+        <span className={`text-[11px] font-black tracking-tighter ${is3D ? "text-emerald-400" : "text-neutral-700 dark:text-neutral-300"}`}>
+          3D
+        </span>
+      </button>
 
       {/* Comutare mod Noapte / Zi (Uber Black Night Map) */}
       <button
@@ -149,12 +171,14 @@ export default function MapView({
   onLocate,
   showControls = true,
   initialTheme = "light",
+  initial3D = true,
 }: MapViewProps) {
   const [isDark, setIsDark] = useState(initialTheme === "dark");
+  const [is3D, setIs3D] = useState(initial3D);
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
-      {/* Stiluri CSS avansate pentru randarea stil Uber / Bolt Luxury */}
+    <div className={`relative h-full w-full overflow-hidden ${is3D ? "uber-map-container-3d" : "uber-map-container-2d"}`}>
+      {/* Stiluri CSS avansate pentru randarea stil Uber / Bolt Luxury & 3D Perspective */}
       <style jsx global>{`
         /* Calibrare cromatică stil Uber/Bolt: drumuri curate, clădiri estompate, spații verzi calme */
         .uber-tiles-light .leaflet-tile-pane {
@@ -168,6 +192,30 @@ export default function MapView({
           background-color: ${isDark ? "#121214" : "#F4F4F5"} !important;
           font-family: inherit;
         }
+
+        /* Perspective 3D veritabilă stil Navigație Bord / Uber 3D Driving View */
+        .uber-map-container-3d {
+          perspective: 1100px;
+        }
+        .uber-map-container-3d .leaflet-map-pane {
+          transform: rotateX(38deg) scale(1.2);
+          transform-origin: 50% 88%;
+          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .uber-map-container-2d .leaflet-map-pane {
+          transform: rotateX(0deg) scale(1);
+          transform-origin: 50% 50%;
+          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Ceață atmosferică orizont pentru efect de adâncime 3D infinită */
+        .uber-horizon-dark {
+          background: linear-gradient(180deg, rgba(14,14,16,0.96) 0%, rgba(14,14,16,0.65) 45%, rgba(14,14,16,0) 100%);
+        }
+        .uber-horizon-light {
+          background: linear-gradient(180deg, rgba(244,244,245,0.96) 0%, rgba(244,244,245,0.6) 45%, rgba(244,244,245,0) 100%);
+        }
+
         @keyframes uber-radar-expand {
           0% {
             transform: scale(0.6);
@@ -186,6 +234,15 @@ export default function MapView({
           50% { opacity: 0.95; }
         }
       `}</style>
+
+      {/* Ceață atmosferică orizont pentru profunzime 3D reală */}
+      {is3D && (
+        <div
+          className={`pointer-events-none absolute top-0 inset-x-0 h-36 z-[390] transition-opacity duration-500 ${
+            isDark ? "uber-horizon-dark" : "uber-horizon-light"
+          }`}
+        />
+      )}
 
       <MapContainer
         center={[center.lat, center.lng]}
@@ -206,6 +263,8 @@ export default function MapView({
             onLocate={onLocate}
             isDark={isDark}
             onToggleTheme={() => setIsDark((d) => !d)}
+            is3D={is3D}
+            onToggle3D={() => setIs3D((v) => !v)}
           />
         )}
         {children}
