@@ -6,7 +6,6 @@ import { Bot, Bookmark, ChevronDown, ChevronRight, ClipboardList, Compass, Flame
 import ProductFeed from "./ProductFeed";
 import OffersFeed from "./home/OffersFeed";
 import CategorySidebar from "./home/CategorySidebar";
-import EcosystemBar from "./home/EcosystemBar";
 import type { OfferPost } from "@/lib/types/feed";
 import { THEME, commerceBadgeClass, translateCategory } from "@/lib/ui/theme";
 import { Link } from "@/lib/i18n/navigation";
@@ -502,7 +501,6 @@ export default function ChatInterface({
     <section className={activeTab === "feed" ? "h-[100dvh]" : "min-h-[calc(100dvh-132px)] pb-20"} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {activeTab === "home" && (
         <div className="px-2 pt-2 sm:px-4 sm:pt-4">
-          <EcosystemBar />
           {searchLoading ? <div className="px-2"><ProductCarousel title={`Se caută rezultate...`} isLoading={true} /></div> : searchResults.length > 0 && <div className="px-2"><ProductCarousel title={`Rezultate (${searchResults.length})`} products={searchResults} /></div>}
           {/* Feed social centrat; categoriile stau in drawer-ul din ☰ (langa logo) */}
           <CategorySidebar

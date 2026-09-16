@@ -169,6 +169,34 @@
       "tvaRon": 21,
       "paymentMethod": "cash",
       "recordedAt": "2026-09-16T10:36:36.086Z"
+    },
+    {
+      "receiptNumber": "POS-TEST-100",
+      "totalRon": 121,
+      "tvaRon": 21,
+      "paymentMethod": "cash",
+      "recordedAt": "2026-09-16T10:54:05.433Z"
+    },
+    {
+      "receiptNumber": "POS-TEST-100",
+      "totalRon": 121,
+      "tvaRon": 21,
+      "paymentMethod": "cash",
+      "recordedAt": "2026-09-16T10:57:40.887Z"
+    },
+    {
+      "receiptNumber": "POS-TEST-100",
+      "totalRon": 121,
+      "tvaRon": 21,
+      "paymentMethod": "cash",
+      "recordedAt": "2026-09-16T10:59:06.476Z"
+    },
+    {
+      "receiptNumber": "POS-TEST-100",
+      "totalRon": 121,
+      "tvaRon": 21,
+      "paymentMethod": "cash",
+      "recordedAt": "2026-09-16T12:42:44.827Z"
     }
   ],
   "syncStatus": {
