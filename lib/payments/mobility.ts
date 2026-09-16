@@ -43,9 +43,35 @@ import {
 } from "@/lib/swyp/valuation";
 import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
 import { logger } from "@/lib/logger";
+import { localOrderCustody, rideCustody } from "@/lib/payments/fund-custody";
 import { MOBILITY_PLATFORM_FEE_BPS, MOBILITY_COURIER_SHARE_BPS } from "@/lib/config/commerce";
 
 const log = logger.child({ mod: "payments/mobility" });
+
+/**
+ * Scrie o problemă de reconciliere pentru o cursă/livrare ajunsă la final fără
+ * încasare. Indexul unic parțial `(kind, ref_id) WHERE resolved = false` face
+ * raportarea idempotentă, deci reluările decontării nu produc duplicate.
+ *
+ * Best-effort: dacă scrierea eșuează, decontarea rămâne oricum refuzată — a nu
+ * putea raporta problema nu e un motiv să plătim din fondurile platformei.
+ */
+async function reportUnpaidSettlement(
+    kind: "unpaid_completed_ride" | "unpaid_delivered_order",
+    refId: string,
+    details: Record<string, unknown>,
+): Promise<void> {
+    try {
+        await dbQuery(
+            `INSERT INTO reconciliation_issues (kind, ref_id, details)
+             VALUES ($1, $2, $3::jsonb)
+             ON CONFLICT DO NOTHING`,
+            [kind, refId, JSON.stringify(details)],
+        );
+    } catch (err) {
+        log.error({ err, kind, refId }, "nu am putut scrie reconciliation_issue");
+    }
+}
 
 const DEFAULT_PLATFORM_COMMISSION_PCT = MOBILITY_PLATFORM_FEE_BPS / 100;
 const DEFAULT_COURIER_SHARE_PCT = MOBILITY_COURIER_SHARE_BPS / 100;
@@ -91,13 +117,14 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
         estimated_fare_cents: number | null;
         tip_cents: number;
         payment_method: string | null;
+        payment_status: string | null;
         pricing_zone_id: string | null;
         driver_user_id: string | null;
         swyp_paid_cents: number;
         fare_breakdown: Record<string, unknown> | null;
     }>(
         `SELECT r.id, r.status, r.driver_id, r.rider_user_id AS rider_id, r.final_fare_cents, r.estimated_fare_cents,
-            COALESCE(r.tip_cents, 0)::int AS tip_cents, r.payment_method, r.pricing_zone_id,
+            COALESCE(r.tip_cents, 0)::int AS tip_cents, r.payment_method, r.payment_status, r.pricing_zone_id,
             c.user_id AS driver_user_id, COALESCE(r.swyp_paid_cents, 0)::int AS swyp_paid_cents,
             r.fare_breakdown
        FROM rides r
@@ -159,7 +186,30 @@ export async function settleRide(rideId: string): Promise<SettleResult | null> {
         )
         : 0;
 
-    const isCash = (ride.payment_method ?? "cash") === "cash";
+    const custody = rideCustody(ride.payment_method, ride.payment_status);
+
+    // Fără încasare confirmată nu se decontează NIMIC — ieșirea e înainte de
+    // recordCommission, fundBacking, awardSwyp și de marcajul settled_at, altfel
+    // platforma și-ar înregistra comision și ar acoperi SWYP pe bani care n-au
+    // intrat. `settled_at` rămâne NULL intenționat: când captura ajunge mai
+    // târziu prin webhook, decontarea se reia și e idempotentă pe (ref_type, ref_id).
+    if (custody === "unpaid") {
+        await reportUnpaidSettlement("unpaid_completed_ride", ride.id, {
+            payment_method: ride.payment_method,
+            payment_status: ride.payment_status,
+            split,
+            fare_cents: fare,
+            swyp_paid_cents: ride.swyp_paid_cents,
+            driver_user_id: ride.driver_user_id,
+        });
+        log.error(
+            { rideId: ride.id, payment_method: ride.payment_method, payment_status: ride.payment_status, split },
+            "cursă finalizată fără încasare — decontare refuzată, raportată pentru reconciliere",
+        );
+        return { settled: false, alreadySettled: false, split, ledger_amount_cents: 0, ledger_kind: "none" };
+    }
+
+    const isCash = custody === "courier";
     let result: SettleResult;
 
     if (isCash) {
@@ -297,6 +347,7 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
         delivery_fee_cents: number;
         tip_cents: number;
         payment_method: string | null;
+        payment_status: string | null;
         pricing_zone_id: string | null;
         courier_user_id: string | null;
         customer_user_id: string | null;
@@ -305,7 +356,7 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
             COALESCE(lo.subtotal_cents, 0)::int  AS subtotal_cents,
             COALESCE(lo.delivery_fee_cents, 0)::int AS delivery_fee_cents,
             COALESCE(lo.tip_cents, 0)::int AS tip_cents,
-            lo.payment_method, lo.pricing_zone_id,
+            lo.payment_method, lo.payment_status, lo.pricing_zone_id,
             lo.customer_user_id,
             c.user_id AS courier_user_id
        FROM local_orders lo
@@ -325,7 +376,30 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
         courier_share_pct: pct.courier,
     });
 
-    const isCash = (order.payment_method ?? "cash") === "cash";
+    const custody = localOrderCustody(order.payment_method, order.payment_status);
+
+    // Nimeni nu a încasat (tipic: card_online cu PaymentIntent neconfirmat, dar
+    // comanda a ajuns totuși la 'delivered'). Nu mișcăm niciun ban: creditarea
+    // curierului sau înregistrarea datoriei către merchant ar plăti din fondurile
+    // platformei o comandă pentru care nu a intrat nimic. Se raportează pentru
+    // decizie umană — blocajele din ruta de status și din auto-dispatch fac
+    // cazul ăsta să nu mai apară pentru comenzi noi.
+    if (custody === "unpaid") {
+        await reportUnpaidSettlement("unpaid_delivered_order", order.id, {
+            payment_method: order.payment_method,
+            payment_status: order.payment_status,
+            split,
+            merchant_id: order.merchant_id,
+            courier_user_id: order.courier_user_id,
+        });
+        log.error(
+            { orderId: order.id, payment_method: order.payment_method, payment_status: order.payment_status, split },
+            "livrare decontată fără încasare — decontare refuzată, raportată pentru reconciliere",
+        );
+        return { settled: false, alreadySettled: false, split, ledger_amount_cents: 0, ledger_kind: "none" };
+    }
+
+    const isCash = custody === "courier";
     let result: SettleResult;
 
     if (isCash) {
@@ -337,8 +411,8 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
                 amountCents: debt,
                 refType: "order",
                 refId: order.id,
-                description: `Decont comandă cash #${order.id.slice(0, 8)} (merchant + comision)`,
-                metadata: { split, payment: "cash" },
+                description: `Decont comandă #${order.id.slice(0, 8)} încasată de curier (merchant + comision)`,
+                metadata: { split, payment: order.payment_method ?? "cash" },
                 allowNegative: true,
             });
             result = { settled: true, alreadySettled: r.alreadyApplied, split, ledger_amount_cents: debt, ledger_kind: "debit" };
@@ -388,7 +462,7 @@ export async function settleLocalOrder(orderId: string): Promise<SettleResult | 
         description: `Comision comandă #${order.id.slice(0, 8)}`,
         metadata: {
             split,
-            payment: isCash ? "cash" : "card",
+            payment: order.payment_method ?? "cash",
             gmv_cents: order.subtotal_cents + order.delivery_fee_cents + order.tip_cents,
         },
     });

@@ -25,17 +25,30 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
 
     const isHls = /\.m3u8(\?|$)/i.test(src);
 
+    // La demontare/schimbare de sursă nu e destul să distrugem instanța hls.js:
+    // pe căile progressive și HLS-nativ elementul rămânea atașat la sursă și
+    // continua să tragă date în fundal (audit perf 2026-08-24).
+    const releaseElement = () => {
+      try {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      } catch {
+        // Elementul poate fi deja detașat din DOM — nimic de făcut.
+      }
+    };
+
     if (!isHls) {
       // Plain mp4 / webm / other progressive — let the browser handle it.
       video.src = src;
-      return;
+      return releaseElement;
     }
 
     // Safari / iOS have native HLS support — prefer it (lower CPU, better
     // battery) and skip the hls.js download entirely.
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src;
-      return;
+      return releaseElement;
     }
 
     let cancelled = false;
@@ -47,12 +60,17 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
     const fallbackToProgressive = () => {
       if (cancelled || fallbackTried || !fallbackSrc || fallbackSrc === src) return;
       fallbackTried = true;
+      // Repornim redarea DOAR dacă acest clip chiar rula. Altfel, un clip vecin
+      // al cărui master.m3u8 dă 404 (stare normală cât e în procesare) începea
+      // să ruleze în afara ecranului, în buclă, la nesfârșit — bandă și decoder
+      // consumate în paralel cu clipul pe care userul îl privește.
+      const wasPlaying = !video.paused;
       try {
         hlsInstance?.destroy();
       } catch {}
       video.src = fallbackSrc;
       video.load();
-      void video.play().catch(() => {});
+      if (wasPlaying) void video.play().catch(() => {});
     };
 
     const onVideoError = () => fallbackToProgressive();
@@ -112,6 +130,7 @@ export function useHlsVideo(src: string | undefined | null, fallbackSrc?: string
           // ignore
         }
       }
+      releaseElement();
     };
   }, [src, fallbackSrc]);
 

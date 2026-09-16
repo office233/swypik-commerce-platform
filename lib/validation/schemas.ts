@@ -238,6 +238,7 @@ export const SellerProductCreateSchema = z.object({
   description: z.string().trim().max(5000).optional(),
   brand: z.string().trim().max(120).optional(),
   sku: z.string().trim().max(64).optional(),
+  barcode: z.string().trim().max(64).optional(),
   price: z.coerce.number().finite().positive("Preț invalid").max(1_000_000),
   compare_at_price: z.coerce.number().finite().nonnegative().max(1_000_000).optional(),
   supplier_cost: z.coerce.number().finite().nonnegative().max(1_000_000).optional(),
@@ -246,6 +247,9 @@ export const SellerProductCreateSchema = z.object({
   category: z.string().trim().max(200).optional(),
   taxonomy_node_slug: z.string().trim().max(120).optional(),
   image_urls: z.array(z.string().url().max(2048)).max(8).optional(),
+  video_url: z.string().url().max(2048).optional(),
+  is_swypik_listed: z.boolean().default(true).optional(),
+  swypik_price: z.coerce.number().finite().positive().max(1_000_000).optional(),
   shipping_cost: z.coerce.number().finite().nonnegative().max(10_000).optional(),
   shipping_days_min: z.coerce.number().int().nonnegative().max(180).optional(),
   shipping_days_max: z.coerce.number().int().nonnegative().max(180).optional(),
@@ -603,6 +607,16 @@ export const SellerOrderTrackingSchema = z.object({
   tracking_url: z.string().url("tracking_url must be a valid URL").max(512).optional(),
 });
 export type SellerOrderTrackingInput = z.infer<typeof SellerOrderTrackingSchema>;
+
+export const SellerGenerateAwbSchema = z.object({
+  courier: z.enum(["sameday_easybox", "sameday", "fancourier", "standard"]).default("sameday_easybox"),
+  parcels_count: z.coerce.number().int().min(1).max(50).default(1),
+  weight_kg: z.coerce.number().min(0.1).max(100).default(1.0),
+  manual_tracking_number: z.string().trim().min(3).max(120).optional(),
+  notes: z.string().trim().max(500).optional(),
+  locker_name: z.string().trim().max(200).optional(),
+});
+export type SellerGenerateAwbInput = z.infer<typeof SellerGenerateAwbSchema>;
 
 export const CreatorUploadSessionCreateSchema = z.object({
   filename: z.string().trim().min(1, "filename is required").max(255),

@@ -37,7 +37,14 @@ export const RideEstimateSchema = z.object({
 });
 
 export const RideCreateSchema = RideEstimateSchema.extend({
-  payment_method: z.enum(["cash", "card", "wallet"]).default("cash"),
+  // Audit 2026-09: "wallet" era acceptat aici și de CHECK-ul din DB, dar nu
+  // există nicăieri o debitare a pasagerului pentru curse — nici în lib/rides,
+  // nici în lib/wallet, nici în webhook-uri. Cursa se crea, pasagerul nu plătea
+  // niciodată, iar la finalizare șoferul era creditat din fondurile platformei.
+  // `rideCustody` blochează acum decontarea (fail-closed), dar o cursă "wallet"
+  // ar rămâne pur și simplu nedecontabilă — deci nu o mai acceptăm deloc.
+  // Se readaugă odată cu implementarea debitului din wallet.
+  payment_method: z.enum(["cash", "card"]).default("cash"),
   /** Plată hibridă: acoperă cât se poate din tarif cu SWYP, restul prin payment_method. */
   use_swyp: z.boolean().default(false),
   notes: z.string().trim().max(500).optional(),

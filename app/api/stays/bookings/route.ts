@@ -120,7 +120,7 @@ export async function POST(req: Request) {
                     d.check_out,
                     d.guests_count,
                     total,
-                    p.currency ?? "EUR",
+                    p.currency ?? "RON",
                 ],
             );
             return { ok: true as const, booking: rows[0] };

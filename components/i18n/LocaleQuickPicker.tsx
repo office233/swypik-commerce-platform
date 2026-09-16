@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Globe } from "lucide-react";
 import { useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
+// Navigație LOCALIZATĂ: router.replace(pathname, { locale }) reconstruiește URL-ul
+// cu prefixul corect al limbii alese. `next/navigation` brut + router.refresh()
+// lăsau paginile neprefixate (default ro) în romană oricât ai fi ales altă limbă
+// (audit 2026-08-25).
+import { useRouter, usePathname } from "@/lib/i18n/navigation";
 import { LOCALES, type Locale } from "@/lib/i18n/config";
 
 const META: Record<Locale, { label: string; flag: string }> = {
@@ -29,6 +33,7 @@ export default function LocaleQuickPicker({
 }) {
   const currentLocale = useLocale() as Locale;
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
@@ -44,7 +49,10 @@ export default function LocaleQuickPicker({
 
   const pick = (loc: Locale) => {
     setOpen(false);
+    if (loc === currentLocale) return;
     startTransition(async () => {
+      // Persistă preferința (cookie + DB dacă e logat) — best-effort, cu cookie
+      // ca plasă dacă endpoint-ul pică.
       try {
         await fetch("/api/i18n/preferences", {
           method: "POST",
@@ -54,7 +62,10 @@ export default function LocaleQuickPicker({
       } catch {
         document.cookie = `swypik_locale=${loc}; Path=/; Max-Age=31536000; SameSite=Lax`;
       }
-      router.refresh();
+      // Navighează la ACELAȘI path în noua limbă — router localizat pune/scoate
+      // prefixul de locale automat (as-needed): /explore → /en/explore, iar la
+      // revenirea pe ro scoate prefixul.
+      router.replace(pathname, { locale: loc });
     });
   };
 

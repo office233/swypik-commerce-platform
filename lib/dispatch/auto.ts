@@ -21,12 +21,14 @@ export async function maybeAutoDispatch(
     const { rows } = await dbQuery<{
       dispatch_status: string;
       courier_id: string | null;
+      payment_method: string | null;
+      payment_status: string | null;
       auto_dispatch_on: string;
       location_city: string | null;
       location_lat: number | null;
       location_lng: number | null;
     }>(
-      `SELECT lo.dispatch_status, lo.courier_id,
+      `SELECT lo.dispatch_status, lo.courier_id, lo.payment_method, lo.payment_status,
               m.auto_dispatch_on, m.location_city, m.location_lat, m.location_lng
          FROM local_orders lo
          JOIN local_merchants m ON m.id = lo.merchant_id
@@ -38,6 +40,18 @@ export async function maybeAutoDispatch(
     if (row.auto_dispatch_on !== trigger) return false;
     if (row.courier_id || row.dispatch_status !== "none") return false;
     if (!row.location_city) return false;
+
+    // Audit 2026-09: pe `auto_dispatch_on='placed'`, dispatch-ul pornea din
+    // POST /api/local-orders ÎNAINTE ca PaymentIntent-ul să existe, deci o
+    // comandă cu cardul neconfirmat pleca direct la curier, sărind peste
+    // acceptarea merchantului (singurul alt punct de oprire).
+    if (row.payment_method === "card_online" && row.payment_status !== "paid") {
+      logger.warn(
+        { orderId, trigger, payment_status: row.payment_status },
+        "[dispatch] auto-dispatch amânat: plata cu cardul nu e confirmată",
+      );
+      return false;
+    }
 
     await createJob({
       kind: "delivery",

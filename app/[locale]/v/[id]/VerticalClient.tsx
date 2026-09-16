@@ -86,10 +86,10 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
     const actionLabel = t(ACTION_KEY[vertical.mode].replace("actions.", "actions.") as never);
 
     return (
-        <div className="min-h-dvh bg-white pb-24">
+        <div className="min-h-dvh bg-white dark:bg-black pb-24">
             {/* Header cu identitatea verticalei */}
             <header
-                className="sticky top-0 z-30 border-b border-black/5 backdrop-blur-xl"
+                className="sticky top-0 z-30 border-b border-black/5 dark:border-[#1F1F1F] backdrop-blur-xl"
                 style={{ backgroundColor: `${vertical.accent}0D` }}
             >
                 <div className="flex items-center gap-3 px-4 h-14">
@@ -97,17 +97,17 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                         type="button"
                         onClick={() => router.back()}
                         aria-label={t("back" as never)}
-                        className="grid h-9 w-9 place-items-center rounded-full bg-white/80 active:scale-95 transition"
+                        className="grid h-9 w-9 place-items-center rounded-full bg-white/80 dark:bg-black/80 dark:text-white active:scale-95 transition"
                     >
                         <ArrowLeft className="h-5 w-5" />
                     </button>
                     <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xl" aria-hidden>{vertical.emoji}</span>
                         <div className="min-w-0">
-                            <h1 className="text-base font-black leading-tight truncate">
+                            <h1 className="text-base font-black leading-tight truncate dark:text-white">
                                 {t(`${vertical.labelKey}.label`)}
                             </h1>
-                            <p className="text-[11px] text-[#6E6E80] leading-tight">{vertical.brand}</p>
+                            <p className="text-[11px] text-[#6E6E80] dark:text-[#A1A1AA] leading-tight">{vertical.brand}</p>
                         </div>
                     </div>
                     {vertical.localOnly && (
@@ -120,7 +120,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                                     setCity(c);
                                 }
                             }}
-                            className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/80 px-3 h-8 text-xs font-bold active:scale-95 transition"
+                            className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/80 dark:bg-black/80 dark:text-white px-3 h-8 text-xs font-bold active:scale-95 transition"
                         >
                             <MapPin className="h-3.5 w-3.5" />
                             {city ?? "Alege orașul"}
@@ -139,7 +139,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                             onClick={() => setSub(null)}
                             aria-pressed={sub === null}
                             style={sub === null ? { backgroundColor: vertical.accent } : undefined}
-                            className={`shrink-0 snap-start rounded-full px-3.5 h-8 text-xs font-bold transition active:scale-95 ${sub === null ? "text-white" : "bg-white/80 text-[#6E6E80]"
+                            className={`shrink-0 snap-start rounded-full px-3.5 h-8 text-xs font-bold transition active:scale-95 ${sub === null ? "text-white" : "bg-white/80 dark:bg-black/80 text-[#6E6E80] dark:text-[#A1A1AA]"
                                 }`}
                         >
                             {t("all")}
@@ -153,7 +153,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                                     onClick={() => setSub(active ? null : s.slug)}
                                     aria-pressed={active}
                                     style={active ? { backgroundColor: vertical.accent } : undefined}
-                                    className={`shrink-0 snap-start inline-flex items-center gap-1 rounded-full px-3.5 h-8 text-xs font-bold transition active:scale-95 ${active ? "text-white" : "bg-white/80 text-[#6E6E80]"
+                                    className={`shrink-0 snap-start inline-flex items-center gap-1 rounded-full px-3.5 h-8 text-xs font-bold transition active:scale-95 ${active ? "text-white" : "bg-white/80 dark:bg-black/80 text-[#6E6E80] dark:text-[#A1A1AA]"
                                         }`}
                                 >
                                     <span aria-hidden>{s.emoji}</span>
@@ -170,14 +170,14 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                 {loading ? (
                     <div className="grid grid-cols-2 gap-3">
                         {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="aspect-[3/4] rounded-2xl bg-[#F7F7F8] animate-pulse" />
+                            <div key={i} className="aspect-[3/4] rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23] animate-pulse" />
                         ))}
                     </div>
                 ) : items.length === 0 ? (
                     <div className="py-20 text-center">
                         <div className="text-5xl mb-3" aria-hidden>{vertical.emoji}</div>
-                        <p className="font-bold text-[#0D0D0D]">{t("emptyTitle" as never)}</p>
-                        <p className="text-sm text-[#6E6E80] mt-1 max-w-xs mx-auto">
+                        <p className="font-bold text-[#0D0D0D] dark:text-white">{t("emptyTitle" as never)}</p>
+                        <p className="text-sm text-[#6E6E80] dark:text-[#A1A1AA] mt-1 max-w-xs mx-auto">
                             
                             {tx("fiiPrimulCarePublica")} {t(`${vertical.labelKey}.label`)}.
                         </p>
@@ -196,9 +196,9 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                         {items.map((it) => (
                             <article
                                 key={it.video.id}
-                                className="group overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white"
+                                className="group overflow-hidden rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113]"
                             >
-                                <div className="relative aspect-[3/4] bg-[#F7F7F8]">
+                                <div className="relative aspect-[3/4] bg-[#F7F7F8] dark:bg-[#1F1F23]">
                                     {it.video.thumbnail_url || it.entity?.image ? (
                                         <Image
                                             src={(it.video.thumbnail_url || it.entity?.image) as string}
@@ -220,17 +220,17 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                                     </span>
                                 </div>
                                 <div className="p-3">
-                                    <h2 className="text-sm font-bold leading-snug line-clamp-2">
+                                    <h2 className="text-sm font-bold leading-snug line-clamp-2 dark:text-white">
                                         {it.entity?.title ?? it.video.title}
                                     </h2>
                                     {it.publisher.name && (
-                                        <p className="mt-1 text-[11px] text-[#6E6E80] truncate">
+                                        <p className="mt-1 text-[11px] text-[#6E6E80] dark:text-[#A1A1AA] truncate">
                                             {it.publisher.name}
                                             {it.publisher.verified && <Check size={12} className="ml-1 inline" />}
                                         </p>
                                     )}
                                     <div className="mt-2 flex items-center justify-between gap-2">
-                                        <span className="text-sm font-black">
+                                        <span className="text-sm font-black dark:text-white">
                                             {it.entity?.price_cents != null
                                                 ? `${(it.entity.price_cents / 100).toLocaleString()} ${it.entity.currency}`
                                                 : "La cerere"}

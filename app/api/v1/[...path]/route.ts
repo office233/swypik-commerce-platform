@@ -42,6 +42,12 @@ async function fallback(req: Request, socialPath: string) {
 async function handle(req: Request, context: RouteContext) {
   const { path } = await context.params;
   const socialPath = `/v1/${path.join("/")}`;
+  // Proxy-ul ataseaza secretul intern al platform-api, care in Go e SINGURA
+  // autorizare pentru /v1/admin/* (requiresInternalAuth). Fara gardul asta,
+  // orice vizitator anonim ajunge la datele de admin ale serviciului Go.
+  if (socialPath === "/v1/admin" || socialPath.startsWith("/v1/admin/")) {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  }
   if (req.method === "POST" && socialPath === "/v1/checkout") {
     return fallback(req, socialPath);
   }

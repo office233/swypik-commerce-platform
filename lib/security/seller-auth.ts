@@ -1,6 +1,7 @@
 import { dbQuery } from "@/lib/db";
 import { cookies } from "next/headers";
 import crypto from "crypto";
+import { isSessionTokenFormat } from "@/lib/auth/session";
 
 const COOKIE_NAME = "seller_session";
 
@@ -12,7 +13,13 @@ export async function getSellerSessionId(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
-    if (!token) return null;
+    // OTP-urile de seller stau in ACEEASI tabela `seller_sessions`, cu
+    // token = sha256("otp:" + cod). Un cookie `seller_session=otp:123456`
+    // producea exact acel hash => acces la portalul sellerului cu ~10^6
+    // incercari, fara contor (audit 2026-08-25). Token-urile reale sunt
+    // randomBytes(32).toString("hex") = 64 hex, deci garda de format le
+    // pastreaza intacte si blocheaza forma de OTP.
+    if (!isSessionTokenFormat(token)) return null;
 
     const { rows } = await dbQuery(
       `SELECT seller_id FROM seller_sessions WHERE token = $1 AND expires_at > now()`,

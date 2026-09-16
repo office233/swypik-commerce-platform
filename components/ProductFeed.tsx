@@ -92,6 +92,7 @@ type FeedProduct = {
   videoId?: string | number;
   creator_id?: string;
   creatorId?: string;
+  viewerLiked?: boolean;
 };
 
 type Props = {
@@ -155,6 +156,8 @@ function getRealLikes(product: FeedProduct) {
   return product.likes || 0;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function getRealComments(product: FeedProduct) {
   return product.commentCount || 0;
 }
@@ -192,6 +195,26 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const seenViewRef = useRef(new Set<string>());
   const [currentIdx, setCurrentIdx] = useState(0);
   const [likes, setLikes] = useState<Record<string, boolean>>({});
+  // Contorul de like vine din răspunsul serverului (sursa adevărului), nu din
+  // aritmetică locală peste snapshot-ul feed-ului.
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+
+  // Seed din server: fără asta, inima apărea gri după refresh chiar dacă
+  // like-ul era salvat (audit 2026-08-25). Nu suprascrie toggle-urile locale —
+  // setează doar id-urile pe care userul nu le-a atins în sesiunea curentă.
+  useEffect(() => {
+    setLikes((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const product of products) {
+        if (product.viewerLiked && !(product.id in next)) {
+          next[product.id] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [products]);
   const [heartBurst, setHeartBurst] = useState<string | null>(null);
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
   const [isMuted, setIsMuted] = useState(true);
@@ -525,28 +548,36 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   }, [currentIdx, router, sendFeedEvent]);
 
   const toggleLike = (product: FeedProduct) => {
+    // REAL LIKES (2026-08-09, întărit 2026-08-24): serverul e sursa adevărului.
+    // Fără un UUID real de video nu există unde persista like-ul — butonul nici
+    // nu se randează în acest caz (vezi canLike la render).
+    const videoId = videoEventId(product);
+    if (!UUID_RE.test(videoId)) return;
     const isNextLiked = !likes[product.id];
     setLikes((prev) => ({ ...prev, [product.id]: isNextLiked }));
-    sendFeedEvent(isNextLiked ? "video_like" : "video_unlike", product, { position: currentIdx });
-    const videoId = videoEventId(product);
-    if (videoId) {
-      // REAL LIKES (2026-08-09): serverul e sursa adevărului. Dacă like-ul e
-      // refuzat (nelogat / rate-limited / eroare), revertăm UI-ul — fără
-      // inimioare false care nu există în DB.
-      fetch(`/api/videos/${videoId}/like`, { method: "POST" })
-        .then(async (res) => {
-          if (!res.ok) {
-            setLikes((prev) => ({ ...prev, [product.id]: !isNextLiked }));
-            if (res.status === 401) router.push("/auth?next=/explore");
-            return;
+    // Evenimentul de ranking 'like'/'unlike' e emis de server în tranzacția
+    // like-ului (o singură sursă) — nu-l mai dublăm din client.
+    fetch(`/api/videos/${videoId}/like`, { method: "POST" })
+      .then(async (res) => {
+        if (!res.ok) {
+          setLikes((prev) => ({ ...prev, [product.id]: !isNextLiked }));
+          // 401 e acum doar un caz-limită (cookies blocate) — like-ul anonim e
+          // permis. `next` întoarce userul EXACT unde era, nu în /explore.
+          if (res.status === 401) {
+            const here = encodeURIComponent(window.location.pathname + window.location.search);
+            router.push(`/auth?next=${here}`);
           }
-          const data = await res.json().catch(() => null);
-          if (data && typeof data.liked === "boolean") {
-            setLikes((prev) => ({ ...prev, [product.id]: data.liked }));
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        if (data && typeof data.liked === "boolean") {
+          setLikes((prev) => ({ ...prev, [product.id]: data.liked }));
+          if (typeof data.like_count === "number") {
+            setLikeCounts((prev) => ({ ...prev, [product.id]: data.like_count }));
           }
-        })
-        .catch(() => setLikes((prev) => ({ ...prev, [product.id]: !isNextLiked })));
-    }
+        }
+      })
+      .catch(() => setLikes((prev) => ({ ...prev, [product.id]: !isNextLiked })));
     if (isNextLiked) {
       setHeartBurst(product.id);
       setTimeout(() => setHeartBurst(null), 900);
@@ -696,12 +727,14 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
             )}
 
             <div className="absolute bottom-48 right-3 z-20 flex flex-col items-center gap-4">
-              <button type="button" onClick={() => toggleLike(product)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label={likes[product.id] ? "Unlike" : "Like"}>
-                <div className={`rounded-full p-3 shadow-lg ${likes[product.id] ? "bg-[#EF4444] text-white" : "bg-black/30 backdrop-blur-sm text-white"}`}>
-                  <Heart size={24} fill={likes[product.id] ? "currentColor" : "none"} />
-                </div>
-                <span className="text-[10px] font-bold text-white/90">{getRealLikes(product) + (likes[product.id] ? 1 : 0)}</span>
-              </button>
+              {UUID_RE.test(videoEventId(product)) && (
+                <button type="button" onClick={() => toggleLike(product)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label={likes[product.id] ? "Unlike" : "Like"}>
+                  <div className={`rounded-full p-3 shadow-lg ${likes[product.id] ? "bg-[#EF4444] text-white" : "bg-black/30 backdrop-blur-sm text-white"}`}>
+                    <Heart size={24} fill={likes[product.id] ? "currentColor" : "none"} />
+                  </div>
+                  <span className="text-[10px] font-bold text-white/90">{likeCounts[product.id] ?? (getRealLikes(product) + (likes[product.id] ? 1 : 0))}</span>
+                </button>
+              )}
               <button type="button" onClick={() => setShowComments(product.id)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label="Open comments">
                 <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
                   <MessageCircle size={24} />

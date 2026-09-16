@@ -27,6 +27,9 @@ import { logger } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Acceptă orice variantă de UUID (constantă de cod, nu input de utilizator). */
+const PRODUCT_REF_UUID_RE = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+
 /** Ponderea fiecărui grup de verticale în mix, pe intervale orare. */
 function contextWeights(hourLocal: number): Record<string, number> {
     // grupuri: shop, local, property, travel, services, mobility, work
@@ -97,10 +100,10 @@ export async function GET(req: Request) {
           v.duration_ms,
           v.like_count,
           v.comment_count,
-          c.id            AS publisher_id,
-          COALESCE(cp.display_name, cp.handle, c.name) AS publisher_name,
-          cp.avatar_url   AS publisher_avatar,
-          cp.verification_status AS publisher_verified,
+          u.id            AS publisher_id,
+          COALESCE(cp.display_name, cp.handle, u.display_name, u.username) AS publisher_name,
+          COALESCE(cp.avatar_url, u.avatar_url) AS publisher_avatar,
+          COALESCE(cp.verification_status = 'verified', u.is_verified, false) AS publisher_verified,
           p.id            AS entity_id,
           p.slug          AS entity_slug,
           p.title         AS entity_title,
@@ -111,17 +114,36 @@ export async function GET(req: Request) {
           p.location_city,
           p.image_url     AS entity_image
         FROM videos v
-        JOIN creators c        ON c.id = v.creator_id
+        -- 2026-08-25: era JOIN pe tabela creators, care e goala, desi
+        -- videos.creator_id are cheie straina catre users (vezi
+        -- videos_creator_id_fkey). Fiind INNER JOIN, feed-ul verticalelor
+        -- intorcea ZERO clipuri intotdeauna - paginile /v/[id] aratau la
+        -- nesfarsit "fii primul care publica".
+        JOIN users u ON u.id = v.creator_id
         LEFT JOIN creator_profiles cp ON cp.id = v.creator_profile_id
-        LEFT JOIN LATERAL (
-          SELECT mp.*
-            FROM marketplace_products mp
-           WHERE mp.id::text = (v.product_refs -> 0 ->> 'product_id')
-             AND mp.status = 'active'
-           LIMIT 1
-        ) p ON true
+        LEFT JOIN video_rank_14d vr ON vr.video_id = v.id
+        -- 2026-08-24 (audit perf): castul mp.id::text anula PK-ul uuid si
+        -- forta scanare secventiala peste tot catalogul pentru FIECARE clip.
+        -- Comparam uuid cu uuid (regexul e evaluat inaintea castului, deci
+        -- product_refs malformate nu produc 22P02). Acelasi tipar ca in
+        -- app/api/explore/feed/route.ts.
+        LEFT JOIN marketplace_products p
+          ON p.id = CASE
+               WHEN COALESCE(v.product_refs->0->>'product_id', v.product_refs->>0) ~* '${PRODUCT_REF_UUID_RE}'
+               THEN COALESCE(v.product_refs->0->>'product_id', v.product_refs->>0)::uuid
+               ELSE NULL
+             END
+         AND p.status = 'active'
         WHERE ${where.join(" AND ")}
-        ORDER BY v.published_at DESC NULLS LAST, v.created_at DESC
+        -- 2026-08-24 (audit): feed-ul „inima Swypik" era pur cronologic. Acum:
+        -- engagement real 14 zile (log-comprimat, ca în explore/feed) +
+        -- prospețime (0..5, decade în 3 zile) + explorare mică — clipurile bune
+        -- urcă, cele noi au șansă, ordinea nu e deterministă.
+        ORDER BY
+          (LN(GREATEST(COALESCE(vr.rank_score, 0), 0) + 1) * 4)
+          + GREATEST(0, 5 - EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / (86400.0 * 3))
+          + (random() * 4) DESC,
+          v.published_at DESC NULLS LAST, v.created_at DESC
         LIMIT $${params.length - 1} OFFSET $${params.length}`,
             params,
         );
@@ -144,7 +166,7 @@ export async function GET(req: Request) {
                     id: r.publisher_id,
                     name: r.publisher_name,
                     avatar: r.publisher_avatar,
-                    verified: r.publisher_verified === "verified",
+                    verified: Boolean(r.publisher_verified),
                 },
                 entity: r.entity_id
                     ? {

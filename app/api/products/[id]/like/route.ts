@@ -3,13 +3,13 @@ import { getDb } from "@/lib/db";
 import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { logger } from "@/lib/logger";
 import { UUID_RE } from "@/lib/validation/uuid";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 /** POST /api/products/[id]/like — toggle like pe un produs (anon OK). */
 export async function POST(
-    _request: Request,
+    request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
@@ -19,8 +19,12 @@ export async function POST(
         }
 
         const { userId, anonSessionId } = await getOrCreateSocialUser();
-        const rl = await rateLimit("videoLike", userId);
+        const rl = await rateLimit("productLike", userId);
         if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+        // ANTI-FRAUD: like-ul anonim permite rotirea userId-ului prin stergerea
+        // cookie-ului, deci contorul e inflatabil fara o limita pe IP.
+        const rlIp = await rateLimit("productLike", `ip:${getClientIP(request)}`, { limit: 40, window: 60 });
+        if (!rlIp.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
         const pool = getDb();
         const client = await pool.connect();
@@ -73,7 +77,7 @@ export async function POST(
             client.release();
         }
 
-        const response = NextResponse.json({ liked, likeCount });
+        const response = NextResponse.json({ liked, likeCount, like_count: likeCount });
         setAnonSessionCookie(response, anonSessionId);
         return response;
     } catch (error) {

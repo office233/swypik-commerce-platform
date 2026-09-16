@@ -127,6 +127,8 @@ export const RATE_LIMITS = {
   videoEvent: { limit: 60, window: 60 } as RateLimitConfig,   // analytic events
   videoHidden: { limit: 30, window: 60 } as RateLimitConfig,
   commentLike: { limit: 30, window: 60 } as RateLimitConfig,
+  productLike: { limit: 30, window: 60 } as RateLimitConfig,  // separat de videoLike — actiuni diferite nu se mai limiteaza reciproc
+  productShare: { limit: 20, window: 60 } as RateLimitConfig,
   dmMessage: { limit: 20, window: 60 } as RateLimitConfig,
   dmConversation: { limit: 10, window: 60 } as RateLimitConfig,// new convo
   dmRead: { limit: 30, window: 60 } as RateLimitConfig,

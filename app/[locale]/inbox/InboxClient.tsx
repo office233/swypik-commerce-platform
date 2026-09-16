@@ -1,19 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, MessageCircle, CheckCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
-
-type Notification = {
-  id: string;
-  notification_type: string;
-  title: string;
-  body: string | null;
-  action_url: string | null;
-  read_at: string | null;
-  created_at: string;
-};
+import { useNotifications, type Notification } from "@/lib/notifications/use-notifications";
 
 type Conversation = {
   id: string;
@@ -47,86 +38,55 @@ type Tab = "messages" | "notifications";
 export default function InboxClient() {
   const t = useTranslations("inbox");
   const [tab, setTab] = useState<Tab>("messages");
-  const [notifs, setNotifs] = useState<Notification[]>([]);
   const [convs, setConvs] = useState<Conversation[]>([]);
-  const [unreadN, setUnreadN] = useState(0);
   const [unreadM, setUnreadM] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState(false);
+  const [loadingConvs, setLoadingConvs] = useState(true);
   const [dmFrozen, setDmFrozen] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [nRes, cRes] = await Promise.all([
-        fetch("/api/notifications?limit=50", {
+  // Notificările vin din hook-ul comun cu pagina /notifications — o singură
+  // implementare pentru load / mark-all / mark-one (audit 2026-08-24).
+  const {
+    items: notifs,
+    unread: unreadN,
+    loading: loadingNotifs,
+    marking,
+    markAll: markAllNotifs,
+    markOne,
+  } = useNotifications();
+
+  // Conversațiile se încarcă independent, deci fiecare tab își arată propriul
+  // skeleton în loc să aștepte cererea mai lentă dintre cele două.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/dm/conversations?limit=50", {
           credentials: "include",
           cache: "no-store",
-        }),
-        fetch("/api/dm/conversations?limit=50", {
-          credentials: "include",
-          cache: "no-store",
-        }),
-      ]);
-
-      if (nRes.ok) {
-        const j = await nRes.json();
-        setNotifs(j.items || []);
-        setUnreadN(j.unreadCount || 0);
-      }
-
-      if (cRes.status === 410) {
-        setDmFrozen(true);
-      } else if (cRes.ok) {
-        const j = await cRes.json();
-        const list: Conversation[] = Array.isArray(j.conversations)
-          ? j.conversations
-          : Array.isArray(j.items)
-            ? j.items
+        });
+        if (cancelled) return;
+        if (res.status === 410) {
+          setDmFrozen(true);
+          return;
+        }
+        if (!res.ok) return;
+        const payload = await res.json();
+        const list: Conversation[] = Array.isArray(payload.conversations)
+          ? payload.conversations
+          : Array.isArray(payload.items)
+            ? payload.items
             : [];
         setConvs(list);
-        setUnreadM(
-          list.reduce(
-            (s, c) => s + (Number(c.unread_count) > 0 ? 1 : 0),
-            0,
-          ),
-        );
+        setUnreadM(list.reduce((sum, c) => sum + (Number(c.unread_count) > 0 ? 1 : 0), 0));
+      } catch {
+        // Tab-ul are deja stare de gol; nu blocăm inbox-ul pentru DM.
+      } finally {
+        if (!cancelled) setLoadingConvs(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const markAllNotifs = useCallback(async () => {
-    setMarking(true);
-    try {
-      await fetch("/api/notifications/mark-all-read", {
-        method: "POST",
-        credentials: "include",
-      });
-      const now = new Date().toISOString();
-      setNotifs((rows) => rows.map((r) => ({ ...r, read_at: r.read_at || now })));
-      setUnreadN(0);
-    } finally {
-      setMarking(false);
-    }
-  }, []);
-
-  const markOne = useCallback(async (id: string) => {
-    await fetch(`/api/notifications/${id}/read`, {
-      method: "POST",
-      credentials: "include",
-    });
-    setNotifs((rows) =>
-      rows.map((r) =>
-        r.id === id ? { ...r, read_at: r.read_at || new Date().toISOString() } : r,
-      ),
-    );
-    setUnreadN((u) => Math.max(0, u - 1));
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -174,14 +134,14 @@ export default function InboxClient() {
       {tab === "messages" && (
         <MessagesTab
           convs={convs}
-          loading={loading}
+          loading={loadingConvs}
           dmFrozen={dmFrozen}
         />
       )}
       {tab === "notifications" && (
         <NotificationsTab
           notifs={notifs}
-          loading={loading}
+          loading={loadingNotifs}
           unread={unreadN}
           marking={marking}
           markAll={markAllNotifs}

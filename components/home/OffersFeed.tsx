@@ -34,15 +34,15 @@ function buildQuery(filters: FeedFilters, category: string | null | undefined, o
 
 function SkeletonCard() {
     return (
-        <div className="animate-pulse overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+        <div className="animate-pulse overflow-hidden rounded-2xl bg-white dark:bg-[#111113] shadow-sm ring-1 ring-black/5 dark:ring-white/10">
             <div className="flex items-center gap-3 px-4 py-3">
-                <div className="h-9 w-9 rounded-full bg-[#EDEDEF]" />
-                <div className="h-3 w-32 rounded bg-[#EDEDEF]" />
+                <div className="h-9 w-9 rounded-full bg-[#EDEDEF] dark:bg-[#1F1F23]" />
+                <div className="h-3 w-32 rounded bg-[#EDEDEF] dark:bg-[#1F1F23]" />
             </div>
-            <div className="aspect-square w-full bg-[#EDEDEF]" />
+            <div className="aspect-square w-full bg-[#EDEDEF] dark:bg-[#1F1F23]" />
             <div className="space-y-2 p-4">
-                <div className="h-3 w-3/4 rounded bg-[#EDEDEF]" />
-                <div className="h-3 w-1/3 rounded bg-[#EDEDEF]" />
+                <div className="h-3 w-3/4 rounded bg-[#EDEDEF] dark:bg-[#1F1F23]" />
+                <div className="h-3 w-1/3 rounded bg-[#EDEDEF] dark:bg-[#1F1F23]" />
             </div>
         </div>
     );
@@ -174,21 +174,21 @@ export default function OffersFeed({ initialItems = [], category, onOpenProduct 
                     </>
                 )}
                 {!loading && error && (
-                    <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-black/5">
-                        <p className="text-[14px] font-semibold text-[#6E6E80]">{t("error")}</p>
+                    <div className="rounded-2xl bg-white dark:bg-[#111113] p-6 text-center shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                        <p className="text-[14px] font-semibold text-[#6E6E80] dark:text-[#A1A1AA]">{t("error")}</p>
                         <button
                             type="button"
                             onClick={() => load(items.length === 0, filters, category, offset)}
-                            className="mt-3 rounded-full bg-[#0D0D0D] px-5 py-2 text-[13px] font-bold text-white"
+                            className="mt-3 rounded-full bg-[#0D0D0D] dark:bg-white px-5 py-2 text-[13px] font-bold text-white dark:text-black"
                         >
                             {t("retry")}
                         </button>
                     </div>
                 )}
                 {!loading && !error && items.length === 0 && (
-                    <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
-                        <p className="text-3xl"><ShoppingBag size={30} className="inline" /></p>
-                        <p className="mt-2 text-[14px] font-semibold text-[#6E6E80]">{t("empty")}</p>
+                    <div className="rounded-2xl bg-white dark:bg-[#111113] p-8 text-center shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                        <p className="text-3xl dark:text-white"><ShoppingBag size={30} className="inline" /></p>
+                        <p className="mt-2 text-[14px] font-semibold text-[#6E6E80] dark:text-[#A1A1AA]">{t("empty")}</p>
                     </div>
                 )}
                 <div ref={sentinelRef} className="h-1" aria-hidden />

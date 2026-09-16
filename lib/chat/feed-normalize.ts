@@ -73,9 +73,17 @@ export function normalizeSocialFeedProducts(data: any): ChatProduct[] {
         Number(source.discountPercent) ||
         (oldPrice > price && price > 0 ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0);
 
+      // video_id-ul real e obligatoriu pentru like-uri persistente — fara el,
+      // ProductFeed trimitea POST /api/videos/{uuid-de-produs}/like → 404.
+      const videoId = firstString(item?.video_id, item?.videoId, source?.video_id, source?.videoId);
+      const viewerLiked = Boolean(source?.viewerLiked ?? item?.viewer?.liked);
+
       return {
         ...source,
         id: String(source.id || item.video_id || item.productId || item.product_id || item.id),
+        video_id: videoId || undefined,
+        videoId: videoId || undefined,
+        viewerLiked,
         pgId: Number.isFinite(numericPgId) && numericPgId > 0 ? numericPgId : source.pgId,
         aeProductId: source.aeProductId || source.ae_product_id,
         description: source.description || title,

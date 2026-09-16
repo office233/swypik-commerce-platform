@@ -19,6 +19,11 @@ export function getStripe(): Stripe {
   stripeInstance = new Stripe(key, {
     apiVersion: "2026-04-22.dahlia",
     typescript: true,
+    // Default-ul SDK-ului e 80s: prea mult pentru un utilizator care așteaptă
+    // în pagina de plată, și suficient cât să epuizeze pool-ul de conexiuni.
+    // Retry-urile acoperă erorile tranzitorii de rețea.
+    timeout: 15_000,
+    maxNetworkRetries: 2,
   });
 
   return stripeInstance;

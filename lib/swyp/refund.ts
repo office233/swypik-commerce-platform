@@ -17,7 +17,7 @@
  * NIMIC de aici nu aruncă spre caller în fluxul de webhook — dar funcțiile
  * de bază aruncă, iar apelanții decid (webhook-ul vrea retry de la Stripe).
  */
-import { dbQuery, withTransaction } from "@/lib/db";
+import { dbQuery, withTransaction, withAdvisoryLock } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { swypTransfer } from "./ledger";
 
@@ -214,41 +214,47 @@ export async function refundSwypForUnpaidOrder(args: {
     refId: string; //   ex. pi_xxx
     reason: string;
 }): Promise<{ credited: boolean }> {
-    const spend = await findSwypSpendForOrder(args.orderId);
-    if (!spend) return { credited: false };
+    // Lock advisory pe comandă (audit 2026-08-25): cron-ul reclaim anulează
+    // intentul, ceea ce declanșează webhook-ul payment_intent.canceled ~1s mai
+    // târziu. Ambele apeleau aici cu refType diferit, ambele treceau de
+    // guard-ul check-then-act înainte ca vreuna să scrie în ledger → dublă
+    // recreditare. Lock-ul serializează cele două căi pe același order.
+    return withAdvisoryLock(`swyp_refund:${args.orderId}`, async () => {
+        const spend = await findSwypSpendForOrder(args.orderId);
+        if (!spend) return { credited: false };
 
-    // Guard cross-flux: webhook (swyp_refund_intent), cron
-    // (swyp_refund_abandoned) și charge.refunded (swyp_refund_charge) folosesc
-    // ref-uri diferite — idempotența pe ref NU acoperă dubla creditare între
-    // ele. Ledger-ul e sursa adevărului: orice reversare deja înregistrată
-    // pentru comanda asta → no-op.
-    if (await hasAnySwypRefundForOrder(args.orderId)) {
-        log.info({ orderId: args.orderId, refType: args.refType }, "swyp.refund.skip_already_reversed");
-        return { credited: false };
-    }
+        // Guard cross-flux: webhook (swyp_refund_intent), cron
+        // (swyp_refund_abandoned) și charge.refunded (swyp_refund_charge) folosesc
+        // ref-uri diferite — idempotența pe ref NU acoperă dubla creditare între
+        // ele. Sub lock, a doua cale vede reversarea scrisă de prima → no-op.
+        if (await hasAnySwypRefundForOrder(args.orderId)) {
+            log.info({ orderId: args.orderId, refType: args.refType }, "swyp.refund.skip_already_reversed");
+            return { credited: false };
+        }
 
-    const res = await creditSwypRefund({
-        userId: spend.userId,
-        units: spend.units,
-        cents: spend.cents,
-        refType: args.refType,
-        refId: args.refId,
-        description: `Refund SWYP (${args.reason})`,
-        metadata: { order_id: args.orderId, reason: args.reason },
+        const res = await creditSwypRefund({
+            userId: spend.userId,
+            units: spend.units,
+            cents: spend.cents,
+            refType: args.refType,
+            refId: args.refId,
+            description: `Refund SWYP (${args.reason})`,
+            metadata: { order_id: args.orderId, reason: args.reason },
+        });
+
+        if (res.credited) {
+            await dbQuery(
+                `UPDATE commerce_orders
+              SET metadata = metadata || jsonb_build_object(
+                    'swyp_refunded_at', NOW()::text,
+                    'swyp_refund_ref', $2::text,
+                    'swyp_refund_reason', $3::text)
+            WHERE id = $1`,
+                [args.orderId, `${args.refType}:${args.refId}`, args.reason],
+            );
+        }
+        return res;
     });
-
-    if (res.credited) {
-        await dbQuery(
-            `UPDATE commerce_orders
-          SET metadata = metadata || jsonb_build_object(
-                'swyp_refunded_at', NOW()::text,
-                'swyp_refund_ref', $2::text,
-                'swyp_refund_reason', $3::text)
-        WHERE id = $1`,
-            [args.orderId, `${args.refType}:${args.refId}`, args.reason],
-        );
-    }
-    return res;
 }
 
 /**

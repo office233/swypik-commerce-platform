@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-import { dbQuery } from "@/lib/db";
+import { dbQuery, dbQueryLong } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -40,10 +40,12 @@ async function handle(request: NextRequest) {
   try {
     // Try CONCURRENTLY first (zero downtime), fallback to plain REFRESH if not possible.
     try {
-      await dbQuery(`REFRESH MATERIALIZED VIEW CONCURRENTLY video_rank_14d`);
+      // dbQueryLong: refresh-ul creste cu feed_events si depaseste legitim
+      // plafonul de statement_timeout dimensionat pentru cererile userilor.
+      await dbQueryLong(`REFRESH MATERIALIZED VIEW CONCURRENTLY video_rank_14d`);
     } catch (e: any) {
       logger.warn({ err: e?.message }, "refresh-rank concurrent failed, falling back");
-      await dbQuery(`REFRESH MATERIALIZED VIEW video_rank_14d`);
+      await dbQueryLong(`REFRESH MATERIALIZED VIEW video_rank_14d`);
     }
 
     const { rows } = await dbQuery(

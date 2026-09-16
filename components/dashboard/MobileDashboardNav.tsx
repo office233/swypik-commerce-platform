@@ -19,6 +19,11 @@ import {
   TrendingUp,
   Banknote,
   CircleDot,
+  Receipt,
+  Store,
+  Users,
+  Megaphone,
+  Flame,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +42,11 @@ const ICONS: Record<string, LucideIcon> = {
   trendingUp: TrendingUp,
   banknote: Banknote,
   circleDot: CircleDot,
+  receipt: Receipt,
+  store: Store,
+  users: Users,
+  megaphone: Megaphone,
+  flame: Flame,
 };
 
 export type MobileDashboardNavItem = {

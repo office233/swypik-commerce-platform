@@ -38,6 +38,10 @@ export type Product = {
   variantId?: string;
   skuId?: string;
   videoId?: string;
+  /** UUID-ul clipului sursă — necesar pentru like-uri persistente din feed. */
+  video_id?: string;
+  /** Viewerul curent a apreciat deja clipul (seed pentru starea inimii). */
+  viewerLiked?: boolean;
   selectedColor?: string;
   selectedSize?: string;
   vendor?: string;

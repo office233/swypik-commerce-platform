@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { SUPPORT_EMAIL } from "@/lib/contact";
 
@@ -52,10 +52,12 @@ function nodeSlug(c: CategoryNode): string {
  * funcțională sau conținut real în feed.
  */
 const LIVE_VERTICALS: { id: string; href: string; note: string }[] = [
+    { id: "squad", href: "/squad", note: "Squad Buy -30%" },
     { id: "eats", href: "/food", note: "Mâncare" },
-    { id: "fly", href: "/fly", note: "Zboruri" },
-    { id: "stays", href: "/stays", note: "Cazări" },
     { id: "go", href: "/go", note: "Transport" },
+    { id: "stays", href: "/stays", note: "Cazări" },
+    { id: "fly", href: "/fly", note: "Zboruri" },
+    { id: "cares", href: "/cares", note: "Donații 0% Fee" },
     { id: "pay", href: "/pay", note: "Moneda SWYP" },
 ];
 

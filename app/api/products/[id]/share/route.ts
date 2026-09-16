@@ -24,7 +24,7 @@ export async function POST(
         }
 
         const { userId, anonSessionId } = await getOrCreateSocialUser();
-        const rl = await rateLimit("videoLike", userId);
+        const rl = await rateLimit("productShare", userId);
         if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
         let channel = "other";

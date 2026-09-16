@@ -156,4 +156,12 @@ const nextConfig = {
   },
 };
 
+// 2026-08-24 (audit perf): SDK-ul Sentry stă în chunk-ul partajat (~26-44% din
+// First Load JS) fără să treacă prin plugin-ul lui de build. Am MĂSURAT varianta
+// `withSentryConfig(..., { webpack: { treeshake: { removeDebugLogging: true } } })`:
+// bundle-ul partajat a crescut 185 kB → 188 kB, pentru că plugin-ul adaugă mai
+// mult decât scoate atâta timp cât tracing-ul rămâne activ. Câștigul real
+// (~22-49 kB) cere `removeTracing: true`, care dezactivează complet performance
+// monitoring-ul — decizie de produs, nu optimizare gratuită. Lăsat neschimbat
+// intenționat; vezi RAPORT.md.
 export default withNextIntl(nextConfig);

@@ -2,12 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { formatCurrency } from "@/lib/i18n/currency";
 import type { Currency } from "@/lib/i18n/config";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+
+// recharts (~107 kB gz) se incarca doar cand graficul chiar se randeaza.
+const TrendChart = dynamic(() => import("./TrendChart"), {
+  ssr: false,
+  loading: () => <div className="h-64 rounded-xl bg-[#F7F7F8] animate-pulse" />,
+});
 
 type Range = "7d" | "30d" | "90d" | "all";
 
@@ -171,18 +175,7 @@ export default function AnalyticsClient() {
               Niciun eveniment inregistrat.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={256}>
-              <LineChart data={data.viewsOverTime}>
-                <CartesianGrid stroke="#F0F0F0" strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip
-                  contentStyle={{ background: "#0D0D0D", border: "none", borderRadius: 12, color: "#FFF", fontSize: 12 }}
-                  labelStyle={{ color: "#FFF" }}
-                />
-                <Line type="monotone" dataKey="views" stroke="#0D0D0D" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            <TrendChart data={data.viewsOverTime} dataKey="views" stroke="#0D0D0D" />
           )}
         </div>
 
@@ -195,20 +188,14 @@ export default function AnalyticsClient() {
               Nicio comisie aprobata.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={256}>
-              <LineChart data={data.earningsOverTime}>
-                <CartesianGrid stroke="#F0F0F0" strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip
-                  contentStyle={{ background: "#0D0D0D", border: "none", borderRadius: 12, color: "#FFF", fontSize: 12 }}
-                  formatter={(value) =>
-                    formatCurrency(Number(value), { sourceCurrency: (data.summary.earningsCurrency || "RON") as Currency })
-                  }
-                />
-                <Line type="monotone" dataKey="cents" stroke="#16A34A" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            <TrendChart
+              data={data.earningsOverTime}
+              dataKey="cents"
+              stroke="#16A34A"
+              formatValue={(value) =>
+                formatCurrency(value, { sourceCurrency: (data.summary.earningsCurrency || "RON") as Currency })
+              }
+            />
           )}
         </div>
       </div>

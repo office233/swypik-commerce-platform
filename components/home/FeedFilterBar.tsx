@@ -52,15 +52,15 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
 
     return (
         <>
-            <div className="sticky top-0 z-20 -mx-1 flex items-center gap-2 overflow-x-auto bg-[#FAFAFB]/90 px-1 py-2 backdrop-blur-sm [scrollbar-width:none]">
+            <div className="sticky top-0 z-20 -mx-1 flex items-center gap-2 overflow-x-auto bg-[#FAFAFB]/90 dark:bg-black/90 px-1 py-2 backdrop-blur-sm [scrollbar-width:none]">
                 {SORTS.map((s) => (
                     <button
                         key={s}
                         type="button"
                         onClick={() => { haptic("tap"); onChange({ ...filters, sort: s }); }}
                         className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${filters.sort === s
-                            ? "bg-[#0D0D0D] text-white"
-                            : "bg-white text-[#6E6E80] ring-1 ring-black/10 hover:bg-[#F0F0F2]"
+                            ? "bg-[#0D0D0D] text-white dark:bg-white dark:text-black"
+                            : "bg-white text-[#6E6E80] ring-1 ring-black/10 hover:bg-[#F0F0F2] dark:bg-[#111113] dark:text-[#A1A1AA] dark:ring-white/10 dark:hover:bg-[#1F1F23]"
                             }`}
                     >
                         {t(`sort.${s}`)}
@@ -71,7 +71,7 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
                     onClick={() => { setDraft(filters); setOpen(true); }}
                     className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold ring-1 transition ${activeExtras
                         ? "bg-violet-600 text-white ring-violet-600"
-                        : "bg-white text-[#6E6E80] ring-black/10 hover:bg-[#F0F0F2]"
+                        : "bg-white text-[#6E6E80] ring-black/10 hover:bg-[#F0F0F2] dark:bg-[#111113] dark:text-[#A1A1AA] dark:ring-white/10 dark:hover:bg-[#1F1F23]"
                         }`}
                 >
                     <SlidersHorizontal size={14} />
@@ -82,10 +82,10 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
             {open && (
                 <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center" role="dialog" aria-modal="true">
                     <button type="button" aria-label={t("close")} className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-                    <div className="relative w-full max-w-md rounded-t-3xl bg-white p-5 pb-8 shadow-2xl lg:rounded-3xl">
+                    <div className="relative w-full max-w-md rounded-t-3xl bg-white dark:bg-[#111113] p-5 pb-8 shadow-2xl lg:rounded-3xl">
                         <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-[16px] font-extrabold text-[#0D0D0D]">{t("filters")}</h3>
-                            <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1.5 hover:bg-[#F0F0F2]" aria-label={t("close")}>
+                            <h3 className="text-[16px] font-extrabold text-[#0D0D0D] dark:text-white">{t("filters")}</h3>
+                            <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1.5 hover:bg-[#F0F0F2] dark:text-white dark:hover:bg-[#1F1F23]" aria-label={t("close")}>
                                 <X size={18} />
                             </button>
                         </div>
@@ -97,7 +97,7 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
                                 placeholder={t("min")}
                                 value={draft.minPrice ?? ""}
                                 onChange={(e) => setDraft({ ...draft, minPrice: e.target.value ? Number(e.target.value) : undefined })}
-                                className="w-full rounded-xl border border-black/10 px-3 py-2 text-[14px] font-semibold outline-none focus:border-violet-500"
+                                className="w-full rounded-xl border border-black/10 dark:border-white/10 dark:bg-[#1F1F23] dark:text-white px-3 py-2 text-[14px] font-semibold outline-none focus:border-violet-500"
                             />
                             <span className="text-[#A1A1AA]">—</span>
                             <input
@@ -105,7 +105,7 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
                                 placeholder={t("max")}
                                 value={draft.maxPrice ?? ""}
                                 onChange={(e) => setDraft({ ...draft, maxPrice: e.target.value ? Number(e.target.value) : undefined })}
-                                className="w-full rounded-xl border border-black/10 px-3 py-2 text-[14px] font-semibold outline-none focus:border-violet-500"
+                                className="w-full rounded-xl border border-black/10 dark:border-white/10 dark:bg-[#1F1F23] dark:text-white px-3 py-2 text-[14px] font-semibold outline-none focus:border-violet-500"
                             />
                         </div>
 
@@ -116,7 +116,7 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
                                     key={d}
                                     type="button"
                                     onClick={() => setDraft({ ...draft, minDiscount: draft.minDiscount === d ? undefined : d })}
-                                    className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${draft.minDiscount === d ? "bg-red-500 text-white" : "bg-[#F0F0F2] text-[#6E6E80]"}`}
+                                    className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${draft.minDiscount === d ? "bg-red-500 text-white" : "bg-[#F0F0F2] text-[#6E6E80] dark:bg-[#1F1F23] dark:text-[#A1A1AA]"}`}
                                 >
                                     -{d}%
                                 </button>
@@ -130,7 +130,7 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
                                     key={r}
                                     type="button"
                                     onClick={() => setDraft({ ...draft, minRating: draft.minRating === r ? undefined : r })}
-                                    className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${draft.minRating === r ? "bg-amber-400 text-white" : "bg-[#F0F0F2] text-[#6E6E80]"}`}
+                                    className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${draft.minRating === r ? "bg-amber-400 text-white" : "bg-[#F0F0F2] text-[#6E6E80] dark:bg-[#1F1F23] dark:text-[#A1A1AA]"}`}
                                 >
                                     <Star size={12} className="inline" fill="currentColor" /> {r}+
                                 </button>
@@ -138,10 +138,10 @@ export default function FeedFilterBar({ filters, onChange }: Props) {
                         </div>
 
                         <div className="flex gap-3">
-                            <button type="button" onClick={reset} className="flex-1 rounded-2xl bg-[#F0F0F2] py-3 text-[14px] font-bold text-[#6E6E80]">
+                            <button type="button" onClick={reset} className="flex-1 rounded-2xl bg-[#F0F0F2] dark:bg-[#1F1F23] py-3 text-[14px] font-bold text-[#6E6E80] dark:text-[#A1A1AA]">
                                 {t("reset")}
                             </button>
-                            <button type="button" onClick={apply} className="flex-[2] rounded-2xl bg-[#0D0D0D] py-3 text-[14px] font-extrabold text-white">
+                            <button type="button" onClick={apply} className="flex-[2] rounded-2xl bg-[#0D0D0D] dark:bg-white py-3 text-[14px] font-extrabold text-white dark:text-black">
                                 {t("apply")}
                             </button>
                         </div>

@@ -23,6 +23,10 @@ export async function proxyToSocialApi(req: Request, path: string) {
   headers.delete("host");
   headers.delete("content-length");
   headers.delete("connection");
+  // Secretul intern nu poate veni NICIODATA de la client: altfel, cand
+  // PLATFORM_API_SECRET nu e setat, apelantul si-l injecteaza singur si trece
+  // drept apel intern in platform-api.
+  headers.delete("x-swypik-internal-secret");
   if (process.env.PLATFORM_API_SECRET) {
     headers.set("X-Swypik-Internal-Secret", process.env.PLATFORM_API_SECRET);
   }
@@ -30,12 +34,20 @@ export async function proxyToSocialApi(req: Request, path: string) {
   const method = req.method.toUpperCase();
   const body = method === "GET" || method === "HEAD" ? undefined : await req.arrayBuffer();
 
+  // 2026-08-24 (audit perf): fără plafon, o instanță platform-api lentă ținea
+  // cererea (și conexiunea pg aferentă) ocupată până la timeout-ul implicit al
+  // runtime-ului — o singură dependență degradată se propaga în tot serverul.
   const upstream = await fetch(upstreamUrl, {
     method,
     headers,
     body,
     redirect: "manual",
     cache: "no-store",
+    signal: AbortSignal.timeout(
+      Number(process.env.PLATFORM_API_TIMEOUT_MS) > 0
+        ? Math.trunc(Number(process.env.PLATFORM_API_TIMEOUT_MS))
+        : 10_000,
+    ),
   });
 
   const responseHeaders = new Headers(upstream.headers);

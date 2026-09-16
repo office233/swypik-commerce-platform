@@ -1,5 +1,6 @@
 import { dbQuery } from "@/lib/db";
 import { buildScopedTagId, parseScopedTagFilter } from "@/lib/db/category-filter-utils";
+import { UUID_RE } from "@/lib/validation/uuid";
 
 export type ProductFilters = {
   search?: string;
@@ -933,28 +934,47 @@ export async function getProductById(id: string, locale = "ro") {
   return transformProduct(rows[0], locale, taxonomyMap, translationsMap);
 }
 
+// Doar produse clasice pot fi cumparate prin checkout-ul de cos. Verticalele
+// (listing = zbor/cazare) au fluxuri proprii de rezervare cu preturi dinamice;
+// un listing prin checkout ar crea o comanda clasica cu pretul static din DB,
+// ocolind rezervarea reala.
+const CHECKOUT_PRODUCT_GUARD = `p.status = 'active'
+  AND COALESCE(p.is_adult, false) = false
+  AND p.effective_label = 'safe'
+  AND COALESCE(p.listing_type, 'product') = 'product'`;
+
 export async function getCheckoutProductById(id: string) {
-  const { rows } = await dbQuery<ProductRow & { seller_id: string | null; inventory_quantity: number | null }>(
-    `
-      SELECT p.*
-      FROM marketplace_products p
-      WHERE p.status = 'active' AND COALESCE(p.is_adult, false) = false AND p.effective_label = 'safe'
-        -- Doar produse clasice pot fi cumparate prin checkout-ul de cos.
-        -- Verticalele (listing = zbor/cazare) au fluxuri proprii de rezervare
-        -- cu preturi dinamice; un listing prin checkout ar crea o comanda
-        -- clasica cu pretul static din DB, ocolind rezervarea reala.
-        AND COALESCE(p.listing_type, 'product') = 'product'
-        AND (p.id::text = $1 OR p.supplier_product_id = $1 OR p.external_product_id = $1)
-      ORDER BY
-        CASE
-          WHEN p.id::text = $1 THEN 0
-          WHEN p.supplier_product_id = $1 THEN 1
-          ELSE 2
-        END
-      LIMIT 1
-    `,
-    [id],
-  );
+  type CheckoutRow = ProductRow & { seller_id: string | null; inventory_quantity: number | null };
+
+  // 2026-08-24 (audit perf): `p.id::text = $1` anula cheia primara, deci fiecare
+  // articol din cos declansa o scanare secventiala pe tot catalogul — pe calea
+  // de plata, unde latenta e cea mai scumpa. Ordinea de prioritate
+  // (id > supplier_product_id > external_product_id) se pastreaza dispatch-uind
+  // in TypeScript: cand id-ul e un UUID incercam intai lookup-ul pe cheia
+  // primara (castul e sigur, ruleaza doar sub UUID_RE).
+  let rows: CheckoutRow[] = [];
+
+  if (UUID_RE.test(id)) {
+    const byId = await dbQuery<CheckoutRow>(
+      `SELECT p.* FROM marketplace_products p
+        WHERE ${CHECKOUT_PRODUCT_GUARD} AND p.id = $1::uuid
+        LIMIT 1`,
+      [id],
+    );
+    rows = byId.rows;
+  }
+
+  if (rows.length === 0) {
+    const bySupplier = await dbQuery<CheckoutRow>(
+      `SELECT p.* FROM marketplace_products p
+        WHERE ${CHECKOUT_PRODUCT_GUARD}
+          AND (p.supplier_product_id = $1 OR p.external_product_id = $1)
+        ORDER BY CASE WHEN p.supplier_product_id = $1 THEN 0 ELSE 1 END
+        LIMIT 1`,
+      [id],
+    );
+    rows = bySupplier.rows;
+  }
 
   if (rows.length === 0) return null;
 

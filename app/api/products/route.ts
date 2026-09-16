@@ -142,6 +142,10 @@ export async function GET(req: Request) {
       if (!isFinite(n) || n <= 0) return p;
       return Math.round(n * fxRate * 100) / 100;
     };
+    // Un răspuns e „convertit" doar dacă prețurile chiar diferă de cele stocate
+    // (fxRate === 1 înseamnă RON sau conversie eșuată ⇒ conținut identic pentru
+    // toată lumea, deci cache-abil public).
+    const isConverted = fxRate !== 1;
 
     // Minimal DTO for video mode (high-volume infinite scroll)
     const products = mode === "video"
@@ -183,11 +187,22 @@ export async function GET(req: Request) {
           : null,
       },
       {
-        headers: {
-          "Cache-Control": `public, max-age=${mode === "video" ? 60 : 30}, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 2}`,
-          "CDN-Cache-Control": `public, max-age=${cacheSeconds}`,
-          "Vary": "Accept-Encoding",
-        },
+        // 2026-08-24 (audit perf/corectitudine): prețurile sunt convertite după
+        // cookie-ul `swypik_currency`, dar răspunsul era marcat `public` cu
+        // `Vary: Accept-Encoding` — un cache partajat putea servi prețuri în
+        // EUR unui vizitator cu RON (și invers) timp de câteva minute.
+        // Răspunsul convertit devine `private`; cel în moneda de bază (RON,
+        // majoritatea traficului) păstrează cache-ul CDN neatins.
+        headers: isConverted
+          ? {
+            "Cache-Control": `private, max-age=${mode === "video" ? 60 : 30}`,
+            "Vary": "Accept-Encoding, Cookie",
+          }
+          : {
+            "Cache-Control": `public, max-age=${mode === "video" ? 60 : 30}, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 2}`,
+            "CDN-Cache-Control": `public, max-age=${cacheSeconds}`,
+            "Vary": "Accept-Encoding, Cookie",
+          },
       },
     );
   } catch (error: any) {

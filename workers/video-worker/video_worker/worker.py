@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -11,6 +13,37 @@ from .extensions import StatusEvent
 from .models import VideoJob
 
 logger = logging.getLogger(__name__)
+
+# Cât de des împinge heartbeat-ul `updated_at` cât timp jobul rulează. Trebuie
+# să fie confortabil sub pragul watchdog-ului (VIDEO_WATCHDOG_STALE_RUNNING_MIN,
+# 30 min) ca un job legitim lung să nu fie niciodată considerat mort.
+_HEARTBEAT_INTERVAL_SEC = 120
+
+
+@contextlib.contextmanager
+def _heartbeat(repository: Any, job: VideoJob):
+    """Bate `updated_at` pe job la fiecare _HEARTBEAT_INTERVAL_SEC, pe un thread
+    daemon, cât durează transcodarea. Se oprește curat la ieșirea din bloc."""
+    beat = getattr(repository, "heartbeat", None)
+    if beat is None:
+        yield
+        return
+    stop = threading.Event()
+
+    def _loop() -> None:
+        while not stop.wait(_HEARTBEAT_INTERVAL_SEC):
+            try:
+                beat(job)
+            except Exception:
+                logger.debug("heartbeat failed for job %s (continuing)", job.job_id)
+
+    thread = threading.Thread(target=_loop, name=f"hb-{job.job_id}", daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=5)
 
 
 @dataclass(frozen=True)
@@ -77,8 +110,11 @@ class VideoProcessor:
                 else:
                     self.storage.download(source_bucket, job.source_key, source_path)
                 self._before_transcode(job, source_path)
-                transcode_result = self.transcoder.transcode(source_path, output_dir, self.settings.variants)
-                upload_result = self.storage.upload_directory(output_dir, output_bucket, job.output_prefix)
+                # Heartbeat pe toată durata pașilor lungi (transcode + upload),
+                # ca watchdog-ul să nu fure jobul de sub un worker sănătos.
+                with _heartbeat(self.repository, job):
+                    transcode_result = self.transcoder.transcode(source_path, output_dir, self.settings.variants)
+                    upload_result = self.storage.upload_directory(output_dir, output_bucket, job.output_prefix)
                 analysis = self._after_transcode(
                     job, source_path, output_dir, transcode_result, upload_result
                 )

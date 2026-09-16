@@ -23,6 +23,8 @@ export type CommentView = {
   createdAt: string;
   author: CommentAuthor;
   replies: CommentView[];
+  /** true dacă viewerul curent a apreciat comentariul (seed pentru CommentsSheet). */
+  viewerLiked: boolean;
 };
 
 const MAX_COMMENT_LENGTH = 500;
@@ -90,6 +92,7 @@ export function mapCommentRow(row: any): CommentView {
     likeCount: toNonNegativeNumber(row.like_count),
     replyCount: toNonNegativeNumber(row.reply_count),
     createdAt: toIsoString(row.created_at),
+    viewerLiked: Boolean(row.viewer_liked),
     author: {
       id: row.user_id ? String(row.user_id) : null,
       username: row.username ? String(row.username) : null,

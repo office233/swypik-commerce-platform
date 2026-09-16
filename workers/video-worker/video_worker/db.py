@@ -49,6 +49,33 @@ class PostgresRepository:
         finally:
             self._release(connection)
 
+    def heartbeat(self, job: VideoJob) -> None:
+        """Împinge `updated_at` cât timp jobul rulează.
+
+        Fără asta, watchdog-ul (app/api/cron/watchdog-videos) reseta la 'queued'
+        orice job 'running' cu updated_at mai vechi de STALE_RUNNING_MIN (30 min)
+        și un alt worker îl relua — dublă transcodare pentru clipuri mari,
+        legitime, care procesează >30 min (audit 2026-08-25). Best-effort: un
+        heartbeat pierdut nu opreste procesarea.
+        """
+        if not self.settings.database_url:
+            return
+        connection = self._connect()
+        try:
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        _format_table(
+                            "UPDATE {jobs} SET updated_at=NOW() "
+                            "WHERE id=%s AND status='running'",
+                            "jobs",
+                            self.settings.jobs_table,
+                        ),
+                        (job.job_id,),
+                    )
+        finally:
+            self._release(connection)
+
     def mark_processing(self, job: VideoJob) -> None:
         self._execute_job_and_asset(
             job,

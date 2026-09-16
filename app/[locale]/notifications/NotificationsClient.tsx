@@ -1,30 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import { useTranslations } from "next-intl";
-
-type Notification = {
-  id: string;
-  notification_type: string;
-  actor_user_id: string | null;
-  title: string;
-  body: string | null;
-  video_id: string | null;
-  comment_id: string | null;
-  action_url: string | null;
-  metadata: Record<string, unknown>;
-  read_at: string | null;
-  created_at: string;
-};
-
-type FetchResponse = {
-  items: Notification[];
-  nextCursor: string | null;
-  unreadCount: number;
-};
+import { useNotifications } from "@/lib/notifications/use-notifications";
 
 export default function NotificationsClient() {
   const t = useTranslations("notificationsPage");
@@ -40,57 +20,7 @@ export default function NotificationsClient() {
     return t("daysShort", { count: d });
   }
 
-  const [items, setItems] = useState<Notification[]>([]);
-  const [unread, setUnread] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/notifications?limit=50", {
-        credentials: "include",
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as FetchResponse;
-      setItems(data.items || []);
-      setUnread(data.unreadCount || 0);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const markAll = useCallback(async () => {
-    setMarking(true);
-    try {
-      await fetch("/api/notifications/mark-all-read", {
-        method: "POST",
-        credentials: "include",
-      });
-      const now = new Date().toISOString();
-      setItems((rows) => rows.map((r) => ({ ...r, read_at: r.read_at || now })));
-      setUnread(0);
-    } finally {
-      setMarking(false);
-    }
-  }, []);
-
-  const markOne = useCallback(async (id: string) => {
-    await fetch(`/api/notifications/${id}/read`, {
-      method: "POST",
-      credentials: "include",
-    });
-    setItems((rows) =>
-      rows.map((r) =>
-        r.id === id ? { ...r, read_at: r.read_at || new Date().toISOString() } : r,
-      ),
-    );
-    setUnread((u) => Math.max(0, u - 1));
-  }, []);
+  const { items, unread, loading, marking, markAll, markOne } = useNotifications();
 
   return (
     <main className="min-h-screen bg-white text-[#0D0D0D]">

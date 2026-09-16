@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { dbQuery } from "@/lib/db";
+import { isSessionTokenFormat } from "@/lib/auth/session";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
@@ -19,11 +20,12 @@ export async function getCreatorUserId(): Promise<string | null> {
   const store = await cookies();
   const sessionToken = store.get("swypik_session")?.value;
 
-  if (sessionToken) {
+  if (isSessionTokenFormat(sessionToken)) {
     const { rows } = await dbQuery<{ user_id: string }>(
       `SELECT user_id
        FROM user_sessions
        WHERE session_token_hash = $1
+         AND COALESCE(metadata->>'type', 'session') = 'session'
          AND expires_at > now()
          AND revoked_at IS NULL
        LIMIT 1`,

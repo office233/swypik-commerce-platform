@@ -38,6 +38,8 @@ import {
   getAdminCookieName,
 } from "@/lib/security/admin-auth";
 import { CART_COOKIE, mergeAnonCartToUser } from "@/lib/cart/session";
+import { getAnonShellUserId } from "@/lib/social/session";
+import { mergeAnonSocialToUser } from "@/lib/social/merge-anon";
 import { APP_URL } from "@/lib/app-url";
 
 const COOKIE_NAME = "swypik_session";
@@ -163,6 +165,15 @@ async function issueSessionResponse(
   } catch (err) {
     console.warn("[auth] cart merge failed:", (err as Error).message);
   }
+  // Migrează și activitatea socială anonimă (like-uri, salvări, follow-uri) —
+  // altfel inimile date înainte de login dispăreau la autentificare
+  // (audit 2026-08-25). Best-effort, nu blochează login-ul.
+  try {
+    const anonUserId = await getAnonShellUserId();
+    if (anonUserId) await mergeAnonSocialToUser(anonUserId, userId);
+  } catch (err) {
+    console.warn("[auth] social merge failed:", (err as Error).message);
+  }
   await dbQuery(`UPDATE users SET last_seen_at = now() WHERE id = $1`, [userId]);
 
   const { rows: userRows } = await dbQuery<{
@@ -187,7 +198,13 @@ async function issueSessionResponse(
         : "shopper";
   let sellerId: string | null = null;
 
-  if (role !== "admin") {
+  // Rolul de seller se deriva din potrivirea email-ului cu un rand `sellers`
+  // aprobat. Acordarea DOAR cu email VERIFICAT (audit 2026-08-25): altfel un
+  // atacator isi facea cont cu parola pe emailul public al unui seller aprobat
+  // care nu si-a creat inca cont, si prelua portalul acelui seller. OTP-ul si
+  // verify_otp (linia ~863) seteaza email_verified_at — deci un seller care se
+  // logheaza prin cod pe emailul lui trece normal.
+  if (role !== "admin" && user?.email_verified_at) {
     try {
       const { rows: sellerRows } = await dbQuery<{ id: string }>(
         `SELECT id FROM sellers
@@ -344,6 +361,14 @@ async function handleSendOtp(req: Request, rawEmail: unknown) {
   const otp = crypto.randomInt(100000, 1000000).toString();
   const otpHash = hashToken(`otp:${otp}`);
 
+  // Revocam codurile anterioare inca vii: fara asta se acumulau si, cum
+  // cautarea nu leaga hash-ul de email, fiecare cod activ in plus inmultea
+  // sansele unui atac prin ghicire (audit 2026-08-25).
+  await dbQuery(
+    `UPDATE user_sessions SET revoked_at = now()
+      WHERE user_id = $1 AND metadata->>'type' = 'otp' AND revoked_at IS NULL`,
+    [userId],
+  );
   await dbQuery(
     `INSERT INTO user_sessions (user_id, session_token_hash, expires_at, metadata)
      VALUES ($1, $2, now() + interval '15 minutes', $3::jsonb)`,
@@ -611,8 +636,8 @@ export async function POST(req: Request) {
       }
 
       const normalizedEmail = String(email).trim().toLowerCase();
-      const { rows } = await dbQuery<{ id: string; password_hash: string | null; status: string; totp_enabled_at: string | null }>(
-        `SELECT id, password_hash, status, totp_enabled_at
+      const { rows } = await dbQuery<{ id: string; password_hash: string | null; status: string; totp_enabled_at: string | null; suspended_until: string | null }>(
+        `SELECT id, password_hash, status, totp_enabled_at, suspended_until
          FROM users WHERE lower(email) = $1 LIMIT 1`,
         [normalizedEmail],
       );
@@ -631,7 +656,12 @@ export async function POST(req: Request) {
           { status: 401 },
         );
       }
-      if (user.status === "suspended" || user.status === "deleted") {
+      // Suspendarea temporara (suspended_until) trebuie sa reziste la re-login,
+      // nu doar la sesiunile revocate — altfel userul suspendat 30 de zile se
+      // re-logheaza imediat cu aceeasi parola (audit 2026-08-25).
+      const suspendedUntilActive =
+        user.suspended_until != null && new Date(user.suspended_until).getTime() > Date.now();
+      if (user.status === "suspended" || user.status === "banned" || user.status === "deleted" || suspendedUntilActive) {
         return NextResponse.json(
           { success: false, error: "Contul este suspendat. Verifică emailul." },
           { status: 403 },
@@ -736,7 +766,9 @@ export async function POST(req: Request) {
       const sessionHash = hashSessionToken(sessionToken);
       const { rows } = await dbQuery<{ user_id: string }>(
         `SELECT user_id FROM user_sessions
-         WHERE session_token_hash = $1 AND expires_at > now() AND revoked_at IS NULL`,
+         WHERE session_token_hash = $1
+           AND COALESCE(metadata->>'type', 'session') = 'session'
+           AND expires_at > now() AND revoked_at IS NULL`,
         [sessionHash],
       );
       if (rows.length === 0) {
@@ -755,6 +787,24 @@ export async function POST(req: Request) {
          WHERE id = $2`,
         [passwordHash, userId],
       );
+      // Schimbarea parolei evacueaza TOATE celelalte sesiuni (audit 2026-08-25):
+      // altfel un atacator care ti-a furat cookie-ul ramanea logat chiar dupa
+      // ce ti-ai schimbat parola tocmai ca sa-l dai afara. Sesiunea curenta se
+      // pastreaza; sesiunile de seller/admin (tabele separate) se sterg si ele.
+      await dbQuery(
+        `UPDATE user_sessions SET revoked_at = now()
+          WHERE user_id = $1 AND revoked_at IS NULL AND session_token_hash <> $2`,
+        [userId, sessionHash],
+      );
+      await dbQuery(
+        `DELETE FROM seller_sessions WHERE seller_id IN (
+           SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1
+         )`,
+        [userId],
+      ).catch(() => undefined);
+      // Nota: admin_sessions e o tabela globala fara coloana user_id, deci nu
+      // poate fi filtrata per-user aici; retrogradarea/dez-admin-izarea o
+      // gestioneaza separat fluxul din /admin/users.
       return NextResponse.json({ success: true });
     }
 
@@ -841,7 +891,9 @@ export async function POST(req: Request) {
       const sessionHash = hashSessionToken(sessionToken);
       const { rows: sessionRows } = await dbQuery<{ user_id: string }>(
         `SELECT user_id FROM user_sessions
-         WHERE session_token_hash = $1 AND expires_at > now() AND revoked_at IS NULL`,
+         WHERE session_token_hash = $1
+           AND COALESCE(metadata->>'type', 'session') = 'session'
+           AND expires_at > now() AND revoked_at IS NULL`,
         [sessionHash],
       );
 
@@ -1077,6 +1129,7 @@ export async function GET() {
      FROM user_sessions us
      JOIN users u ON u.id = us.user_id
      WHERE us.session_token_hash = $1
+       AND COALESCE(us.metadata->>'type', 'session') = 'session'
        AND us.expires_at > now()
        AND us.revoked_at IS NULL
      LIMIT 1`,

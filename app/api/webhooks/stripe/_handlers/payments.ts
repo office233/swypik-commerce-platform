@@ -5,6 +5,8 @@ import { logCheckoutEvent } from "@/lib/security/audit-log";
 import { scoreOrderRisk } from "@/lib/risk/order-fraud-score";
 import { notifyOps } from "@/lib/ops/alerts";
 import { markLocalOrderPaid, markLocalOrderPaymentFailed } from "@/lib/payments/eats-stripe";
+import { maybeAutoDispatch } from "@/lib/dispatch/auto";
+import { settleRide } from "@/lib/payments/mobility";
 import { attributeOrder } from "@/lib/algo/attribution";
 import { logger } from "@/lib/logger";
 import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/swyp/hooks";
@@ -20,6 +22,14 @@ export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
     await markLocalOrderPaid(intent.metadata.local_order_id, intent.id);
     // SWYP: prima comandă Eats plătită validează referralul clientului.
     await onLocalOrderPaid(intent.metadata.local_order_id, intent.id);
+    // Auto-dispatch pe 'placed' e acum blocat cât timp plata nu e confirmată
+    // (lib/dispatch/auto.ts). Confirmarea e momentul în care comanda poate
+    // porni — fără reluarea asta ar rămâne blocată la merchant.
+    try {
+      await maybeAutoDispatch(intent.metadata.local_order_id, "placed");
+    } catch (err) {
+      logger.error({ err, orderId: intent.metadata.local_order_id }, "[webhook] auto-dispatch după plată a eșuat");
+    }
   } else if (intent.metadata?.kind === "ride" && intent.metadata?.ride_id) {
     // Go: succeeded vine la CAPTURE (mobility-stripe deja setează
     // payment_status='captured' sincron; aici doar plasa de siguranță).
@@ -30,6 +40,15 @@ export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
     );
     // SWYP: recompensă șofer + referral pasager.
     await onRidePaid(intent.metadata.ride_id, intent.id);
+    // Dacă șoferul a finalizat cursa înainte ca captura să ajungă, decontarea a
+    // fost refuzată (payment_status nu era încă 'captured') și `settled_at` a
+    // rămas NULL. Acum banii au intrat — reluăm. Idempotent pe (ref_type, ref_id);
+    // pentru o cursă care nu e 'completed', settleRide iese cu null.
+    try {
+      await settleRide(intent.metadata.ride_id);
+    } catch (err) {
+      logger.error({ err, rideId: intent.metadata.ride_id }, "[webhook] decontarea cursei după capture a eșuat");
+    }
   } else if (intent.metadata?.kind === "stay_booking" && intent.metadata?.stay_booking_id) {
     // Stays: rezervare plătită cu cardul → confirmare + credit gazdă.
     await markStayBookingPaidByCard(intent.metadata.stay_booking_id);

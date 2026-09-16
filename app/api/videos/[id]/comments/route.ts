@@ -3,7 +3,7 @@ import { getDb, dbQuery } from "@/lib/db";
 import { attachReplies, chooseCommentStatus, mapCommentRow, validateCommentText } from "@/lib/social/comments";
 import { moderateText } from "@/lib/moderation/moderateText";
 import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
-import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
+import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { VideoCommentPostSchema, parseBody } from "@/lib/validation/schemas";
@@ -23,6 +23,25 @@ function parsePositiveInt(value: string | null, fallback: number): number {
 
 function parseLimit(value: string | null): number {
   return Math.min(parsePositiveInt(value, DEFAULT_LIMIT), MAX_LIMIT);
+}
+
+/**
+ * Marchează pe rândurile brute `viewer_liked` pentru viewerul curent, cu o
+ * singură interogare pe toate id-urile — fără asta CommentsSheet pornea mereu
+ * cu inimile gri și al doilea tap făcea de fapt unlike (audit 2026-08-24).
+ */
+async function annotateViewerLikes(rowGroups: any[][], userId: string | null): Promise<void> {
+  if (!userId) return;
+  const ids = rowGroups.flat().map((row) => String(row.id));
+  if (ids.length === 0) return;
+  const { rows } = await dbQuery<{ comment_id: string }>(
+    `SELECT comment_id FROM likes WHERE user_id = $1 AND comment_id = ANY($2::uuid[])`,
+    [userId, ids],
+  );
+  const liked = new Set(rows.map((row) => String(row.comment_id)));
+  for (const group of rowGroups) {
+    for (const row of group) row.viewer_liked = liked.has(String(row.id));
+  }
 }
 
 const COMMENT_SELECT = `
@@ -78,6 +97,7 @@ export async function GET(
       ]);
 
       const totalCount = Number(countRes.rows[0]?.count || 0);
+      await annotateViewerLikes([rows], await getOptionalSocialUserId().catch(() => null));
       return NextResponse.json({
         comments: rows.map(mapCommentRow),
         page,
@@ -131,6 +151,7 @@ export async function GET(
     }
 
     const totalCount = Number(countRes.rows[0]?.count || 0);
+    await annotateViewerLikes([topLevelRows, replyRows], await getOptionalSocialUserId().catch(() => null));
     return NextResponse.json({
       comments: attachReplies(topLevelRows, replyRows),
       page,
@@ -337,7 +358,7 @@ export async function POST(
             actorUserId: session.userId,
             targetType: "video",
             targetId: videoId,
-            payload: { body: bodyPreview, url: `/v/${videoId}` },
+            payload: { body: bodyPreview, url: `/explore?v=${videoId}` },
           }).catch(() => undefined);
         }
         if (parentCommentId) {
@@ -352,7 +373,7 @@ export async function POST(
               actorUserId: session.userId,
               targetType: "comment",
               targetId: newCommentId,
-              payload: { body: bodyPreview, url: `/v/${videoId}` },
+              payload: { body: bodyPreview, url: `/explore?v=${videoId}` },
             }).catch(() => undefined);
           }
         }

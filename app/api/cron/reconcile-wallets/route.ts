@@ -109,7 +109,60 @@ async function reconcile() {
     await reportIssue("unsettled_order", o.id, { delivered_at: o.delivered_at });
   }
 
-  const summary = { balanceMismatches, unsettledRides, unsettledOrders };
+  // 4. Decontări făcute FĂRĂ ca platforma să fi încasat. Audit 2026-09:
+  // decontarea alegea ramura după `payment_method` fără să verifice vreodată
+  // `payment_status`, deci comenzile card_online neplătite și cursele card
+  // necapturate creditau curierul/șoferul din fondurile platformei.
+  // `lib/payments/fund-custody.ts` blochează asta pentru cazurile noi; aici
+  // prindem ce a apucat să treacă înainte de patch. Banii sunt deja în ledger,
+  // deci corecția e o decizie umană (stornare vs. acoperire).
+  let settledUnpaid = 0;
+
+  const { rows: paidOutUnpaidOrders } = await dbQuery<{
+    id: string; payment_status: string; delivered_at: string; amount_cents: string;
+  }>(
+    `SELECT lo.id, lo.payment_status, lo.delivered_at::text,
+            COALESCE(SUM(e.amount_cents), 0)::text AS amount_cents
+       FROM local_orders lo
+       JOIN wallet_ledger_entries e
+         ON e.ref_type = 'order' AND e.ref_id = lo.id::text AND e.kind = 'credit'
+      WHERE lo.status = 'delivered'
+        AND lo.payment_method = 'card_online'
+        AND lo.payment_status <> 'paid'
+      GROUP BY lo.id, lo.payment_status, lo.delivered_at`,
+  );
+  for (const o of paidOutUnpaidOrders) {
+    settledUnpaid++;
+    await reportIssue("settled_without_payment_order", o.id, {
+      payment_status: o.payment_status,
+      delivered_at: o.delivered_at,
+      credited_cents: Number(o.amount_cents),
+    });
+  }
+
+  const { rows: paidOutUnpaidRides } = await dbQuery<{
+    id: string; payment_method: string | null; payment_status: string; amount_cents: string;
+  }>(
+    `SELECT r.id, r.payment_method, r.payment_status,
+            COALESCE(SUM(e.amount_cents), 0)::text AS amount_cents
+       FROM rides r
+       JOIN wallet_ledger_entries e
+         ON e.ref_type = 'ride' AND e.ref_id = r.id::text AND e.kind = 'credit'
+      WHERE r.status = 'completed'
+        AND COALESCE(r.payment_method, 'cash') <> 'cash'
+        AND r.payment_status <> 'captured'
+      GROUP BY r.id, r.payment_method, r.payment_status`,
+  );
+  for (const r of paidOutUnpaidRides) {
+    settledUnpaid++;
+    await reportIssue("settled_without_payment_ride", r.id, {
+      payment_method: r.payment_method,
+      payment_status: r.payment_status,
+      credited_cents: Number(r.amount_cents),
+    });
+  }
+
+  const summary = { balanceMismatches, unsettledRides, unsettledOrders, settledUnpaid };
   log.info(summary, "wallet reconciliation done");
   return summary;
 }

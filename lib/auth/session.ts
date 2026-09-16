@@ -39,22 +39,49 @@ export function hashSessionToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+/**
+ * Un token de sesiune REAL e `crypto.randomBytes(32).toString("hex")` — exact
+ * 64 de caractere hex. Orice altceva nu are voie să ajungă la `sha256()` și de
+ * acolo într-o căutare de sesiune.
+ *
+ * DE CE EXISTĂ (audit 2026-08-25, breșă critică):
+ * OTP-urile erau salvate în aceeași tabelă `user_sessions`, cu
+ * `session_token_hash = sha256("otp:" + cod)`. Cum fiecare resolver hash-uia
+ * valoarea BRUTĂ a cookie-ului, un cookie literal `swypik_session=otp:123456`
+ * producea exact hash-ul rândului de OTP ⇒ autentificare completă pe contul
+ * victimei, cu doar 10^6 încercări (și mult mai puține, fiindcă interogarea nu
+ * lega hash-ul de email: se potrivea ORICE OTP activ din sistem).
+ *
+ * Verificarea de format singură închide vectorul, indiferent de ce filtre mai
+ * există în interogări. E prima linie, nu singura — vezi și filtrul de tip din
+ * interogări și revocarea OTP-urilor la emitere.
+ */
+export function isSessionTokenFormat(token: string | null | undefined): token is string {
+  return typeof token === "string" && /^[0-9a-f]{64}$/.test(token);
+}
+
 type UserRow = {
   user_id: string;
   email: string | null;
   display_name: string | null;
   username: string | null;
   role: string | null;
+  email_verified_at: string | null;
 };
 
 async function loadUserBySessionToken(sessionToken: string): Promise<UserRow | null> {
+  // Garda de format: doar token-uri de sesiune reale ajung la hash (vezi
+  // isSessionTokenFormat). Fara ea, un cookie `otp:NNNNNN` se potrivea cu
+  // randul de OTP din aceeasi tabela.
+  if (!isSessionTokenFormat(sessionToken)) return null;
   try {
     const { rows } = await dbQuery<UserRow>(
       `SELECT us.user_id,
               u.email,
               u.display_name,
               u.username,
-              u.role
+              u.role,
+              u.email_verified_at
        FROM user_sessions us
        JOIN users u ON u.id = us.user_id
        WHERE us.session_token_hash = $1
@@ -78,7 +105,7 @@ async function loadUserBySessionToken(sessionToken: string): Promise<UserRow | n
 async function loadUserById(userId: string): Promise<UserRow | null> {
   try {
     const { rows } = await dbQuery<UserRow>(
-      `SELECT id AS user_id, email, display_name, username, role
+      `SELECT id AS user_id, email, display_name, username, role, email_verified_at
        FROM users
        WHERE id = $1
          AND COALESCE(status, 'active') NOT IN ('suspended', 'banned', 'deleted')
@@ -126,8 +153,11 @@ async function buildSession(user: UserRow): Promise<AuthSession> {
   let role: AuthRole = baseRole;
   let sellerId: string | null = null;
 
-  // Admin keeps admin. Otherwise, a matching seller row promotes role to "seller".
-  if (baseRole !== "admin") {
+  // Admin keeps admin. Otherwise, a matching seller row promotes role to "seller"
+  // — DOAR daca emailul e verificat (audit 2026-08-25): altfel un cont creat cu
+  // parola pe emailul public al unui seller aprobat capata rol de seller la
+  // fiecare cerere, fara sa detina emailul.
+  if (baseRole !== "admin" && user.email_verified_at) {
     const matchedSellerId = await findSellerByEmail(user.email);
     if (matchedSellerId) {
       role = "seller";

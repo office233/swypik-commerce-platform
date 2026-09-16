@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
 import { hashAdminSessionToken, getAdminCookieName, isAdminToken } from "@/lib/security/admin-auth";
+import { isSessionTokenFormat } from "@/lib/auth/session";
 
 export type AuthRole = "shopper" | "creator" | "seller" | "admin" | "guest";
 
@@ -22,11 +23,13 @@ function sha256(value: string): string {
 }
 
 async function resolveUserBySession(token: string): Promise<{ userId: string; role: string; email: string | null } | null> {
+  if (!isSessionTokenFormat(token)) return null;
   const { rows } = await dbQuery<{ user_id: string; role: string; email: string | null }>(
     `SELECT s.user_id, u.role, u.email
        FROM user_sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.session_token_hash = $1
+        AND COALESCE(s.metadata->>'type', 'session') = 'session'
         AND s.expires_at > now()
         AND s.revoked_at IS NULL
       LIMIT 1`,

@@ -85,7 +85,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         const updated = await withTransaction(async (q) => {
             const { rows } = await q(
-                `SELECT lo.id, lo.status, lo.courier_id, lo.customer_user_id, lo.order_number, m.seller_id, m.name AS merchant_name
+                `SELECT lo.id, lo.status, lo.courier_id, lo.customer_user_id, lo.order_number,
+                    lo.payment_method, lo.payment_status,
+                    m.seller_id, m.name AS merchant_name
            FROM local_orders lo JOIN local_merchants m ON m.id = lo.merchant_id
           WHERE lo.id = $1 FOR UPDATE`,
                 [id],
@@ -103,6 +105,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 return {
                     ok: false as const,
                     error: `Nu poți trece din "${o.status}" în "${status}".`,
+                    code: 409,
+                };
+            }
+
+            // Audit 2026-09: o comandă plătită online intra în producție (accept →
+            // dispatch → livrare) fără ca PaymentIntent-ul să fi fost confirmat
+            // vreodată — clientul închidea pur și simplu modalul Stripe. Mâncarea
+            // pleca, iar decontarea credita curierul din fondurile platformei.
+            // Acceptarea e ultimul punct în care comanda mai poate fi oprită ieftin.
+            if (status === "accepted" && o.payment_method === "card_online" && o.payment_status !== "paid") {
+                return {
+                    ok: false as const,
+                    error: "Comanda nu poate fi acceptată: plata cu cardul nu a fost confirmată.",
                     code: 409,
                 };
             }

@@ -98,7 +98,11 @@ export async function POST(req: Request) {
       available_stock: d.stock,
     };
     if (d.sku) meta.sku = d.sku;
+    if (d.barcode) meta.barcode = d.barcode;
     if (d.image_urls?.length) meta.image_urls = d.image_urls;
+    if (d.video_url) meta.video_url = d.video_url;
+    meta.is_swypik_listed = d.is_swypik_listed ?? true;
+    if (d.swypik_price) meta.swypik_price = d.swypik_price;
     if (d.shipping_days_min !== undefined) meta.shipping_days_min = d.shipping_days_min;
     if (d.shipping_days_max !== undefined) meta.shipping_days_max = d.shipping_days_max;
     if (d.courier) meta.courier = d.courier;
@@ -137,23 +141,66 @@ export async function POST(req: Request) {
 
     const productId: string | undefined = rows[0]?.id;
 
-    if (productId && d.variants?.length) {
-      for (const v of d.variants) {
-        await dbQuery(
-          `INSERT INTO marketplace_product_variants (
-             product_id, sku, title, attributes, currency, price_cents, inventory_quantity, status, metadata
-           ) VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, 'active', '{}'::jsonb)`,
-          [
-            productId,
-            v.sku ?? null,
-            v.title ?? null,
-            JSON.stringify(v.attributes ?? {}),
-            d.currency,
-            v.price_cents ?? priceCents,
-            v.inventory_quantity ?? null,
-          ],
-        ).catch((e) => logger.warn({ err: e?.message }, "[seller/products] variant insert failed"));
+    if (productId && d.video_url) {
+      try {
+        const { rows: sRows } = await dbQuery<{ user_id: string | null }>(
+          "SELECT user_id FROM sellers WHERE id = $1",
+          [sellerId]
+        );
+        const sellerUserId = sRows[0]?.user_id;
+        if (sellerUserId) {
+          const { rows: vRows } = await dbQuery<{ id: string }>(
+            `INSERT INTO videos (
+               creator_id, playback_url, thumbnail_url, title, description,
+               status, visibility, effective_label
+             ) VALUES ($1, $2, $3, $4, $5, 'ready', 'public', 'safe')
+             RETURNING id`,
+            [sellerUserId, d.video_url, firstImage, d.title, d.description ?? null]
+          );
+          const videoId = vRows[0]?.id;
+          if (videoId) {
+            await dbQuery(
+              `INSERT INTO video_product_links (
+                 video_id, product_id, placement, sort_order, metadata
+               ) VALUES ($1, $2, 'card', 0, '{}'::jsonb)`,
+              [videoId, productId]
+            );
+            await dbQuery(
+              `INSERT INTO creator_product_links (
+                 creator_id, product_id, status
+               ) VALUES ($1, $2, 'active')`,
+              [sellerUserId, productId]
+            );
+          }
+        }
+      } catch (videoErr) {
+        logger.error({ err: videoErr }, "[Seller Products] Error linking video to product:");
       }
+    }
+
+    if (productId && d.variants?.length) {
+      // Un singur INSERT multi-VALUES, atomic: ori intră toate variantele, ori
+      // niciuna — fără produse cu variante parțiale la o eroare la mijloc
+      // (audit 2026-08-24; înainte: INSERT per variantă cu .catch înghițit).
+      const values: string[] = [];
+      const params: unknown[] = [productId, d.currency];
+      for (const v of d.variants) {
+        params.push(
+          v.sku ?? null,
+          v.title ?? null,
+          JSON.stringify(v.attributes ?? {}),
+          v.price_cents ?? priceCents,
+          v.inventory_quantity ?? null,
+        );
+        const base = params.length - 5;
+        values.push(`($1, $${base + 1}, $${base + 2}, $${base + 3}::jsonb, $2, $${base + 4}, $${base + 5}, 'active', '{}'::jsonb)`);
+      }
+      await dbQuery(
+        `INSERT INTO marketplace_product_variants (
+           product_id, sku, title, attributes, currency, price_cents, inventory_quantity, status, metadata
+         ) VALUES ${values.join(", ")}`,
+        params,
+      ).catch((e) => logger.warn({ err: e?.message }, "[seller/products] variant insert failed"));
     }
 
     if (productId) {

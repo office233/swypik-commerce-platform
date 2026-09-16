@@ -7,6 +7,19 @@ import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
+/** Feed personalizat (viewer identificat prin cookie) — niciodată în cache partajat. */
+const PRIVATE_FEED_CACHE = {
+  "Cache-Control": "private, max-age=30",
+  Vary: "Cookie",
+} as const;
+
+/** Feed anonim, identic pentru toată lumea — poate sta la edge. */
+const SHARED_FEED_CACHE = {
+  "Cache-Control": "public, max-age=30, s-maxage=120, stale-while-revalidate=240",
+  "CDN-Cache-Control": "public, max-age=120",
+  Vary: "Cookie",
+} as const;
+
 function toInt(value: string | null, fallback: number, min: number, max: number) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
@@ -43,6 +56,8 @@ type ExploreVideo = {
   shares?: unknown;
   creator?: { id?: string; username?: string; name?: string; avatar?: string | null } | null;
   product?: { id?: string | number; swypikScore?: unknown } | null;
+  /** Starea viewerului (liked/saved/following) din explore/feed. */
+  viewer?: { liked?: boolean; saved?: boolean; following?: boolean } | null;
 };
 
 function toFeedItem(product: FeedProduct, index: number, seed: number) {
@@ -154,6 +169,28 @@ function toExploreFeedItem(video: ExploreVideo, index: number, seed: number) {
   };
 }
 
+// Consumatorii (ProductFeed prin feed-normalize) citesc video_id/creator_id de pe
+// obiectul `product` — fara ele, like-urile se trimiteau catre UUID-ul produsului
+// si esuau cu 404 (audit 2026-08-24). Pastram acelasi contract ca toFeedItem.
+function withVideoRefs<T extends { product: unknown }>(
+  item: T & { video_id: string; creator_id: string },
+  viewerLiked: boolean,
+): T {
+  if (item.product && typeof item.product === "object") {
+    item.product = {
+      ...(item.product as Record<string, unknown>),
+      video_id: item.video_id,
+      videoId: item.video_id,
+      creator_id: item.creator_id,
+      creatorId: item.creator_id,
+      // Fără asta, inima de pe homepage apărea gri după refresh chiar dacă
+      // like-ul era salvat în DB (audit 2026-08-25).
+      viewerLiked,
+    };
+  }
+  return item;
+}
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -183,11 +220,12 @@ export async function GET(req: Request) {
       if (exploreResponse.ok) {
         const payload = await exploreResponse.json();
         const videos: ExploreVideo[] = Array.isArray(payload?.videos) ? payload.videos : [];
-        const items = videos.map((video, index) => toExploreFeedItem(video, offset + index, seed));
+        const items = videos.map((video, index) =>
+          withVideoRefs(toExploreFeedItem(video, offset + index, seed), Boolean(video.viewer?.liked)));
         return NextResponse.json(
           {
             items,
-            products: videos.map((video) => video.product).filter(Boolean),
+            products: items.map((item) => item.product).filter(Boolean),
             paging: {
               offset,
               limit,
@@ -197,10 +235,11 @@ export async function GET(req: Request) {
             source: "explore-feed",
           },
           {
-            headers: {
-              "Cache-Control": "public, max-age=30, s-maxage=120, stale-while-revalidate=240",
-              "CDN-Cache-Control": "public, max-age=120",
-            },
+            // 2026-08-24 (audit perf): răspunsul e personalizat când cererea
+            // poartă cookie — ordinea clipurilor și `product.votes.viewerVote`
+            // sunt ale viewerului. `public` + `s-maxage` invită orice cache
+            // partajat (Cloudflare e în față) să-l servească altcuiva.
+            headers: cookie ? PRIVATE_FEED_CACHE : SHARED_FEED_CACHE,
           }
         );
       }
@@ -263,12 +302,8 @@ export async function GET(req: Request) {
         },
         source: "next-fallback",
       },
-      {
-        headers: {
-          "Cache-Control": "public, max-age=30, s-maxage=120, stale-while-revalidate=240",
-          "CDN-Cache-Control": "public, max-age=120",
-        },
-      }
+      // Lista e filtrată după `seen_video_ids` când există viewer ⇒ personalizată.
+      { headers: userId ? PRIVATE_FEED_CACHE : SHARED_FEED_CACHE }
     );
   } catch (error) {
     logger.error({ err: error }, "[Social Feed Fallback]");

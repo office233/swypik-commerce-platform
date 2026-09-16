@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
 import { moderateText } from "@/lib/moderation/moderateText";
 import { recordStrike } from "@/lib/moderation/strikes";
 import { getAuthSession } from "@/lib/auth/session";
-import { dbQuery } from "@/lib/db";
+import { dbQuery, withTransaction } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { UserProfilePatchSchema, parseBody } from "@/lib/validation/schemas";
 
@@ -195,20 +195,25 @@ async function handlePatch(request: Request) {
   if (hasCategories) {
     const categories = Array.from(new Set(body.categories ?? []));
     try {
-      await dbQuery(`DELETE FROM user_interests WHERE user_id = $1`, [session.userId]);
-      if (categories.length > 0) {
-        const values: string[] = [];
-        const params: unknown[] = [session.userId];
-        categories.forEach((topic, idx) => {
-          params.push(topic, categories.length - idx);
-          values.push(`($1, $${params.length - 1}, $${params.length})`);
-        });
-        await dbQuery(
-          `INSERT INTO user_interests (user_id, topic, weight) VALUES ${values.join(", ")}
-           ON CONFLICT DO NOTHING`,
-          params
-        );
-      }
+      // DELETE + INSERT atomic (audit 2026-08-24): dacă INSERT-ul pica după
+      // DELETE, userul rămânea fără niciun interes — personalizarea feed-ului
+      // ștearsă ireversibil.
+      await withTransaction(async (q) => {
+        await q(`DELETE FROM user_interests WHERE user_id = $1`, [session.userId]);
+        if (categories.length > 0) {
+          const values: string[] = [];
+          const params: unknown[] = [session.userId];
+          categories.forEach((topic, idx) => {
+            params.push(topic, categories.length - idx);
+            values.push(`($1, $${params.length - 1}, $${params.length})`);
+          });
+          await q(
+            `INSERT INTO user_interests (user_id, topic, weight) VALUES ${values.join(", ")}
+             ON CONFLICT DO NOTHING`,
+            params
+          );
+        }
+      });
     } catch (err) {
       console.error("[users/me PATCH categories]", err);
       return NextResponse.json(

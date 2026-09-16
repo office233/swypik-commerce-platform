@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
+import { getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { logger } from "@/lib/logger";
 import { UUID_RE } from "@/lib/validation/uuid";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { isVideoInteractableTx } from "@/lib/video/interactable";
 
 export const dynamic = "force-dynamic";
@@ -14,16 +15,23 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getAuthSession();
-    if (!session?.userId) {
-      return NextResponse.json({ error: "auth_required" }, { status: 401 });
-    }
-    const userId = session.userId;
+    // 2026-08-25 (decizie de produs, confirmată de owner): like-ul pe video
+    // merge și ANONIM, la fel ca pe produse/comentarii — „inimile trebuie să se
+    // salveze". Cele două riscuri ale variantei anonime sunt acoperite:
+    //  1. pierderea la login → mergeAnonSocialToUser migrează like-urile către
+    //     contul real în issueSessionResponse (app/api/auth);
+    //  2. frauda pe contor prin rotirea cookie-ului → limită suplimentară pe IP;
+    //     iar semnalul de RANKING ('like' în feed_events) se emite DOAR pentru
+    //     sesiuni autentificate complet — anti-frauda ranking-ului rămâne intactă.
+    const { userId, anonSessionId } = await getOrCreateSocialUser();
+    const authSession = await getAuthSession().catch(() => null);
     const { id: videoId } = await params;
     if (!UUID_RE.test(videoId)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
 
     const rl = await rateLimit("videoLike", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    const rlIp = await rateLimit("videoLike", `ip:${getClientIP(request)}`, { limit: 40, window: 60 });
+    if (!rlIp.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
     const pool = getDb();
     const client = await pool.connect();
@@ -39,16 +47,33 @@ export async function POST(
       );
 
       if (checkRes.rows.length > 0) {
-        await client.query(
-          "DELETE FROM likes WHERE user_id = $1 AND video_id = $2",
+        // RETURNING + rowCount: două unlike-uri concurente nu mai decrementează
+        // contorul de două ori (doar cel care chiar șterge rândul decrementează).
+        const delRes = await client.query(
+          "DELETE FROM likes WHERE user_id = $1 AND video_id = $2 RETURNING id",
           [userId, videoId]
         );
-        const updateRes = await client.query(
-          "UPDATE videos SET like_count = GREATEST(like_count - 1, 0) WHERE id = $1 RETURNING like_count",
-          [videoId]
-        );
+        if ((delRes.rowCount ?? 0) > 0) {
+          const updateRes = await client.query(
+            "UPDATE videos SET like_count = GREATEST(like_count - 1, 0) WHERE id = $1 RETURNING like_count",
+            [videoId]
+          );
+          likeCount = parseInt(updateRes.rows[0]?.like_count || "0", 10);
+          if (authSession?.userId) {
+            await client.query(
+              `INSERT INTO feed_events (actor_user_id, video_id, event_type, audience, score, source, metadata)
+               VALUES ($1, $2, 'unlike', 'global', 0, 'next-like', '{}'::jsonb)`,
+              [authSession.userId, videoId]
+            );
+          }
+        } else {
+          const curRes = await client.query(
+            "SELECT like_count FROM videos WHERE id = $1",
+            [videoId]
+          );
+          likeCount = parseInt(curRes.rows[0]?.like_count || "0", 10);
+        }
         liked = false;
-        likeCount = parseInt(updateRes.rows[0]?.like_count || "0", 10);
       } else {
         // P2-01: like NOU doar pe conținut încă vizibil. Unlike-ul (ramura de
         // mai sus) rămâne permis indiferent de starea curentă a videoclipului.
@@ -67,11 +92,16 @@ export async function POST(
             "UPDATE videos SET like_count = like_count + 1 WHERE id = $1 RETURNING like_count",
             [videoId]
           );
-          await client.query(
-            `INSERT INTO feed_events (actor_user_id, video_id, event_type, audience, score, source, metadata)
-             VALUES ($1, $2, 'video_liked', 'global', 5, 'next-like', '{}'::jsonb)`,
-            [userId, videoId]
-          );
+          // 'like' (nu legacy 'video_liked') — e singurul tip numărat de
+          // ranking-ul din explore/feed și de video_rank_14d. Doar actori
+          // autentificați complet (anti-fraudă ranking).
+          if (authSession?.userId) {
+            await client.query(
+              `INSERT INTO feed_events (actor_user_id, video_id, event_type, audience, score, source, metadata)
+               VALUES ($1, $2, 'like', 'global', 5, 'next-like', '{}'::jsonb)`,
+              [authSession.userId, videoId]
+            );
+          }
           likeCount = parseInt(updateRes.rows[0]?.like_count || "0", 10);
         } else {
           const curRes = await client.query(
@@ -91,18 +121,22 @@ export async function POST(
           [videoId],
         );
         const recipient = vrows[0]?.creator_id;
-        if (recipient && recipient !== userId) {
+        if (recipient && recipient !== userId && authSession?.userId) {
           void notifyUser(recipient, {
             type: "like",
             actorUserId: userId,
             targetType: "video",
             targetId: videoId,
-            payload: { url: `/v/${videoId}` },
+            // /v/[id] e pagina de verticale (404 pe UUID de video) — linkul
+            // corect deschide clipul în player-ul explore.
+            payload: { url: `/explore?v=${videoId}` },
           }).catch(() => undefined);
         }
       }
 
-      return NextResponse.json({ liked, like_count: likeCount });
+      const response = NextResponse.json({ liked, like_count: likeCount, likeCount });
+      setAnonSessionCookie(response, anonSessionId);
+      return response;
     } catch (e) {
       await client.query("ROLLBACK");
       throw e;

@@ -384,6 +384,13 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             <Bookmark size={18} />
             <span>Salvate</span>
           </button>
+          <Link
+            href="/account/liked"
+            className="flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 border-transparent text-xs font-bold text-white/50 transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none"
+          >
+            <Heart size={18} />
+            <span>Apreciate</span>
+          </Link>
           <button
             onClick={() => setActiveTab("orders")}
             className={`flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 text-xs font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "orders" ? "border-white text-white" : "border-transparent text-white/50"}`}

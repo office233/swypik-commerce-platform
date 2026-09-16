@@ -165,7 +165,7 @@ export async function notifyFollowersNewPost(
         targetId: videoId,
         payload: {
           title: opts?.title || TITLES.new_post,
-          url: `/v/${videoId}`,
+          url: `/explore?v=${videoId}`,
         },
       });
       sent++;

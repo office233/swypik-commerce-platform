@@ -24,6 +24,7 @@ type CommentItem = {
   createdAt: string;
   author: CommentAuthor;
   replies: CommentItem[];
+  viewerLiked?: boolean;
 };
 
 type Props = {
@@ -178,7 +179,16 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || t("loadError"));
 
-      setComments(Array.isArray(data.comments) ? data.comments : []);
+      const list: CommentItem[] = Array.isArray(data.comments) ? data.comments : [];
+      setComments(list);
+      // Seed din server: fara asta inima aparea mereu gri la redeschidere si
+      // al doilea tap facea de fapt unlike (audit 2026-08-24).
+      const liked = new Set<string>();
+      for (const c of list) {
+        if (c.viewerLiked) liked.add(c.id);
+        for (const r of c.replies || []) if (r.viewerLiked) liked.add(r.id);
+      }
+      setLikedIds(liked);
       if (typeof data.totalCount === "number") setCount(data.totalCount);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loadError"));

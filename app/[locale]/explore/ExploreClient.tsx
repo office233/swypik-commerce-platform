@@ -1,11 +1,11 @@
 ﻿"use client";
 
-import { useEffect, useState, useRef, useCallback, Suspense } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bookmark, Heart, MessageCircle, Search, Share2, ShoppingCart, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { Bookmark, EyeOff, Heart, MessageCircle, Search, Share2, ShoppingCart, Sparkles, Volume2, VolumeX } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
@@ -102,6 +102,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const currentTimeRefs = useRef<Map<string, { current: number }>>(new Map());
 
   const viewedVideosRef = useRef<Set<string>>(new Set());
+  /** Ultimul clip devenit activ — distinge o activare reală de o re-observare. */
+  const activeIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string>("");
   const deepLinkHandledRef = useRef(false);
 
@@ -116,6 +118,12 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     else videoRefs.current.delete(id);
   }, []);
 
+  // Clipurile ruleaza cu `loop`, deci 'ended' nu se declanseaza niciodata —
+  // completion/rewatch se detecteaza la wrap-ul buclei (ratio sare de la ~1 la ~0).
+  // Acestea sunt semnalele cu ponderea cea mai mare din video_rank_14d si, fara
+  // emiterea lor, ranking-ul „personalizat" rula pe zero (audit 2026-08-24).
+  const loopStateRef = useRef<Map<string, { lastRatio: number; loops: number }>>(new Map());
+
   const handleTimeUpdate = useCallback((videoId: string, ratio: number, currentTime: number) => {
     // ref-based progress update â€” no setState, no re-render
     const bar = progressBarRefs.current.get(videoId);
@@ -123,6 +131,19 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     let ctRef = currentTimeRefs.current.get(videoId);
     if (!ctRef) { ctRef = { current: 0 }; currentTimeRefs.current.set(videoId, ctRef); }
     ctRef.current = currentTime;
+
+    let loopState = loopStateRef.current.get(videoId);
+    if (!loopState) { loopState = { lastRatio: 0, loops: 0 }; loopStateRef.current.set(videoId, loopState); }
+    if (ratio < 0.2 && loopState.lastRatio > 0.8) {
+      loopState.loops += 1;
+      // Bucla precedenta s-a incheiat: golim acumulatorul de watch_time ca
+      // urmatoarea bucla sa se contorizeze de la zero (nu doar prima).
+      flushWatchTime(videoId);
+      resetWatchTime(videoId);
+      trackFeedEvent(loopState.loops === 1 ? "completion" : "rewatch", { video_id: videoId });
+    }
+    loopState.lastRatio = ratio;
+
     // batched watch_time tick
     trackWatchTime(videoId, Math.round(currentTime * 1000));
   }, []);
@@ -264,6 +285,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   }, [currentIndex, videos.length, loadMoreVideos]);
 
   // Intersection Observer â€” snap play/pause + currentIndex tracking
+  const videoIdsKey = useMemo(() => videos.map((video: any) => video.id).join(","), [videos]);
+
   useEffect(() => {
     if (videos.length === 0) return;
 
@@ -280,11 +303,20 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
           if (entry.isIntersecting) {
             setActiveVideoId(videoId);
             if (idx >= 0) setCurrentIndex(idx);
+            // Observer-ul se reconstruiește ori de câte ori se schimbă lista
+            // (like, save, follow, pagină nouă de scroll). Fără garda asta,
+            // re-observarea aceluiași clip îl derula la secunda 0 și dubla
+            // impresiile — clipul „sărea" la fiecare tap pe inimă.
+            const isNewActive = activeIdRef.current !== videoId;
+            if (isNewActive) {
+              activeIdRef.current = videoId;
+              loopStateRef.current.set(videoId, { lastRatio: 0, loops: 0 });
+              trackEvent(videoId, "impression");
+            }
             if (videoEl) {
-              videoEl.currentTime = 0;
+              if (isNewActive) videoEl.currentTime = 0;
               videoEl.play().catch(() => { });
             }
-            trackEvent(videoId, "impression");
 
             // REAL VIEWS (2026-08-09): view doar după 3s de REDARE EFECTIVĂ
             // (nu doar vizibilitate). Dacă clipul e în pauză / nu a pornit
@@ -305,8 +337,14 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
             }
             // flush residual watch_time when slide leaves viewport
             if (videoId) {
-              flushWatchTime(videoId);
+              const watchedMs = flushWatchTime(videoId);
               resetWatchTime(videoId);
+              // Swipe rapid (sub 2s de redare, fara nicio bucla completa) =
+              // semnal negativ puternic pentru ranking (skip_fast, -4).
+              const loops = loopStateRef.current.get(videoId)?.loops || 0;
+              if (watchedMs > 0 && watchedMs < 2000 && loops === 0) {
+                trackFeedEvent("skip_fast", { video_id: videoId, watch_ms: Math.round(watchedMs) });
+              }
             }
           }
         });
@@ -325,7 +363,12 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       });
       observer.disconnect();
     };
-  }, [videos, sendView, trackEvent]);
+    // Cheia e SETUL de id-uri, nu `videos` (care se schimbă la fiecare like) și
+    // nici `videos.length` — trecerea Pentru tine ↔ Urmăriți schimbă 30 de
+    // clipuri cu alte 30, deci lungimea ar rămâne egală și observer-ul nu s-ar
+    // mai reconstrui pe nodurile noi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoIdsKey, sendView, trackEvent]);
 
   // Deep-link `?v=<id>` â€” scroll to slide once after first load
   useEffect(() => {
@@ -372,6 +415,22 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     );
   }, []);
 
+  // Bucla explicită de învățare a feed-ului: ascunde clipul (user_hidden_videos),
+  // scade interesul pe topic și emite not_interested pentru ranking.
+  const handleNotInterested = useCallback(async (videoId: string) => {
+    haptic("tap");
+    setVideos((current) => current.filter((video) => video.id !== videoId));
+    try {
+      await fetch("/api/feed/action", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ video_id: videoId, action: "not_interested" }),
+      });
+    } catch {
+      // Clipul e deja ascuns local — eșecul rețelei nu blochează feed-ul.
+    }
+  }, []);
+
   const handleLike = useCallback(async (videoId: string) => {
     haptic("tap");
     const wasLiked = likedVideos.has(videoId);
@@ -388,7 +447,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       likes: String(Math.max(0, previousCount + (nextLiked ? 1 : -1))),
       viewer: { liked: nextLiked },
     });
-    trackEvent(videoId, nextLiked ? "like" : "unlike");
+    // Evenimentul de ranking 'like'/'unlike' e emis de server în tranzacția
+    // like-ului (o singură sursă) — nu-l mai dublăm din client.
 
     try {
       const res = await fetch(`/api/videos/${videoId}/like`, { method: "POST" });
@@ -497,7 +557,12 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       updateVideo(videoId, { shares: String(data.share_count ?? previousCount + 1) });
       trackEvent(videoId, "share", { channel });
       window.dispatchEvent(new CustomEvent('reward', { detail: { points: 15, msg: 'Share +15 XP' } }));
-    } catch { }
+    } catch {
+      // Share-ul local (native sheet / clipboard) a avut deja loc — doar
+      // contorul+XP au eșuat. Anunțăm în loc să înghițim tăcut.
+      setShareToast("Share-ul nu s-a putut înregistra");
+      setTimeout(() => setShareToast(null), 1800);
+    }
   }, [trackEvent, updateVideo, videos]);
 
   const handleFollow = useCallback(async (creatorId: string) => {
@@ -841,6 +906,9 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                     <button type="button" className="action-btn" onClick={() => handleShare(video.id)} aria-label={t("distribuie")}>
                       <span className="icon-wrap"><Share2 size={28} color="#fff" /></span>
                       <span className="count">{formatCount(video.shares)}</span>
+                    </button>
+                    <button type="button" className="action-btn" onClick={() => handleNotInterested(video.id)} aria-label="Nu mă interesează">
+                      <span className="icon-wrap"><EyeOff size={26} color="#fff" /></span>
                     </button>
                   </div>
                 )}

@@ -1,4 +1,5 @@
 import ChatInterface from "@/components/ChatInterface";
+import { MysteryDropModal } from "@/components/mystery-drop/MysteryDropModal";
 import { searchProducts } from "@/lib/db/product-queries";
 import { dbQuery } from "@/lib/db";
 import type { OfferPost } from "@/lib/types/feed";
@@ -184,6 +185,7 @@ export default async function Home() {
         initialTopRated={topRated.products}
         initialOffers={offers}
       />
+      <MysteryDropModal />
     </>
   );
 }

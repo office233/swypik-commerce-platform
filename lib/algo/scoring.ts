@@ -44,6 +44,12 @@ export type FeedWeights = {
    * din primul clip, fără embeddings.
    */
   w_interest: number;
+  /**
+   * Amplitudinea jitterului de explorare (random()*w_explore) din feed-ul
+   * explore. 2026-08-24 (audit): 15 îneca personalizarea (interese ≤10,
+   * freshness ≤5) — redus la 6, tunabil live fără redeploy.
+   */
+  w_explore: number;
 };
 
 export const DEFAULT_FEED_WEIGHTS: FeedWeights = {
@@ -66,6 +72,7 @@ export const DEFAULT_FEED_WEIGHTS: FeedWeights = {
   eng_comment: 3,
   w_taste: 12,
   w_interest: 10,
+  w_explore: 6,
 };
 
 function envOverride(key: keyof FeedWeights, fallback: number): number {

@@ -104,33 +104,10 @@ function buildTrendingExpr(w: { eng_view: number; eng_like: number; eng_share: n
 
 
 
-// Ranking from real engagement events (last 14 days). Scored per video.
-// Mirrors /api/feed/recommendations weights.
-// ANTI-FRAUD (2026-08-09): semnalele puternice (save/share/like/purchase/
-// add_to_cart/comment/follow) se numără DOAR de la utilizatori autentificați
-// (actor_user_id IS NOT NULL) și DEDUPLICAT per user — telemetria anonimă
-// injectabilă în masă nu mai poate umfla ranking-ul (audit vuln. #9).
-const RANK_SCORE_EXPR = `(
-  SELECT (
-      CASE WHEN v.duration_ms IS NULL OR v.duration_ms <= 0 THEN 0 ELSE LEAST(COALESCE(SUM(fe.watch_ms)::numeric, 0) / v.duration_ms, 50) END * 5
-    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'save'  AND fe.actor_user_id IS NOT NULL) * 3
-    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'share' AND fe.actor_user_id IS NOT NULL) * 2
-    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'like'  AND fe.actor_user_id IS NOT NULL) * 1.5
-    + COUNT(*) FILTER (WHERE fe.event_type = 'completion')     * 5
-    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'add_to_cart' AND fe.actor_user_id IS NOT NULL) * 4
-    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'purchase'    AND fe.actor_user_id IS NOT NULL) * 8
-    + COUNT(*) FILTER (WHERE fe.event_type = 'more_like_this') * 4
-    + COUNT(*) FILTER (WHERE fe.event_type = 'product_click')  * 1
-    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'comment' AND fe.actor_user_id IS NOT NULL) * 4
-    + COUNT(DISTINCT fe.actor_user_id) FILTER (WHERE fe.event_type = 'follow'  AND fe.actor_user_id IS NOT NULL) * 4
-    - COUNT(*) FILTER (WHERE fe.event_type = 'skip_fast')      * 4
-    - COUNT(*) FILTER (WHERE fe.event_type = 'not_interested') * 6
-    - COUNT(*) FILTER (WHERE fe.event_type = 'report')         * 10
-  )
-  FROM feed_events fe
-  WHERE fe.video_id = v.id
-    AND fe.occurred_at > NOW() - INTERVAL '14 days'
-)`;
+// Ranking-ul din evenimente reale trăiește în mat view-ul video_rank_14d
+// (migrarea 20260824_0001 — anti-fraud: semnale puternice doar de la actori
+// autentificați, deduplicat per user; unlike scade like-ul; re-watch inclus).
+// Refresh la ~5 min prin /api/cron/refresh-rank.
 
 // Freshness bonus: declines over 3 days. Boost in [0..5].
 const FRESHNESS_EXPR = `GREATEST(0, 5 - EXTRACT(EPOCH FROM (NOW() - COALESCE(v.published_at, v.created_at))) / (86400.0 * 3))`;
@@ -141,12 +118,15 @@ const FRESHNESS_EXPR = `GREATEST(0, 5 - EXTRACT(EPOCH FROM (NOW() - COALESCE(v.p
 const RANK_CAPPED_EXPR = `(LN(GREATEST(COALESCE(vr.rank_score, 0), 0) + 1) * 4)`;
 
 // Exploration: every row gets a random boost so the feed isn't deterministic.
-// Magnitude tuned to overlap with capped rank so even #1 rotates across requests.
-// Range: ~[0..15] regardless of rank tier.
-const EXPLORATION_EXPR = `(random() * 15)`;
+// 2026-08-24 (audit): amplitudinea era 15 hardcodat și îneca personalizarea
+// (interese ≤10, freshness ≤5). Acum vine din feed_weights.w_explore (default 6).
+function buildExplorationExpr(wExplore: number): string {
+  const amp = Number.isFinite(wExplore) && wExplore >= 0 ? wExplore : 6;
+  return `(random() * ${amp})`;
+}
 
 // Uses pre-aggregated video_rank_14d (refreshed every ~5min by /api/cron/refresh-rank).
-// Falls back to inline RANK_SCORE_EXPR subquery if mat view row missing (new video).
+// Clipurile noi fără rând în mat view primesc COALESCE 0 (doar freshness).
 // Wrapped through RANK_CAPPED_EXPR so a single outlier can't pin position #1.
 const RANK_FROM_MV = `${RANK_CAPPED_EXPR}`;
 
@@ -171,21 +151,32 @@ function buildAffinityExpr(hasUser: boolean): string {
 // completion) din ultimele 7 zile. Similaritatea cosine cu clipul curent
 // devine boost în [0..w_taste]. Zero-cost când nu există embeddings
 // (COALESCE → 0) — se activează singură când embed-batch populează vectorii.
-function buildTasteExpr(hasUser: boolean, userParam: string, wTaste: number): string {
-  if (!hasUser || !Number.isFinite(wTaste) || wTaste <= 0) return "0";
-  return `(COALESCE((
-    SELECT (1 - (v.embedding <=> taste.vec)) * ${wTaste}
-      FROM (
-        SELECT AVG(v_t.embedding) AS vec
-          FROM feed_events fe_t
-          JOIN videos v_t ON v_t.id = fe_t.video_id
-         WHERE fe_t.actor_user_id = ${userParam}::uuid
-           AND fe_t.event_type IN ('like','save','share','completion')
-           AND fe_t.occurred_at > NOW() - INTERVAL '7 days'
-           AND v_t.embedding IS NOT NULL
-      ) taste
-     WHERE taste.vec IS NOT NULL AND v.embedding IS NOT NULL
-  ), 0))`;
+// 2026-08-24 (audit perf): expresia era o subinterogare CORELATĂ (prin
+// `v.embedding`), deci media peste vectori de 1536 de dimensiuni se recalcula
+// pentru fiecare clip candidat. Acum vectorul de gust e un CTE materializat,
+// calculat o dată per cerere și adus prin CROSS JOIN (AVG fără GROUP BY
+// întoarce mereu exact un rând, deci nu se pierd clipuri).
+// COALESCE rămâne obligatoriu: fără el, clipurile fără embedding ar produce
+// NULL în ORDER BY, iar `DESC` implică NULLS FIRST ⇒ ar sări în capul feed-ului.
+function tasteEnabled(hasUser: boolean, wTaste: number): boolean {
+  return hasUser && Number.isFinite(wTaste) && wTaste > 0;
+}
+
+function buildTasteCte(userParam: string): string {
+  return `taste AS MATERIALIZED (
+      SELECT AVG(v_t.embedding) AS vec
+        FROM feed_events fe_t
+        JOIN videos v_t ON v_t.id = fe_t.video_id
+       WHERE fe_t.actor_user_id = ${userParam}::uuid
+         AND fe_t.event_type IN ('like','save','share','completion')
+         AND fe_t.occurred_at > NOW() - INTERVAL '7 days'
+         AND v_t.embedding IS NOT NULL
+    )`;
+}
+
+function buildTasteExpr(enabled: boolean, wTaste: number): string {
+  if (!enabled) return "0";
+  return `(COALESCE((1 - (v.embedding <=> taste.vec)) * ${wTaste}, 0))`;
 }
 
 // 2026-08-14 (cold start): boost pe interesele EXPLICITE alese la onboarding
@@ -232,6 +223,7 @@ function buildOrderClause(
   trendingExpr: string,
   tasteExpr: string,
   interestExpr: string,
+  explorationExpr: string,
 ): string {
   const penalty = buildPenaltyExpr(hasUser, hasSession);
   const affinity = buildAffinityExpr(hasUser);
@@ -245,7 +237,7 @@ function buildOrderClause(
       // Real engagement (mat view) + freshness + personalization - repetition penalty + exploration jitter.
       // Final tie-breaker random() so videos with identical scores don't always
       // appear in the same order across requests.
-      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${tasteExpr} + ${interestExpr} + ${penalty} + ${equityExpr} + ${EXPLORATION_EXPR} DESC, v.published_at DESC NULLS LAST, random()`;
+      return `${RANK_FROM_MV} + ${FRESHNESS_EXPR} + ${affinity} + ${tasteExpr} + ${interestExpr} + ${penalty} + ${equityExpr} + ${explorationExpr} DESC, v.published_at DESC NULLS LAST, random()`;
   }
 }
 
@@ -624,12 +616,13 @@ export async function GET(request: NextRequest) {
     const trendingExpr = buildTrendingExpr(feedWeights);
     const equityExpr = buildEquityExpr(feedWeights, Boolean(userId) || Boolean(viewerSessionId));
     const equityJoins = buildEquityJoins(Boolean(userId), Boolean(viewerSessionId), userParam, sessionParam);
-    const tasteExpr = buildTasteExpr(Boolean(userId), userParam, feedWeights.w_taste);
+    const useTaste = tasteEnabled(Boolean(userId), feedWeights.w_taste);
+    const tasteExpr = buildTasteExpr(useTaste, feedWeights.w_taste);
     const interestExpr = buildInterestExpr(Boolean(userId), userParam, feedWeights.w_interest);
     // În context de profil păstrăm exact ordinea din grila de profil (published_at DESC).
     const orderClause = creatorParam
       ? `v.published_at DESC NULLS LAST, v.created_at DESC`
-      : buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr, engagementExpr, trendingExpr, tasteExpr, interestExpr);
+      : buildOrderClause(sort, Boolean(userId), Boolean(viewerSessionId), equityExpr, engagementExpr, trendingExpr, tasteExpr, interestExpr, buildExplorationExpr(feedWeights.w_explore));
     const scoreSelect =
       sort === "popular"
         ? `, ${engagementExpr} AS engagement_score`
@@ -641,8 +634,44 @@ export async function GET(request: NextRequest) {
               AND COALESCE(mp.taxonomy_node_slug, '') !~* '(underwear|lingerie|swimwear)'
     ` : "";
 
+    // 2026-08-24 (audit perf): afinitatea pe categorii era un LATERAL corelat,
+    // deci Postgres reagrega 30 de zile de feed_events × videos × produse
+    // pentru FIECARE clip candidat. Ca CTE materializat se calculează O DATĂ
+    // per cerere; GROUP BY pe slug garantează cel mult un rând per categorie,
+    // deci LEFT JOIN-ul nu multiplică rândurile (LIMIT 1 devine inutil).
+    const affinityCte = userId ? `user_pref AS MATERIALIZED (
+      SELECT mp2.taxonomy_node_slug AS slug,
+             LEAST(SUM(CASE fe2.event_type
+                   WHEN 'purchase' THEN 10
+                   WHEN 'save' THEN 5
+                   WHEN 'more_like_this' THEN 4
+                   WHEN 'add_to_cart' THEN 3
+                   WHEN 'completion' THEN 2
+                   WHEN 'like' THEN 1
+                   ELSE 0 END)::numeric / 5.0, 10)::numeric AS affinity_boost
+        FROM feed_events fe2
+        JOIN videos v2 ON v2.id = fe2.video_id
+        LEFT JOIN video_product_links vpl2 ON vpl2.video_id = v2.id
+        LEFT JOIN marketplace_products mp2 ON mp2.id = COALESCE(
+          vpl2.product_id,
+          CASE WHEN COALESCE(v2.product_refs->0->>'product_id', v2.product_refs->>0) ~* '${UUID_SQL_RE}'
+            THEN COALESCE(v2.product_refs->0->>'product_id', v2.product_refs->>0)::uuid
+            ELSE NULL END
+        )
+       WHERE fe2.actor_user_id = ${userParam}::uuid
+         AND fe2.occurred_at > NOW() - INTERVAL '30 days'
+         AND mp2.taxonomy_node_slug IS NOT NULL
+       GROUP BY mp2.taxonomy_node_slug
+    )` : "";
+
+    // Un singur bloc WITH pentru toate agregatele care se calculează o dată
+    // per cerere (afinitate pe categorii + vectorul de gust).
+    const ctes = [affinityCte, useTaste ? buildTasteCte(userParam) : ""].filter(Boolean);
+    const withClause = ctes.length > 0 ? `WITH ${ctes.join(",\n    ")}` : "";
+
     const { rows } = await dbQuery<ExploreFeedRow>(
-      `SELECT
+      `${withClause}
+      SELECT
         v.id          AS video_id,
         v.creator_id,
         v.title,
@@ -702,6 +731,7 @@ export async function GET(request: NextRequest) {
         false AS viewer_following
         `}
       FROM videos v
+      ${useTaste ? `CROSS JOIN taste` : ``}
       LEFT JOIN users u ON v.creator_id = u.id
       LEFT JOIN LATERAL (
         SELECT object_key, status
@@ -777,35 +807,7 @@ export async function GET(request: NextRequest) {
           AND rep_fe2.occurred_at > NOW() - INTERVAL '24 hours'
         LIMIT 1
       ) rep_sess ON true` : ``}
-      ${userId ? `LEFT JOIN LATERAL (
-        WITH user_pref AS (
-          SELECT mp2.taxonomy_node_slug AS slug,
-                 SUM(CASE fe2.event_type
-                       WHEN 'purchase' THEN 10
-                       WHEN 'save' THEN 5
-                       WHEN 'more_like_this' THEN 4
-                       WHEN 'add_to_cart' THEN 3
-                       WHEN 'completion' THEN 2
-                       WHEN 'like' THEN 1
-                       ELSE 0 END)::numeric AS weight
-          FROM feed_events fe2
-          JOIN videos v2 ON v2.id = fe2.video_id
-          LEFT JOIN video_product_links vpl2 ON vpl2.video_id = v2.id
-          LEFT JOIN marketplace_products mp2 ON mp2.id = COALESCE(
-            vpl2.product_id,
-            CASE WHEN COALESCE(v2.product_refs->0->>'product_id', v2.product_refs->>0) ~* '${UUID_SQL_RE}'
-              THEN COALESCE(v2.product_refs->0->>'product_id', v2.product_refs->>0)::uuid
-              ELSE NULL END
-          )
-          WHERE fe2.actor_user_id = ${userParam}::uuid
-            AND fe2.occurred_at > NOW() - INTERVAL '30 days'
-            AND mp2.taxonomy_node_slug IS NOT NULL
-          GROUP BY mp2.taxonomy_node_slug
-        )
-        SELECT LEAST(weight / 5.0, 10)::numeric AS affinity_boost
-        FROM user_pref WHERE slug = mp.taxonomy_node_slug
-        LIMIT 1
-      ) uca ON mp.id IS NOT NULL` : ``}
+      ${userId ? `LEFT JOIN user_pref uca ON uca.slug = mp.taxonomy_node_slug` : ``}
       ${equityJoins}
       WHERE v.status = 'ready' AND v.is_hidden = false
         AND v.visibility = 'public'

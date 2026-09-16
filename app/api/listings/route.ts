@@ -164,8 +164,13 @@ export async function GET(req: Request) {
         const slug = url.searchParams.get("taxonomy")?.trim() || null;
         const country = url.searchParams.get("country")?.trim().toUpperCase() || null;
         const city = url.searchParams.get("city")?.trim() || null;
-        const minPrice = Number(url.searchParams.get("min_price"));
-        const maxPrice = Number(url.searchParams.get("max_price"));
+        // `searchParams.get` da null cand parametrul lipseste, iar Number(null) e 0
+        // — nu NaN. Fara garda asta, Number.isFinite trecea si se adauga mereu
+        // filtrul `price_cents <= 0`, deci ruta nu intorcea niciun anunt cu pret.
+        const minPriceRaw = url.searchParams.get("min_price");
+        const maxPriceRaw = url.searchParams.get("max_price");
+        const minPrice = minPriceRaw ? Number(minPriceRaw) : NaN;
+        const maxPrice = maxPriceRaw ? Number(maxPriceRaw) : NaN;
         const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 24, 1), 100);
         const page = Math.max(Number(url.searchParams.get("page")) || 1, 1);
         const offset = (page - 1) * limit;

@@ -346,14 +346,14 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
   // ── ecran de confirmare ──
   if (placed) {
     return (
-      <div className="grid min-h-dvh place-items-center bg-white px-6 pb-24">
+      <div className="grid min-h-dvh place-items-center bg-white dark:bg-black px-6 pb-24">
         <div className="text-center">
           <div className="mb-4 flex justify-center text-[#2DBE60]" aria-hidden><CheckCircle2 size={56} /></div>
-          <h1 className="text-xl font-black">{t("orderPlaced")}</h1>
-          <p className="mt-2 text-sm text-[#6E6E80]">
-            {t("orderNumber")} <span className="font-black text-[#0D0D0D]">{placed.order_number}</span>
+          <h1 className="text-xl font-black dark:text-white">{t("orderPlaced")}</h1>
+          <p className="mt-2 text-sm text-[#6E6E80] dark:text-[#A1A1AA]">
+            {t("orderNumber")} <span className="font-black text-[#0D0D0D] dark:text-white">{placed.order_number}</span>
           </p>
-          <p className="mt-1 text-sm text-[#6E6E80]">
+          <p className="mt-1 text-sm text-[#6E6E80] dark:text-[#A1A1AA]">
             {t("confirmsSoon", { name: merchant.name })}
           </p>
           {placed.id && (
@@ -369,7 +369,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           <button
             type="button"
             onClick={() => router.push("/food")}
-            className="mt-3 h-12 rounded-xl border border-[#E5E5E5] px-6 text-sm font-bold text-[#0D0D0D] transition active:scale-95"
+            className="mt-3 h-12 rounded-xl border border-[#E5E5E5] dark:border-[#1F1F1F] px-6 text-sm font-bold text-[#0D0D0D] dark:text-white transition active:scale-95"
           >
             {t("backToRestaurants")}
           </button>
@@ -379,9 +379,9 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
   }
 
   return (
-    <div className="min-h-dvh bg-white pb-40">
+    <div className="min-h-dvh bg-white dark:bg-black pb-40">
       {/* Cover + header */}
-      <div className="relative h-40 bg-[#F7F7F8]">
+      <div className="relative h-40 bg-[#F7F7F8] dark:bg-[#1F1F23]">
         {merchant.image_url && (
           <Image src={merchant.image_url} alt={merchant.name} fill sizes="100vw" className="object-cover" />
         )}
@@ -391,27 +391,27 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           type="button"
           onClick={() => router.push("/food")}
           aria-label={t("back")}
-          className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 shadow transition active:scale-95"
+          className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 dark:bg-black/90 dark:text-white shadow transition active:scale-95"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
       </div>
 
       <div className="px-4">
-        <div className="relative z-10 -mt-6 rounded-2xl border border-[#E5E5E5] bg-white p-4 shadow-lg">
+        <div className="relative z-10 -mt-6 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4 shadow-lg">
           <div className="flex items-start justify-between gap-2">
-            <h1 className="text-lg font-black leading-tight">{merchant.name}</h1>
+            <h1 className="text-lg font-black leading-tight dark:text-white">{merchant.name}</h1>
             {merchant.rating != null && (
-              <span className="inline-flex shrink-0 items-center gap-1 text-sm font-bold">
+              <span className="inline-flex shrink-0 items-center gap-1 text-sm font-bold dark:text-white">
                 <Star size={14} fill="#FACC15" className="text-[#FACC15]" />
                 {Number(merchant.rating).toFixed(1)}
               </span>
             )}
           </div>
           {merchant.cuisine_types?.length > 0 && (
-            <p className="mt-0.5 text-xs text-[#6E6E80]">{merchant.cuisine_types.join(" · ")}</p>
+            <p className="mt-0.5 text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{merchant.cuisine_types.join(" · ")}</p>
           )}
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-[#6E6E80]">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-[#6E6E80] dark:text-[#A1A1AA]">
             <span className="inline-flex items-center gap-1">
               <Clock size={13} />
               {merchant.avg_prep_minutes + 25}–{merchant.avg_prep_minutes + 40} min
@@ -426,7 +426,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                 {open ? t("open") : t("closed")}
               </span>
             ) : (
-              <span className="font-black text-[#6E6E80]">{t("hoursUnknown")}</span>
+              <span className="font-black text-[#6E6E80] dark:text-[#A1A1AA]">{t("hoursUnknown")}</span>
             )}
           </div>
         </div>
@@ -437,18 +437,18 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-20 animate-pulse rounded-2xl bg-[#F7F7F8]" />
+              <div key={i} className="h-20 animate-pulse rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23]" />
             ))}
           </div>
         ) : menu.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-sm font-bold">{menuError ? t("menuLoadError") : t("noMenuYet")}</p>
-            <p className="mx-auto mt-1 max-w-xs text-xs text-[#6E6E80]">{menuError ? t("menuLoadErrorSub") : t("noMenuYetSub")}</p>
+            <p className="text-sm font-bold dark:text-white">{menuError ? t("menuLoadError") : t("noMenuYet")}</p>
+            <p className="mx-auto mt-1 max-w-xs text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{menuError ? t("menuLoadErrorSub") : t("noMenuYetSub")}</p>
             {menuError && (
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="mt-3 rounded-xl border border-black/10 px-4 py-2 text-xs font-bold"
+                className="mt-3 rounded-xl border border-black/10 dark:border-[#1F1F1F] px-4 py-2 text-xs font-bold dark:text-white"
               >
                 {t("retry")}
               </button>
@@ -457,7 +457,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
         ) : (
           menu.map((section) => (
             <section key={section.id ?? "other"} className="mb-6">
-              <h2 className="mb-2.5 text-[15px] font-black">{section.name}</h2>
+              <h2 className="mb-2.5 text-[15px] font-black dark:text-white">{section.name}</h2>
               <div className="space-y-2.5">
                 {section.items.map((item) => (
                   <button
@@ -473,17 +473,17 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                         addToCart(item, []);
                       }
                     }}
-                    className="flex w-full gap-3 rounded-2xl border border-[#E5E5E5] bg-white p-3 text-left transition active:scale-[0.98] disabled:opacity-50"
+                    className="flex w-full gap-3 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-3 text-left transition active:scale-[0.98] disabled:opacity-50"
                   >
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-bold leading-snug">{item.name}</h3>
+                      <h3 className="text-sm font-bold leading-snug dark:text-white">{item.name}</h3>
                       {item.description && (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-[#6E6E80]">{item.description}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{item.description}</p>
                       )}
-                      <p className="mt-1.5 text-sm font-black">{fmtLei(item.price_cents)}</p>
+                      <p className="mt-1.5 text-sm font-black dark:text-white">{fmtLei(item.price_cents)}</p>
                     </div>
                     {item.image_url ? (
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#F7F7F8]">
+                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#F7F7F8] dark:bg-[#1F1F23]">
                         <Image src={item.image_url} alt={item.name} fill sizes="80px" className="object-cover" />
                       </div>
                     ) : (
@@ -507,13 +507,13 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
       {picker && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={() => setPicker(null)}>
           <div
-            className="max-h-[80dvh] w-full overflow-y-auto rounded-t-3xl bg-white p-5"
+            className="max-h-[80dvh] w-full overflow-y-auto rounded-t-3xl bg-white dark:bg-[#111113] p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-black">{picker.name}</h3>
+            <h3 className="text-base font-black dark:text-white">{picker.name}</h3>
             {(picker.options ?? []).map((opt) => (
               <div key={opt.name} className="mt-4">
-                <p className="text-xs font-black uppercase tracking-wide text-[#6E6E80]">
+                <p className="text-xs font-black uppercase tracking-wide text-[#6E6E80] dark:text-[#A1A1AA]">
                   {opt.name}
                   {opt.required && <span className="text-red-500"> *</span>}
                 </p>
@@ -539,7 +539,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                             return [...cleaned, cid];
                           });
                         }}
-                        className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition active:scale-[0.98] ${active ? "text-white" : "border-[#E5E5E5] text-[#0D0D0D]"
+                        className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition active:scale-[0.98] ${active ? "text-white" : "border-[#E5E5E5] text-[#0D0D0D] dark:border-[#1F1F1F] dark:text-white"
                           }`}
                         style={active ? { backgroundColor: ACCENT, borderColor: ACCENT } : undefined}
                       >
@@ -577,7 +577,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
 
       {/* Bara de coș */}
       {cart.length > 0 && !checkout && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E5E5E5] bg-white/95 p-4 pb-[max(16px,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 p-4 pb-[max(16px,env(safe-area-inset-bottom))] backdrop-blur-xl">
           {belowMin && (
             <p className="mb-2 text-center text-xs font-bold text-amber-600">
               {t("minOrderWarning", { min: fmtLei(merchant.min_order_cents), diff: fmtLei(merchant.min_order_cents - subtotal) })}
@@ -606,41 +606,41 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
       {checkout && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={() => setCheckout(false)}>
           <div
-            className="max-h-[90dvh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))]"
+            className="max-h-[90dvh] w-full overflow-y-auto rounded-t-3xl bg-white dark:bg-[#111113] p-5 pb-[max(20px,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-black">{t("checkoutTitle")}</h3>
+            <h3 className="text-base font-black dark:text-white">{t("checkoutTitle")}</h3>
 
-            <div className="mt-3 space-y-2 rounded-2xl bg-[#F7F7F8] p-3">
+            <div className="mt-3 space-y-2 rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23] p-3">
               {cart.map((l, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold">{l.name}</p>
+                    <p className="truncate font-bold dark:text-white">{l.name}</p>
                     {l.option_names.length > 0 && (
-                      <p className="truncate text-xs text-[#6E6E80]">{l.option_names.join(", ")}</p>
+                      <p className="truncate text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{l.option_names.join(", ")}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => changeQty(i, -1)} aria-label={t("decrease")} className="grid h-7 w-7 place-items-center rounded-full bg-white"><Minus size={14} /></button>
-                    <span className="w-5 text-center font-black">{l.qty}</span>
-                    <button type="button" onClick={() => changeQty(i, 1)} aria-label={t("increase")} className="grid h-7 w-7 place-items-center rounded-full bg-white"><Plus size={14} /></button>
+                    <button type="button" onClick={() => changeQty(i, -1)} aria-label={t("decrease")} className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-black dark:text-white"><Minus size={14} /></button>
+                    <span className="w-5 text-center font-black dark:text-white">{l.qty}</span>
+                    <button type="button" onClick={() => changeQty(i, 1)} aria-label={t("increase")} className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-black dark:text-white"><Plus size={14} /></button>
                   </div>
-                  <span className="w-20 text-right font-black">{fmtLei(l.unit_price_cents * l.qty)}</span>
+                  <span className="w-20 text-right font-black dark:text-white">{fmtLei(l.unit_price_cents * l.qty)}</span>
                 </div>
               ))}
-              <div className="border-t border-[#E5E5E5] pt-2 text-sm">
-                <div className="flex justify-between text-[#6E6E80]"><span>Subtotal</span><span>{fmtLei(subtotal)}</span></div>
-                <div className="mt-1 flex justify-between text-[#6E6E80]"><span>{t("delivery")}</span><span>{deliveryFee === 0 ? "Gratuită" : fmtLei(deliveryFee)}</span></div>
+              <div className="border-t border-[#E5E5E5] dark:border-[#1F1F1F] pt-2 text-sm">
+                <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>Subtotal</span><span>{fmtLei(subtotal)}</span></div>
+                <div className="mt-1 flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{t("delivery")}</span><span>{deliveryFee === 0 ? "Gratuită" : fmtLei(deliveryFee)}</span></div>
                 {tipCents > 0 && (
-                  <div className="mt-1 flex justify-between text-[#6E6E80]"><span>{t("courierTip")}</span><span>{fmtLei(tipCents)}</span></div>
+                  <div className="mt-1 flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{t("courierTip")}</span><span>{fmtLei(tipCents)}</span></div>
                 )}
-                <div className="mt-1 flex justify-between font-black"><span>Total</span><span>{fmtLei(total)}</span></div>
+                <div className="mt-1 flex justify-between font-black dark:text-white"><span>Total</span><span>{fmtLei(total)}</span></div>
               </div>
             </div>
 
             <div className="mt-4 space-y-3">
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon *" inputMode="tel" className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} className="h-12 w-full rounded-xl border border-[#E5E5E5] dark:border-[#1F1F1F] dark:bg-transparent dark:text-white px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon *" inputMode="tel" className="h-12 w-full rounded-xl border border-[#E5E5E5] dark:border-[#1F1F1F] dark:bg-transparent dark:text-white px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
 
               {savedAddresses.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
@@ -649,7 +649,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                       key={a.id}
                       type="button"
                       onClick={() => { haptic("tap"); applySaved(a); }}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#E5E5E5] px-3 py-1.5 text-xs font-bold text-[#0D0D0D]"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#E5E5E5] dark:border-[#1F1F1F] px-3 py-1.5 text-xs font-bold text-[#0D0D0D] dark:text-white"
                     >
                       <MapPin size={12} /> {a.label || a.line1.slice(0, 24)}
                     </button>
@@ -669,7 +669,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
 
               {/* Pin ajustabil pe hartă — tap pe hartă mută punctul de livrare. */}
               {showPin && addressCoords && (
-                <div className="overflow-hidden rounded-2xl border border-[#E5E5E5]">
+                <div className="overflow-hidden rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F]">
                   <MapView
                     center={addressCoords}
                     zoom={16}
@@ -679,7 +679,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                   >
                     <LiveMarker position={addressCoords} kind="dropoff" label="Livrare aici" />
                   </MapView>
-                  <p className="flex items-center gap-1 bg-[#F7F7F8] px-3 py-1.5 text-[11px] text-[#6E6E80]">
+                  <p className="flex items-center gap-1 bg-[#F7F7F8] dark:bg-[#1F1F23] px-3 py-1.5 text-[11px] text-[#6E6E80] dark:text-[#A1A1AA]">
                     <MapPin size={12} /> {t("adjustPin")}
                   </p>
                 </div>
@@ -691,23 +691,23 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                 </p>
               )}
 
-              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("notesPlaceholder")} className="h-12 w-full rounded-xl border border-[#E5E5E5] px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("notesPlaceholder")} className="h-12 w-full rounded-xl border border-[#E5E5E5] dark:border-[#1F1F1F] dark:bg-transparent dark:text-white px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
 
-              <label className="flex items-center gap-2 text-xs font-medium text-[#6E6E80]">
+              <label className="flex items-center gap-2 text-xs font-medium text-[#6E6E80] dark:text-[#A1A1AA]">
                 <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="h-4 w-4 accent-[#2DBE60]" />
                 {t("saveAddress")}
               </label>
 
               {/* Bacșiș curier */}
               <div>
-                <p className="mb-1.5 text-xs font-black uppercase tracking-wide text-[#6E6E80]">{t("tipTitle")}</p>
+                <p className="mb-1.5 text-xs font-black uppercase tracking-wide text-[#6E6E80] dark:text-[#A1A1AA]">{t("tipTitle")}</p>
                 <div className="flex gap-2">
                   {TIP_PRESETS.map((p) => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => { haptic("tap"); setTipPct(p); setTipCustom(""); }}
-                      className={`h-10 flex-1 rounded-xl border text-sm font-bold ${!tipCustom && tipPct === p ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
+                      className={`h-10 flex-1 rounded-xl border text-sm font-bold dark:text-white ${!tipCustom && tipPct === p ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5] dark:border-[#1F1F1F]"}`}
                     >
                       {p === 0 ? t("noTip") : `${p}%`}
                     </button>
@@ -717,7 +717,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                     onChange={(e) => setTipCustom(e.target.value.replace(/[^\d.,]/g, ""))}
                     placeholder="Lei"
                     inputMode="decimal"
-                    className={`h-10 w-16 rounded-xl border px-2 text-center text-sm font-bold outline-none ${tipCustom ? "border-[#2DBE60]" : "border-[#E5E5E5]"}`}
+                    className={`h-10 w-16 rounded-xl border dark:bg-transparent dark:text-white px-2 text-center text-sm font-bold outline-none ${tipCustom ? "border-[#2DBE60]" : "border-[#E5E5E5] dark:border-[#1F1F1F]"}`}
                   />
                 </div>
               </div>
@@ -729,14 +729,14 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               <button
                 type="button"
                 onClick={() => setPayMethod("cash")}
-                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold ${payMethod === "cash" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold dark:text-white ${payMethod === "cash" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5] dark:border-[#1F1F1F]"}`}
               >
                 <Banknote size={16} />  {t("cashLaLivrare")}
               </button>
               <button
                 type="button"
                 onClick={() => setPayMethod("card_online")}
-                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold ${payMethod === "card_online" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5]"}`}
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold dark:text-white ${payMethod === "card_online" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5] dark:border-[#1F1F1F]"}`}
               >
                 <CreditCard size={16} /> Card online
               </button>

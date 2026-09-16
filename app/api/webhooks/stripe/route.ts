@@ -125,6 +125,19 @@ export async function POST(req: Request) {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Stripe Webhook] Handler failed:", msg);
+    // CRITIC (audit 2026-08-25): claim-ul de idempotenta a fost deja inserat.
+    // Daca handler-ul esueaza (ex. listLineItems da timeout) si lasam randul,
+    // retry-ul lui Stripe e tratat ca DUPLICAT si evenimentul se pierde
+    // definitiv — plata reusita, comanda nefinalizata. Eliberam claim-ul ca
+    // retry-ul sa poata reintra. (Handler-ele trebuie sa fie idempotente
+    // intern, ceea ce sunt — scriu cu ON CONFLICT / guards de stare.)
+    await dbQuery(
+      `DELETE FROM processed_stripe_events WHERE event_id = $1`,
+      [event.id],
+    ).catch((delErr) =>
+      logger.error({ err: delErr, eventId: event.id },
+        "[Stripe Webhook] failed to release idempotency claim — event may be stuck"),
+    );
     await logCheckoutEvent("webhook_fail", {
       error: msg || "Webhook handler failed",
       payload: { stage: "handler", eventType: event.type, eventId: event.id },

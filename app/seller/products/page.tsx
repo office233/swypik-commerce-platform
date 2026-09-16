@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import AddProductWizard from "./AddProductWizard";
+import ViralCatalogModal from "./ViralCatalogModal";
 import { useTranslations } from "next-intl";
-import { Tag } from "lucide-react";
+import { Tag, Sparkles, Plus } from "lucide-react";
 
 export default function SellerProductsPage() {
   const t = useTranslations("sellerProducts");
   const [isAdding, setIsAdding] = useState(false);
+  const [isViralModalOpen, setIsViralModalOpen] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,15 +39,30 @@ export default function SellerProductsPage() {
           <h1 className="text-2xl font-black text-[#0D0D0D]">{t("title")}</h1>
           <p className="text-sm text-[#6E6E80] mt-1">{t("subtitle")}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsAdding(true)}
-          aria-label={t("addAria")}
-          className="inline-flex items-center justify-center bg-[#0D0D0D] text-white px-5 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:bg-[#0D0D0D]/80 transition active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          + Adaugă Produs
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsViralModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:from-violet-700 hover:to-indigo-700 shadow-sm transition active:scale-95"
+          >
+            <Sparkles size={16} /> Produse Virale (0 Lei)
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsAdding(true)}
+            aria-label={t("addAria")}
+            className="inline-flex items-center justify-center gap-1 bg-[#0D0D0D] text-white px-5 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:bg-[#0D0D0D]/80 transition active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            <Plus size={16} /> Adaugă Produs
+          </button>
+        </div>
       </div>
+
+      <ViralCatalogModal
+        isOpen={isViralModalOpen}
+        onClose={() => setIsViralModalOpen(false)}
+        onProductImported={() => loadProducts()}
+      />
 
       <div className="bg-white rounded-2xl border border-[#E5E5E5] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">

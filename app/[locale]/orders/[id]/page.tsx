@@ -8,10 +8,10 @@ import { AlertTriangle, Check, CheckCircle2, Clock, CreditCard, Home, Inbox, Pac
 function buildStatusMap(t: (k: string) => string): Record<string, { label: string; color: string; icon: LucideIcon; step: number }> {
   return {
     pending: { label: t("statusPending"), color: "bg-yellow-100 text-yellow-800", icon: Clock, step: 1 },
-    paid: { label: t("statusPaid"), color: "bg-neutral-100 text-neutral-900", icon: CreditCard, step: 2 },
+    paid: { label: t("statusPaid"), color: "bg-neutral-100 dark:bg-[#1F1F23] text-neutral-900 dark:text-white", icon: CreditCard, step: 2 },
     fulfilled: { label: t("statusFulfilled"), color: "bg-blue-100 text-blue-800", icon: Package, step: 3 },
     shipped: { label: t("statusShipped"), color: "bg-purple-100 text-purple-800", icon: Truck, step: 3 },
-    delivered: { label: t("statusDelivered"), color: "bg-neutral-100 text-neutral-900", icon: CheckCircle2, step: 4 },
+    delivered: { label: t("statusDelivered"), color: "bg-neutral-100 dark:bg-[#1F1F23] text-neutral-900 dark:text-white", icon: CheckCircle2, step: 4 },
     return_requested: { label: t("statusReturnRequested"), color: "bg-orange-100 text-orange-800", icon: RotateCcw, step: 4 },
     cancelled: { label: t("statusCancelled"), color: "bg-red-100 text-red-800", icon: XCircle, step: 0 },
   };
@@ -55,10 +55,10 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#E5E5E5] border-t-[#0D0D0D] rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-sm font-medium text-[#6E6E80]">{t("seIncarcaComanda")}</p>
+          <div className="w-12 h-12 border-4 border-[#E5E5E5] dark:border-[#1F1F1F] border-t-[#0D0D0D] dark:border-t-white rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA]">{t("seIncarcaComanda")}</p>
         </div>
       </div>
     );
@@ -66,12 +66,12 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="mb-4 flex justify-center text-[#A1A1AA]"><Inbox size={56} /></div>
-          <h1 className="text-2xl font-black text-[#0D0D0D]">{t("comandaNuAFost")}</h1>
-          <p className="mt-2 text-sm text-[#6E6E80]">{error || t("verificaLinkulSauContacteazaSuportul")}</p>
-          <Link href="/" className="mt-6 inline-block rounded-xl bg-[#0D0D0D] px-6 py-3 text-sm font-bold text-white">
+          <h1 className="text-2xl font-black text-[#0D0D0D] dark:text-white">{t("comandaNuAFost")}</h1>
+          <p className="mt-2 text-sm text-[#6E6E80] dark:text-[#A1A1AA]">{error || t("verificaLinkulSauContacteazaSuportul")}</p>
+          <Link href="/" className="mt-6 inline-block rounded-xl bg-[#0D0D0D] dark:bg-white px-6 py-3 text-sm font-bold text-white dark:text-black">
 
             {t("inapoiLaMagazin")}
           </Link>
@@ -122,24 +122,24 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8]">
+    <div className="min-h-screen bg-[#F7F7F8] dark:bg-black">
       {/* Header */}
-      <header className="bg-white border-b border-[#E5E5E5] px-4 py-4">
+      <header className="bg-white dark:bg-black border-b border-[#E5E5E5] dark:border-[#1F1F1F] px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-lg font-black text-[#0D0D0D]">Swypik</Link>
-          <span className="text-xs font-bold text-[#6E6E80] uppercase tracking-widest">{t("urmarireComanda")}</span>
+          <Link href="/" className="text-lg font-black text-[#0D0D0D] dark:text-white">Swypik</Link>
+          <span className="text-xs font-bold text-[#6E6E80] dark:text-[#A1A1AA] uppercase tracking-widest">{t("urmarireComanda")}</span>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Order ID + Status */}
         <div className="text-center mb-8">
-          <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1">{t("comanda")}</p>
-          <h1 className="text-2xl font-black text-[#0D0D0D]">#{order.id.split("-")[0]}</h1>
+          <p className="text-xs font-bold text-[#6E6E80] dark:text-[#A1A1AA] uppercase tracking-widest mb-1">{t("comanda")}</p>
+          <h1 className="text-2xl font-black text-[#0D0D0D] dark:text-white">#{order.id.split("-")[0]}</h1>
           <span className={`mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold ${statusInfo.color}`}>
             <statusInfo.icon size={15} /> {statusInfo.label}
           </span>
-          <p className="mt-2 text-xs text-[#6E6E80]">
+          <p className="mt-2 text-xs text-[#6E6E80] dark:text-[#A1A1AA]">
 
             {t("plasataPe")} {new Date(order.createdAt).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>
@@ -147,12 +147,12 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
 
         {/* Progress Steps */}
         {!isCancelled && (
-          <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
+          <div className="bg-white dark:bg-[#111113] rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] p-6 mb-6 shadow-sm">
             <div className="flex items-center justify-between relative">
               {/* Progress line */}
-              <div className="absolute top-5 left-[10%] right-[10%] h-1 bg-[#E5E5E5] rounded-full">
+              <div className="absolute top-5 left-[10%] right-[10%] h-1 bg-[#E5E5E5] dark:bg-[#1F1F23] rounded-full">
                 <div
-                  className="h-full bg-[#0D0D0D] rounded-full transition-all duration-700"
+                  className="h-full bg-[#0D0D0D] dark:bg-white rounded-full transition-all duration-700"
                   style={{ width: `${Math.min(100, ((currentStep - 1) / (STEPS.length - 1)) * 100)}%` }}
                 />
               </div>
@@ -160,12 +160,12 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
               {STEPS.map((step, i) => (
                 <div key={step.label} className="relative z-10 flex flex-col items-center" style={{ width: "25%" }}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-all ${i + 1 <= currentStep
-                      ? "bg-[#0D0D0D] border-[#0D0D0D] text-white shadow-md"
-                      : "bg-white border-[#E5E5E5] text-[#A1A1AA]"
+                      ? "bg-[#0D0D0D] dark:bg-white border-[#0D0D0D] dark:border-white text-white dark:text-black shadow-md"
+                      : "bg-white dark:bg-[#111113] border-[#E5E5E5] dark:border-[#1F1F1F] text-[#A1A1AA]"
                     }`}>
                     {i + 1 <= currentStep ? <Check size={18} /> : <step.icon size={18} />}
                   </div>
-                  <p className={`mt-2 text-[11px] font-bold text-center ${i + 1 <= currentStep ? "text-[#0D0D0D]" : "text-[#A1A1AA]"
+                  <p className={`mt-2 text-[11px] font-bold text-center ${i + 1 <= currentStep ? "text-[#0D0D0D] dark:text-white" : "text-[#A1A1AA]"
                     }`}>
                     {step.label}
                   </p>
@@ -177,19 +177,19 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
 
         {/* Tracking Number */}
         {order.trackingNumber && (
-          <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
-            <h2 className="text-base font-black text-[#0D0D0D] mb-3">{t("codDeUrmarire")}</h2>
-            <div className="flex items-center gap-3 bg-[#F7F7F8] rounded-xl p-4">
+          <div className="bg-white dark:bg-[#111113] rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] p-6 mb-6 shadow-sm">
+            <h2 className="text-base font-black text-[#0D0D0D] dark:text-white mb-3">{t("codDeUrmarire")}</h2>
+            <div className="flex items-center gap-3 bg-[#F7F7F8] dark:bg-[#1F1F23] rounded-xl p-4">
               <div className="flex-1">
-                <p className="text-lg font-black font-mono text-[#0D0D0D]">{order.trackingNumber}</p>
-                <p className="text-xs text-[#6E6E80] mt-0.5">{t("folosesteAcestCodPe")}</p>
+                <p className="text-lg font-black font-mono text-[#0D0D0D] dark:text-white">{order.trackingNumber}</p>
+                <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA] mt-0.5">{t("folosesteAcestCodPe")}</p>
               </div>
               {order.trackingUrl && (
                 <a
                   href={order.trackingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 rounded-lg bg-[#0D0D0D] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0E906F] transition"
+                  className="shrink-0 rounded-lg bg-[#0D0D0D] dark:bg-white px-4 py-2.5 text-xs font-bold text-white dark:text-black hover:bg-[#0E906F] transition"
                 >
 
                   {t("urmareste")}
@@ -200,32 +200,32 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         )}
 
         {/* Items */}
-        <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
-          <h2 className="text-base font-black text-[#0D0D0D] mb-4">{t("produseComandate")}</h2>
+        <div className="bg-white dark:bg-[#111113] rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] p-6 mb-6 shadow-sm">
+          <h2 className="text-base font-black text-[#0D0D0D] dark:text-white mb-4">{t("produseComandate")}</h2>
           <div className="space-y-3">
             {(order.items || []).map((item: any, i: number) => (
-              <div key={i} className="flex justify-between items-center py-2 border-b border-[#F7F7F8] last:border-0">
+              <div key={i} className="flex justify-between items-center py-2 border-b border-[#F7F7F8] dark:border-[#1F1F1F] last:border-0">
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-[#0D0D0D] line-clamp-1">{item.title}</p>
-                  <p className="text-xs text-[#6E6E80]">{t("cantitate")}: {item.quantity}</p>
+                  <p className="text-sm font-bold text-[#0D0D0D] dark:text-white line-clamp-1">{item.title}</p>
+                  <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{t("cantitate")}: {item.quantity}</p>
                 </div>
-                <p className="text-sm font-black text-[#0D0D0D] shrink-0 ml-4">
+                <p className="text-sm font-black text-[#0D0D0D] dark:text-white shrink-0 ml-4">
                   {Number(item.unit_price * item.quantity).toFixed(2)} lei
                 </p>
               </div>
             ))}
           </div>
-          <div className="mt-4 pt-4 border-t border-[#E5E5E5] flex justify-between items-center">
-            <span className="text-base font-black text-[#0D0D0D]">{t("total")}</span>
-            <span className="text-xl font-black text-[#0D0D0D]">{Number(order.totalRon).toFixed(2)} lei</span>
+          <div className="mt-4 pt-4 border-t border-[#E5E5E5] dark:border-[#1F1F1F] flex justify-between items-center">
+            <span className="text-base font-black text-[#0D0D0D] dark:text-white">{t("total")}</span>
+            <span className="text-xl font-black text-[#0D0D0D] dark:text-white">{Number(order.totalRon).toFixed(2)} lei</span>
           </div>
         </div>
 
         {/* Shipping Address */}
         {order.shipping && (
-          <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
-            <h2 className="text-base font-black text-[#0D0D0D] mb-3">{t("adresaDeLivrare")}</h2>
-            <div className="text-sm text-[#0D0D0D]">
+          <div className="bg-white dark:bg-[#111113] rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] p-6 mb-6 shadow-sm">
+            <h2 className="text-base font-black text-[#0D0D0D] dark:text-white mb-3">{t("adresaDeLivrare")}</h2>
+            <div className="text-sm text-[#0D0D0D] dark:text-white">
               <p className="font-bold">{order.shipping.name}</p>
               <p>{order.shipping.line1}</p>
               {order.shipping.line2 && <p>{order.shipping.line2}</p>}
@@ -252,12 +252,12 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         )}
 
         {returnSuccess && !isReturnRequested && (
-          <div className="bg-neutral-100 rounded-2xl border border-neutral-100 p-6 mb-6 shadow-sm">
+          <div className="bg-neutral-100 dark:bg-[#1F1F23] rounded-2xl border border-neutral-100 dark:border-[#1F1F1F] p-6 mb-6 shadow-sm">
             <div className="flex items-center gap-3">
-              <CheckCircle2 size={28} className="text-neutral-900" />
+              <CheckCircle2 size={28} className="text-neutral-900 dark:text-white" />
               <div>
-                <h2 className="text-base font-black text-neutral-900">{t("cerereTrimisaCuSucces")}</h2>
-                <p className="text-sm text-neutral-900 mt-0.5">
+                <h2 className="text-base font-black text-neutral-900 dark:text-white">{t("cerereTrimisaCuSucces")}</h2>
+                <p className="text-sm text-neutral-900 dark:text-white mt-0.5">
 
                   {t("vomAnalizaCerereaTa")}
                 </p>
@@ -267,7 +267,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         )}
 
         {isReturnable && !returnSuccess && (
-          <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 mb-6 shadow-sm">
+          <div className="bg-white dark:bg-[#111113] rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] p-6 mb-6 shadow-sm">
             {!showReturnForm ? (
               <button
                 id="btn-request-return"
@@ -279,17 +279,17 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-black text-[#0D0D0D]">{t("solicitaRetur2")}</h2>
+                  <h2 className="text-base font-black text-[#0D0D0D] dark:text-white">{t("solicitaRetur2")}</h2>
                   <button
                     onClick={() => { setShowReturnForm(false); setReturnError(null); }}
-                    className="text-xs font-bold text-[#6E6E80] hover:text-[#0D0D0D] transition"
+                    className="text-xs font-bold text-[#6E6E80] dark:text-[#A1A1AA] hover:text-[#0D0D0D] dark:hover:text-white transition"
                   >
 
                     {t("anuleaza")}
                   </button>
                 </div>
                 <div>
-                  <label htmlFor="return-reason" className="block text-sm font-bold text-[#0D0D0D] mb-1.5">
+                  <label htmlFor="return-reason" className="block text-sm font-bold text-[#0D0D0D] dark:text-white mb-1.5">
                     {t("motivulReturului")}
                   </label>
                   <textarea
@@ -298,7 +298,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                     value={returnReason}
                     onChange={(e) => setReturnReason(e.target.value)}
                     placeholder={t("descrieMotivulPentruCare")}
-                    className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm text-[#0D0D0D] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D] focus:border-transparent resize-none transition"
+                    className="w-full rounded-xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-[#F7F7F8] dark:bg-[#1F1F23] px-4 py-3 text-sm text-[#0D0D0D] dark:text-white placeholder-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#0D0D0D] dark:focus:ring-white focus:border-transparent resize-none transition"
                   />
                 </div>
                 {returnError && (
@@ -330,7 +330,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         <div className="text-center mt-8">
           <Link
             href="/"
-            className="inline-block rounded-xl bg-[#0D0D0D] px-8 py-4 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+            className="inline-block rounded-xl bg-[#0D0D0D] dark:bg-white px-8 py-4 text-sm font-bold text-white dark:text-black transition-transform active:scale-[0.98]"
           >
 
             {t("inapoiLaMagazin2")}

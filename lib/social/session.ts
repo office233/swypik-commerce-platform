@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { dbQuery } from "@/lib/db";
+import { isSessionTokenFormat } from "@/lib/auth/session";
 
 export const ANON_SESSION_COOKIE = "anon_session";
 
@@ -74,13 +75,25 @@ function parseSignedAnon(value: string | undefined | null): string | null {
   return uuid;
 }
 
+/** Cât de rar rescriem `last_seen_at` pentru aceeași sesiune (vezi mai jos). */
+const LAST_SEEN_REFRESH = "15 minutes";
+
 async function ensureUuidUser(userId: string, source: string): Promise<string> {
   const username = usernameFromSeed(source, userId);
+  // 2026-08-24 (audit perf): această funcție rulează la FIECARE cerere a unui
+  // vizitator anonim, inclusiv la fiecare pagină de feed. Un UPDATE
+  // necondiționat însemna, pe cea mai fierbinte cale de citire din aplicație, o
+  // tuplă moartă + WAL + actualizarea indexurilor de fiecare dată. Acum
+  // rescriem doar dacă marcajul chiar e vechi; când nu se face UPDATE,
+  // `RETURNING` nu întoarce nimic, dar conflictul e chiar pe `id`, deci rândul
+  // există și id-ul cerut e cel corect.
   const { rows } = await dbQuery<{ id: string }>(
     `INSERT INTO users (id, external_auth_id, username, display_name, locale, role, metadata, last_seen_at)
      VALUES ($1, $2, $3, $4, 'ro', 'shopper', $5::jsonb, NOW())
      ON CONFLICT (id)
      DO UPDATE SET last_seen_at = NOW()
+       WHERE users.last_seen_at IS NULL
+          OR users.last_seen_at < NOW() - INTERVAL '${LAST_SEEN_REFRESH}'
      RETURNING id`,
     [
       userId,
@@ -91,16 +104,18 @@ async function ensureUuidUser(userId: string, source: string): Promise<string> {
     ],
   );
 
-  return rows[0].id;
+  return rows[0]?.id ?? userId;
 }
 
 async function resolveUserSession(sessionToken: string): Promise<string | null> {
+  if (!isSessionTokenFormat(sessionToken)) return null;
   try {
     // New path: hashed token lookup in user_sessions (from new auth flow)
     const tokenHash = crypto.createHash("sha256").update(sessionToken).digest("hex");
     const { rows } = await dbQuery<{ user_id: string }>(
       `SELECT user_id FROM user_sessions
        WHERE session_token_hash = $1
+         AND COALESCE(metadata->>'type', 'session') = 'session'
          AND expires_at > NOW()
          AND revoked_at IS NULL
          AND user_id IN (
@@ -170,6 +185,20 @@ async function resolveExistingSocialUser(cookieStore: CookieStore): Promise<stri
 export async function getOptionalSocialUserId(): Promise<string | null> {
   const cookieStore = await cookies();
   return resolveExistingSocialUser(cookieStore);
+}
+
+/**
+ * Id-ul user-ului anonim (shell) din cookie-ul `anon_session`, dacă există și
+ * e valid criptografic + confirmat ca shell anonim în DB. Folosit la login
+ * pentru migrarea activității anonime (like-uri, salvări, follow-uri) către
+ * contul real — fără asta, tot ce a apreciat vizitatorul dispărea la
+ * autentificare (audit 2026-08-25).
+ */
+export async function getAnonShellUserId(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const verified = parseSignedAnon(cookieStore.get(ANON_SESSION_COOKIE)?.value);
+  if (!verified) return null;
+  return (await isAnonUser(verified)) ? verified : null;
 }
 
 export async function getOrCreateSocialUser(): Promise<SocialUserSession> {

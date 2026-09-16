@@ -12,7 +12,7 @@ import { setUserFraudBlock } from "@/lib/risk/user-block";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const ok = (await hasAdminSession()) || isAdminRequest(req);
+  const ok = (await hasAdminSession()) || (await isAdminRequest(req));
   if (!ok) return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
 
   const { id: userId } = await params;

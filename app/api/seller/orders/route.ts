@@ -33,6 +33,35 @@ export async function GET(req: Request) {
         tracking_url?: string;
         latest_tracking_number?: string;
         latest_tracking_url?: string;
+        tracking_carrier?: string;
+        shipping_method?: string;
+        delivery_method?: string;
+        courier?: string;
+        shipping_address?: {
+          name?: string;
+          line1?: string;
+          line2?: string;
+          city?: string;
+          state?: string;
+          postal_code?: string;
+          country?: string;
+          phone?: string;
+        } | null;
+        customer_name?: string;
+        customer_email?: string;
+        customer_phone?: string;
+        easybox_locker?: string;
+        awb_details?: {
+          awb_number?: string;
+          carrier?: string;
+          courier_code?: string;
+          parcels_count?: number;
+          weight_kg?: number;
+          notes?: string;
+          locker_name?: string;
+          generated_at?: string;
+          tracking_url?: string;
+        } | null;
         return_reason?: string;
         return_requested_at?: string;
       } | null;
@@ -74,27 +103,67 @@ export async function GET(req: Request) {
       const itemTracking = items.find((i) => i.metadata?.tracking_number)?.metadata?.tracking_number;
       const itemTrackingUrl = items.find((i) => i.metadata?.tracking_url)?.metadata?.tracking_url;
 
+      const rawMethod =
+        row.order_meta?.shipping_method ||
+        row.order_meta?.delivery_method ||
+        row.order_meta?.tracking_carrier ||
+        row.order_meta?.awb_details?.carrier;
+
+      const addressStr = `${row.order_meta?.shipping_address?.line1 || ""} ${row.order_meta?.shipping_address?.line2 || ""}`;
+      let detectedMethod = "Livrare Standard";
+      if (rawMethod) {
+        detectedMethod = rawMethod;
+      } else if (row.order_meta?.easybox_locker || /easybox|sameday\s*box/i.test(addressStr)) {
+        detectedMethod = "Sameday Easybox";
+      } else if (/fan\s*courier|fan\s*box/i.test(addressStr)) {
+        detectedMethod = "Fan Courier";
+      }
+
+      const activeTracking =
+        itemTracking ||
+        row.order_meta?.awb_details?.awb_number ||
+        row.order_meta?.tracking_number ||
+        row.order_meta?.latest_tracking_number ||
+        null;
+
+      const activeTrackingUrl =
+        itemTrackingUrl ||
+        row.order_meta?.awb_details?.tracking_url ||
+        row.order_meta?.tracking_url ||
+        row.order_meta?.latest_tracking_url ||
+        null;
+
       let status: string;
       if (row.order_status === "return_requested" || row.order_status === "refunded") {
         status = row.order_status;
+      } else if (allFulfilled || Boolean(activeTracking)) {
+        status = "fulfilled";
       } else {
-        status = allFulfilled ? "fulfilled" : "pending_seller_action";
+        status = "pending_seller_action";
       }
 
       const statusInfo = deriveOrderStatus({
         status: row.order_status,
         fulfillmentStatus: status,
         metadata: row.order_meta,
-        trackingNumber: itemTracking || row.order_meta?.tracking_number,
+        trackingNumber: activeTracking || undefined,
       });
 
       return {
         ...row,
         status,
-        status_label: statusInfo.label,
+        status_label: status === "fulfilled" ? "Expediat" : statusInfo.label,
         order_metadata: {
-          tracking_number: itemTracking || row.order_meta?.tracking_number || row.order_meta?.latest_tracking_number || null,
-          tracking_url: itemTrackingUrl || row.order_meta?.tracking_url || row.order_meta?.latest_tracking_url || null,
+          tracking_number: activeTracking,
+          tracking_url: activeTrackingUrl,
+          tracking_carrier: row.order_meta?.tracking_carrier || row.order_meta?.awb_details?.carrier || detectedMethod,
+          shipping_method: detectedMethod,
+          shipping_address: row.order_meta?.shipping_address || null,
+          customer_name: row.order_meta?.shipping_address?.name || row.order_meta?.customer_name || null,
+          customer_email: row.order_meta?.customer_email || null,
+          customer_phone: row.order_meta?.customer_phone || row.order_meta?.shipping_address?.phone || null,
+          easybox_locker: row.order_meta?.easybox_locker || row.order_meta?.awb_details?.locker_name || null,
+          awb_details: row.order_meta?.awb_details || null,
           return_reason: row.order_meta?.return_reason || null,
           return_requested_at: row.order_meta?.return_requested_at || null,
         },

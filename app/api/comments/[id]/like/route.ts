@@ -13,6 +13,7 @@ import {
 } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { UUID_RE } from "@/lib/validation/uuid";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export async function POST(
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
     const { id: commentId } = await params;
+    if (!UUID_RE.test(commentId)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
 
     const rl = await rateLimit("commentLike", userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
@@ -105,7 +107,7 @@ export async function POST(
               actorUserId: userId,
               targetType: "comment",
               targetId: commentId,
-              payload: { url: vid ? `/v/${vid}` : "/notifications" },
+              payload: { url: vid ? `/explore?v=${vid}` : "/notifications" },
             }).catch(() => undefined);
           }
         } catch {

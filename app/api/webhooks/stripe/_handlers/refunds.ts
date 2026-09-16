@@ -10,33 +10,56 @@ export async function handleChargeRefunded(event: Stripe.Event) {
   const charge = event.data.object as Stripe.Charge;
   const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
   if (pi) {
+    // CRITIC (audit 2026-08-25): un refund PARȚIAL (ex. 20 RON dintr-o comandă
+    // de 300, acordat din Dashboard pentru un singur item defect) marca TOATĂ
+    // comanda `refunded` — stare terminală care oprea payout-urile celorlalți
+    // selleri, anula itemele încă nelivrate și revoca toate recompensele SWYP.
+    // Distingem parțial de total după suma refundată vs suma încasată.
+    const isFullRefund =
+      typeof charge.amount === "number" && charge.amount > 0
+        ? (charge.amount_refunded || 0) >= charge.amount
+        : true; // fără sumă cunoscută, tratăm conservator ca refund total
+    const orderStatus = isFullRefund ? "refunded" : "partially_refunded";
+
     await dbQuery(
-      "UPDATE commerce_orders SET status = 'refunded' WHERE metadata->>'paymentIntentId' = $1 OR metadata->>'payment_intent_id' = $1 OR metadata->>'stripe_payment_intent' = $1",
-      [pi]
+      `UPDATE commerce_orders
+          SET status = $2,
+              metadata = metadata || jsonb_build_object(
+                'refund_amount_cents', $3::int,
+                'last_refund_event_id', $4::text,
+                'last_refund_at', now()::text
+              )
+        WHERE metadata->>'paymentIntentId' = $1
+           OR metadata->>'payment_intent_id' = $1
+           OR metadata->>'stripe_payment_intent' = $1`,
+      [pi, orderStatus, charge.amount_refunded || 0, event.id]
     );
 
-    // Anulează itemele nelivrate la refund. ('pending_dropship' rămâne
-    // în filtru doar pentru rânduri istorice — fluxul dropship a fost eliminat.)
-    await dbQuery(
-      `UPDATE commerce_order_items coi
-       SET
-         source_status = CASE
-           WHEN coi.source_status IN ('pending', 'pending_dropship', 'pending_seller_action')
-             THEN 'cancelled'
-           ELSE coi.source_status
-         END,
-         metadata = coi.metadata || jsonb_build_object(
-           'refund_event_id', $2::text,
-           'refunded_at', now()::text,
-           'refund_amount_cents', $3::int
-         )
-       FROM commerce_orders co
-       WHERE coi.order_id = co.id
-         AND (co.metadata->>'paymentIntentId' = $1
-              OR co.metadata->>'payment_intent_id' = $1
-              OR co.metadata->>'stripe_payment_intent' = $1)`,
-      [pi, event.id, charge.amount_refunded || 0]
-    );
+    // Itemele se anulează DOAR la refund total. La refund parțial (bunăvoință
+    // pentru un singur produs) restul comenzii se onorează normal, iar
+    // payout-urile celorlalți selleri nu se blochează.
+    if (isFullRefund) {
+      await dbQuery(
+        `UPDATE commerce_order_items coi
+         SET
+           source_status = CASE
+             WHEN coi.source_status IN ('pending', 'pending_dropship', 'pending_seller_action')
+               THEN 'cancelled'
+             ELSE coi.source_status
+           END,
+           metadata = coi.metadata || jsonb_build_object(
+             'refund_event_id', $2::text,
+             'refunded_at', now()::text,
+             'refund_amount_cents', $3::int
+           )
+         FROM commerce_orders co
+         WHERE coi.order_id = co.id
+           AND (co.metadata->>'paymentIntentId' = $1
+                OR co.metadata->>'payment_intent_id' = $1
+                OR co.metadata->>'stripe_payment_intent' = $1)`,
+        [pi, event.id, charge.amount_refunded || 0]
+      );
+    }
 
     // SWYP: revocă recompensele acordate pentru plata refundată.
     await onPaymentRefunded(pi);

@@ -35,7 +35,7 @@ export const STAY_CITIES: StayCity[] = [
     { slug: "istanbul", name: "Istanbul", country: "Turcia", lat: 41.0082, lng: 28.9784 },
     { slug: "antalya", name: "Antalya", country: "Turcia", lat: 36.8969, lng: 30.7133 },
     { slug: "dubai", name: "Dubai", country: "EAU", lat: 25.2048, lng: 55.2708 },
-    { slug: "viena2", name: "Zürich", country: "Elveția", lat: 47.3769, lng: 8.5417, aliases: ["zurich"] },
+    { slug: "zurich", name: "Zürich", country: "Elveția", lat: 47.3769, lng: 8.5417, aliases: ["zurich"] },
     { slug: "nisa", name: "Nisa", country: "Franța", lat: 43.7102, lng: 7.262, aliases: ["nice"] },
     { slug: "dubrovnik", name: "Dubrovnik", country: "Croația", lat: 42.6507, lng: 18.0944 },
     { slug: "split", name: "Split", country: "Croația", lat: 43.5081, lng: 16.4402 },
