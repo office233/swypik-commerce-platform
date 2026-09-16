@@ -125,11 +125,11 @@ export default function MapView({
       zoomControl={false}
       attributionControl={false}
     >
-      {/* CartoDB Voyager — design ultra-curat stil Apple Maps / Uber / Bolt, fără elemente redundante */}
+      {/* OpenStreetMap Humanitarian (HOT) — plăci curate, pastelate, fără watermark API KEY */}
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
-        maxZoom={20}
+        url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
+        subdomains="abc"
+        maxZoom={19}
       />
       <MapController flyTo={flyTo} fitBounds={fitBounds} />
       {onMapClick && <ClickCapture onMapClick={onMapClick} />}

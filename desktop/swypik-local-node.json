@@ -197,6 +197,13 @@
       "tvaRon": 21,
       "paymentMethod": "cash",
       "recordedAt": "2026-09-16T12:42:44.827Z"
+    },
+    {
+      "receiptNumber": "POS-TEST-100",
+      "totalRon": 121,
+      "tvaRon": 21,
+      "paymentMethod": "cash",
+      "recordedAt": "2026-09-16T12:56:55.274Z"
     }
   ],
   "syncStatus": {

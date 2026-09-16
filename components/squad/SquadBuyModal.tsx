@@ -157,7 +157,7 @@ export function SquadBuyModal({ isOpen, onClose, product }: SquadBuyModalProps) 
         <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 mb-5">
           {product.image && (
             <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-white/10">
-              <Image src={product.image} alt={product.title} fill className="object-cover" />
+              <img src={product.image} alt={product.title} className="w-full h-full object-cover" />
             </div>
           )}
           <div className="min-w-0 flex-1">

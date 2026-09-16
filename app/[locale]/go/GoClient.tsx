@@ -368,7 +368,7 @@ export default function GoClient() {
       </div>
 
       {/* Panou de comandă inferior — stil Uber / Bolt Super-App */}
-      <div className="z-10 rounded-t-3xl bg-white p-4 sm:p-5 pb-6 shadow-[0_-12px_40px_rgba(0,0,0,0.14)] border-t border-neutral-100 max-h-[66vh] overflow-y-auto">
+      <div className="z-10 rounded-t-3xl bg-white p-4 sm:p-5 pb-24 sm:pb-28 shadow-[0_-12px_40px_rgba(0,0,0,0.14)] border-t border-neutral-100 max-h-[66vh] overflow-y-auto">
         {/* Indicator drag / mânere */}
         <div className="w-10 h-1 rounded-full bg-neutral-200 mx-auto mb-3" />
 
