@@ -797,7 +797,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
               </button>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(84px, calc(72px + env(safe-area-inset-bottom)))" }}>
               <div className="mb-3">
                 <div className="mb-1 flex flex-wrap items-center gap-1.5">
                   <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">{aiOverlay(product)}</span>
