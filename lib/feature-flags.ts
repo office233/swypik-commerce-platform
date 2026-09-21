@@ -29,6 +29,8 @@ export const FEATURES = {
   // Squad Buy: grupurile se formează, dar NIMIC nu aplică prețul redus la
   // checkout și nu se reține niciun ban — OFF până există integrarea cu plata.
   squadBuy: flag('FEATURE_SQUAD_BUY', false),
+  // Swypik Movies — OFF până există primul serial publicat.
+  movies: flag('FEATURE_MOVIES', false),
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

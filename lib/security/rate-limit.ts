@@ -213,6 +213,12 @@ export const RATE_LIMITS = {
   sellerPos: { limit: 60, window: 60 } as RateLimitConfig,
   sellerNode: { limit: 12, window: 60 } as RateLimitConfig,   // heartbeat la 15s → 4/min + marjă
   mysteryDrop: { limit: 5, window: 60 } as RateLimitConfig,
+  // Swypik Movies
+  moviesCatalog: { limit: 60, window: 60 } as RateLimitConfig,
+  moviesUnlock: { limit: 10, window: 60 } as RateLimitConfig,
+  moviesProgress: { limit: 60, window: 60 } as RateLimitConfig,
+  moviesStream: { limit: 600, window: 60 } as RateLimitConfig,  // segmente HLS: ~1 req/2s + marjă
+  moviesPublish: { limit: 5, window: 3600 } as RateLimitConfig,
 } as const;
 
 /**

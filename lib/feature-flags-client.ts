@@ -21,6 +21,7 @@ export const CLIENT_FEATURES = {
   tryOn: flag('NEXT_PUBLIC_FEATURE_TRY_ON', false),
   // Trebuie setat ÎMPREUNĂ cu FEATURE_SQUAD_BUY (server) — vezi lib/feature-flags.ts.
   squadBuy: flag('NEXT_PUBLIC_FEATURE_SQUAD_BUY', false),
+  movies: flag('NEXT_PUBLIC_FEATURE_MOVIES', false),
 } as const;
 
 export type ClientFeatureName = keyof typeof CLIENT_FEATURES;
