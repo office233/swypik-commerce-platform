@@ -2,6 +2,7 @@
  * POST /api/squad/[id]/join — alăturare într-un squad existent
  */
 import { NextResponse } from "next/server";
+import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { getAuthSession } from "@/lib/auth/session";
 import { joinSquadGroup } from "@/lib/squad/engine";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -19,6 +20,7 @@ export async function POST(
     req: Request,
     { params }: { params: Promise<{ id: string }> },
 ) {
+    if (!isEnabled("squadBuy")) return frozenResponse("squadBuy");
     const { id } = await params;
     const session = await getAuthSession().catch(() => null);
     const rl = await rateLimit("squad:join", session?.userId ?? req.headers.get("cf-connecting-ip") ?? "anon");

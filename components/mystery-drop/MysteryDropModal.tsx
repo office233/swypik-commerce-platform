@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -38,6 +39,7 @@ function writeLastDrop(): void {
 
 export function MysteryDropModal() {
   const router = useRouter();
+  const t = useTranslations("mysteryDrop");
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [reward, setReward] = useState<MysteryDropReward | null>(null);
@@ -87,10 +89,10 @@ export function MysteryDropModal() {
         }
         if (data.alreadyClaimed) {
           writeLastDrop();
-          setNotice("Ai deschis deja cutia de azi. Revino mâine!");
+          setNotice(t("alreadyClaimed"));
           return;
         }
-        setNotice("Cutia zilei nu este disponibilă momentan. Încearcă mai târziu.");
+        setNotice(t("unavailable"));
         return;
       }
 
@@ -99,7 +101,7 @@ export function MysteryDropModal() {
       playMysteryUnboxSound();
       triggerConfetti();
     } catch {
-      setNotice("A apărut o eroare de conexiune.");
+      setNotice(t("connectionError"));
     } finally {
       setLoading(false);
     }
@@ -108,9 +110,9 @@ export function MysteryDropModal() {
   const handleShare = () => {
     playVictorySound();
     const url = `${APP_URL}/`;
-    const text = reward ? `Am primit ${reward.swypAmount} SWYP din cutia zilnică Swypik. Deschide și tu:` : "";
+    const text = reward ? t("shareText", { amount: reward.swypAmount }) : "";
     if (navigator.share) {
-      navigator.share({ title: "Swypik Mystery Drop", text, url }).catch(() => {});
+      navigator.share({ title: t("shareTitle"), text, url }).catch(() => {});
     } else {
       void navigator.clipboard.writeText(url);
       setCopied(true);
@@ -126,7 +128,7 @@ export function MysteryDropModal() {
         className="fixed bottom-24 left-4 z-30 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-pink-500 text-white font-black text-xs shadow-xl hover:scale-105 active:scale-95 transition-all ring-2 ring-white/20"
       >
         <span className="text-base">🎁</span>
-        <span>Cutia Zilei</span>
+        <span>{t("pill")}</span>
       </button>
 
       {isOpen && (
@@ -139,7 +141,7 @@ export function MysteryDropModal() {
               type="button"
               onClick={() => setIsOpen(false)}
               className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-neutral-400 hover:text-white transition"
-              aria-label="Închide"
+              aria-label={t("close")}
             >
               <X size={16} />
             </button>
@@ -153,7 +155,7 @@ export function MysteryDropModal() {
                 <div>
                   <h3 className="text-xl font-black text-white">+{reward.swypAmount} SWYP</h3>
                   <p className="text-xs text-neutral-300 mt-1.5 leading-relaxed bg-white/5 p-3 rounded-xl border border-white/10">
-                    Monedele au fost creditate în portofelul tău Swypik Pay.
+                    {t("credited")}
                   </p>
                 </div>
                 <div className="space-y-2 pt-1">
@@ -163,27 +165,27 @@ export function MysteryDropModal() {
                     className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2"
                   >
                     <Share2 size={16} />
-                    {copied ? "Link copiat!" : "Spune-le prietenilor"}
+                    {copied ? t("linkCopied") : t("tellFriends")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
                     className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-black text-xs transition"
                   >
-                    Închide
+                    {t("close")}
                   </button>
                 </div>
               </div>
             ) : isAuthenticated === false ? (
               <div className="space-y-4 py-3 animate-in fade-in duration-200">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[11px] font-black uppercase tracking-wider">
-                  <Lock size={12} /> Doar pentru membri
+                  <Lock size={12} /> {t("membersOnly")}
                 </div>
                 <div className="text-6xl my-3 select-none filter drop-shadow-[0_10px_20px_rgba(245,158,11,0.3)]">🎁</div>
                 <div>
-                  <h3 className="text-xl font-black tracking-tight">Cutia zilei este pentru conturi Swypik</h3>
+                  <h3 className="text-xl font-black tracking-tight">{t("membersTitle")}</h3>
                   <p className="text-xs text-neutral-300 mt-2 max-w-xs mx-auto leading-relaxed">
-                    Conectează-te sau creează un cont gratuit pentru a primi monedele SWYP de azi.
+                    {t("membersBody")}
                   </p>
                 </div>
                 <button
@@ -194,22 +196,22 @@ export function MysteryDropModal() {
                   }}
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-neutral-950 font-black text-sm shadow-lg shadow-amber-500/25 transition flex items-center justify-center gap-2"
                 >
-                  <span>Conectează-te / Înregistrare</span>
+                  <span>{t("loginCta")}</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
             ) : (
               <div className="space-y-4 py-3">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-[11px] font-black uppercase tracking-wider">
-                  <Sparkles size={12} /> 1 drop gratuit zilnic
+                  <Sparkles size={12} /> {t("dailyFree")}
                 </div>
                 <button type="button" className="relative my-4 block w-full" onClick={handleOpenBox} disabled={loading}>
                   <div className="text-7xl animate-pulse select-none filter drop-shadow-[0_10px_20px_rgba(245,158,11,0.4)]">🎁</div>
-                  <div className="text-xs text-amber-300 font-bold mt-2">Apasă pentru a deschide</div>
+                  <div className="text-xs text-amber-300 font-bold mt-2">{t("tapToOpen")}</div>
                 </button>
                 <div>
-                  <h3 className="text-xl font-black tracking-tight">Cutia Misterioasă Swypik</h3>
-                  <p className="text-xs text-neutral-400 mt-1 max-w-xs mx-auto">Primești garantat monede SWYP în portofel.</p>
+                  <h3 className="text-xl font-black tracking-tight">{t("boxTitle")}</h3>
+                  <p className="text-xs text-neutral-400 mt-1 max-w-xs mx-auto">{t("boxBody")}</p>
                 </div>
                 {notice && <p className="text-xs text-amber-300 bg-amber-400/10 border border-amber-400/20 rounded-xl p-2.5">{notice}</p>}
                 <button
@@ -218,7 +220,7 @@ export function MysteryDropModal() {
                   onClick={handleOpenBox}
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-neutral-950 font-black text-sm shadow-lg shadow-amber-500/25 transition disabled:opacity-50"
                 >
-                  {loading ? "Se deschide cutia..." : "DESCHIDE ACUM"}
+                  {loading ? t("opening") : t("openNow")}
                 </button>
               </div>
             )}

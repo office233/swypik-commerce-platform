@@ -361,7 +361,7 @@ export default function GoClient() {
           type="button"
           onClick={() => router.push("/")}
           className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md shadow-lg border border-black/5 text-neutral-800 transition active:scale-95 hover:bg-white"
-          aria-label="Înapoi acasă"
+          aria-label={t("backHome")}
         >
           <ArrowLeft size={19} />
         </button>
@@ -380,7 +380,7 @@ export default function GoClient() {
           type="button"
           onClick={() => router.push("/go/history")}
           className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md shadow-lg border border-black/5 text-neutral-800 transition active:scale-95 hover:bg-white"
-          aria-label="Istoric curse"
+          aria-label={t("rideHistory")}
         >
           <History size={18} />
         </button>
@@ -391,7 +391,7 @@ export default function GoClient() {
         <div className="absolute top-18 inset-x-4 z-20 pointer-events-none flex justify-center">
           <div className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-950/90 dark:bg-black/95 backdrop-blur-md text-white shadow-2xl border border-white/15 animate-in fade-in slide-in-from-top-2 duration-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-black tracking-tight">Trafic optim</span>
+            <span className="text-[11px] font-black tracking-tight">{t("trafficOptimal")}</span>
             <span className="text-white/30 text-[10px]">•</span>
             <span className="text-amber-400 text-[11px] font-black">~{selected.duration_min} min</span>
             <span className="text-white/60 text-[10px] font-semibold">({selected.distance_km.toFixed(1)} km)</span>
@@ -431,10 +431,10 @@ export default function GoClient() {
             type="button"
             onClick={() => setShowSafetyModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl border border-black/10 dark:border-white/10 text-neutral-900 dark:text-neutral-100 hover:scale-105 active:scale-95 transition"
-            aria-label="Opțiuni Siguranță Swypik Shield"
+            aria-label={t("shieldAria")}
           >
             <ShieldCheck size={15} className="text-emerald-500" />
-            <span className="text-[11px] font-black tracking-tight">Siguranță</span>
+            <span className="text-[11px] font-black tracking-tight">{t("safety")}</span>
           </button>
         </div>
       </div>
@@ -465,7 +465,7 @@ export default function GoClient() {
                   <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shadow-xs">
                     <Clock size={12} className="text-emerald-600" /> ~2-3 min
                   </span>
-                  <span className="text-[9px] font-bold text-neutral-400 mt-0.5">Șoferi în zonă</span>
+                  <span className="text-[9px] font-bold text-neutral-400 mt-0.5">{t("driversNearby")}</span>
                 </div>
               </div>
 
@@ -476,7 +476,7 @@ export default function GoClient() {
                 {/* Adresă Preluare */}
                 <div className="relative pl-6">
                   <AddressAutocomplete
-                    placeholder="Punct de preluare (locația ta)"
+                    placeholder={t("pickupInputPlaceholder")}
                     value={pickup?.address}
                     onSelect={setPickup}
                     onClear={() => setPickup(null)}
@@ -491,7 +491,7 @@ export default function GoClient() {
                       type="button"
                       onClick={swapLocations}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-white shadow-md transition hover:scale-110 active:scale-90"
-                      aria-label="Inversează adresele"
+                      aria-label={t("swapAddresses")}
                     >
                       <ArrowUpDown size={12} />
                     </button>
@@ -501,7 +501,7 @@ export default function GoClient() {
                 {/* Adresă Destinație */}
                 <div className="relative pl-6">
                   <AddressAutocomplete
-                    placeholder="Unde dorești să mergi? (introdu destinația)"
+                    placeholder={t("destinationInputPlaceholder")}
                     value={dropoff?.address}
                     onSelect={(addr) => {
                       setDropoff(addr);
@@ -552,13 +552,13 @@ export default function GoClient() {
               {loading ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  <span>Se calculează ruta și prețurile...</span>
+                  <span>{t("calculatingRoute")}</span>
                 </>
               ) : !pickup || !dropoff ? (
-                <span>Selectează destinația pentru a continua</span>
+                <span>{t("selectDestinationHint")}</span>
               ) : (
                 <>
-                  <span>Mai departe spre alegerea mașinii</span>
+                  <span>{t("continueToVehicle")}</span>
                   <ChevronRight size={18} />
                 </>
               )}
@@ -579,7 +579,7 @@ export default function GoClient() {
                   className="flex items-center gap-1.5 text-xs font-black text-neutral-700 hover:text-black py-1.5 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 transition active:scale-95"
                 >
                   <ArrowLeft size={14} />
-                  <span>Schimbă ruta</span>
+                  <span>{t("changeRoute")}</span>
                 </button>
 
                 <div className="flex items-center gap-2">
@@ -655,7 +655,7 @@ export default function GoClient() {
                         ? "bg-sky-50 text-sky-700 border-sky-200 shadow-xs"
                         : "bg-white text-neutral-500 border-neutral-200"
                     }`}
-                    title="Aer Condiționat"
+                    title={t("featureAc")}
                   >
                     <Wind size={11} /> AC
                   </button>
@@ -670,7 +670,7 @@ export default function GoClient() {
                         ? "bg-purple-50 text-purple-700 border-purple-200 shadow-xs"
                         : "bg-white text-neutral-500 border-neutral-200"
                     }`}
-                    title="Călătorie Silențioasă"
+                    title={t("featureQuiet")}
                   >
                     <VolumeX size={11} /> Silențios
                   </button>
@@ -685,7 +685,7 @@ export default function GoClient() {
                         ? "bg-amber-50 text-amber-700 border-amber-200 shadow-xs"
                         : "bg-white text-neutral-500 border-neutral-200"
                     }`}
-                    title="Bagaje Mari"
+                    title={t("featureLuggage")}
                   >
                     <Luggage size={11} /> Bagaje
                   </button>
@@ -706,7 +706,7 @@ export default function GoClient() {
                     }`}
                   >
                     <CreditCard size={11} />
-                    <span>Card</span>
+                    <span>{t("payCard")}</span>
                   </button>
                   <button
                     type="button"
@@ -721,7 +721,7 @@ export default function GoClient() {
                     }`}
                   >
                     <Banknote size={11} />
-                    <span>Cash</span>
+                    <span>{t("payCash")}</span>
                   </button>
                   {swypInfo ? (
                     <button
@@ -760,7 +760,7 @@ export default function GoClient() {
               {ordering ? (
                 <span className="flex items-center gap-2 text-[14px] font-black">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  <span>Se alocă cel mai apropiat șofer...</span>
+                  <span>{t("assigningDriver")}</span>
                 </span>
               ) : selected ? (
                 <>
@@ -774,7 +774,7 @@ export default function GoClient() {
                   </span>
                 </>
               ) : (
-                <span className="text-[14px] font-black">Se calculează tariful...</span>
+                <span className="text-[14px] font-black">{t("calculatingFare")}</span>
               )}
             </button>
           </div>
@@ -791,8 +791,8 @@ export default function GoClient() {
                   <ShieldCheck size={22} />
                 </div>
                 <div>
-                  <h2 className="text-[17px] font-black text-neutral-900 tracking-tight">Swypik Shield</h2>
-                  <p className="text-[11px] text-neutral-500 font-medium">Siguranță garantată pentru fiecare cursă</p>
+                  <h2 className="text-[17px] font-black text-neutral-900 tracking-tight">{t("shieldTitle")}</h2>
+                  <p className="text-[11px] text-neutral-500 font-medium">{t("shieldSubtitle")}</p>
                 </div>
               </div>
               <button
@@ -823,11 +823,11 @@ export default function GoClient() {
                 <div className="flex items-center gap-2.5">
                   <span className="text-xl">📱</span>
                   <div>
-                    <span className="block text-xs font-black text-neutral-900">Trimite cursa prietenilor</span>
-                    <span className="block text-[10px] text-neutral-500">Traseu și mașină vizibile în timp real</span>
+                    <span className="block text-xs font-black text-neutral-900">{t("shareFriendsTitle")}</span>
+                    <span className="block text-[10px] text-neutral-500">{t("shareFriendsSubtitle")}</span>
                   </div>
                 </div>
-                <span className="text-xs font-black text-emerald-600">Partajează →</span>
+                <span className="text-xs font-black text-emerald-600">{t("shareCta")}</span>
               </button>
 
               {/* Buton 112 Urgență */}
@@ -838,13 +838,13 @@ export default function GoClient() {
                 <div className="flex items-center gap-2.5">
                   <span className="text-xl">🚨</span>
                   <div>
-                    <span className="block text-xs font-black text-rose-700">Apel Urgență 112</span>
+                    <span className="block text-xs font-black text-rose-700">{t("emergencyCall")}</span>
                     <span className="block text-[10px] text-rose-600">
                       GPS: {pickup ? `${pickup.lat.toFixed(4)}, ${pickup.lng.toFixed(4)}` : "Disponibil live"}
                     </span>
                   </div>
                 </div>
-                <span className="text-xs font-black text-rose-700">Apelează</span>
+                <span className="text-xs font-black text-rose-700">{t("callNow")}</span>
               </a>
             </div>
 

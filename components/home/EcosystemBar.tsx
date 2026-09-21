@@ -1,4 +1,5 @@
 "use client";
+import { isEnabledClient } from "@/lib/feature-flags-client";
 
 import { useRouter } from "next/navigation";
 import { Users, UtensilsCrossed, Car, BedDouble, Plane, Gift, HeartHandshake, Wallet, ShoppingBag } from "lucide-react";
@@ -15,7 +16,7 @@ export default function EcosystemBar() {
     };
 
     const items = [
-        {
+        ...(isEnabledClient("squadBuy") ? [{
             id: "squad",
             title: "Squad Buy",
             badge: "-30%",
@@ -26,7 +27,7 @@ export default function EcosystemBar() {
                 haptic("tap");
                 router.push("/squad");
             },
-        },
+        }] : []),
         {
             id: "food",
             title: "Food",

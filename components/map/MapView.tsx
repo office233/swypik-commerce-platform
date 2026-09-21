@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 /**
  * MapView — hartă Leaflet + OpenStreetMap.
@@ -92,6 +93,7 @@ function ModernMapControls({
   is3D: boolean;
   onToggle3D: () => void;
 }) {
+  const t = useTranslations("map");
   const map = useMap();
   return (
     <div className="absolute right-4 top-20 z-[400] flex flex-col gap-2.5 pointer-events-auto select-none">
@@ -99,7 +101,7 @@ function ModernMapControls({
       <div className="flex flex-col overflow-hidden rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl border border-black/10 dark:border-white/10">
         <button
           type="button"
-          aria-label="Apropie harta"
+          aria-label={t("zoomIn")}
           onClick={() => map.zoomIn()}
           className="flex h-11 w-11 items-center justify-center text-neutral-800 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 active:bg-neutral-200 border-b border-black/5 dark:border-white/5 transition"
         >
@@ -107,7 +109,7 @@ function ModernMapControls({
         </button>
         <button
           type="button"
-          aria-label="Depărtează harta"
+          aria-label={t("zoomOut")}
           onClick={() => map.zoomOut()}
           className="flex h-11 w-11 items-center justify-center text-neutral-800 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 active:bg-neutral-200 transition"
         >
@@ -118,7 +120,7 @@ function ModernMapControls({
       {/* Comutare mod 3D Perspective / 2D Classic */}
       <button
         type="button"
-        aria-label={is3D ? "Comută la modul 2D" : "Comută la modul 3D"}
+        aria-label={is3D ? t("mode2d") : t("mode3d")}
         onClick={onToggle3D}
         className={`flex h-11 w-11 items-center justify-center rounded-2xl backdrop-blur-md shadow-xl border transition active:scale-95 ${
           is3D
@@ -134,7 +136,7 @@ function ModernMapControls({
       {/* Comutare mod Noapte / Zi (Uber Black Night Map) */}
       <button
         type="button"
-        aria-label={isDark ? "Comută la modul Zi" : "Comută la modul Noapte"}
+        aria-label={isDark ? t("dayMode") : t("nightMode")}
         onClick={onToggleTheme}
         className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl border border-black/10 dark:border-white/10 text-neutral-800 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 active:scale-95 transition"
       >
@@ -144,7 +146,7 @@ function ModernMapControls({
       {/* Resetare orientare Nord */}
       <button
         type="button"
-        aria-label="Resetează orientarea spre Nord"
+        aria-label={t("resetNorth")}
         onClick={() => map.setView(map.getCenter(), map.getZoom())}
         className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl border border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 active:scale-95 transition"
       >
@@ -155,7 +157,7 @@ function ModernMapControls({
       {onLocate && (
         <button
           type="button"
-          aria-label="Locația mea"
+          aria-label={t("myLocation")}
           onClick={onLocate}
           className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl border border-black/10 dark:border-white/10 text-neutral-800 hover:bg-neutral-100 dark:hover:bg-zinc-800 active:scale-95 transition"
         >

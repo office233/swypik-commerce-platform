@@ -1,4 +1,5 @@
 "use client";
+import { isEnabledClient } from "@/lib/feature-flags-client";
 
 import { SUPPORT_EMAIL } from "@/lib/contact";
 
@@ -82,7 +83,7 @@ export type SuperAppModule = {
 };
 
 const SUPERAPP_MODULES: SuperAppModule[] = [
-    {
+    ...(isEnabledClient("squadBuy") ? [{
         id: "squad",
         brand: "Swypik Squad",
         label: "Cumpărături în grup -30%",
@@ -91,7 +92,7 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         accent: "#D946EF",
         Icon: Users,
         href: "/squad",
-    },
+    }] : []),
     {
         id: "mystery",
         brand: "Mystery Drop",

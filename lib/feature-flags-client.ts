@@ -19,6 +19,8 @@ export const CLIENT_FEATURES = {
   returns: flag('NEXT_PUBLIC_FEATURE_RETURNS', false),
   // Virtual Try-On: componenta e doar UI de previzualizare (fără AR real) — OFF.
   tryOn: flag('NEXT_PUBLIC_FEATURE_TRY_ON', false),
+  // Trebuie setat ÎMPREUNĂ cu FEATURE_SQUAD_BUY (server) — vezi lib/feature-flags.ts.
+  squadBuy: flag('NEXT_PUBLIC_FEATURE_SQUAD_BUY', false),
 } as const;
 
 export type ClientFeatureName = keyof typeof CLIENT_FEATURES;

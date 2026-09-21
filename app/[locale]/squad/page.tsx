@@ -1,4 +1,6 @@
+import { notFound } from "next/navigation";
 import SquadClient from "./SquadClient";
+import { isEnabled } from "@/lib/feature-flags";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,5 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default function SquadPage() {
+    if (!isEnabled("squadBuy")) notFound();
     return <SquadClient />;
 }

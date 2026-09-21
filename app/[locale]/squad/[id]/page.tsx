@@ -1,4 +1,6 @@
+import { notFound } from "next/navigation";
 import SquadDetailClient from "./SquadDetailClient";
+import { isEnabled } from "@/lib/feature-flags";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,6 +13,7 @@ export default async function SquadDetailPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
+    if (!isEnabled("squadBuy")) notFound();
     const { id } = await params;
     return <SquadDetailClient squadId={id} />;
 }

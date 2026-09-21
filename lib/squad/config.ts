@@ -9,7 +9,8 @@ function intEnv(name: string, fallback: number, min: number, max: number): numbe
 }
 
 /** Reducere procentuală față de prețul de listă când squad-ul se completează. */
-export const SQUAD_DISCOUNT_PCT = intEnv("SQUAD_DISCOUNT_PCT", 30, 1, 90);
+// NEXT_PUBLIC_: procentul e afișat și pe client (pagina de produs), nu e secret.
+export const SQUAD_DISCOUNT_PCT = intEnv("NEXT_PUBLIC_SQUAD_DISCOUNT_PCT", 30, 1, 90);
 /** Câți membri trebuie să se strângă (inclusiv inițiatorul). */
 export const SQUAD_REQUIRED_MEMBERS = intEnv("SQUAD_REQUIRED_MEMBERS", 2, 2, 20);
 /** Cât timp rămâne deschis un squad. */

@@ -12,6 +12,10 @@ import type { ProductDetail } from "@/lib/products/get-product-detail";
 import VideoSection from "./VideoSection";
 import { useTranslations } from "next-intl";
 import { SquadBuyModal } from "@/components/squad/SquadBuyModal";
+import { isEnabledClient } from "@/lib/feature-flags-client";
+import { SQUAD_DISCOUNT_PCT, SQUAD_REQUIRED_MEMBERS, squadPriceCents } from "@/lib/squad/config";
+
+const SQUAD_ENABLED = isEnabledClient("squadBuy");
 import { playCashRegisterSound } from "@/lib/audio/sfx";
 
 /* Types */
@@ -340,6 +344,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         </div>
 
         {/* Squad Buy Teaser Badge */}
+        {SQUAD_ENABLED && (
         <div
           onClick={() => setSquadModalOpen(true)}
           className="cursor-pointer mb-3 rounded-2xl bg-gradient-to-r from-violet-600/10 via-pink-600/10 to-amber-500/10 border border-violet-500/30 p-3 flex items-center justify-between hover:border-violet-500/60 transition active:scale-[0.99]"
@@ -350,15 +355,16 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             </div>
             <div>
               <p className="text-xs font-black text-[#0D0D0D] dark:text-white flex items-center gap-1.5">
-                Cumpără în Squad de 2 <span className="bg-gradient-to-r from-violet-600 to-pink-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">-30% REDUCERE</span>
+                Cumpără în Squad de {SQUAD_REQUIRED_MEMBERS} <span className="bg-gradient-to-r from-violet-600 to-pink-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">-{SQUAD_DISCOUNT_PCT}% REDUCERE</span>
               </p>
               <p className="text-[11px] text-[#6E6E80] dark:text-[#A1A1AA]">
-                Doar {(currentPrice * 0.7).toFixed(2)} lei când cumperi împreună cu un prieten
+                Doar {(squadPriceCents(Math.round(currentPrice * 100)) / 100).toFixed(2)} lei când cumperi împreună cu un prieten
               </p>
             </div>
           </div>
           <span className="text-xs font-black text-violet-600 dark:text-violet-400 shrink-0">Vezi &rarr;</span>
         </div>
+        )}
 
         {/* Title */}
         <h1 className="text-lg font-bold leading-snug text-[#0D0D0D] dark:text-white mb-3">
@@ -678,7 +684,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         </div>
       )}
 
-      {/* Fixed Bottom Bar — Dual Action (Cumpără Singur vs Squad Buy -30%) */}
+      {/* Fixed Bottom Bar — Cumpără singur (+ Squad Buy când e activ) */}
       <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 backdrop-blur-xl px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="mx-auto max-w-lg flex items-center gap-2">
           {process.env.NEXT_PUBLIC_FEATURE_TRY_ON === "1" && (
@@ -701,19 +707,21 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             <span>{addedToCart ? t("adaugatInCos") : `Singur • ${currentPrice} lei`}</span>
           </button>
 
-          {/* CTA 2: Squad Buy -30% */}
+          {SQUAD_ENABLED && (
           <button
             type="button"
             onClick={() => setSquadModalOpen(true)}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 py-3.5 px-3 text-xs sm:text-sm font-black text-white shadow-lg shadow-violet-600/30 transition active:scale-95"
           >
             <Users size={16} />
-            <span>Squad • {(currentPrice * 0.7).toFixed(0)} lei (-30%)</span>
+            <span>Squad • {(squadPriceCents(Math.round(currentPrice * 100)) / 100).toFixed(0)} lei (-{SQUAD_DISCOUNT_PCT}%)</span>
           </button>
+          )}
         </div>
       </div>
 
       {/* Squad Buy Modal */}
+      {SQUAD_ENABLED && (
       <SquadBuyModal
         isOpen={squadModalOpen}
         onClose={() => setSquadModalOpen(false)}
@@ -724,6 +732,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           price: Number(currentPrice),
         }}
       />
+      )}
 
       {/* Toast */}
       {addedToCart && (

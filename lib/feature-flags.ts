@@ -26,6 +26,9 @@ export const FEATURES = {
   viralCatalog: flag('FEATURE_VIRAL_CATALOG', false),
   // Cutia zilnică (Mystery Drop) — acordă SWYP prin swyp_emission_rules.
   mysteryDrop: flag('FEATURE_MYSTERY_DROP', true),
+  // Squad Buy: grupurile se formează, dar NIMIC nu aplică prețul redus la
+  // checkout și nu se reține niciun ban — OFF până există integrarea cu plata.
+  squadBuy: flag('FEATURE_SQUAD_BUY', false),
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

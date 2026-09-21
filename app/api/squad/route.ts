@@ -3,6 +3,7 @@
  * POST /api/squad — crează un nou squad pentru un produs
  */
 import { NextResponse } from "next/server";
+import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { getAuthSession } from "@/lib/auth/session";
 import { createSquadGroup, getActiveSquads, getActiveSquadsForProduct } from "@/lib/squad/engine";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -18,6 +19,7 @@ const createSchema = z.object({
 });
 
 export async function GET(req: Request) {
+    if (!isEnabled("squadBuy")) return frozenResponse("squadBuy");
     const { searchParams } = new URL(req.url);
     const productId = searchParams.get("productId");
 
@@ -31,6 +33,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    if (!isEnabled("squadBuy")) return frozenResponse("squadBuy");
     const session = await getAuthSession().catch(() => null);
     const rl = await rateLimit("squad:create", session?.userId ?? req.headers.get("cf-connecting-ip") ?? "anon");
     if (!rl.success) {
