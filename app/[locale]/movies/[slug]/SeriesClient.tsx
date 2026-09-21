@@ -5,7 +5,6 @@ import Image from "next/image";
 import { ArrowLeft, Lock, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import UnlockButton, { unitsToSwyp } from "@/components/movies/UnlockButton";
-import { MOVIES_SEASON_DISCOUNT_PCT } from "@/lib/movies/config";
 import type { EpisodeDto, SeriesDto } from "@/lib/movies/types";
 
 type Payload = {
@@ -83,7 +82,7 @@ export default function SeriesClient({ slug }: { slug: string }) {
               label={t("unlockSeason")}
               onUnlocked={load}
             />
-            <p className="mt-1 text-center text-[11px] text-white/50">{t("seasonDiscount", { pct: MOVIES_SEASON_DISCOUNT_PCT })}</p>
+            <p className="mt-1 text-center text-[11px] text-white/50">{t("seasonDiscount", { pct: series.seasonDiscountPct })}</p>
           </div>
         )}
         <p className="text-sm leading-relaxed text-white/80">{series.synopsis}</p>

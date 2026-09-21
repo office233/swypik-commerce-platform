@@ -10,6 +10,7 @@ import { seasonPriceUnits } from "@/lib/movies/pricing";
 import { signStreamToken } from "@/lib/movies/stream-token";
 import { MOVIES_STREAM_TOKEN_TTL_S } from "@/lib/movies/config";
 import { getStreamSecret } from "@/lib/movies/stream-secret";
+import { mediaBasename, STREAM_ROUTE_PREFIX } from "@/lib/movies/stream-path";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
     const token = signStreamToken({ userId: user.userId ?? "admin", episodeId: episode.id, expiresAt }, getStreamSecret());
     return NextResponse.json({
         videoId: full.video_id,
-        playbackUrl: `/api/movies/stream/${token}?p=${encodeURIComponent(full.playback_url)}`,
+        playbackUrl: `${STREAM_ROUTE_PREFIX}/${token}/${mediaBasename(full.playback_url)}`,
         poster: full.thumbnail_url,
         expiresAt,
     });

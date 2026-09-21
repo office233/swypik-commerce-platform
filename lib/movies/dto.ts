@@ -1,6 +1,7 @@
 import { SWYPIK_OFFICIAL_ID } from "@/lib/config/accounts";
 import { canPlay } from "./access";
 import { seasonPriceUnits } from "./pricing";
+import { MOVIES_SEASON_DISCOUNT_PCT } from "./config";
 import type { EpisodeDto, MovieEpisodeRow, MovieProgressRow, MovieSeriesRow, SeriesDto, ViewerContext } from "./types";
 
 export function toSeriesDto(series: MovieSeriesRow, episodeCount: number, ownerName: string | null): SeriesDto {
@@ -16,6 +17,7 @@ export function toSeriesDto(series: MovieSeriesRow, episodeCount: number, ownerN
         freeEpisodes: series.free_episodes,
         episodePriceUnits: series.episode_price_units,
         seasonPriceUnits: seasonPriceUnits(series, episodeCount),
+        seasonDiscountPct: MOVIES_SEASON_DISCOUNT_PCT,
         isAdult: series.is_adult,
         episodeCount,
         owner: { id: series.owner_user_id, name: ownerName ?? "Swypik", isOfficial: series.owner_user_id === SWYPIK_OFFICIAL_ID },

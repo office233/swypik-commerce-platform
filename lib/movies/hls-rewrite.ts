@@ -23,20 +23,3 @@ export function rewriteHlsPlaylist(
         })
         .join("\n");
 }
-
-/** Proxy-ul acceptă doar URL-uri de pe originile media ale platformei (anti-SSRF). */
-export function isAllowedMediaUrl(url: string, allowedOrigins: string[]): boolean {
-    let parsed: URL;
-    try {
-        parsed = new URL(url);
-    } catch {
-        return false;
-    }
-    return allowedOrigins.some((origin) => {
-        try {
-            return new URL(origin).origin === parsed.origin;
-        } catch {
-            return false;
-        }
-    });
-}

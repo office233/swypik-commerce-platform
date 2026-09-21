@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { loadFeedWeightsForViewer, type FeedWeights } from "@/lib/algo/scoring";
@@ -389,6 +390,10 @@ function titleQualitySignals(title: string): { penalty: number; flags: string[] 
   return { penalty, flags };
 }
 
+// Movies: JOIN-urile/predicatul intră în query doar cu flag-ul pornit — codul se
+// poate deploya înaintea migrării 20260921_0003 fără să strice /explore.
+const MOVIES_ENABLED = isEnabled("movies");
+
 type ExploreFeedRow = {
   video_id: string;
   movie_slug: string | null;
@@ -722,10 +727,10 @@ export async function GET(request: NextRequest) {
         cp.vote_count  AS post_vote_count,
         cp.ends_at     AS post_ends_at,
         cm.id          AS mission_id,
-        ms.slug        AS movie_slug,
+        ${MOVIES_ENABLED ? `ms.slug        AS movie_slug,
         ms.title       AS movie_title,
         me.episode_number AS movie_episode_number,
-        (SELECT COUNT(*)::int FROM movie_episodes me2 WHERE me2.series_id = ms.id AND me2.status = 'published') AS movie_episode_count,
+        (SELECT COUNT(*)::int FROM movie_episodes me2 WHERE me2.series_id = ms.id AND me2.status = 'published') AS movie_episode_count,` : `NULL::text AS movie_slug, NULL::text AS movie_title, NULL::int AS movie_episode_number, NULL::int AS movie_episode_count,`}
         cm.title       AS mission_title,
         cm.slug        AS mission_slug
         ${scoreSelect}
@@ -741,8 +746,8 @@ export async function GET(request: NextRequest) {
       FROM videos v
       ${useTaste ? `CROSS JOIN taste` : ``}
       LEFT JOIN users u ON v.creator_id = u.id
-      LEFT JOIN movie_episodes me ON me.video_id = v.id
-      LEFT JOIN movie_series   ms ON ms.id = me.series_id
+      ${MOVIES_ENABLED ? `LEFT JOIN movie_episodes me ON me.video_id = v.id
+      LEFT JOIN movie_series   ms ON ms.id = me.series_id` : ``}
       LEFT JOIN LATERAL (
         SELECT object_key, status
         FROM video_assets
@@ -822,7 +827,7 @@ export async function GET(request: NextRequest) {
       WHERE v.status = 'ready' AND v.is_hidden = false
         AND v.visibility = 'public'
         AND v.effective_label = 'safe'
-        AND (me.id IS NULL OR (ms.status = 'published' AND me.status = 'published' AND me.episode_number <= ms.free_episodes))
+        ${MOVIES_ENABLED ? `AND (me.id IS NULL OR (ms.status = 'published' AND me.status = 'published' AND me.episode_number <= ms.free_episodes))` : ``}
           AND CASE
             WHEN vpl.product_id IS NOT NULL
               OR CASE

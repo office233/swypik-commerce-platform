@@ -17,9 +17,9 @@ const SWIPE_THRESHOLD_PX = 80;
 const PROGRESS_DOTS_MAX = 40;
 
 function EpisodeVideo({
-  src, poster, muted, onEnded, onTime, resumeMs,
+  src, poster, muted, onEnded, onTime, onError, resumeMs,
 }: {
-  src: string; poster: string | null; muted: boolean; onEnded: () => void; onTime: (ms: number, durationMs: number) => void; resumeMs: number;
+  src: string; poster: string | null; muted: boolean; onEnded: () => void; onTime: (ms: number, durationMs: number) => void; onError: () => void; resumeMs: number;
 }) {
   const ref = useHlsVideo(src);
   useEffect(() => {
@@ -40,6 +40,7 @@ function EpisodeVideo({
       muted={muted}
       poster={poster ?? undefined}
       onEnded={onEnded}
+      onError={onError}
       onTimeUpdate={(e) => onTime(e.currentTarget.currentTime * 1000, e.currentTarget.duration * 1000)}
     />
   );
@@ -117,6 +118,7 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
           muted={muted}
           onEnded={goNext}
           onTime={onTime}
+          onError={() => void loadPlay(current)}
           resumeMs={episode.progress?.completed ? 0 : episode.progress?.positionMs ?? 0}
         />
       )}

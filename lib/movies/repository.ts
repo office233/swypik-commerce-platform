@@ -246,7 +246,8 @@ export async function listSeriesForAdmin(status?: SeriesStatus) {
 export async function ownsReadyVideo(userId: string, videoId: string) {
     const { rows } = await dbQuery<{ duration_ms: number | null; moderation_status: string }>(
         `SELECT duration_ms, moderation_status FROM videos
-          WHERE id = $1 AND creator_id = $2 AND status = 'ready' AND is_hidden = false`,
+          WHERE id = $1 AND creator_id = $2 AND status = 'ready' AND is_hidden = false
+            AND moderation_status = 'approved'`,
         [videoId, userId],
     );
     return rows[0] ?? null;

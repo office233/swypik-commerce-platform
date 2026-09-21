@@ -7,10 +7,3 @@ export function getStreamSecret(): string {
     }
     return key;
 }
-
-/** Originile de pe care proxy-ul are voie să tragă media (anti-SSRF). */
-export function allowedMediaOrigins(): string[] {
-    return [process.env.S3_PUBLIC_URL, process.env.R2_PUBLIC_URL, process.env.S3_UPLOAD_PUBLIC_ENDPOINT]
-        .filter((v): v is string => Boolean(v))
-        .map((v) => new URL(v).origin);
-}

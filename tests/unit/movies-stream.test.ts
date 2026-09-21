@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { signStreamToken, verifyStreamToken } from "@/lib/movies/stream-token";
-import { rewriteHlsPlaylist, isAllowedMediaUrl } from "@/lib/movies/hls-rewrite";
+import { rewriteHlsPlaylist } from "@/lib/movies/hls-rewrite";
 
 const SECRET = "test-secret-please-ignore";
 
@@ -39,12 +39,5 @@ describe("movies/hls-rewrite", () => {
     const out = rewriteHlsPlaylist(input, base, toProxy);
     expect(out).toContain(`URI="${toProxy("https://media.example.com/videos/hls/abc/key.bin")}"`);
     expect(out).toContain(`URI="${toProxy("https://media.example.com/videos/hls/abc/audio/a.m3u8")}"`);
-  });
-  it("permite doar originile media configurate", () => {
-    const allowed = ["https://media.example.com"];
-    expect(isAllowedMediaUrl("https://media.example.com/videos/x.ts", allowed)).toBe(true);
-    expect(isAllowedMediaUrl("https://evil.com/videos/x.ts", allowed)).toBe(false);
-    expect(isAllowedMediaUrl("http://media.example.com/x.ts", allowed)).toBe(false);
-    expect(isAllowedMediaUrl("not a url", allowed)).toBe(false);
   });
 });

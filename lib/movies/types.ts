@@ -85,6 +85,8 @@ export type SeriesDto = {
     freeEpisodes: number;
     episodePriceUnits: number;
     seasonPriceUnits: number;
+    /** Procentul aplicat la sezon, calculat pe server (clientul nu vede env-ul). */
+    seasonDiscountPct: number;
     isAdult: boolean;
     episodeCount: number;
     owner: { id: string; name: string; isOfficial: boolean };
