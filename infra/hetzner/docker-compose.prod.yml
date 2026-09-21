@@ -32,6 +32,13 @@ services:
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
         NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: ${NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE:-}
         SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+        # Flag-urile verticalelor: NEXT_PUBLIC_* se coc în bundle-ul de browser
+        # (meniul hamburger, provider-ul de player), iar FEATURE_* trebuie să
+        # existe și la build pentru paginile index prerandate (/movies, /music).
+        FEATURE_MOVIES: ${FEATURE_MOVIES:-}
+        NEXT_PUBLIC_FEATURE_MOVIES: ${NEXT_PUBLIC_FEATURE_MOVIES:-}
+        FEATURE_MUSIC: ${FEATURE_MUSIC:-}
+        NEXT_PUBLIC_FEATURE_MUSIC: ${NEXT_PUBLIC_FEATURE_MUSIC:-}
       dockerfile_inline: |
         # ── Build stage ──
         FROM node:20.19.0-alpine AS builder
@@ -57,6 +64,14 @@ services:
         # Folosit și de `instrumentation-client.ts` la build, și de server la runtime.
         ARG SENTRY_ENVIRONMENT
         ENV SENTRY_ENVIRONMENT=$SENTRY_ENVIRONMENT
+        ARG FEATURE_MOVIES
+        ENV FEATURE_MOVIES=$FEATURE_MOVIES
+        ARG NEXT_PUBLIC_FEATURE_MOVIES
+        ENV NEXT_PUBLIC_FEATURE_MOVIES=$NEXT_PUBLIC_FEATURE_MOVIES
+        ARG FEATURE_MUSIC
+        ENV FEATURE_MUSIC=$FEATURE_MUSIC
+        ARG NEXT_PUBLIC_FEATURE_MUSIC
+        ENV NEXT_PUBLIC_FEATURE_MUSIC=$NEXT_PUBLIC_FEATURE_MUSIC
         RUN npm run build
 
         # ── Runtime stage ──
