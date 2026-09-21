@@ -10,7 +10,9 @@ Ce conține `main` (31 commit-uri peste ultimul deploy):
 2. Swypik Movies (branch `feat/movies`): migrările `20260921_0003_movies.sql` și
    `20260921_0004_movies_visibility_guard.sql`, `20260921_0005_movies_watchlist.sql` (Lista mea), API, pagini în stil Netflix, studio, admin, feed.
 
-## Pe VPS (`root@46.224.197.2`, `/opt/swypik/app`)
+> **Corecție 2026-09-22:** nu există VPS. Hosting-ul e distro-ul WSL2 `swypik` de pe PC-ul local (`wsl -d swypik -u root`), clona live `/opt/swypik/app`, compose `prod.yml + vps.yml + minio.yml`, fără Caddy (tunel Cloudflare → `localhost:3005`). Pașii de mai jos se rulează în distro, nu prin ssh; procedura reală e în `CLAUDE.md` → Workflow și în `E:\Swypik\deploy-step-*.sh`. Movies a fost lansat împreună cu Music pe 2026-09-22.
+
+## Pe VPS (`root@46.224.197.2`, `/opt/swypik/app`) — ISTORIC, vezi corecția de mai sus
 
 ```bash
 cd /opt/swypik/app

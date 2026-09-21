@@ -16,7 +16,9 @@ Ce conține (branch-ul cu Swypik Music, peste ultimul deploy cu Movies):
    `MusicPaywall`, `GenreChips`), pagini publice `app/[locale]/music/**`, studio
    artist `app/creator/(dashboard)/music`, admin `app/admin/music`.
 
-## Pe VPS (`root@46.224.197.2`, `/opt/swypik/app`)
+> **Corecție 2026-09-22:** nu există VPS. Hosting-ul e distro-ul WSL2 `swypik` de pe PC-ul local (`wsl -d swypik -u root`), clona live `/opt/swypik/app`, compose `prod.yml + vps.yml + minio.yml`, fără Caddy (tunel Cloudflare → `localhost:3005`; pasul „restart caddy" nu se aplică, iar `X-Real-IP` nu e setat de niciun proxy — `getClientIP` cade pe ultimul hop din `X-Forwarded-For`, pe care Cloudflare îl adaugă el). Pașii se rulează în distro; procedura reală e în `CLAUDE.md` → Workflow și în `E:\Swypik\deploy-step-*.sh`.
+
+## Pe VPS (`root@46.224.197.2`, `/opt/swypik/app`) — ISTORIC, vezi corecția de mai sus
 
 ```bash
 cd /opt/swypik/app

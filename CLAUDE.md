@@ -12,26 +12,31 @@ Swypik = platforma social commerce (TikTok Shop style) care combina video-uri sc
 - **Storage:** Cloudflare R2 (video + imagini)
 - **Payments:** Stripe (Checkout Sessions + Webhooks)
 - **AI:** GitHub Models API (`https://models.github.ai/inference`) cu `GITHUB_TOKEN`. Fallback: OpenRouter. Vezi `lib/ai/moderation.ts`.
-- **Edge:** Caddy 2 (HTTPS + reverse proxy)
-- **Deploy:** Docker Compose pe Hetzner VPS
+- **Edge:** Cloudflare Tunnel (`cloudflared`, systemd in distro) → `http://localhost:3005` (web-next). Caddy NU ruleaza local (profil `disabled` in `docker-compose.vps.yml`).
+- **Deploy:** Docker Compose in distro-ul WSL2 `swypik` de pe masina asta (NU exista VPS Hetzner — actualizat 2026-09-22)
 
-## Locatii reale
-- **VPS:** `root@46.224.197.2`
-- **Root proiect pe VPS:** `/opt/swypik/app/`
-- **GitHub mirror:** `git@github.com:office233/aicevrei.git`
+## Locatii reale (2026-09-22)
+- **Hosting:** distro WSL2 `swypik` (disc `E:\wsl\swypik`), pe acest PC Windows. Nu exista VPS.
+- **Clona live:** `/opt/swypik/app` in distro (owner `dev`, remote = GitHub `main`) — separata de repo-ul de lucru `E:\Swypik\swypik\app`.
+- **Compose:** proiect `swypik-prod`, fisiere `infra/hetzner/docker-compose.prod.yml` + `docker-compose.vps.yml` + `docker-compose.minio.yml`, env `infra/hetzner/.env.production` (owner `dev`, 600).
+- **DB:** `swypik-prod-postgres-1`, user `swypik`, db `swypik_prod`, port host `127.0.0.1:5433`; migrarile aplicate sunt in `schema_migrations(version = nume fisier fara .sql)`.
+- **Keepalive:** `E:\Swypik\wsl-keepalive.ps1` tine distro-ul pornit cu o ancora `wsl -d swypik --exec sleep infinity` (o singura ancora; log `E:\Swypik\wsl-keepalive.log`).
+- **GitHub:** `https://github.com/office233/swypik-commerce-platform.git`, branch principal `main`.
 - **Live:** https://swypik.com
-- **Branch principal:** `mvp-freeze` (NU `main`)
 
 ## Workflow (de aici inainte)
-1. `ssh root@46.224.197.2 && cd /opt/swypik/app`
-2. `git checkout -b task/<nume>` (branched din `mvp-freeze`)
-3. Edit pe VPS, NICIODATA pe Windows
-4. `cd infra/hetzner && docker compose -f docker-compose.prod.yml build web-next && docker compose -f docker-compose.prod.yml up -d --force-recreate --no-deps web-next`
-5. Smoke test live cu `curl`
-6. `git commit && git push origin task/<nume>`
-7. Merge in `mvp-freeze` (PR sau direct) → push
+1. Editezi in `E:\Swypik\swypik\app`, pe branch de feature; gate-uri: `npx tsc --noEmit --incremental false`, `npx vitest run`, `npx next lint`, `node scripts/i18n-guard.mjs`, `npx next build`.
+2. Merge in `main` + `git push origin main`.
+3. Deploy local, ca root in distro (`wsl -d swypik -u root`), din `/opt/swypik/app`:
+   - backup: `docker exec swypik-prod-postgres-1 pg_dump -U swypik swypik_prod | gzip > /opt/swypik/backups/<data>.sql.gz`
+   - `sudo -u dev git pull --ff-only origin main`
+   - migrari noi: `docker exec -i swypik-prod-postgres-1 psql -v ON_ERROR_STOP=1 -U swypik -d swypik_prod < db/migrations/<f>.sql` + `insert into schema_migrations (version) values ('<f fara .sql>')`
+   - build + recreate: `cd infra/hetzner && BUILD_COMMIT=$(git rev-parse HEAD) BUILD_TIME=$(date -u +%FT%TZ) DEPLOYED_AT=$BUILD_TIME docker compose -p swypik-prod --env-file .env.production -f docker-compose.prod.yml -f docker-compose.vps.yml -f docker-compose.minio.yml build web-next && ... up -d --no-deps --force-recreate web-next`
+   - health: `curl http://127.0.0.1:3005/api/health` (release.commit = HEAD), apoi `https://swypik.com/...`
+   Scripturile folosite la release-ul Movies+Music: `E:\Swypik\deploy-step-a.sh` (backup, pull, flag-uri), `deploy-step-a2.sh` (migrari), `deploy-step-b.sh` (build, recreate, health, smoke).
+4. `wsl.exe` da eroarea `0x80072747` cand serviciul WSL e sufocat de ancore duplicate — verifica `tasklist | findstr wsl.exe`; NU rula `wsl --shutdown` (opreste site-ul).
 
-GitHub = mirror/backup + history. VPS = sursa de adevar pentru cod live.
+GitHub `main` = sursa de adevar; `/opt/swypik/app` e doar clona de rulare.
 
 ## Structura reala (post Val 3)
 ```
@@ -159,8 +164,8 @@ Toate gated prin `lib/feature-flags.ts` (server) + `feature-flags-client.ts` (cl
 - Env vars: NUMAI in `infra/hetzner/.env.production`
 
 ## REGULI IMPORTANTE
-1. **EDIT NUMAI PE VPS** — nu pe Windows local
-2. **NU modifica `.env.production` direct** — cere confirmare
+1. **EDIT in `E:\Swypik\swypik\app`**, deploy din clona `/opt/swypik/app` (WSL) — vezi Workflow
+2. **NU modifica `.env.production` direct** — cere confirmare (exceptie: flag-urile unei lansari aprobate explicit)
 3. **Migration files**: numerotate strict `YYYYMMDD_NNNN_descriere.sql`, recorded in `schema_migrations`
 4. **NU sterge tabele/coloane** fara backup `pg_dump`
 5. **Mobile-first design** — UI optimizat pentru mobil (BottomNav 5 items)
