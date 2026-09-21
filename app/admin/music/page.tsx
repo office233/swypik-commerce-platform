@@ -106,7 +106,7 @@ export default function AdminMusicPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase text-neutral-500">
-                <th>{t("stageName")}</th><th>{t("tracks")}</th><th></th>
+                <th>{t("stageName")}</th><th>{t("trackCount")}</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -133,7 +133,7 @@ export default function AdminMusicPage() {
                 required
                 value={newArtist.userId}
                 onChange={(e) => setNewArtist({ ...newArtist, userId: e.target.value })}
-                placeholder={t("approveArtist")}
+                placeholder={t("userIdPlaceholder")}
                 className="rounded-xl border border-[#E5E5E5] px-3 py-2 text-sm"
               />
               <input
@@ -183,6 +183,7 @@ export default function AdminMusicPage() {
                   <td className="py-2 font-bold">
                     {tr.title}
                     <div className="text-xs font-normal text-neutral-500">
+                      <span className="sr-only">{t("genre")}: </span>
                       {t(musicGenreLabelKey(tr.genre as MusicGenre))}
                       {tr.is_premium && <> · {t("premium")}</>}
                       {tr.explicit && <> · {t("explicitBadge")}</>}

@@ -57,6 +57,7 @@ GitHub = mirror/backup + history. VPS = sursa de adevar pentru cod live.
 │   │   └── email-marketing/      # FROZEN
 │   ├── explore/                  # Video feed
 │   ├── movies/                   # Swypik Movies: catalog, serial, player (FEATURE_MOVIES)
+│   ├── music/                    # Swypik Music: artisti, piese/albume, mini-player persistent (FEATURE_MUSIC)
 │   ├── record/                   # Camera page (MediaRecorder, Val 3)
 │   ├── account/                  # User profile + ThemeToggle
 │   ├── checkout/success/         # cu PurchaseTracker
@@ -78,6 +79,8 @@ GitHub = mirror/backup + history. VPS = sursa de adevar pentru cod live.
 │   ├── feed/
 │   │   └── track.ts              # batched sendBeacon emitter
 │   ├── movies/                   # acces/pret (pure), unlock SWYP + cota creator, proxy HLS cu token
+│   ├── music/                    # acces/pret (pure), unlock+tip SWYP, publish + sincronizare audio_tracks pentru reels
+│   ├── media/                    # stream-token/path/secret, hls-rewrite — comun Movies + Music
 │   ├── feature-flags.ts          # 8 flags (DM, push, AI chat, etc)
 │   ├── feature-flags-client.ts   # client-side variant
 │   ├── haptic.ts                 # navigator.vibrate wrapper
@@ -135,6 +138,7 @@ Toate gated prin `lib/feature-flags.ts` (server) + `feature-flags-client.ts` (cl
 | `FEATURE_VIRAL_CATALOG` | OFF | Catalog demo de produse (date de exemplu) |
 | `FEATURE_MYSTERY_DROP` | ON | Cutia zilnica — SWYP prin `swyp_emission_rules.mystery_drop_daily` |
 | `FEATURE_MOVIES` | OFF | Swypik Movies (+ `NEXT_PUBLIC_FEATURE_MOVIES`); migrarea `20260921_0003_movies.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-movies-design.md` |
+| `FEATURE_MUSIC` | OFF | Swypik Music (+ `NEXT_PUBLIC_FEATURE_MUSIC`); migrarea `20260922_0001_music.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-music-design.md` |
 
 ## Containere Docker (prod)
 - `swypik-prod-web-next-1` — Next.js (port 3000 intern)

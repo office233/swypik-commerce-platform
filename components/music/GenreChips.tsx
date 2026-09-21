@@ -13,7 +13,7 @@ export default function GenreChips({ selected, onSelect }: Props) {
       active ? "bg-white text-black ring-white" : "bg-white/5 text-white/80 ring-white/15 hover:bg-white/10"
     }`;
   return (
-    <nav className="flex snap-x gap-2 overflow-x-auto px-5 py-2 [scrollbar-width:none]">
+    <nav aria-label={t("genres")} className="flex snap-x gap-2 overflow-x-auto px-5 py-2 [scrollbar-width:none]">
       <button type="button" onClick={() => { haptic("tap"); onSelect(null); }} aria-pressed={selected === null} className={chip(selected === null)}>
         {t("all")}
       </button>

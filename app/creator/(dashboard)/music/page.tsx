@@ -150,7 +150,12 @@ export default function CreatorMusicPage() {
       const ms = await readAudioDuration(f);
       setDurationMs(ms);
       if (ms < MUSIC_MIN_DURATION_MS || ms > MUSIC_MAX_DURATION_MS) {
-        setFileError(t("durationLabel"));
+        setFileError(
+          t("durationInvalid", {
+            min: Math.round(MUSIC_MIN_DURATION_MS / 1000),
+            max: Math.round(MUSIC_MAX_DURATION_MS / 60000),
+          }),
+        );
       }
     } catch {
       setFileError(t("fileType"));
@@ -256,6 +261,7 @@ export default function CreatorMusicPage() {
       setMsg(t("error"));
       return;
     }
+    setMsg(t("saved"));
     setEditingId(null);
     load();
   };
@@ -271,6 +277,7 @@ export default function CreatorMusicPage() {
       setMsg(t("error"));
       return;
     }
+    setMsg(t("saved"));
     load();
   };
 
@@ -291,6 +298,7 @@ export default function CreatorMusicPage() {
       setMsg(t("error"));
       return;
     }
+    setMsg(t("saved"));
     setAlbumForm({ title: "", coverUrl: "", releaseDate: "", priceSwyp: "" });
     load();
   };
@@ -411,7 +419,7 @@ export default function CreatorMusicPage() {
                   <span>{t(STATUS_KEY[track.status])}</span>
                   {track.is_premium && <span>· {t("premium")}</span>}
                   {track.explicit && <span>· {t("explicitBadge")}</span>}
-                  <span className="inline-flex items-center gap-1">· <Headphones size={12} /> {track.plays_7d}</span>
+                  <span className="inline-flex items-center gap-1">· <Headphones size={12} /> {t("plays7d", { count: track.plays_7d })}</span>
                 </p>
               </div>
               <div className="flex shrink-0 gap-1">
@@ -466,7 +474,7 @@ export default function CreatorMusicPage() {
           </ul>
         )}
         <form onSubmit={createAlbum} className="grid gap-2 sm:grid-cols-2">
-          <input required value={albumForm.title} onChange={(e) => setAlbumForm({ ...albumForm, title: e.target.value })} placeholder={t("trackTitle")} className={INPUT} />
+          <input required value={albumForm.title} onChange={(e) => setAlbumForm({ ...albumForm, title: e.target.value })} placeholder={t("albumTitle")} className={INPUT} />
           <input value={albumForm.coverUrl} onChange={(e) => setAlbumForm({ ...albumForm, coverUrl: e.target.value })} placeholder={t("coverUrl")} className={INPUT} />
           <input type="date" value={albumForm.releaseDate} onChange={(e) => setAlbumForm({ ...albumForm, releaseDate: e.target.value })} className={INPUT} />
           <input type="number" min={0} step={0.5} value={albumForm.priceSwyp} onChange={(e) => setAlbumForm({ ...albumForm, priceSwyp: e.target.value })} placeholder={t("priceLabel")} className={INPUT} />
