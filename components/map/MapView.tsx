@@ -22,11 +22,17 @@ import "leaflet/dist/leaflet.css";
 // Fix icon-uri default Leaflet în bundler (altfel marker-ele apar sparte).
 // @ts-expect-error _getIconUrl e privat
 delete L.Icon.Default.prototype._getIconUrl;
+// Imaginile sunt copiate din node_modules/leaflet/dist/images în public/leaflet —
+// servite de noi, nu de un CDN terț.
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconRetinaUrl: "/leaflet/marker-icon-2x.png",
+  iconUrl: "/leaflet/marker-icon.png",
+  shadowUrl: "/leaflet/marker-shadow.png",
 });
+
+/** Furnizorul de tile-uri e configurabil (NEXT_PUBLIC_MAP_TILE_URL); OSM HOT e doar fallback. */
+const MAP_TILE_URL =
+  process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png";
 
 export type MapViewProps = {
   center: { lat: number; lng: number };
@@ -252,7 +258,7 @@ export default function MapView({
         attributionControl={false}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
+          url={MAP_TILE_URL}
           subdomains="abc"
           maxZoom={19}
         />

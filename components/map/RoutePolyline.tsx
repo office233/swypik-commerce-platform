@@ -1,13 +1,18 @@
 "use client";
 
 /**
- * RoutePolyline — traseu realist de navigare pe străzi (OSRM public routing cu fallback haversine).
- * Redă o linie de rută dublă (casing de adâncime + traseu de navigare luminos) stil Uber / Google Maps.
+ * RoutePolyline — traseu pe străzi via OSRM, cu fallback la linie dreaptă.
+ *
+ * Serverul OSRM vine din NEXT_PUBLIC_OSRM_URL. Nu există un default: serverul
+ * demo public router.project-osrm.org interzice explicit folosirea în producție
+ * și nu are SLA. Fără variabilă, ruta se desenează în linie dreaptă.
  */
 import { useEffect, useState } from "react";
 import { Polyline } from "react-leaflet";
 
 type Point = { lat: number; lng: number };
+
+const OSRM_URL = (process.env.NEXT_PUBLIC_OSRM_URL ?? "").replace(/\/$/, "");
 
 const routeCache = new Map<string, [number, number][]>();
 
@@ -34,13 +39,17 @@ export default function RoutePolyline({
       setRouteCoords(routeCache.get(key)!);
       return;
     }
+    if (!OSRM_URL) {
+      setRouteCoords(points.map((p) => [p.lat, p.lng] as [number, number]));
+      return;
+    }
 
     let isMounted = true;
     const controller = new AbortController();
 
     async function fetchRoadRoute() {
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${p1.lng},${p1.lat};${p2.lng},${p2.lat}?overview=full&geometries=geojson`;
+        const url = `${OSRM_URL}/route/v1/driving/${p1.lng},${p1.lat};${p2.lng},${p2.lat}?overview=full&geometries=geojson`;
         const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) throw new Error("OSRM error");
         const data = await res.json();

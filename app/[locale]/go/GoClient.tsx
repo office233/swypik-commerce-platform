@@ -12,7 +12,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 import {
-  Zap,
   ArrowLeft,
   ArrowUpDown,
   History,
@@ -26,10 +25,10 @@ import {
   Banknote,
   Coins,
   Users,
-  type LucideIcon,
 } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 import { DEFAULT_MAP_CENTER } from "@/lib/config/geo";
+import { APP_URL } from "@/lib/app-url";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
 const LiveMarker = dynamic(() => import("@/components/map/LiveMarker"), { ssr: false });
@@ -161,13 +160,6 @@ type Estimate = {
   breakdown: { surge_multiplier: number };
 };
 
-type NearbyDriver = {
-  id: string;
-  lat: number;
-  lng: number;
-  heading: number;
-  eta: string;
-};
 
 export default function GoClient() {
   const router = useRouter();
@@ -236,50 +228,8 @@ export default function GoClient() {
     );
   }, [pickup, t]);
 
-  // Șoferi activi pe hartă cu simulare dinamică a deplasării (Live Crawl stil Uber & Bolt)
-  const [nearbyDrivers, setNearbyDrivers] = useState<NearbyDriver[]>([
-    { id: "drv-1", lat: BUCHAREST.lat + 0.0031, lng: BUCHAREST.lng + 0.0028, heading: 45, eta: "2 min" },
-    { id: "drv-2", lat: BUCHAREST.lat - 0.0039, lng: BUCHAREST.lng + 0.0036, heading: 135, eta: "3 min" },
-    { id: "drv-3", lat: BUCHAREST.lat + 0.0024, lng: BUCHAREST.lng - 0.0042, heading: 275, eta: "4 min" },
-    { id: "drv-4", lat: BUCHAREST.lat - 0.0019, lng: BUCHAREST.lng - 0.0031, heading: 215, eta: "3 min" },
-  ]);
-
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
   const [showSafetyModal, setShowSafetyModal] = useState(false);
-  const [safetyPin] = useState(() => Math.floor(1000 + Math.random() * 9000).toString());
-
-  // Repoziționează mașinile când utilizatorul își alege locația de pornire
-  useEffect(() => {
-    if (!pickup) return;
-    setNearbyDrivers([
-      { id: "drv-1", lat: pickup.lat + 0.0028, lng: pickup.lng + 0.0025, heading: 45, eta: "2 min" },
-      { id: "drv-2", lat: pickup.lat - 0.0032, lng: pickup.lng + 0.0031, heading: 135, eta: "3 min" },
-      { id: "drv-3", lat: pickup.lat + 0.0021, lng: pickup.lng - 0.0038, heading: 275, eta: "4 min" },
-      { id: "drv-4", lat: pickup.lat - 0.0017, lng: pickup.lng - 0.0026, heading: 215, eta: "3 min" },
-    ]);
-  }, [pickup?.lat, pickup?.lng]);
-
-  // Simulare fluidă de deplasare a mașinilor pe străzi (actualizare heading și mișcare organică la 2.2 secunde)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNearbyDrivers((drivers) =>
-        drivers.map((d) => {
-          const rad = (d.heading * Math.PI) / 180;
-          const step = 0.00012; // deplasare realistă ~13 metri
-          const deltaLat = Math.cos(rad) * step;
-          const deltaLng = Math.sin(rad) * step;
-          const newHeading = (d.heading + (Math.random() * 12 - 6) + 360) % 360;
-          return {
-            ...d,
-            lat: d.lat + deltaLat,
-            lng: d.lng + deltaLng,
-            heading: Math.round(newHeading),
-          };
-        }),
-      );
-    }, 2200);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleLocateMe = useCallback(() => {
     haptic("tap");
@@ -473,16 +423,6 @@ export default function GoClient() {
           {/* Rută reală pe străzi via OSRM */}
           {pickup && dropoff ? <RoutePolyline points={[pickup, dropoff]} color="#10B981" casingColor="#0D0D0D" /> : null}
 
-          {/* Mașini live disponibile în apropiere */}
-          {nearbyDrivers.map((d) => (
-            <LiveMarker
-              key={d.id}
-              position={{ lat: d.lat, lng: d.lng }}
-              kind="nearby"
-              heading={d.heading}
-              eta={d.eta}
-            />
-          ))}
         </MapView>
 
         {/* Buton Plutitor Swypik Shield (Siguranță Cursă) */}
@@ -865,31 +805,17 @@ export default function GoClient() {
             </div>
 
             <div className="space-y-2.5 mb-5">
-              {/* Cod PIN Securitate */}
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-neutral-50 border border-neutral-200">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xl">🔢</span>
-                  <div>
-                    <span className="block text-xs font-black text-neutral-900">Cod PIN Cursă</span>
-                    <span className="block text-[10px] text-neutral-500">Confirmă codul cu șoferul înainte de plecare</span>
-                  </div>
-                </div>
-                <span className="text-base font-black tracking-widest text-emerald-600 bg-white px-2.5 py-1 rounded-xl border border-emerald-200 shadow-xs">
-                  {safetyPin}
-                </span>
-              </div>
-
               {/* Partajare traseu */}
               <button
                 type="button"
                 onClick={() => {
                   haptic("tap");
-                  const text = `Urmărește cursa mea pe Swypik Go: https://swypik.com/go`;
+                  const url = `${APP_URL}/go`;
                   if (navigator.share) {
-                    navigator.share({ title: "Cursa mea Swypik Go", text, url: "https://swypik.com/go" }).catch(() => {});
+                    navigator.share({ title: "Swypik Go", text: t("shareText"), url }).catch(() => {});
                   } else {
-                    navigator.clipboard.writeText(text);
-                    alert("Link-ul cursei a fost copiat!");
+                    void navigator.clipboard.writeText(url);
+                    alert(t("shareCopied"));
                   }
                 }}
                 className="w-full flex items-center justify-between p-3 rounded-2xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 transition text-left"

@@ -687,7 +687,7 @@ export default function PayClient() {
                 {/* ── Transparență ── */}
                 <section className="px-5 mt-8">
                     <a
-                        href="https://scan.swypik.com"
+                        href={SWYP_EXPLORER_URL}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3.5 text-xs text-white/50 hover:bg-white/[0.06] transition"
@@ -763,7 +763,7 @@ export default function PayClient() {
                             <span className="text-[#F5A623]/70 text-xs shrink-0 ml-3">→</span>
                         </Link>
                         {[
-                            { href: "https://scan.swypik.com", label: t("linkExplorer"), desc: t("linkExplorerDesc") },
+                            { href: SWYP_EXPLORER_URL, label: t("linkExplorer"), desc: t("linkExplorerDesc") },
                         ].map((l) => (
                             <a
                                 key={l.href}
