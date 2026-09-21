@@ -1,11 +1,17 @@
 /**
  * Swypik Squad Buy (Group Buying viral stil Pinduoduo).
  * 
- * Permite utilizatorilor să cumpere produse cu discount de grup (-25% până la -35%)
- * formând un Squad de 2 persoane în maxim 24 de ore.
+ * Utilizatorii cumpără cu discount de grup formând un squad de N persoane într-un
+ * interval limitat. Procentul, mărimea și durata vin din ./config (env).
  */
 import { dbQuery, withTransaction } from "@/lib/db";
-import { logger } from "@/lib/logger";
+import {
+    SQUAD_DEFAULT_CREATOR_NAME,
+    SQUAD_DEFAULT_MEMBER_NAME,
+    SQUAD_REQUIRED_MEMBERS,
+    SQUAD_TTL_HOURS,
+    squadPriceCents,
+} from "./config";
 
 export interface SquadGroup {
     id: string;
@@ -25,6 +31,14 @@ export interface SquadGroup {
     product_image?: string;
 }
 
+/** Rând din squad_groups + coloanele produsului aduse prin JOIN. */
+type SquadRow = Omit<SquadGroup, "product_image"> & { product_images: unknown };
+
+function toSquadGroup(r: SquadRow): SquadGroup {
+    const { product_images, ...rest } = r;
+    return { ...rest, product_image: Array.isArray(product_images) ? String(product_images[0] ?? "") : "" };
+}
+
 export interface SquadMember {
     id: string;
     squad_id: string;
@@ -41,17 +55,18 @@ export async function createSquadGroup(input: {
     userName?: string;
     userAvatar?: string | null;
 }): Promise<{ squad: SquadGroup; shareUrl: string } | null> {
-    const { rows: products } = await dbQuery(
-        `SELECT id, title, price_cents, images FROM marketplace_products WHERE id = $1 AND status = 'active'`,
+    const { rows: products } = await dbQuery<{ id: string; price_cents: number | null; currency: string | null }>(
+        `SELECT id, price_cents, currency FROM marketplace_products WHERE id = $1 AND status = 'active'`,
         [input.productId],
     );
     const product = products[0];
-    if (!product) return null;
+    // Fără preț real nu există squad: nu inventăm un preț de listă.
+    if (!product || !product.price_cents || product.price_cents <= 0) return null;
 
-    const regularCents = product.price_cents || 10000;
-    // Discount standard Squad: 30% reducere
-    const squadCents = Math.round(regularCents * 0.7);
-    const creatorName = input.userName?.trim() || "Cumpărător Swypik";
+    const regularCents = product.price_cents;
+    const squadCents = squadPriceCents(regularCents);
+    const currency = product.currency || "RON";
+    const creatorName = input.userName?.trim() || SQUAD_DEFAULT_CREATOR_NAME;
 
     const squad = await withTransaction(async (q) => {
         const { rows: sRows } = await q(
@@ -59,9 +74,10 @@ export async function createSquadGroup(input: {
                 product_id, creator_user_id, creator_name, creator_avatar,
                 required_members, current_members, squad_price_cents, regular_price_cents,
                 currency, status, expires_at
-            ) VALUES ($1, $2, $3, $4, 2, 1, $5, $6, 'RON', 'active', now() + interval '24 hours')
+            ) VALUES ($1, $2, $3, $4, $7, 1, $5, $6, $8, 'active', now() + make_interval(hours => $9))
             RETURNING *`,
-            [product.id, input.userId || null, creatorName, input.userAvatar || null, squadCents, regularCents],
+            [product.id, input.userId || null, creatorName, input.userAvatar || null, squadCents, regularCents,
+             SQUAD_REQUIRED_MEMBERS, currency, SQUAD_TTL_HOURS],
         );
         const newSquad = sRows[0];
 
@@ -137,7 +153,7 @@ export async function joinSquadGroup(input: {
         return { success: false, error: "Acest Squad a expirat." };
     }
 
-    const memberName = input.userName?.trim() || "Prieten Squad";
+    const memberName = input.userName?.trim() || SQUAD_DEFAULT_MEMBER_NAME;
 
     const updated = await withTransaction(async (q) => {
         await q(
@@ -174,10 +190,7 @@ export async function getActiveSquads(limit = 10): Promise<SquadGroup[]> {
         [limit],
     );
 
-    return rows.map((r: any) => ({
-        ...r,
-        product_image: Array.isArray(r.product_images) ? r.product_images[0] : "",
-    }));
+    return (rows as SquadRow[]).map(toSquadGroup);
 }
 
 export async function getActiveSquadsForProduct(productId: string, limit = 5): Promise<SquadGroup[]> {
@@ -191,10 +204,7 @@ export async function getActiveSquadsForProduct(productId: string, limit = 5): P
         [productId, limit],
     );
 
-    return rows.map((r: any) => ({
-        ...r,
-        product_image: Array.isArray(r.product_images) ? r.product_images[0] : "",
-    }));
+    return (rows as SquadRow[]).map(toSquadGroup);
 }
 
 export async function getSquadsForSeller(sellerId: string, limit = 50): Promise<{
@@ -217,19 +227,24 @@ export async function getSquadsForSeller(sellerId: string, limit = 50): Promise<
         [sellerId, limit],
     );
 
-    const squads: SquadGroup[] = rows.map((r: any) => ({
-        ...r,
-        product_image: Array.isArray(r.product_images) ? r.product_images[0] : "",
-    }));
+    const squads: SquadGroup[] = (rows as SquadRow[]).map(toSquadGroup);
 
     const totalSquads = squads.length;
     const activeSquads = squads.filter((s) => s.status === "active").length;
     const completedSquads = squads.filter((s) => s.status === "completed").length;
-    // Fiecare squad completat aduce 2 comenzi virale
-    const viralOrdersCount = completedSquads * 2;
-    const extraRevenueCents = squads
-        .filter((s) => s.status === "completed")
-        .reduce((sum, s) => sum + (s.squad_price_cents * s.current_members), 0);
+    // Comenzi și venit REALE: doar membrii care au o comandă plătită atașată
+    // (squad_members.order_id). Un squad completat nu este o vânzare.
+    const { rows: orderRows } = await dbQuery<{ orders: string; revenue_cents: string }>(
+        `SELECT COUNT(m.order_id)::text AS orders,
+                COALESCE(SUM(s.squad_price_cents) FILTER (WHERE m.order_id IS NOT NULL), 0)::text AS revenue_cents
+           FROM squad_members m
+           JOIN squad_groups s ON s.id = m.squad_id
+           JOIN marketplace_products p ON p.id = s.product_id
+          WHERE p.seller_id = $1`,
+        [sellerId],
+    );
+    const viralOrdersCount = Number(orderRows[0]?.orders ?? 0);
+    const extraRevenueCents = Number(orderRows[0]?.revenue_cents ?? 0);
 
     return {
         squads,
