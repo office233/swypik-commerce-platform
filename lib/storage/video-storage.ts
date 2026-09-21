@@ -98,6 +98,34 @@ export function isVideoStorageConfigured(): boolean {
 const UPLOAD_EXPIRY_SECONDS = 3600; // 1 hour
 
 /**
+ * Generate a presigned PUT URL for an arbitrary object key. Shared by video
+ * and music uploads — same bucket, same presign client, same expiry.
+ *
+ * @param key          The object key to sign a PUT for.
+ * @param contentType  The MIME type the client will upload.
+ * @returns            Object with the presigned `url`, the object `key`, and `expiresIn` (seconds).
+ */
+export async function createPresignedPutUrl(
+  key: string,
+  contentType: string
+): Promise<{ url: string; key: string; expiresIn: number }> {
+  const client = getPresignClient();
+  const bucket = getBucket();
+
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  const url = await getSignedUrl(client, command, {
+    expiresIn: UPLOAD_EXPIRY_SECONDS,
+  });
+
+  return { url, key, expiresIn: UPLOAD_EXPIRY_SECONDS };
+}
+
+/**
  * Generate a presigned PUT URL for uploading a raw video file.
  *
  * @param uploadId  Unique upload session identifier (UUID).
@@ -111,24 +139,12 @@ export async function createVideoUploadUrl(
     contentType?: string;
   }
 ): Promise<{ url: string; key: string; expiresIn: number }> {
-  const client = getPresignClient();
-  const bucket = getBucket();
   const key = typeof upload === "string"
     ? `${VIDEO_PATHS.raw}/${upload}.mp4`
     : buildRawVideoObjectKey(upload.uploadId, upload.creatorId, upload.filename);
   const contentType = typeof upload === "string" ? "video/mp4" : upload.contentType || "video/mp4";
 
-  const command = new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    ContentType: contentType,
-  });
-
-  const url = await getSignedUrl(client, command, {
-    expiresIn: UPLOAD_EXPIRY_SECONDS,
-  });
-
-  return { url, key, expiresIn: UPLOAD_EXPIRY_SECONDS };
+  return createPresignedPutUrl(key, contentType);
 }
 
 export function buildRawVideoObjectKey(uploadId: string, creatorId?: string, filename?: string): string {
@@ -161,7 +177,7 @@ function firstEnv(...keys: string[]): string {
   return "";
 }
 
-function sanitizePathPart(value: string): string {
+export function sanitizePathPart(value: string): string {
   return sanitizeFilename(value)
     .replace(/\.[a-z0-9]+$/i, "")
     .replace(/[^a-zA-Z0-9._-]+/g, "-")
