@@ -31,3 +31,6 @@ export const MUSIC_CATALOG_PAGE_SIZE = 30;
 export const MUSIC_HOME_ROW_MAX = 20;
 export const MUSIC_TOP_COUNT = 10;
 export const SWYP_UNITS_PER_COIN = 100;
+/** Identitatea sunetelor Swypik Music în tabela partajată `audio_tracks`. */
+export const MUSIC_AUDIO_TRACK_SOURCE = "swypik_music";
+export const MUSIC_AUDIO_TRACK_LICENSE = "swypik-artist";
