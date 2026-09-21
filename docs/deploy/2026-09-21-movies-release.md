@@ -8,7 +8,7 @@ Ce conține `main` (31 commit-uri peste ultimul deploy):
    „AI Integrity Shield", telemetrie inventată, scripturi de build fictive),
    Squad Buy și catalogul viral după flag (OFF), logger structurat, i18n.
 2. Swypik Movies (branch `feat/movies`): migrările `20260921_0003_movies.sql` și
-   `20260921_0004_movies_visibility_guard.sql`, API, pagini, studio, admin, feed.
+   `20260921_0004_movies_visibility_guard.sql`, `20260921_0005_movies_watchlist.sql` (Lista mea), API, pagini în stil Netflix, studio, admin, feed.
 
 ## Pe VPS (`root@46.224.197.2`, `/opt/swypik/app`)
 
@@ -40,7 +40,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://swypik.com/api/explore/feed    
 Dacă `deploy.sh` nu aplică migrările (rulează-le manual, în ordine):
 
 ```bash
-for f in db/migrations/20260921_000{1,2,3,4}_*.sql; do ./scripts/db/apply-migration.sh "$f"; done
+for f in db/migrations/20260921_000{1,2,3,4,5}_*.sql; do ./scripts/db/apply-migration.sh "$f"; done
 ```
 
 ## După deploy
