@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ function buildUrls(streamKey: string) {
   const host = process.env.LIVE_RTMP_HOST || (isProd ? "" : "swypik.com");
   const publicHost = process.env.LIVE_HLS_HOST || (isProd ? "" : "swypik.com");
   if (!host || !publicHost) {
-    console.error("[live/streams] LIVE_RTMP_HOST/LIVE_HLS_HOST lipsesc în producție — URL-urile de stream vor fi invalide");
+    logger.error("[live/streams] LIVE_RTMP_HOST/LIVE_HLS_HOST lipsesc în producție — URL-urile de stream vor fi invalide");
   }
   return {
     rtmp_url: `rtmp://${host}:1935/live/${streamKey}`,

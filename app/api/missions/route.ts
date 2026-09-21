@@ -1,6 +1,7 @@
 // Fix bug: marketplace_products.images nu există, e image_url
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,7 @@ export async function GET(req: Request) {
       { headers: { "cache-control": "public, s-maxage=60, stale-while-revalidate=300" } },
     );
   } catch (err) {
-    console.error("[api/missions] GET failed", err);
+    logger.error({ err }, "[api/missions] GET failed");
     return NextResponse.json({ error: "internal_error", missions: [] }, { status: 500 });
   }
 }

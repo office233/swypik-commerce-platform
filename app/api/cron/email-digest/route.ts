@@ -5,6 +5,7 @@ import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { sendEmail, unsubscribeUrl } from "@/lib/email/service";
 import { APP_URL } from "@/lib/app-url";
 import { formatMoneyCents } from "@/lib/i18n/currency";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -167,7 +168,7 @@ async function runDigest() {
         skipped++;
       }
     } catch (e) {
-      console.warn("[email-digest] failed for", u.email, (e as Error)?.message);
+      logger.warn({ email: u.email, err: e }, "[email-digest] failed for");
       skipped++;
     }
     // Rate limit: 1s between sends within batch (Resend free tier safe).

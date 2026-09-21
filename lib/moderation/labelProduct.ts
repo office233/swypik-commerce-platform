@@ -7,6 +7,7 @@
  */
 import { classifyText } from "@/lib/moderation/classifier";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export type ProductLabelInput = {
   id: string;
@@ -44,6 +45,6 @@ export async function labelProduct(p: ProductLabelInput): Promise<void> {
     );
   } catch (err) {
     // never block import — product stays at trigger-default 'sensitive'
-    console.error("[labelProduct] failed", p.id, err);
+    logger.error({ id: p.id, err }, "[labelProduct] failed");
   }
 }

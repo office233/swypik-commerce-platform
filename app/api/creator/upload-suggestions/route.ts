@@ -4,8 +4,8 @@ import { generateBundle, type GeminiBundle, type SuggestionLanguage } from "@/li
 import { getCachedSuggestions, setCachedSuggestions } from "@/lib/creator/upload-suggestions-cache";
 import { getCreatorUserId } from "@/lib/creator/session";
 import { rateLimit } from "@/lib/security/rate-limit";
-
 import { logger } from "@/lib/logger";
+
 export const dynamic = "force-dynamic";
 
 type SuggestionBody = {
@@ -33,7 +33,7 @@ async function loadVideoContext(videoId: string, creatorId: string) {
     );
     return rows[0] || null;
   } catch (e) {
-    console.warn("[upload-suggestions] video lookup failed:", (e as Error).message);
+    logger.warn({ err: e }, "[upload-suggestions] video lookup failed");
     return null;
   }
 }
@@ -49,7 +49,7 @@ async function persistSuggestions(videoId: string, creatorId: string, bundle: Ge
     );
   } catch (e) {
     // Migration may not have been applied yet — fail soft.
-    console.warn("[upload-suggestions] persist failed:", (e as Error).message);
+    logger.warn({ err: e }, "[upload-suggestions] persist failed");
   }
 }
 

@@ -21,6 +21,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export async function GET() {
       avatarUrl = rows[0].avatar_url;
     }
   } catch (err) {
-    console.warn("[auth/me] profile lookup failed:", (err as Error).message);
+    logger.warn({ err }, "[auth/me] profile lookup failed");
   }
 
   return NextResponse.json(

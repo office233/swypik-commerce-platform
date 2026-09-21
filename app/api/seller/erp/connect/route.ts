@@ -26,15 +26,16 @@ async function testERPConnection(
             signal: AbortSignal.timeout(8000),
         });
         if (!res.ok) {
-            return { ok: false, error: `ERP a raspuns cu status ${res.status}` };
+            return { ok: false, error: "ERP-ul nu a acceptat conexiunea." };
         }
         const data = await res.json();
         if (!data.success) {
-            return { ok: false, error: data.error || "ERP a respins cheia API" };
+            return { ok: false, error: "ERP-ul a respins cheia API." };
         }
         return { ok: true, productCount: data.products?.length ?? 0 };
-    } catch (e: any) {
-        return { ok: false, error: e.message || "Conexiune esuata" };
+    } catch (e) {
+        logger.warn({ err: e }, "[seller/erp/connect] probe failed");
+        return { ok: false, error: "Conexiune eșuată." };
     }
 }
 

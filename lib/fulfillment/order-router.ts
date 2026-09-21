@@ -1,8 +1,8 @@
 import { dbQuery } from "@/lib/db";
 import { PLATFORM_COMMISSION_BPS, applyBps } from "@/lib/config/commerce";
 import { sendSellerNewOrderAlert } from "@/lib/email/service";
-import { logger } from "@/lib/logger";
 import { notifyOps } from "@/lib/ops/alerts";
+import { logger } from "@/lib/logger";
 
 const log = logger.child({ service: "order-router" });
 
@@ -193,7 +193,7 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
       customerName = orderRows[0].customer_name;
     }
   } catch (err) {
-    console.error(`[Order Router] Error fetching customer name`, err);
+    logger.error({ err }, `[Order Router] Error fetching customer name`);
   }
 
   for (const [sellerId, sellerItems] of Object.entries(plan.localSellers)) {
@@ -204,10 +204,10 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
         log.info({ seller_id: sellerId, order_id: orderId, items_count: sellerItems.length }, "sending new order alert to seller");
         await sendSellerNewOrderAlert(sellerEmail, sellerItems, customerName);
       } else {
-        console.warn(`[Order Router] Seller ${sellerId} not found or has no email.`);
+        logger.warn(`[Order Router] Seller ${sellerId} not found or has no email.`);
       }
     } catch (err) {
-      console.error(`[Order Router] Failed to send seller alert for ${sellerId}:`, err);
+      logger.error({ err }, `[Order Router] Failed to send seller alert for ${sellerId}`);
     }
   }
 

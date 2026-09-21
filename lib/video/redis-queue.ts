@@ -1,4 +1,5 @@
 import type { ProcessVideoJobPayload } from "@/lib/video/upload-session";
+import { logger } from "@/lib/logger";
 
 export type QueuePublishResult = {
   queued: boolean;
@@ -26,7 +27,7 @@ export async function publishProcessVideoJob(
       });
       return { queued: true, backend: "upstash", messageId };
     } catch (error: any) {
-      console.error("[VideoUpload] Upstash Redis enqueue failed:", error);
+      logger.error({ err: error }, "[VideoUpload] Upstash Redis enqueue failed");
       return {
         queued: false,
         backend: "upstash",
@@ -38,7 +39,7 @@ export async function publishProcessVideoJob(
       const messageId = await redisXadd(redisUrl, queueName, "data", JSON.stringify(payload));
       return { queued: true, backend: "native", messageId };
     } catch (error: any) {
-      console.error("[VideoUpload] Native Redis enqueue failed:", error);
+      logger.error({ err: error }, "[VideoUpload] Native Redis enqueue failed");
       return {
         queued: false,
         backend: "native",
@@ -49,9 +50,7 @@ export async function publishProcessVideoJob(
 
   if (!warnedAboutRedisUrl) {
     warnedAboutRedisUrl = true;
-    console.warn(
-      "[VideoUpload] No Redis configuration found. The DB job remains queued."
-    );
+    logger.warn("[VideoUpload] No Redis configuration found. The DB job remains queued.");
   }
   return { queued: false, backend: "none" };
 }

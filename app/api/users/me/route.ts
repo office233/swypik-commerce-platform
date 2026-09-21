@@ -14,6 +14,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery, withTransaction } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { UserProfilePatchSchema, parseBody } from "@/lib/validation/schemas";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -183,7 +184,7 @@ async function handlePatch(request: Request) {
         [session.userId, JSON.stringify(socialLinks), websiteUrl]
       );
     } catch (err) {
-      console.error("[users/me PATCH links]", err);
+      logger.error({ err }, "[users/me PATCH links]");
       return NextResponse.json(
         { error: "Eroare la salvarea linkurilor" },
         { status: 500 }
@@ -215,7 +216,7 @@ async function handlePatch(request: Request) {
         }
       });
     } catch (err) {
-      console.error("[users/me PATCH categories]", err);
+      logger.error({ err }, "[users/me PATCH categories]");
       return NextResponse.json(
         { error: "Eroare la salvarea categoriilor" },
         { status: 500 }
@@ -259,7 +260,7 @@ async function handlePatch(request: Request) {
         { status: 409 }
       );
     }
-    console.error("[users/me PATCH]", err);
+    logger.error({ err }, "[users/me PATCH]");
     return NextResponse.json(
       { error: "Eroare la actualizarea profilului" },
       { status: 500 }

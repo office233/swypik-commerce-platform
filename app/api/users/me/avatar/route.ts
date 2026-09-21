@@ -12,6 +12,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { uploadFile, MAX_FILE_SIZE } from "@/lib/storage/upload";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ avatar_url: result.url });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Eroare la încărcare";
-    console.error("[users/me/avatar POST]", err);
+    logger.error({ err }, "[users/me/avatar POST]");
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

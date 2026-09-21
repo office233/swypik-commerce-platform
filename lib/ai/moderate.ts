@@ -5,6 +5,7 @@
  */
 
 import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { logger } from "@/lib/logger";
 
 const SYSTEM = `Ești un clasificator de moderare de conținut pentru un marketplace românesc.
 Analizează textul primit și raportează dacă conține: violență, hate speech, conținut sexual explicit, spam evident, autovătămare, drogări, doxxing.
@@ -35,7 +36,7 @@ export async function moderate(text: string): Promise<ModerateResult> {
       }),
     });
     if (!res.ok) {
-      console.warn("[moderate] http", res.status);
+      logger.warn({ status: res.status }, "[moderate] http");
       return { flagged: false, reasons: [] };
     }
     const json: any = await res.json();

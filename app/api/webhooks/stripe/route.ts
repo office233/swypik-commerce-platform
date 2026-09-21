@@ -5,12 +5,12 @@ import { logCheckoutEvent } from "@/lib/security/audit-log";
 import { getClientIP } from "@/lib/security/rate-limit";
 import type Stripe from "stripe";
 
-import { logger } from "@/lib/logger";
 import { handleCheckoutCompletedEvent } from "./_handlers/checkout";
 import { handlePaymentIntentSucceededEvent, handlePaymentIntentFailed } from "./_handlers/payments";
 import { handleChargeRefunded, handleIntentDead } from "./_handlers/refunds";
 import { handleAccountUpdated } from "./_handlers/connect";
 import { handleDisputeEvent } from "./_handlers/disputes";
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 type EventHandler = (event: Stripe.Event) => Promise<void>;
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     }
     event = getStripe().webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err: unknown) {
-    console.error("[Stripe Webhook] Signature verification failed:", err instanceof Error ? err.message : String(err));
+    logger.error({ err }, "[Stripe Webhook] Signature verification failed");
     await logCheckoutEvent("webhook_fail", {
       clientIp,
       error: (err instanceof Error && err.message) || "Signature verification failed",
@@ -124,7 +124,7 @@ export async function POST(req: Request) {
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[Stripe Webhook] Handler failed:", msg);
+    logger.error({ msg }, "[Stripe Webhook] Handler failed");
     // CRITIC (audit 2026-08-25): claim-ul de idempotenta a fost deja inserat.
     // Daca handler-ul esueaza (ex. listLineItems da timeout) si lasam randul,
     // retry-ul lui Stripe e tratat ca DUPLICAT si evenimentul se pierde

@@ -16,6 +16,7 @@ import {
   isSafeRedirect,
 } from "@/lib/auth/oauth/helpers";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ async function handle(req: Request, params: URLSearchParams, userJson?: string) 
   try {
     clientSecret = await buildAppleClientSecret();
   } catch (err) {
-    console.error("[oauth/apple] secret build failed:", (err as Error).message);
+    logger.error({ err }, "[oauth/apple] secret build failed");
     return NextResponse.redirect(`${getOAuthRedirectBase()}/auth?error=apple_config`);
   }
 
@@ -102,7 +103,7 @@ async function handle(req: Request, params: URLSearchParams, userJson?: string) 
   });
   if (!tokenRes.ok) {
     const text = await tokenRes.text();
-    console.error("[oauth/apple] token exchange failed:", text);
+    logger.error({ text }, "[oauth/apple] token exchange failed");
     return NextResponse.redirect(`${getOAuthRedirectBase()}/auth?error=oauth_token`);
   }
   const tokenJson = (await tokenRes.json()) as { id_token?: string };
@@ -118,7 +119,7 @@ async function handle(req: Request, params: URLSearchParams, userJson?: string) 
     });
     payload = verified as AppleIdToken;
   } catch (err) {
-    console.error("[oauth/apple] verify failed:", (err as Error).message);
+    logger.error({ err }, "[oauth/apple] verify failed");
     return NextResponse.redirect(`${getOAuthRedirectBase()}/auth?error=oauth_verify`);
   }
 

@@ -2,9 +2,9 @@ import type Stripe from "stripe";
 import { dbQuery } from "@/lib/db";
 import { sendRefundEmail } from "@/lib/email/service";
 import { refundSwypForRefundedCharge } from "@/lib/swyp/refund";
-import { logger } from "@/lib/logger";
 import { onPaymentRefunded } from "@/lib/swyp/hooks";
 import { reclaimSwypForDeadIntent } from "./shared";
+import { logger } from "@/lib/logger";
 
 export async function handleChargeRefunded(event: Stripe.Event) {
   const charge = event.data.object as Stripe.Charge;
@@ -114,12 +114,12 @@ export async function handleChargeRefunded(event: Stripe.Event) {
           : (order.total_cents || 0);
         if (toEmail) {
           await sendRefundEmail(toEmail, order.id, amountCents, order.currency || "RON").catch((err) =>
-            console.warn("[refund-email]", err?.message || err)
+            logger.warn({ err }, "[refund-email]")
           );
         }
       }
     } catch (err) {
-      console.warn("[refund-email] lookup failed:", (err as Error).message);
+      logger.warn({ err }, "[refund-email] lookup failed");
     }
   }
 }

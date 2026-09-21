@@ -19,8 +19,8 @@ import { inferBundleQueries, buildSalesSuggestion } from "@/lib/sales/bundle-eng
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { moderateOutput } from "@/lib/ai/moderation";
 import { ChatPostSchema, parseBody } from "@/lib/validation/schemas";
-
 import { logger } from "@/lib/logger";
+
 export const maxDuration = 120;
 
 const SAFE_FALLBACK = "Imi pare rau, nu pot raspunde la asta.";
@@ -43,7 +43,7 @@ async function safeReplyJson(payload: any) {
     if (reply) {
       const verdict = await moderateOutput(reply);
       if (!verdict.safe) {
-        console.warn("[chat] moderation blocked:", verdict.reason);
+        logger.warn({ reason: verdict.reason }, "[chat] moderation blocked");
         payload = { ...payload, reply: SAFE_FALLBACK, products: [], bundleProducts: [], moderation: { blocked: true, reason: verdict.reason } };
       }
     }

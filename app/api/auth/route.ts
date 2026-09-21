@@ -163,7 +163,7 @@ async function issueSessionResponse(
     const anonToken = cookieStore.get(CART_COOKIE)?.value || null;
     if (anonToken) await mergeAnonCartToUser(anonToken, userId);
   } catch (err) {
-    console.warn("[auth] cart merge failed:", (err as Error).message);
+    logger.warn({ err }, "[auth] cart merge failed");
   }
   // Migrează și activitatea socială anonimă (like-uri, salvări, follow-uri) —
   // altfel inimile date înainte de login dispăreau la autentificare
@@ -172,7 +172,7 @@ async function issueSessionResponse(
     const anonUserId = await getAnonShellUserId();
     if (anonUserId) await mergeAnonSocialToUser(anonUserId, userId);
   } catch (err) {
-    console.warn("[auth] social merge failed:", (err as Error).message);
+    logger.warn({ err }, "[auth] social merge failed");
   }
   await dbQuery(`UPDATE users SET last_seen_at = now() WHERE id = $1`, [userId]);
 
@@ -254,7 +254,7 @@ async function issueSessionResponse(
       const adminCookie = await createAdminSessionAndGetCookie();
       appendSetCookie(response, adminCookie);
     } catch (err) {
-      console.warn("[auth] could not create admin cookie:", (err as Error).message);
+      logger.warn({ err }, "[auth] could not create admin cookie");
     }
   }
 
@@ -272,7 +272,7 @@ async function issueSessionResponse(
         `${SELLER_COOKIE_NAME}=${sellerToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${SECURE_FLAG}${COOKIE_DOMAIN_FLAG}`,
       );
     } catch (err) {
-      console.warn("[auth] could not create seller cookie:", (err as Error).message);
+      logger.warn({ err }, "[auth] could not create seller cookie");
     }
   }
 
@@ -338,7 +338,7 @@ async function handleSendOtp(req: Request, rawEmail: unknown) {
     try {
       await attributeOnSignup({ inviteeUserId: newRows[0].id });
     } catch (err) {
-      console.warn("[auth/otp_signup] referral attribution failed:", (err as Error).message);
+      logger.warn({ err }, "[auth/otp_signup] referral attribution failed");
     }
     // Fraud recreation detection — best-effort, never blocks signup
     try {
@@ -352,7 +352,7 @@ async function handleSendOtp(req: Request, rawEmail: unknown) {
         signupPath: "otp_email",
       });
     } catch (err) {
-      console.warn("[auth/otp_signup] recreation check failed:", (err as Error).message);
+      logger.warn({ err }, "[auth/otp_signup] recreation check failed");
     }
   }
 
@@ -563,14 +563,14 @@ export async function POST(req: Request) {
           [userId],
         );
       } catch (err) {
-        console.warn('[auth/signup_password] default rows insert failed:', (err as Error).message);
+        logger.warn({ err }, '[auth/signup_password] default rows insert failed');
       }
 
       // M1.3 referral attribution — best-effort, never blocks signup
       try {
         await attributeOnSignup({ inviteeUserId: userId });
       } catch (err) {
-        console.warn("[auth/signup_password] referral attribution failed:", (err as Error).message);
+        logger.warn({ err }, "[auth/signup_password] referral attribution failed");
       }
 
       // Fraud recreation detection — best-effort, never blocks signup
@@ -586,7 +586,7 @@ export async function POST(req: Request) {
           signupPath: "password",
         });
       } catch (err) {
-        console.warn("[auth/signup_password] recreation check failed:", (err as Error).message);
+        logger.warn({ err }, "[auth/signup_password] recreation check failed");
       }
 
       // Trimite OTP de verificare email asincron (fire-and-forget pentru UX rapid)
@@ -599,15 +599,15 @@ export async function POST(req: Request) {
           [userId, otpHash, JSON.stringify({ type: "otp" })],
         );
         sendMagicLink(normalizedEmail, otp).catch((err) =>
-          console.warn("[auth/signup_password] verification email failed:", err?.message),
+          logger.warn({ err }, "[auth/signup_password] verification email failed"),
         );
       } catch (err) {
-        console.warn("[auth/signup_password] could not stage verification OTP:", (err as Error).message);
+        logger.warn({ err }, "[auth/signup_password] could not stage verification OTP");
       }
 
       // Welcome email (transactional, best-effort)
       sendWelcomeEmail(normalizedEmail, cleanUsername).catch((err) =>
-        console.warn("[welcome-email]", err?.message || err),
+        logger.warn({ err }, "[welcome-email]"),
       );
 
       return issueSessionResponse(
@@ -689,7 +689,7 @@ export async function POST(req: Request) {
           );
           return NextResponse.json({ success: true, requires2FA: true, tempToken });
         } catch (e) {
-          console.warn("[auth] 2FA redis failed:", (e as Error).message);
+          logger.warn({ err: e }, "[auth] 2FA redis failed");
           return NextResponse.json(
             { success: false, error: "Eroare temporară. Încearcă din nou." },
             { status: 500 },
@@ -746,7 +746,7 @@ export async function POST(req: Request) {
         await getRedis().del(`2fa:pending:${tempToken}`);
         return issueSessionResponse(payload.userId, payload.email, payload.next, req);
       } catch (e) {
-        console.warn("[auth] verify_2fa failed:", (e as Error).message);
+        logger.warn({ err: e }, "[auth] verify_2fa failed");
         return NextResponse.json({ success: false, error: "Eroare la verificare." }, { status: 500 });
       }
     }
@@ -1000,7 +1000,7 @@ export async function POST(req: Request) {
           <p style="color:#666;font-size:12px;margin-top:24px;">Link-ul expiră în 1 oră. Dacă nu ai cerut resetarea, ignoră acest mesaj.</p>
         </div>`;
         sendEmail({ to: normalizedEmail, subject: "Resetare parolă Swypik", html }).catch((err) =>
-          console.error("[forgot_password] email error:", err),
+          logger.error({ err }, "[forgot_password] email error"),
         );
       }
 
@@ -1067,7 +1067,7 @@ export async function POST(req: Request) {
         await dbQuery("COMMIT");
       } catch (e) {
         await dbQuery("ROLLBACK");
-        console.error("[reset_password] tx error", e);
+        logger.error({ err: e }, "[reset_password] tx error");
         return NextResponse.json(
           { success: false, error: "Nu am putut reseta parola." },
           { status: 500 },

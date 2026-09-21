@@ -90,11 +90,8 @@ export async function GET() {
       thisMonthSalesCents: parseInt(sales?.this_month_sales_cents || "0", 10),
       thisMonthOrders: parseInt(sales?.this_month_orders || "0", 10),
     }));
-  } catch (error: any) {
-    logger.error({ err: error }, "[Creator Earnings API] GET Error:");
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    logger.error({ err: error }, "[Creator Earnings API] GET Error");
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push/web-push";
 import { timingSafeEqual } from "crypto";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
   } catch (e) {
-    console.warn("[live/started] notify failed", e);
+    logger.warn({ err: e }, "[live/started] notify failed");
   }
 
   return NextResponse.json({ ok: true, stream_id: stream.id });

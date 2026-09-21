@@ -9,6 +9,7 @@
 import { dbQuery } from "@/lib/db";
 import { embed, toPgVector, EmbeddingError } from "@/lib/ai/embeddings";
 import { getCopilotGhuTokens } from "@/lib/ai/github-models-tokens";
+import { logger } from "@/lib/logger";
 
 type Kind = "product" | "video";
 
@@ -30,7 +31,7 @@ async function doEmbed(kind: Kind, id: string, text: string): Promise<void> {
     );
   } catch (e) {
     const msg = e instanceof EmbeddingError ? `${e.status || ""} ${e.message}` : (e as Error)?.message;
-    console.warn(`[auto-embed:${kind}] ${id}: ${msg}`);
+    logger.warn(`[auto-embed:${kind}] ${id}: ${msg}`);
   }
 }
 

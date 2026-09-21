@@ -2,6 +2,7 @@ import { dbQuery } from "@/lib/db";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 import { isSessionTokenFormat } from "@/lib/auth/session";
+import { logger } from "@/lib/logger";
 
 const COOKIE_NAME = "seller_session";
 
@@ -29,7 +30,7 @@ export async function getSellerSessionId(): Promise<string | null> {
     if (rows.length === 0) return null;
     return rows[0].seller_id;
   } catch (error) {
-    console.error("[Seller Auth] Error reading session:", error);
+    logger.error({ err: error }, "[Seller Auth] Error reading session");
     return null;
   }
 }

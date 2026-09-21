@@ -284,7 +284,7 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
       body: JSON.stringify({ model: getModel(), messages, temperature: 0.72, max_tokens: 750, response_format: { type: "json_object" } }),
     });
     if (!res.ok) {
-      console.warn("[AI Orchestrator] http", res.status);
+      logger.warn({ status: res.status }, "[AI Orchestrator] http");
       return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
     }
     const completion: any = await res.json();
@@ -293,7 +293,7 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
     const result = JSON.parse(cleaned);
     return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, category: result.category || undefined, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p: any) => String(p.id)) : undefined };
   } catch (error) {
-    console.error("[AI Orchestrator] Error:", error);
+    logger.error({ err: error }, "[AI Orchestrator] Error");
     return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
   }
 }

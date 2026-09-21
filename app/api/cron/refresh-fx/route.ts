@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { timingSafeEqual } from "crypto";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +89,7 @@ export async function GET(req: Request) {
         );
         updated++;
       } catch (err) {
-        console.warn("[cron/refresh-fx] failed for", quote, (err as Error).message);
+        logger.warn({ quote, err }, "[cron/refresh-fx] failed for");
       }
     }
     // Ensure EUR self-rate

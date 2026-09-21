@@ -5,6 +5,7 @@
  */
 
 import { Pool } from "pg";
+import { logger } from "@/lib/logger";
 
 let pool: Pool | null = null;
 
@@ -47,7 +48,7 @@ function getPool(): Pool {
 
   // Prevent uncaughtException on FATAL 57P01 (admin shutdown) or idle client errors.
   pool.on("error", (err) => {
-    console.warn("[db] idle pg client error:", err.message);
+    logger.warn({ err }, "[db] idle pg client error");
   });
 
   return pool;

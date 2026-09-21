@@ -1,6 +1,7 @@
 import { dbQuery } from "@/lib/db";
 import { buildScopedTagId, parseScopedTagFilter } from "@/lib/db/category-filter-utils";
 import { UUID_RE } from "@/lib/validation/uuid";
+import { logger } from "@/lib/logger";
 
 export type ProductFilters = {
   search?: string;
@@ -982,7 +983,7 @@ export async function getCheckoutProductById(id: string) {
   const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
   const priceCents = Number(row.price_cents);
   if (!Number.isFinite(priceCents) || priceCents <= 0) {
-    console.warn(`[Checkout] Product ${id} has invalid price_cents: ${row.price_cents}`);
+    logger.warn(`[Checkout] Product ${id} has invalid price_cents: ${row.price_cents}`);
     return null;
   }
 

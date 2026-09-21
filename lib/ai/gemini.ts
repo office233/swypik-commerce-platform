@@ -9,6 +9,7 @@
  */
 
 import { GoogleGenerativeAI, type GenerativeModel } from "@google/generative-ai";
+import { logger } from "@/lib/logger";
 
 export type SuggestionLanguage = "ro" | "en";
 
@@ -104,7 +105,7 @@ async function runJson<T>(prompt: string): Promise<T | null> {
     const text = res.response?.text?.() || "";
     return parseJsonLoose<T>(text);
   } catch (err) {
-    console.error("[Gemini] generateContent error:", (err as Error).message);
+    logger.error({ err }, "[Gemini] generateContent error");
     return null;
   }
 }

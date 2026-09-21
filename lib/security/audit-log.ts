@@ -11,6 +11,7 @@
  */
 
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export type AuditEvent =
   | "checkout_start"
@@ -57,6 +58,6 @@ export async function logCheckoutEvent(
     );
   } catch (e) {
     // Non-blocking: never fail the checkout because of logging
-    console.warn("[Audit] Failed to log event:", event, (e as Error).message);
+    logger.warn({ event, err: e }, "[Audit] Failed to log event");
   }
 }

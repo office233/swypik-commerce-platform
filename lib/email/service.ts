@@ -12,9 +12,9 @@ import { sendMail, activeProvider } from "./transport";
 import { createHmac } from "node:crypto";
 import { isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
-import { logger } from "@/lib/logger";
 import { APP_URL } from "@/lib/app-url";
 import { SUPPORT_EMAIL } from "@/lib/contact";
+import { logger } from "@/lib/logger";
 
 const log = logger.child({ service: "email" });
 
@@ -53,7 +53,7 @@ async function isUnsubscribed(email: string): Promise<boolean> {
     );
     return (res.rows?.length || 0) > 0;
   } catch (e) {
-    console.warn("[email] unsubscribes check failed:", (e as Error).message);
+    logger.warn({ err: e }, "[email] unsubscribes check failed");
     return false;
   }
 }
@@ -131,7 +131,7 @@ export async function sendMagicLink(email: string, token: string): Promise<boole
     });
     return true;
   } catch (error) {
-    console.error("Failed to send OTP email:", error);
+    logger.error({ err: error }, "Failed to send OTP email");
     return false;
   }
 }
@@ -300,7 +300,7 @@ function orderTrackingUrl(data: OrderEmailData): string {
  */
 export async function sendEmail(params: { to: string; subject: string; html: string; marketing?: boolean }): Promise<boolean> {
   if (!params.to || !params.to.includes("@")) {
-    console.warn("[Email] Invalid recipient:", params.to);
+    logger.warn({ to: params.to }, "[Email] Invalid recipient");
     return false;
   }
 

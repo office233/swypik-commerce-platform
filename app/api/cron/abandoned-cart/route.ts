@@ -20,9 +20,9 @@ import {
 } from "@/lib/email/service";
 import { timingSafeEqual } from "crypto";
 
-import { logger } from "@/lib/logger";
 import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { APP_URL } from "@/lib/app-url";
+import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 async function handleGET(req: Request) {
@@ -110,9 +110,7 @@ async function handleGET(req: Request) {
         meta?.customer_email || meta?.email;
 
       if (!customerEmail || !customerEmail.includes("@")) {
-        console.warn(
-          `[Abandoned Cart] Skipping session ${session.id} — no valid email`
-        );
+        logger.warn({ sessionId: session.id }, "[Abandoned Cart] Skipping session: no valid email");
         skipped++;
         continue;
       }
@@ -120,9 +118,7 @@ async function handleGET(req: Request) {
       // Extract cart items from metadata
       const rawItems: any[] = meta?.items || [];
       if (rawItems.length === 0) {
-        console.warn(
-          `[Abandoned Cart] Skipping session ${session.id} — no items in metadata`
-        );
+        logger.warn({ sessionId: session.id }, "[Abandoned Cart] Skipping session: no items in metadata");
         skipped++;
         continue;
       }

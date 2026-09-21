@@ -13,6 +13,7 @@
 import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { logger } from "@/lib/logger";
 
 const CACHE_FILE = join(tmpdir(), 'swypik-copilot-sessions.json');
 
@@ -161,7 +162,7 @@ export async function fetchCopilot(
     } catch (e) {
       const tail = ghu.slice(-4);
       // eslint-disable-next-line no-console
-      console.warn(`[copilot] session exchange failed for …${tail}: ${(e as Error).message}`);
+      logger.warn(`[copilot] session exchange failed for …${tail}: ${(e as Error).message}`);
       continue;
     }
     const url = session.endpoint.replace(/\/+$/, '') + (path.startsWith('/') ? path : '/' + path);
@@ -178,7 +179,7 @@ export async function fetchCopilot(
       // invalidate session — refetch next time
       _memCache.delete(ghu);
       // eslint-disable-next-line no-console
-      console.warn(`[copilot] token #${i + 1} (…${tail}) → ${res.status}, rotating`);
+      logger.warn(`[copilot] token #${i + 1} (…${tail}) → ${res.status}, rotating`);
       continue;
     }
     return { res, tokenIndex: i, endpoint: url };

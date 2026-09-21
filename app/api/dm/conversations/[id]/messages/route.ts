@@ -13,8 +13,8 @@ import {
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { DmMessageCreateSchema, parseBody } from "@/lib/validation/schemas";
-
 import { logger } from "@/lib/logger";
+
 export const dynamic = "force-dynamic";
 
 /** GET /api/dm/conversations/[id]/messages?before=&limit= */
@@ -92,7 +92,7 @@ export async function POST(
         });
       }
     } catch (e: any) {
-      console.error("[DM] notify peer failed:", e?.message || e);
+      logger.error({ err: e }, "[DM] notify peer failed");
     }
 
     const response = NextResponse.json({ message });

@@ -61,12 +61,12 @@ export async function POST(req: Request) {
       },
       { status: 503 }
     );
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "Upload Session POST Error:");
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: error instanceof UploadInputError ? error.status : 500 }
-    );
+    if (error instanceof UploadInputError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -92,12 +92,9 @@ export async function GET(req: Request) {
     if (platform) return NextResponse.json(platform);
 
     return NextResponse.json({ error: "Upload session not found" }, { status: 404 });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "Upload Session GET Error:");
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -136,12 +133,9 @@ export async function PATCH(req: Request) {
     if (platform) return NextResponse.json(platform);
 
     return NextResponse.json({ error: "Upload session not found" }, { status: 404 });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "Upload Session PATCH Error:");
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 

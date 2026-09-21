@@ -6,6 +6,7 @@
  */
 import { classifyText } from "@/lib/moderation/classifier";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export type VideoLabelInput = {
   id: string;
@@ -40,6 +41,6 @@ export async function labelVideo(v: VideoLabelInput): Promise<void> {
       [v.id, result.label, result.reasons, result.signals],
     );
   } catch (err) {
-    console.error("[labelVideo] failed", v.id, err);
+    logger.error({ id: v.id, err }, "[labelVideo] failed");
   }
 }

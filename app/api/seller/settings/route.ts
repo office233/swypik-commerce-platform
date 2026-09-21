@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: Request) {
   try {
@@ -87,8 +88,8 @@ export async function POST(req: Request) {
       profileUrl: `/u/${cleanUsername}`,
       message: "Setările magazinului au fost salvate cu succes!"
     });
-  } catch (error: any) {
-    console.error("[Seller Settings API] Error:", error);
-    return NextResponse.json({ error: error.message || "Eroare internă de server" }, { status: 500 });
+  } catch (error) {
+    logger.error({ err: error }, "[Seller Settings API] Error");
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }

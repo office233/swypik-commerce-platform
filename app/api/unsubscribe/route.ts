@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { unsubscribeToken } from "@/lib/email/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { APP_URL } from "@/lib/app-url";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ async function handle(req: Request): Promise<Response> {
       [email.toLowerCase()]
     );
   } catch (e) {
-    console.error("[unsubscribe] db error", e);
+    logger.error({ err: e }, "[unsubscribe] db error");
     return new NextResponse("Server error", { status: 500 });
   }
 

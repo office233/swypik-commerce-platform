@@ -38,6 +38,7 @@ import { CREATOR_COMMISSION_BPS, applyBps } from "@/lib/config/commerce";
 import { getStripe } from "@/lib/stripe/checkout";
 import { timingSafeEqual } from "crypto";
 import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -226,7 +227,7 @@ async function handleGET(req: Request) {
       );
       paidSellerCount++;
     } catch (e: any) {
-      console.error(`[payout-cron] seller payout failed for item ${item.item_id}:`, e?.message || e);
+      logger.error({ err: e }, `[payout-cron] seller payout failed for item ${item.item_id}`);
       await dbQuery(
         `UPDATE commerce_order_items
            SET metadata = coalesce(metadata, '{}'::jsonb)
@@ -320,7 +321,7 @@ async function handleGET(req: Request) {
       );
       paidCreatorCount++;
     } catch (e: any) {
-      console.error(`[payout-cron] creator payout failed for item ${item.item_id}:`, e?.message || e);
+      logger.error({ err: e }, `[payout-cron] creator payout failed for item ${item.item_id}`);
       await dbQuery(
         `UPDATE commerce_order_items
            SET payout_status = 'failed',

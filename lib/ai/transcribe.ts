@@ -7,6 +7,7 @@
  */
 
 import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { logger } from "@/lib/logger";
 
 export type CaptionSegment = { start: number; end: number; text: string };
 export type TranscribeResult = { text: string; segments: CaptionSegment[] };
@@ -20,15 +21,15 @@ export async function transcribe(
   filename = "audio.mp3",
 ): Promise<TranscribeResult> {
   if (!ENABLED) {
-    console.warn("[transcribe] disabled (GITHUB_MODELS_WHISPER!=1) → empty stub");
+    logger.warn("[transcribe] disabled (GITHUB_MODELS_WHISPER!=1) → empty stub");
     return { text: "", segments: [] };
   }
   if (getCopilotGhuTokens().length === 0) {
-    console.warn("[transcribe] no Copilot tokens → empty stub");
+    logger.warn("[transcribe] no Copilot tokens → empty stub");
     return { text: "", segments: [] };
   }
   if (audioBuffer.length > 25 * 1024 * 1024) {
-    console.warn("[transcribe] audio >25MB → skipped");
+    logger.warn("[transcribe] audio >25MB → skipped");
     return { text: "", segments: [] };
   }
 
@@ -44,7 +45,7 @@ export async function transcribe(
       body: form,
     });
     if (!res.ok) {
-      console.warn("[transcribe] http", res.status);
+      logger.warn({ status: res.status }, "[transcribe] http");
       return { text: "", segments: [] };
     }
     const json: any = await res.json();
@@ -58,7 +59,7 @@ export async function transcribe(
       : [];
     return { text, segments };
   } catch (e) {
-    console.warn("[transcribe] failed:", (e as Error).message);
+    logger.warn({ err: e }, "[transcribe] failed");
     return { text: "", segments: [] };
   }
 }

@@ -19,9 +19,9 @@ import { CheckoutPostBodySchema, parseBody } from "@/lib/validation/schemas";
 import crypto from "crypto";
 
 
-import { logger } from "@/lib/logger";
 import { APP_URL } from "@/lib/app-url";
 import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
+import { logger } from "@/lib/logger";
 function parsePositiveInt(val: unknown, fallback: number, max: number): number {
   const n = Number(val);
   if (!Number.isInteger(n) || n < 1) return fallback;
@@ -345,7 +345,7 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
-    console.error("[Checkout] Error:", msg, stack);
+    logger.error({ msg, stack }, "[Checkout] Error");
     logCheckoutEvent("checkout_fail", { error: msg });
     return NextResponse.json(
       { success: false, error: "Nu am putut iniția checkout-ul. Încearcă din nou." },

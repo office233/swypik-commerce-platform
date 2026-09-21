@@ -8,6 +8,7 @@
 
 import { dbQuery } from "@/lib/db";
 import { getRedis } from "@/lib/redis";
+import { logger } from "@/lib/logger";
 
 export type ConversationRow = {
   id: string;
@@ -294,7 +295,7 @@ export async function sendMessage(
     const redis = getRedis();
     await redis.publish(`dm:conv:${conversationId}`, JSON.stringify(message));
   } catch (err: any) {
-    console.error("[dm] redis publish failed:", err?.message || err);
+    logger.error({ err }, "[dm] redis publish failed");
   }
 
   return message;

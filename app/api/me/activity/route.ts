@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +115,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, items, page, limit, has_more: hasMore });
   } catch (err) {
-    console.error("[me/activity] query failed:", err);
+    logger.error({ err }, "[me/activity] query failed");
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }

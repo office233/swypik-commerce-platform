@@ -9,6 +9,7 @@ import { hasAdminSession } from "@/lib/security/admin-auth";
 import { getDb } from "@/lib/db";
 import { sendEmail } from "@/lib/email/service";
 import { SUPPORT_EMAIL } from "@/lib/contact";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -119,7 +120,7 @@ export async function POST(
         `,
       });
     } catch (err) {
-      console.warn("[admin/applications/reject] email send failed:", err);
+      logger.warn({ err }, "[admin/applications/reject] email send failed");
     }
   }
 

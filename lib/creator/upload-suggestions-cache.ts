@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import type { GeminiBundle } from "@/lib/ai/gemini";
+import { logger } from "@/lib/logger";
 
 const CACHE_TTL_SECONDS = 60 * 60; // 1h
 
@@ -36,7 +37,7 @@ export async function setCachedSuggestions(videoId: string, bundle: GeminiBundle
   try {
     await r.set(cacheKey(videoId), JSON.stringify(bundle), { ex: CACHE_TTL_SECONDS });
   } catch (e) {
-    console.warn("[upload-suggestions] cache set failed:", (e as Error).message);
+    logger.warn({ err: e }, "[upload-suggestions] cache set failed");
   }
 }
 

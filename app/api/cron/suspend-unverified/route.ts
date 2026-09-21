@@ -14,6 +14,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { dbQuery } from "@/lib/db";
 import { timingSafeEqual } from "crypto";
 import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
@@ -62,11 +63,7 @@ async function handleGET(req: Request) {
       );
       suspendedCount++;
     } catch (err) {
-      console.warn(
-        "[cron/suspend-unverified] failed for",
-        u.email,
-        (err as Error).message,
-      );
+      logger.warn({ err, email: u.email }, "[cron/suspend-unverified] failed");
     }
   }
 
