@@ -56,6 +56,7 @@ GitHub = mirror/backup + history. VPS = sursa de adevar pentru cod live.
 │   │   ├── returns/              # FROZEN
 │   │   └── email-marketing/      # FROZEN
 │   ├── explore/                  # Video feed
+│   ├── movies/                   # Swypik Movies: catalog, serial, player (FEATURE_MOVIES)
 │   ├── record/                   # Camera page (MediaRecorder, Val 3)
 │   ├── account/                  # User profile + ThemeToggle
 │   ├── checkout/success/         # cu PurchaseTracker
@@ -76,6 +77,7 @@ GitHub = mirror/backup + history. VPS = sursa de adevar pentru cod live.
 │   │   └── safety-filter.ts      # blocks weapons/drugs; tags adult-only
 │   ├── feed/
 │   │   └── track.ts              # batched sendBeacon emitter
+│   ├── movies/                   # acces/pret (pure), unlock SWYP + cota creator, proxy HLS cu token
 │   ├── feature-flags.ts          # 8 flags (DM, push, AI chat, etc)
 │   ├── feature-flags-client.ts   # client-side variant
 │   ├── haptic.ts                 # navigator.vibrate wrapper
@@ -129,6 +131,10 @@ Toate gated prin `lib/feature-flags.ts` (server) + `feature-flags-client.ts` (cl
 | `FEATURE_EMAIL_MARKETING` | OFF | |
 | `FEATURE_SEO_PAGES` | OFF | |
 | `FEATURE_AI_CHAT_FULL` | OFF | Necesita `GITHUB_TOKEN` in `.env.production` |
+| `FEATURE_SQUAD_BUY` | OFF | Squad Buy — pana cand pretul de grup se aplica la checkout |
+| `FEATURE_VIRAL_CATALOG` | OFF | Catalog demo de produse (date de exemplu) |
+| `FEATURE_MYSTERY_DROP` | ON | Cutia zilnica — SWYP prin `swyp_emission_rules.mystery_drop_daily` |
+| `FEATURE_MOVIES` | OFF | Swypik Movies (+ `NEXT_PUBLIC_FEATURE_MOVIES`); migrarea `20260921_0003_movies.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-movies-design.md` |
 
 ## Containere Docker (prod)
 - `swypik-prod-web-next-1` — Next.js (port 3000 intern)
