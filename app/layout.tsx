@@ -47,6 +47,8 @@ export const viewport: Viewport = {
 };
 
 import BottomNav from "@/components/BottomNav";
+import MusicPlayerProvider from "@/components/music/MusicPlayerProvider";
+import MiniPlayer from "@/components/music/MiniPlayer";
 import FxRatesLoader from "@/components/i18n/FxRatesLoader";
 import EmailVerifyBanner from "@/components/auth/EmailVerifyBanner";
 import OnboardingGate from "@/components/onboarding/OnboardingGate";
@@ -136,10 +138,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <FxRatesLoader />
             <EmailVerifyBanner />
             <OnboardingGate />
-            <div id="main-content" style={{ minHeight: '100dvh' }}>
-              {children}
-            </div>
-            <BottomNav />
+            <MusicPlayerProvider>
+              <div id="main-content" style={{ minHeight: '100dvh' }}>
+                {children}
+              </div>
+              <MiniPlayer />
+              <BottomNav />
+            </MusicPlayerProvider>
             <PushPrompt />
             <InstallPrompt />
             <CookieBanner />
