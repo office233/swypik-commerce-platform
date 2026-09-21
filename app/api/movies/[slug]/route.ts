@@ -1,0 +1,34 @@
+import { NextResponse } from "next/server";
+import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { isEnabled, frozenResponse } from "@/lib/feature-flags";
+import { withErrorHandling } from "@/lib/api-handler";
+import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
+import { dbQuery } from "@/lib/db";
+import { getSeriesBySlug, listEpisodes, getProgress } from "@/lib/movies/repository";
+import { buildViewerContext } from "@/lib/movies/viewer";
+import { toSeriesDto, toEpisodeDtos } from "@/lib/movies/dto";
+
+export const dynamic = "force-dynamic";
+
+export const GET = withErrorHandling(async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
+    if (!isEnabled("movies")) return frozenResponse("movies");
+    const { slug } = await params;
+    const series = await getSeriesBySlug(slug);
+    const user = await getAuthUser();
+    const isOwner = Boolean(user.userId && series && series.owner_user_id === user.userId);
+    if (!series || (series.status !== "published" && !user.isAdmin && !isOwner)) {
+        return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    const [episodes, viewer, progress, ownerRows] = await Promise.all([
+        listEpisodes(series.id, { publishedOnly: !user.isAdmin && !isOwner }),
+        buildViewerContext(user.userId, user.isAdmin, series.id),
+        user.userId ? getProgress(user.userId, series.id) : Promise.resolve([]),
+        dbQuery<{ display_name: string | null }>(`SELECT display_name FROM users WHERE id = $1`, [series.owner_user_id]),
+    ]);
+    const balanceUnits = user.userId ? Number(await getSwypBalanceUnits(user.userId)) : null;
+    return NextResponse.json({
+        series: toSeriesDto(series, episodes.length, ownerRows.rows[0]?.display_name ?? null),
+        episodes: toEpisodeDtos(series, episodes, viewer, progress),
+        viewer: { balanceUnits, hasSeasonUnlock: viewer.hasSeasonUnlock, isOwner },
+    });
+});
