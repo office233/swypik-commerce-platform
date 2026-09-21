@@ -26,6 +26,7 @@ import {
   Trophy,
   MessageSquare,
   Music2,
+  Music,
   Hash,
   Wallet,
   BarChart3,
@@ -103,6 +104,7 @@ const sections: NavSection[] = [
     items: [
       { href: "/admin/videos", label: "Videos", icon: Video },
       { href: "/admin/movies", label: "Movies", icon: Film },
+      { href: "/admin/music", label: "Music", icon: Music },
       { href: "/admin/moderation", label: "Moderare", icon: ShieldAlert },
     ],
   },

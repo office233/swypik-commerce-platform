@@ -24,6 +24,7 @@ import {
   Users,
   Megaphone,
   Flame,
+  Music,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,6 +48,7 @@ const ICONS: Record<string, LucideIcon> = {
   users: Users,
   megaphone: Megaphone,
   flame: Flame,
+  music: Music,
 };
 
 export type MobileDashboardNavItem = {

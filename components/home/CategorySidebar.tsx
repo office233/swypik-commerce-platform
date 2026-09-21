@@ -40,6 +40,7 @@ import {
     Store,
     type LucideIcon,
   Clapperboard,
+  Music,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
@@ -103,6 +104,16 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         accent: "#DC2626",
         Icon: Clapperboard,
         href: "/movies",
+    }] : []),
+    ...(isEnabledClient("music") ? [{
+        id: "music",
+        brand: "Swypik Music",
+        label: "Artiști independenți • tips în SWYP",
+        badge: "Nou",
+        badgeColor: "bg-violet-600 text-white",
+        accent: "#7C3AED",
+        Icon: Music,
+        href: "/music",
     }] : []),
     {
         id: "mystery",
