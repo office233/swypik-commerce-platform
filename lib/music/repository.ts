@@ -49,7 +49,7 @@ export async function isArtist(userId: string): Promise<boolean> {
     return rows.length > 0;
 }
 
-export type UpsertArtistInput = { userId: string; stageName: string; slug: string; bio: string; avatarUrl: string | null; coverUrl: string | null; approvedBy: string };
+export type UpsertArtistInput = { userId: string; stageName: string; slug: string; bio: string; avatarUrl: string | null; coverUrl: string | null; approvedBy: string | null };
 
 /** Aprobare/actualizare artist. Slug-ul rămâne cel inițial (link-urile nu se rup). */
 export async function upsertArtist(i: UpsertArtistInput): Promise<MusicArtistRow> {
