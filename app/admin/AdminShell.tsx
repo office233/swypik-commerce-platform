@@ -18,6 +18,7 @@ import {
   Briefcase,
   FileText,
   Video,
+  Film,
   ShieldAlert,
   PackageX,
   Shield,
@@ -101,6 +102,7 @@ const sections: NavSection[] = [
     icon: "\u{1F3AC}",
     items: [
       { href: "/admin/videos", label: "Videos", icon: Video },
+      { href: "/admin/movies", label: "Movies", icon: Film },
       { href: "/admin/moderation", label: "Moderare", icon: ShieldAlert },
     ],
   },
