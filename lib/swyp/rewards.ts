@@ -23,7 +23,8 @@ export type SwypRewardAction =
     | "order_review"
     | "clip_conversion"
     | "seller_first_sales"
-    | "mission_prize";
+    | "mission_prize"
+    | "mystery_drop_daily";
 
 export type AwardArgs = {
     userId: string;

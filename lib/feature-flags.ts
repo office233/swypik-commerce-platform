@@ -21,6 +21,11 @@ export const FEATURES = {
   aiChatFull: flag('FEATURE_AI_CHAT_FULL', false),
   // killswitch verticala Go (commit 327586fc îl folosea fără să-l declare)
   go: flag('FEATURE_GO', true),
+  // Catalog demo de produse "virale" pentru selleri — date de exemplu, nu un
+  // feed real de furnizor. OFF până există unul.
+  viralCatalog: flag('FEATURE_VIRAL_CATALOG', false),
+  // Cutia zilnică (Mystery Drop) — acordă SWYP prin swyp_emission_rules.
+  mysteryDrop: flag('FEATURE_MYSTERY_DROP', true),
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

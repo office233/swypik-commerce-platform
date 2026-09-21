@@ -1,41 +1,40 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/session";
-import { selectRandomMysteryReward, canClaimDailyDrop } from "@/lib/mystery-drop/engine";
+import { claimDailyDrop, type ClaimFailure } from "@/lib/mystery-drop/engine";
+import { isEnabled, frozenResponse } from "@/lib/feature-flags";
+import { rateLimit } from "@/lib/security/rate-limit";
+import { withErrorHandling } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-  try {
+const FAILURE_STATUS: Record<ClaimFailure, number> = {
+    already_claimed: 409,
+    daily_cap_reached: 409,
+    rule_disabled: 503,
+    rule_missing: 503,
+    paid_tx_required: 503,
+};
+
+export const POST = withErrorHandling(async function POST() {
+    if (!isEnabled("mysteryDrop")) return frozenResponse("mysteryDrop");
+
     const session = await getAuthSession();
-    if (!session || !session.userId) {
-      return NextResponse.json({
-        success: false,
-        requireAuth: true,
-        error: "Trebuie să ai un cont Swypik pentru a primi premiul și reducerile!",
-      }, { status: 401 });
+    if (!session?.userId) {
+        return NextResponse.json({ success: false, requireAuth: true, error: "auth_required" }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const { lastClaimedAt } = body;
-
-    if (!canClaimDailyDrop(lastClaimedAt)) {
-      return NextResponse.json({
-        success: false,
-        error: "Ai deschis deja cutia gratuită de azi! Revino mâine pentru un nou drop.",
-        alreadyClaimed: true,
-      }, { status: 429 });
+    const rl = await rateLimit("mysteryDrop", session.userId);
+    if (!rl.success) {
+        return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
     }
 
-    const reward = selectRandomMysteryReward();
-    const claimedAt = new Date().toISOString();
+    const result = await claimDailyDrop(session.userId);
+    if (!result.ok) {
+        return NextResponse.json(
+            { success: false, error: result.reason, alreadyClaimed: result.reason === "already_claimed" },
+            { status: FAILURE_STATUS[result.reason] },
+        );
+    }
 
-    return NextResponse.json({
-      success: true,
-      reward,
-      claimedAt,
-      message: "Felicitări! Premiul a fost adăugat în contul tău Swypik.",
-    });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+    return NextResponse.json({ success: true, reward: result.reward, claimedAt: result.claimedAt });
+});
