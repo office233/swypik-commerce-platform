@@ -4,8 +4,8 @@ Ce conține (branch-ul cu Swypik Music, peste ultimul deploy cu Movies):
 
 1. Migrarea `db/migrations/20260922_0001_music.sql` — `music_artists`, `music_albums`,
    `music_tracks`, `music_unlocks`, `music_tips`, `music_play_counters`,
-   `music_playlists`, `music_playlist_items` + `uq_audio_tracks_source` pe
-   `audio_tracks (source, source_id)` (idempotent, `CREATE ... IF NOT EXISTS`).
+   `music_playlists`, `music_playlist_items` (idempotent, `CREATE ... IF NOT EXISTS`;
+   constrângerea UNIQUE pe `audio_tracks (source, source_id)` există deja în schemă).
 2. `lib/media/*` (mutat din `lib/movies/*`: `stream-token.ts`, `stream-path.ts`,
    `stream-secret.ts`, `hls-rewrite.ts` — comun Movies + Music) și `lib/swyp/share.ts`
    (`platformShareUnits`, cota partajată — 0 pentru contul oficial și self-plăți).
@@ -50,6 +50,11 @@ grep -q '^REDIS_URL=' infra/hetzner/.env.production || echo "LIPSEȘTE REDIS_URL
 # 3. Deploy (pull main, aplică TOATE migrările idempotent — inclusiv 20260922_0001_music.sql —
 #    rebuild, restart, health check)
 bash infra/hetzner/deploy.sh
+
+# 3b. Caddyfile-ul setează acum `X-Real-IP` din {remote_host} pe rutele web-next
+#     (rate-limit și dedup-ul de plays nu mai pot fi păcălite cu un header trimis de client);
+#     `up -d` nu reîncarcă configul Caddy dacă doar Caddyfile-ul s-a schimbat:
+docker compose -f infra/hetzner/docker-compose.prod.yml restart caddy
 
 # 4. Smoke test
 curl -s -o /dev/null -w '%{http_code}\n' https://swypik.com/api/health              # 200

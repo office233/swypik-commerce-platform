@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canStream } from "@/lib/music/access";
+import { canStream, canBecomePremium } from "@/lib/music/access";
 import { albumPriceUnits, clampTrackPrice, isValidTipUnits } from "@/lib/music/pricing";
 import { MUSIC_TIP_MAX_UNITS, MUSIC_TRACK_PRICE_MAX_UNITS, MUSIC_TRACK_PRICE_MIN_UNITS } from "@/lib/music/config";
 import type { MusicViewer } from "@/lib/music/types";
@@ -37,5 +37,13 @@ describe("music/pricing", () => {
     expect(isValidTipUnits(50)).toBe(false);
     expect(isValidTipUnits(MUSIC_TIP_MAX_UNITS + 1)).toBe(false);
     expect(isValidTipUnits(150.5)).toBe(false);
+  });
+});
+
+describe("music/access canBecomePremium", () => {
+  it("o piesa publicata gratuit nu mai poate deveni premium (URL-ul public a fost deja difuzat)", () => {
+    expect(canBecomePremium({ is_premium: false, published_at: "2026-09-22T00:00:00Z" })).toBe(false);
+    expect(canBecomePremium({ is_premium: false, published_at: null })).toBe(true);
+    expect(canBecomePremium({ is_premium: true, published_at: "2026-09-22T00:00:00Z" })).toBe(true);
   });
 });

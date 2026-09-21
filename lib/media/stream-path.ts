@@ -8,6 +8,8 @@
  */
 export const STREAM_ROUTE_PREFIX = "/api/movies/stream";
 export const MUSIC_STREAM_ROUTE_PREFIX = "/api/music/stream";
+/** Segmentul de cale cerut de client pentru o piesă premium — constant, ca basename-ul real să nu plece niciodată la client. */
+export const MUSIC_STREAM_FILE = "audio";
 
 /** Directorul episodului: `playback_url` până la ultimul `/` inclusiv. */
 export function episodeMediaDir(playbackUrl: string): string {
@@ -47,4 +49,15 @@ export function toProxyPath(token: string, absoluteUrl: string, playbackUrl: str
     const dir = episodeMediaDir(playbackUrl);
     if (!absoluteUrl.startsWith(dir)) return absoluteUrl;
     return `${prefix}/${token}/${absoluteUrl.slice(dir.length)}`;
+}
+
+/**
+ * Ținta upstream pentru proxy-ul Music: segmentul constant întoarce chiar
+ * obiectul piesei (URL-ul derivat din `object_key`, cunoscut doar pe server);
+ * orice altă cale (playlist/segmente HLS, în viitor) se rezolvă strict în
+ * directorul piesei.
+ */
+export function musicStreamTarget(objectUrl: string, relativePath: string): string | null {
+    if (relativePath === MUSIC_STREAM_FILE) return objectUrl;
+    return resolveEpisodeMediaUrl(objectUrl, relativePath);
 }

@@ -5,7 +5,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { verifyStreamToken } from "@/lib/media/stream-token";
 import { rewriteHlsPlaylist } from "@/lib/media/hls-rewrite";
 import { getStreamSecret } from "@/lib/media/stream-secret";
-import { resolveEpisodeMediaUrl, toProxyPath, MUSIC_STREAM_ROUTE_PREFIX } from "@/lib/media/stream-path";
+import { musicStreamTarget, toProxyPath, MUSIC_STREAM_ROUTE_PREFIX } from "@/lib/media/stream-path";
 import { getTrackById } from "@/lib/music/repository";
 import { getVideoAssetUrl } from "@/lib/storage/video-storage";
 
@@ -34,7 +34,7 @@ export const GET = withErrorHandling(async function GET(req: Request, { params }
     const track = await getTrackById(payload.mediaId);
     if (!track) return NextResponse.json({ error: "forbidden" }, { status: 403 });
     const baseUrl = getVideoAssetUrl(track.object_key);
-    const target = resolveEpisodeMediaUrl(baseUrl, path.join("/"));
+    const target = musicStreamTarget(baseUrl, path.join("/"));
     if (!target) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
     const range = req.headers.get("range");

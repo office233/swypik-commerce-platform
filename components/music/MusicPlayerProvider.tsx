@@ -24,6 +24,7 @@ import {
 } from "react";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import { MUSIC_PLAY_COUNT_AFTER_S } from "@/lib/music/config";
+import { lockedAfterAdvance, type AdvanceReason } from "@/lib/music/player-rules";
 import type { TrackDto } from "@/lib/music/types";
 
 export type MusicLockedInfo = {
@@ -194,7 +195,7 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         scheduleRefresh(track, result.expiresAt, list, i, gen);
     }
 
-    async function playAt(list: TrackDto[], i: number, gen: number): Promise<void> {
+    async function playAt(list: TrackDto[], i: number, gen: number, reason: AdvanceReason = "user"): Promise<void> {
         if (gen !== genRef.current) return;
 
         if (i < 0) {
@@ -216,7 +217,7 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         const track = list[i];
         setQueue(list);
         setIndex(i);
-        setLocked(null);
+        setLocked((prev) => lockedAfterAdvance(prev, reason));
         setPositionMs(0);
         setDurationMs(track.durationMs);
         playedCountedRef.current = false;
@@ -230,8 +231,9 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
             return;
         }
         if (isLockedResult(result)) {
+            // Paywall-ul rămâne vizibil în timp ce sărim la următoarea piesă redabilă.
             setLocked(result.locked);
-            void playAt(list, i + 1, gen);
+            void playAt(list, i + 1, gen, "locked");
             return;
         }
 
@@ -271,7 +273,7 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
             if (track) countPlay(track.id);
         }
         const gen = ++genRef.current;
-        void playAt(queueRef.current, indexRef.current + 1, gen);
+        void playAt(queueRef.current, indexRef.current + 1, gen, "ended");
     }
 
     function handleError(): void {

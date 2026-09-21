@@ -248,8 +248,11 @@ const TRACK_PATCH_COLS: Record<keyof TrackPatch, string> = {
     licenseNote: "license_note",
 };
 
-/** Actualizare parțială; cu `artistUserId` doar piesele proprii (admin: null). */
-export async function updateTrack(id: string, artistUserId: string | null, patch: TrackPatch): Promise<MusicTrackRow | null> {
+/**
+ * UPDATE-ul parțial ca text + parametri (coloane din lista albă), refolosit și
+ * în tranzacțiile din `publish.ts`. `null` când patch-ul nu schimbă nimic.
+ */
+export function buildTrackUpdate(id: string, artistUserId: string | null, patch: TrackPatch): { text: string; params: unknown[] } | null {
     const sets: string[] = [];
     const params: unknown[] = [id, artistUserId];
     for (const key of Object.keys(TRACK_PATCH_COLS) as (keyof TrackPatch)[]) {
@@ -258,13 +261,24 @@ export async function updateTrack(id: string, artistUserId: string | null, patch
         params.push(value);
         sets.push(`${TRACK_PATCH_COLS[key]} = $${params.length}`);
     }
-    if (!sets.length) return getTrackById(id);
-    const { rows } = await dbQuery<RawTrack>(
-        `UPDATE music_tracks SET ${sets.join(", ")}, updated_at = now()
+    if (!sets.length) return null;
+    return {
+        text: `UPDATE music_tracks SET ${sets.join(", ")}, updated_at = now()
           WHERE id = $1 AND ($2::uuid IS NULL OR artist_user_id = $2)
           RETURNING ${TRACK_COLS}`,
         params,
-    );
+    };
+}
+
+export function normalizeTrackRow<T extends RawTrack>(row: T): Omit<T, "price_units"> & { price_units: number | null } {
+    return normalizeTrack(row);
+}
+
+/** Actualizare parțială; cu `artistUserId` doar piesele proprii (admin: null). */
+export async function updateTrack(id: string, artistUserId: string | null, patch: TrackPatch): Promise<MusicTrackRow | null> {
+    const update = buildTrackUpdate(id, artistUserId, patch);
+    if (!update) return getTrackById(id);
+    const { rows } = await dbQuery<RawTrack>(update.text, update.params);
     return rows[0] ? normalizeTrack(rows[0]) : null;
 }
 

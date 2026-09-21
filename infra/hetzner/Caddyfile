@@ -73,6 +73,8 @@ swypik.com {
 	# API routes served by the Next.js backend (BFF)
 	handle /api/* {
 		reverse_proxy web-next:3000 {
+			# IP-ul real vine doar de la Caddy: un X-Real-IP trimis de client e suprascris (rate-limit, dedup plays).
+			header_up X-Real-IP {remote_host}
 			lb_try_duration 10s
 			lb_try_interval 250ms
 			fail_duration 5s
@@ -97,6 +99,8 @@ swypik.com {
 	# Everything else → Next.js SSR
 	handle {
 		reverse_proxy web-next:3000 {
+			# IP-ul real vine doar de la Caddy: un X-Real-IP trimis de client e suprascris (rate-limit, dedup plays).
+			header_up X-Real-IP {remote_host}
 			lb_try_duration 10s
 			lb_try_interval 250ms
 			fail_duration 5s

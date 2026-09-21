@@ -5,32 +5,32 @@
  * suplimentară: doar extensiile audio permise supraviețuiesc, restul devin
  * `.m4a` (worker-ul de normalizare din faza 2 va rescrie oricum fișierul).
  */
+import { randomBytes } from "node:crypto";
 import { MUSIC_ALLOWED_MIME } from "@/lib/music/config";
 import { createPresignedPutUrl, sanitizePathPart } from "@/lib/storage/video-storage";
-import { sanitizeFilename } from "@/lib/video/upload-session";
 
 export const MUSIC_RAW_PREFIX = "music/raw";
 
 const MUSIC_AUDIO_EXTENSIONS = new Set(["mp3", "m4a", "aac"]);
 const MUSIC_FALLBACK_EXTENSION = "m4a";
 
-/** Nume de fișier sigur pentru upload audio: extensie păstrată doar dacă e mp3/m4a/aac. */
-function sanitizeMusicFilename(filename: string): string {
-    const cleaned = sanitizeFilename(filename).replace(/\s+/g, "-");
-    const match = cleaned.match(/^(.*)\.([a-zA-Z0-9]+)$/);
-    if (!match) return `${cleaned || "track"}.${MUSIC_FALLBACK_EXTENSION}`;
-    const [, base, ext] = match;
-    const safeBase = base || "track";
-    return MUSIC_AUDIO_EXTENSIONS.has(ext.toLowerCase())
-        ? `${safeBase}.${ext.toLowerCase()}`
-        : `${safeBase}.${MUSIC_FALLBACK_EXTENSION}`;
+/**
+ * Numele fișierului din bucket NU derivă din numele urcat de artist: un basename
+ * aleator (128 biți) e singurul secret al obiectului pe domeniul public R2, iar
+ * proxy-ul cu token nu-l trimite niciodată clientului (segment constant
+ * `MUSIC_STREAM_FILE`). Doar extensia audio permisă supraviețuiește.
+ */
+function randomMusicFilename(filename: string): string {
+    const match = filename.trim().match(/\.([a-zA-Z0-9]+)$/);
+    const ext = match && MUSIC_AUDIO_EXTENSIONS.has(match[1].toLowerCase()) ? match[1].toLowerCase() : MUSIC_FALLBACK_EXTENSION;
+    return `${randomBytes(8).toString("hex")}.${ext}`;
 }
 
-/** Cheia obiectului pentru o piesă în upload: `music/raw/<artist>/<track>/<fișier>`. */
+/** Cheia obiectului pentru o piesă în upload: `music/raw/<artist>/<track>/<aleator>.<ext>`. */
 export function buildMusicObjectKey(artistUserId: string, trackId: string, filename: string): string {
     const safeArtist = sanitizePathPart(artistUserId);
     const safeTrack = sanitizePathPart(trackId);
-    const safeFilename = sanitizeMusicFilename(filename);
+    const safeFilename = randomMusicFilename(filename);
     return `${MUSIC_RAW_PREFIX}/${safeArtist}/${safeTrack}/${safeFilename}`;
 }
 

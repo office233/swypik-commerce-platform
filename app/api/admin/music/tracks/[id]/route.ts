@@ -5,7 +5,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { parseBody } from "@/lib/validation/schemas";
 import { updateTrack } from "@/lib/music/repository";
-import { archiveTrack, publishTrack, resyncTrackSound } from "@/lib/music/publish";
+import { archiveTrack, publishTrack, updateTrackAndSync } from "@/lib/music/publish";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +27,8 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
         }
         case "reject": {
             // O piesă publicată și respinsă ulterior iese din catalog și din sunetele pentru reels.
-            const track = await updateTrack(id, null, { moderationStatus: "rejected", status: "draft" });
+            const track = await updateTrackAndSync(id, null, { moderationStatus: "rejected", status: "draft" });
             if (!track) return NextResponse.json({ error: "not_found" }, { status: 404 });
-            await resyncTrackSound(id);
             return NextResponse.json({ track });
         }
         case "publish": {

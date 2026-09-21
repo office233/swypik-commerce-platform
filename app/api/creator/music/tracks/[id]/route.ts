@@ -5,7 +5,8 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { parseBody } from "@/lib/validation/schemas";
 import { getTrackById, isArtist, ownsAlbum, updateTrack, type TrackPatch } from "@/lib/music/repository";
-import { archiveTrack, resyncTrackSound } from "@/lib/music/publish";
+import { archiveTrack, updateTrackAndSync } from "@/lib/music/publish";
+import { canBecomePremium } from "@/lib/music/access";
 import { clampTrackPrice } from "@/lib/music/pricing";
 import { MUSIC_DEFAULT_TRACK_PRICE_UNITS } from "@/lib/music/config";
 import { MUSIC_GENRES } from "@/lib/music/genres";
@@ -87,6 +88,11 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
         trackNumber: d.trackNumber,
         licenseNote: d.licenseNote,
     };
+    // Free -> premium după publicare ar vinde un fișier al cărui URL public a fost deja difuzat.
+    if (d.isPremium === true && !canBecomePremium(existing)) {
+        return NextResponse.json({ error: "already_public" }, { status: 409 });
+    }
+
     const willBePremium = d.isPremium ?? existing.is_premium;
     if (d.isPremium !== undefined) {
         patch.isPremium = d.isPremium;
@@ -101,14 +107,14 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
         patch.priceUnits = null;
     }
 
-    const updated = await updateTrack(id, userId, patch);
-    if (!updated) return NextResponse.json({ error: "not_found" }, { status: 404 });
-
+    // Pe o piesă publicată, schimbările care ating sunetul din reels se aplică
+    // împreună cu sincronizarea audio_tracks, într-o singură tranzacție.
     const affectsSound = d.isPremium !== undefined || d.allowReels !== undefined
         || d.title !== undefined || d.coverUrl !== undefined || d.genre !== undefined;
-    if (updated.status === "published" && affectsSound) {
-        await resyncTrackSound(id);
-    }
+    const updated = existing.status === "published" && affectsSound
+        ? await updateTrackAndSync(id, userId, patch)
+        : await updateTrack(id, userId, patch);
+    if (!updated) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     return NextResponse.json({ track: updated });
 });

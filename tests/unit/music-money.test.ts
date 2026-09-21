@@ -73,6 +73,11 @@ describe("music/unlock", () => {
     expect(await unlockTrack({ userId: "viewer-1", trackId: "t2" })).toEqual({ ok: false, reason: "insufficient_balance" });
     expect(transfers).toHaveLength(0);
   });
+  it("self-unlock (artistul isi plateste propria piesa): debit fara cota", async () => {
+    const r = await unlockTrack({ userId: "artist-1", trackId: "t2" });
+    expect(r).toEqual({ ok: true, alreadyApplied: false, unitsPaid: 300, artistShareUnits: 0 });
+    expect(transfers).toHaveLength(1);
+  });
   it("piesa gratuită nu se deblochează", async () => {
     currentTrack = freeTrack;
     expect(await unlockTrack({ userId: "viewer-1", trackId: "t1" })).toEqual({ ok: false, reason: "not_premium" });

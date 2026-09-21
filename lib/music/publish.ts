@@ -6,7 +6,7 @@
  */
 import { withTransaction, type TxQuery } from "@/lib/db";
 import { MUSIC_AUDIO_TRACK_LICENSE, MUSIC_AUDIO_TRACK_SOURCE } from "./config";
-import { TRACK_COLS } from "./repository";
+import { TRACK_COLS, buildTrackUpdate, normalizeTrackRow, type TrackPatch } from "./repository";
 import type { MusicArtistRow, MusicTrackRow } from "./types";
 
 export type AudioTrackInsert = {
@@ -129,5 +129,25 @@ export async function resyncTrackSound(trackId: string): Promise<void> {
     await withTransaction(async (q) => {
         const found = await lockTrackWithArtist(q, trackId);
         if (found) await syncAudioTrack(q, found.track, found.artist);
+    });
+}
+
+/**
+ * Actualizare + aliniere `audio_tracks` în ACEEAȘI tranzacție (Review Focus
+ * #3/#4): dacă sincronizarea eșuează, nici schimbarea de stare nu rămâne, deci
+ * o piesă devenită premium / fără reels nu poate rămâne cu sunet activ.
+ * `null` când piesa nu există sau nu e a artistului.
+ */
+export async function updateTrackAndSync(trackId: string, artistUserId: string | null, patch: TrackPatch): Promise<MusicTrackRow | null> {
+    return withTransaction(async (q) => {
+        const update = buildTrackUpdate(trackId, artistUserId, patch);
+        if (!update) return null;
+        const { rows } = await q<MusicTrackRow & { price_units: string | null }>(update.text, update.params);
+        if (!rows[0]) return null;
+        const track = normalizeTrackRow(rows[0]);
+        const { rows: artists } = await q<MusicArtistRow>(`SELECT * FROM music_artists WHERE user_id = $1`, [track.artist_user_id]);
+        if (!artists[0]) return null;
+        const audioTrackId = await syncAudioTrack(q, track, artists[0]);
+        return { ...track, audio_track_id: audioTrackId };
     });
 }

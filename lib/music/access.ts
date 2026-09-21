@@ -15,3 +15,12 @@ export function canStream(viewer: MusicViewer, track: StreamableTrack): boolean 
     if (viewer.unlockedTrackIds.has(track.id)) return true;
     return Boolean(track.album_id && viewer.unlockedAlbumIds.has(track.album_id));
 }
+
+/**
+ * O piesă publicată gratuit și-a difuzat deja URL-ul public (în feed, în
+ * `audio_tracks`, în cache-uri); a o face premium după aceea ar vinde un fișier
+ * care rămâne accesibil oricui. Premium se decide înainte de publicare.
+ */
+export function canBecomePremium(track: Pick<MusicTrackRow, "is_premium" | "published_at">): boolean {
+    return track.is_premium || track.published_at === null;
+}
