@@ -6,9 +6,7 @@ import {
   X,
   Plus,
   CheckCircle2,
-  TrendingUp,
   Film,
-  Package,
   ShieldCheck,
   Truck,
 } from "lucide-react";
@@ -39,18 +37,22 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
   const [loading, setLoading] = useState(true);
   const [importingId, setImportingId] = useState<string | null>(null);
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
+    setUnavailable(false);
     fetch("/api/seller/catalog/viral-products")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.products)) {
-          setProducts(data.products);
+      .then(async (res) => {
+        if (!res.ok) {
+          setUnavailable(true);
+          return;
         }
+        const data = await res.json();
+        if (data.success && Array.isArray(data.products)) setProducts(data.products);
       })
-      .catch((err) => console.error("Error loading viral products:", err))
+      .catch(() => setUnavailable(true))
       .finally(() => setLoading(false));
   }, [isOpen]);
 
@@ -69,8 +71,8 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
       }
       setImportedIds((prev) => new Set([...prev, product.id]));
       onProductImported();
-    } catch (err: any) {
-      alert(err.message || "Eroare de rețea");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Eroare de rețea");
     } finally {
       setImportingId(null);
     }
@@ -125,6 +127,10 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
           {loading ? (
             <div className="py-20 text-center text-neutral-400 text-sm font-medium">
               Se încarcă catalogul viral...
+            </div>
+          ) : unavailable ? (
+            <div className="py-20 text-center text-neutral-500 text-sm font-medium">
+              Catalogul viral nu este disponibil în acest moment.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { VIRAL_PRODUCTS } from "@/app/api/seller/catalog/viral-products/route";
+import { VIRAL_PRODUCTS } from "@/lib/seller/viral-catalog.seed";
 
 describe("Seller ERP - Catalog Produse Virale On-Demand", () => {
   it("conține produse virale cu toate proprietățile obligatorii pentru zero investiție", () => {
