@@ -2000,7 +2000,9 @@
       "title": "Course Swypik Go",
       "withDriver": "Chauffeur : {name}"
     },
-    "activeRide": "Vous avez déjà une course en cours."
+    "activeRide": "Vous avez déjà une course en cours.",
+    "shareText": "Commande une course avec Swypik Go :",
+    "shareCopied": "Lien copié !"
   },
   "authForgot": {
     "title": "Mot de passe oublié ?",
@@ -2290,7 +2292,8 @@
     "loadingClips": "Chargement des clips...",
     "added": "Ajouté",
     "cart": "Panier",
-    "niciunClipDisponibil": "Aucun clip disponible"
+    "niciunClipDisponibil": "Aucun clip disponible",
+    "buyNow": "Acheter maintenant"
   },
   "reviewList": {
     "empty": "Pas encore d'avis. Soyez le premier à donner le vôtre.",

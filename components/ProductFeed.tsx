@@ -14,9 +14,7 @@ import {
   Truck,
   Volume2,
   VolumeX,
-  ShieldCheck,
   Zap,
-  Globe,
   Sparkles,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -24,11 +22,13 @@ import { useTranslations } from "next-intl";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { isCurrency } from "@/lib/i18n/config";
+import { isEnabledClient } from "@/lib/feature-flags-client";
 
 // Heavy client-only components — lazy-load to keep initial bundle small.
 const CommentsSheet = dynamic(() => import("./social/CommentsSheet"), { ssr: false });
-const InstantVideoCheckoutModal = dynamic(() => import("./video/InstantVideoCheckoutModal"), { ssr: false });
 const VirtualTryOnModal = dynamic(() => import("./video/VirtualTryOnModal"), { ssr: false });
+// Try-On e doar o previzualizare UI (fara AR real) - vizibil doar cu NEXT_PUBLIC_FEATURE_TRY_ON=1.
+const TRY_ON_ENABLED = isEnabledClient("tryOn");
 import {
   trackEvent as trackFeedEvent,
   trackWatchTime,
@@ -432,20 +432,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
   const [activeOverlay, setActiveOverlay] = useState<OverlayTag | null>(null);
   const overlayFetchedRef = useRef(new Set<string>());
 
-  const [checkoutProduct, setCheckoutProduct] = useState<FeedProduct | null>(null);
   const [tryOnProduct, setTryOnProduct] = useState<FeedProduct | null>(null);
-  const [audioLanguage, setAudioLanguage] = useState<"RO" | "EN" | "DE" | "ES">("RO");
-  const [activeCurrency, setActiveCurrency] = useState<"RON" | "EUR">("RON");
-  const [showIntegrityModal, setShowIntegrityModal] = useState<FeedProduct | null>(null);
-  const [orderConfirmation, setOrderConfirmation] = useState<string | null>(null);
-
-  const cycleLanguage = () => {
-    const langs: ("RO" | "EN" | "DE" | "ES")[] = ["RO", "EN", "DE", "ES"];
-    const next = langs[(langs.indexOf(audioLanguage) + 1) % langs.length];
-    setAudioLanguage(next);
-    if (next === "EN" || next === "DE") setActiveCurrency("EUR");
-    else setActiveCurrency("RON");
-  };
 
   useEffect(() => {
     const product = products[currentIdx];
@@ -612,6 +599,13 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     setTimeout(() => setAddedToCart(null), 2000);
   };
 
+  // "Cumpara acum": cosul real + pagina reala de checkout (Stripe). Modalul
+  // anterior "1-Click" simula o comanda cu setTimeout si un id aleatoriu.
+  const handleBuyNow = (product: FeedProduct) => {
+    handleAddToCart(product);
+    router.push("/checkout");
+  };
+
   if (isLoading && products.length === 0) {
     return (
       <div className="feed-scroll flex items-center justify-center">
@@ -643,18 +637,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
           </button>
         ) : <span />}
         <div className="flex items-center gap-2">
-          {/* Traducere si Dublaj Video Autonom + Moneda dinamica */}
-          <button
-            type="button"
-            onClick={cycleLanguage}
-            className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-black text-white backdrop-blur-md border border-white/10 active:scale-95 transition"
-            title="Traducere & Dublaj Video Autonom (RO/EN/DE/ES)"
-            aria-label="Schimba limba si dublajul audio"
-          >
-            <Globe size={13} className="text-amber-400" />
-            <span>{audioLanguage} • {activeCurrency}</span>
-          </button>
-
           <button
             type="button"
             onClick={() => setIsMuted((value) => !value)}
@@ -782,7 +764,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 <span className="text-[10px] font-bold text-white/90">Detalii</span>
               </button>
 
-              {/* Virtual Try-On AR */}
+              {TRY_ON_ENABLED && (
               <button
                 type="button"
                 onClick={() => setTryOnProduct(product)}
@@ -795,6 +777,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 </div>
                 <span className="text-[10px] font-black text-purple-200">Try-On</span>
               </button>
+              )}
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(84px, calc(72px + env(safe-area-inset-bottom)))" }}>
@@ -803,15 +786,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">{aiOverlay(product)}</span>
                   {product.discountPercent > 0 && <span className="rounded-full bg-[#DC2626] px-2.5 py-0.5 text-[10px] font-black text-white">-{product.discountPercent}%</span>}
                   
-                  {/* The AI Integrity Shield Badge */}
-                  <button
-                    type="button"
-                    onClick={() => setShowIntegrityModal(product)}
-                    className="rounded-full bg-emerald-500/25 border border-emerald-400/40 px-2 py-0.5 text-[10px] font-black text-emerald-300 backdrop-blur-sm flex items-center gap-1 hover:bg-emerald-500/35 transition active:scale-95"
-                  >
-                    <ShieldCheck size={11} className="text-emerald-400" />
-                    <span>Integritate AI • Retur 1-Swipe</span>
-                  </button>
                 </div>
                 <h2 className="line-clamp-2 text-[15px] font-black leading-snug text-white drop-shadow-lg">{product.title}</h2>
                 <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
@@ -827,16 +801,15 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                   {product.oldPrice > product.price && <span className="ml-2 text-sm text-white/40 line-through">{formatPrice(Math.round(product.oldPrice * 100), { sourceCurrency: "RON" })}</span>}
                 </div>
 
-                {/* 1-Click Instant Checkout */}
                 <button
                   type="button"
-                  onClick={() => setCheckoutProduct(product)}
+                  onClick={() => handleBuyNow(product)}
                   style={tapAction}
                   className="rounded-2xl px-3.5 py-3 text-xs font-black bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-black shadow-[0_4px_20px_rgba(245,158,11,0.4)] flex items-center gap-1.5 active:scale-[0.95] shrink-0"
-                  aria-label="Cumpara instant cu 1-Click"
+                  aria-label={t("buyNow")}
                 >
                   <Zap size={14} className="fill-black" />
-                  <span>1-Click</span>
+                  <span>{t("buyNow")}</span>
                 </button>
 
                 <button
@@ -879,26 +852,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
         );
       })()}
 
-      {/* 1-Click Instant Video Checkout Modal */}
-      {checkoutProduct && (
-        <InstantVideoCheckoutModal
-          product={{
-            id: checkoutProduct.id,
-            title: checkoutProduct.title,
-            price: activeCurrency === "EUR" ? checkoutProduct.price * 0.20 : checkoutProduct.price,
-            images: checkoutProduct.images,
-            category: checkoutProduct.category,
-          }}
-          currency={activeCurrency}
-          onClose={() => setCheckoutProduct(null)}
-          onSuccess={(orderId) => {
-            setCheckoutProduct(null);
-            setOrderConfirmation(orderId);
-            setTimeout(() => setOrderConfirmation(null), 4000);
-          }}
-        />
-      )}
-
       {/* Virtual Try-On AR Modal */}
       {tryOnProduct && (
         <VirtualTryOnModal
@@ -915,48 +868,6 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
         />
       )}
 
-      {/* The AI Integrity Shield Info Modal */}
-      {showIntegrityModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="max-w-sm w-full rounded-3xl bg-neutral-950 p-6 border border-emerald-500/30 text-white shadow-2xl text-center">
-            <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center mb-3">
-              <ShieldCheck size={28} />
-            </div>
-            <h3 className="text-base font-black">The AI Integrity Shield</h3>
-            <p className="text-xs text-neutral-400 mt-1">
-              Produs certificat si verificat prin Vision LLM impotriva stocului din ERP si a laboratorului acreditat (Selfnamed).
-            </p>
-            <div className="my-4 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-left space-y-1.5 text-xs">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                <span>✓</span> <span>Provenienta directa din laborator acreditat</span>
-              </div>
-              <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                <span>✓</span> <span>Zero replici ieftine din China</span>
-              </div>
-              <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                <span>✓</span> <span>Daca nu corespunde cu clipul: refund instant prin 1 swipe</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowIntegrityModal(null)}
-              className="w-full py-3 rounded-2xl bg-white text-black font-black text-xs uppercase hover:bg-neutral-200 transition"
-            >
-              Am Inteles
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmare Comanda 1-Click Flash Alert */}
-      {orderConfirmation && (
-        <div className="fixed top-16 inset-x-4 z-50 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-4">
-          <div className="bg-emerald-500 text-black px-4 py-2.5 rounded-2xl font-black text-xs shadow-2xl flex items-center gap-2">
-            <ShieldCheck size={16} />
-            <span>Comanda 1-Click {orderConfirmation} confirmata in ERP in 0.8s!</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

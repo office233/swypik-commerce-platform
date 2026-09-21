@@ -2000,7 +2000,9 @@
       "title": "Swypik-Go-Fahrt",
       "withDriver": "Fahrer: {name}"
     },
-    "activeRide": "Du hast bereits eine aktive Fahrt."
+    "activeRide": "Du hast bereits eine aktive Fahrt.",
+    "shareText": "Buche eine Fahrt mit Swypik Go:",
+    "shareCopied": "Link kopiert!"
   },
   "authForgot": {
     "title": "Passwort vergessen?",
@@ -2290,7 +2292,8 @@
     "loadingClips": "Clips werden geladen...",
     "added": "Hinzugefügt",
     "cart": "Warenkorb",
-    "niciunClipDisponibil": "Keine Clips verfügbar"
+    "niciunClipDisponibil": "Keine Clips verfügbar",
+    "buyNow": "Jetzt kaufen"
   },
   "reviewList": {
     "empty": "Noch keine Bewertungen. Sei der Erste mit einer Meinung.",

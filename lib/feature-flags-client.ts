@@ -17,6 +17,8 @@ export const CLIENT_FEATURES = {
   pushNotifications: flag('NEXT_PUBLIC_FEATURE_PUSH_NOTIFICATIONS', false),
   stripeConnect: flag('NEXT_PUBLIC_FEATURE_STRIPE_CONNECT', false),
   returns: flag('NEXT_PUBLIC_FEATURE_RETURNS', false),
+  // Virtual Try-On: componenta e doar UI de previzualizare (fără AR real) — OFF.
+  tryOn: flag('NEXT_PUBLIC_FEATURE_TRY_ON', false),
 } as const;
 
 export type ClientFeatureName = keyof typeof CLIENT_FEATURES;

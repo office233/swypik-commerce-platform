@@ -118,7 +118,9 @@
     },
     "paySwyp": "Pay with SWYP",
     "swypBalance": "Balance: {swyp} SWYP (about {lei} lei) - covers as much of the ride as possible",
-    "activeRide": "You already have an active ride."
+    "activeRide": "You already have an active ride.",
+    "shareText": "Book a ride with Swypik Go:",
+    "shareCopied": "Link copied!"
   },
   "auth": {
     "login": "Sign in",
@@ -2290,7 +2292,8 @@
     "loadingClips": "Loading clips...",
     "added": "Added",
     "cart": "Cart",
-    "niciunClipDisponibil": "No clips available"
+    "niciunClipDisponibil": "No clips available",
+    "buyNow": "Buy now"
   },
   "reviewList": {
     "empty": "No reviews yet. Be the first to share your opinion.",

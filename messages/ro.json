@@ -118,7 +118,9 @@
     },
     "paySwyp": "Plateste cu SWYP",
     "swypBalance": "Sold: {swyp} SWYP (aprox. {lei} lei) - acoperim cat se poate din cursa",
-    "activeRide": "Ai deja o cursă activă."
+    "activeRide": "Ai deja o cursă activă.",
+    "shareText": "Comandă o cursă cu Swypik Go:",
+    "shareCopied": "Link copiat!"
   },
   "auth": {
     "login": "Autentificare",
@@ -2290,7 +2292,8 @@
     "loadingClips": "Se încarcă clipurile...",
     "added": "Adăugat",
     "cart": "Coș",
-    "niciunClipDisponibil": "Niciun clip disponibil"
+    "niciunClipDisponibil": "Niciun clip disponibil",
+    "buyNow": "Cumpără acum"
   },
   "reviewList": {
     "empty": "Niciun review încă. Fii primul care lasă o părere.",

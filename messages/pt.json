@@ -2000,7 +2000,9 @@
       "title": "Viagem Swypik Go",
       "withDriver": "Motorista: {name}"
     },
-    "activeRide": "Você já tem uma corrida ativa."
+    "activeRide": "Você já tem uma corrida ativa.",
+    "shareText": "Pede uma viagem com o Swypik Go:",
+    "shareCopied": "Link copiado!"
   },
   "authForgot": {
     "title": "Esqueceste-te da palavra-passe?",
@@ -2290,7 +2292,8 @@
     "loadingClips": "Carregando clipes...",
     "added": "Adicionado",
     "cart": "Carrinho",
-    "niciunClipDisponibil": "Nenhum clipe disponível"
+    "niciunClipDisponibil": "Nenhum clipe disponível",
+    "buyNow": "Comprar agora"
   },
   "reviewList": {
     "empty": "Nenhuma avaliação ainda. Seja o primeiro a opinar.",
