@@ -23,7 +23,7 @@ export default function BottomNav() {
   const t = useTranslations("nav");
   // Ascuns pe zonele „pro" (curier/șofer, seller, admin, developers) și pe
   // fluxurile full-screen (go/mobilitate, checkout, înregistrare video, produs).
-  const hiddenPaths = ["/go", "/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/product", "/courier", "/developers"];
+  const hiddenPaths = ["/movies", "/go", "/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/product", "/courier", "/developers"];
   // Bara internă din ChatInterface a fost eliminată (2026-07-29) —
   // BottomNav e acum SINGURA navigare, inclusiv pe homepage.
   const isHidden = hiddenPaths.some((p) => pathname.startsWith(p));
