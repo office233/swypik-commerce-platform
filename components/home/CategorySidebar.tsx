@@ -39,6 +39,7 @@ import {
     Wallet,
     Store,
     type LucideIcon,
+  Clapperboard,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
@@ -92,6 +93,16 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         accent: "#D946EF",
         Icon: Users,
         href: "/squad",
+    }] : []),
+    ...(isEnabledClient("movies") ? [{
+        id: "movies",
+        brand: "Swypik Movies",
+        label: "Seriale scurte verticale",
+        badge: "Nou",
+        badgeColor: "bg-red-600 text-white",
+        accent: "#DC2626",
+        Icon: Clapperboard,
+        href: "/movies",
     }] : []),
     {
         id: "mystery",

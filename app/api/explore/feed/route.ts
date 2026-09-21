@@ -391,6 +391,10 @@ function titleQualitySignals(title: string): { penalty: number; flags: string[] 
 
 type ExploreFeedRow = {
   video_id: string;
+  movie_slug: string | null;
+  movie_title: string | null;
+  movie_episode_number: number | null;
+  movie_episode_count: number | null;
   creator_id: string | null;
   title: string | null;
   description: string | null;
@@ -718,6 +722,10 @@ export async function GET(request: NextRequest) {
         cp.vote_count  AS post_vote_count,
         cp.ends_at     AS post_ends_at,
         cm.id          AS mission_id,
+        ms.slug        AS movie_slug,
+        ms.title       AS movie_title,
+        me.episode_number AS movie_episode_number,
+        (SELECT COUNT(*)::int FROM movie_episodes me2 WHERE me2.series_id = ms.id AND me2.status = 'published') AS movie_episode_count,
         cm.title       AS mission_title,
         cm.slug        AS mission_slug
         ${scoreSelect}
@@ -733,6 +741,8 @@ export async function GET(request: NextRequest) {
       FROM videos v
       ${useTaste ? `CROSS JOIN taste` : ``}
       LEFT JOIN users u ON v.creator_id = u.id
+      LEFT JOIN movie_episodes me ON me.video_id = v.id
+      LEFT JOIN movie_series   ms ON ms.id = me.series_id
       LEFT JOIN LATERAL (
         SELECT object_key, status
         FROM video_assets
@@ -812,6 +822,7 @@ export async function GET(request: NextRequest) {
       WHERE v.status = 'ready' AND v.is_hidden = false
         AND v.visibility = 'public'
         AND v.effective_label = 'safe'
+        AND (me.id IS NULL OR (ms.status = 'published' AND me.status = 'published' AND me.episode_number <= ms.free_episodes))
           AND CASE
             WHEN vpl.product_id IS NOT NULL
               OR CASE
@@ -937,6 +948,9 @@ export async function GET(request: NextRequest) {
             voteCount: asNumber(row.post_vote_count) || 0,
             endsAt: row.post_ends_at ? new Date(row.post_ends_at).toISOString() : null,
           } : null,
+          movie: row.movie_slug
+            ? { slug: row.movie_slug, title: row.movie_title ?? "", episode: row.movie_episode_number ?? 1, episodeCount: row.movie_episode_count ?? 0 }
+            : null,
           mission: row.mission_id ? {
             id: String(row.mission_id),
             title: row.mission_title || null,

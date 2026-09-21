@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bookmark, EyeOff, Heart, MessageCircle, Search, Share2, ShoppingCart, Sparkles, Volume2, VolumeX } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import MovieEpisodeBadge from "@/components/movies/MovieEpisodeBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
 import { trackEvent as trackFeedEvent, trackWatchTime, flushWatchTime, resetWatchTime, getSessionId } from "@/lib/feed/track";
@@ -832,6 +833,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                     />
                   )
                 )}
+
+                {video.movie ? <MovieEpisodeBadge movie={video.movie} /> : null}
 
                 <div className="video-gradient-top" />
                 <div className="video-gradient" />
