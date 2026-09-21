@@ -1,47 +1,32 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { withErrorHandling } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+/** Comuta active <-> paused. Campaniile in asteptare sau incheiate nu se pot comuta de seller. */
+export const PATCH = withErrorHandling(async function PATCH(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const sellerId = await getSellerSessionId();
-    if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Neautorizat." }, { status: 401 });
-    }
-
-    const { id: adId } = await params;
-
-    const { rows: current } = await dbQuery(
-      `SELECT id, status FROM seller_ads WHERE id = $1 AND seller_id = $2`,
-      [adId, sellerId]
-    );
-
-    if (!current.length) {
-      return NextResponse.json({ success: false, error: "Campania nu a fost găsită." }, { status: 404 });
-    }
-
-    const newStatus = current[0].status === "active" ? "paused" : "active";
-
-    const { rows: updated } = await dbQuery(
-      `UPDATE seller_ads
-       SET status = $1, updated_at = NOW()
-       WHERE id = $2 AND seller_id = $3
-       RETURNING id, status`,
-      [newStatus, adId, sellerId]
-    );
-
-    return NextResponse.json({
-      success: true,
-      campaign: updated[0],
-      message: newStatus === "active" ? "Campania a fost reluată." : "Campania a fost pusă pe pauză.",
-    });
-  } catch (error: any) {
-    console.error("[Seller Ads Toggle] Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  const sellerId = await getSellerSessionId();
+  if (!sellerId) {
+    return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
   }
-}
+  const { id: adId } = await params;
+
+  const { rows } = await dbQuery<{ id: string; status: string }>(
+    `UPDATE seller_ads
+        SET status = CASE status WHEN 'active' THEN 'paused' ELSE 'active' END,
+            updated_at = now()
+      WHERE id = $1 AND seller_id = $2 AND status IN ('active', 'paused')
+      RETURNING id, status`,
+    [adId, sellerId],
+  );
+  if (rows.length === 0) {
+    return NextResponse.json({ success: false, error: "not_found_or_not_toggleable" }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true, campaign: rows[0] });
+});

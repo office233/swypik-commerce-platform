@@ -203,6 +203,15 @@ export const RATE_LIMITS = {
   swypWithdraw: { limit: 3, window: 300 } as RateLimitConfig,        // retrageri on-chain (operațiune scumpă)
   swypTransfer: { limit: 5, window: 300 } as RateLimitConfig,        // transferuri P2P on-chain
   swypStake: { limit: 10, window: 300 } as RateLimitConfig,          // stake/unstake SWYP
+  // Seller ERP (2026-09-21): rutele noi n-aveau nicio limită, iar "sellerAwb"
+  // era referit fără să existe aici.
+  sellerAwb: { limit: 20, window: 60 } as RateLimitConfig,
+  sellerInvoices: { limit: 20, window: 60 } as RateLimitConfig,
+  sellerClients: { limit: 20, window: 60 } as RateLimitConfig,
+  sellerAds: { limit: 10, window: 60 } as RateLimitConfig,
+  sellerPos: { limit: 60, window: 60 } as RateLimitConfig,
+  sellerNode: { limit: 12, window: 60 } as RateLimitConfig,   // heartbeat la 15s → 4/min + marjă
+  mysteryDrop: { limit: 5, window: 60 } as RateLimitConfig,
 } as const;
 
 /**
