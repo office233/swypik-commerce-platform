@@ -24,7 +24,7 @@ vi.mock("@/lib/swyp/ledger", async () => {
 const series = { id: "s1", owner_user_id: "owner-1", status: "published", free_episodes: 3, episode_price_units: "500" };
 async function query(sql: string, params: unknown[] = []) {
   if (sql.includes("FROM movie_episodes e") && sql.includes("JOIN movie_series")) {
-    return { rows: [{ id: "ep-5", series_id: "s1", episode_number: 5, ...series }], rowCount: 1 };
+    return { rows: [{ ...series, series_id: "s1", episode_number: 5 }], rowCount: 1 };
   }
   if (sql.includes("FROM movie_series") && sql.includes("FOR UPDATE")) return { rows: [series], rowCount: 1 };
   if (sql.includes("COUNT(*)") && sql.includes("movie_episodes")) return { rows: [{ count: "40" }], rowCount: 1 };
