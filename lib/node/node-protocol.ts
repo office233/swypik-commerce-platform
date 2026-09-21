@@ -104,5 +104,5 @@ export function computeNodeState(isOnline: boolean, lastHeartbeatIso: string | n
  */
 export function generateNodeId(sellerId: string, prefix = "NODE-RO"): string {
   const clean = sellerId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase();
-  return `${prefix}-${clean || "SHOP"}-${Date.now().toString(36).toUpperCase()}`;
+  return `${prefix}-${clean || "SHOP"}`;
 }

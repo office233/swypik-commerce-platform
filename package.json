@@ -22,14 +22,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test": "vitest run",
-    "desktop:node": "node desktop/desktop-runner.mjs",
-    "desktop:build": "node desktop/build-installers.mjs",
-    "desktop:build:win": "node desktop/build-installers.mjs",
-    "desktop:build:mac": "node desktop/build-installers.mjs",
-    "mobile:build": "node mobile/build-mobile.mjs",
-    "mobile:build:android": "node mobile/build-mobile.mjs",
-    "mobile:build:ios": "node mobile/build-mobile.mjs"
+    "test": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",

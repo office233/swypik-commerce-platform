@@ -80,6 +80,6 @@ describe("Swypik Local Node Engine (Noduri Locale)", () => {
 
   it("generează un Node ID determinist și lizibil", () => {
     const id = generateNodeId("seller_fashion_hub");
-    expect(id).toMatch(/^NODE-RO-SELLERFA-[0-9A-Z]+$/);
+    expect(id).toMatch(/^NODE-RO-SELLERFA$/);
   });
 });

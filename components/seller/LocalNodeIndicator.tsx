@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Wifi, WifiOff, HardDrive, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Wifi, WifiOff, HardDrive, AlertTriangle } from "lucide-react";
 
 export function LocalNodeIndicator() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [nodeId, setNodeId] = useState<string>("NODE-RO-SWYPIK");
-  const [pingMs, setPingMs] = useState<number>(14);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [nodeId, setNodeId] = useState<string | null>(null);
+  /** Latenta masurata (dus-intors) a ultimului heartbeat; null pana la prima masuratoare. */
+  const [pingMs, setPingMs] = useState<number | null>(null);
   const [showWarningModal, setShowWarningModal] = useState<boolean>(false);
 
   useEffect(() => {
@@ -30,10 +30,7 @@ export function LocalNodeIndicator() {
         const res = await fetch("/api/seller/node/status");
         if (res.ok) {
           const data = await res.json();
-          if (data.node) {
-            setNodeId(data.node.nodeId);
-            setPingMs(data.node.pingMs || 14);
-          }
+          if (data.node?.nodeId) setNodeId(data.node.nodeId);
         }
       } catch (e) {
         // network issue
@@ -50,17 +47,15 @@ export function LocalNodeIndicator() {
         return;
       }
 
+      if (!nodeId) return;
       try {
-        setIsSyncing(true);
+        const startedAt = performance.now();
         const res = await fetch("/api/seller/node/heartbeat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nodeId,
-            isOnline: true,
-            pingMs,
-          }),
+          body: JSON.stringify({ nodeId, isOnline: true, pingMs: pingMs ?? 0 }),
         });
+        setPingMs(Math.round(performance.now() - startedAt));
         if (res.ok) {
           setIsOnline(true);
           setShowWarningModal(false);
@@ -71,8 +66,6 @@ export function LocalNodeIndicator() {
       } catch {
         setIsOnline(false);
         setShowWarningModal(true);
-      } finally {
-        setIsSyncing(false);
       }
     }, 15000);
 
@@ -104,15 +97,15 @@ export function LocalNodeIndicator() {
             <WifiOff className="w-3.5 h-3.5 text-rose-600" />
           )}
           <span className={isOnline ? "text-neutral-800 font-bold" : "text-rose-600 font-bold"}>
-            {isOnline ? "Nod Online (Swypik Host)" : "Nod Deconectat"}
+            {isOnline ? "Nod Online" : "Nod Deconectat"}
           </span>
         </div>
 
         <div className="hidden md:flex items-center gap-1.5 pl-2 border-l border-neutral-200 text-[11px] text-neutral-500">
           <HardDrive className="w-3 h-3 text-neutral-400" />
-          <span className="font-mono">{nodeId.slice(0, 14)}</span>
+          <span className="font-mono">{nodeId ? nodeId.slice(0, 14) : "…"}</span>
           <span className="text-neutral-300">•</span>
-          <span className="text-emerald-600 font-mono">{pingMs}ms</span>
+          <span className="text-emerald-600 font-mono">{pingMs === null ? "—" : `${pingMs}ms`}</span>
         </div>
       </div>
 
@@ -132,8 +125,7 @@ export function LocalNodeIndicator() {
             </div>
 
             <p className="text-xs text-neutral-600 text-left bg-rose-50 p-3.5 rounded-xl border border-rose-100 leading-relaxed">
-              Fiecare comerciant deține un nod local care găzduiește magazinul în mod direct pe rețeaua Swypik. 
-              Fără conexiune la internet, magazinul dvs. nu poate primi comenzi de la clienți și nu poate sincroniza vânzările POS.
+              Fără conexiune la internet, panoul nu poate primi comenzi noi și nu poate înregistra vânzări POS.
             </p>
 
             <button

@@ -1,9 +1,21 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { LocalNodeDatabase } from "../../desktop/local-node-db";
+
+let tmpDir: string;
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "swypik-node-"));
+});
+afterEach(() => {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+const dbFile = () => path.join(tmpDir, "local-node.json");
 
 describe("Aplicație Desktop & Aplicație Mobilă Swypik", () => {
   it("inițializează baza de date locală a nodului desktop", () => {
-    const db = new LocalNodeDatabase();
+    const db = new LocalNodeDatabase(dbFile());
     const info = db.getNodeInfo();
 
     expect(info.nodeId).toMatch(/^NODE-RO-/);
@@ -11,7 +23,7 @@ describe("Aplicație Desktop & Aplicație Mobilă Swypik", () => {
   });
 
   it("permite înregistrarea bonurilor POS când nodul este online", () => {
-    const db = new LocalNodeDatabase();
+    const db = new LocalNodeDatabase(dbFile());
     db.data.syncStatus.isOnline = true;
 
     const receipt = {
@@ -26,7 +38,7 @@ describe("Aplicație Desktop & Aplicație Mobilă Swypik", () => {
   });
 
   it("blochează strict înregistrarea vânzărilor când nodul este offline (regula obligatorie online)", () => {
-    const db = new LocalNodeDatabase();
+    const db = new LocalNodeDatabase(dbFile());
     db.data.syncStatus.isOnline = false;
 
     expect(() => {

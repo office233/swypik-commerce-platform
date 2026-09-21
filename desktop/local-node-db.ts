@@ -7,12 +7,12 @@ export interface PosReceiptRecord {
   tvaRon?: number;
   paymentMethod?: string;
   recordedAt?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface LocalNodeData {
   nodeId: string;
-  storeCatalog: any[];
+  storeCatalog: Array<Record<string, unknown>>;
   posReceiptsJournal: PosReceiptRecord[];
   syncStatus: {
     lastSyncedAt: string;
@@ -21,15 +21,30 @@ export interface LocalNodeData {
   };
 }
 
-const DB_FILE = path.join(process.cwd(), 'desktop', 'swypik-local-node.json');
+/**
+ * Fișierul de date al nodului local. Implicit în directorul de date al
+ * utilizatorului, NU în repo — versiunea anterioară scria în
+ * desktop/swypik-local-node.json (urmărit de git) și fiecare rulare de teste
+ * murdărea working tree-ul. SWYPIK_LOCAL_NODE_DB suprascrie calea (teste, CI).
+ */
+function defaultDbFile(): string {
+  if (process.env.SWYPIK_LOCAL_NODE_DB) return process.env.SWYPIK_LOCAL_NODE_DB;
+  const base =
+    process.env.APPDATA ||
+    process.env.XDG_DATA_HOME ||
+    path.join(process.env.HOME || process.cwd(), '.local', 'share');
+  return path.join(base, 'swypik-business-erp', 'local-node.json');
+}
 
 /**
  * Embedded Local Node Database for Swypik Business ERP Desktop
  */
 export class LocalNodeDatabase {
   public data: LocalNodeData;
+  private readonly dbFile: string;
 
-  constructor() {
+  constructor(dbFile: string = defaultDbFile()) {
+    this.dbFile = dbFile;
     this.data = {
       nodeId: "NODE-RO-" + Date.now().toString(36).toUpperCase(),
       storeCatalog: [],
@@ -44,9 +59,9 @@ export class LocalNodeDatabase {
   }
 
   public load(): void {
-    if (fs.existsSync(DB_FILE)) {
+    if (fs.existsSync(this.dbFile)) {
       try {
-        this.data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        this.data = JSON.parse(fs.readFileSync(this.dbFile, 'utf8'));
       } catch {
         // use defaults
       }
@@ -57,9 +72,9 @@ export class LocalNodeDatabase {
 
   public save(): void {
     try {
-      const dir = path.dirname(DB_FILE);
+      const dir = path.dirname(this.dbFile);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
+      fs.writeFileSync(this.dbFile, JSON.stringify(this.data, null, 2), 'utf8');
     } catch {
       // non-blocking
     }
