@@ -10,13 +10,14 @@ import { clampEpisodePrice } from "@/lib/movies/pricing";
 import { slugifySeriesTitle } from "@/lib/movies/slug";
 import { MOVIES_DEFAULT_EPISODE_PRICE_UNITS, MOVIES_DEFAULT_FREE_EPISODES, MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
 import { LOCALES } from "@/lib/i18n/config";
+import { MOVIE_GENRES } from "@/lib/movies/genres";
 
 export const dynamic = "force-dynamic";
 
 const CreateSchema = z.object({
     title: z.string().trim().min(2).max(120),
     synopsis: z.string().trim().max(2000).default(""),
-    genres: z.array(z.string().trim().min(2).max(30)).max(5).default([]),
+    genres: z.array(z.enum(MOVIE_GENRES)).max(5).default([]),
     languageCode: z.enum(LOCALES).default("ro"),
     coverUrl: z.string().url().max(500).nullable().default(null),
     posterUrl: z.string().url().max(500).nullable().default(null),

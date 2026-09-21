@@ -7,13 +7,14 @@ import { parseBody } from "@/lib/validation/schemas";
 import { getSeriesById, listEpisodes, updateSeries } from "@/lib/movies/repository";
 import { clampEpisodePrice } from "@/lib/movies/pricing";
 import { MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
+import { MOVIE_GENRES } from "@/lib/movies/genres";
 
 export const dynamic = "force-dynamic";
 
 const PatchSchema = z.object({
     title: z.string().trim().min(2).max(120).optional(),
     synopsis: z.string().trim().max(2000).optional(),
-    genres: z.array(z.string().trim().min(2).max(30)).max(5).optional(),
+    genres: z.array(z.enum(MOVIE_GENRES)).max(5).optional(),
     coverUrl: z.string().url().max(500).nullable().optional(),
     posterUrl: z.string().url().max(500).nullable().optional(),
     freeEpisodes: z.coerce.number().int().min(0).max(MOVIES_MAX_FREE_EPISODES).optional(),

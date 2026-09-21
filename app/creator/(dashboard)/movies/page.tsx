@@ -5,6 +5,7 @@ import { Clapperboard, Plus } from "lucide-react";
 import { unitsToSwyp } from "@/components/movies/UnlockButton";
 import { MOVIES_DEFAULT_EPISODE_PRICE_UNITS, MOVIES_DEFAULT_FREE_EPISODES, MOVIES_MAX_FREE_EPISODES, SWYP_UNITS_PER_COIN } from "@/lib/movies/config";
 import type { MovieEpisodeRow, MovieSeriesRow, SeriesStatus } from "@/lib/movies/types";
+import { MOVIE_GENRES, genreLabelKey, type MovieGenre } from "@/lib/movies/genres";
 
 type Overview = { publisher: boolean; series: Array<MovieSeriesRow & { episode_count: number }>; earnings: { total_units: number; unlocks: number } };
 type Video = { id: string; title: string | null; status: string; duration_ms: number | null };
@@ -26,7 +27,7 @@ export default function CreatorMoviesPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [form, setForm] = useState({
-    title: "", synopsis: "", genres: "", posterUrl: "", coverUrl: "",
+    title: "", synopsis: "", genres: [] as MovieGenre[], posterUrl: "", coverUrl: "",
     freeEpisodes: MOVIES_DEFAULT_FREE_EPISODES, priceSwyp: MOVIES_DEFAULT_EPISODE_PRICE_UNITS / SWYP_UNITS_PER_COIN,
     licenseNote: "", isAdult: false,
   });
@@ -54,7 +55,7 @@ export default function CreatorMoviesPage() {
       body: JSON.stringify({
         title: form.title,
         synopsis: form.synopsis,
-        genres: form.genres.split(",").map((g) => g.trim()).filter(Boolean),
+        genres: form.genres,
         posterUrl: form.posterUrl || null,
         coverUrl: form.coverUrl || null,
         freeEpisodes: form.freeEpisodes,
@@ -139,7 +140,18 @@ export default function CreatorMoviesPage() {
         <h2 className="font-black">{t("newSeries")}</h2>
         <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t("seriesTitle")} className={INPUT} />
         <textarea value={form.synopsis} onChange={(e) => setForm({ ...form, synopsis: e.target.value })} placeholder={t("seriesSynopsis")} rows={3} className={INPUT} />
-        <input value={form.genres} onChange={(e) => setForm({ ...form, genres: e.target.value })} placeholder={t("seriesGenres")} className={INPUT} />
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="mb-1 text-xs text-neutral-600">{t("genres")}</legend>
+          {MOVIE_GENRES.map((g) => {
+            const on = form.genres.includes(g);
+            return (
+              <label key={g} className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold ring-1 ${on ? "bg-[#0D0D0D] text-white ring-[#0D0D0D]" : "bg-white text-neutral-700 ring-[#E5E5E5]"}`}>
+                <input type="checkbox" className="sr-only" checked={on} onChange={() => setForm({ ...form, genres: on ? form.genres.filter((x) => x !== g) : [...form.genres, g] })} />
+                {t(genreLabelKey(g))}
+              </label>
+            );
+          })}
+        </fieldset>
         <input value={form.posterUrl} onChange={(e) => setForm({ ...form, posterUrl: e.target.value })} placeholder={t("posterUrl")} className={INPUT} />
         <input value={form.coverUrl} onChange={(e) => setForm({ ...form, coverUrl: e.target.value })} placeholder={t("coverUrl")} className={INPUT} />
         <div className="grid grid-cols-2 gap-2">

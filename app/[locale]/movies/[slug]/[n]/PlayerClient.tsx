@@ -5,6 +5,7 @@ import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import PaywallSlide from "@/components/movies/PaywallSlide";
+import { moviesDisplayFont, MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
 import type { EpisodeDto, SeriesDto } from "@/lib/movies/types";
 
 type SeriesPayload = { series: SeriesDto; episodes: EpisodeDto[]; viewer: { balanceUnits: number | null } };
@@ -110,7 +111,7 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
   };
 
   return (
-    <div className="fixed inset-0 bg-black text-white" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div className={`${moviesDisplayFont.variable} fixed inset-0 bg-black text-white`} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {play.kind === "ok" && episode && (
         <EpisodeVideo
           src={play.data.playbackUrl}
@@ -161,7 +162,7 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
           className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 to-transparent px-5 pt-16"
           style={{ paddingBottom: "max(32px, env(safe-area-inset-bottom))" }}
         >
-          <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">{payload.series.title}</p>
+          <p className={`${MOVIES_DISPLAY_CLASS} text-lg tracking-wider text-white/80`}>{payload.series.title}</p>
           <h2 className="text-lg font-black">{t("episodeOf", { n: current, total })} · {episode.title}</h2>
           {current < total && (
             <button type="button" onClick={goNext} className="mt-3 rounded-xl bg-white/15 px-4 py-2 text-xs font-bold backdrop-blur active:scale-95">

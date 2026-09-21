@@ -23,6 +23,9 @@ export type MovieSeriesRow = {
     updated_at: string;
 };
 
+/** Rând de episod + miniatura clipului (JOIN videos). */
+export type MovieEpisodeWithThumb = MovieEpisodeRow & { thumbnail_url: string | null };
+
 export type MovieEpisodeRow = {
     id: string;
     series_id: string;
@@ -68,6 +71,7 @@ export type EpisodeDto = {
     number: number;
     title: string;
     durationMs: number | null;
+    thumbnailUrl: string | null;
     locked: boolean;
     priceUnits: number;
     progress: { positionMs: number; completed: boolean } | null;

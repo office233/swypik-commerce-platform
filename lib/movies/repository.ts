@@ -1,5 +1,6 @@
 import { dbQuery, withTransaction } from "@/lib/db";
-import type { MovieEpisodeRow, MovieProgressRow, MovieSeriesRow, SeriesStatus } from "./types";
+import { SWYPIK_OFFICIAL_ID } from "@/lib/config/accounts";
+import type { MovieEpisodeRow, MovieEpisodeWithThumb, MovieProgressRow, MovieSeriesRow, SeriesStatus } from "./types";
 import { syncEpisodeVisibility } from "./visibility";
 
 const SERIES_COLS = `id, slug, owner_user_id, title, synopsis, genres, language_code, cover_url, poster_url,
@@ -53,14 +54,62 @@ export async function listPublishedSeries(opts: ListSeriesOpts) {
     return rows.map(normalizeSeries);
 }
 
-export async function listEpisodes(seriesId: string, opts: { publishedOnly?: boolean } = {}): Promise<MovieEpisodeRow[]> {
-    const { rows } = await dbQuery<MovieEpisodeRow>(
-        `SELECT id, series_id, episode_number, video_id, title, duration_ms, status, created_at, updated_at
-           FROM movie_episodes WHERE series_id = $1 ${opts.publishedOnly ? `AND status = 'published'` : ``}
-          ORDER BY episode_number ASC`,
+export async function listEpisodes(seriesId: string, opts: { publishedOnly?: boolean } = {}): Promise<MovieEpisodeWithThumb[]> {
+    const { rows } = await dbQuery<MovieEpisodeWithThumb>(
+        `SELECT e.id, e.series_id, e.episode_number, e.video_id, e.title, e.duration_ms, e.status, e.created_at, e.updated_at,
+                v.thumbnail_url
+           FROM movie_episodes e
+           LEFT JOIN videos v ON v.id = e.video_id
+          WHERE e.series_id = $1 ${opts.publishedOnly ? `AND e.status = 'published'` : ``}
+          ORDER BY e.episode_number ASC`,
         [seriesId],
     );
     return rows;
+}
+
+/** Serialele contului oficial („Swypik Originals"), publicate, cele mai noi primele. */
+export async function listOriginals(limit: number, includeAdult: boolean) {
+    const { rows } = await dbQuery<MovieSeriesRow & { episode_count: number; owner_name: string | null }>(
+        `SELECT ${SERIES_COLS_S},
+                (SELECT COUNT(*) FROM movie_episodes e WHERE e.series_id = s.id AND e.status = 'published')::int AS episode_count,
+                u.display_name AS owner_name
+           FROM movie_series s
+           LEFT JOIN users u ON u.id = s.owner_user_id
+          WHERE s.status = 'published' AND s.owner_user_id = $1 ${includeAdult ? `` : `AND s.is_adult = false`}
+          ORDER BY s.published_at DESC NULLS LAST
+          LIMIT $2`,
+        [SWYPIK_OFFICIAL_ID, limit],
+    );
+    return rows.map(normalizeSeries);
+}
+
+export async function listWatchlist(userId: string, limit: number) {
+    const { rows } = await dbQuery<MovieSeriesRow & { episode_count: number; owner_name: string | null }>(
+        `SELECT ${SERIES_COLS_S},
+                (SELECT COUNT(*) FROM movie_episodes e WHERE e.series_id = s.id AND e.status = 'published')::int AS episode_count,
+                u.display_name AS owner_name
+           FROM movie_watchlist w
+           JOIN movie_series s ON s.id = w.series_id
+           LEFT JOIN users u ON u.id = s.owner_user_id
+          WHERE w.user_id = $1 AND s.status = 'published'
+          ORDER BY w.created_at DESC
+          LIMIT $2`,
+        [userId, limit],
+    );
+    return rows.map(normalizeSeries);
+}
+
+export async function isInWatchlist(userId: string, seriesId: string): Promise<boolean> {
+    const { rows } = await dbQuery(`SELECT 1 FROM movie_watchlist WHERE user_id = $1 AND series_id = $2`, [userId, seriesId]);
+    return rows.length > 0;
+}
+
+export async function addToWatchlist(userId: string, seriesId: string): Promise<void> {
+    await dbQuery(`INSERT INTO movie_watchlist (user_id, series_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [userId, seriesId]);
+}
+
+export async function removeFromWatchlist(userId: string, seriesId: string): Promise<void> {
+    await dbQuery(`DELETE FROM movie_watchlist WHERE user_id = $1 AND series_id = $2`, [userId, seriesId]);
 }
 
 export async function getEpisode(seriesId: string, episodeNumber: number): Promise<MovieEpisodeRow | null> {

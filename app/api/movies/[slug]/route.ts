@@ -4,7 +4,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
 import { dbQuery } from "@/lib/db";
-import { getSeriesBySlug, listEpisodes, getProgress } from "@/lib/movies/repository";
+import { getSeriesBySlug, listEpisodes, getProgress, isInWatchlist } from "@/lib/movies/repository";
 import { buildViewerContext } from "@/lib/movies/viewer";
 import { toSeriesDto, toEpisodeDtos } from "@/lib/movies/dto";
 
@@ -19,16 +19,17 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
     if (!series || (series.status !== "published" && !user.isAdmin && !isOwner)) {
         return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
-    const [episodes, viewer, progress, ownerRows] = await Promise.all([
+    const [episodes, viewer, progress, ownerRows, inWatchlist] = await Promise.all([
         listEpisodes(series.id, { publishedOnly: !user.isAdmin && !isOwner }),
         buildViewerContext(user.userId, user.isAdmin, series.id),
         user.userId ? getProgress(user.userId, series.id) : Promise.resolve([]),
         dbQuery<{ display_name: string | null }>(`SELECT display_name FROM users WHERE id = $1`, [series.owner_user_id]),
+        user.userId ? isInWatchlist(user.userId, series.id) : Promise.resolve(false),
     ]);
     const balanceUnits = user.userId ? Number(await getSwypBalanceUnits(user.userId)) : null;
     return NextResponse.json({
         series: toSeriesDto(series, episodes.length, ownerRows.rows[0]?.display_name ?? null),
         episodes: toEpisodeDtos(series, episodes, viewer, progress),
-        viewer: { balanceUnits, hasSeasonUnlock: viewer.hasSeasonUnlock, isOwner },
+        viewer: { balanceUnits, hasSeasonUnlock: viewer.hasSeasonUnlock, isOwner, inWatchlist },
     });
 });

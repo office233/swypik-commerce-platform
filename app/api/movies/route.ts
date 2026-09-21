@@ -7,13 +7,14 @@ import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { MOVIES_CATALOG_PAGE_SIZE } from "@/lib/movies/config";
 import { listPublishedSeries, listContinueWatching } from "@/lib/movies/repository";
 import { toSeriesDto } from "@/lib/movies/dto";
+import { MOVIE_GENRES } from "@/lib/movies/genres";
 
 export const dynamic = "force-dynamic";
 
 const CONTINUE_WATCHING_LIMIT = 10;
 
 const QuerySchema = z.object({
-    genre: z.string().trim().min(1).max(40).optional(),
+    genre: z.enum(MOVIE_GENRES).optional(),
     sort: z.enum(["trending", "new"]).default("trending"),
     page: z.coerce.number().int().min(0).max(1000).default(0),
 });

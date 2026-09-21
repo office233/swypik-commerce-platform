@@ -238,3 +238,9 @@ button, nav, a {
 
 /* a11y: cockpit-btn primary background — fix color-contrast pe video gradient */
 .cockpit-btn.primary { background-color: rgba(0,0,0,0.75) !important; }
+
+/* Swypik Movies — fontul de afișare (Bebas Neue prin next/font, vezi components/movies/fonts.ts) */
+.movies-display {
+  font-family: var(--font-movies-display), Impact, "Arial Narrow", sans-serif;
+  letter-spacing: 0.02em;
+}
