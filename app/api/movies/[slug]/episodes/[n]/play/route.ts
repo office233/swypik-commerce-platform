@@ -7,10 +7,10 @@ import { getSeriesBySlug, getEpisode, getEpisodeById, listEpisodes } from "@/lib
 import { buildViewerContext } from "@/lib/movies/viewer";
 import { canPlay, isFreeEpisode } from "@/lib/movies/access";
 import { seasonPriceUnits } from "@/lib/movies/pricing";
-import { signStreamToken } from "@/lib/movies/stream-token";
+import { signStreamToken } from "@/lib/media/stream-token";
 import { MOVIES_STREAM_TOKEN_TTL_S } from "@/lib/movies/config";
-import { getStreamSecret } from "@/lib/movies/stream-secret";
-import { mediaBasename, STREAM_ROUTE_PREFIX } from "@/lib/movies/stream-path";
+import { getStreamSecret } from "@/lib/media/stream-secret";
+import { mediaBasename, STREAM_ROUTE_PREFIX } from "@/lib/media/stream-path";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
         return NextResponse.json({ videoId: full.video_id, playbackUrl: full.playback_url, poster: full.thumbnail_url, expiresAt: null });
     }
     const expiresAt = Date.now() + MOVIES_STREAM_TOKEN_TTL_S * 1000;
-    const token = signStreamToken({ userId: user.userId ?? "admin", episodeId: episode.id, expiresAt }, getStreamSecret());
+    const token = signStreamToken({ userId: user.userId ?? "admin", scope: "movies", mediaId: episode.id, expiresAt }, getStreamSecret());
     return NextResponse.json({
         videoId: full.video_id,
         playbackUrl: `${STREAM_ROUTE_PREFIX}/${token}/${mediaBasename(full.playback_url)}`,

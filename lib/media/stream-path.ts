@@ -7,6 +7,7 @@
  * pe baza token-ului) și refuză orice iese din acel director. Funcții pure.
  */
 export const STREAM_ROUTE_PREFIX = "/api/movies/stream";
+export const MUSIC_STREAM_ROUTE_PREFIX = "/api/music/stream";
 
 /** Directorul episodului: `playback_url` până la ultimul `/` inclusiv. */
 export function episodeMediaDir(playbackUrl: string): string {
@@ -42,8 +43,8 @@ export function resolveEpisodeMediaUrl(playbackUrl: string, relativePath: string
  * Pentru rescrierea playlist-urilor: un URL absolut din interiorul directorului
  * episodului devine cale de proxy relativă; orice altceva rămâne neatins.
  */
-export function toProxyPath(token: string, absoluteUrl: string, playbackUrl: string): string {
+export function toProxyPath(token: string, absoluteUrl: string, playbackUrl: string, prefix: string = STREAM_ROUTE_PREFIX): string {
     const dir = episodeMediaDir(playbackUrl);
     if (!absoluteUrl.startsWith(dir)) return absoluteUrl;
-    return `${STREAM_ROUTE_PREFIX}/${token}/${absoluteUrl.slice(dir.length)}`;
+    return `${prefix}/${token}/${absoluteUrl.slice(dir.length)}`;
 }

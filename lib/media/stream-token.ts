@@ -1,12 +1,16 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export type StreamTokenPayload = { userId: string; episodeId: string; expiresAt: number };
+/** Verticala care a emis token-ul; proxy-ul fiecăreia acceptă doar propriul scope. */
+export type StreamScope = "movies" | "music";
+export type StreamTokenPayload = { userId: string; scope: StreamScope; mediaId: string; expiresAt: number };
+
+const SCOPES: readonly string[] = ["movies", "music"];
 
 function sign(body: string, secret: string): string {
     return createHmac("sha256", secret).update(body).digest("base64url");
 }
 
-/** `base64url(json).hmac` — legat de user + episod, cu expirare absolută (ms). */
+/** `base64url(json).hmac` — legat de user + scope + media, cu expirare absolută (ms). */
 export function signStreamToken(payload: StreamTokenPayload, secret: string): string {
     const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
     return `${body}.${sign(body, secret)}`;
@@ -28,7 +32,8 @@ export function verifyStreamToken(token: string, secret: string, now: number = D
         return null;
     }
     const p = parsed as Partial<StreamTokenPayload>;
-    if (typeof p.userId !== "string" || typeof p.episodeId !== "string" || typeof p.expiresAt !== "number") return null;
+    if (typeof p.userId !== "string" || typeof p.mediaId !== "string" || typeof p.expiresAt !== "number") return null;
+    if (typeof p.scope !== "string" || !SCOPES.includes(p.scope)) return null;
     if (p.expiresAt <= now) return null;
-    return { userId: p.userId, episodeId: p.episodeId, expiresAt: p.expiresAt };
+    return { userId: p.userId, scope: p.scope, mediaId: p.mediaId, expiresAt: p.expiresAt };
 }

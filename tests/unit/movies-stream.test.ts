@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { signStreamToken, verifyStreamToken } from "@/lib/movies/stream-token";
-import { rewriteHlsPlaylist } from "@/lib/movies/hls-rewrite";
+import { signStreamToken, verifyStreamToken } from "@/lib/media/stream-token";
+import { rewriteHlsPlaylist } from "@/lib/media/hls-rewrite";
 
 const SECRET = "test-secret-please-ignore";
 
 describe("movies/stream-token", () => {
-  const payload = { userId: "u1", episodeId: "e1", expiresAt: 1_800_000_000_000 };
+  const payload = { userId: "u1", scope: "movies" as const, mediaId: "e1", expiresAt: 1_800_000_000_000 };
   it("semnătura se verifică și întoarce payload-ul", () => {
     const token = signStreamToken(payload, SECRET);
     expect(verifyStreamToken(token, SECRET, payload.expiresAt - 1000)).toEqual(payload);
@@ -15,10 +15,14 @@ describe("movies/stream-token", () => {
     expect(verifyStreamToken(token, SECRET, payload.expiresAt + 1)).toBeNull();
     expect(verifyStreamToken(token, "other", payload.expiresAt - 1000)).toBeNull();
     const [body, sig] = token.split(".");
-    const tampered = Buffer.from(JSON.stringify({ ...payload, episodeId: "e2" })).toString("base64url");
+    const tampered = Buffer.from(JSON.stringify({ ...payload, mediaId: "e2" })).toString("base64url");
     expect(verifyStreamToken(`${tampered}.${sig}`, SECRET, 0)).toBeNull();
     expect(verifyStreamToken(`${body}`, SECRET, 0)).toBeNull();
     expect(verifyStreamToken("garbage", SECRET, 0)).toBeNull();
+  });
+  it("respinge un scope necunoscut (token-urile Movies si Music nu sunt interschimbabile)", () => {
+    const foreign = signStreamToken({ ...payload, scope: "other" as unknown as "movies" }, SECRET);
+    expect(verifyStreamToken(foreign, SECRET, 0)).toBeNull();
   });
 });
 

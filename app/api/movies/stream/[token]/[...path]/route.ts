@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit } from "@/lib/security/rate-limit";
-import { verifyStreamToken } from "@/lib/movies/stream-token";
-import { rewriteHlsPlaylist } from "@/lib/movies/hls-rewrite";
-import { getStreamSecret } from "@/lib/movies/stream-secret";
-import { resolveEpisodeMediaUrl, toProxyPath } from "@/lib/movies/stream-path";
+import { verifyStreamToken } from "@/lib/media/stream-token";
+import { rewriteHlsPlaylist } from "@/lib/media/hls-rewrite";
+import { getStreamSecret } from "@/lib/media/stream-secret";
+import { resolveEpisodeMediaUrl, toProxyPath } from "@/lib/media/stream-path";
 import { getEpisodeById } from "@/lib/movies/repository";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +25,12 @@ export const GET = withErrorHandling(async function GET(req: Request, { params }
     if (!isEnabled("movies")) return frozenResponse("movies");
     const { token, path } = await params;
     const payload = verifyStreamToken(token, getStreamSecret());
-    if (!payload) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!payload || payload.scope !== "movies") return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-    const rl = await rateLimit("moviesStream", `${payload.userId}:${payload.episodeId}`);
+    const rl = await rateLimit("moviesStream", `${payload.userId}:${payload.mediaId}`);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    const episode = await getEpisodeById(payload.episodeId);
+    const episode = await getEpisodeById(payload.mediaId);
     if (!episode?.playback_url) return NextResponse.json({ error: "forbidden" }, { status: 403 });
     const target = resolveEpisodeMediaUrl(episode.playback_url, path.join("/"));
     if (!target) return NextResponse.json({ error: "forbidden" }, { status: 403 });

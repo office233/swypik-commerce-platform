@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { episodeMediaDir, resolveEpisodeMediaUrl, toProxyPath, mediaBasename } from "@/lib/movies/stream-path";
+import { episodeMediaDir, resolveEpisodeMediaUrl, toProxyPath, mediaBasename } from "@/lib/media/stream-path";
 
 const playback = "https://media.example.com/videos/hls/abc-123/master.m3u8";
 

@@ -1,4 +1,4 @@
-import { SWYPIK_OFFICIAL_ID } from "@/lib/config/accounts";
+import { platformShareUnits } from "@/lib/swyp/share";
 import {
     MOVIES_CREATOR_SHARE_BPS,
     MOVIES_EPISODE_PRICE_MAX_UNITS,
@@ -29,9 +29,7 @@ export function creatorShareUnits(
     viewerUserId: string,
     shareBps: number = MOVIES_CREATOR_SHARE_BPS,
 ): number {
-    if (amountUnits <= 0) return 0;
-    if (ownerUserId === SWYPIK_OFFICIAL_ID || ownerUserId === viewerUserId) return 0;
-    return Math.floor((amountUnits * shareBps) / 10_000);
+    return platformShareUnits(amountUnits, ownerUserId, viewerUserId, shareBps);
 }
 
 export function clampEpisodePrice(units: number): number {
