@@ -5,67 +5,75 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { sendCustomerShippingAlert } from "@/lib/email/service";
 import { logger } from "@/lib/logger";
 import { SellerGenerateAwbSchema, parseBody } from "@/lib/validation/schemas";
+import { carrierName, carrierTrackingUrl, type CarrierCode } from "@/lib/fulfillment/carriers";
 
 export const dynamic = "force-dynamic";
 
-function generateAwbCode(courier: string, manualNumber?: string): { trackingNumber: string; carrierName: string; trackingUrl: string } {
-  if (manualNumber && manualNumber.trim().length > 0) {
-    const clean = manualNumber.trim();
-    let carrierName = "Livrare Standard";
-    let trackingUrl = `https://swypik.com/tracking?awb=${encodeURIComponent(clean)}`;
+type AwbDetails = {
+  awb_number?: string;
+  carrier?: string;
+  courier_code?: string;
+  tracking_url?: string;
+  parcels_count?: number;
+  weight_kg?: number;
+  notes?: string;
+  locker_name?: string;
+  generated_at?: string;
+};
 
-    if (courier === "sameday_easybox") {
-      carrierName = "Sameday Easybox";
-      trackingUrl = `https://sameday.ro/#awb=${encodeURIComponent(clean)}`;
-    } else if (courier === "sameday") {
-      carrierName = "Sameday Curier";
-      trackingUrl = `https://sameday.ro/#awb=${encodeURIComponent(clean)}`;
-    } else if (courier === "fancourier") {
-      carrierName = "Fan Courier";
-      trackingUrl = `https://www.fancourier.ro/awb-tracking/?awb=${encodeURIComponent(clean)}`;
-    }
+type ShippingAddress = {
+  name?: string;
+  phone?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+};
 
-    return { trackingNumber: clean, carrierName, trackingUrl };
-  }
+/** Subsetul din commerce_orders.metadata citit/scris de această rută. */
+type OrderMeta = {
+  awb_details?: AwbDetails | null;
+  tracking_number?: string;
+  latest_tracking_number?: string;
+  tracking_url?: string;
+  latest_tracking_url?: string;
+  tracking_carrier?: string;
+  shipping_method?: string;
+  courier?: string;
+  easybox_locker?: string;
+  shipping_address?: ShippingAddress;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+};
 
-  if (courier === "sameday_easybox") {
-    const rand = Math.floor(10000000 + Math.random() * 90000000);
-    const trackingNumber = `1SMEB${rand}`;
-    return {
-      trackingNumber,
-      carrierName: "Sameday Easybox",
-      trackingUrl: `https://sameday.ro/#awb=${encodeURIComponent(trackingNumber)}`,
-    };
-  }
+type OrderItemRow = {
+  item_id: string;
+  title: string;
+  quantity: number;
+  unit_amount_cents: number;
+  metadata: { tracking_number?: string } | null;
+  source_status: string | null;
+};
 
-  if (courier === "sameday") {
-    const rand = Math.floor(100000000 + Math.random() * 900000000);
-    const trackingNumber = `1SM${rand}`;
-    return {
-      trackingNumber,
-      carrierName: "Sameday Curier",
-      trackingUrl: `https://sameday.ro/#awb=${encodeURIComponent(trackingNumber)}`,
-    };
-  }
+type SellerBusinessDetails = {
+  address?: string;
+  street?: string;
+  city?: string;
+  county?: string;
+  state?: string;
+};
 
-  if (courier === "fancourier") {
-    const rand = Math.floor(100000000 + Math.random() * 900000000);
-    const trackingNumber = `247${rand}`;
-    return {
-      trackingNumber,
-      carrierName: "Fan Courier",
-      trackingUrl: `https://www.fancourier.ro/awb-tracking/?awb=${encodeURIComponent(trackingNumber)}`,
-    };
-  }
-
-  // Standard Express
-  const rand = Math.floor(100000000 + Math.random() * 900000000);
-  const trackingNumber = `SWP${rand}`;
-  return {
-    trackingNumber,
-    carrierName: "Livrare Standard",
-    trackingUrl: `https://swypik.com/tracking?awb=${encodeURIComponent(trackingNumber)}`,
-  };
+/**
+ * Numărul AWB vine de la curier (introdus de seller). Nu se „generează" local:
+ * versiunea anterioară fabrica numere cu Math.random() și le trimitea clienților.
+ */
+function resolveAwb(courier: CarrierCode, manualNumber?: string) {
+  const awb = manualNumber?.trim();
+  if (!awb) return null;
+  return { trackingNumber: awb, carrierName: carrierName(courier), trackingUrl: carrierTrackingUrl(courier, awb) };
 }
 
 export async function GET(
@@ -84,11 +92,11 @@ export async function GET(
     const { rows: orderRows } = await dbQuery<{
       order_id: string;
       order_status: string;
-      order_meta: any;
+      order_meta: OrderMeta | null;
       created_at: string;
       fulfilled_at: string | null;
       total_cents: number;
-      items: any[];
+      items: OrderItemRow[];
     }>(
       `SELECT
          co.id as order_id,
@@ -120,8 +128,8 @@ export async function GET(
     }
 
     const order = orderRows[0];
-    const meta = order.order_meta || {};
-    const items = order.items || [];
+    const meta: OrderMeta = order.order_meta || {};
+    const items: OrderItemRow[] = order.items || [];
     const awbDetails = meta.awb_details || null;
 
     // Get seller profile for sender details
@@ -130,7 +138,7 @@ export async function GET(
       email: string;
       phone: string | null;
       cui: string | null;
-      business_details: any;
+      business_details: SellerBusinessDetails | null;
     }>(
       `SELECT name, email, phone, cui, business_details FROM sellers WHERE id = $1 LIMIT 1`,
       [sellerId]
@@ -141,31 +149,33 @@ export async function GET(
       awbDetails?.awb_number ||
       meta.tracking_number ||
       meta.latest_tracking_number ||
-      items.find((i: any) => i.metadata?.tracking_number)?.metadata?.tracking_number ||
+      items.find((i) => i.metadata?.tracking_number)?.metadata?.tracking_number ||
       null;
 
-    const carrierName =
+    const displayCarrierName =
       awbDetails?.carrier ||
       meta.tracking_carrier ||
       meta.shipping_method ||
       meta.courier ||
       "Livrare Standard";
 
+    // Câmpurile lipsă rămân goale pe etichetă — nu se completează cu date fictive
+    // (CUI/telefon/adresă inventate ajungeau tipărite pe AWB).
     const senderData = {
-      name: seller?.name || "Comerciant Swypik",
-      cui: seller?.cui || "RO12345678",
-      phone: seller?.phone || "0700000000",
-      email: seller?.email || "comerciant@swypik.ro",
-      address: seller?.business_details?.address || seller?.business_details?.street || "Depozit Central Swypik",
-      city: seller?.business_details?.city || "București",
-      county: seller?.business_details?.county || seller?.business_details?.state || "București",
+      name: seller?.name ?? "",
+      cui: seller?.cui ?? "",
+      phone: seller?.phone ?? "",
+      email: seller?.email ?? "",
+      address: seller?.business_details?.address ?? seller?.business_details?.street ?? "",
+      city: seller?.business_details?.city ?? "",
+      county: seller?.business_details?.county ?? seller?.business_details?.state ?? "",
     };
 
     const recipientData = {
-      name: meta.shipping_address?.name || meta.customer_name || "Client Swypik",
+      name: meta.shipping_address?.name || meta.customer_name || "",
       phone: meta.customer_phone || meta.shipping_address?.phone || "-",
       email: meta.customer_email || "-",
-      line1: meta.shipping_address?.line1 || "Adresă livrare",
+      line1: meta.shipping_address?.line1 || "",
       line2: meta.shipping_address?.line2 || "",
       city: meta.shipping_address?.city || "",
       county: meta.shipping_address?.state || "",
@@ -183,7 +193,7 @@ export async function GET(
         createdAt: order.created_at,
         fulfilledAt: order.fulfilled_at,
         totalRon: (order.total_cents / 100).toFixed(2),
-        items: items.map((i: any) => ({
+        items: items.map((i) => ({
           id: i.item_id,
           title: i.title,
           quantity: i.quantity,
@@ -193,7 +203,7 @@ export async function GET(
       },
       awb: {
         trackingNumber,
-        carrierName,
+        carrierName: displayCarrierName,
         courierCode: awbDetails?.courier_code || "standard",
         trackingUrl:
           awbDetails?.tracking_url ||
@@ -208,7 +218,7 @@ export async function GET(
       sender: senderData,
       recipient: recipientData,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller AWB API] GET Error:");
     return NextResponse.json({ success: false, error: "Eroare la încărcarea datelor AWB." }, { status: 500 });
   }
@@ -239,7 +249,7 @@ export async function POST(
     const { courier, parcels_count, weight_kg, manual_tracking_number, notes, locker_name } = parsed.data;
 
     // Check that order exists and seller owns items in it
-    const checkOrder = await dbQuery<{ status: string; metadata: any }>(
+    const checkOrder = await dbQuery<{ status: string; metadata: OrderMeta | null }>(
       `SELECT co.status, co.metadata
        FROM commerce_orders co
        JOIN commerce_order_items coi ON co.id = coi.order_id
@@ -260,8 +270,14 @@ export async function POST(
       );
     }
 
-    // Generate tracking code and carrier URLs
-    const { trackingNumber, carrierName, trackingUrl } = generateAwbCode(courier, manual_tracking_number);
+    const resolved = resolveAwb(courier, manual_tracking_number);
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: "awb_number_required", message: "Introdu numărul AWB emis de curier. Swypik nu generează AWB-uri." },
+        { status: 422 },
+      );
+    }
+    const { trackingNumber, carrierName: resolvedCarrierName, trackingUrl } = resolved;
 
     // 1. Update items belonging to this seller
     await dbQuery(
@@ -274,7 +290,7 @@ export async function POST(
              'fulfilled_at', NOW()::text
            )
        WHERE order_id = $1 AND metadata->>'seller_id' = $2`,
-      [orderId, sellerId, trackingNumber, trackingUrl, carrierName]
+      [orderId, sellerId, trackingNumber, trackingUrl, resolvedCarrierName]
     );
 
     // 2. Insert/update supplier order
@@ -297,7 +313,7 @@ export async function POST(
           seller_id: sellerId,
           tracking_number: trackingNumber,
           tracking_url: trackingUrl,
-          carrier: carrierName,
+          carrier: resolvedCarrierName,
         }),
       ]
     );
@@ -318,7 +334,7 @@ export async function POST(
         supplierOrderDbId,
         trackingNumber,
         trackingUrl,
-        JSON.stringify({ source: "seller", seller_id: sellerId, carrier: carrierName }),
+        JSON.stringify({ source: "seller", seller_id: sellerId, carrier: resolvedCarrierName }),
       ]
     );
 
@@ -335,7 +351,7 @@ export async function POST(
 
     const awbDetailsObj = {
       awb_number: trackingNumber,
-      carrier: carrierName,
+      carrier: resolvedCarrierName,
       courier_code: courier,
       parcels_count,
       weight_kg,
@@ -344,14 +360,14 @@ export async function POST(
       generated_at: new Date().toISOString(),
     };
 
-    const orderMetadataPatch: Record<string, any> = {
+    const orderMetadataPatch: Record<string, unknown> = {
       fulfillment_status: remainingItems === 0 ? "shipped" : "partially_shipped",
       latest_tracking_number: trackingNumber,
       latest_tracking_url: trackingUrl,
       tracking_number: trackingNumber,
       tracking_url: trackingUrl,
-      tracking_carrier: carrierName,
-      shipping_method: carrierName,
+      tracking_carrier: resolvedCarrierName,
+      shipping_method: resolvedCarrierName,
       awb_details: awbDetailsObj,
     };
 
@@ -361,7 +377,7 @@ export async function POST(
 
     const trackingEntry = {
       seller_id: sellerId,
-      carrier: carrierName,
+      carrier: resolvedCarrierName,
       tracking_number: trackingNumber,
       tracking_url: trackingUrl,
       added_at: new Date().toISOString(),
@@ -395,7 +411,7 @@ export async function POST(
       success: true,
       awb: {
         awbNumber: trackingNumber,
-        carrier: carrierName,
+        carrier: resolvedCarrierName,
         courierCode: courier,
         trackingUrl,
         parcelsCount: parcels_count,
@@ -403,7 +419,7 @@ export async function POST(
         generatedAt: awbDetailsObj.generated_at,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller AWB API] POST Error:");
     return NextResponse.json({ success: false, error: "Eroare la generarea AWB-ului." }, { status: 500 });
   }

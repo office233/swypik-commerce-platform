@@ -17,8 +17,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
   const [weightKg, setWeightKg] = useState<string>("1.0");
   const [notes, setNotes] = useState<string>("");
   const [lockerName, setLockerName] = useState<string>("");
-  const [isManualAwb, setIsManualAwb] = useState<boolean>(false);
-  const [manualTrackingNumber, setManualTrackingNumber] = useState<string>("");
+  const [trackingNumber, setTrackingNumber] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,8 +39,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
 
       setLockerName(locker);
       setNotes("");
-      setManualTrackingNumber("");
-      setIsManualAwb(false);
+      setTrackingNumber("");
       setError(null);
     }
   }, [order]);
@@ -72,7 +70,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
           parcels_count: parcelsCount,
           weight_kg: weightNum,
           locker_name: courier === "sameday_easybox" ? lockerName : undefined,
-          manual_tracking_number: isManualAwb ? manualTrackingNumber.trim() : undefined,
+          manual_tracking_number: trackingNumber.trim(),
           notes: notes.trim() || undefined,
         }),
       });
@@ -84,8 +82,8 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
 
       onSuccess(json.awb?.awbNumber || "AWB generat");
       onClose();
-    } catch (err: any) {
-      setError(err.message || "A apărut o problemă la generarea AWB-ului.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "A apărut o problemă la înregistrarea AWB-ului.");
     } finally {
       setLoading(false);
     }
@@ -257,26 +255,23 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
             />
           </div>
 
-          {/* Advanced: Manual AWB Number checkbox */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setIsManualAwb(!isManualAwb)}
-              className="text-xs text-violet-600 hover:text-violet-800 font-semibold flex items-center gap-1.5"
-            >
-              <span>{isManualAwb ? "− Folosește generare automată număr AWB" : "+ Introdu cod AWB manual (contract propriu)"}</span>
-            </button>
-            {isManualAwb && (
-              <div className="mt-2.5">
-                <input
-                  type="text"
-                  value={manualTrackingNumber}
-                  onChange={(e) => setManualTrackingNumber(e.target.value)}
-                  placeholder="Introdu numărul de AWB existent..."
-                  className="w-full px-3.5 py-2.5 text-xs font-mono bg-white border border-neutral-300 rounded-xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:outline-none transition"
-                />
-              </div>
-            )}
+          {/* Numărul AWB emis de curier — obligatoriu. Swypik nu generează AWB-uri. */}
+          <div>
+            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+              Număr AWB (din contul tău de curier) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              minLength={3}
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
+              placeholder="Ex: 1SMEB12345678"
+              className="w-full px-3.5 py-2.5 text-xs font-mono bg-white border border-neutral-300 rounded-xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:outline-none transition"
+            />
+            <p className="mt-1 text-[11px] text-neutral-500">
+              Emite AWB-ul în platforma curierului, apoi introdu numărul aici pentru a notifica clientul.
+            </p>
           </div>
 
           {/* Error display */}

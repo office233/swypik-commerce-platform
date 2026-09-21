@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CARRIER_CODES } from "@/lib/fulfillment/carriers";
 
 /**
  * Validation schemas for mutating API routes.
@@ -609,7 +610,7 @@ export const SellerOrderTrackingSchema = z.object({
 export type SellerOrderTrackingInput = z.infer<typeof SellerOrderTrackingSchema>;
 
 export const SellerGenerateAwbSchema = z.object({
-  courier: z.enum(["sameday_easybox", "sameday", "fancourier", "standard"]).default("sameday_easybox"),
+  courier: z.enum(CARRIER_CODES).default("sameday_easybox"),
   parcels_count: z.coerce.number().int().min(1).max(50).default(1),
   weight_kg: z.coerce.number().min(0.1).max(100).default(1.0),
   manual_tracking_number: z.string().trim().min(3).max(120).optional(),

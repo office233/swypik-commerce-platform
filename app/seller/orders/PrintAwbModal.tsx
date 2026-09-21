@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { SellerOrder } from "./types";
-import { X, Printer, Download, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
+import { X, Printer, Loader2 } from "lucide-react";
 
 type Props = {
   order: SellerOrder | null;
@@ -280,20 +280,20 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                       1. EXPEDITOR
                     </div>
                     <p className="font-bold text-neutral-900 text-xs">
-                      {data?.sender.name || "Comerciant Swypik"}
+                      {data?.sender.name || "—"}
                     </p>
                     {data?.sender.cui && (
                       <p className="text-[11px] text-neutral-600">CUI: {data.sender.cui}</p>
                     )}
                     <p className="text-[11px] text-neutral-700 mt-1">
-                      {data?.sender.address || "Depozit Vânzător"}
+                      {data?.sender.address || "—"}
                     </p>
                     <p className="text-[11px] text-neutral-700">
-                      {data?.sender.city || "București"}, {data?.sender.county || "România"}
+                      {[data?.sender.city, data?.sender.county].filter(Boolean).join(", ") || "—"}
                     </p>
                   </div>
                   <div className="mt-2 pt-1 border-t border-neutral-200 text-[10px] text-neutral-600">
-                    Tel: {data?.sender.phone || "0700000000"}
+                    Tel: {data?.sender.phone || "—"}
                   </div>
                 </div>
 
@@ -307,13 +307,13 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                       </span>
                     </div>
                     <p className="font-black text-neutral-900 text-sm">
-                      {data?.recipient.name || order.order_metadata.customer_name || "Client Swypik"}
+                      {data?.recipient.name || order.order_metadata.customer_name || "—"}
                     </p>
                     <p className="text-xs font-black text-neutral-900 mt-0.5">
                       Tel: {data?.recipient.phone || order.order_metadata.customer_phone || "-"}
                     </p>
                     <p className="text-[11px] text-neutral-800 mt-1 font-medium">
-                      {data?.recipient.line1 || order.order_metadata.shipping_address?.line1 || "Adresă livrare"}
+                      {data?.recipient.line1 || order.order_metadata.shipping_address?.line1 || "—"}
                     </p>
                     {data?.recipient.line2 && (
                       <p className="text-[11px] text-neutral-800">{data.recipient.line2}</p>
