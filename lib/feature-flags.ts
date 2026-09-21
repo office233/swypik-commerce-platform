@@ -31,6 +31,7 @@ export const FEATURES = {
   squadBuy: flag('FEATURE_SQUAD_BUY', false),
   // Swypik Movies — OFF până există primul serial publicat.
   movies: flag('FEATURE_MOVIES', false),
+  music: flag('FEATURE_MUSIC', false),
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

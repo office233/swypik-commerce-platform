@@ -2,11 +2,7 @@
  * Parametrii Squad Buy — configurabili prin env, cu valori implicite explicite.
  * Motorul (engine.ts) nu mai conține numere magice.
  */
-function intEnv(name: string, fallback: number, min: number, max: number): number {
-    const raw = Number(process.env[name]);
-    if (!Number.isFinite(raw)) return fallback;
-    return Math.min(max, Math.max(min, Math.trunc(raw)));
-}
+import { intEnv } from "@/lib/config/env";
 
 /** Reducere procentuală față de prețul de listă când squad-ul se completează. */
 // NEXT_PUBLIC_: procentul e afișat și pe client (pagina de produs), nu e secret.

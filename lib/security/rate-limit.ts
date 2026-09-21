@@ -219,6 +219,14 @@ export const RATE_LIMITS = {
   moviesProgress: { limit: 60, window: 60 } as RateLimitConfig,
   moviesStream: { limit: 600, window: 60 } as RateLimitConfig,  // segmente HLS: ~1 req/2s + marjă
   moviesPublish: { limit: 5, window: 3600 } as RateLimitConfig,
+  musicCatalog: { limit: 60, window: 60 } as RateLimitConfig,
+  musicPlay: { limit: 60, window: 60 } as RateLimitConfig,
+  musicPlays: { limit: 120, window: 60 } as RateLimitConfig,
+  musicUnlock: { limit: 10, window: 60 } as RateLimitConfig,
+  musicTip: { limit: 10, window: 60 } as RateLimitConfig,
+  musicPlaylist: { limit: 60, window: 60 } as RateLimitConfig,
+  musicPublish: { limit: 10, window: 3600 } as RateLimitConfig,
+  musicStream: { limit: 300, window: 60 } as RateLimitConfig,
 } as const;
 
 /**

@@ -2,11 +2,7 @@
  * Parametrii Swypik Movies. Toate valorile vin din env cu fallback explicit —
  * niciun număr magic în rute sau componente.
  */
-function intEnv(name: string, fallback: number, min: number, max: number): number {
-    const raw = Number(process.env[name]);
-    if (!Number.isFinite(raw)) return fallback;
-    return Math.min(max, Math.max(min, Math.trunc(raw)));
-}
+import { intEnv } from "@/lib/config/env";
 
 /** Cota creatorului din fiecare deblocare, în basis points (7000 = 70 %). */
 export const MOVIES_CREATOR_SHARE_BPS = intEnv("MOVIES_CREATOR_SHARE_BPS", 7000, 0, 10_000);
