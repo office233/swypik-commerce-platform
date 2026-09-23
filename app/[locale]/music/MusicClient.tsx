@@ -1,13 +1,12 @@
 "use client";
 
 /**
- * Pagina principală /music: hero cu piesa `featured` (blur pe fundal, copertă,
- * titlu în fontul de afișare, Play care pune tot Top 10 în coadă), rândurile
- * de acasă (`MusicHomeRows`), filtrul pe genuri și bară de căutare dedicată
- * YouTube Music cu redare instantanee.
+ * Pagina principală /music: Swypik Audio complet unificat.
+ * 4 Tab-uri native (Radio Live, Muzică & Beat-uri, Chill & Lounge, Podcasturi),
+ * căutare legală audio și redare directă HTML5 cu MediaSession (background playback).
  */
 import { useEffect, useState } from "react";
-import { ArrowLeft, Play, Search, X } from "lucide-react";
+import { ArrowLeft, Play, Search, X, Radio, Disc3, Sparkles, Mic } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import MusicBrand from "@/components/music/MusicBrand";
@@ -19,12 +18,30 @@ import { haptic } from "@/lib/haptic";
 import type { MusicHomeRow } from "@/lib/music/home";
 import type { MusicGenre } from "@/lib/music/genres";
 import type { TrackDto } from "@/lib/music/types";
+import type { AudioFeedResponse, AudioItemDto } from "@/lib/audio/types";
+import { audioItemToTrackDto } from "@/lib/audio/types";
 import MusicHomeRows from "./_components/MusicHomeRows";
 import AddToPlaylistSheet from "./_components/AddToPlaylistSheet";
 import LockedOverlay from "./_components/LockedOverlay";
 import { setTrackLiked } from "./_lib/track-actions";
 
 type Home = { featured: TrackDto | null; rows: MusicHomeRow[] };
+
+type AudioTabId = "all" | "radio" | "audius" | "jamendo" | "podcast";
+
+interface AudioTab {
+    id: AudioTabId;
+    label: string;
+    icon: typeof Radio;
+}
+
+const TABS: AudioTab[] = [
+    { id: "all", label: "Explorează", icon: Sparkles },
+    { id: "radio", label: "Radio Live", icon: Radio },
+    { id: "audius", label: "Muzică & Beat-uri", icon: Disc3 },
+    { id: "jamendo", label: "Chill & Lounge", icon: Sparkles },
+    { id: "podcast", label: "Podcasturi", icon: Mic },
+];
 
 async function getJson<T>(url: string): Promise<T> {
     const res = await fetch(url);
@@ -41,7 +58,12 @@ export default function MusicClient() {
     const [genreItems, setGenreItems] = useState<TrackDto[] | null>(null);
     const [playlistTarget, setPlaylistTarget] = useState<TrackDto | null>(null);
 
-    // Căutare YouTube Music
+    // Tab-uri audio active
+    const [activeTab, setActiveTab] = useState<AudioTabId>("all");
+    const [tabTracks, setTabTracks] = useState<TrackDto[] | null>(null);
+    const [isTabLoading, setIsTabLoading] = useState(false);
+
+    // Căutare audio legală
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<TrackDto[] | null>(null);
     const [isSearching, setIsSearching] = useState(false);
@@ -58,6 +80,30 @@ export default function MusicClient() {
             .catch(() => setGenreItems([]));
     }, [genre]);
 
+    // Încărcare date per tab
+    useEffect(() => {
+        if (activeTab === "all") {
+            setTabTracks(null);
+            return;
+        }
+
+        setTabTracks(null);
+        setIsTabLoading(true);
+        getJson<AudioFeedResponse>(`/api/audio/feed?tab=${activeTab}`)
+            .then((data) => {
+                const items: TrackDto[] = [];
+                data.sections?.forEach((s) => {
+                    items.push(...s.items.map(audioItemToTrackDto));
+                });
+                setTabTracks(items);
+                setIsTabLoading(false);
+            })
+            .catch(() => {
+                setTabTracks([]);
+                setIsTabLoading(false);
+            });
+    }, [activeTab]);
+
     // Căutare automată cu debounce
     useEffect(() => {
         const trimmed = searchQuery.trim();
@@ -69,9 +115,9 @@ export default function MusicClient() {
 
         setIsSearching(true);
         const timer = setTimeout(() => {
-            getJson<{ items: TrackDto[] }>(`/api/music/youtube/search?q=${encodeURIComponent(trimmed)}`)
+            getJson<{ items: AudioItemDto[] }>(`/api/audio/search?q=${encodeURIComponent(trimmed)}`)
                 .then((data) => {
-                    setSearchResults(data.items);
+                    setSearchResults(data.items.map(audioItemToTrackDto));
                     setIsSearching(false);
                 })
                 .catch(() => {
@@ -109,7 +155,7 @@ export default function MusicClient() {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Caută piese, artiști..."
+                                placeholder="Caută radio, beat-uri, podcasturi..."
                                 className="w-full rounded-full bg-white/10 py-1.5 pl-9 pr-9 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/15 focus:ring-[#7C3AED] focus:bg-white/15 transition-all"
                             />
                             {searchQuery && (
@@ -125,11 +171,40 @@ export default function MusicClient() {
                     </div>
                     <MusicBrand size="md" />
                 </div>
-                {!searchQuery && <GenreChips selected={genre} onSelect={setGenre} />}
+
+                {/* Tab Bar Native: Explorează / Radio Live / Muzică / Chill / Podcasturi */}
+                {!searchQuery && (
+                    <div className="flex items-center gap-2 overflow-x-auto px-4 py-1.5 [scrollbar-width:none]">
+                        {TABS.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => {
+                                        haptic("tap");
+                                        setActiveTab(tab.id);
+                                    }}
+                                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                                        isActive
+                                            ? "bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]"
+                                            : "bg-white/10 text-white/70 hover:bg-white/15 hover:text-white"
+                                    }`}
+                                >
+                                    <Icon size={13} className={isActive ? "text-white" : "text-white/60"} />
+                                    <span>{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {!searchQuery && activeTab === "all" && <GenreChips selected={genre} onSelect={setGenre} />}
             </header>
 
             {searchQuery ? (
-                <section className="px-0 pt-24">
+                <section className="px-0 pt-28">
                     <div className="flex items-center justify-between px-5 pb-3">
                         <h2 className="text-base font-bold text-white">Rezultate căutare</h2>
                         {isSearching && <span className="text-xs text-white/50">{t("loading")}</span>}
@@ -137,7 +212,7 @@ export default function MusicClient() {
                     {isSearching && !searchResults ? (
                         <p className="px-5 text-sm text-white/50">{t("loading")}</p>
                     ) : searchResults && searchResults.length === 0 ? (
-                        <p className="px-5 text-white/60">Nu s-a găsit nicio piesă.</p>
+                        <p className="px-5 text-white/60">Nu s-a găsit niciun rezultat.</p>
                     ) : searchResults ? (
                         <div>
                             {searchResults.map((tr, i) => (
@@ -153,8 +228,35 @@ export default function MusicClient() {
                         </div>
                     ) : null}
                 </section>
+            ) : activeTab !== "all" ? (
+                <section className="px-0 pt-28">
+                    <div className="flex items-center justify-between px-5 pb-3">
+                        <h2 className="text-base font-bold text-white">
+                            {TABS.find((t) => t.id === activeTab)?.label}
+                        </h2>
+                        {isTabLoading && <span className="text-xs text-white/50">{t("loading")}</span>}
+                    </div>
+                    {isTabLoading ? (
+                        <div className="px-5 py-8 text-center text-sm text-white/50">Se conectează la fluxul audio...</div>
+                    ) : tabTracks && tabTracks.length === 0 ? (
+                        <p className="px-5 text-white/60">Nu sunt piese disponibile în această secțiune.</p>
+                    ) : tabTracks ? (
+                        <div>
+                            {tabTracks.map((tr, i) => (
+                                <TrackRow
+                                    key={tr.id}
+                                    track={tr}
+                                    queue={tabTracks}
+                                    index={i}
+                                    onLike={(track) => toggleLike(track, tabTracks, setTabTracks)}
+                                    onAddToPlaylist={setPlaylistTarget}
+                                />
+                            ))}
+                        </div>
+                    ) : null}
+                </section>
             ) : genre ? (
-                <section className="px-0 pt-32">
+                <section className="px-0 pt-36">
                     {genreItems === null ? (
                         <p className="px-5 text-sm text-white/50">{t("loading")}</p>
                     ) : genreItems.length === 0 ? (
@@ -199,7 +301,18 @@ export default function MusicClient() {
                                     )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h1 className={`${MOVIES_DISPLAY_CLASS} truncate text-5xl leading-[0.9] text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]`}>
+                                    <div className="flex items-center gap-2">
+                                        {featured.isLive && (
+                                            <span className="flex items-center gap-1 rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-400">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                                                RADIO LIVE
+                                            </span>
+                                        )}
+                                        <span className="text-xs uppercase tracking-wider text-[#A78BFA] font-bold">
+                                            {featured.genre || "Recomandat"}
+                                        </span>
+                                    </div>
+                                    <h1 className={`${MOVIES_DISPLAY_CLASS} mt-1 truncate text-4xl leading-[0.9] text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]`}>
                                         {featured.title}
                                     </h1>
                                     <Link href={`/music/artist/${featured.artist.slug}`} className="mt-1 block truncate text-sm text-white/70">
@@ -209,7 +322,7 @@ export default function MusicClient() {
                                         <button
                                             type="button"
                                             onClick={() => { haptic("tap"); play(heroQueue, 0); }}
-                                            className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-black text-black active:scale-95"
+                                            className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-black text-black active:scale-95 shadow-lg"
                                         >
                                             <Play size={18} fill="currentColor" /> {t("play")}
                                         </button>

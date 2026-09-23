@@ -6,6 +6,8 @@ import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { listPublishedSeries, listContinueWatching, listWatchlist } from "@/lib/movies/repository";
 import { toSeriesDto } from "@/lib/movies/dto";
 import { buildHomeRows, HOME_ROW_MAX } from "@/lib/movies/home";
+import { getTrendingMovies } from "@/lib/movies/tmdb";
+import type { SeriesDto } from "@/lib/movies/types";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +29,34 @@ export const GET = withErrorHandling(async function GET(req: Request) {
         user.userId ? listWatchlist(user.userId, HOME_ROW_MAX) : Promise.resolve([]),
     ]);
 
-    const trending = trendingRows.map((s) => toSeriesDto(s, s.episode_count, s.owner_name));
+    let trending = trendingRows.map((s) => toSeriesDto(s, s.episode_count, s.owner_name));
+
+    // Catalog Cinema 4K TMDB
+    const tmdbMovies = await getTrendingMovies();
+    const tmdbSeries: SeriesDto[] = tmdbMovies.map((m) => ({
+        id: m.id,
+        slug: m.id,
+        title: m.title,
+        synopsis: m.overview,
+        genres: m.genres,
+        coverUrl: m.backdropUrl,
+        posterUrl: m.posterUrl,
+        trailerVideoId: m.trailerYoutubeKey || null,
+        freeEpisodes: 1,
+        episodePriceUnits: 0,
+        seasonPriceUnits: 0,
+        seasonDiscountPct: 0,
+        isAdult: false,
+        episodeCount: 1,
+        owner: { id: "swypik-cinema", name: "Cinema 4K", isOfficial: true },
+    }));
+
+    if (trending.length === 0) {
+        trending = tmdbSeries;
+    } else {
+        trending = [...trending, ...tmdbSeries];
+    }
+
     const rows = buildHomeRows({
         trending,
         latest: latestRows.map((s) => toSeriesDto(s, s.episode_count, s.owner_name)),

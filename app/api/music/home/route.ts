@@ -8,7 +8,10 @@ import { listTracks, ensureLikedPlaylist, listPlaylistTracks, listPlaylists, get
 import { toTrackDto } from "@/lib/music/dto";
 import { buildMusicViewer } from "@/lib/music/viewer";
 import { buildMusicHomeRows } from "@/lib/music/home";
-import { searchYouTubeMusic } from "@/lib/music/youtube";
+import { getCuratedRomanianRadios } from "@/lib/audio/radio-browser";
+import { getTrendingAudiusTracks } from "@/lib/audio/audius";
+import { getChillJamendoTracks } from "@/lib/audio/jamendo";
+import { audioItemToTrackDto } from "@/lib/audio/types";
 import type { TrackDto } from "@/lib/music/types";
 
 export const dynamic = "force-dynamic";
@@ -48,11 +51,28 @@ export const GET = withErrorHandling(async function GET(req: Request) {
         // Dacă baza de date locală e offline sau goală, fallback fluent
     }
 
-    // Dacă nu avem încă piese locale în DB, aducem automat Top Hits YouTube
+    // Swypik Audio: alimentăm automat cu Radio Live România și Audius
     if (trending.length === 0) {
-        const ytHits = await searchYouTubeMusic("top music hits", 15);
-        if (ytHits.length > 0) {
-            trending = ytHits;
+        try {
+            const [roRadios, audiusTracks] = await Promise.all([
+                getCuratedRomanianRadios(),
+                getTrendingAudiusTracks(10),
+            ]);
+            const audioItems = [...roRadios, ...audiusTracks].map(audioItemToTrackDto);
+            if (audioItems.length > 0) {
+                trending = audioItems;
+            }
+        } catch {
+            // continue
+        }
+    }
+
+    if (latest.length === 0) {
+        try {
+            const jamendoTracks = await getChillJamendoTracks(10);
+            latest = jamendoTracks.map(audioItemToTrackDto);
+        } catch {
+            // continue
         }
     }
 

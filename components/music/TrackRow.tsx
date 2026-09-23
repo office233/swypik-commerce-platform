@@ -73,7 +73,14 @@ export default function TrackRow({ track, queue, index, onLike, onAddToPlaylist 
         )}
       </div>
 
-      <span className="shrink-0 text-xs tabular-nums text-white/50">{formatDuration(track.durationMs)}</span>
+      {track.isLive ? (
+        <span className="shrink-0 flex items-center gap-1 rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+          LIVE
+        </span>
+      ) : (
+        <span className="shrink-0 text-xs tabular-nums text-white/50">{formatDuration(track.durationMs)}</span>
+      )}
 
       <div className="flex shrink-0 items-center gap-0.5">
         <button

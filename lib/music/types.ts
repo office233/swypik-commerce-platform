@@ -89,8 +89,10 @@ export type TrackDto = {
     artist: ArtistDto;
     plays7d: number;
     liked: boolean;
-    source?: "swypik" | "youtube";
+    source?: "swypik" | "youtube" | "radio" | "audius" | "jamendo" | "podcast";
     youtubeVideoId?: string;
+    streamUrl?: string;
+    isLive?: boolean;
 };
 
 export type AlbumDto = {

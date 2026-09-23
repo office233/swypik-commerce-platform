@@ -334,6 +334,23 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         clearRefreshTimer();
         stopYtPoll();
 
+        // Flux direct pentru Radio Live, Audius, Jamendo, Podcast (100% nativ <audio>)
+        if (track.streamUrl) {
+            if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === "function") {
+                try { ytPlayerRef.current.pauseVideo(); } catch {}
+            }
+            const audio = audioRef.current;
+            if (!audio) return;
+            audio.src = track.streamUrl;
+            hasSourceRef.current = true;
+            try {
+                await audio.play();
+            } catch {
+                // autoplay poate fi blocat de browser
+            }
+            return;
+        }
+
         const isYouTube = track.source === "youtube" || Boolean(track.youtubeVideoId);
 
         if (isYouTube) {
@@ -432,6 +449,15 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
     function handleError(): void {
         const track = queueRef.current[indexRef.current];
         if (!track) return;
+        if (track.streamUrl) {
+            if (erroredOnceRef.current) {
+                const nextGen = ++genRef.current;
+                void playAt(queueRef.current, indexRef.current + 1, nextGen);
+                return;
+            }
+            erroredOnceRef.current = true;
+            return;
+        }
         if (erroredOnceRef.current) {
             const gen = ++genRef.current;
             void playAt(queueRef.current, indexRef.current + 1, gen);
@@ -531,6 +557,7 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
 
     const seek = useCallback((ms: number) => {
         const tr = queueRef.current[indexRef.current];
+        if (tr?.isLive) return; // Fluxurile radio live nu au seek
         const isYouTube = tr?.source === "youtube" || Boolean(tr?.youtubeVideoId);
 
         if (isYouTube) {
@@ -592,7 +619,8 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         session.metadata = new MediaMetadata({
             title: current.title,
             artist: current.artist.stageName,
-            artwork: current.coverUrl ? [{ src: current.coverUrl }] : [],
+            album: current.isLive ? "Radio Live România" : (current.genre || "Swypik Audio"),
+            artwork: current.coverUrl ? [{ src: current.coverUrl, sizes: "512x512", type: "image/jpeg" }] : [],
         });
         session.setActionHandler("play", () => toggle());
         session.setActionHandler("pause", () => toggle());
