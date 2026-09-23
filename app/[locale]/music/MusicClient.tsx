@@ -302,12 +302,12 @@ export default function MusicClient() {
                                                 if (isCurrent) toggle();
                                                 else play(quickGridItems, i);
                                             }}
-                                            className={`group relative flex items-center justify-between rounded-lg bg-white/[0.07] hover:bg-white/[0.12] border border-white/5 pr-2.5 overflow-hidden text-left transition-all ${
+                                            className={`group relative flex h-14 items-center justify-between rounded-lg bg-white/[0.07] hover:bg-white/[0.12] border border-white/5 pr-2.5 overflow-hidden text-left transition-all ${
                                                 isCurrent ? "bg-white/[0.15] ring-1 ring-[#7C3AED]" : ""
                                             }`}
                                         >
-                                            <div className="flex items-center gap-2.5 min-w-0 pr-1">
-                                                <div className="relative h-13 w-13 shrink-0 overflow-hidden bg-black/40 flex items-center justify-center">
+                                            <div className="flex items-center gap-2.5 min-w-0 pr-1 h-full">
+                                                <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-black/40 flex items-center justify-center">
                                                     {track.source === "radio" ? (
                                                         <StationBadge slug={track.slug} title={track.title} coverUrl={track.coverUrl} size="sm" />
                                                     ) : track.coverUrl ? (
