@@ -1,11 +1,12 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { useState, type MouseEvent } from "react";
 import { useTranslations } from "next-intl";
-import { Pause, Play, SkipForward, Tv, X } from "lucide-react";
-import { Link, usePathname } from "@/lib/i18n/navigation";
+import { Maximize2, Pause, Play, SkipForward, Tv, X } from "lucide-react";
+import { usePathname } from "@/lib/i18n/navigation";
 import { haptic } from "@/lib/haptic";
 import StationBadge from "./StationBadge";
+import FullScreenPlayer from "./FullScreenPlayer";
 import { useMusicPlayer } from "./MusicPlayerProvider";
 
 const BOTTOM_NAV_HIDDEN_PATHS = [
@@ -21,6 +22,7 @@ export default function MiniPlayer() {
     const t = useTranslations("music");
     const pathname = usePathname();
     const { current, playing, positionMs, durationMs, toggle, next, seek, close, isVideoVisible, toggleVideo } = useMusicPlayer();
+    const [showFullScreen, setShowFullScreen] = useState(false);
 
     if (!current) return null;
 
@@ -31,56 +33,53 @@ export default function MiniPlayer() {
     const pct = durationMs > 0 ? Math.min(100, Math.max(0, (positionMs / durationMs) * 100)) : 0;
 
     const handleSeek = (event: MouseEvent<HTMLDivElement>) => {
-        if (durationMs <= 0) return;
+        if (durationMs <= 0 || current.isLive) return;
         const rect = event.currentTarget.getBoundingClientRect();
         const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
         seek(ratio * durationMs);
     };
 
     return (
-        <div
-            className="fixed left-0 right-0 z-40 border-t border-white/10 bg-[#0B0B12]/95 backdrop-blur-xl"
-            style={{ bottom: bottomNavVisible ? `${BOTTOM_NAV_HEIGHT_PX}px` : "env(safe-area-inset-bottom, 0px)" }}
-        >
+        <>
             <div
-                role="slider"
-                aria-label={t("nowPlaying")}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(pct)}
-                tabIndex={0}
-                onClick={handleSeek}
-                onKeyDown={(event) => {
-                    if (event.key === "ArrowRight") seek(Math.min(durationMs, positionMs + 5_000));
-                    if (event.key === "ArrowLeft") seek(Math.max(0, positionMs - 5_000));
+                className="fixed left-2 right-2 sm:left-auto sm:right-4 sm:w-[420px] z-40 rounded-2xl bg-[#110F1C]/95 backdrop-blur-2xl border border-white/15 shadow-[0_12px_36px_rgba(0,0,0,0.7)] overflow-hidden transition-all"
+                style={{
+                    bottom: bottomNavVisible
+                        ? `calc(${BOTTOM_NAV_HEIGHT_PX}px + 8px)`
+                        : "max(12px, env(safe-area-inset-bottom, 12px))",
                 }}
-                className="h-1 w-full cursor-pointer bg-white/10"
             >
-                <div className="h-full bg-[#7C3AED]" style={{ width: `${pct}%` }} />
-            </div>
+                {/* Spotify Scrubber Bar */}
+                <div
+                    role="slider"
+                    aria-label={t("nowPlaying")}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(pct)}
+                    tabIndex={0}
+                    onClick={handleSeek}
+                    onKeyDown={(event) => {
+                        if (event.key === "ArrowRight") seek(Math.min(durationMs, positionMs + 5_000));
+                        if (event.key === "ArrowLeft") seek(Math.max(0, positionMs - 5_000));
+                    }}
+                    className="h-1 w-full cursor-pointer bg-white/10"
+                >
+                    <div
+                        className="h-full bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#EC4899] transition-[width] duration-200"
+                        style={{ width: current.isLive ? "100%" : `${pct}%` }}
+                    />
+                </div>
 
-            <div className="mx-auto flex max-w-lg items-center gap-3 px-3 py-2">
-                {current.source === "youtube" ? (
+                <div className="flex items-center gap-3 px-3 py-2.5">
+                    {/* Thumbnail / Artwork (Click to expand full screen player) */}
                     <button
                         type="button"
-                        onClick={() => { haptic("tap"); toggleVideo(); }}
-                        className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-white/10 group cursor-pointer"
-                        title={isVideoVisible ? "Ascunde video" : "Arată video"}
+                        onClick={() => {
+                            haptic("tap");
+                            setShowFullScreen(true);
+                        }}
+                        className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-white/10 cursor-pointer active:scale-95 transition-transform"
                     >
-                        {current.coverUrl && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={current.coverUrl}
-                                alt={current.title}
-                                className="h-full w-full object-cover"
-                            />
-                        )}
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Tv size={14} className="text-white" />
-                        </div>
-                    </button>
-                ) : (
-                    <Link href={`/music/track/${current.slug}`} className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl">
                         {current.source === "radio" ? (
                             <StationBadge slug={current.slug} title={current.title} coverUrl={current.coverUrl} size="sm" />
                         ) : current.coverUrl ? (
@@ -92,73 +91,95 @@ export default function MiniPlayer() {
                                 className="h-full w-full object-cover"
                             />
                         ) : (
-                            <div className="h-full w-full bg-violet-900 flex items-center justify-center text-xs font-bold text-white">
+                            <div className="h-full w-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] flex items-center justify-center text-xs font-bold text-white">
                                 {current.title.slice(0, 2)}
                             </div>
                         )}
-                    </Link>
-                )}
+                        {current.isLive && (
+                            <span className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                        )}
+                    </button>
 
-                <div className="min-w-0 flex-1">
-                    {current.source === "youtube" ? (
-                        <div className="block truncate text-sm font-bold text-white">
-                            {current.title}
-                        </div>
-                    ) : (
-                        <Link href={`/music/track/${current.slug}`} className="block truncate text-sm font-bold text-white">
-                            {current.title}
-                        </Link>
-                    )}
-                    {current.source === "youtube" ? (
-                        <div className="block truncate text-xs text-white/60">
-                            {current.artist.stageName}
-                        </div>
-                    ) : (
-                        <Link href={`/music/artist/${current.artist.slug}`} className="block truncate text-xs text-white/60">
-                            {current.artist.stageName}
-                        </Link>
-                    )}
-                </div>
-
-                {current.source === "youtube" && (
+                    {/* Metadata (Click to expand full screen player) */}
                     <button
                         type="button"
-                        onClick={() => { haptic("tap"); toggleVideo(); }}
-                        aria-label={isVideoVisible ? "Ascunde video" : "Arată video"}
-                        title={isVideoVisible ? "Ascunde video" : "Arată video"}
-                        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold active:scale-95 transition-colors ${
-                            isVideoVisible ? "bg-[#7C3AED] text-white" : "bg-white/10 text-white/70 hover:text-white"
-                        }`}
+                        onClick={() => {
+                            haptic("tap");
+                            setShowFullScreen(true);
+                        }}
+                        className="min-w-0 flex-1 text-left cursor-pointer"
                     >
-                        <Tv size={15} />
+                        <div className="flex items-center gap-1.5">
+                            <span className="truncate text-xs sm:text-sm font-bold text-white">
+                                {current.title}
+                            </span>
+                            {current.isLive && (
+                                <span className="rounded bg-red-600 px-1 py-0.2 text-[8px] font-black uppercase text-white tracking-wider">
+                                    LIVE
+                                </span>
+                            )}
+                        </div>
+                        <p className="truncate text-[11px] text-white/60">
+                            {current.artist.stageName}
+                        </p>
                     </button>
-                )}
 
-                <button
-                    type="button"
-                    onClick={() => { haptic("tap"); toggle(); }}
-                    aria-label={playing ? t("pause") : t("play")}
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-black active:scale-95"
-                >
-                    {playing ? <Pause size={18} /> : <Play size={18} />}
-                </button>
-                <button
-                    type="button"
-                    onClick={() => { haptic("tap"); next(); }}
-                    aria-label={t("next")}
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/80 active:scale-95"
-                >
-                    <SkipForward size={18} />
-                </button>
-                <button
-                    type="button"
-                    onClick={() => { haptic("tap"); close(); }}
-                    aria-label={t("close")}
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/50 active:scale-95"
-                >
-                    <X size={16} />
-                </button>
+                    {/* Controls */}
+                    <div className="flex items-center gap-1">
+                        {current.source === "youtube" && (
+                            <button
+                                type="button"
+                                onClick={() => { haptic("tap"); toggleVideo(); }}
+                                aria-label={isVideoVisible ? "Ascunde video" : "Arată video"}
+                                title={isVideoVisible ? "Ascunde video" : "Arată video"}
+                                className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold active:scale-95 transition-colors ${
+                                    isVideoVisible ? "bg-[#7C3AED] text-white" : "bg-white/10 text-white/70 hover:text-white"
+                                }`}
+                            >
+                                <Tv size={15} />
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={() => { haptic("tap"); toggle(); }}
+                            aria-label={playing ? t("pause") : t("play")}
+                            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-black active:scale-90 hover:scale-105 transition-all shadow-md"
+                        >
+                            {playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" className="ml-0.5" />}
+                        </button>
+                        
+                        <button
+                            type="button"
+                            onClick={() => { haptic("tap"); next(); }}
+                            aria-label={t("next")}
+                            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/80 active:scale-90 hover:text-white transition-colors"
+                        >
+                            <SkipForward size={17} />
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => { haptic("tap"); setShowFullScreen(true); }}
+                            aria-label="Expand"
+                            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/50 active:scale-90 hover:text-white transition-colors"
+                        >
+                            <Maximize2 size={15} />
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => { haptic("tap"); close(); }}
+                            aria-label={t("close")}
+                            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white/40 active:scale-90 hover:text-white transition-colors"
+                        >
+                            <X size={15} />
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <FullScreenPlayer isOpen={showFullScreen} onClose={() => setShowFullScreen(false)} />
+        </>
     );
 }

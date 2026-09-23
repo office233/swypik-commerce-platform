@@ -99,16 +99,9 @@ function TopTenCard({ track, rank, queue, index }: { track: TrackDto; rank: numb
             type="button"
             onClick={handle}
             aria-label={isCurrent && playing ? t("pause") : t("play")}
-            className="group relative flex w-[48vw] max-w-[200px] shrink-0 snap-start items-end text-left"
+            className="group relative w-[36vw] max-w-[150px] shrink-0 snap-start text-left cursor-pointer active:scale-95 transition-all"
         >
-            <span
-                aria-hidden
-                className={`${MOVIES_DISPLAY_CLASS} pointer-events-none -mr-4 select-none text-[100px] sm:text-[120px] leading-[0.8] text-black drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]`}
-                style={{ WebkitTextStroke: "2.5px rgba(124,58,237,0.85)" }}
-            >
-                {rank}
-            </span>
-            <div className="relative z-10 aspect-square w-[32vw] max-w-[130px] overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/15 transition-transform group-hover:scale-105 group-active:scale-95 shadow-lg">
+            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/15 transition-transform group-hover:scale-105 shadow-lg">
                 {track.coverUrl && !imgError ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -125,18 +118,29 @@ function TopTenCard({ track, rank, queue, index }: { track: TrackDto; rank: numb
                         <span className="text-xs font-black text-white line-clamp-1">{track.title}</span>
                     </div>
                 )}
+
+                {/* Spotify Rank Pill */}
+                <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/75 text-xs font-black text-white shadow backdrop-blur-md ring-1 ring-white/20">
+                    {rank}
+                </span>
                 
                 {track.isLive && (
-                    <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white shadow">
+                    <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[8px] font-black uppercase text-white shadow">
                         <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                         LIVE
                     </span>
                 )}
 
-                <span className="absolute inset-0 grid place-items-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100">
-                    {isCurrent && playing ? <Pause size={22} className="text-white" /> : <Play size={22} className="text-white" />}
-                </span>
+                <div className={`absolute right-2 bottom-2 h-8 w-8 rounded-full flex items-center justify-center shadow-lg transition-all ${
+                    isCurrent && playing
+                        ? "bg-[#7C3AED] text-white scale-100"
+                        : "bg-white text-black opacity-0 group-hover:opacity-100 group-active:opacity-100"
+                }`}>
+                    {isCurrent && playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" className="ml-0.5" />}
+                </div>
             </div>
+            <p className={`mt-2 truncate text-xs sm:text-sm font-bold ${isCurrent ? "text-[#A78BFA]" : "text-white"}`}>{track.title}</p>
+            <p className="truncate text-[11px] text-white/50">{track.artist.stageName}</p>
         </button>
     );
 }

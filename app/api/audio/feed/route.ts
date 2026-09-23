@@ -12,10 +12,11 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const tab = searchParams.get("tab");
+        const isAll = !tab || tab === "all";
 
         const sections: AudioFeedSection[] = [];
 
-        if (tab === "radio" || !tab) {
+        if (isAll || tab === "radio") {
             const [roRadios, globalRadios] = await Promise.all([
                 getCuratedRomanianRadios(),
                 getTopGlobalRadios(12),
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
             }
         }
 
-        if (tab === "audius" || !tab) {
+        if (isAll || tab === "audius") {
             const audiusTracks = await getTrendingAudiusTracks(15);
             sections.push({
                 id: "section-audius",
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
             });
         }
 
-        if (tab === "jamendo" || !tab) {
+        if (isAll || tab === "jamendo") {
             const jamendoTracks = await getChillJamendoTracks(15);
             sections.push({
                 id: "section-jamendo",
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
             });
         }
 
-        if (tab === "podcast" || !tab) {
+        if (isAll || tab === "podcast") {
             const podcastEpisodes = await getTrendingPodcasts();
             sections.push({
                 id: "section-podcasts",
