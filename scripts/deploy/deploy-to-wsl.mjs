@@ -10,7 +10,7 @@ try {
     console.log("=== 1. Git Add & Commit ===");
     run("git add -A");
     try {
-        run('git commit -m "feat(movies): add tmdb genre filtering, rich catalog rows, and sleek mobile hero"');
+        run('git commit -m "fix(movies): localize genre labels on poster cards"');
     } catch {
         console.log("No new changes to commit or already committed.");
     }

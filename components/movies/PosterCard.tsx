@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { genreLabelKey, isMovieGenre } from "@/lib/movies/genres";
 import type { SeriesDto } from "@/lib/movies/types";
 
 const PROGRESS_MIN_VISIBLE_PCT = 2;
@@ -15,6 +17,7 @@ export default function PosterCard({
   progressPct?: number;
   rank?: number;
 }) {
+  const t = useTranslations("movies");
   return (
     <Link href={href} className="group relative block w-[40vw] max-w-[170px] shrink-0 snap-start">
       <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-white/10 transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.8)]">
@@ -72,7 +75,10 @@ export default function PosterCard({
       </p>
       {series.genres.length > 0 && (
         <p className="text-[11px] text-white/50 line-clamp-1">
-          {series.genres.slice(0, 2).join(" • ")}
+          {series.genres
+            .slice(0, 2)
+            .map((g) => (isMovieGenre(g) ? t(genreLabelKey(g)) : g))
+            .join(" • ")}
         </p>
       )}
     </Link>
