@@ -28,6 +28,10 @@ export const CLIENT_FEATURES = {
   squadBuy: flag(process.env.NEXT_PUBLIC_FEATURE_SQUAD_BUY, false),
   movies: flag(process.env.NEXT_PUBLIC_FEATURE_MOVIES, false),
   music: flag(process.env.NEXT_PUBLIC_FEATURE_MUSIC, false),
+  news: flag(process.env.NEXT_PUBLIC_FEATURE_NEWS, true),
+  gaming: flag(process.env.NEXT_PUBLIC_FEATURE_GAMING, true),
+  crypto: flag(process.env.NEXT_PUBLIC_FEATURE_CRYPTO, true),
+  messenger: flag(process.env.NEXT_PUBLIC_FEATURE_MESSENGER, true),
 } as const;
 
 export type ClientFeatureName = keyof typeof CLIENT_FEATURES;

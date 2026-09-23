@@ -1,14 +1,13 @@
 "use client";
 
 /**
- * Rândurile orizontale ale paginii /music (echivalentul `components/movies/HomeRows.tsx`):
- * Top 10 cu cifre mari conturate, Originals, Noutăți, Îmi plac, genuri și
- * playlist-urile mele. Spre deosebire de Movies (unde un card navighează la
- * pagina serialului), aici cardurile pornesc redarea direct din coada
- * rândului — TrackClient rămâne calea pentru detalii.
+ * Rândurile orizontale ale paginii /music:
+ * Carduri de piese și posturi cu suport pentru referrerPolicy="no-referrer",
+ * fallback estetic pe gradient, și redare directă.
  */
+import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, Radio } from "lucide-react";
 import { Link } from "@/lib/i18n/navigation";
 import { haptic } from "@/lib/haptic";
 import { useMusicPlayer } from "@/components/music/MusicPlayerProvider";
@@ -19,9 +18,9 @@ import type { TrackDto } from "@/lib/music/types";
 
 export function Row({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <section className="mt-6">
-            <h2 className="mb-2 px-5 text-[15px] font-bold text-white/90">{title}</h2>
-            <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-2 [scrollbar-width:none]">{children}</div>
+        <section className="mt-7">
+            <h2 className="mb-2 px-5 text-base font-bold text-white/90">{title}</h2>
+            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-3 [scrollbar-width:none]">{children}</div>
         </section>
     );
 }
@@ -30,6 +29,7 @@ function TrackCard({ track, queue, index }: { track: TrackDto; queue: TrackDto[]
     const t = useTranslations("music");
     const { current, playing, play, toggle } = useMusicPlayer();
     const isCurrent = current?.id === track.id;
+    const [imgError, setImgError] = useState(false);
 
     const handle = () => {
         haptic("tap");
@@ -42,29 +42,42 @@ function TrackCard({ track, queue, index }: { track: TrackDto; queue: TrackDto[]
             type="button"
             onClick={handle}
             aria-label={isCurrent && playing ? t("pause") : t("play")}
-            className="group relative w-[38vw] max-w-[160px] shrink-0 snap-start text-left"
+            className="group relative w-[36vw] max-w-[150px] shrink-0 snap-start text-left"
         >
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10 transition-transform group-active:scale-95">
-                {track.coverUrl ? (
+            <div className="relative aspect-square overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10 transition-transform group-hover:scale-105 group-active:scale-95 shadow-md">
+                {track.coverUrl && !imgError ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={track.coverUrl}
                         alt={track.title}
+                        referrerPolicy="no-referrer"
+                        onError={() => setImgError(true)}
                         className="h-full w-full object-cover"
                         loading="lazy"
                     />
                 ) : (
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-black" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/80 to-[#2563EB]/80 flex flex-col items-center justify-center p-2 text-center">
+                        <Radio size={24} className="text-white/80 mb-1" />
+                        <span className="text-xs font-black text-white line-clamp-1">{track.title}</span>
+                    </div>
                 )}
-                <span className="absolute inset-0 grid place-items-center bg-black/30 opacity-0 transition-opacity group-active:opacity-100">
-                    {isCurrent && playing ? <Pause size={22} className="text-white" /> : <Play size={22} className="text-white" />}
+                
+                {track.isLive && (
+                    <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-red-600/90 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                        LIVE
+                    </span>
+                )}
+
+                <span className="absolute inset-0 grid place-items-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100">
+                    {isCurrent && playing ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white" />}
                 </span>
                 {track.isPremium && (
                     <span className="absolute right-1.5 top-1.5 rounded bg-[#7C3AED] px-1 text-[9px] font-black uppercase tracking-wide text-white">{t("premium")}</span>
                 )}
             </div>
-            <p className={`mt-1.5 truncate text-[13px] font-bold ${isCurrent ? "text-[#7C3AED]" : "text-white"}`}>{track.title}</p>
-            <p className="truncate text-[11px] text-white/60">{track.artist.stageName}</p>
+            <p className={`mt-2 truncate text-xs sm:text-sm font-bold ${isCurrent ? "text-[#A78BFA]" : "text-white"}`}>{track.title}</p>
+            <p className="truncate text-[11px] text-white/50">{track.artist.stageName}</p>
         </button>
     );
 }
@@ -73,6 +86,7 @@ function TopTenCard({ track, rank, queue, index }: { track: TrackDto; rank: numb
     const t = useTranslations("music");
     const { current, playing, play, toggle } = useMusicPlayer();
     const isCurrent = current?.id === track.id;
+    const [imgError, setImgError] = useState(false);
 
     const handle = () => {
         haptic("tap");
@@ -85,29 +99,42 @@ function TopTenCard({ track, rank, queue, index }: { track: TrackDto; rank: numb
             type="button"
             onClick={handle}
             aria-label={isCurrent && playing ? t("pause") : t("play")}
-            className="group relative flex w-[52vw] max-w-[220px] shrink-0 snap-start items-end text-left"
+            className="group relative flex w-[48vw] max-w-[200px] shrink-0 snap-start items-end text-left"
         >
             <span
                 aria-hidden
-                className={`${MOVIES_DISPLAY_CLASS} pointer-events-none -mr-5 select-none text-[120px] leading-[0.8] text-black`}
-                style={{ WebkitTextStroke: "3px rgba(124,58,237,0.75)" }}
+                className={`${MOVIES_DISPLAY_CLASS} pointer-events-none -mr-4 select-none text-[100px] sm:text-[120px] leading-[0.8] text-black drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]`}
+                style={{ WebkitTextStroke: "2.5px rgba(124,58,237,0.85)" }}
             >
                 {rank}
             </span>
-            <div className="relative z-10 aspect-square w-[34vw] max-w-[140px] overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10 transition-transform group-active:scale-95">
-                {track.coverUrl ? (
+            <div className="relative z-10 aspect-square w-[32vw] max-w-[130px] overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/15 transition-transform group-hover:scale-105 group-active:scale-95 shadow-lg">
+                {track.coverUrl && !imgError ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={track.coverUrl}
                         alt={track.title}
+                        referrerPolicy="no-referrer"
+                        onError={() => setImgError(true)}
                         className="h-full w-full object-cover"
                         loading="lazy"
                     />
                 ) : (
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-black" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] flex flex-col items-center justify-center p-2 text-center">
+                        <Radio size={22} className="text-white/80 mb-1" />
+                        <span className="text-xs font-black text-white line-clamp-1">{track.title}</span>
+                    </div>
                 )}
-                <span className="absolute inset-0 grid place-items-center bg-black/30 opacity-0 transition-opacity group-active:opacity-100">
-                    {isCurrent && playing ? <Pause size={20} className="text-white" /> : <Play size={20} className="text-white" />}
+                
+                {track.isLive && (
+                    <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white shadow">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                        LIVE
+                    </span>
+                )}
+
+                <span className="absolute inset-0 grid place-items-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100">
+                    {isCurrent && playing ? <Pause size={22} className="text-white" /> : <Play size={22} className="text-white" />}
                 </span>
             </div>
         </button>
@@ -129,24 +156,24 @@ function PlaylistChip({ playlist }: { playlist: PlaylistSummary }) {
 export default function MusicHomeRows({ rows }: { rows: MusicHomeRow[] }) {
     const t = useTranslations("music");
     return (
-        <>
+        <div className="space-y-2">
             {rows.map((row) => {
                 switch (row.kind) {
                     case "top10":
                         return (
-                            <Row key="top10" title={t("top10")}>
+                            <Row key="top10" title="Top 10 — Cele mai ascultate">
                                 {row.items.map((tr, i) => <TopTenCard key={tr.id} track={tr} rank={i + 1} queue={row.items} index={i} />)}
                             </Row>
                         );
                     case "originals":
                         return (
-                            <Row key="originals" title={t("originals")}>
+                            <Row key="originals" title="Recomandate Live">
                                 {row.items.map((tr, i) => <TrackCard key={tr.id} track={tr} queue={row.items} index={i} />)}
                             </Row>
                         );
                     case "latest":
                         return (
-                            <Row key="latest" title={t("newReleases")}>
+                            <Row key="latest" title="Muzică & Chill Nou">
                                 {row.items.map((tr, i) => <TrackCard key={tr.id} track={tr} queue={row.items} index={i} />)}
                             </Row>
                         );
@@ -164,12 +191,12 @@ export default function MusicHomeRows({ rows }: { rows: MusicHomeRow[] }) {
                         );
                     case "playlists":
                         return (
-                            <Row key="playlists" title={t("myPlaylists")}>
-                                {row.items.map((p) => <PlaylistChip key={p.id} playlist={p} />)}
+                            <Row key="playlists" title={t("playlists")}>
+                                {row.items.map((pl) => <PlaylistChip key={pl.id} playlist={pl} />)}
                             </Row>
                         );
                 }
             })}
-        </>
+        </div>
     );
 }

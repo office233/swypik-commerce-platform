@@ -43,6 +43,7 @@ export default function TrackRow({ track, queue, index, onLike, onAddToPlaylist 
           <img
             src={track.coverUrl}
             alt={track.title}
+            referrerPolicy="no-referrer"
             className="h-full w-full object-cover"
             loading="lazy"
           />

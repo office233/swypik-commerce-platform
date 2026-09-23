@@ -20,17 +20,32 @@ export function Row({ title, children }: { title: string; children: React.ReactN
 /** Top 10 cu cifre mari conturate (stilul Netflix), cifra ocupă jumătatea stângă a cardului. */
 function TopTenCard({ series, rank }: { series: SeriesDto; rank: number }) {
   return (
-    <Link href={`/movies/${series.slug}`} className="group relative flex w-[56vw] max-w-[240px] shrink-0 snap-start items-end">
+    <Link href={`/movies/${series.slug}`} className="group relative flex w-[50vw] max-w-[210px] shrink-0 snap-start items-end">
       <span
         aria-hidden
-        className={`${MOVIES_DISPLAY_CLASS} pointer-events-none -mr-6 select-none text-[150px] leading-[0.8] text-black`}
-        style={{ WebkitTextStroke: "3px rgba(255,255,255,0.75)" }}
+        className={`${MOVIES_DISPLAY_CLASS} pointer-events-none -mr-5 select-none text-[120px] sm:text-[140px] leading-[0.8] text-black drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]`}
+        style={{ WebkitTextStroke: "2.5px rgba(255,255,255,0.7)" }}
       >
         {rank}
       </span>
-      <div className="relative z-10 aspect-[9/16] w-[34vw] max-w-[150px] overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-white/10 transition-transform group-active:scale-95">
-        {series.posterUrl ? <Image src={series.posterUrl} alt={series.title} fill sizes="34vw" className="object-cover" /> : <div className="absolute inset-0 bg-gradient-to-b from-neutral-700 to-black" />}
-        {series.owner.isOfficial && <span className={`${MOVIES_DISPLAY_CLASS} absolute left-1.5 top-1.5 text-[11px] tracking-wider text-[#E50914]`}>S</span>}
+      <div className="relative z-10 aspect-[2/3] w-[34vw] max-w-[140px] overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95 shadow-xl">
+        {series.posterUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={series.posterUrl}
+            alt={series.title}
+            referrerPolicy="no-referrer"
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-800 to-black flex items-center justify-center p-2 text-center text-xs text-white/50">
+            {series.title}
+          </div>
+        )}
+        <span className="absolute right-1.5 top-1.5 rounded bg-black/60 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-black uppercase text-white/90 ring-1 ring-white/20">
+          4K
+        </span>
       </div>
     </Link>
   );

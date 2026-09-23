@@ -41,6 +41,10 @@ import {
     type LucideIcon,
   Clapperboard,
   Music,
+  MessageSquareText,
+  Newspaper,
+  Gamepad2,
+  TrendingUp,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
@@ -85,6 +89,46 @@ export type SuperAppModule = {
 };
 
 const SUPERAPP_MODULES: SuperAppModule[] = [
+    ...(isEnabledClient("messenger") ? [{
+        id: "messages",
+        brand: "Swypik Chat",
+        label: "Mesagerie & Apeluri Video HD",
+        badge: "Live",
+        badgeColor: "bg-emerald-600 text-white",
+        accent: "#10B981",
+        Icon: MessageSquareText,
+        href: "/messages",
+    }] : []),
+    ...(isEnabledClient("news") ? [{
+        id: "news",
+        brand: "Swypik AI News",
+        label: "Știri autonome & Fact-Checked",
+        badge: "AI",
+        badgeColor: "bg-cyan-600 text-white",
+        accent: "#06B6D4",
+        Icon: Newspaper,
+        href: "/news",
+    }] : []),
+    ...(isEnabledClient("gaming") ? [{
+        id: "gaming",
+        brand: "Swypik Arcade",
+        label: "Mini-Jocuri & Trivia Arena",
+        badge: "XP",
+        badgeColor: "bg-amber-500 text-black",
+        accent: "#F59E0B",
+        Icon: Gamepad2,
+        href: "/gaming",
+    }] : []),
+    ...(isEnabledClient("crypto") ? [{
+        id: "crypto",
+        brand: "Swypik Crypto",
+        label: "DEX Swap & Cotații Live",
+        badge: "Web3",
+        badgeColor: "bg-indigo-600 text-white",
+        accent: "#6366F1",
+        Icon: TrendingUp,
+        href: "/crypto/market",
+    }] : []),
     ...(isEnabledClient("squadBuy") ? [{
         id: "squad",
         brand: "Swypik Squad",

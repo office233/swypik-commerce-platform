@@ -1,22 +1,24 @@
 "use client";
 
 /**
- * Pagina principală /music: Swypik Audio complet unificat.
- * 4 Tab-uri native (Radio Live, Muzică & Beat-uri, Chill & Lounge, Podcasturi),
- * căutare legală audio și redare directă HTML5 cu MediaSession (background playback).
+ * Swypik Audio — Arhitectură unificată, modernă și 100% legală.
+ * 4 Tab-uri native:
+ * 1. Radio Live (Kiss FM, Radio ZU, Europa FM, Rock FM, Digi FM, etc.)
+ * 2. Muzică & Beat-uri (Audius)
+ * 3. Chill, Indie & Lounge (Jamendo)
+ * 4. Podcasturi & Talk (Mind Architect, Recorder, Huberman Lab)
+ * + Floating Mini Player & comenzi MediaSession în fundal.
  */
 import { useEffect, useState } from "react";
-import { ArrowLeft, Play, Search, X, Radio, Disc3, Sparkles, Mic } from "lucide-react";
+import { ArrowLeft, Play, Pause, Search, X, Radio, Disc3, Sparkles, Mic, Volume2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import MusicBrand from "@/components/music/MusicBrand";
-import GenreChips from "@/components/music/GenreChips";
 import TrackRow from "@/components/music/TrackRow";
 import { useMusicPlayer } from "@/components/music/MusicPlayerProvider";
 import { moviesDisplayFont, MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
 import { haptic } from "@/lib/haptic";
 import type { MusicHomeRow } from "@/lib/music/home";
-import type { MusicGenre } from "@/lib/music/genres";
 import type { TrackDto } from "@/lib/music/types";
 import type { AudioFeedResponse, AudioItemDto } from "@/lib/audio/types";
 import { audioItemToTrackDto } from "@/lib/audio/types";
@@ -25,22 +27,21 @@ import AddToPlaylistSheet from "./_components/AddToPlaylistSheet";
 import LockedOverlay from "./_components/LockedOverlay";
 import { setTrackLiked } from "./_lib/track-actions";
 
-type Home = { featured: TrackDto | null; rows: MusicHomeRow[] };
-
-type AudioTabId = "all" | "radio" | "audius" | "jamendo" | "podcast";
+type AudioTabId = "radio" | "audius" | "jamendo" | "podcast" | "all";
 
 interface AudioTab {
     id: AudioTabId;
     label: string;
     icon: typeof Radio;
+    badge?: string;
 }
 
 const TABS: AudioTab[] = [
-    { id: "all", label: "Explorează", icon: Sparkles },
-    { id: "radio", label: "Radio Live", icon: Radio },
+    { id: "radio", label: "Radio Live", icon: Radio, badge: "45k+" },
     { id: "audius", label: "Muzică & Beat-uri", icon: Disc3 },
     { id: "jamendo", label: "Chill & Lounge", icon: Sparkles },
     { id: "podcast", label: "Podcasturi", icon: Mic },
+    { id: "all", label: "Toate", icon: Sparkles },
 ];
 
 async function getJson<T>(url: string): Promise<T> {
@@ -51,41 +52,31 @@ async function getJson<T>(url: string): Promise<T> {
 
 export default function MusicClient() {
     const t = useTranslations("music");
-    const { current, play } = useMusicPlayer();
-    const [home, setHome] = useState<Home | null>(null);
-    const [error, setError] = useState(false);
-    const [genre, setGenre] = useState<MusicGenre | null>(null);
-    const [genreItems, setGenreItems] = useState<TrackDto[] | null>(null);
-    const [playlistTarget, setPlaylistTarget] = useState<TrackDto | null>(null);
-
-    // Tab-uri audio active
-    const [activeTab, setActiveTab] = useState<AudioTabId>("all");
+    const { current, playing, play, toggle, close } = useMusicPlayer();
+    
+    // Tab-ul implicit este Radio Live
+    const [activeTab, setActiveTab] = useState<AudioTabId>("radio");
     const [tabTracks, setTabTracks] = useState<TrackDto[] | null>(null);
     const [isTabLoading, setIsTabLoading] = useState(false);
+    
+    const [home, setHome] = useState<{ featured: TrackDto | null; rows: MusicHomeRow[] } | null>(null);
+    const [playlistTarget, setPlaylistTarget] = useState<TrackDto | null>(null);
 
-    // Căutare audio legală
+    // Căutare audio
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<TrackDto[] | null>(null);
     const [isSearching, setIsSearching] = useState(false);
 
+    // Încărcare Home pentru tab-ul Explorează
     useEffect(() => {
-        getJson<Home>("/api/music/home").then(setHome).catch(() => setError(true));
+        getJson<{ featured: TrackDto | null; rows: MusicHomeRow[] }>("/api/music/home")
+            .then(setHome)
+            .catch(() => {});
     }, []);
-
-    useEffect(() => {
-        if (!genre) { setGenreItems(null); return; }
-        setGenreItems(null);
-        getJson<{ items: TrackDto[] }>(`/api/music/tracks?genre=${genre}&sort=trending`)
-            .then((d) => setGenreItems(d.items))
-            .catch(() => setGenreItems([]));
-    }, [genre]);
 
     // Încărcare date per tab
     useEffect(() => {
-        if (activeTab === "all") {
-            setTabTracks(null);
-            return;
-        }
+        if (activeTab === "all") return;
 
         setTabTracks(null);
         setIsTabLoading(true);
@@ -104,7 +95,7 @@ export default function MusicClient() {
             });
     }, [activeTab]);
 
-    // Căutare automată cu debounce
+    // Căutare automată
     useEffect(() => {
         const trimmed = searchQuery.trim();
         if (!trimmed) {
@@ -124,7 +115,7 @@ export default function MusicClient() {
                     setSearchResults([]);
                     setIsSearching(false);
                 });
-        }, 350);
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [searchQuery]);
@@ -136,35 +127,31 @@ export default function MusicClient() {
         if (!ok) setList(list.map((tr) => (tr.id === track.id ? { ...tr, liked: track.liked } : tr)));
     };
 
-    if (error) return <div className="flex min-h-screen items-center justify-center bg-[#0B0B12] text-white/70">{t("loadError")}</div>;
-
-    const top10Row = home?.rows.find((r) => r.kind === "top10");
-    const featured = home?.featured ?? null;
-    const heroQueue = top10Row && top10Row.kind === "top10" && top10Row.items.length > 0 ? top10Row.items : featured ? [featured] : [];
-    const isFeaturedCurrent = Boolean(featured && current?.id === featured.id);
-
     return (
-        <main className={`${moviesDisplayFont.variable} min-h-screen bg-gradient-to-b from-[#0B0B12] to-black pb-28 text-white`}>
-            <header className="fixed inset-x-0 top-0 z-30 bg-gradient-to-b from-black/95 via-black/85 to-transparent pb-2" style={{ paddingTop: "max(10px, env(safe-area-inset-top))" }}>
-                <div className="flex items-center gap-3 px-4 pb-2">
-                    <Link href="/" aria-label={t("back")} className="rounded-full bg-black/40 p-2 text-white ring-1 ring-white/15 shrink-0"><ArrowLeft size={18} /></Link>
+        <main className={`${moviesDisplayFont.variable} min-h-screen bg-[#0A0910] pb-32 text-white`}>
+            {/* Header Sticky Curat */}
+            <header className="sticky top-0 z-30 bg-[#0A0910]/95 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
+                <div className="flex items-center gap-3 px-4 pb-2.5">
+                    <Link href="/" aria-label="Înapoi" className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 active:scale-95 transition-all">
+                        <ArrowLeft size={18} />
+                    </Link>
                     <div className="flex-1 min-w-0">
                         <div className="relative flex items-center">
-                            <Search size={16} className="absolute left-3 text-white/50 pointer-events-none" />
+                            <Search size={15} className="absolute left-3 text-white/40 pointer-events-none" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Caută radio, beat-uri, podcasturi..."
-                                className="w-full rounded-full bg-white/10 py-1.5 pl-9 pr-9 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/15 focus:ring-[#7C3AED] focus:bg-white/15 transition-all"
+                                className="w-full rounded-full bg-white/10 py-1.5 pl-9 pr-8 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/10 focus:ring-[#7C3AED] focus:bg-white/15 transition-all"
                             />
                             {searchQuery && (
                                 <button
                                     type="button"
                                     onClick={() => setSearchQuery("")}
-                                    className="absolute right-2.5 grid h-5 w-5 place-items-center rounded-full bg-white/20 text-white/70 hover:text-white"
+                                    className="absolute right-2.5 grid h-4 w-4 place-items-center rounded-full bg-white/20 text-white/70 hover:text-white"
                                 >
-                                    <X size={12} />
+                                    <X size={10} />
                                 </button>
                             )}
                         </div>
@@ -172,9 +159,9 @@ export default function MusicClient() {
                     <MusicBrand size="md" />
                 </div>
 
-                {/* Tab Bar Native: Explorează / Radio Live / Muzică / Chill / Podcasturi */}
+                {/* Tab Bar Curat & Vizual */}
                 {!searchQuery && (
-                    <div className="flex items-center gap-2 overflow-x-auto px-4 py-1.5 [scrollbar-width:none]">
+                    <div className="flex items-center gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none]">
                         {TABS.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -188,33 +175,34 @@ export default function MusicClient() {
                                     }}
                                     className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
                                         isActive
-                                            ? "bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]"
-                                            : "bg-white/10 text-white/70 hover:bg-white/15 hover:text-white"
+                                            ? "bg-[#7C3AED] text-white shadow-[0_0_16px_rgba(124,58,237,0.5)]"
+                                            : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/5"
                                     }`}
                                 >
-                                    <Icon size={13} className={isActive ? "text-white" : "text-white/60"} />
+                                    <Icon size={14} className={isActive ? "text-white" : "text-white/60"} />
                                     <span>{tab.label}</span>
+                                    {tab.badge && (
+                                        <span className={`text-[9px] px-1 rounded-full ${isActive ? "bg-white/25 text-white" : "bg-white/10 text-white/60"}`}>
+                                            {tab.badge}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
                     </div>
                 )}
-
-                {!searchQuery && activeTab === "all" && <GenreChips selected={genre} onSelect={setGenre} />}
             </header>
 
+            {/* Corpul Paginii */}
             {searchQuery ? (
-                <section className="px-0 pt-28">
-                    <div className="flex items-center justify-between px-5 pb-3">
-                        <h2 className="text-base font-bold text-white">Rezultate căutare</h2>
-                        {isSearching && <span className="text-xs text-white/50">{t("loading")}</span>}
-                    </div>
-                    {isSearching && !searchResults ? (
-                        <p className="px-5 text-sm text-white/50">{t("loading")}</p>
-                    ) : searchResults && searchResults.length === 0 ? (
-                        <p className="px-5 text-white/60">Nu s-a găsit niciun rezultat.</p>
-                    ) : searchResults ? (
-                        <div>
+                <section className="px-4 pt-4">
+                    <h2 className="text-sm font-bold text-white/80 mb-3">Rezultate căutare</h2>
+                    {isSearching && <p className="text-xs text-white/50 py-4">Căutare în curs...</p>}
+                    {searchResults && searchResults.length === 0 && !isSearching && (
+                        <p className="text-sm text-white/60 py-6 text-center">Nu s-a găsit niciun rezultat.</p>
+                    )}
+                    {searchResults && (
+                        <div className="space-y-1">
                             {searchResults.map((tr, i) => (
                                 <TrackRow
                                     key={tr.id}
@@ -226,22 +214,102 @@ export default function MusicClient() {
                                 />
                             ))}
                         </div>
+                    )}
+                </section>
+            ) : activeTab === "radio" ? (
+                /* ─── TAB 1: RADIO LIVE ─── */
+                <section className="px-4 pt-4">
+                    <div className="flex items-center justify-between pb-3">
+                        <div>
+                            <h1 className="text-lg font-bold text-white flex items-center gap-2">
+                                <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                                Posturi de Radio România Live
+                            </h1>
+                            <p className="text-xs text-white/50">Fluxuri oficiale live fără reclame suplimentare</p>
+                        </div>
+                    </div>
+
+                    {isTabLoading ? (
+                        <div className="py-16 text-center text-sm text-white/50">Se conectează la rețeaua radio...</div>
+                    ) : tabTracks ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {tabTracks.map((station, i) => {
+                                const isCurrent = current?.id === station.id;
+                                const isCurrentPlaying = isCurrent && playing;
+                                return (
+                                    <button
+                                        key={station.id}
+                                        type="button"
+                                        onClick={() => {
+                                            haptic("tap");
+                                            if (isCurrent) toggle();
+                                            else play(tabTracks, i);
+                                        }}
+                                        className={`group relative flex flex-col items-center justify-between p-4 rounded-2xl border text-center transition-all ${
+                                            isCurrent
+                                                ? "bg-[#7C3AED]/20 border-[#7C3AED] shadow-[0_0_24px_rgba(124,58,237,0.3)] scale-[1.02]"
+                                                : "bg-white/[0.04] border-white/10 hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
+                                        }`}
+                                    >
+                                        <div className="relative h-16 w-16 mb-3 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center p-2 shadow-inner">
+                                            {station.coverUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={station.coverUrl}
+                                                    alt={station.title}
+                                                    referrerPolicy="no-referrer"
+                                                    className="h-full w-full object-contain"
+                                                />
+                                            ) : (
+                                                <Radio size={28} className="text-white/60" />
+                                            )}
+                                            {isCurrentPlaying && (
+                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                    <span className="h-3 w-3 rounded-full bg-[#7C3AED] animate-ping" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <h3 className="font-bold text-sm text-white line-clamp-1 group-hover:text-[#A78BFA] transition-colors">
+                                            {station.title}
+                                        </h3>
+                                        <p className="text-[11px] text-white/50 line-clamp-1 mb-3">
+                                            {station.genre || "Hituri & Pop"}
+                                        </p>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-black uppercase text-red-400">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                                                LIVE
+                                            </span>
+                                            <div className="h-7 w-7 rounded-full bg-white text-black flex items-center justify-center shadow-md group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
+                                                {isCurrentPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     ) : null}
                 </section>
             ) : activeTab !== "all" ? (
-                <section className="px-0 pt-28">
-                    <div className="flex items-center justify-between px-5 pb-3">
-                        <h2 className="text-base font-bold text-white">
+                /* ─── TABS 2, 3, 4: MUZICĂ, CHILL, PODCASTURI ─── */
+                <section className="px-4 pt-4">
+                    <div className="pb-3">
+                        <h1 className="text-lg font-bold text-white">
                             {TABS.find((t) => t.id === activeTab)?.label}
-                        </h2>
-                        {isTabLoading && <span className="text-xs text-white/50">{t("loading")}</span>}
+                        </h1>
+                        <p className="text-xs text-white/50">
+                            {activeTab === "audius" && "Trap, electronic și beat-uri urbane licențiate"}
+                            {activeTab === "jamendo" && "Muzică relaxantă, ambientală și acustică Creative Commons"}
+                            {activeTab === "podcast" && "Episoade recente din podcasturile tale preferate"}
+                        </p>
                     </div>
+
                     {isTabLoading ? (
-                        <div className="px-5 py-8 text-center text-sm text-white/50">Se conectează la fluxul audio...</div>
-                    ) : tabTracks && tabTracks.length === 0 ? (
-                        <p className="px-5 text-white/60">Nu sunt piese disponibile în această secțiune.</p>
+                        <div className="py-16 text-center text-sm text-white/50">Se încarcă fluxul...</div>
                     ) : tabTracks ? (
-                        <div>
+                        <div className="space-y-1">
                             {tabTracks.map((tr, i) => (
                                 <TrackRow
                                     key={tr.id}
@@ -255,96 +323,62 @@ export default function MusicClient() {
                         </div>
                     ) : null}
                 </section>
-            ) : genre ? (
-                <section className="px-0 pt-36">
-                    {genreItems === null ? (
-                        <p className="px-5 text-sm text-white/50">{t("loading")}</p>
-                    ) : genreItems.length === 0 ? (
-                        <p className="px-5 text-white/60">{t("emptyGenre")}</p>
-                    ) : (
-                        <div>
-                            {genreItems.map((tr, i) => (
-                                <TrackRow
-                                    key={tr.id}
-                                    track={tr}
-                                    queue={genreItems}
-                                    index={i}
-                                    onLike={(track) => toggleLike(track, genreItems, setGenreItems)}
-                                    onAddToPlaylist={setPlaylistTarget}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </section>
             ) : (
-                <>
-                    {featured ? (
-                        <section className="relative h-[62vh] w-full overflow-hidden pt-14">
-                            {featured.coverUrl && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={featured.coverUrl}
-                                    alt=""
-                                    className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
-                                />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B12] via-black/40 to-black/20" />
-                            <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 px-5 pb-6">
-                                <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white/10 shadow-2xl ring-1 ring-white/15 sm:h-32 sm:w-32">
-                                    {featured.coverUrl && (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={featured.coverUrl}
-                                            alt={featured.title}
-                                            className="h-full w-full object-cover"
-                                        />
-                                    )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
-                                        {featured.isLive && (
-                                            <span className="flex items-center gap-1 rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-400">
-                                                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                                                RADIO LIVE
-                                            </span>
-                                        )}
-                                        <span className="text-xs uppercase tracking-wider text-[#A78BFA] font-bold">
-                                            {featured.genre || "Recomandat"}
-                                        </span>
-                                    </div>
-                                    <h1 className={`${MOVIES_DISPLAY_CLASS} mt-1 truncate text-4xl leading-[0.9] text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]`}>
-                                        {featured.title}
-                                    </h1>
-                                    <Link href={`/music/artist/${featured.artist.slug}`} className="mt-1 block truncate text-sm text-white/70">
-                                        {featured.artist.stageName}
-                                    </Link>
-                                    <div className="mt-3 flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => { haptic("tap"); play(heroQueue, 0); }}
-                                            className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-black text-black active:scale-95 shadow-lg"
-                                        >
-                                            <Play size={18} fill="currentColor" /> {t("play")}
-                                        </button>
-                                        {isFeaturedCurrent && (
-                                            <span className="rounded-full bg-[#7C3AED]/20 px-3 py-1 text-xs font-bold text-[#A78BFA] ring-1 ring-[#7C3AED]/40">
-                                                {t("nowPlaying")}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    ) : (
-                        <div className="flex h-[50vh] items-end px-5 pb-8 pt-14">
-                            <div>
-                                <MusicBrand size="lg" />
-                                <p className="mt-3 text-sm text-white/60">{!home ? t("loading") : home.rows.length === 0 ? t("empty") : ""}</p>
-                            </div>
-                        </div>
-                    )}
+                /* ─── TAB: TOATE / EXPLOREAZĂ ─── */
+                <div className="pt-2">
                     {home && <MusicHomeRows rows={home.rows} />}
-                </>
+                </div>
+            )}
+
+            {/* Floating Mini Player (Când există piesă activă) */}
+            {current && (
+                <div className="fixed bottom-[68px] inset-x-3 z-40 max-w-lg mx-auto rounded-2xl bg-[#13111C]/95 backdrop-blur-xl border border-white/15 p-2.5 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="relative h-12 w-12 shrink-0 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center">
+                        {current.coverUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={current.coverUrl}
+                                alt={current.title}
+                                referrerPolicy="no-referrer"
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <Radio size={20} className="text-white/60" />
+                        )}
+                        {playing && (
+                            <span className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-[#7C3AED] animate-pulse" />
+                        )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-xs sm:text-sm text-white truncate">{current.title}</p>
+                            {current.isLive && (
+                                <span className="rounded bg-red-600 px-1 text-[8px] font-black uppercase text-white">LIVE</span>
+                            )}
+                        </div>
+                        <p className="text-[11px] text-white/60 truncate">{current.artist.stageName}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        <button
+                            type="button"
+                            onClick={() => { haptic("tap"); toggle(); }}
+                            className="h-10 w-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                            aria-label={playing ? "Pauză" : "Redă"}
+                        >
+                            {playing ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => close()}
+                            className="h-8 w-8 rounded-full text-white/50 hover:text-white flex items-center justify-center"
+                            aria-label="Închide player"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
             )}
 
             <LockedOverlay />

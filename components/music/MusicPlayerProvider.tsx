@@ -197,8 +197,11 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
         }, 250);
     }
 
-    // Inițializare YouTube Player iframe o singură dată
+    // Inițializare YouTube Player iframe DOAR dacă se redă o piesă explicit marcată ca youtube
     useEffect(() => {
+        const isYt = current?.source === "youtube" || Boolean(current?.youtubeVideoId);
+        if (!isYt) return;
+
         let mounted = true;
         loadYouTubeIframeApi().then(() => {
             if (!mounted || !window.YT) return;
@@ -247,24 +250,12 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
                     },
                 },
             });
-        }).catch((err) => {
-            console.warn("[YouTube API] Nu s-a putut încărca iframe API", err);
-        });
+        }).catch(() => {});
 
         return () => {
             mounted = false;
-            stopYtPoll();
-            if (ytPlayerRef.current) {
-                try {
-                    ytPlayerRef.current.destroy();
-                } catch {
-                    // ignorat
-                }
-                ytPlayerRef.current = null;
-            }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [current]);
 
     /** Reîmprospătează URL-ul cu token înainte să expire, dacă piesa încă redă. */
     function scheduleRefresh(track: TrackDto, expiresAt: number | null, list: TrackDto[], i: number, gen: number): void {
@@ -664,41 +655,39 @@ function ActiveMusicPlayerProvider({ children }: { children: ReactNode }) {
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <audio ref={audioRef} className="hidden" preload="none" />
 
-            {/* Container YouTube: ascuns offscreen în mod audio, sau floating PIP când utilizatorul deschide video */}
-            <div
-                id="swypik-yt-container"
-                className={
-                    isVideoVisible && current?.source === "youtube"
-                        ? "fixed bottom-24 right-4 z-50 overflow-hidden rounded-2xl border border-white/20 bg-[#0E0C15] shadow-2xl transition-all flex flex-col"
-                        : "fixed -left-[9999px] top-0 h-1 w-1 opacity-0 pointer-events-none"
-                }
-                style={
-                    isVideoVisible && current?.source === "youtube"
-                        ? { width: "320px", maxWidth: "88vw" }
-                        : {}
-                }
-            >
-                {isVideoVisible && current?.source === "youtube" && (
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-[#14121E] border-b border-white/10 select-none">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="h-2 w-2 rounded-full bg-[#7C3AED] animate-pulse" />
-                            <span className="text-[11px] font-black tracking-wider text-white">SWYPIK</span>
-                            <span className="text-[11px] font-black tracking-wider text-[#A78BFA]">PLAYER</span>
+            {/* Container YouTube: DOAR dacă utilizatorul redă o piesă explicit marcată ca youtube */}
+            {current?.source === "youtube" && (
+                <div
+                    id="swypik-yt-container"
+                    className={
+                        isVideoVisible
+                            ? "fixed bottom-24 right-4 z-50 overflow-hidden rounded-2xl border border-white/20 bg-[#0E0C15] shadow-2xl transition-all flex flex-col"
+                            : "fixed -left-[9999px] top-0 h-1 w-1 opacity-0 pointer-events-none"
+                    }
+                    style={isVideoVisible ? { width: "320px", maxWidth: "88vw" } : {}}
+                >
+                    {isVideoVisible && (
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-[#14121E] border-b border-white/10 select-none">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="h-2 w-2 rounded-full bg-[#7C3AED] animate-pulse" />
+                                <span className="text-[11px] font-black tracking-wider text-white">SWYPIK</span>
+                                <span className="text-[11px] font-black tracking-wider text-[#A78BFA]">PLAYER</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => toggleVideo()}
+                                className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                                title="Închide video"
+                            >
+                                <X size={14} />
+                            </button>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => toggleVideo()}
-                            className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                            title="Închide video"
-                        >
-                            <X size={14} />
-                        </button>
+                    )}
+                    <div className="relative aspect-video w-full bg-black">
+                        <div id="swypik-yt-player-element" className="h-full w-full" />
                     </div>
-                )}
-                <div className="relative aspect-video w-full bg-black">
-                    <div id="swypik-yt-player-element" className="h-full w-full" />
                 </div>
-            </div>
+            )}
         </MusicPlayerContext.Provider>
     );
 }

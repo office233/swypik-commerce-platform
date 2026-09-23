@@ -24,7 +24,9 @@ export type SwypRewardAction =
     | "clip_conversion"
     | "seller_first_sales"
     | "mission_prize"
-    | "mystery_drop_daily";
+    | "mystery_drop_daily"
+    | "gaming_arcade_score"
+    | "gaming_trivia_daily";
 
 export type AwardArgs = {
     userId: string;
