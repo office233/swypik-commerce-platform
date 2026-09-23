@@ -86,7 +86,8 @@ export default function TrackClient({ slug }: { slug: string }) {
             <section className="px-5 pt-20">
                 <div className="mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-2xl bg-white/10 shadow-2xl ring-1 ring-white/10">
                     {track.coverUrl ? (
-                        <Image src={track.coverUrl} alt={track.title} width={512} height={512} className="h-full w-full object-cover" />
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={track.coverUrl} alt={track.title} className="h-full w-full object-cover" />
                     ) : (
                         <div className="h-full w-full bg-gradient-to-b from-white/10 to-black" />
                     )}
@@ -166,7 +167,10 @@ export default function TrackClient({ slug }: { slug: string }) {
                 <section className="mt-8">
                     <Link href={`/music/album/${album.slug}`} className="mx-5 mb-3 flex items-center gap-3 rounded-xl bg-white/5 p-3 ring-1 ring-white/10 active:scale-[0.99]">
                         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/10">
-                            {album.coverUrl && <Image src={album.coverUrl} alt={album.title} fill sizes="48px" className="object-cover" />}
+                            {album.coverUrl && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
+                            )}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[11px] uppercase tracking-wide text-white/40">{t("album")}</p>

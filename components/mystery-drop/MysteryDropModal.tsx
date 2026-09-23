@@ -61,11 +61,7 @@ export function MysteryDropModal() {
     };
     window.addEventListener("open-mystery-drop", onManualOpen);
 
-    const timer =
-      readLastDrop() !== todayKey() ? setTimeout(() => setIsOpen(true), AUTO_OPEN_DELAY_MS) : null;
-
     return () => {
-      if (timer) clearTimeout(timer);
       window.removeEventListener("open-mystery-drop", onManualOpen);
     };
   }, []);
@@ -122,15 +118,6 @@ export function MysteryDropModal() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 left-4 z-30 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-pink-500 text-white font-black text-xs shadow-xl hover:scale-105 active:scale-95 transition-all ring-2 ring-white/20"
-      >
-        <span className="text-base">🎁</span>
-        <span>{t("pill")}</span>
-      </button>
-
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
           <div className="relative bg-gradient-to-b from-[#1C1A27] to-[#0E0C15] border border-amber-500/30 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center text-white overflow-hidden">

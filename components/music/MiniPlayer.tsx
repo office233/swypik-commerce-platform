@@ -1,32 +1,25 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { Pause, Play, SkipForward, X } from "lucide-react";
+import { Pause, Play, SkipForward, Tv, X } from "lucide-react";
 import { Link, usePathname } from "@/lib/i18n/navigation";
 import { haptic } from "@/lib/haptic";
 import { useMusicPlayer } from "./MusicPlayerProvider";
 
-// Aceeași listă ca `hiddenPaths` din components/BottomNav.tsx — folosită doar
-// ca să deducem dacă BottomNav e vizibil pe calea curentă (deci cât de sus
-// trebuie ridicat mini-player-ul). Dacă lista din BottomNav.tsx se schimbă,
-// actualizeaz-o și aici.
 const BOTTOM_NAV_HIDDEN_PATHS = [
     "/movies", "/go", "/checkout", "/reels/record", "/seller", "/sellers",
     "/creator", "/admin", "/auth", "/upload", "/product", "/courier", "/developers",
 ];
 const BOTTOM_NAV_HEIGHT_PX = 56;
 
-// Căile pe care mini-player-ul propriu-zis trebuie ascuns: fluxuri full-screen
-// unde n-are ce căuta un control audio persistent.
 const MINI_PLAYER_HIDDEN_PREFIXES = ["/go", "/checkout", "/kids"];
 const MOVIES_PLAYER_PATH = /^\/movies\/[^/]+\/\d+/;
 
 export default function MiniPlayer() {
     const t = useTranslations("music");
     const pathname = usePathname();
-    const { current, playing, positionMs, durationMs, toggle, next, seek, close } = useMusicPlayer();
+    const { current, playing, positionMs, durationMs, toggle, next, seek, close, isVideoVisible, toggleVideo } = useMusicPlayer();
 
     if (!current) return null;
 
@@ -66,18 +59,72 @@ export default function MiniPlayer() {
             </div>
 
             <div className="mx-auto flex max-w-lg items-center gap-3 px-3 py-2">
-                <Link href={`/music/track/${current.slug}`} className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-white/10">
-                    {current.coverUrl && <Image src={current.coverUrl} alt={current.title} fill sizes="44px" className="object-cover" />}
-                </Link>
+                {current.source === "youtube" ? (
+                    <button
+                        type="button"
+                        onClick={() => { haptic("tap"); toggleVideo(); }}
+                        className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-white/10 group cursor-pointer"
+                        title={isVideoVisible ? "Ascunde video" : "Arată video"}
+                    >
+                        {current.coverUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={current.coverUrl}
+                                alt={current.title}
+                                className="h-full w-full object-cover"
+                            />
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Tv size={14} className="text-white" />
+                        </div>
+                    </button>
+                ) : (
+                    <Link href={`/music/track/${current.slug}`} className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-white/10">
+                        {current.coverUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={current.coverUrl}
+                                alt={current.title}
+                                className="h-full w-full object-cover"
+                            />
+                        )}
+                    </Link>
+                )}
 
                 <div className="min-w-0 flex-1">
-                    <Link href={`/music/track/${current.slug}`} className="block truncate text-sm font-bold text-white">
-                        {current.title}
-                    </Link>
-                    <Link href={`/music/artist/${current.artist.slug}`} className="block truncate text-xs text-white/60">
-                        {current.artist.stageName}
-                    </Link>
+                    {current.source === "youtube" ? (
+                        <div className="block truncate text-sm font-bold text-white">
+                            {current.title}
+                        </div>
+                    ) : (
+                        <Link href={`/music/track/${current.slug}`} className="block truncate text-sm font-bold text-white">
+                            {current.title}
+                        </Link>
+                    )}
+                    {current.source === "youtube" ? (
+                        <div className="block truncate text-xs text-white/60">
+                            {current.artist.stageName}
+                        </div>
+                    ) : (
+                        <Link href={`/music/artist/${current.artist.slug}`} className="block truncate text-xs text-white/60">
+                            {current.artist.stageName}
+                        </Link>
+                    )}
                 </div>
+
+                {current.source === "youtube" && (
+                    <button
+                        type="button"
+                        onClick={() => { haptic("tap"); toggleVideo(); }}
+                        aria-label={isVideoVisible ? "Ascunde video" : "Arată video"}
+                        title={isVideoVisible ? "Ascunde video" : "Arată video"}
+                        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold active:scale-95 transition-colors ${
+                            isVideoVisible ? "bg-[#7C3AED] text-white" : "bg-white/10 text-white/70 hover:text-white"
+                        }`}
+                    >
+                        <Tv size={15} />
+                    </button>
+                )}
 
                 <button
                     type="button"

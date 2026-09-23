@@ -105,7 +105,8 @@ export default function AlbumClient({ slug }: { slug: string }) {
             <section className="px-5 pt-20 text-center">
                 <div className="mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-2xl bg-white/10 shadow-2xl ring-1 ring-white/10">
                     {album.coverUrl ? (
-                        <Image src={album.coverUrl} alt={album.title} width={512} height={512} className="h-full w-full object-cover" />
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
                     ) : (
                         <div className="h-full w-full bg-gradient-to-b from-white/10 to-black" />
                     )}

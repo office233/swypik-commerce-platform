@@ -8,6 +8,8 @@ import { listTracks, ensureLikedPlaylist, listPlaylistTracks, listPlaylists, get
 import { toTrackDto } from "@/lib/music/dto";
 import { buildMusicViewer } from "@/lib/music/viewer";
 import { buildMusicHomeRows } from "@/lib/music/home";
+import { searchYouTubeMusic } from "@/lib/music/youtube";
+import type { TrackDto } from "@/lib/music/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,22 +24,43 @@ export const GET = withErrorHandling(async function GET(req: Request) {
     const user = await getAuthUser();
     const viewer = await buildMusicViewer(user.userId, user.isAdmin);
 
-    const [trendingRows, latestRows, likedRows, playlistRows] = await Promise.all([
-        listTracks({ sort: "trending", limit: TRENDING_POOL, offset: 0 }),
-        listTracks({ sort: "new", limit: MUSIC_HOME_ROW_MAX, offset: 0 }),
-        user.userId ? ensureLikedPlaylist(user.userId).then((id) => listPlaylistTracks(id)) : Promise.resolve([]),
-        user.userId ? listPlaylists(user.userId) : Promise.resolve([]),
-    ]);
+    let trending: TrackDto[] = [];
+    let latest: TrackDto[] = [];
+    let liked: TrackDto[] = [];
+    let playlists: { id: string; title: string; trackCount: number }[] = [];
 
-    const allIds = [...trendingRows, ...latestRows, ...likedRows].map((t) => t.id);
-    const likedIds = user.userId ? await getLikedTrackIds(user.userId, allIds) : new Set<string>();
+    try {
+        const [trendingRows, latestRows, likedRows, playlistRows] = await Promise.all([
+            listTracks({ sort: "trending", limit: TRENDING_POOL, offset: 0 }),
+            listTracks({ sort: "new", limit: MUSIC_HOME_ROW_MAX, offset: 0 }),
+            user.userId ? ensureLikedPlaylist(user.userId).then((id) => listPlaylistTracks(id)) : Promise.resolve([]),
+            user.userId ? listPlaylists(user.userId) : Promise.resolve([]),
+        ]);
 
-    const trending = trendingRows.map((t) => toTrackDto(t, viewer, likedIds.has(t.id)));
+        const allIds = [...trendingRows, ...latestRows, ...likedRows].map((t) => t.id);
+        const likedIds = user.userId ? await getLikedTrackIds(user.userId, allIds) : new Set<string>();
+
+        trending = trendingRows.map((t) => toTrackDto(t, viewer, likedIds.has(t.id)));
+        latest = latestRows.map((t) => toTrackDto(t, viewer, likedIds.has(t.id)));
+        liked = likedRows.map((t) => toTrackDto(t, viewer, likedIds.has(t.id)));
+        playlists = playlistRows.filter((p) => !p.is_liked_list).map((p) => ({ id: p.id, title: p.title, trackCount: p.track_count }));
+    } catch {
+        // Dacă baza de date locală e offline sau goală, fallback fluent
+    }
+
+    // Dacă nu avem încă piese locale în DB, aducem automat Top Hits YouTube
+    if (trending.length === 0) {
+        const ytHits = await searchYouTubeMusic("top music hits", 15);
+        if (ytHits.length > 0) {
+            trending = ytHits;
+        }
+    }
+
     const rows = buildMusicHomeRows({
         top: trending,
-        latest: latestRows.map((t) => toTrackDto(t, viewer, likedIds.has(t.id))),
-        liked: likedRows.map((t) => toTrackDto(t, viewer, likedIds.has(t.id))),
-        playlists: playlistRows.filter((p) => !p.is_liked_list).map((p) => ({ id: p.id, title: p.title, trackCount: p.track_count })),
+        latest,
+        liked,
+        playlists,
     });
 
     return NextResponse.json({ featured: trending[0] ?? null, rows });

@@ -11,12 +11,12 @@ const isDev = process.env.NODE_ENV === "development";
 const SENTRY_CONNECT_SRC = "https://*.ingest.sentry.io";
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com;
+  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://www.youtube.com https://s.ytimg.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
     media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com;
   connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC};
-  frame-src https://js.stripe.com https://hooks.stripe.com;
+  frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';
@@ -26,12 +26,12 @@ const cspHeader = `
 `.replace(/\s{2,}/g, " ").trim();
 const cspReportOnly = `
   default-src 'self';
-  script-src 'self' https://js.stripe.com;
+  script-src 'self' https://js.stripe.com https://www.youtube.com https://s.ytimg.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https://media.swypik.com https://cdn.swypik.com;
   connect-src 'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC};
-  frame-src https://js.stripe.com https://hooks.stripe.com;
+  frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';
@@ -55,12 +55,24 @@ const nextConfig = {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
   },
   images: {
+    domains: [
+      'images.unsplash.com',
+      'commons.wikimedia.org',
+      'upload.wikimedia.org',
+      'cdn.swypik.com',
+      'media.swypik.com',
+      'i.ytimg.com',
+      'img.youtube.com',
+    ],
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'commons.wikimedia.org' },
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'https', hostname: 'cdn.swypik.com' },
       { protocol: 'https', hostname: 'media.swypik.com' },
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+      { protocol: 'https', hostname: '*.ytimg.com' },
+      { protocol: 'https', hostname: 'img.youtube.com' },
     ],
   },
   // ─── Cloudflare + Performance Headers ───
@@ -89,6 +101,7 @@ const nextConfig = {
     ];
   },
   async headers() {
+    if (isDev) return [];
     return [
       {
         // Public folder static assets (icons, favicons, images) — 1 year immutable

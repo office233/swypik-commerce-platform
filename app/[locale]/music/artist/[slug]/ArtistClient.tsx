@@ -67,13 +67,19 @@ export default function ArtistClient({ slug }: { slug: string }) {
             </header>
 
             <section className="relative h-[38vh] w-full overflow-hidden bg-black">
-                {coverSrc && <Image src={coverSrc} alt="" fill priority sizes="100vw" className="scale-110 object-cover opacity-50 blur-2xl" />}
+                {coverSrc && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={coverSrc} alt="" className="scale-110 object-cover opacity-50 blur-2xl h-full w-full" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B12] via-black/30 to-black/40" />
             </section>
 
             <section className="-mt-14 px-5">
                 <div className="relative h-28 w-28 overflow-hidden rounded-full bg-white/10 shadow-2xl ring-4 ring-[#0B0B12]">
-                    {artist.avatarUrl && <Image src={artist.avatarUrl} alt={artist.stageName} fill sizes="112px" className="object-cover" />}
+                    {artist.avatarUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={artist.avatarUrl} alt={artist.stageName} className="object-cover h-full w-full" />
+                    )}
                 </div>
                 <div className="mt-3 flex items-center gap-2">
                     <h1 className={`${MOVIES_DISPLAY_CLASS} truncate text-4xl leading-[0.95] text-white`}>{artist.stageName}</h1>
@@ -124,7 +130,8 @@ export default function ArtistClient({ slug }: { slug: string }) {
                             <Link key={album.id} href={`/music/album/${album.slug}`} className="group block active:scale-95">
                                 <div className="relative aspect-square overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10">
                                     {album.coverUrl ? (
-                                        <Image src={album.coverUrl} alt={album.title} fill sizes="45vw" className="object-cover" />
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
                                     ) : (
                                         <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-black" />
                                     )}

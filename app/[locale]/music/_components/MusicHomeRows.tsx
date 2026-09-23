@@ -7,7 +7,6 @@
  * pagina serialului), aici cardurile pornesc redarea direct din coada
  * rândului — TrackClient rămâne calea pentru detalii.
  */
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Pause, Play } from "lucide-react";
 import { Link } from "@/lib/i18n/navigation";
@@ -47,7 +46,13 @@ function TrackCard({ track, queue, index }: { track: TrackDto; queue: TrackDto[]
         >
             <div className="relative aspect-square overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10 transition-transform group-active:scale-95">
                 {track.coverUrl ? (
-                    <Image src={track.coverUrl} alt={track.title} fill sizes="38vw" className="object-cover" />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={track.coverUrl}
+                        alt={track.title}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                    />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-black" />
                 )}
@@ -91,7 +96,13 @@ function TopTenCard({ track, rank, queue, index }: { track: TrackDto; rank: numb
             </span>
             <div className="relative z-10 aspect-square w-[34vw] max-w-[140px] overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10 transition-transform group-active:scale-95">
                 {track.coverUrl ? (
-                    <Image src={track.coverUrl} alt={track.title} fill sizes="34vw" className="object-cover" />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={track.coverUrl}
+                        alt={track.title}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                    />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-black" />
                 )}

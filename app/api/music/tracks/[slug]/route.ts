@@ -12,10 +12,25 @@ export const dynamic = "force-dynamic";
 export const GET = withErrorHandling(async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
     if (!isEnabled("music")) return frozenResponse("music");
     const { slug } = await params;
-    const track = await getTrackBySlug(slug);
+    let track = null;
+    try {
+        track = await getTrackBySlug(slug);
+    } catch {
+        track = null;
+    }
     const user = await getAuthUser();
     const isOwner = Boolean(user.userId && track && track.artist_user_id === user.userId);
     if (!track || (track.status !== "published" && !user.isAdmin && !isOwner)) {
+        // Fallback pentru piese externe / YouTube (ex. slug 'yt-...')
+        const { getYouTubeTrackByVideoId } = await import("@/lib/music/youtube");
+        const ytTrack = await getYouTubeTrackByVideoId(slug);
+        if (ytTrack) {
+            return NextResponse.json({
+                track: ytTrack,
+                album: null,
+                viewer: { balanceUnits: null, requireAuth: false },
+            });
+        }
         return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
