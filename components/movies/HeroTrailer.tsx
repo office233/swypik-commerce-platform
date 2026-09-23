@@ -21,7 +21,7 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
   const trailerKey = series.trailerVideoId;
 
   return (
-    <section className="relative h-[60vh] sm:h-[72vh] md:h-[80vh] w-full overflow-hidden bg-black">
+    <section className="relative h-[56vh] sm:h-[68vh] md:h-[75vh] w-full overflow-hidden bg-black">
       {/* Background Image / Backdrop */}
       {heroImage && (
         // eslint-disable-next-line @next/next/no-img-element
