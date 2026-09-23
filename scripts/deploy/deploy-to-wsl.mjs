@@ -21,6 +21,7 @@ try {
     console.log("\n=== 3. Pull & Rebuild on WSL (distro swypik) ===");
     const wslCommands = [
         "cd /opt/swypik/app",
+        "git checkout -- .",
         "git pull origin main",
         "docker compose -f infra/hetzner/docker-compose.prod.yml -f infra/hetzner/docker-compose.vps.yml -f infra/hetzner/docker-compose.minio.yml --env-file infra/hetzner/.env.production build web-next",
         "docker compose -f infra/hetzner/docker-compose.prod.yml -f infra/hetzner/docker-compose.vps.yml -f infra/hetzner/docker-compose.minio.yml --env-file infra/hetzner/.env.production up -d --no-deps --force-recreate web-next",
