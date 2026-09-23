@@ -18,6 +18,7 @@ import TrackRow from "@/components/music/TrackRow";
 import { useMusicPlayer } from "@/components/music/MusicPlayerProvider";
 import { moviesDisplayFont, MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
 import { haptic } from "@/lib/haptic";
+import StationBadge from "@/components/music/StationBadge";
 import type { MusicHomeRow } from "@/lib/music/home";
 import type { TrackDto } from "@/lib/music/types";
 import type { AudioFeedResponse, AudioItemDto } from "@/lib/audio/types";
@@ -129,39 +130,46 @@ export default function MusicClient() {
 
     return (
         <main className={`${moviesDisplayFont.variable} min-h-screen bg-[#0A0910] pb-32 text-white`}>
-            {/* Header Sticky Curat */}
-            <header className="sticky top-0 z-30 bg-[#0A0910]/95 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
-                <div className="flex items-center gap-3 px-4 pb-2.5">
-                    <Link href="/" aria-label="Înapoi" className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 active:scale-95 transition-all">
-                        <ArrowLeft size={18} />
-                    </Link>
-                    <div className="flex-1 min-w-0">
-                        <div className="relative flex items-center">
-                            <Search size={15} className="absolute left-3 text-white/40 pointer-events-none" />
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Caută radio, beat-uri, podcasturi..."
-                                className="w-full rounded-full bg-white/10 py-1.5 pl-9 pr-8 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/10 focus:ring-[#7C3AED] focus:bg-white/15 transition-all"
-                            />
-                            {searchQuery && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearchQuery("")}
-                                    className="absolute right-2.5 grid h-4 w-4 place-items-center rounded-full bg-white/20 text-white/70 hover:text-white"
-                                >
-                                    <X size={10} />
-                                </button>
-                            )}
-                        </div>
+            {/* Header Sticky Curat & Mobile-First */}
+            <header className="sticky top-0 z-30 bg-[#0A0910]/95 backdrop-blur-xl border-b border-white/10" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
+                <div className="flex items-center justify-between gap-3 px-4 pb-2">
+                    <div className="flex items-center gap-3">
+                        <Link href="/" aria-label="Înapoi" className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 active:scale-95 transition-all">
+                            <ArrowLeft size={18} />
+                        </Link>
+                        <MusicBrand size="md" />
                     </div>
-                    <MusicBrand size="md" />
+                    <span className="flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/20 px-2.5 py-0.5 text-[10px] font-bold text-red-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                        LIVE AUDIO
+                    </span>
+                </div>
+
+                <div className="px-4 pb-2">
+                    <div className="relative flex items-center">
+                        <Search size={15} className="absolute left-3.5 text-white/40 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Caută radio, beat-uri, podcasturi..."
+                            className="w-full rounded-xl bg-white/10 py-2 pl-9 pr-8 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/10 focus:ring-[#7C3AED] focus:bg-white/15 transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-2.5 grid h-5 w-5 place-items-center rounded-full bg-white/20 text-white/70 hover:text-white"
+                            >
+                                <X size={12} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Tab Bar Curat & Vizual */}
                 {!searchQuery && (
-                    <div className="flex items-center gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none]">
+                    <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none]">
                         {TABS.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -175,14 +183,14 @@ export default function MusicClient() {
                                     }}
                                     className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
                                         isActive
-                                            ? "bg-[#7C3AED] text-white shadow-[0_0_16px_rgba(124,58,237,0.5)]"
+                                            ? "bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-white shadow-[0_0_16px_rgba(124,58,237,0.5)] scale-[1.02]"
                                             : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/5"
                                     }`}
                                 >
                                     <Icon size={14} className={isActive ? "text-white" : "text-white/60"} />
                                     <span>{tab.label}</span>
                                     {tab.badge && (
-                                        <span className={`text-[9px] px-1 rounded-full ${isActive ? "bg-white/25 text-white" : "bg-white/10 text-white/60"}`}>
+                                        <span className={`text-[9px] px-1 rounded-full ${isActive ? "bg-white/25 text-white font-black" : "bg-white/10 text-white/60"}`}>
                                             {tab.badge}
                                         </span>
                                     )}
@@ -245,35 +253,30 @@ export default function MusicClient() {
                                             if (isCurrent) toggle();
                                             else play(tabTracks, i);
                                         }}
-                                        className={`group relative flex flex-col items-center justify-between p-4 rounded-2xl border text-center transition-all ${
+                                        className={`group relative flex flex-col items-center justify-between p-3.5 sm:p-4 rounded-2xl border text-center transition-all ${
                                             isCurrent
-                                                ? "bg-[#7C3AED]/20 border-[#7C3AED] shadow-[0_0_24px_rgba(124,58,237,0.3)] scale-[1.02]"
-                                                : "bg-white/[0.04] border-white/10 hover:bg-white/[0.08] hover:border-white/20 active:scale-95"
+                                                ? "bg-[#7C3AED]/20 border-[#7C3AED] shadow-[0_0_24px_rgba(124,58,237,0.35)] scale-[1.02]"
+                                                : "bg-white/[0.04] border-white/10 hover:bg-white/[0.08] hover:border-white/20 active:scale-[0.98]"
                                         }`}
                                     >
-                                        <div className="relative h-16 w-16 mb-3 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center p-2 shadow-inner">
-                                            {station.coverUrl ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={station.coverUrl}
-                                                    alt={station.title}
-                                                    referrerPolicy="no-referrer"
-                                                    className="h-full w-full object-contain"
-                                                />
-                                            ) : (
-                                                <Radio size={28} className="text-white/60" />
-                                            )}
+                                        <div className="relative mb-2.5">
+                                            <StationBadge
+                                                slug={station.slug}
+                                                title={station.title}
+                                                coverUrl={station.coverUrl}
+                                                size="md"
+                                            />
                                             {isCurrentPlaying && (
-                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                    <span className="h-3 w-3 rounded-full bg-[#7C3AED] animate-ping" />
+                                                <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center pointer-events-none">
+                                                    <span className="h-4 w-4 rounded-full bg-[#7C3AED] animate-ping" />
                                                 </div>
                                             )}
                                         </div>
 
-                                        <h3 className="font-bold text-sm text-white line-clamp-1 group-hover:text-[#A78BFA] transition-colors">
+                                        <h3 className="font-bold text-sm text-white line-clamp-1 group-hover:text-[#A78BFA] transition-colors w-full">
                                             {station.title}
                                         </h3>
-                                        <p className="text-[11px] text-white/50 line-clamp-1 mb-3">
+                                        <p className="text-[11px] text-white/50 line-clamp-1 mb-2.5 w-full">
                                             {station.genre || "Hituri & Pop"}
                                         </p>
 
@@ -282,7 +285,9 @@ export default function MusicClient() {
                                                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
                                                 LIVE
                                             </span>
-                                            <div className="h-7 w-7 rounded-full bg-white text-black flex items-center justify-center shadow-md group-hover:bg-[#7C3AED] group-hover:text-white transition-colors">
+                                            <div className={`h-7 w-7 rounded-full flex items-center justify-center shadow-md transition-colors ${
+                                                isCurrentPlaying ? "bg-[#7C3AED] text-white" : "bg-white text-black group-hover:bg-[#7C3AED] group-hover:text-white"
+                                            }`}>
                                                 {isCurrentPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
                                             </div>
                                         </div>

@@ -8,11 +8,26 @@ export async function POST(req: NextRequest) {
   if (!isEnabled("news")) return frozenResponse("news");
 
   try {
-    const res = await runNewsIngestionPipeline();
+    let targetCategory: string | undefined;
+
+    const urlCat = req.nextUrl.searchParams.get("category");
+    if (urlCat) {
+      targetCategory = urlCat;
+    } else {
+      try {
+        const body = await req.json().catch(() => ({}));
+        if (body?.category) targetCategory = String(body.category);
+      } catch {
+        // query param fallback
+      }
+    }
+
+    const res = await runNewsIngestionPipeline(targetCategory);
     return NextResponse.json({
       ok: true,
-      message: `Pipeline executat cu succes. ${res.ingested} articole noi generate de AI.`,
+      message: `Pipeline executat cu succes. ${res.ingested} articole noi generate de AI pentru categoriile: ${res.categoriesProcessed.join(", ") || targetCategory || "toate"}.`,
       ingested: res.ingested,
+      categories: res.categoriesProcessed,
     });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });

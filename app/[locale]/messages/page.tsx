@@ -14,6 +14,7 @@ import {
   Smile,
   ShieldCheck,
   Radio,
+  ArrowLeft,
 } from "lucide-react";
 import ActiveCallOverlay from "@/components/messenger/Calls/ActiveCallOverlay";
 import IncomingCallDialog from "@/components/messenger/Calls/IncomingCallDialog";
@@ -69,6 +70,9 @@ const DEMO_CONTACTS: ChatContact[] = [
 export default function WhatsAppMessengerPage() {
   const [contacts] = useState<ChatContact[]>(DEMO_CONTACTS);
   const [selectedContact, setSelectedContact] = useState<ChatContact>(DEMO_CONTACTS[0]);
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [filterTab, setFilterTab] = useState<"all" | "unread" | "groups">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [messages, setMessages] = useState<Record<string, Message[]>>({
     c1: [
       { id: "m1", sender: "peer", text: "Salut! Ai văzut noile produse din live feed?", time: "14:15", status: "read" },
@@ -150,14 +154,21 @@ export default function WhatsAppMessengerPage() {
   return (
     <div className="flex h-screen bg-[#0c1317] text-slate-100 overflow-hidden font-sans">
       {/* ── STÂNGA: Listă Contacte WhatsApp ────────────────────────── */}
-      <div className="w-full md:w-96 flex-shrink-0 flex flex-col border-r border-[#222e35] bg-[#111b21]">
+      <div
+        className={`${
+          mobileView === "chat" ? "hidden md:flex" : "flex"
+        } w-full md:w-96 flex-shrink-0 flex-col border-r border-[#222e35] bg-[#111b21] pb-16 md:pb-0`}
+      >
         {/* Header stânga */}
         <div className="h-16 px-4 bg-[#202c33] flex items-center justify-between border-b border-[#222e35]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow">
+            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow ring-2 ring-emerald-500/30">
               SW
             </div>
-            <span className="font-bold text-white text-base">Swypik Chat</span>
+            <div>
+              <span className="font-bold text-white text-base">Swypik Chat</span>
+              <span className="block text-[10px] text-emerald-400 font-medium">WhatsApp HD & WebRTC</span>
+            </div>
           </div>
           <div className="flex items-center gap-2 text-slate-400">
             {/* Buton test apel primit */}
@@ -169,7 +180,7 @@ export default function WhatsAppMessengerPage() {
                   callType: "video",
                 })
               }
-              className="px-2.5 py-1 rounded bg-[#2a3942] hover:bg-[#32444f] text-emerald-400 text-xs font-semibold flex items-center gap-1 transition"
+              className="px-2.5 py-1 rounded-full bg-[#2a3942] hover:bg-[#32444f] text-emerald-400 text-xs font-semibold flex items-center gap-1 transition"
               title="Testează Apel Primit"
             >
               <Radio size={14} className="animate-pulse" /> Test Apel
@@ -180,25 +191,61 @@ export default function WhatsAppMessengerPage() {
           </div>
         </div>
 
-        {/* Search bar */}
-        <div className="p-3 bg-[#111b21] border-b border-[#222e35]">
-          <div className="flex items-center gap-3 px-4 py-2 bg-[#202c33] rounded-lg text-slate-400 text-sm">
+        {/* Search bar & Filter Pills */}
+        <div className="p-3 bg-[#111b21] border-b border-[#222e35] space-y-2">
+          <div className="flex items-center gap-3 px-4 py-2 bg-[#202c33] rounded-xl text-slate-400 text-sm">
             <Search size={16} />
             <input
               type="text"
-              placeholder="Caută sau începe o conversație..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Caută conversații..."
               className="bg-transparent border-none outline-none text-slate-200 placeholder-slate-400 w-full text-xs sm:text-sm"
             />
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-0.5">
+            <button
+              onClick={() => setFilterTab("all")}
+              className={`px-3 py-1 rounded-full font-medium transition ${
+                filterTab === "all" ? "bg-emerald-600 text-white font-bold" : "bg-[#202c33] text-slate-400 hover:text-white"
+              }`}
+            >
+              Toate
+            </button>
+            <button
+              onClick={() => setFilterTab("unread")}
+              className={`px-3 py-1 rounded-full font-medium transition ${
+                filterTab === "unread" ? "bg-emerald-600 text-white font-bold" : "bg-[#202c33] text-slate-400 hover:text-white"
+              }`}
+            >
+              Necitite
+            </button>
+            <button
+              onClick={() => setFilterTab("groups")}
+              className={`px-3 py-1 rounded-full font-medium transition ${
+                filterTab === "groups" ? "bg-emerald-600 text-white font-bold" : "bg-[#202c33] text-slate-400 hover:text-white"
+              }`}
+            >
+              Grupuri
+            </button>
           </div>
         </div>
 
         {/* Lista de conversații */}
         <div className="flex-1 overflow-y-auto divide-y divide-[#222e35]">
-          {contacts.map((contact) => (
+          {contacts
+            .filter((c) => (filterTab === "unread" ? c.unread > 0 : true))
+            .filter((c) =>
+              searchQuery ? c.name.toLowerCase().includes(searchQuery.toLowerCase()) : true
+            )
+            .map((contact) => (
             <div
               key={contact.id}
-              onClick={() => setSelectedContact(contact)}
-              className={`flex items-center gap-3.5 px-4 py-3.5 cursor-pointer transition ${
+              onClick={() => {
+                setSelectedContact(contact);
+                setMobileView("chat");
+              }}
+              className={`flex items-center gap-3.5 px-4 py-3.5 cursor-pointer transition active:scale-[0.99] ${
                 selectedContact.id === contact.id ? "bg-[#2a3942]" : "hover:bg-[#202c33]"
               }`}
             >
@@ -232,15 +279,31 @@ export default function WhatsAppMessengerPage() {
       </div>
 
       {/* ── DREAPTA: Zona de Chat & Video Call ─────────────────────── */}
-      <div className="flex-1 flex flex-col bg-[#0b141a] relative">
+      <div
+        className={`${
+          mobileView === "list" ? "hidden md:flex" : "flex"
+        } flex-1 flex-col bg-[#0b141a] relative h-full`}
+      >
         {/* Header chat activ */}
         <div className="h-16 px-4 bg-[#202c33] flex items-center justify-between border-b border-[#222e35] z-10">
-          <div className="flex items-center gap-3">
-            <img
-              src={selectedContact.avatar}
-              alt={selectedContact.name}
-              className="w-10 h-10 rounded-full object-cover"
-            />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setMobileView("list")}
+              className="md:hidden p-2 -ml-2 text-slate-300 hover:text-white rounded-full transition"
+              title="Înapoi la mesaje"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="relative">
+              <img
+                src={selectedContact.avatar}
+                alt={selectedContact.name}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              {selectedContact.online && (
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#202c33]" />
+              )}
+            </div>
             <div>
               <h3 className="font-bold text-sm text-slate-100">{selectedContact.name}</h3>
               <span className="text-xs text-emerald-400">
@@ -316,13 +379,16 @@ export default function WhatsAppMessengerPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar stil WhatsApp Web */}
-        <div className="h-16 px-4 bg-[#202c33] flex items-center gap-3 border-t border-[#222e35]">
+        {/* Input Bar stil WhatsApp Web & Mobile */}
+        <div
+          className="min-h-16 px-3 sm:px-4 py-2 bg-[#202c33] flex items-center gap-2 sm:gap-3 border-t border-[#222e35] z-10"
+          style={{ paddingBottom: "max(12px, calc(10px + env(safe-area-inset-bottom, 0px)))" }}
+        >
           <button className="p-2 text-slate-400 hover:text-slate-200 transition">
-            <Smile size={22} />
+            <Smile size={20} />
           </button>
           <button className="p-2 text-slate-400 hover:text-slate-200 transition">
-            <Paperclip size={20} />
+            <Paperclip size={18} />
           </button>
           <input
             type="text"
@@ -330,18 +396,18 @@ export default function WhatsAppMessengerPage() {
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             placeholder="Scrie un mesaj..."
-            className="flex-1 bg-[#2a3942] text-slate-100 placeholder-slate-400 text-sm px-4 py-2.5 rounded-lg outline-none border-none"
+            className="flex-1 bg-[#2a3942] text-slate-100 placeholder-slate-400 text-xs sm:text-sm px-4 py-2.5 rounded-full outline-none border-none"
           />
           {inputVal.trim() ? (
             <button
               onClick={handleSendMessage}
-              className="p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 transition"
+              className="p-2.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition active:scale-95 shadow-md"
             >
-              <Send size={18} />
+              <Send size={16} />
             </button>
           ) : (
             <button className="p-2 text-slate-400 hover:text-slate-200 transition">
-              <Mic size={22} />
+              <Mic size={20} />
             </button>
           )}
         </div>

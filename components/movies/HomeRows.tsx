@@ -17,35 +17,50 @@ export function Row({ title, children }: { title: string; children: React.ReactN
   );
 }
 
-/** Top 10 cu cifre mari conturate (stilul Netflix), cifra ocupă jumătatea stângă a cardului. */
+/** Top 10 Swypik Trending: Card modern de cinema cu badge de ranking gradient Swypik și poster 4K. */
 function TopTenCard({ series, rank }: { series: SeriesDto; rank: number }) {
   return (
-    <Link href={`/movies/${series.slug}`} className="group relative flex w-[50vw] max-w-[210px] shrink-0 snap-start items-end">
-      <span
-        aria-hidden
-        className={`${MOVIES_DISPLAY_CLASS} pointer-events-none -mr-5 select-none text-[120px] sm:text-[140px] leading-[0.8] text-black drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]`}
-        style={{ WebkitTextStroke: "2.5px rgba(255,255,255,0.7)" }}
-      >
-        {rank}
-      </span>
-      <div className="relative z-10 aspect-[2/3] w-[34vw] max-w-[140px] overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95 shadow-xl">
+    <Link href={`/movies/${series.slug}`} className="group relative block w-[38vw] max-w-[160px] shrink-0 snap-start">
+      <div className="relative aspect-[2/3] overflow-hidden rounded-2xl bg-neutral-900 ring-1 ring-white/10 transition-all duration-300 group-hover:scale-105 group-hover:ring-[#7C3AED]/50 group-active:scale-95 shadow-xl">
+        {/* Badge Ranking Swypik cu gradient */}
+        <div className="absolute left-2 top-2 z-20 flex items-center gap-1 rounded-lg bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#EC4899] px-2 py-0.5 text-[11px] font-black text-white shadow-[0_0_12px_rgba(124,58,237,0.5)]">
+          <span>#{rank}</span>
+        </div>
+
+        {/* Badge 4K */}
+        <span className="absolute right-2 top-2 z-20 rounded-md bg-black/60 backdrop-blur-md px-1.5 py-0.5 text-[9px] font-black uppercase text-white/90 ring-1 ring-white/20">
+          4K
+        </span>
+
         {series.posterUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={series.posterUrl}
             alt={series.title}
             referrerPolicy="no-referrer"
-            className="h-full w-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              const parent = e.currentTarget.parentElement;
+              if (parent) {
+                const fb = parent.querySelector(".poster-fallback");
+                if (fb) (fb as HTMLElement).style.display = "flex";
+              }
+            }}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-800 to-black flex items-center justify-center p-2 text-center text-xs text-white/50">
+        ) : null}
+
+        <div className="poster-fallback absolute inset-0 bg-gradient-to-br from-neutral-800 via-neutral-900 to-black flex items-center justify-center p-3 text-center text-xs font-bold text-white/80" style={{ display: series.posterUrl ? "none" : "flex" }}>
+          {series.title}
+        </div>
+
+        {/* Gradient subtil jos cu titlul filmului */}
+        <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/70 to-transparent p-2.5 pt-8">
+          <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#A78BFA] transition-colors drop-shadow">
             {series.title}
-          </div>
-        )}
-        <span className="absolute right-1.5 top-1.5 rounded bg-black/60 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-black uppercase text-white/90 ring-1 ring-white/20">
-          4K
-        </span>
+          </p>
+        </div>
       </div>
     </Link>
   );

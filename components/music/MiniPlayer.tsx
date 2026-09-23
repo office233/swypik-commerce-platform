@@ -5,10 +5,11 @@ import { useTranslations } from "next-intl";
 import { Pause, Play, SkipForward, Tv, X } from "lucide-react";
 import { Link, usePathname } from "@/lib/i18n/navigation";
 import { haptic } from "@/lib/haptic";
+import StationBadge from "./StationBadge";
 import { useMusicPlayer } from "./MusicPlayerProvider";
 
 const BOTTOM_NAV_HIDDEN_PATHS = [
-    "/movies", "/go", "/checkout", "/reels/record", "/seller", "/sellers",
+    "/movies", "/music", "/go", "/checkout", "/reels/record", "/seller", "/sellers",
     "/creator", "/admin", "/auth", "/upload", "/product", "/courier", "/developers",
 ];
 const BOTTOM_NAV_HEIGHT_PX = 56;
@@ -79,14 +80,21 @@ export default function MiniPlayer() {
                         </div>
                     </button>
                 ) : (
-                    <Link href={`/music/track/${current.slug}`} className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-white/10">
-                        {current.coverUrl && (
+                    <Link href={`/music/track/${current.slug}`} className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl">
+                        {current.source === "radio" ? (
+                            <StationBadge slug={current.slug} title={current.title} coverUrl={current.coverUrl} size="sm" />
+                        ) : current.coverUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                                 src={current.coverUrl}
                                 alt={current.title}
+                                referrerPolicy="no-referrer"
                                 className="h-full w-full object-cover"
                             />
+                        ) : (
+                            <div className="h-full w-full bg-violet-900 flex items-center justify-center text-xs font-bold text-white">
+                                {current.title.slice(0, 2)}
+                            </div>
                         )}
                     </Link>
                 )}

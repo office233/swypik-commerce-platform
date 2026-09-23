@@ -23,14 +23,22 @@ export default function PosterCard({
           <img
             src={series.posterUrl}
             alt={series.title}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              const parent = e.currentTarget.parentElement;
+              if (parent) {
+                const fb = parent.querySelector(".poster-fallback");
+                if (fb) (fb as HTMLElement).style.display = "flex";
+              }
+            }}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-800 to-black flex items-center justify-center p-3 text-center text-xs text-white/50">
-            {series.title}
-          </div>
-        )}
+        ) : null}
+        <div className="poster-fallback absolute inset-0 bg-gradient-to-br from-neutral-800 via-neutral-900 to-black flex items-center justify-center p-3 text-center text-xs font-bold text-white/80" style={{ display: series.posterUrl ? "none" : "flex" }}>
+          {series.title}
+        </div>
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
         {/* Badge 4K */}

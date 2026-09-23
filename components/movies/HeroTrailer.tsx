@@ -28,6 +28,15 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
         <img
           src={heroImage}
           alt={series.title}
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            // Dacă backdropUrl pică, încearcă posterUrl
+            if (series.posterUrl && e.currentTarget.src !== series.posterUrl) {
+              e.currentTarget.src = series.posterUrl;
+            } else {
+              e.currentTarget.style.display = "none";
+            }
+          }}
           className="absolute inset-0 h-full w-full object-cover object-top opacity-85 transition-opacity duration-700"
         />
       )}
@@ -50,29 +59,33 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
 
       {/* Content */}
       <div className="absolute inset-x-0 bottom-0 px-5 pb-8 max-w-4xl" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom))" }}>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="rounded bg-[#E50914] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white">
-            CINEMA 4K
+        <div className="flex items-center gap-2 mb-2.5">
+          <span className="rounded-full bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#EC4899] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_0_16px_rgba(124,58,237,0.6)]">
+            SWYPIK CINEMA 4K
           </span>
-          <span className="text-xs font-bold text-yellow-400 flex items-center gap-1">
+          <span className="rounded-full bg-black/60 backdrop-blur-md px-2 py-0.5 text-xs font-bold text-yellow-400 border border-white/10 flex items-center gap-1 shadow-sm">
             ★ {series.slug.includes("dune") ? "8.6" : "8.4"} TMDB
           </span>
         </div>
 
-        <h1 className={`${MOVIES_DISPLAY_CLASS} text-5xl sm:text-7xl font-black leading-[0.9] text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]`}>
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)] leading-tight">
           {series.title}
         </h1>
 
         {series.synopsis && (
-          <p className="mt-3 line-clamp-2 sm:line-clamp-3 text-xs sm:text-sm text-white/80 max-w-2xl leading-relaxed drop-shadow">
+          <p className="mt-2.5 line-clamp-2 sm:line-clamp-3 text-xs sm:text-sm text-white/80 max-w-2xl leading-relaxed drop-shadow">
             {series.synopsis}
           </p>
         )}
 
         {genres.length > 0 && (
-          <p className="mt-2 text-xs font-semibold text-white/60">
-            {genres.join(" • ")}
-          </p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {genres.map((g) => (
+              <span key={g} className="rounded-md bg-white/10 backdrop-blur-sm px-2 py-0.5 text-[11px] font-semibold text-white/70">
+                {g}
+              </span>
+            ))}
+          </div>
         )}
 
         <div className="mt-5 flex items-center gap-3">
@@ -80,14 +93,14 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
             <button
               type="button"
               onClick={() => setShowTrailerModal(true)}
-              className="flex items-center gap-2 rounded-lg bg-white px-6 py-2.5 text-sm sm:text-base font-bold text-black shadow-xl active:scale-95 transition-transform"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-black text-white shadow-[0_0_24px_rgba(124,58,237,0.5)] active:scale-95 hover:brightness-110 transition-all"
             >
               <Play size={18} fill="currentColor" /> Redă Trailer 4K
             </button>
           ) : (
             <Link
               href={`/movies/${series.slug}/1`}
-              className="flex items-center gap-2 rounded-lg bg-white px-6 py-2.5 text-sm sm:text-base font-bold text-black shadow-xl active:scale-95 transition-transform"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-black text-white shadow-[0_0_24px_rgba(124,58,237,0.5)] active:scale-95 hover:brightness-110 transition-all"
             >
               <Play size={18} fill="currentColor" /> {t("play")}
             </Link>
@@ -95,7 +108,7 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
 
           <Link
             href={`/movies/${series.slug}`}
-            className="flex items-center gap-2 rounded-lg bg-white/20 px-5 py-2.5 text-sm sm:text-base font-bold text-white backdrop-blur-md hover:bg-white/30 active:scale-95 transition-all"
+            className="flex items-center gap-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 px-4 py-2.5 sm:px-5 sm:py-3 text-sm sm:text-base font-bold text-white hover:bg-white/20 active:scale-95 transition-all"
           >
             <Info size={18} /> {t("moreInfo")}
           </Link>

@@ -89,16 +89,6 @@ export type SuperAppModule = {
 };
 
 const SUPERAPP_MODULES: SuperAppModule[] = [
-    ...(isEnabledClient("messenger") ? [{
-        id: "messages",
-        brand: "Swypik Chat",
-        label: "Mesagerie & Apeluri Video HD",
-        badge: "Live",
-        badgeColor: "bg-emerald-600 text-white",
-        accent: "#10B981",
-        Icon: MessageSquareText,
-        href: "/messages",
-    }] : []),
     ...(isEnabledClient("news") ? [{
         id: "news",
         brand: "Swypik AI News",

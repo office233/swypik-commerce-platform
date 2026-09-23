@@ -3,18 +3,18 @@
 import { useEffect } from "react";
 import { Link, usePathname } from "@/lib/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Home, Compass, Plus, Inbox, User } from "lucide-react";
+import { Home, Compass, Plus, MessageSquareText, User } from "lucide-react";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import { haptic } from "@/lib/haptic";
 
-type NavKey = "home" | "explore" | "upload" | "inbox" | "account";
+type NavKey = "home" | "explore" | "upload" | "inbox" | "account" | "messages";
 type Item = { href: string; icon: typeof Home; key: NavKey; center?: boolean; flag?: "dm" | "pushNotifications" | "stripeConnect" | "returns" };
 
 const NAV_ITEMS: Item[] = [
   { href: "/", icon: Home, key: "home" },
   { href: "/explore", icon: Compass, key: "explore" },
   { href: "/reels/record", icon: Plus, key: "upload", center: true },
-  { href: "/inbox", icon: Inbox, key: "inbox" },
+  { href: "/messages", icon: MessageSquareText, key: "messages" },
   { href: "/account", icon: User, key: "account" },
 ];
 
@@ -22,8 +22,8 @@ export default function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
   // Ascuns pe zonele „pro" (curier/șofer, seller, admin, developers) și pe
-  // fluxurile full-screen (go/mobilitate, checkout, înregistrare video, produs).
-  const hiddenPaths = ["/movies", "/go", "/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/product", "/courier", "/developers"];
+  // fluxurile full-screen (movies, music, go/mobilitate, checkout, înregistrare video, produs).
+  const hiddenPaths = ["/movies", "/music", "/go", "/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/product", "/courier", "/developers"];
   // Bara internă din ChatInterface a fost eliminată (2026-07-29) —
   // BottomNav e acum SINGURA navigare, inclusiv pe homepage.
   const isHidden = hiddenPaths.some((p) => pathname.startsWith(p));

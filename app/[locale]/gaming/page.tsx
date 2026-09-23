@@ -90,7 +90,10 @@ export default function GamingHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
+    <div
+      className="min-h-screen bg-slate-950 text-slate-100"
+      style={{ paddingBottom: "max(96px, calc(80px + env(safe-area-inset-bottom, 0px)))" }}
+    >
       {/* Top Banner Hero */}
       <div className="relative overflow-hidden bg-gradient-to-b from-indigo-950/60 via-slate-900 to-slate-950 px-4 py-8 sm:px-8 border-b border-slate-800">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
@@ -117,8 +120,8 @@ export default function GamingHubPage() {
           </div>
         </div>
 
-        {/* Tab-uri Navigație */}
-        <div className="max-w-6xl mx-auto mt-8 flex gap-2 border-b border-slate-800/80">
+        {/* Tab-uri Navigație (Mobile friendly horizontal scroll) */}
+        <div className="max-w-6xl mx-auto mt-6 flex gap-2 border-b border-slate-800/80 overflow-x-auto no-scrollbar pb-1">
           <button
             onClick={() => setActiveTab("arcade")}
             className={`flex items-center gap-2 px-5 py-3 font-bold text-sm border-b-2 transition ${

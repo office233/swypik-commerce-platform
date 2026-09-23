@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createChart, ColorType } from "lightweight-charts";
+import { createChart, ColorType, CandlestickSeries, type UTCTimestamp } from "lightweight-charts";
 
 interface TradingViewChartProps {
   symbol?: string;
@@ -30,7 +30,7 @@ export default function TradingViewChart({ symbol = "ETH/USDT" }: TradingViewCha
       },
     });
 
-    const candlestickSeries = (chart as any).addCandlestickSeries({
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: "#10b981",
       downColor: "#ef4444",
       borderVisible: false,
@@ -42,16 +42,16 @@ export default function TradingViewChart({ symbol = "ETH/USDT" }: TradingViewCha
     const now = Math.floor(Date.now() / 1000);
     const day = 86400;
     const initialData = [
-      { time: now - 10 * day, open: 2450, high: 2510, low: 2420, close: 2480 },
-      { time: now - 9 * day, open: 2480, high: 2530, low: 2460, close: 2520 },
-      { time: now - 8 * day, open: 2520, high: 2580, low: 2500, close: 2540 },
-      { time: now - 7 * day, open: 2540, high: 2550, low: 2470, close: 2490 },
-      { time: now - 6 * day, open: 2490, high: 2600, low: 2480, close: 2580 },
-      { time: now - 5 * day, open: 2580, high: 2640, low: 2560, close: 2620 },
-      { time: now - 4 * day, open: 2620, high: 2670, low: 2590, close: 2610 },
-      { time: now - 3 * day, open: 2610, high: 2650, low: 2580, close: 2635 },
-      { time: now - 2 * day, open: 2635, high: 2690, low: 2620, close: 2670 },
-      { time: now - 1 * day, open: 2670, high: 2710, low: 2640, close: 2650 },
+      { time: (now - 10 * day) as UTCTimestamp, open: 2450, high: 2510, low: 2420, close: 2480 },
+      { time: (now - 9 * day) as UTCTimestamp, open: 2480, high: 2530, low: 2460, close: 2520 },
+      { time: (now - 8 * day) as UTCTimestamp, open: 2520, high: 2580, low: 2500, close: 2540 },
+      { time: (now - 7 * day) as UTCTimestamp, open: 2540, high: 2550, low: 2470, close: 2490 },
+      { time: (now - 6 * day) as UTCTimestamp, open: 2490, high: 2600, low: 2480, close: 2580 },
+      { time: (now - 5 * day) as UTCTimestamp, open: 2580, high: 2640, low: 2560, close: 2620 },
+      { time: (now - 4 * day) as UTCTimestamp, open: 2620, high: 2670, low: 2590, close: 2610 },
+      { time: (now - 3 * day) as UTCTimestamp, open: 2610, high: 2650, low: 2580, close: 2635 },
+      { time: (now - 2 * day) as UTCTimestamp, open: 2635, high: 2690, low: 2620, close: 2670 },
+      { time: (now - 1 * day) as UTCTimestamp, open: 2670, high: 2710, low: 2640, close: 2650 },
     ];
 
     candlestickSeries.setData(initialData);

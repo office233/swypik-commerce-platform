@@ -19,6 +19,7 @@ export async function generateAutonomousNewsArticle(rawTopic: {
   source: string;
   summary: string;
   url?: string;
+  categoryHint?: string;
 }): Promise<GeneratedArticle> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
 
@@ -37,13 +38,15 @@ export async function generateAutonomousNewsArticle(rawTopic: {
 Subiect: ${rawTopic.title}
 Sursă originală: ${rawTopic.source}
 Detalii brute: ${rawTopic.summary}
+Categorie recomandată: ${rawTopic.categoryHint || "tech-ai"}
 
 Instrucțiuni stricte:
 1. Piramida inversată: informația critică în primul paragraf, urmată de analiză și context.
 2. Fără halucinații, obiectivitate 100%.
 3. TL;DR: 3 puncte esențiale cu bullet-uri.
 4. Slug URL valid în limba română (doar caractere a-z, 0-9 și liniuță).
-5. Răspunde STRICT în format JSON valid:
+5. Categoria trebuie să fie strict una din: "tech-ai", "crypto", "gaming", "business", "science".
+6. Răspunde STRICT în format JSON valid:
 {
   "title": "Titlu captivant (max 85 caractere)",
   "slug": "titlu-articol-slug-in-romana",
@@ -79,7 +82,7 @@ Instrucțiuni stricte:
     slug: slug || `stire-${Date.now()}`,
     summary_tldr: `• Eveniment major raportat de ${rawTopic.source}.\n• Impact direct asupra pieței de tehnologie și utilizatorilor.\n• Detaliile complete sunt analizate în continuare.`,
     content_markdown: `## Analiză și Context\n\n${rawTopic.summary}\n\nPotrivit rapoartelor inițiale furnizate de **${rawTopic.source}**, această evoluție marchează un moment de cotitură în industrie. Experții evidențiază faptul că măsurile recente vor avea efecte imediate asupra ecosistemului digital.\n\n### Ce Urmează\n\nÎn următoarele săptămâni sunt așteptate clarificări suplimentare și lansări oficiale. Swypik monitorizează continuu situația pentru a vă ține la curent.`,
-    category_slug: "tech-ai",
+    category_slug: rawTopic.categoryHint || "tech-ai",
     tags: ["Tech", "Inovație", rawTopic.source],
     image_search_keywords: "technology modern innovation",
     reading_time_minutes: 3,
