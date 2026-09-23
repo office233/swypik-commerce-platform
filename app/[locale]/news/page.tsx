@@ -3,15 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Flame,
   Radio,
   Clock,
   CheckCircle2,
   Sparkles,
   ArrowRight,
-  Filter,
   Bot,
   RefreshCw,
+  TrendingUp,
+  Share2,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 interface Article {
@@ -29,12 +31,12 @@ interface Article {
 }
 
 const CATEGORIES = [
-  { slug: "all", name: "Toate Știrile" },
-  { slug: "tech-ai", name: "Tehnologie & AI" },
-  { slug: "crypto", name: "Crypto & Web3" },
-  { slug: "gaming", name: "Gaming" },
-  { slug: "business", name: "Business" },
-  { slug: "science", name: "Știință & Spațiu" },
+  { slug: "all", name: "Toate Știrile", icon: "🌐" },
+  { slug: "tech-ai", name: "Tehnologie & AI", icon: "⚡" },
+  { slug: "crypto", name: "Crypto & Web3", icon: "🪙" },
+  { slug: "gaming", name: "Gaming & WebGL", icon: "🎮" },
+  { slug: "business", name: "Piețe & Startups", icon: "📈" },
+  { slug: "science", name: "Știință & Spațiu", icon: "🔬" },
 ];
 
 export default function NewsFeedPage() {
@@ -65,7 +67,9 @@ export default function NewsFeedPage() {
       const res = await fetch("/api/cron/news-pipeline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: catToGen || (selectedCat !== "all" ? selectedCat : undefined) }),
+        body: JSON.stringify({
+          category: catToGen || (selectedCat !== "all" ? selectedCat : undefined),
+        }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -77,154 +81,228 @@ export default function NewsFeedPage() {
   };
 
   const breakingArticles = articles.filter((a) => a.is_breaking);
+  const heroArticle = articles[0];
+  const secondaryArticles = articles.slice(1);
 
   return (
     <div
-      className="min-h-screen bg-slate-950 text-slate-100"
-      style={{ paddingBottom: "max(84px, calc(72px + env(safe-area-inset-bottom, 0px)))" }}
+      className="min-h-screen bg-[#06080D] text-slate-100 font-sans selection:bg-cyan-500 selection:text-black"
+      style={{ paddingBottom: "max(96px, calc(80px + env(safe-area-inset-bottom, 0px)))" }}
     >
-      {/* ── BREAKING NEWS TICKER ───────────────────────────────────── */}
+      {/* ── LIVE BREAKING WIRE TICKER ───────────────────────────────── */}
       {breakingArticles.length > 0 && (
-        <div className="bg-rose-950/80 border-b border-rose-800/80 px-4 py-2 flex items-center gap-3 text-xs sm:text-sm">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-600 text-white font-black tracking-wider uppercase flex-shrink-0 text-[10px] sm:text-xs">
-            <Radio size={13} className="animate-pulse" /> BREAKING
-          </div>
-          <div className="flex-1 overflow-hidden whitespace-nowrap text-rose-200 truncate">
-            <span className="font-semibold">{breakingArticles[0].title}</span>
+        <div className="bg-gradient-to-r from-rose-950/90 via-red-900/80 to-rose-950/90 border-b border-rose-500/30 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-3 text-xs shadow-lg shadow-rose-950/30 backdrop-blur-md sticky top-0 z-40">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-black text-[10px] uppercase tracking-widest shadow-sm animate-pulse flex-shrink-0">
+              <Radio size={12} /> LIVE WIRE
+            </span>
+            <p className="truncate text-rose-100 font-medium text-xs sm:text-sm">
+              {breakingArticles[0].title}
+            </p>
           </div>
           <Link
             href={`/news/${breakingArticles[0].slug}`}
-            className="text-rose-400 hover:text-white font-bold flex items-center gap-1 transition flex-shrink-0 text-xs"
+            className="flex-shrink-0 px-3 py-1 rounded-full bg-rose-500/20 hover:bg-rose-500/40 text-rose-200 font-bold text-xs flex items-center gap-1 transition"
           >
-            Citește <ArrowRight size={13} />
+            Citește Flash <ArrowRight size={12} />
           </Link>
         </div>
       )}
 
-      {/* ── HERO BANNER ────────────────────────────────────────────── */}
-      <div className="border-b border-slate-800/80 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 px-4 py-6 sm:py-10 sm:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[11px] font-semibold uppercase tracking-wider mb-2.5">
-              <Bot size={13} /> Jurnalist AI Autonom Multi-Categorie
+      {/* ── HERO EDITORIAL BANNER ───────────────────────────────────── */}
+      <div className="relative border-b border-white/[0.08] bg-gradient-to-b from-[#0B0F17] via-[#080B12] to-[#06080D] px-4 sm:px-8 pt-8 pb-6 sm:pb-10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+              <Zap size={14} className="text-cyan-400" /> Swypik Global AI Wire • 24/7 Live
             </div>
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-2">
-              Swypik <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">AI News</span>
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-none">
+              Știri Globale &{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">
+                Jurnalist AI
+              </span>
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
-              Știri sintetizate și verificate factual în timp real de AI-ul Swypik pe Tech, Crypto, Gaming, Business și Știință.
+            <p className="text-slate-400 text-xs sm:text-sm max-w-2xl leading-relaxed">
+              Dispecerat de știri sintetizate și verificate factual în timp real de AI din cele mai prestigioase agenții de presă din lume (TechCrunch, CoinDesk, Bloomberg, Reuters).
             </p>
           </div>
 
-          {/* Butoane generare AI */}
+          {/* Butoane Acțiune AI */}
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => handleTriggerAI("all")}
               disabled={generating}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-cyan-500/20 transition active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-cyan-500/20 active:scale-95 transition-all disabled:opacity-50"
             >
-              <Sparkles size={15} className={generating ? "animate-spin" : ""} />
-              {generating ? "AI generează știri..." : "Generează Toate Categoriile"}
+              <Sparkles size={16} className={generating ? "animate-spin" : ""} />
+              {generating ? "AI analizează sursele..." : "Actualizează Fluxul Global AI"}
             </button>
             {selectedCat !== "all" && (
               <button
                 onClick={() => handleTriggerAI(selectedCat)}
                 disabled={generating}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-400 font-bold text-xs shadow transition active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-cyan-300 font-bold text-xs shadow-md transition active:scale-95 disabled:opacity-50 backdrop-blur-md"
               >
                 <RefreshCw size={13} className={generating ? "animate-spin" : ""} />
-                Doar această categorie
+                Doar {CATEGORIES.find((c) => c.slug === selectedCat)?.name}
               </button>
             )}
           </div>
         </div>
 
-        {/* ── CATEGORY PILLS (Mobile-first horizontal scroll) ─────── */}
-        <div className="max-w-6xl mx-auto mt-6 flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+        {/* ── CATEGORY PILLS (Horizontal Scroll) ────────────────────── */}
+        <div className="max-w-7xl mx-auto mt-8 flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.slug}
               onClick={() => setSelectedCat(cat.slug)}
-              className={`px-3.5 py-2 rounded-full text-xs sm:text-sm font-bold transition whitespace-nowrap active:scale-95 ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap active:scale-95 ${
                 selectedCat === cat.slug
-                  ? "bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md shadow-cyan-500/10"
-                  : "bg-slate-900/90 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
+                  ? "bg-white text-slate-950 shadow-lg shadow-white/10 ring-2 ring-cyan-400/50"
+                  : "bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:bg-white/[0.08] hover:text-white"
               }`}
             >
-              {cat.name}
+              <span>{cat.icon}</span>
+              <span>{cat.name}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── MAIN ARTICLE GRID ──────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
+      {/* ── MAIN CONTENT: EDITORIAL LAYOUT ──────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-10">
         {loading ? (
-          <div className="py-20 text-center text-slate-400 text-sm flex flex-col items-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
-            <span>Se încarcă știrile AI...</span>
+          <div className="py-24 text-center text-slate-400 flex flex-col items-center gap-4">
+            <div className="w-10 h-10 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+            <span className="text-sm font-semibold tracking-wide">Se sincronizează articolele Swypik AI Wire...</span>
           </div>
         ) : articles.length === 0 ? (
-          <div className="py-16 text-center text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800/80 p-8 max-w-lg mx-auto">
-            <Bot size={36} className="mx-auto text-cyan-400 mb-3 opacity-80" />
-            <h3 className="font-bold text-white text-base mb-1">Niciun articol în această categorie încă</h3>
-            <p className="text-xs text-slate-400 mb-4">Apasă butonul de mai sus pentru ca jurnalistul AI autonom să genereze știri proaspete.</p>
+          <div className="py-20 text-center max-w-md mx-auto bg-white/[0.02] border border-white/[0.08] rounded-3xl p-8 backdrop-blur-md">
+            <Bot size={44} className="mx-auto text-cyan-400 mb-4 opacity-90 animate-bounce" />
+            <h3 className="text-lg font-bold text-white mb-2">Fluxul este pregătit pentru generare</h3>
+            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+              Apasă butonul de mai jos pentru ca Jurnalistul AI de elită să monitorizeze feed-urile live și să redacteze articole de impact.
+            </p>
             <button
               onClick={() => handleTriggerAI(selectedCat !== "all" ? selectedCat : "all")}
               disabled={generating}
-              className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition"
+              className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition shadow-lg shadow-cyan-500/20"
             >
               Lansează Jurnalistul AI
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {articles.map((art) => (
-              <Link
-                key={art.id}
-                href={`/news/${art.slug}`}
-                className="group flex flex-col bg-slate-900/90 border border-slate-800/90 hover:border-cyan-500/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-cyan-500/5 transition duration-200 active:scale-[0.99]"
-              >
-                {/* Cover Image */}
-                <div className="h-44 sm:h-48 w-full overflow-hidden relative bg-slate-950">
-                  <img
-                    src={art.cover_image_url}
-                    alt={art.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
-                  <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/75 backdrop-blur-md rounded-md text-[11px] font-bold text-cyan-300 border border-white/10">
-                    {art.category_name}
-                  </span>
-                  <span className="absolute top-3 right-3 px-2 py-0.5 bg-emerald-500/95 text-slate-950 font-black text-[10px] rounded flex items-center gap-1 shadow">
-                    <CheckCircle2 size={11} /> {art.fact_check_score}% Factual
-                  </span>
-                </div>
-
-                {/* Content */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-bold text-base sm:text-lg text-white group-hover:text-cyan-300 transition line-clamp-2 mb-2 leading-snug">
-                      {art.title}
-                    </h3>
-                    <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed mb-4">
-                      {art.summary_tldr}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-800/80 text-xs text-slate-400">
-                    <span className="flex items-center gap-1 text-[11px]">
-                      <Clock size={12} /> {art.reading_time_minutes} min lectură
+          <>
+            {/* ── HERO LEAD STORY (Featured Top Article) ────────────── */}
+            {heroArticle && (
+              <div className="relative group rounded-3xl overflow-hidden border border-white/[0.12] bg-[#0E131E] shadow-2xl transition hover:border-cyan-500/40">
+                <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[380px]">
+                  <div className="lg:col-span-7 relative h-64 sm:h-80 lg:h-full overflow-hidden bg-slate-950">
+                    <img
+                      src={heroArticle.cover_image_url}
+                      alt={heroArticle.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0E131E] via-[#0E131E]/20 to-transparent lg:hidden" />
+                    <span className="absolute top-4 left-4 px-3 py-1 bg-black/80 backdrop-blur-md rounded-xl text-xs font-black text-cyan-300 border border-white/10 uppercase tracking-wider">
+                      {heroArticle.category_name}
                     </span>
-                    <span className="text-cyan-400 font-bold group-hover:translate-x-1 transition flex items-center gap-1 text-xs">
-                      Citește <ArrowRight size={12} />
+                    <span className="absolute top-4 right-4 px-2.5 py-1 bg-emerald-500 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1 shadow-lg">
+                      <ShieldCheck size={14} /> {heroArticle.fact_check_score}% Verificat
                     </span>
                   </div>
+
+                  <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between space-y-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold uppercase text-[10px]">
+                          Primul la Știri
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} /> {heroArticle.reading_time_minutes} min lectură
+                        </span>
+                      </div>
+                      <h2 className="text-xl sm:text-3xl font-black text-white group-hover:text-cyan-300 transition-colors leading-tight">
+                        {heroArticle.title}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed line-clamp-3">
+                        {heroArticle.summary_tldr}
+                      </p>
+                    </div>
+
+                    <Link
+                      href={`/news/${heroArticle.slug}`}
+                      className="inline-flex items-center justify-between w-full px-5 py-3.5 rounded-2xl bg-white text-slate-950 hover:bg-cyan-400 font-black text-xs sm:text-sm transition-all group-hover:shadow-lg group-hover:shadow-cyan-400/20"
+                    >
+                      <span>Citește Articolul de Investigație</span>
+                      <ArrowRight size={16} />
+                    </Link>
+                  </div>
                 </div>
-              </Link>
-            ))}
-          </div>
+              </div>
+            )}
+
+            {/* ── GRID ARTICOLE SECUNDARE ──────────────────────────── */}
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  <TrendingUp size={18} className="text-cyan-400" /> Fluxuri Recente & Analize de Piață
+                </h3>
+                <span className="text-xs text-slate-400">
+                  {articles.length} articole verificate
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {secondaryArticles.map((art) => (
+                  <Link
+                    key={art.id}
+                    href={`/news/${art.slug}`}
+                    className="group flex flex-col bg-[#0C101A] border border-white/[0.08] hover:border-cyan-500/50 rounded-3xl overflow-hidden shadow-lg hover:shadow-cyan-500/5 transition-all duration-300 active:scale-[0.99]"
+                  >
+                    {/* Cover Image */}
+                    <div className="h-48 sm:h-52 w-full overflow-hidden relative bg-slate-950">
+                      <img
+                        src={art.cover_image_url}
+                        alt={art.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0C101A] via-transparent to-transparent" />
+                      <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/75 backdrop-blur-md rounded-lg text-[11px] font-bold text-cyan-300 border border-white/10">
+                        {art.category_name}
+                      </span>
+                      <span className="absolute top-3 right-3 px-2 py-0.5 bg-emerald-500/90 text-slate-950 font-black text-[10px] rounded-md flex items-center gap-1 shadow">
+                        <CheckCircle2 size={11} /> {art.fact_check_score}%
+                      </span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-base sm:text-lg text-white group-hover:text-cyan-300 transition-colors line-clamp-2 leading-snug">
+                          {art.title}
+                        </h4>
+                        <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                          {art.summary_tldr}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] text-xs text-slate-400">
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <Clock size={12} /> {art.reading_time_minutes} min lectură
+                        </span>
+                        <span className="text-cyan-400 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1 text-xs">
+                          Citește <ArrowRight size={12} />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

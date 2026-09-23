@@ -13,7 +13,7 @@
  */
 
 function flag(value: string | undefined, defaultEnabled: boolean): boolean {
-  if (value === undefined) return defaultEnabled;
+  if (value === undefined || value === "") return defaultEnabled;
   return value === '1' || value === 'true';
 }
 
@@ -26,8 +26,8 @@ export const CLIENT_FEATURES = {
   tryOn: flag(process.env.NEXT_PUBLIC_FEATURE_TRY_ON, false),
   // Trebuie setat ÎMPREUNĂ cu FEATURE_SQUAD_BUY (server) — vezi lib/feature-flags.ts.
   squadBuy: flag(process.env.NEXT_PUBLIC_FEATURE_SQUAD_BUY, false),
-  movies: flag(process.env.NEXT_PUBLIC_FEATURE_MOVIES, false),
-  music: flag(process.env.NEXT_PUBLIC_FEATURE_MUSIC, false),
+  movies: flag(process.env.NEXT_PUBLIC_FEATURE_MOVIES, true),
+  music: flag(process.env.NEXT_PUBLIC_FEATURE_MUSIC, true),
   news: flag(process.env.NEXT_PUBLIC_FEATURE_NEWS, true),
   gaming: flag(process.env.NEXT_PUBLIC_FEATURE_GAMING, true),
   crypto: flag(process.env.NEXT_PUBLIC_FEATURE_CRYPTO, true),

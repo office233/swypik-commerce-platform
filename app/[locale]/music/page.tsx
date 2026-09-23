@@ -38,8 +38,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default function MusicPage() {
-    if (!isEnabled("music")) notFound();
-
     const jsonLd = {
         "@context": "https://schema.org",
         "@type": "MusicPlaylist",

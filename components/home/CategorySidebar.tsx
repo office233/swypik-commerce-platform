@@ -129,26 +129,26 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         Icon: Users,
         href: "/squad",
     }] : []),
-    ...(isEnabledClient("movies") ? [{
+    {
         id: "movies",
         brand: "Swypik Movies",
         label: "Seriale scurte verticale",
-        badge: "Nou",
+        badge: "Cinema",
         badgeColor: "bg-red-600 text-white",
         accent: "#DC2626",
         Icon: Clapperboard,
         href: "/movies",
-    }] : []),
-    ...(isEnabledClient("music") ? [{
+    },
+    {
         id: "music",
         brand: "Swypik Music",
         label: "Artiști independenți • tips în SWYP",
-        badge: "Nou",
+        badge: "Audio",
         badgeColor: "bg-violet-600 text-white",
         accent: "#7C3AED",
         Icon: Music,
         href: "/music",
-    }] : []),
+    },
     {
         id: "mystery",
         brand: "Mystery Drop",

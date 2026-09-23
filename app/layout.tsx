@@ -67,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     ? cookieCurrency
     : CURRENCY_BY_LOCALE[locale] ?? "RON";
   return (
-    <html lang={locale} className="dark" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

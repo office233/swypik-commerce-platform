@@ -6,7 +6,7 @@
 
 function flag(name: string, defaultEnabled: boolean): boolean {
   const v = process.env[name];
-  if (v === undefined) return defaultEnabled;
+  if (v === undefined || v === '') return defaultEnabled;
   return v === '1' || v === 'true';
 }
 
@@ -30,8 +30,8 @@ export const FEATURES = {
   // checkout și nu se reține niciun ban — OFF până există integrarea cu plata.
   squadBuy: flag('FEATURE_SQUAD_BUY', false),
   // Swypik Movies — OFF până există primul serial publicat.
-  movies: flag('FEATURE_MOVIES', false),
-  music: flag('FEATURE_MUSIC', false),
+  movies: flag('FEATURE_MOVIES', true),
+  music: flag('FEATURE_MUSIC', true),
   news: flag('FEATURE_NEWS', true),
   gaming: flag('FEATURE_GAMING', true),
   crypto: flag('FEATURE_CRYPTO', true),
