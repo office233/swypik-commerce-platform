@@ -10,7 +10,7 @@ try {
     console.log("=== 1. Git Add & Commit ===");
     run("git add -A");
     try {
-        run('git commit -m "feat(movies-audio): always render movies and audio without gating"');
+        run('git commit -m "fix(mobile): optimize movies and music mobile layout, sticky header, and tabs"');
     } catch {
         console.log("No new changes to commit or already committed.");
     }

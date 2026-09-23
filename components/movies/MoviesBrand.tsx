@@ -2,8 +2,8 @@ import Link from "next/link";
 import { MOVIES_DISPLAY_CLASS } from "./fonts";
 
 /** Wordmark „SWYPIK MOVIES": identitate proprie Swypik cu gradient violet/pink și tipografie modernă. */
-export default function MoviesBrand({ href = "/movies", size = "md" }: { href?: string; size?: "md" | "lg" }) {
-  const sizeClass = size === "lg" ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl";
+export default function MoviesBrand({ href = "/movies", size = "md" }: { href?: string; size?: "sm" | "md" | "lg" }) {
+  const sizeClass = size === "lg" ? "text-3xl sm:text-4xl" : size === "sm" ? "text-lg sm:text-xl" : "text-xl sm:text-2xl";
   return (
     <Link href={href} aria-label="Swypik Movies" className="inline-flex items-center gap-1.5 leading-none tracking-tight font-black select-none">
       <span className={`text-white font-extrabold ${sizeClass}`}>SWYPIK</span>

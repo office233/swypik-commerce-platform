@@ -169,7 +169,7 @@ export default function MusicClient() {
 
                 {/* Tab Bar Curat & Vizual */}
                 {!searchQuery && (
-                    <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none]">
+                    <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-pan-x">
                         {TABS.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -181,16 +181,16 @@ export default function MusicClient() {
                                         haptic("tap");
                                         setActiveTab(tab.id);
                                     }}
-                                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                                    className={`shrink-0 flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition-all select-none ${
                                         isActive
                                             ? "bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-white shadow-[0_0_16px_rgba(124,58,237,0.5)] scale-[1.02]"
-                                            : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/5"
+                                            : "bg-white/10 text-white/70 hover:bg-white/15 hover:text-white border border-white/10"
                                     }`}
                                 >
                                     <Icon size={14} className={isActive ? "text-white" : "text-white/60"} />
                                     <span>{tab.label}</span>
                                     {tab.badge && (
-                                        <span className={`text-[9px] px-1 rounded-full ${isActive ? "bg-white/25 text-white font-black" : "bg-white/10 text-white/60"}`}>
+                                        <span className={`ml-0.5 text-[9px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-white/25 text-white font-black" : "bg-white/15 text-white/70 font-medium"}`}>
                                             {tab.badge}
                                         </span>
                                     )}
@@ -337,7 +337,10 @@ export default function MusicClient() {
 
             {/* Floating Mini Player (Când există piesă activă) */}
             {current && (
-                <div className="fixed bottom-[68px] inset-x-3 z-40 max-w-lg mx-auto rounded-2xl bg-[#13111C]/95 backdrop-blur-xl border border-white/15 p-2.5 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2">
+                <div
+                    className="fixed inset-x-3 z-40 max-w-lg mx-auto rounded-2xl bg-[#13111C]/95 backdrop-blur-xl border border-white/15 p-2.5 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2"
+                    style={{ bottom: "max(12px, env(safe-area-inset-bottom, 12px))" }}
+                >
                     <div className="relative h-12 w-12 shrink-0 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center">
                         {current.coverUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element

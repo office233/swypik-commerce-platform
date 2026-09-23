@@ -47,16 +47,13 @@ export default function PosterCard({
         </span>
 
         {rank !== undefined && (
-          <span
-            className="absolute -left-1 bottom-1 text-[54px] font-black leading-none text-white/90 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
-            style={{ WebkitTextStroke: "2px rgba(255,255,255,0.4)" }}
-          >
-            {rank}
-          </span>
+          <div className="absolute left-2 top-2 z-20 flex items-center gap-1 rounded-lg bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#EC4899] px-2 py-0.5 text-[11px] font-black text-white shadow-[0_0_12px_rgba(124,58,237,0.5)]">
+            <span>#{rank}</span>
+          </div>
         )}
 
         {series.isAdult && (
-          <span className="absolute left-2 top-2 rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">
+          <span className="absolute left-2 top-2 rounded-md bg-gradient-to-r from-red-600 to-pink-600 px-1.5 py-0.5 text-[10px] font-black text-white">
             18+
           </span>
         )}
@@ -64,13 +61,13 @@ export default function PosterCard({
         {progressPct !== undefined && (
           <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20">
             <div
-              className="h-full bg-red-500"
+              className="h-full bg-gradient-to-r from-[#7C3AED] to-[#EC4899]"
               style={{ width: `${Math.min(100, Math.max(PROGRESS_MIN_VISIBLE_PCT, progressPct))}%` }}
             />
           </div>
         )}
       </div>
-      <p className="mt-2 line-clamp-1 text-xs sm:text-sm font-bold leading-tight text-white group-hover:text-red-400 transition-colors">
+      <p className="mt-2 line-clamp-1 text-xs sm:text-sm font-bold leading-tight text-white group-hover:text-[#A78BFA] transition-colors">
         {series.title}
       </p>
       {series.genres.length > 0 && (

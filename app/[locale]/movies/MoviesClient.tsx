@@ -49,21 +49,29 @@ export default function MoviesClient() {
   if (error) return <div className="flex min-h-screen items-center justify-center bg-black text-white/70">{t("loadError")}</div>;
 
   return (
-    <main className={`${moviesDisplayFont.variable} min-h-screen bg-black pb-16 text-white`}>
-      <header className="fixed inset-x-0 top-0 z-30 bg-gradient-to-b from-black/90 to-transparent" style={{ paddingTop: "max(10px, env(safe-area-inset-top))" }}>
-        <div className="flex items-center gap-3 px-4 pb-1">
-          <Link href="/" aria-label={t("back")} className="rounded-full bg-black/40 p-2 text-white ring-1 ring-white/15"><ArrowLeft size={18} /></Link>
-          <MoviesBrand />
+    <main className={`${moviesDisplayFont.variable} min-h-screen bg-[#07070A] pb-24 text-white`}>
+      {/* Sticky Header cu fundal opac și backdrop blur — elimină orice suprapunere haotică la scroll */}
+      <header className="sticky top-0 z-40 bg-[#07070A]/95 backdrop-blur-xl border-b border-white/10" style={{ paddingTop: "max(10px, env(safe-area-inset-top))" }}>
+        <div className="flex items-center justify-between gap-3 px-4 pb-2">
+          <div className="flex items-center gap-2.5">
+            <Link href="/" aria-label={t("back")} className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 active:scale-95 transition-all">
+              <ArrowLeft size={18} />
+            </Link>
+            <MoviesBrand size="sm" />
+          </div>
+          <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#7C3AED]/20 to-[#EC4899]/20 border border-[#7C3AED]/40 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-pink-300">
+            CINEMA
+          </span>
         </div>
         <GenreChips selected={genre} onSelect={setGenre} />
       </header>
 
       {genre ? (
-        <section className="px-5 pt-32">
+        <section className="px-4 pt-5 pb-8">
           {genreItems === null ? null : genreItems.length === 0 ? (
-            <p className="text-white/60">{t("emptyGenre")}</p>
+            <p className="text-white/60 text-sm py-12 text-center">{t("emptyGenre")}</p>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {genreItems.map((s) => <PosterCard key={s.id} series={s} href={`/movies/${s.slug}`} />)}
             </div>
           )}
@@ -71,7 +79,7 @@ export default function MoviesClient() {
       ) : (
         <>
           {featured ? <HeroTrailer series={featured} playbackUrl={heroUrl} /> : (
-            <div className="flex h-[60vh] items-end px-5 pb-8">
+            <div className="flex h-[50vh] items-end px-5 pb-8">
               <div>
                 <MoviesBrand size="lg" />
                 <p className="mt-3 text-sm text-white/60">{home ? t("empty") : ""}</p>

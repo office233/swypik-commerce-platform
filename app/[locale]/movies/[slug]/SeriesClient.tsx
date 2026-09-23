@@ -59,22 +59,26 @@ export default function SeriesClient({ slug }: { slug: string }) {
   const genres = series.genres.filter(isMovieGenre).map((g) => t(genreLabelKey(g)));
 
   return (
-    <main className={`${moviesDisplayFont.variable} min-h-screen bg-black pb-24 text-white`}>
-      <header className="fixed inset-x-0 top-0 z-30 flex items-center gap-3 bg-gradient-to-b from-black/90 to-transparent px-4 pb-3" style={{ paddingTop: "max(10px, env(safe-area-inset-top))" }}>
-        <Link href="/movies" aria-label={t("back")} className="rounded-full bg-black/40 p-2 ring-1 ring-white/15"><ArrowLeft size={18} /></Link>
-        <MoviesBrand />
+    <main className={`${moviesDisplayFont.variable} min-h-screen bg-[#07070A] pb-24 text-white`}>
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-[#07070A]/95 backdrop-blur-xl border-b border-white/10 px-4 py-2.5" style={{ paddingTop: "max(10px, env(safe-area-inset-top))" }}>
+        <div className="flex items-center gap-3">
+          <Link href="/movies" aria-label={t("back")} className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 active:scale-95 transition-all">
+            <ArrowLeft size={18} />
+          </Link>
+          <MoviesBrand size="sm" />
+        </div>
       </header>
 
-      <section className="relative h-[62vh]">
+      <section className="relative h-[55vh] sm:h-[65vh]">
         {series.posterUrl && <Image src={series.posterUrl} alt={series.title} fill priority sizes="100vw" className="object-cover" />}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 px-5 pb-4">
+        <div className="absolute inset-0 bg-gradient-to-t from-[#07070A] via-[#07070A]/50 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 px-4 pb-4 sm:px-6">
           {series.owner.isOfficial ? (
-            <p className={`${MOVIES_DISPLAY_CLASS} text-sm tracking-[0.3em] text-[#E50914]`}>{t("official").toUpperCase()}</p>
+            <p className={`${MOVIES_DISPLAY_CLASS} text-xs font-black tracking-[0.25em] bg-gradient-to-r from-[#7C3AED] to-[#EC4899] bg-clip-text text-transparent`}>{t("official").toUpperCase()}</p>
           ) : (
             <p className="text-xs text-white/70">{t("by", { name: series.owner.name })}</p>
           )}
-          <h1 className={`${MOVIES_DISPLAY_CLASS} mt-1 text-6xl leading-[0.9] drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]`}>{series.title}</h1>
+          <h1 className={`${MOVIES_DISPLAY_CLASS} mt-1 text-3xl sm:text-5xl md:text-6xl font-black leading-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]`}>{series.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-white/70">
             <span>{t("episodes", { count: series.episodeCount })}</span>
             <span className="rounded border border-white/30 px-1.5 py-0.5 text-[10px] text-emerald-300">{t("freeBadge", { n: series.freeEpisodes })}</span>
@@ -83,11 +87,11 @@ export default function SeriesClient({ slug }: { slug: string }) {
         </div>
       </section>
 
-      <section className="space-y-3 px-5 pt-2">
-        <div className="flex gap-2">
+      <section className="space-y-3 px-4 sm:px-6 pt-2">
+        <div className="flex gap-2.5">
           {resume && (
-            <Link href={`/movies/${slug}/${resume.number}`} className="flex flex-1 items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-base font-bold text-black active:scale-95">
-              <Play size={20} fill="currentColor" /> {inProgress ? t("resume") : t("play")}
+            <Link href={`/movies/${slug}/${resume.number}`} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] px-5 py-3 text-sm font-black text-white shadow-[0_0_20px_rgba(124,58,237,0.5)] active:scale-95 hover:brightness-110 transition-all">
+              <Play size={18} fill="currentColor" /> {inProgress ? t("resume") : t("play")}
             </Link>
           )}
           <button
@@ -95,7 +99,7 @@ export default function SeriesClient({ slug }: { slug: string }) {
             onClick={toggleList}
             disabled={listBusy}
             aria-pressed={viewer.inWatchlist}
-            className="flex items-center justify-center gap-2 rounded-md bg-white/15 px-4 py-3 text-sm font-bold text-white backdrop-blur active:scale-95 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 px-4 py-3 text-sm font-bold text-white hover:bg-white/20 active:scale-95 transition-all disabled:opacity-50"
           >
             {viewer.inWatchlist ? <Check size={18} /> : <Plus size={18} />}
             {viewer.inWatchlist ? t("inList") : t("myList")}

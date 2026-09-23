@@ -144,7 +144,7 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
         </Link>
         <div className="flex flex-1 gap-1">
           {payload?.episodes.slice(0, PROGRESS_DOTS_MAX).map((e) => (
-            <span key={e.id} className={`h-0.5 flex-1 rounded ${e.number < current ? "bg-white" : e.number === current ? "bg-red-500" : "bg-white/25"}`} />
+            <span key={e.id} className={`h-0.5 flex-1 rounded ${e.number < current ? "bg-white" : e.number === current ? "bg-gradient-to-r from-[#7C3AED] to-[#EC4899]" : "bg-white/25"}`} />
           ))}
         </div>
         <button
