@@ -7,12 +7,10 @@ import {
   ArrowLeft,
   Clock,
   Share2,
-  Bot,
   Flame,
   Lightbulb,
   Rocket,
   Sparkles,
-  ShieldCheck,
   ExternalLink,
   MessageCircle,
   Trash2,
@@ -265,9 +263,6 @@ export default function ArticleClient({ article }: { article: NewsArticleDetail 
             <ArrowLeft size={16} /> {t("backToFeed")}
           </Link>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-black flex items-center gap-1 border border-emerald-500/30 shadow">
-              <ShieldCheck size={13} /> {t("verifiedPct", { pct: article.fact_check_score })}
-            </span>
             <button
               onClick={() => {
                 if (typeof navigator !== "undefined" && navigator.share) {
@@ -319,25 +314,9 @@ export default function ArticleClient({ article }: { article: NewsArticleDetail 
           </div>
         </div>
 
-        {/* ── AI FACT-CHECKING AUDIT TRANSPARENCY ────────────────────── */}
-        <div className="flex items-start gap-3.5 p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-xs text-slate-300">
-          <Bot size={22} className="text-cyan-400 flex-shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <strong className="text-white font-bold">{t("aiJournalismStandard")}</strong>
-              <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase">
-                {t("zeroBias")}
-              </span>
-            </div>
-            <p className="text-slate-400 leading-relaxed">
-              {article.fact_check_notes || t("factCheckFallback")}
-            </p>
-          </div>
-        </div>
-
         {/* ── LEGAL: AI DISCLAIMER + ORIGINAL SOURCE ─────────────────── */}
         <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-3 text-xs text-slate-400">
-          <p className="leading-relaxed">{article.ai_disclaimer}</p>
+          <p className="leading-relaxed">{t("aiDisclaimer")}</p>
           {article.sources.length > 0 && (
             <div className="pt-3 border-t border-white/[0.06] space-y-2">
               <span className="block text-slate-300 font-bold uppercase tracking-wider text-[10px]">

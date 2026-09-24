@@ -8,10 +8,10 @@ export interface FeedTopic {
   source: string;
   summary: string;
   url: string;
-  category: "tech-ai" | "crypto" | "gaming" | "business" | "science";
+  category: "tech-ai" | "gaming" | "business" | "science";
 }
 
-const ALLOWED_CATEGORIES: FeedTopic["category"][] = ["tech-ai", "crypto", "gaming", "business", "science"];
+const ALLOWED_CATEGORIES: FeedTopic["category"][] = ["tech-ai", "gaming", "business", "science"];
 
 // Hard caps — LLM safety (env-configurable, sane defaults).
 const MAX_ARTICLES_PER_RUN = Number(process.env.NEWS_MAX_ARTICLES_PER_RUN) > 0
@@ -26,85 +26,9 @@ const MAX_ARTICLES_PER_DAY = Number(process.env.NEWS_MAX_ARTICLES_PER_DAY) > 0
 const FALLBACK_RSS_SOURCES: { category: FeedTopic["category"]; source: string; feedUrl: string }[] = [
   { category: "tech-ai", source: "TechCrunch", feedUrl: "https://techcrunch.com/feed/" },
   { category: "tech-ai", source: "Hacker News", feedUrl: "https://news.ycombinator.com/rss" },
-  { category: "crypto", source: "CoinDesk", feedUrl: "https://www.coindesk.com/arc/outboundfeeds/rss/" },
-  { category: "crypto", source: "CoinTelegraph", feedUrl: "https://cointelegraph.com/rss" },
   { category: "gaming", source: "IGN", feedUrl: "https://feeds.feedburner.com/ign/all" },
   { category: "business", source: "BBC Business", feedUrl: "https://feeds.bbci.co.uk/news/business/rss.xml" },
   { category: "science", source: "ScienceDaily", feedUrl: "https://www.sciencedaily.com/rss/top/science.xml" },
-];
-
-// Subiecte verificate de înaltă rezoluție pentru fallback instant (surse live indisponibile).
-const HIGH_IMPACT_TOPICS: FeedTopic[] = [
-  {
-    title: "Revoluție în AI: Noile modele multimodale autonome procesează video în timp real la 60 FPS",
-    source: "TechCrunch Wire",
-    summary: "Cercetătorii din fruntea industriei au publicat specificațiile unei noi arhitecturi neuronale capabile de sinteză video ultra-rapidă fără latență percepută.",
-    url: "https://techcrunch.com/ai-realtime-breakthrough-2026",
-    category: "tech-ai",
-  },
-  {
-    title: "Open Source AI depășește modelele proprietare pe marile benchmark-uri de inginerie software",
-    source: "Hacker News Special",
-    summary: "Comunitatea open source a lansat ponderile complete pentru un model cu 70 miliarde de parametri care egalează cele mai costisitoare soluții comerciale.",
-    url: "https://news.ycombinator.com/item?id=ai-open-evals-2026",
-    category: "tech-ai",
-  },
-  {
-    title: "Bitcoin consolidează noi maxime istorice datorită fluxurilor record din ETF-urile globale",
-    source: "CoinDesk Markets",
-    summary: "Intrările nete zilnice de capital instituțional depășesc 1.2 miliarde de dolari, determinând o comprimare masivă a ofertei pe marile burse spot.",
-    url: "https://coindesk.com/btc-etf-institutional-flows-record",
-    category: "crypto",
-  },
-  {
-    title: "Ethereum L2 și Arbitrum procesează peste 85% din volumul total de tranzacții DeFi la costuri sub 1 cent",
-    source: "CoinTelegraph Insights",
-    summary: "Actualizările recente ale infrastructurii Layer 2 permit volume record de swap-uri descentralizate, accelerând tranziția capitalului din rețelele legacy.",
-    url: "https://cointelegraph.com/news/ethereum-l2-volume-record-2026",
-    category: "crypto",
-  },
-  {
-    title: "Next-Gen WebGPU: Motoarele grafice permit rularea jocurilor AAA fotorealiste direct în browser",
-    source: "IGN Tech Review",
-    summary: "Studiourile de top lansează primele titluri competitive cu ray-tracing complet rulate fără descărcare sau instalare pe telefoane și calculatoare.",
-    url: "https://ign.com/next-gen-webgpu-triple-a",
-    category: "gaming",
-  },
-  {
-    title: "Unreal Engine lansează generarea procedurală în timp real susținută de rețele neuronale integrate",
-    source: "PC Gamer Dispatch",
-    summary: "Noua iterație a motorului reduce timpul de construire a hărților complexe de la luni de zile la doar câteva minute asistate de AI.",
-    url: "https://pcgamer.com/unreal-engine-neural-procedural",
-    category: "gaming",
-  },
-  {
-    title: "Social Commerce-ul video înregistrează o creștere de 340% în Europa, surclasând e-commerce-ul tradițional",
-    source: "Bloomberg Intelligence",
-    summary: "Consumatorii tineri aleg masiv achizițiile directe prin feed-uri video interactive și livestream shopping, declanșând un val de investiții masive.",
-    url: "https://bloomberg.com/social-commerce-boom-europe",
-    category: "business",
-  },
-  {
-    title: "Marile bănci de investiții integrează rețele blockchain private pentru decontarea tranzacțiilor transfrontaliere",
-    source: "Forbes Capital",
-    summary: "Decontarea instantanee 24/7 a obligațiunilor suverane tokenizate reduce costurile de clearing cu peste 60% în piețele financiare mature.",
-    url: "https://forbes.com/business-blockchain-settlement-banks",
-    category: "business",
-  },
-  {
-    title: "Telescopul James Webb confirmă biosignături promițătoare în atmosfera unei exoplanete locuibile",
-    source: "ScienceDaily Wire",
-    summary: "Spectroscopia de transmisie a detectat compuși de dimetil sulfură și dioxid de carbon într-un sistem stelar situat la 120 de ani-lumină distanță.",
-    url: "https://sciencedaily.com/jwst-biosignatures-discovery-2026",
-    category: "science",
-  },
-  {
-    title: "Fuziunea nucleară controlată produce un surplus net de energie de 70% într-un reactor experimental european",
-    source: "Nature Frontier",
-    summary: "Fizicienii au obținut o confinare magnetică stabilă timp de peste 10 minute, validând fezabilitatea comercială a centralelor cu plasmă.",
-    url: "https://nature.com/articles/fusion-net-energy-milestone",
-    category: "science",
-  },
 ];
 
 // Imagini premium Unsplash de înaltă rezoluție, calibrate pe categorii
@@ -113,11 +37,6 @@ const CATEGORY_COVERS: Record<string, string[]> = {
     "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&auto=format&fit=crop&q=80",
     "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
     "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1200&auto=format&fit=crop&q=80",
-  ],
-  "crypto": [
-    "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1200&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=1200&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?w=1200&auto=format&fit=crop&q=80",
   ],
   "gaming": [
     "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80",
@@ -193,6 +112,8 @@ async function loadActiveSources(targetCategory?: string): Promise<{
 
     if (rows.length > 0) {
       return rows
+        // Surse din categorii retrase nu se mai citesc.
+        .filter((r) => r.category_slug === null || ALLOWED_CATEGORIES.includes(r.category_slug as FeedTopic["category"]))
         .map((r) => ({
           id: r.id,
           category: (ALLOWED_CATEGORIES.includes(r.category_slug as FeedTopic["category"])
@@ -261,8 +182,8 @@ export async function runNewsIngestionPipeline(
     }
   }
 
-  // Combinăm știrile live cu subiectele curatoriate
-  const pool = [...liveTopics, ...HIGH_IMPACT_TOPICS];
+  // Doar știri reale din feed-urile RSS live — fără subiecte inventate.
+  const pool = liveTopics;
   const candidateTopics = targetCategory && targetCategory !== "all"
     ? pool.filter((t) => t.category === targetCategory)
     : pool;
@@ -278,18 +199,20 @@ export async function runNewsIngestionPipeline(
       );
       if (checkRes.rows.length > 0) continue;
 
-      // 2. Înregistrăm în news_raw_items
+      // 2. Jurnalistul AI scrie articolul în limba română. Fără rezultat valid
+      //    (cheie lipsă, eroare, output respins de validator) nu publicăm nimic.
+      const generated = await generateAutonomousNewsArticle({
+        ...topic,
+        categoryHint: topic.category,
+      });
+      if (!generated) continue;
+
+      // 3. Înregistrăm în news_raw_items (doar subiectele efectiv procesate)
       await dbQuery(
         `INSERT INTO news_raw_items (url, title, raw_content, author, published_at, is_processed, category_hint)
          VALUES ($1, $2, $3, $4, now(), true, $5)`,
         [topic.url, topic.title, topic.summary, topic.source, topic.category]
       );
-
-      // 3. Jurnalistul AI de elită scrie articolul în limba română
-      const generated = await generateAutonomousNewsArticle({
-        ...topic,
-        categoryHint: topic.category,
-      });
 
       // 4. Obținem category_id corespunzător
       const finalCategorySlug = generated.category_slug || topic.category;
