@@ -19,7 +19,6 @@
  */
 import { NextResponse } from "next/server";
 import { demoteInactiveFoundingDrivers } from "@/lib/drivers/tiers";
-import { processMaturedStakes } from "@/lib/swyp/staking";
 import { logger } from "@/lib/logger";
 import { timingSafeEqual } from "crypto";
 
@@ -55,14 +54,6 @@ async function handle(req: Request) {
     } catch (err) {
         log.error({ err }, "founding demotion failed");
         results["founding-demotion"] = { error: String((err as Error)?.message ?? err) };
-    }
-
-    // 1b. Staking: procesează stake-urile scadente (principal + bonus din surplus).
-    try {
-        results["swyp-stakes"] = await processMaturedStakes();
-    } catch (err) {
-        log.error({ err }, "stake maturation failed");
-        results["swyp-stakes"] = { error: String((err as Error)?.message ?? err) };
     }
 
     // 2. Joburile delegate, în serie (evită vârf de DB la 4 dimineața).

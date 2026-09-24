@@ -4,9 +4,9 @@ import type { ContentStatus, ModerationStatus, MusicAlbumRow, MusicArtistRow, Mu
 
 export const ARTIST_COLS = `user_id, stage_name, slug, bio, avatar_url, cover_url, approved_at, created_at, updated_at`;
 export const ALBUM_COLS = `id, artist_user_id, title, slug, cover_url, release_date::text AS release_date, status,
-    price_units::text AS price_units, created_at, updated_at`;
+    price_units::text AS price_units, price_cents::text AS price_cents, created_at, updated_at`;
 export const TRACK_COLS = `id, artist_user_id, album_id, track_number, title, slug, cover_url, genre, duration_ms, explicit,
-    object_key, public_url, is_premium, price_units::text AS price_units, allow_reels, audio_track_id::int AS audio_track_id,
+    object_key, public_url, is_premium, price_units::text AS price_units, price_cents::text AS price_cents, allow_reels, audio_track_id::int AS audio_track_id,
     audience, status, moderation_status, license_note, published_at, created_at, updated_at`;
 
 const prefixed = (cols: string, alias: string) => cols.split(",").map((c) => `${alias}.${c.trim()}`).join(", ");
@@ -22,14 +22,22 @@ export type TrackWithArtist = MusicTrackRow & { artist: MusicArtistRow };
 export type TrackListItem = TrackWithArtist & { plays_7d: number };
 export type AlbumWithArtist = MusicAlbumRow & { artist: MusicArtistRow; track_count: number };
 
-type RawTrack = Omit<MusicTrackRow, "price_units"> & { price_units: string | null };
-type RawAlbum = Omit<MusicAlbumRow, "price_units"> & { price_units: string | null };
+type RawTrack = Omit<MusicTrackRow, "price_units" | "price_cents"> & { price_units: string | null; price_cents: string | null };
+type RawAlbum = Omit<MusicAlbumRow, "price_units" | "price_cents"> & { price_units: string | null; price_cents: string | null };
 
-function normalizeTrack<T extends RawTrack>(row: T): Omit<T, "price_units"> & { price_units: number | null } {
-    return { ...row, price_units: row.price_units === null ? null : Number(row.price_units) };
+function normalizeTrack<T extends RawTrack>(row: T): Omit<T, "price_units" | "price_cents"> & { price_units: number | null; price_cents: number | null } {
+    return {
+        ...row,
+        price_units: row.price_units === null ? null : Number(row.price_units),
+        price_cents: row.price_cents === null ? null : Number(row.price_cents),
+    };
 }
-function normalizeAlbum<T extends RawAlbum>(row: T): Omit<T, "price_units"> & { price_units: number | null } {
-    return { ...row, price_units: row.price_units === null ? null : Number(row.price_units) };
+function normalizeAlbum<T extends RawAlbum>(row: T): Omit<T, "price_units" | "price_cents"> & { price_units: number | null; price_cents: number | null } {
+    return {
+        ...row,
+        price_units: row.price_units === null ? null : Number(row.price_units),
+        price_cents: row.price_cents === null ? null : Number(row.price_cents),
+    };
 }
 
 // ── Artiști ──────────────────────────────────────────────────────────────
@@ -119,7 +127,7 @@ export type ListTracksOpts = {
     audience?: MusicAudience;
 };
 
-/** Piesele publicate; trending = plays 7 zile + deblocări + tips (ponderate), new = published_at. */
+/** Piesele publicate; trending = plays 7 zile + deblocări (ponderate), new = published_at. */
 export async function listTracks(opts: ListTracksOpts): Promise<TrackListItem[]> {
     const params: unknown[] = [opts.limit, opts.offset];
     const where: string[] = [`t.status = 'published'`];
@@ -132,8 +140,7 @@ export async function listTracks(opts: ListTracksOpts): Promise<TrackListItem[]>
     const order = opts.sort === "new"
         ? `t.published_at DESC NULLS LAST`
         : `${PLAYS_7D}
-           + 10 * (SELECT COUNT(*) FROM music_unlocks u WHERE u.track_id = t.id AND u.created_at > now() - interval '7 days')
-           + 10 * (SELECT COUNT(*) FROM music_tips tp WHERE tp.track_id = t.id AND tp.created_at > now() - interval '7 days') DESC,
+           + 10 * (SELECT COUNT(*) FROM music_unlocks u WHERE u.track_id = t.id AND u.created_at > now() - interval '7 days') DESC,
            t.published_at DESC`;
     const { rows } = await dbQuery<RawTrack & { artist: MusicArtistRow; plays_7d: number }>(
         `SELECT ${TRACK_COLS_T}, ${ARTIST_JSON}, ${PLAYS_7D} AS plays_7d
@@ -196,7 +203,10 @@ export type CreateTrackInput = {
     objectKey: string;
     publicUrl: string | null;
     isPremium: boolean;
+    /** Legacy — nu mai e editabil din UI; păstrat doar pt. constrângerea premium a coloanei vechi. */
     priceUnits: number | null;
+    /** Preț RON (cenți). `null` = „preț în curând" (chiar dacă piesa e premium). */
+    priceCents: number | null;
     allowReels: boolean;
     audience: MusicAudience;
     licenseNote: string;
@@ -205,11 +215,11 @@ export type CreateTrackInput = {
 export async function createTrack(i: CreateTrackInput): Promise<MusicTrackRow> {
     const { rows } = await dbQuery<RawTrack>(
         `INSERT INTO music_tracks (id, artist_user_id, album_id, track_number, title, slug, cover_url, genre, duration_ms, explicit,
-                                   object_key, public_url, is_premium, price_units, allow_reels, audience, status, license_note)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'pending_review', $17)
+                                   object_key, public_url, is_premium, price_units, price_cents, allow_reels, audience, status, license_note)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 'pending_review', $18)
          RETURNING ${TRACK_COLS}`,
         [i.id, i.artistUserId, i.albumId, i.trackNumber, i.title, i.slug, i.coverUrl, i.genre, i.durationMs, i.explicit,
-         i.objectKey, i.publicUrl, i.isPremium, i.priceUnits, i.allowReels, i.audience, i.licenseNote],
+         i.objectKey, i.publicUrl, i.isPremium, i.priceUnits, i.priceCents, i.allowReels, i.audience, i.licenseNote],
     );
     return normalizeTrack(rows[0]);
 }
@@ -220,6 +230,7 @@ export type TrackPatch = Partial<{
     explicit: boolean;
     isPremium: boolean;
     priceUnits: number | null;
+    priceCents: number | null;
     publicUrl: string | null;
     allowReels: boolean;
     audience: MusicAudience;
@@ -237,6 +248,7 @@ const TRACK_PATCH_COLS: Record<keyof TrackPatch, string> = {
     explicit: "explicit",
     isPremium: "is_premium",
     priceUnits: "price_units",
+    priceCents: "price_cents",
     publicUrl: "public_url",
     allowReels: "allow_reels",
     audience: "audience",
@@ -270,7 +282,7 @@ export function buildTrackUpdate(id: string, artistUserId: string | null, patch:
     };
 }
 
-export function normalizeTrackRow<T extends RawTrack>(row: T): Omit<T, "price_units"> & { price_units: number | null } {
+export function normalizeTrackRow<T extends RawTrack>(row: T): Omit<T, "price_units" | "price_cents"> & { price_units: number | null; price_cents: number | null } {
     return normalizeTrack(row);
 }
 
@@ -316,14 +328,22 @@ export async function listArtistAlbums(artistUserId: string, publishedOnly: bool
     return rows.map(normalizeAlbum);
 }
 
-export type CreateAlbumInput = { artistUserId: string; title: string; slug: string; coverUrl: string | null; releaseDate: string | null; priceUnits: number | null };
+export type CreateAlbumInput = {
+    artistUserId: string;
+    title: string;
+    slug: string;
+    coverUrl: string | null;
+    releaseDate: string | null;
+    priceUnits: number | null;
+    priceCents: number | null;
+};
 
 /** Albumele se publică odată cu prima piesă publicată din ele (status urmărit de artist). */
 export async function createAlbum(i: CreateAlbumInput): Promise<MusicAlbumRow> {
     const { rows } = await dbQuery<RawAlbum>(
-        `INSERT INTO music_albums (artist_user_id, title, slug, cover_url, release_date, price_units, status)
-         VALUES ($1, $2, $3, $4, $5, $6, 'published') RETURNING ${ALBUM_COLS}`,
-        [i.artistUserId, i.title, i.slug, i.coverUrl, i.releaseDate, i.priceUnits],
+        `INSERT INTO music_albums (artist_user_id, title, slug, cover_url, release_date, price_units, price_cents, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'published') RETURNING ${ALBUM_COLS}`,
+        [i.artistUserId, i.title, i.slug, i.coverUrl, i.releaseDate, i.priceUnits, i.priceCents],
     );
     return normalizeAlbum(rows[0]);
 }
@@ -337,7 +357,7 @@ export async function ownsAlbum(albumId: string, artistUserId: string): Promise<
 
 export async function getViewerUnlocks(userId: string): Promise<{ trackIds: Set<string>; albumIds: Set<string> }> {
     const { rows } = await dbQuery<{ track_id: string | null; album_id: string | null }>(
-        `SELECT track_id, album_id FROM music_unlocks WHERE user_id = $1`,
+        `SELECT track_id, album_id FROM music_unlocks WHERE user_id = $1 AND status = 'paid'`,
         [userId],
     );
     const trackIds = new Set<string>();
@@ -369,23 +389,30 @@ export async function incrementPlay(trackId: string): Promise<void> {
     );
 }
 
-export type ArtistEarnings = { tips_units: number; tips_count: number; unlock_units: number; unlocks_count: number };
+export type ArtistEarnings = { unlock_units: number; unlocks_count: number };
 
+/**
+ * Câștigurile artistului: suma (cenți RON) e calculată DOAR din deblocările
+ * plătite cu cardul (Stripe) — `payment_intent_id IS NOT NULL AND status = 'paid'`.
+ * Deblocările legacy din era SWYP (fără plată cu cardul) nu intră în sumă,
+ * dar contează în continuare la `unlocks_count` (statistica de "câte deblocări").
+ * Tips-urile au fost eliminate — nu mai există sursă separată de câștiguri.
+ */
 export async function artistEarnings(artistUserId: string): Promise<ArtistEarnings> {
-    const { rows } = await dbQuery<{ tips_units: string; tips_count: string; unlock_units: string; unlocks_count: string }>(
+    const { rows } = await dbQuery<{ unlock_units: string; unlocks_count: string }>(
         `SELECT
-            (SELECT COALESCE(SUM(artist_share_units), 0) FROM music_tips WHERE artist_user_id = $1)::text AS tips_units,
-            (SELECT COUNT(*) FROM music_tips WHERE artist_user_id = $1)::text AS tips_count,
             (SELECT COALESCE(SUM(u.artist_share_units), 0) FROM music_unlocks u
               LEFT JOIN music_tracks t ON t.id = u.track_id LEFT JOIN music_albums al ON al.id = u.album_id
-             WHERE COALESCE(t.artist_user_id, al.artist_user_id) = $1)::text AS unlock_units,
+             WHERE COALESCE(t.artist_user_id, al.artist_user_id) = $1
+               AND u.payment_intent_id IS NOT NULL AND u.status = 'paid')::text AS unlock_units,
             (SELECT COUNT(*) FROM music_unlocks u
               LEFT JOIN music_tracks t ON t.id = u.track_id LEFT JOIN music_albums al ON al.id = u.album_id
-             WHERE COALESCE(t.artist_user_id, al.artist_user_id) = $1)::text AS unlocks_count`,
+             WHERE COALESCE(t.artist_user_id, al.artist_user_id) = $1
+               AND u.status = 'paid')::text AS unlocks_count`,
         [artistUserId],
     );
     const r = rows[0];
-    return { tips_units: Number(r.tips_units), tips_count: Number(r.tips_count), unlock_units: Number(r.unlock_units), unlocks_count: Number(r.unlocks_count) };
+    return { unlock_units: Number(r.unlock_units), unlocks_count: Number(r.unlocks_count) };
 }
 
 /** Câte clipuri folosesc sunetele artistului (videos.audio_track_id). */

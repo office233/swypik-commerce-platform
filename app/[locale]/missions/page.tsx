@@ -33,7 +33,6 @@ type MissionRow = {
 };
 
 function fmtPrize(amount: number, currency: string, locale: string): string {
-  if (currency === "SWYP") return `${new Intl.NumberFormat(locale).format(amount)} SWYP`;
   try {
     return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount / 100);
   } catch {
@@ -70,6 +69,7 @@ export default async function MissionsPage() {
      LEFT JOIN marketplace_products p ON p.id = m.product_id
      WHERE m.status = 'active'
        AND (m.ends_at IS NULL OR m.ends_at > now())
+       AND m.prize_currency <> 'SWYP'
      ORDER BY (m.ends_at IS NULL), m.ends_at ASC, m.starts_at DESC
      LIMIT 50`,
   );
@@ -125,8 +125,7 @@ export default async function MissionsPage() {
                         </span>
                         {m.bounty_per_sale_minor > 0 ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-400/15 px-2 py-1 text-green-300">
-                            {/* Bounty-ul e în unități minore fiat (bani); schema nu are monedă separată — la premii SWYP îl afișăm în RON, ca înainte. */}
-                            +{fmtPrize(m.bounty_per_sale_minor, m.prize_currency === "SWYP" ? "RON" : m.prize_currency, locale)}{t("perSale")}
+                            +{fmtPrize(m.bounty_per_sale_minor, m.prize_currency, locale)}{t("perSale")}
                           </span>
                         ) : null}
                         <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 text-white/60">

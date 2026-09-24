@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * Pagina unui album: copertă, titlu, artist, preț + deblocare (dacă e
- * blocat), Play all și lista de piese. Butonul de deblocare e local (nu
- * există încă un `AlbumUnlockButton` partajat) — urmează același tipar ca
- * `components/movies/UnlockButton.tsx`, dar pentru `/api/music/albums/<slug>/unlock`.
+ * Pagina unui album: copertă, titlu, artist, preț RON + deblocare cu cardul
+ * (Stripe Elements) dacă e blocat, Play all și lista de piese.
  */
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Lock, Play } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Play, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { Link } from "@/lib/i18n/navigation";
 import TrackRow from "@/components/music/TrackRow";
 import { useMusicPlayer } from "@/components/music/MusicPlayerProvider";
-import { unitsToSwyp } from "@/components/music/format";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { moviesDisplayFont, MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
 import { haptic } from "@/lib/haptic";
 import type { AlbumDto, TrackDto } from "@/lib/music/types";
@@ -21,19 +21,76 @@ import AddToPlaylistSheet from "../../_components/AddToPlaylistSheet";
 import LockedOverlay from "../../_components/LockedOverlay";
 import { setTrackLiked } from "../../_lib/track-actions";
 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
+
 type Payload = { album: AlbumDto; tracks: TrackDto[] };
+
+function ConfirmForm({ amountCents, onDone, onCancel }: { amountCents: number; onDone: () => void; onCancel: () => void }) {
+    const t = useTranslations("music");
+    const formatPrice = useFormatPrice();
+    const stripe = useStripe();
+    const elements = useElements();
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const submit = async () => {
+        if (!stripe || !elements) return;
+        setBusy(true);
+        setError(null);
+        const { error: submitError } = await elements.submit();
+        if (submitError) {
+            setError(submitError.message || t("error"));
+            setBusy(false);
+            return;
+        }
+        const { error: confirmError, paymentIntent } = await stripe.confirmPayment({ elements, redirect: "if_required" });
+        if (confirmError) {
+            setError(confirmError.message || t("error"));
+            setBusy(false);
+            return;
+        }
+        if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "processing") {
+            onDone();
+            return;
+        }
+        setError(t("error"));
+        setBusy(false);
+    };
+
+    return (
+        <div className="mx-auto mt-5 max-w-xs space-y-3 rounded-2xl bg-white/5 p-4 text-left ring-1 ring-white/10">
+            <div className="flex items-center justify-between">
+                <p className="text-xs font-black uppercase tracking-wide text-white/60">{t("payWithCard")}</p>
+                <button type="button" onClick={onCancel} aria-label={t("close")} className="rounded-full bg-white/10 p-1.5 text-white/70">
+                    <X size={14} />
+                </button>
+            </div>
+            <PaymentElement options={{ layout: "tabs" }} />
+            {error && <p className="text-xs font-semibold text-amber-300">{error}</p>}
+            <button
+                type="button"
+                onClick={submit}
+                disabled={busy || !stripe || !elements}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-black active:scale-95 disabled:opacity-50"
+            >
+                {busy ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
+                {busy ? t("unlocking") : `${t("plateste")} ${formatPrice(amountCents, { sourceCurrency: "RON" })}`}
+            </button>
+        </div>
+    );
+}
 
 export default function AlbumClient({ slug }: { slug: string }) {
     const t = useTranslations("music");
+    const formatPrice = useFormatPrice();
     const router = useRouter();
     const { play } = useMusicPlayer();
     const [data, setData] = useState<Payload | null>(null);
     const [notFoundState, setNotFoundState] = useState(false);
     const [error, setError] = useState(false);
-    const [balanceUnits, setBalanceUnits] = useState<number | null>(null);
-    const [authRequired, setAuthRequired] = useState(false);
     const [unlockBusy, setUnlockBusy] = useState(false);
     const [unlockNotice, setUnlockNotice] = useState<string | null>(null);
+    const [pending, setPending] = useState<{ clientSecret: string; amountCents: number } | null>(null);
     const [playlistTarget, setPlaylistTarget] = useState<TrackDto | null>(null);
 
     const load = useCallback(() => {
@@ -48,16 +105,6 @@ export default function AlbumClient({ slug }: { slug: string }) {
     }, [slug]);
     useEffect(load, [load]);
 
-    useEffect(() => {
-        fetch("/api/swyp/wallet", { cache: "no-store" })
-            .then((res) => (res.status === 401 ? null : res.json()))
-            .then((d: { balanceUnits?: string } | null) => {
-                if (d && typeof d.balanceUnits !== "undefined") { setBalanceUnits(Number(d.balanceUnits)); setAuthRequired(false); }
-                else { setBalanceUnits(null); setAuthRequired(true); }
-            })
-            .catch(() => { setBalanceUnits(null); setAuthRequired(true); });
-    }, []);
-
     const toggleLike = async (track: TrackDto) => {
         if (!data) return;
         const next = !track.liked;
@@ -66,21 +113,23 @@ export default function AlbumClient({ slug }: { slug: string }) {
         if (!ok) setData((prev) => (prev ? { ...prev, tracks: prev.tracks.map((tr) => (tr.id === track.id ? { ...tr, liked: track.liked } : tr)) } : prev));
     };
 
-    const unlock = async () => {
-        if (authRequired) { router.push(`/auth?next=/music/album/${slug}`); return; }
+    const startUnlock = async () => {
         haptic("tap");
         setUnlockBusy(true);
         setUnlockNotice(null);
         try {
             const res = await fetch(`/api/music/albums/${slug}/unlock`, { method: "POST" });
             const body = await res.json().catch(() => ({}));
-            if (res.ok) {
-                load();
-                if (typeof body.balanceUnits !== "undefined") setBalanceUnits(Number(body.balanceUnits));
+            if (res.status === 401) { router.push(`/auth?next=/music/album/${slug}`); return; }
+            if (!res.ok) {
+                setUnlockNotice(body.error === "price_not_set" ? t("priceComingSoon") : t("error"));
                 return;
             }
-            if (res.status === 401) { setAuthRequired(true); router.push(`/auth?next=/music/album/${slug}`); return; }
-            setUnlockNotice(body.error === "insufficient_balance" ? t("insufficient") : t("error"));
+            if (body.alreadyUnlocked) {
+                load();
+                return;
+            }
+            setPending({ clientSecret: body.clientSecret, amountCents: body.amountCents });
         } catch {
             setUnlockNotice(t("error"));
         } finally {
@@ -93,7 +142,6 @@ export default function AlbumClient({ slug }: { slug: string }) {
     if (!data) return <div className="min-h-screen bg-[#0B0B12]" />;
 
     const { album, tracks } = data;
-    const insufficient = !authRequired && balanceUnits !== null && album.priceUnits !== null && balanceUnits < album.priceUnits;
 
     return (
         <main className={`${moviesDisplayFont.variable} min-h-screen bg-[#0B0B12] pb-24 text-white`}>
@@ -123,26 +171,36 @@ export default function AlbumClient({ slug }: { slug: string }) {
                         <Play size={18} fill="currentColor" /> {t("playAll")}
                     </button>
 
-                    {album.locked && album.priceUnits !== null && (
+                    {album.locked && !pending && (
                         <button
                             type="button"
-                            onClick={unlock}
-                            disabled={unlockBusy || insufficient}
+                            onClick={startUnlock}
+                            disabled={unlockBusy || album.priceCents === null}
                             className="flex items-center justify-center gap-2 rounded-full bg-white/10 px-5 py-3 text-sm font-black text-white ring-1 ring-white/20 active:scale-95 disabled:opacity-50"
                         >
                             {unlockBusy ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
                             {unlockBusy
                                 ? t("unlocking")
-                                : authRequired
-                                    ? t("loginToUnlock")
-                                    : `${t("unlockAlbum")} · ${t("albumPriceSwyp", { amount: unitsToSwyp(album.priceUnits) })}`}
+                                : album.priceCents === null
+                                    ? t("priceComingSoon")
+                                    : `${t("unlockAlbum")} · ${formatPrice(album.priceCents, { sourceCurrency: "RON" })}`}
                         </button>
-                    )}
-                    {!authRequired && balanceUnits !== null && album.locked && (
-                        <p className="text-[11px] text-white/60">{t("yourBalance", { amount: unitsToSwyp(balanceUnits) })}</p>
                     )}
                     {unlockNotice && <p className="text-xs text-amber-300">{unlockNotice}</p>}
                 </div>
+
+                {pending && (
+                    <Elements stripe={stripePromise} options={{ clientSecret: pending.clientSecret, appearance: { theme: "night" } }}>
+                        <ConfirmForm
+                            amountCents={pending.amountCents}
+                            onCancel={() => setPending(null)}
+                            onDone={() => {
+                                setPending(null);
+                                load();
+                            }}
+                        />
+                    </Elements>
+                )}
             </section>
 
             <section className="mt-8">

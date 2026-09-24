@@ -199,11 +199,6 @@ export const RATE_LIMITS = {
   rideCreate: { limit: 10, window: 300 } as RateLimitConfig,          // creare curse per user
   rideAction: { limit: 60, window: 60 } as RateLimitConfig,           // tranziții status / rating / anulare
   geoSearch: { limit: 30, window: 60 } as RateLimitConfig,           // proxy Nominatim (search + reverse, per IP)
-  swypMining: { limit: 10, window: 60 } as RateLimitConfig,          // start/claim sesiune mining SWYP
-  swypMiningVerify: { limit: 30, window: 60 } as RateLimitConfig,    // verificare publică mining (per IP)
-  swypWithdraw: { limit: 3, window: 300 } as RateLimitConfig,        // retrageri on-chain (operațiune scumpă)
-  swypTransfer: { limit: 5, window: 300 } as RateLimitConfig,        // transferuri P2P on-chain
-  swypStake: { limit: 10, window: 300 } as RateLimitConfig,          // stake/unstake SWYP
   // Seller ERP (2026-09-21): rutele noi n-aveau nicio limită, iar "sellerAwb"
   // era referit fără să existe aici.
   sellerAwb: { limit: 20, window: 60 } as RateLimitConfig,
@@ -213,7 +208,6 @@ export const RATE_LIMITS = {
   sellerAds: { limit: 10, window: 60 } as RateLimitConfig,
   sellerPos: { limit: 60, window: 60 } as RateLimitConfig,
   sellerNode: { limit: 12, window: 60 } as RateLimitConfig,   // heartbeat la 15s → 4/min + marjă
-  mysteryDrop: { limit: 5, window: 60 } as RateLimitConfig,
   // 2026-09-24 (audit): /api/explore/feed e o interogare grea (CTE-uri +
   // LATERAL joins pe fiecare candidat) fara nicio limita anterior.
   exploreFeed: { limit: 120, window: 60 } as RateLimitConfig,

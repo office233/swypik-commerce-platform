@@ -32,11 +32,8 @@ import {
     UtensilsCrossed,
     Plane,
     BedDouble,
-    Coins,
     Users,
-    Gift,
     HeartHandshake,
-    Wallet,
     Store,
     type LucideIcon,
   Clapperboard,
@@ -44,7 +41,6 @@ import {
   MessageSquareText,
   Newspaper,
   Gamepad2,
-  TrendingUp,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
@@ -109,16 +105,6 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         Icon: Gamepad2,
         href: "/gaming",
     }] : []),
-    ...(isEnabledClient("crypto") ? [{
-        id: "crypto",
-        brand: "Swypik Crypto",
-        label: "DEX Swap & Cotații Live",
-        badge: "Web3",
-        badgeColor: "bg-indigo-600 text-white",
-        accent: "#6366F1",
-        Icon: TrendingUp,
-        href: "/crypto/market",
-    }] : []),
     ...(isEnabledClient("squadBuy") ? [{
         id: "squad",
         brand: "Swypik Squad",
@@ -142,7 +128,7 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
     ...(isEnabledClient("music") ? [{
         id: "music",
         brand: "Swypik Music",
-        label: "Artiști independenți • tips în SWYP",
+        label: "Artiști independenți • susține-i direct",
         badge: "Audio",
         badgeColor: "bg-violet-600 text-white",
         accent: "#7C3AED",
@@ -159,16 +145,6 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         Icon: MessageSquareText,
         href: "/messages",
     }] : []),
-    {
-        id: "mystery",
-        brand: "Mystery Drop",
-        label: "Cutia Zilei • Cadou Gratuit",
-        badge: "Cadou",
-        badgeColor: "bg-amber-500 text-black",
-        accent: "#F59E0B",
-        Icon: Gift,
-        isAction: true,
-    },
     {
         id: "food",
         brand: "Swypik Food",
@@ -218,16 +194,6 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         accent: "#E11D48",
         Icon: HeartHandshake,
         href: "/cares",
-    },
-    {
-        id: "pay",
-        brand: "SWYP Pay",
-        label: "Portofel Digital (-10% Cashback)",
-        badge: "-10%",
-        badgeColor: "bg-indigo-600 text-white",
-        accent: "#7C3AED",
-        Icon: Wallet,
-        href: "/pay",
     },
     {
         id: "seller",
@@ -287,12 +253,6 @@ export default function CategorySidebar({ categories, activeCategory, onSelectCa
     const handleModuleClick = (m: SuperAppModule) => {
         haptic("tap");
         onOpenChange(false);
-        if (m.isAction && m.id === "mystery") {
-            if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("open-mystery-drop"));
-            }
-            return;
-        }
         if (m.href) {
             router.push(m.href);
         }

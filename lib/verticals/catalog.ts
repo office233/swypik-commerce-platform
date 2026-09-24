@@ -22,8 +22,7 @@ export type TransactionMode =
     | "booking"  // rezervare pe interval/slot     → „Rezervă”
     | "lead"     // cerere de ofertă / contact     → „Contactează”
     | "ride"     // cursă punct-la-punct           → „Cheamă”
-    | "donation" // campanie de strângere de fonduri → „Donează”
-    | "wallet";  // portofel & moneda SWYP           → „Deschide”
+    | "donation"; // campanie de strângere de fonduri → „Donează”
 
 /** Cine are voie să publice în verticală. */
 export type PublisherType =
@@ -34,8 +33,7 @@ export type PublisherType =
     | "professional" // PFA / specialist (medic, coafor, meditator)
     | "host"         // gazdă cazare
     | "driver"       // șofer / curier
-    | "cause"        // beneficiar verificat (ONG, familie, business la început)
-    | "platform";    // Swypik însuși (infrastructură, nu marketplace)
+    | "cause";       // beneficiar verificat (ONG, familie, business la început)
 
 export interface Vertical {
     /** identificator stabil, folosit în URL: /v/eats */
@@ -59,7 +57,7 @@ export interface Vertical {
     /** valul de lansare (1 = live acum) */
     wave: 1 | 2 | 3 | 4 | 5;
     /** grupare pentru navigare */
-    group: "shop" | "local" | "property" | "travel" | "services" | "mobility" | "work" | "social" | "finance";
+    group: "shop" | "local" | "property" | "travel" | "services" | "mobility" | "work" | "social";
     /** subcategoriile afișate în pagina verticalei (slug relativ la taxonomyRoot) */
     subcategories?: { slug: string; labelKey: string; emoji: string }[];
 }
@@ -225,13 +223,6 @@ export const VERTICAL_CATALOG: Vertical[] = [
     // Donații: românii donează pentru România. Comision 0% — doar taxa de
     // procesare. Beneficiari verificați, transparență totală pe fiecare campanie.
     { id: "cares", brand: "Swypik Cares", labelKey: "cares", emoji: "🎗️", accent: "#E11D48", mode: "donation", publisher: "cause", taxonomyRoot: "donations", wave: 1, group: "social" },
-
-    // ─── FINANCE ──────────────────────────────────────────────────────────────
-    // Moneda platformei: câștigi SWYP din orice activitate (mining zilnic,
-    // curse, livrări, clipuri, cumpărături) și îl cheltui în oricare verticală.
-    // Nu e un marketplace — e infrastructura care le leagă pe toate.
-    // Supply fix 10 mld, trezorerie publică, ledger auditabil (/api/swyp/supply).
-    { id: "pay", brand: "Swypik Pay", labelKey: "pay", emoji: "🪙", accent: "#F5A623", mode: "wallet", publisher: "platform", taxonomyRoot: "pay", wave: 1, group: "finance" },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -267,7 +258,6 @@ export const ACTION_KEY: Record<TransactionMode, string> = {
     lead: "actions.contact",
     ride: "actions.call",
     donation: "actions.donate",
-    wallet: "actions.openWallet",
 };
 
 /** Modurile care necesită checkout cu plată online imediată. */

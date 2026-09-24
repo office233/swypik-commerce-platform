@@ -15,9 +15,6 @@ import { dbQuery } from "@/lib/db";
  *   - secrete (`password_hash`, `session_token_hash`, `cnp_encrypted`,
  *     chei de wallet) — a le exporta ar transforma un drept GDPR într-un
  *     vector de furt de cont;
- *   - `entry_hash` / `prev_hash` din registrul SWYP — sunt mecanism de
- *     integritate, nu date despre persoană, iar expunerea lor ajută pe cineva
- *     care ar vrea să falsifice lanțul;
  *   - scoruri de risc și semnale antifraudă (`user_risk_scores`,
  *     `user_fraud_signals`) — art. 15(4): dreptul de acces nu poate aduce
  *     atingere drepturilor altora, iar publicarea logicii de detecție ar face
@@ -116,22 +113,6 @@ const SECTIONS: Section[] = [
                      push_likes, push_comments, push_follows, push_messages,
                      push_sales, updated_at
                 FROM notification_preferences WHERE user_id = $1`,
-    },
-    {
-        key: "sold_swyp",
-        about: "Soldul curent de puncte SWYP.",
-        sql: `SELECT balance_units, updated_at FROM swyp_balances WHERE user_id = $1`,
-    },
-    {
-        key: "tranzactii_swyp",
-        about:
-            "Mișcările de puncte SWYP. Hash-urile de integritate ale registrului " +
-            "sunt excluse — sunt mecanism intern, nu date despre tine.",
-        sql: `SELECT amount_units, kind, ref_type, description, created_at,
-                     CASE WHEN to_user_id = $1 THEN 'primit' ELSE 'trimis' END AS directie
-                FROM swyp_ledger_entries
-               WHERE from_user_id = $1 OR to_user_id = $1
-               ORDER BY created_at DESC`,
     },
 ];
 

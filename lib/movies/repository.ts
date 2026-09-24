@@ -4,14 +4,21 @@ import type { MovieEpisodeRow, MovieEpisodeWithThumb, MovieProgressRow, MovieSer
 import { syncEpisodeVisibility } from "./visibility";
 
 const SERIES_COLS = `id, slug, owner_user_id, title, synopsis, genres, language_code, cover_url, poster_url,
-    trailer_video_id, status, free_episodes, episode_price_units::text AS episode_price_units, is_adult,
+    trailer_video_id, status, free_episodes, episode_price_units::text AS episode_price_units,
+    episode_price_cents::text AS episode_price_cents, is_adult,
     license_note, published_at, created_at, updated_at`;
 
 /** Aceleași coloane, prefixate cu aliasul `s.` (pentru JOIN-uri). */
 const SERIES_COLS_S = SERIES_COLS.split(",").map((c) => `s.${c.trim()}`).join(", ");
 
-function normalizeSeries<T extends { episode_price_units: string | number }>(row: T): T & { episode_price_units: number } {
-    return { ...row, episode_price_units: Number(row.episode_price_units) };
+function normalizeSeries<T extends { episode_price_units: string | number; episode_price_cents: string | number | null }>(
+    row: T,
+): T & { episode_price_units: number; episode_price_cents: number | null } {
+    return {
+        ...row,
+        episode_price_units: Number(row.episode_price_units),
+        episode_price_cents: row.episode_price_cents === null ? null : Number(row.episode_price_cents),
+    };
 }
 
 export async function getSeriesBySlug(slug: string): Promise<MovieSeriesRow | null> {
@@ -133,7 +140,7 @@ export async function getEpisodeById(id: string) {
 
 export async function getViewerUnlocks(userId: string, seriesId: string): Promise<{ episodeIds: Set<string>; season: boolean }> {
     const { rows } = await dbQuery<{ episode_id: string | null }>(
-        `SELECT episode_id FROM movie_unlocks WHERE user_id = $1 AND series_id = $2`,
+        `SELECT episode_id FROM movie_unlocks WHERE user_id = $1 AND series_id = $2 AND status = 'paid'`,
         [userId, seriesId],
     );
     return {
@@ -194,7 +201,10 @@ export type CreateSeriesInput = {
     coverUrl: string | null;
     posterUrl: string | null;
     freeEpisodes: number;
+    /** Legacy — nu mai e editabil din UI; păstrat doar pt. constrângerea NOT NULL a coloanei vechi. */
     episodePriceUnits: number;
+    /** Preț RON (cenți) per episod. `null` = creatorul nu l-a setat încă ("preț în curând"). */
+    episodePriceCents: number | null;
     isAdult: boolean;
     licenseNote: string | null;
 };
@@ -202,11 +212,11 @@ export type CreateSeriesInput = {
 export async function createSeries(i: CreateSeriesInput): Promise<MovieSeriesRow> {
     const { rows } = await dbQuery<MovieSeriesRow>(
         `INSERT INTO movie_series (owner_user_id, slug, title, synopsis, genres, language_code, cover_url, poster_url,
-                                   free_episodes, episode_price_units, is_adult, license_note)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                                   free_episodes, episode_price_units, episode_price_cents, is_adult, license_note)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING ${SERIES_COLS}`,
         [i.ownerUserId, i.slug, i.title, i.synopsis, i.genres, i.languageCode, i.coverUrl, i.posterUrl,
-         i.freeEpisodes, i.episodePriceUnits, i.isAdult, i.licenseNote],
+         i.freeEpisodes, i.episodePriceUnits, i.episodePriceCents, i.isAdult, i.licenseNote],
     );
     return normalizeSeries(rows[0]);
 }
@@ -225,6 +235,7 @@ const PATCH_COLUMNS: Record<keyof UpdateSeriesPatch, string> = {
     posterUrl: "poster_url",
     freeEpisodes: "free_episodes",
     episodePriceUnits: "episode_price_units",
+    episodePriceCents: "episode_price_cents",
     isAdult: "is_adult",
     licenseNote: "license_note",
     status: "status",
@@ -302,11 +313,20 @@ export async function ownsReadyVideo(userId: string, videoId: string) {
     return rows[0] ?? null;
 }
 
+/**
+ * Câștigurile creatorului: suma (cenți RON) e calculată DOAR din deblocările
+ * plătite cu cardul (Stripe) — `payment_intent_id IS NOT NULL AND status = 'paid'`.
+ * Deblocările legacy din era SWYP (fără plată cu cardul) nu intră în sumă,
+ * dar contează în continuare la `unlocks` (statistica de "câte deblocări").
+ */
 export async function creatorShareTotals(ownerUserId: string): Promise<{ total_units: number; unlocks: number }> {
     const { rows } = await dbQuery<{ total_units: string; unlocks: string }>(
-        `SELECT COALESCE(SUM(u.creator_share_units), 0)::text AS total_units, COUNT(*)::text AS unlocks
+        `SELECT COALESCE(SUM(u.creator_share_units) FILTER (
+                    WHERE u.payment_intent_id IS NOT NULL AND u.status = 'paid'
+                ), 0)::text AS total_units,
+                COUNT(*) FILTER (WHERE u.status = 'paid')::text AS unlocks
            FROM movie_unlocks u JOIN movie_series s ON s.id = u.series_id
-          WHERE s.owner_user_id = $1 AND u.creator_share_units > 0`,
+          WHERE s.owner_user_id = $1`,
         [ownerUserId],
     );
     return { total_units: Number(rows[0]?.total_units ?? 0), unlocks: Number(rows[0]?.unlocks ?? 0) };

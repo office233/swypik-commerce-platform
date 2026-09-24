@@ -1,9 +1,6 @@
 import type Stripe from "stripe";
 import { dbQuery } from "@/lib/db";
 import { sendRefundEmail } from "@/lib/email/service";
-import { refundSwypForRefundedCharge } from "@/lib/swyp/refund";
-import { onPaymentRefunded } from "@/lib/swyp/hooks";
-import { reclaimSwypForDeadIntent } from "./shared";
 import { logger } from "@/lib/logger";
 
 export async function handleChargeRefunded(event: Stripe.Event) {
@@ -13,7 +10,7 @@ export async function handleChargeRefunded(event: Stripe.Event) {
     // CRITIC (audit 2026-08-25): un refund PARȚIAL (ex. 20 RON dintr-o comandă
     // de 300, acordat din Dashboard pentru un singur item defect) marca TOATĂ
     // comanda `refunded` — stare terminală care oprea payout-urile celorlalți
-    // selleri, anula itemele încă nelivrate și revoca toate recompensele SWYP.
+    // selleri și anula itemele încă nelivrate.
     // Distingem parțial de total după suma refundată vs suma încasată.
     const isFullRefund =
       typeof charge.amount === "number" && charge.amount > 0
@@ -59,38 +56,6 @@ export async function handleChargeRefunded(event: Stripe.Event) {
                 OR co.metadata->>'stripe_payment_intent' = $1)`,
         [pi, event.id, charge.amount_refunded || 0]
       );
-    }
-
-    // SWYP: revocă recompensele acordate pentru plata refundată.
-    await onPaymentRefunded(pi);
-
-    // SWYP: recreditează partea plătită efectiv în SWYP la comenzile
-    // hibride, proporțional cu partea de card refundată. Idempotent
-    // după ref (swyp_refund_charge:<charge_id>:<amount_refunded>);
-    // aruncă la eroare → Stripe reîncearcă eventul.
-    {
-      const { rows: swypOrders } = await dbQuery<{ id: string; swyp_paid_cents: number }>(
-        `SELECT id, COALESCE(swyp_paid_cents, 0)::int AS swyp_paid_cents
-           FROM commerce_orders
-          WHERE (metadata->>'paymentIntentId' = $1
-                 OR metadata->>'payment_intent_id' = $1
-                 OR metadata->>'stripe_payment_intent' = $1)
-            AND COALESCE(swyp_paid_cents, 0) > 0`,
-        [pi]
-      );
-      for (const so of swypOrders) {
-        const res = await refundSwypForRefundedCharge({
-          orderId: so.id,
-          chargeId: charge.id,
-          amountRefunded: charge.amount_refunded || 0,
-          amountTotal: charge.amount || 0,
-        });
-        if (res.credited) {
-          logger.info(
-            `[Stripe Webhook] SWYP refunded for hybrid order ${so.id}: ${res.units} units / ${res.cents} cents (charge ${charge.id})`
-          );
-        }
-      }
     }
 
     try {
@@ -148,8 +113,4 @@ export async function handleIntentDead(event: Stripe.Event) {
             OR co.metadata->>'stripe_payment_intent' = $1)`,
     [objId, event.type]
   );
-  // SWYP: intentul nu se mai poate plăti niciodată → recreditează
-  // integral partea debitată la create-intent. Idempotent după
-  // (swyp_refund_intent, <obj_id>).
-  await reclaimSwypForDeadIntent(objId, event.type);
 }

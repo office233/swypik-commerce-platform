@@ -232,7 +232,7 @@ INSERT INTO creator_missions (slug, product_id, title, brief, format_hint, prize
 SELECT 'mission-summer-swim-haul', mp.id,
   'Summer Swim Haul — try-on video',
   'Filmează un try-on cu bermudele Hawaii Print pe plajă/piscină. Min. 15 sec, vertical 9:16, music allowed.',
-  'try_on', 5000, 'SWYP', 500,
+  'try_on', 5000, 'RON', 500,
   now() + interval '14 days', 'active',
   '{"seeded":true}'::jsonb
 FROM marketplace_products mp WHERE mp.slug LIKE '2024-summer-new-hawaii-vacation-beach-shorts%' LIMIT 1
@@ -242,7 +242,7 @@ INSERT INTO creator_missions (slug, product_id, title, brief, format_hint, prize
 SELECT 'mission-office-styling-3-ways', mp.id,
   'Office styling — 3 ways with this 2-piece',
   'Creează un video care arată 3 outfit-uri diferite cu costumul Black Wide Leg. Bonus pentru voice-over.',
-  'styling', 8000, 'SWYP', 1000,
+  'styling', 8000, 'RON', 1000,
   now() + interval '21 days', 'active',
   '{"seeded":true}'::jsonb
 FROM marketplace_products mp WHERE mp.slug LIKE 'women-black-two-piece-set-stand-collar%' LIMIT 1
@@ -252,7 +252,7 @@ INSERT INTO creator_missions (slug, product_id, title, brief, format_hint, prize
 SELECT 'mission-y2k-aesthetic-grwm', mp.id,
   'Y2K aesthetic — GRWM cu crop top',
   'Get Ready With Me în vibe Y2K folosind Harajuku Crop Top. Voice-over RO/EN OK.',
-  'grwm', 6000, 'SWYP', 700,
+  'grwm', 6000, 'RON', 700,
   now() + interval '12 days', 'active',
   '{"seeded":true}'::jsonb
 FROM marketplace_products mp WHERE mp.slug LIKE 'harajuku-crop-tops-y2k%' LIMIT 1
@@ -262,7 +262,7 @@ INSERT INTO creator_missions (slug, product_id, title, brief, format_hint, prize
 SELECT 'mission-luxury-tshirt-honest-review', mp.id,
   'Honest review — Luxury Brand T-shirt',
   'Test "luxury" la 181 RON. Quality unboxing + 3 puncte forte/slabe. Onestitate apreciată.',
-  'review', 7500, 'SWYP', 800,
+  'review', 7500, 'RON', 800,
   now() + interval '10 days', 'active',
   '{"seeded":true}'::jsonb
 FROM marketplace_products mp WHERE mp.slug LIKE '2025-autumn-winter-luxury-brand-letter%' LIMIT 1
@@ -272,7 +272,7 @@ INSERT INTO creator_missions (slug, product_id, title, brief, format_hint, prize
 SELECT 'mission-winter-jacket-vlog', mp.id,
   'Winter jacket vlog — outfit of the day',
   'Vlog 30 sec — geacă iarnă + 2 outfit-uri casual și smart. Outdoor preferred.',
-  'vlog', 10000, 'SWYP', 1500,
+  'vlog', 10000, 'RON', 1500,
   now() + interval '20 days', 'active',
   '{"seeded":true}'::jsonb
 FROM marketplace_products mp WHERE mp.slug LIKE 'women-s-autumn-winter-jacket-casual%' LIMIT 1

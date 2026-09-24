@@ -1,13 +1,13 @@
-import { withTransaction, type TxQuery } from "@/lib/db";
-import { swypTransferInTx, SwypInsufficientFundsError } from "@/lib/swyp/ledger";
-import { platformShareUnits } from "@/lib/swyp/share";
+import { dbQuery } from "@/lib/db";
+import { getStripe } from "@/lib/stripe/checkout";
+import { creditUser } from "@/lib/wallet/ledger";
 import { logger } from "@/lib/logger";
-import { MUSIC_ARTIST_SHARE_BPS } from "./config";
-import { albumPriceUnits } from "./pricing";
+import { artistShareCents, albumPriceCents } from "./pricing";
 
-export type UnlockResult =
-    | { ok: true; alreadyApplied: boolean; unitsPaid: number; artistShareUnits: number }
-    | { ok: false; reason: "not_found" | "not_premium" | "not_published" | "insufficient_balance" };
+export type UnlockIntentResult =
+    | { ok: true; alreadyUnlocked: true }
+    | { ok: true; alreadyUnlocked: false; clientSecret: string; amountCents: number }
+    | { ok: false; reason: "not_found" | "not_premium" | "not_published" | "price_not_set" };
 
 export function musicUnlockRefId(userId: string, target: { trackId: string } | { albumId: string }): string {
     return "trackId" in target
@@ -15,120 +15,166 @@ export function musicUnlockRefId(userId: string, target: { trackId: string } | {
         : `music_unlock:${userId}:album:${target.albumId}`;
 }
 
-type UnlockTarget = { trackId: string; albumId: null } | { trackId: null; albumId: string };
+type PendingUnlockRow = { id: string; status: string };
+
+async function upsertPendingTrackUnlock(userId: string, trackId: string, amountCents: number): Promise<PendingUnlockRow> {
+    const { rows } = await dbQuery<PendingUnlockRow>(
+        `INSERT INTO music_unlocks (user_id, track_id, album_id, units_paid, artist_share_units, amount_cents, currency, status)
+         VALUES ($1, $2, NULL, 0, 0, $3, 'RON', 'pending')
+         ON CONFLICT (user_id, track_id) WHERE track_id IS NOT NULL
+         DO UPDATE SET amount_cents = EXCLUDED.amount_cents
+         RETURNING id, status`,
+        [userId, trackId, amountCents],
+    );
+    return rows[0];
+}
+
+async function upsertPendingAlbumUnlock(userId: string, albumId: string, amountCents: number): Promise<PendingUnlockRow> {
+    const { rows } = await dbQuery<PendingUnlockRow>(
+        `INSERT INTO music_unlocks (user_id, track_id, album_id, units_paid, artist_share_units, amount_cents, currency, status)
+         VALUES ($1, NULL, $2, 0, 0, $3, 'RON', 'pending')
+         ON CONFLICT (user_id, album_id) WHERE album_id IS NOT NULL
+         DO UPDATE SET amount_cents = EXCLUDED.amount_cents
+         RETURNING id, status`,
+        [userId, albumId, amountCents],
+    );
+    return rows[0];
+}
+
+async function createIntentForUnlock(args: {
+    unlockId: string;
+    amountCents: number;
+    userId: string;
+    kind: "music_track_unlock" | "music_album_unlock";
+    trackId: string | null;
+    albumId: string | null;
+}): Promise<string> {
+    const stripe = getStripe();
+    const intent = await stripe.paymentIntents.create(
+        {
+            amount: args.amountCents,
+            currency: "ron",
+            automatic_payment_methods: { enabled: true },
+            metadata: {
+                kind: args.kind,
+                trackId: args.trackId ?? "",
+                albumId: args.albumId ?? "",
+                userId: args.userId,
+                unlockId: args.unlockId,
+            },
+        },
+        { idempotencyKey: `music_unlock_pi:${args.unlockId}` },
+    );
+    await dbQuery(
+        `UPDATE music_unlocks SET payment_intent_id = $2, amount_cents = $3, status = 'pending' WHERE id = $1 AND status <> 'paid'`,
+        [args.unlockId, intent.id, args.amountCents],
+    );
+    if (!intent.client_secret) throw new Error("stripe_intent_missing_client_secret");
+    return intent.client_secret;
+}
+
+export async function createTrackUnlockIntent(args: { userId: string; trackId: string }): Promise<UnlockIntentResult> {
+    const { rows } = await dbQuery<{ id: string; artist_user_id: string; status: string; is_premium: boolean; price_cents: string | number | null }>(
+        `SELECT t.id, t.artist_user_id, t.status, t.is_premium, t.price_cents::text AS price_cents FROM music_tracks t WHERE t.id = $1`,
+        [args.trackId],
+    );
+    const track = rows[0];
+    if (!track) return { ok: false, reason: "not_found" };
+    if (track.status !== "published") return { ok: false, reason: "not_published" };
+    if (!track.is_premium) return { ok: false, reason: "not_premium" };
+    const amountCents = track.price_cents === null ? null : Number(track.price_cents);
+    if (amountCents === null) return { ok: false, reason: "price_not_set" };
+
+    const pending = await upsertPendingTrackUnlock(args.userId, args.trackId, amountCents);
+    if (pending.status === "paid") return { ok: true, alreadyUnlocked: true };
+
+    const clientSecret = await createIntentForUnlock({
+        unlockId: pending.id,
+        amountCents,
+        userId: args.userId,
+        kind: "music_track_unlock",
+        trackId: args.trackId,
+        albumId: null,
+    });
+    return { ok: true, alreadyUnlocked: false, clientSecret, amountCents };
+}
+
+export async function createAlbumUnlockIntent(args: { userId: string; albumId: string }): Promise<UnlockIntentResult> {
+    const { rows } = await dbQuery<{ id: string; artist_user_id: string; status: string; price_cents: string | number | null }>(
+        `SELECT al.id, al.artist_user_id, al.status, al.price_cents::text AS price_cents FROM music_albums al WHERE al.id = $1`,
+        [args.albumId],
+    );
+    const album = rows[0];
+    if (!album) return { ok: false, reason: "not_found" };
+    if (album.status !== "published") return { ok: false, reason: "not_published" };
+
+    const { rows: tracks } = await dbQuery<{ is_premium: boolean; price_cents: string | number | null }>(
+        `SELECT is_premium, price_cents::text AS price_cents FROM music_tracks WHERE album_id = $1 AND status = 'published'`,
+        [args.albumId],
+    );
+    const amountCents = albumPriceCents(
+        { price_cents: album.price_cents === null ? null : Number(album.price_cents) },
+        tracks.map((t) => ({ is_premium: t.is_premium, price_cents: t.price_cents === null ? null : Number(t.price_cents) })),
+    );
+    if (amountCents === null) return { ok: false, reason: "price_not_set" };
+    if (amountCents === 0) return { ok: false, reason: "not_premium" };
+
+    const pending = await upsertPendingAlbumUnlock(args.userId, args.albumId, amountCents);
+    if (pending.status === "paid") return { ok: true, alreadyUnlocked: true };
+
+    const clientSecret = await createIntentForUnlock({
+        unlockId: pending.id,
+        amountCents,
+        userId: args.userId,
+        kind: "music_album_unlock",
+        trackId: null,
+        albumId: args.albumId,
+    });
+    return { ok: true, alreadyUnlocked: false, clientSecret, amountCents };
+}
 
 /**
- * Mută banii și scrie rândul de unlock în ACEEAȘI tranzacție (tiparul Movies):
- *   1. INSERT music_unlocks … ON CONFLICT DO NOTHING — garda de idempotență;
- *   2. spend viewer → pool rewards (refId determinist ⇒ ledger-ul e idempotent);
- *   3. reward pool → artist (cota), sărit când e 0;
- *   4. UPDATE music_unlocks cu suma/cota/ref.
- * Sold insuficient ⇒ SwypInsufficientFundsError ⇒ ROLLBACK (rândul din 1 dispare).
+ * Webhook `payment_intent.succeeded` (kind `music_track_unlock`/`music_album_unlock`):
+ * marchează deblocarea plătită (idempotent — no-op dacă rândul e deja `paid`
+ * sau `payment_intent_id` nu se mai potrivește niciunui rând) și creditează
+ * cota artistului în cenți RON pe `lib/wallet/ledger.ts` (idempotent după
+ * `refType`+`refId`=id-ul rândului de unlock).
  */
-async function settle(
-    q: TxQuery,
-    args: { userId: string; artistUserId: string; target: UnlockTarget; amountUnits: number; refId: string },
-): Promise<UnlockResult> {
-    const { rows } = await q<{ id: string }>(
-        `INSERT INTO music_unlocks (user_id, track_id, album_id, units_paid, artist_share_units)
-         VALUES ($1, $2, $3, 0, 0)
-         ON CONFLICT DO NOTHING
-         RETURNING id`,
-        [args.userId, args.target.trackId, args.target.albumId],
+export async function markMusicUnlockPaid(paymentIntentId: string): Promise<void> {
+    const { rows } = await dbQuery<{
+        id: string;
+        user_id: string;
+        track_id: string | null;
+        album_id: string | null;
+        amount_cents: string | null;
+        artist_user_id: string;
+    }>(
+        `UPDATE music_unlocks u
+            SET status = 'paid'
+           FROM (
+                SELECT id, artist_user_id FROM music_tracks
+                UNION ALL
+                SELECT id, artist_user_id FROM music_albums
+            ) owner(id, artist_user_id)
+          WHERE owner.id = COALESCE(u.track_id, u.album_id) AND u.payment_intent_id = $1 AND u.status <> 'paid'
+          RETURNING u.id, u.user_id, u.track_id, u.album_id, u.amount_cents::text AS amount_cents, owner.artist_user_id`,
+        [paymentIntentId],
     );
-    const unlockId = rows[0]?.id;
-    if (!unlockId) return { ok: true, alreadyApplied: true, unitsPaid: 0, artistShareUnits: 0 };
+    const row = rows[0];
+    if (!row) return; // deja procesat (retry Stripe) sau intent necunoscut
 
-    const spend = await swypTransferInTx(q, {
-        from: { userId: args.userId },
-        to: { pool: "rewards" },
-        amountUnits: BigInt(args.amountUnits),
-        kind: "spend",
-        refType: "music_unlock",
-        refId: args.refId,
-        description: "Swypik Music unlock",
-        metadata: { track_id: args.target.trackId, album_id: args.target.albumId },
-    });
+    const amountCents = Number(row.amount_cents ?? 0);
+    const share = artistShareCents(amountCents, row.artist_user_id, row.user_id);
+    await dbQuery(`UPDATE music_unlocks SET units_paid = $2, artist_share_units = $3 WHERE id = $1`, [row.id, amountCents, share]);
 
-    const share = platformShareUnits(args.amountUnits, args.artistUserId, args.userId, MUSIC_ARTIST_SHARE_BPS);
     if (share > 0) {
-        await swypTransferInTx(q, {
-            from: { pool: "rewards" },
-            to: { userId: args.artistUserId },
-            amountUnits: BigInt(share),
-            kind: "reward",
+        await creditUser({
+            userId: row.artist_user_id,
+            amountCents: share,
             refType: "music_artist_share",
-            refId: args.refId,
-            description: "Swypik Music artist share",
-            metadata: { track_id: args.target.trackId, album_id: args.target.albumId, viewer_id: args.userId },
-        });
+            refId: row.id,
+            description: "Swypik Music — cotă artist",
+            metadata: { trackId: row.track_id, albumId: row.album_id },
+        }).catch((err) => logger.error({ err, unlockId: row.id }, "[music/unlock] artist share credit failed"));
     }
-
-    await q(
-        `UPDATE music_unlocks SET units_paid = $2, artist_share_units = $3, ledger_ref = $4 WHERE id = $1`,
-        [unlockId, args.amountUnits, share, spend.entry.id],
-    );
-    return { ok: true, alreadyApplied: false, unitsPaid: args.amountUnits, artistShareUnits: share };
-}
-
-async function run(fn: (q: TxQuery) => Promise<UnlockResult>): Promise<UnlockResult> {
-    try {
-        return await withTransaction(fn);
-    } catch (err) {
-        if (err instanceof SwypInsufficientFundsError) return { ok: false, reason: "insufficient_balance" };
-        logger.error({ err }, "[music/unlock] failed");
-        throw err;
-    }
-}
-
-export async function unlockTrack(args: { userId: string; trackId: string }): Promise<UnlockResult> {
-    return run(async (q) => {
-        const { rows } = await q<{ id: string; artist_user_id: string; status: string; is_premium: boolean; price_units: string | null; album_id: string | null }>(
-            `SELECT t.id, t.artist_user_id, t.status, t.is_premium, t.price_units::text AS price_units, t.album_id
-               FROM music_tracks t WHERE t.id = $1 FOR UPDATE`,
-            [args.trackId],
-        );
-        const track = rows[0];
-        if (!track) return { ok: false, reason: "not_found" };
-        if (track.status !== "published") return { ok: false, reason: "not_published" };
-        if (!track.is_premium) return { ok: false, reason: "not_premium" };
-        const amount = Number(track.price_units ?? 0);
-        if (amount === 0) return { ok: false, reason: "not_premium" };
-        return settle(q, {
-            userId: args.userId,
-            artistUserId: track.artist_user_id,
-            target: { trackId: args.trackId, albumId: null },
-            amountUnits: amount,
-            refId: musicUnlockRefId(args.userId, { trackId: args.trackId }),
-        });
-    });
-}
-
-export async function unlockAlbum(args: { userId: string; albumId: string }): Promise<UnlockResult> {
-    return run(async (q) => {
-        const { rows } = await q<{ id: string; artist_user_id: string; status: string; price_units: string | null }>(
-            `SELECT al.id, al.artist_user_id, al.status, al.price_units::text AS price_units
-               FROM music_albums al WHERE al.id = $1 FOR UPDATE`,
-            [args.albumId],
-        );
-        const album = rows[0];
-        if (!album) return { ok: false, reason: "not_found" };
-        if (album.status !== "published") return { ok: false, reason: "not_published" };
-        const { rows: tracks } = await q<{ is_premium: boolean; price_units: string | null }>(
-            `SELECT is_premium, price_units::text AS price_units FROM music_tracks WHERE album_id = $1 AND status = 'published'`,
-            [args.albumId],
-        );
-        const amount = albumPriceUnits(
-            { price_units: album.price_units === null ? null : Number(album.price_units) },
-            tracks.map((t) => ({ is_premium: t.is_premium, price_units: t.price_units === null ? null : Number(t.price_units) })),
-        );
-        if (amount === 0) return { ok: false, reason: "not_premium" };
-        return settle(q, {
-            userId: args.userId,
-            artistUserId: album.artist_user_id,
-            target: { trackId: null, albumId: args.albumId },
-            amountUnits: amount,
-            refId: musicUnlockRefId(args.userId, { albumId: args.albumId }),
-        });
-    });
 }

@@ -5,7 +5,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { parseBody } from "@/lib/validation/schemas";
 import { getSeriesById, listEpisodes, updateSeries } from "@/lib/movies/repository";
-import { clampEpisodePrice } from "@/lib/movies/pricing";
+import { clampEpisodePriceCents } from "@/lib/movies/pricing";
 import { MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
 import { MOVIE_GENRES } from "@/lib/movies/genres";
 
@@ -18,7 +18,7 @@ const PatchSchema = z.object({
     coverUrl: z.string().url().max(500).nullable().optional(),
     posterUrl: z.string().url().max(500).nullable().optional(),
     freeEpisodes: z.coerce.number().int().min(0).max(MOVIES_MAX_FREE_EPISODES).optional(),
-    episodePriceUnits: z.coerce.number().int().optional(),
+    episodePriceCents: z.coerce.number().int().nullable().optional(),
     isAdult: z.boolean().optional(),
     licenseNote: z.string().trim().max(1000).nullable().optional(),
     /** Creatorul poate doar trimite la review sau retrage în draft; publicarea e a adminului. */
@@ -44,7 +44,9 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const patch = {
         ...parsed.data,
-        ...(parsed.data.episodePriceUnits !== undefined ? { episodePriceUnits: clampEpisodePrice(parsed.data.episodePriceUnits) } : {}),
+        ...(parsed.data.episodePriceCents !== undefined
+            ? { episodePriceCents: parsed.data.episodePriceCents !== null ? clampEpisodePriceCents(parsed.data.episodePriceCents) : null }
+            : {}),
     };
     if (patch.status === "pending_review") {
         const current = await getSeriesById(id);

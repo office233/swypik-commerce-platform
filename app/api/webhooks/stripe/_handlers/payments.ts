@@ -9,10 +9,10 @@ import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 import { settleRide } from "@/lib/payments/mobility";
 import { attributeOrder } from "@/lib/algo/attribution";
 import { logger } from "@/lib/logger";
-import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/swyp/hooks";
+import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/referral/validation";
 import { markStayBookingPaidByCard, markStayBookingCardFailed } from "@/lib/stays/stripe-payment";
 import { APP_URL } from "@/lib/app-url";
-import { maybeSendOrderConfirmation, reclaimSwypForDeadIntent } from "./shared";
+import { maybeSendOrderConfirmation } from "./shared";
 import { FRAUD_REVIEW_SCORE, FRAUD_BLOCK_SCORE } from "@/lib/risk/thresholds";
 
 export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
@@ -20,7 +20,7 @@ export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
   // FRONT R5 — Eats: comenzi locale plătite cu Payment Element.
   if (intent.metadata?.kind === "local_order" && intent.metadata?.local_order_id) {
     await markLocalOrderPaid(intent.metadata.local_order_id, intent.id);
-    // SWYP: prima comandă Eats plătită validează referralul clientului.
+    // Referral: prima comandă Eats plătită validează atribuirea clientului.
     await onLocalOrderPaid(intent.metadata.local_order_id, intent.id);
     // Auto-dispatch pe 'placed' e acum blocat cât timp plata nu e confirmată
     // (lib/dispatch/auto.ts). Confirmarea e momentul în care comanda poate
@@ -38,7 +38,7 @@ export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
         WHERE id = $1 AND payment_status IN ('unpaid', 'authorized')`,
       [intent.metadata.ride_id],
     );
-    // SWYP: recompensă șofer + referral pasager.
+    // Referral: prima cursă plătită validează atribuirea pasagerului.
     await onRidePaid(intent.metadata.ride_id, intent.id);
     // Dacă șoferul a finalizat cursa înainte ca captura să ajungă, decontarea a
     // fost refuzată (payment_status nu era încă 'captured') și `settled_at` a
@@ -108,12 +108,6 @@ export async function handlePaymentIntentFailed(event: Stripe.Event) {
         WHERE id = $1::uuid AND payment_status = 'pending'`,
       [intent.metadata.donation_id],
     );
-  }
-  // SWYP: eșec DEFINITIV (intent anulat) → recreditează integral partea
-  // SWYP. Un simplu card declinat (requires_payment_method) mai poate fi
-  // reîncercat de client — pentru abandon există cronul de reclaim.
-  if (intent.status === "canceled") {
-    await reclaimSwypForDeadIntent(intent.id, event.type);
   }
   logger.warn(`[Stripe Webhook] Payment failed: ${intent.id} - ${intent.last_payment_error?.message}`);
   await logCheckoutEvent("checkout_fail", {
@@ -193,7 +187,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     await attributeOrder(orderId).catch((e) =>
       logger.error({ err: e, orderId }, "[algo] video attribution failed"),
     );
-    // SWYP: referral validat la prima comandă plătită (best-effort, nu blochează).
+    // Referral: validat la prima comandă plătită (best-effort, nu blochează).
     await onOrderPaid(orderId, intent.id);
   }
 

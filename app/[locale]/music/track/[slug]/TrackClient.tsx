@@ -11,7 +11,6 @@ import { ArrowLeft, Heart, ListPlus, Music2, Pause, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import TrackRow from "@/components/music/TrackRow";
-import TipSheet from "@/components/music/TipSheet";
 import MusicPaywall from "@/components/music/MusicPaywall";
 import { useMusicPlayer, type MusicLockedInfo } from "@/components/music/MusicPlayerProvider";
 import { formatDuration } from "@/components/music/format";
@@ -21,7 +20,7 @@ import type { AlbumDto, TrackDto } from "@/lib/music/types";
 import AddToPlaylistSheet from "../../_components/AddToPlaylistSheet";
 import { setTrackLiked } from "../../_lib/track-actions";
 
-type Payload = { track: TrackDto; album: AlbumDto | null; viewer: { balanceUnits: number | null; requireAuth: boolean } };
+type Payload = { track: TrackDto; album: AlbumDto | null; viewer: { requireAuth: boolean } };
 
 export default function TrackClient({ slug }: { slug: string }) {
     const t = useTranslations("music");
@@ -30,7 +29,6 @@ export default function TrackClient({ slug }: { slug: string }) {
     const [albumTracks, setAlbumTracks] = useState<TrackDto[] | null>(null);
     const [notFoundState, setNotFoundState] = useState(false);
     const [error, setError] = useState(false);
-    const [tipOpen, setTipOpen] = useState(false);
     const [playlistOpen, setPlaylistOpen] = useState(false);
 
     const load = useCallback(() => {
@@ -68,7 +66,7 @@ export default function TrackClient({ slug }: { slug: string }) {
     };
 
     const lockedInfo: MusicLockedInfo | null = track.locked
-        ? { track, priceUnits: track.priceUnits, albumPriceUnits: album?.priceUnits ?? null, balanceUnits: viewer.balanceUnits, requireAuth: viewer.requireAuth }
+        ? { track, priceCents: track.priceCents, albumPriceCents: album?.priceCents ?? null, requireAuth: viewer.requireAuth }
         : null;
 
     const handleUnlocked = () => {
@@ -142,14 +140,6 @@ export default function TrackClient({ slug }: { slug: string }) {
                     >
                         <ListPlus size={18} />
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => { haptic("tap"); setTipOpen(true); }}
-                        aria-label={t("support")}
-                        className="flex h-11 items-center gap-1.5 rounded-full bg-[#7C3AED]/20 px-4 text-xs font-black text-[#A78BFA] ring-1 ring-[#7C3AED]/40 active:scale-95"
-                    >
-                        <Heart size={16} /> {t("support")}
-                    </button>
                     {track.audioTrackId !== null && (
                         <Link
                             href={`/upload?audio=${track.audioTrackId}`}
@@ -182,7 +172,6 @@ export default function TrackClient({ slug }: { slug: string }) {
                 </section>
             )}
 
-            <TipSheet open={tipOpen} onClose={() => setTipOpen(false)} artistSlug={track.artist.slug} trackSlug={track.slug} onSent={() => setTipOpen(false)} />
             <AddToPlaylistSheet track={playlistOpen ? track : null} onClose={() => setPlaylistOpen(false)} />
         </main>
     );

@@ -39,11 +39,12 @@ export async function POST(
         return NextResponse.json({ error: "videoId invalid." }, { status: 400 });
     }
 
-    // misiune activă
+    // misiune activă (misiunile cu premiu în SWYP nu mai sunt disponibile)
     const { rows: missions } = await dbQuery<{ id: string }>(
         `SELECT id FROM creator_missions
       WHERE slug = $1 AND status = 'active'
-        AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now())`,
+        AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now())
+        AND prize_currency <> 'SWYP'`,
         [slug],
     );
     if (!missions.length) {

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import type { MovieSeriesRow, SeriesStatus } from "@/lib/movies/types";
 
 type Row = MovieSeriesRow & { episode_count: number; owner_name: string | null };
@@ -18,6 +19,7 @@ const STATUS_KEY: Record<SeriesStatus, StatusKey> = {
 
 export default function AdminMoviesPage() {
   const t = useTranslations("movies");
+  const formatPrice = useFormatPrice();
   const [status, setStatus] = useState<SeriesStatus>("pending_review");
   const [rows, setRows] = useState<Row[]>([]);
   const [publishers, setPublishers] = useState<Publisher[]>([]);
@@ -80,7 +82,7 @@ export default function AdminMoviesPage() {
               <td>{r.owner_name ?? r.owner_user_id.slice(0, 8)}</td>
               <td>{r.episode_count}</td>
               <td>{r.free_episodes}</td>
-              <td>{r.episode_price_units}</td>
+              <td>{r.episode_price_cents !== null ? formatPrice(r.episode_price_cents, { sourceCurrency: "RON" }) : t("priceComingSoon")}</td>
               <td className="space-x-1 text-right whitespace-nowrap">
                 {r.status !== "published" && (
                   <button type="button" onClick={() => patch(r.id, { status: "published" })} className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-bold text-white">{t("publish")}</button>

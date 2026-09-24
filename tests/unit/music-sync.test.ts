@@ -17,7 +17,7 @@ const artist = { user_id: "a1", stage_name: "Zara", slug: "zara", bio: "", avata
 const base = {
   id: "t1", artist_user_id: "a1", album_id: null, track_number: null, title: "Vara", slug: "vara-1", cover_url: null, genre: "pop",
   duration_ms: 120_000, explicit: false, object_key: "music/raw/a1/t1/abc.m4a", public_url: "https://cdn/music/raw/a1/t1/abc.m4a",
-  is_premium: false, price_units: null, allow_reels: true, audio_track_id: 7, audience: "general", status: "published",
+  is_premium: false, price_units: null, price_cents: null, allow_reels: true, audio_track_id: 7, audience: "general", status: "published",
   moderation_status: "approved", license_note: "ok", published_at: "2026-09-22T00:00:00Z", created_at: "", updated_at: "",
 };
 
@@ -48,8 +48,8 @@ describe("music/publish updateTrackAndSync", () => {
     expect(sqls.some((s) => s.startsWith("INSERT INTO audio_tracks"))).toBe(false);
   });
   it("trecerea la premium (fara URL public) dezactiveaza sunetul", async () => {
-    trackAfterUpdate = { ...base, is_premium: true, public_url: null, price_units: "300" };
-    await updateTrackAndSync("t1", null, { isPremium: true, publicUrl: null, priceUnits: 300 });
+    trackAfterUpdate = { ...base, is_premium: true, public_url: null, price_units: "300", price_cents: "300" };
+    await updateTrackAndSync("t1", null, { isPremium: true, publicUrl: null, priceCents: 300 });
     expect(calls.some((c) => c.sql.startsWith("UPDATE audio_tracks SET is_active = false"))).toBe(true);
     expect(calls.some((c) => c.sql.startsWith("INSERT INTO audio_tracks"))).toBe(false);
   });

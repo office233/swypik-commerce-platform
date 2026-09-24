@@ -6,9 +6,9 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { parseBody } from "@/lib/validation/schemas";
 import { createTrack, isArtist, ownsAlbum } from "@/lib/music/repository";
-import { clampTrackPrice } from "@/lib/music/pricing";
+import { clampTrackPriceCents } from "@/lib/music/pricing";
 import { slugifyMusic } from "@/lib/music/slug";
-import { MUSIC_DEFAULT_TRACK_PRICE_UNITS, MUSIC_MAX_DURATION_MS, MUSIC_MIN_DURATION_MS } from "@/lib/music/config";
+import { MUSIC_DEFAULT_TRACK_PRICE_CENTS, MUSIC_TRACK_PRICE_MIN_UNITS, MUSIC_MAX_DURATION_MS, MUSIC_MIN_DURATION_MS } from "@/lib/music/config";
 import { MUSIC_GENRES } from "@/lib/music/genres";
 import { isOwnedMusicKey } from "@/lib/storage/media-upload";
 import { getVideoAssetUrl } from "@/lib/storage/video-storage";
@@ -23,7 +23,7 @@ const CreateTrackSchema = z.object({
     durationMs: z.coerce.number().int().min(MUSIC_MIN_DURATION_MS).max(MUSIC_MAX_DURATION_MS),
     explicit: z.boolean().default(false),
     isPremium: z.boolean().default(false),
-    priceUnits: z.coerce.number().int().optional(),
+    priceCents: z.coerce.number().int().optional(),
     allowReels: z.boolean().default(true),
     audience: z.enum(["general", "kids"]).default("general"),
     albumId: z.string().uuid().nullable().default(null),
@@ -59,7 +59,9 @@ export const POST = withErrorHandling(async function POST(req: Request) {
         return NextResponse.json({ error: "album_not_owned" }, { status: 403 });
     }
 
-    const priceUnits = d.isPremium ? clampTrackPrice(d.priceUnits ?? MUSIC_DEFAULT_TRACK_PRICE_UNITS) : null;
+    const priceCents = d.isPremium ? clampTrackPriceCents(d.priceCents ?? MUSIC_DEFAULT_TRACK_PRICE_CENTS) : null;
+    // Legacy: coloana SWYP e obligatorie când e premium (constrângere veche a schemei) — placeholder nefolosit de UI.
+    const priceUnits = d.isPremium ? MUSIC_TRACK_PRICE_MIN_UNITS : null;
     const publicUrl = d.isPremium ? null : getVideoAssetUrl(d.objectKey);
     const slug = slugifyMusic(d.title, "track");
 
@@ -78,6 +80,7 @@ export const POST = withErrorHandling(async function POST(req: Request) {
         publicUrl,
         isPremium: d.isPremium,
         priceUnits,
+        priceCents,
         allowReels: d.allowReels,
         audience: d.audience,
         licenseNote: d.licenseNote,

@@ -10,14 +10,25 @@ import { handlePaymentIntentSucceededEvent, handlePaymentIntentFailed } from "./
 import { handleChargeRefunded, handleIntentDead } from "./_handlers/refunds";
 import { handleAccountUpdated } from "./_handlers/connect";
 import { handleDisputeEvent } from "./_handlers/disputes";
+import { CREATOR_UNLOCK_KINDS, handleCreatorUnlockPaymentSucceeded } from "./_handlers/creator-unlocks";
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 type EventHandler = (event: Stripe.Event) => Promise<void>;
 
+/** Movies/Music (deblocare cu cardul, RON) au propriul `metadata.kind` — le rutăm înaintea comenzilor obișnuite. */
+async function handlePaymentIntentSucceededRouted(event: Stripe.Event): Promise<void> {
+  const intent = event.data.object as Stripe.PaymentIntent;
+  const kind = intent.metadata?.kind;
+  if (kind && CREATOR_UNLOCK_KINDS.has(kind)) {
+    return handleCreatorUnlockPaymentSucceeded(event);
+  }
+  return handlePaymentIntentSucceededEvent(event);
+}
+
 const HANDLERS: Record<string, EventHandler> = {
   "checkout.session.completed": handleCheckoutCompletedEvent,
-  "payment_intent.succeeded": handlePaymentIntentSucceededEvent,
+  "payment_intent.succeeded": handlePaymentIntentSucceededRouted,
   "payment_intent.payment_failed": handlePaymentIntentFailed,
   "account.updated": handleAccountUpdated,
   "charge.refunded": handleChargeRefunded,

@@ -52,6 +52,7 @@ export async function GET(req: Request) {
        LEFT JOIN marketplace_products p ON p.id = m.product_id
        WHERE m.status = 'active'
          AND (m.ends_at IS NULL OR m.ends_at > now())
+         AND m.prize_currency <> 'SWYP'
        ORDER BY (m.ends_at IS NULL), m.ends_at ASC, m.starts_at DESC
        LIMIT $1`,
       [limit],

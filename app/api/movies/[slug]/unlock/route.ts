@@ -6,8 +6,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { parseBody } from "@/lib/validation/schemas";
 import { getSeriesBySlug } from "@/lib/movies/repository";
-import { unlockEpisode, unlockSeason } from "@/lib/movies/unlock";
-import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
+import { createEpisodeUnlockIntent, createSeasonUnlockIntent } from "@/lib/movies/unlock";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +15,18 @@ const BodySchema = z.union([
     z.object({ season: z.literal(true) }),
 ]);
 
-const FAILURE_STATUS = { not_found: 404, already_free: 409, series_not_published: 404, insufficient_balance: 402 } as const;
+const FAILURE_STATUS = {
+    not_found: 404,
+    already_free: 409,
+    series_not_published: 404,
+    price_not_set: 409,
+} as const;
 
+/**
+ * Deblocare cu cardul (Stripe, RON): întoarce un `clientSecret` de PaymentIntent
+ * pe care clientul îl confirmă cu Stripe Elements (vezi `UnlockButton`/`PaywallSlide`).
+ * Accesul se acordă abia la webhook-ul `payment_intent.succeeded`.
+ */
 export const POST = withErrorHandling(async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
     if (!isEnabled("movies")) return frozenResponse("movies");
     const user = await getAuthUser();
@@ -33,12 +42,14 @@ export const POST = withErrorHandling(async function POST(req: Request, { params
     if (!parsed.ok) return NextResponse.json({ error: "invalid_body" }, { status: 400 });
 
     const result = "episodeId" in parsed.data
-        ? await unlockEpisode({ userId: user.userId, episodeId: parsed.data.episodeId })
-        : await unlockSeason({ userId: user.userId, seriesId: series.id });
+        ? await createEpisodeUnlockIntent({ userId: user.userId, episodeId: parsed.data.episodeId })
+        : await createSeasonUnlockIntent({ userId: user.userId, seriesId: series.id });
 
-    const balanceUnits = Number(await getSwypBalanceUnits(user.userId));
     if (!result.ok) {
-        return NextResponse.json({ error: result.reason, balanceUnits }, { status: FAILURE_STATUS[result.reason] });
+        return NextResponse.json({ error: result.reason }, { status: FAILURE_STATUS[result.reason] });
     }
-    return NextResponse.json({ ...result, balanceUnits });
+    if (result.alreadyUnlocked) {
+        return NextResponse.json({ alreadyUnlocked: true });
+    }
+    return NextResponse.json({ alreadyUnlocked: false, clientSecret: result.clientSecret, amountCents: result.amountCents });
 });

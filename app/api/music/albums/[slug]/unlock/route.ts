@@ -4,12 +4,11 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { getAlbumBySlug } from "@/lib/music/repository";
-import { unlockAlbum } from "@/lib/music/unlock";
-import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
+import { createAlbumUnlockIntent } from "@/lib/music/unlock";
 
 export const dynamic = "force-dynamic";
 
-const FAILURE_STATUS = { not_found: 404, not_premium: 409, not_published: 404, insufficient_balance: 402 } as const;
+const FAILURE_STATUS = { not_found: 404, not_premium: 409, not_published: 404, price_not_set: 409 } as const;
 
 export const POST = withErrorHandling(async function POST(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
     if (!isEnabled("music")) return frozenResponse("music");
@@ -22,11 +21,8 @@ export const POST = withErrorHandling(async function POST(_req: Request, { param
     const album = await getAlbumBySlug(slug);
     if (!album) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-    const result = await unlockAlbum({ userId: user.userId, albumId: album.id });
-
-    const balanceUnits = Number(await getSwypBalanceUnits(user.userId));
-    if (!result.ok) {
-        return NextResponse.json({ error: result.reason, balanceUnits }, { status: FAILURE_STATUS[result.reason] });
-    }
-    return NextResponse.json({ ...result, balanceUnits });
+    const result = await createAlbumUnlockIntent({ userId: user.userId, albumId: album.id });
+    if (!result.ok) return NextResponse.json({ error: result.reason }, { status: FAILURE_STATUS[result.reason] });
+    if (result.alreadyUnlocked) return NextResponse.json({ alreadyUnlocked: true });
+    return NextResponse.json({ alreadyUnlocked: false, clientSecret: result.clientSecret, amountCents: result.amountCents });
 });

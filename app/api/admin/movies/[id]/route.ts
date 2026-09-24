@@ -7,7 +7,7 @@ import { parseBody } from "@/lib/validation/schemas";
 import { dbQuery } from "@/lib/db";
 import { logAdminAction } from "@/lib/security/admin-audit";
 import { getSeriesById, listEpisodes, updateSeries } from "@/lib/movies/repository";
-import { clampEpisodePrice } from "@/lib/movies/pricing";
+import { clampEpisodePriceCents } from "@/lib/movies/pricing";
 import { MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 const PatchSchema = z.object({
     status: z.enum(["draft", "pending_review", "published", "archived"]).optional(),
     freeEpisodes: z.coerce.number().int().min(0).max(MOVIES_MAX_FREE_EPISODES).optional(),
-    episodePriceUnits: z.coerce.number().int().optional(),
+    episodePriceCents: z.coerce.number().int().nullable().optional(),
     isAdult: z.boolean().optional(),
     trailerVideoId: z.string().uuid().nullable().optional(),
 });
@@ -54,7 +54,9 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
     }
     const patch = {
         ...parsed.data,
-        ...(parsed.data.episodePriceUnits !== undefined ? { episodePriceUnits: clampEpisodePrice(parsed.data.episodePriceUnits) } : {}),
+        ...(parsed.data.episodePriceCents !== undefined
+            ? { episodePriceCents: parsed.data.episodePriceCents !== null ? clampEpisodePriceCents(parsed.data.episodePriceCents) : null }
+            : {}),
     };
     const series = await updateSeries(id, null, patch);
     if (!series) return NextResponse.json({ error: "not_found" }, { status: 404 });

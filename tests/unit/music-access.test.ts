@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { canStream, canBecomePremium } from "@/lib/music/access";
-import { albumPriceUnits, clampTrackPrice, isValidTipUnits } from "@/lib/music/pricing";
-import { MUSIC_TIP_MAX_UNITS, MUSIC_TRACK_PRICE_MAX_UNITS, MUSIC_TRACK_PRICE_MIN_UNITS } from "@/lib/music/config";
+import { albumPriceCents, clampTrackPriceCents } from "@/lib/music/pricing";
+import { MUSIC_TRACK_PRICE_MAX_CENTS, MUSIC_TRACK_PRICE_MIN_CENTS } from "@/lib/music/config";
 import type { MusicViewer } from "@/lib/music/types";
 
 const viewer = (o: Partial<MusicViewer> = {}): MusicViewer => ({ userId: "u1", isAdmin: false, unlockedTrackIds: new Set(), unlockedAlbumIds: new Set(), ...o });
@@ -23,20 +23,16 @@ describe("music/access", () => {
   });
 });
 
-describe("music/pricing", () => {
-  it("prețul albumului: cel setat, altfel suma pieselor premium cu discount", () => {
-    const tracks = [{ is_premium: true, price_units: 300 }, { is_premium: true, price_units: 300 }, { is_premium: false, price_units: null }];
-    expect(albumPriceUnits({ price_units: 400 }, tracks, 30)).toBe(400);
-    expect(albumPriceUnits({ price_units: null }, tracks, 30)).toBe(420);
-    expect(albumPriceUnits({ price_units: null }, [{ is_premium: false, price_units: null }], 30)).toBe(0);
+describe("music/pricing — RON (cenți, plată cu cardul)", () => {
+  it("prețul albumului în cenți: cel setat, altfel suma pieselor cu preț cu discount; null = \"preț în curând\"", () => {
+    const tracks = [{ is_premium: true, price_cents: 300 }, { is_premium: true, price_cents: 300 }, { is_premium: false, price_cents: null }];
+    expect(albumPriceCents({ price_cents: 400 }, tracks, 30)).toBe(400);
+    expect(albumPriceCents({ price_cents: null }, tracks, 30)).toBe(420);
+    expect(albumPriceCents({ price_cents: null }, [{ is_premium: false, price_cents: null }], 30)).toBeNull();
   });
-  it("limitele de preț și de tip", () => {
-    expect(clampTrackPrice(1)).toBe(MUSIC_TRACK_PRICE_MIN_UNITS);
-    expect(clampTrackPrice(99_999_999)).toBe(MUSIC_TRACK_PRICE_MAX_UNITS);
-    expect(isValidTipUnits(500)).toBe(true);
-    expect(isValidTipUnits(50)).toBe(false);
-    expect(isValidTipUnits(MUSIC_TIP_MAX_UNITS + 1)).toBe(false);
-    expect(isValidTipUnits(150.5)).toBe(false);
+  it("limitele de preț (cenți RON)", () => {
+    expect(clampTrackPriceCents(1)).toBe(MUSIC_TRACK_PRICE_MIN_CENTS);
+    expect(clampTrackPriceCents(99_999_999)).toBe(MUSIC_TRACK_PRICE_MAX_CENTS);
   });
 });
 

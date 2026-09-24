@@ -64,7 +64,6 @@
 /[locale]/orders
 /[locale]/orders/[id]
 /[locale]/orders/[id]/return
-/[locale]/pay
 /[locale]/post/[slug]
 /[locale]/privacy
 /[locale]/product/[id]
@@ -75,7 +74,6 @@
 /[locale]/stays
 /[locale]/stays/[id]
 /[locale]/stays/manage
-/[locale]/swyp
 /[locale]/terms
 /[locale]/u/[username]
 /[locale]/upload

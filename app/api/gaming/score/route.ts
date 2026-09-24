@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrCreateSocialUser } from "@/lib/social/session";
 import { dbQuery } from "@/lib/db";
 import { grantDailyCappedXp } from "@/lib/gaming/xp";
-import { awardSwyp } from "@/lib/swyp/rewards";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { verifyGamingToken, hashToken } from "@/lib/gaming/tokens";
@@ -28,8 +27,7 @@ const ScorePayloadSchema = z.object({
  *    (now() - started_at), not from a client-supplied durationMs;
  *  - per-game plausible max score (lib/gaming/config.ts) — reject outliers;
  *  - per-game minimum duration — reject "instant" submissions;
- *  - daily XP cap per user, tracked in gaming_xp_daily;
- *  - SWYP itself stays capped by swyp_emission_rules via lib/swyp/rewards.ts.
+ *  - daily XP cap per user, tracked in gaming_xp_daily.
  */
 export async function POST(req: NextRequest) {
   if (!isEnabled("gaming")) return frozenResponse("gaming");
@@ -90,7 +88,7 @@ export async function POST(req: NextRequest) {
       [userId, gameId, score, durationMs],
     );
 
-    // XP with a hard daily cap tracked independently of the SWYP ledger.
+    // XP with a hard daily cap per user.
     const rawXp = Math.min(100, Math.floor(score / 50) + 10);
     const earnedXp = await grantDailyCappedXp(
       userId,
@@ -103,24 +101,10 @@ export async function POST(req: NextRequest) {
              updated_at = now()`,
     );
 
-    let swypAwarded = false;
-    try {
-      const rewardResult = await awardSwyp({
-        userId,
-        action: "gaming_arcade_score",
-        refId: `game_${gameId}_${tokenHash}`,
-        metadata: { gameId, score, durationMs },
-      });
-      swypAwarded = rewardResult.awarded;
-    } catch (e) {
-      logger.warn({ err: e, userId, gameId }, "[gaming.score] awardSwyp failed");
-    }
-
     return NextResponse.json({
       ok: true,
       score,
       earnedXp,
-      swypAwarded,
     });
   } catch (err) {
     logger.error({ err }, "[gaming.score] failed");

@@ -4,22 +4,24 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Check, Lock, Play, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import UnlockButton, { unitsToSwyp } from "@/components/movies/UnlockButton";
+import UnlockButton from "@/components/movies/UnlockButton";
 import MoviesBrand from "@/components/movies/MoviesBrand";
 import { moviesDisplayFont, MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { genreLabelKey, isMovieGenre } from "@/lib/movies/genres";
 import type { EpisodeDto, SeriesDto } from "@/lib/movies/types";
 
 type Payload = {
   series: SeriesDto;
   episodes: EpisodeDto[];
-  viewer: { balanceUnits: number | null; hasSeasonUnlock: boolean; isOwner: boolean; inWatchlist: boolean };
+  viewer: { isAuthed: boolean; hasSeasonUnlock: boolean; isOwner: boolean; inWatchlist: boolean };
 };
 
 const MS_PER_MINUTE = 60_000;
 
 export default function SeriesClient({ slug }: { slug: string }) {
   const t = useTranslations("movies");
+  const formatPrice = useFormatPrice();
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState(false);
   const [listBusy, setListBusy] = useState(false);
@@ -34,7 +36,7 @@ export default function SeriesClient({ slug }: { slug: string }) {
 
   const toggleList = async () => {
     if (!data) return;
-    if (data.viewer.balanceUnits === null) { window.location.assign(`/auth?next=/movies/${slug}`); return; }
+    if (!data.viewer.isAuthed) { window.location.assign(`/auth?next=/movies/${slug}`); return; }
     setListBusy(true);
     try {
       const res = await fetch(`/api/movies/${slug}/watchlist`, { method: data.viewer.inWatchlist ? "DELETE" : "POST" });
@@ -55,7 +57,7 @@ export default function SeriesClient({ slug }: { slug: string }) {
   const nextUnwatched = episodes.find((e) => !e.progress?.completed);
   const resume = inProgress ?? nextUnwatched ?? episodes[0];
   const lockedCount = episodes.filter((e) => e.locked).length;
-  const canBuySeason = lockedCount > 0 && !viewer.hasSeasonUnlock && !viewer.isOwner && series.seasonPriceUnits > 0;
+  const canBuySeason = lockedCount > 0 && !viewer.hasSeasonUnlock && !viewer.isOwner && series.seasonPriceCents !== null && series.seasonPriceCents > 0;
   const genres = series.genres.filter(isMovieGenre).map((g) => t(genreLabelKey(g)));
 
   return (
@@ -107,7 +109,7 @@ export default function SeriesClient({ slug }: { slug: string }) {
         </div>
         {canBuySeason && (
           <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
-            <UnlockButton slug={slug} target={{ season: true }} priceUnits={series.seasonPriceUnits} balanceUnits={viewer.balanceUnits} label={t("unlockSeason")} onUnlocked={load} />
+            <UnlockButton slug={slug} target={{ season: true }} priceCents={series.seasonPriceCents} label={t("unlockSeason")} onUnlocked={load} />
             <p className="mt-1 text-center text-[11px] text-white/50">{t("seasonDiscount", { pct: series.seasonDiscountPct })}</p>
           </div>
         )}
@@ -132,7 +134,7 @@ export default function SeriesClient({ slug }: { slug: string }) {
                   <p className="text-sm font-bold"><span className="text-white/50">{e.number}.</span> {e.title}</p>
                   <p className="mt-0.5 text-xs text-white/50">
                     {e.durationMs ? t("minutes", { n: Math.max(1, Math.round(e.durationMs / MS_PER_MINUTE)) }) : ""}
-                    {e.locked ? ` · ${unitsToSwyp(e.priceUnits)} SWYP` : e.number <= series.freeEpisodes ? ` · ${t("free")}` : ""}
+                    {e.locked ? ` · ${e.priceCents !== null ? formatPrice(e.priceCents, { sourceCurrency: "RON" }) : t("priceComingSoon")}` : e.number <= series.freeEpisodes ? ` · ${t("free")}` : ""}
                     {e.progress?.completed ? " · ✓" : ""}
                   </p>
                 </div>

@@ -146,7 +146,7 @@ export function getDb() {
 
 /**
  * Rulează `fn` ținând un lock advisory Postgres pe `key` — serializează căile
- * concurente care ating aceeași resursă logică (ex. recreditarea SWYP a
+ * concurente care ating aceeași resursă logică (ex. recreditarea unei
  * aceleiași comenzi din cron ȘI din webhook, care altfel fac ambele
  * check-then-act și creditează de două ori).
  *
@@ -177,7 +177,7 @@ export async function withAdvisoryLock<T>(key: string, fn: () => Promise<T>): Pr
 /**
  * Semnătura funcției de query primite în callback-ul `withTransaction`.
  * Exportată ca să poată fi tipizate funcțiile care participă la o tranzacție
- * deschisă de apelant (ex. `swypTransferInTx`).
+ * deschisă de apelant.
  */
 export type TxQuery = <R = any>(
   text: string,

@@ -63,12 +63,10 @@ comenzilor de test, ca ștergerea să nu poată atinge date reale.
 
 ## Ce ar prinde testele care lipsesc
 
-Trei fluxuri, în ordinea valorii:
+Două fluxuri, în ordinea valorii:
 
 1. **checkout** — ar fi prins P0-01 (comandă `paid` fără items). Cel mai valoros.
-2. **swyp** — mining claim dublu, self-transfer, sumă ≤ 0. Zero dependențe
-   externe, deci primul care devine posibil odată ce există stack-ul.
-3. **upload** — cel mai lent. Merită evaluat întâi ca test de integrare direct
+2. **upload** — cel mai lent. Merită evaluat întâi ca test de integrare direct
    pe `video-worker`, fără browser: un e2e de 2 minute ajunge să fie dezactivat.
 
 ## Cum se pornește, când vor exista

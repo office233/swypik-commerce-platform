@@ -35,7 +35,7 @@ services:
         # Flag-urile verticalelor: NEXT_PUBLIC_* se coc în bundle-ul de browser
         # (meniul hamburger, provider-ul de player), iar FEATURE_* trebuie să
         # existe și la build pentru paginile index prerandate (/movies, /music,
-        # /news, /gaming, /crypto, /messages).
+        # /news, /gaming, /messages).
         FEATURE_MOVIES: ${FEATURE_MOVIES:-}
         NEXT_PUBLIC_FEATURE_MOVIES: ${NEXT_PUBLIC_FEATURE_MOVIES:-}
         FEATURE_MUSIC: ${FEATURE_MUSIC:-}
@@ -44,8 +44,6 @@ services:
         NEXT_PUBLIC_FEATURE_NEWS: ${NEXT_PUBLIC_FEATURE_NEWS:-}
         FEATURE_GAMING: ${FEATURE_GAMING:-}
         NEXT_PUBLIC_FEATURE_GAMING: ${NEXT_PUBLIC_FEATURE_GAMING:-}
-        FEATURE_CRYPTO: ${FEATURE_CRYPTO:-}
-        NEXT_PUBLIC_FEATURE_CRYPTO: ${NEXT_PUBLIC_FEATURE_CRYPTO:-}
         FEATURE_MESSENGER: ${FEATURE_MESSENGER:-}
         NEXT_PUBLIC_FEATURE_MESSENGER: ${NEXT_PUBLIC_FEATURE_MESSENGER:-}
         FEATURE_DM: ${FEATURE_DM:-}
@@ -94,10 +92,6 @@ services:
         ENV FEATURE_GAMING=$FEATURE_GAMING
         ARG NEXT_PUBLIC_FEATURE_GAMING
         ENV NEXT_PUBLIC_FEATURE_GAMING=$NEXT_PUBLIC_FEATURE_GAMING
-        ARG FEATURE_CRYPTO
-        ENV FEATURE_CRYPTO=$FEATURE_CRYPTO
-        ARG NEXT_PUBLIC_FEATURE_CRYPTO
-        ENV NEXT_PUBLIC_FEATURE_CRYPTO=$NEXT_PUBLIC_FEATURE_CRYPTO
         ARG FEATURE_MESSENGER
         ENV FEATURE_MESSENGER=$FEATURE_MESSENGER
         ARG NEXT_PUBLIC_FEATURE_MESSENGER

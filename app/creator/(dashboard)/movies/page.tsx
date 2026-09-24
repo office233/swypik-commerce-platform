@@ -2,8 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Clapperboard, Plus } from "lucide-react";
-import { unitsToSwyp } from "@/components/movies/UnlockButton";
-import { MOVIES_DEFAULT_EPISODE_PRICE_UNITS, MOVIES_DEFAULT_FREE_EPISODES, MOVIES_MAX_FREE_EPISODES, SWYP_UNITS_PER_COIN } from "@/lib/movies/config";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { MOVIES_DEFAULT_EPISODE_PRICE_CENTS, MOVIES_DEFAULT_FREE_EPISODES, MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
 import type { MovieEpisodeRow, MovieSeriesRow, SeriesStatus } from "@/lib/movies/types";
 import { MOVIE_GENRES, genreLabelKey, type MovieGenre } from "@/lib/movies/genres";
 
@@ -22,13 +22,14 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 
 export default function CreatorMoviesPage() {
   const t = useTranslations("movies");
+  const formatPrice = useFormatPrice();
   const [data, setData] = useState<Overview | null>(null);
   const [selected, setSelected] = useState<{ series: MovieSeriesRow; episodes: MovieEpisodeRow[] } | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "", synopsis: "", genres: [] as MovieGenre[], posterUrl: "", coverUrl: "",
-    freeEpisodes: MOVIES_DEFAULT_FREE_EPISODES, priceSwyp: MOVIES_DEFAULT_EPISODE_PRICE_UNITS / SWYP_UNITS_PER_COIN,
+    freeEpisodes: MOVIES_DEFAULT_FREE_EPISODES, priceRon: MOVIES_DEFAULT_EPISODE_PRICE_CENTS / 100,
     licenseNote: "", isAdult: false,
   });
   const [episodeForm, setEpisodeForm] = useState({ videoId: "", title: "" });
@@ -59,7 +60,7 @@ export default function CreatorMoviesPage() {
         posterUrl: form.posterUrl || null,
         coverUrl: form.coverUrl || null,
         freeEpisodes: form.freeEpisodes,
-        episodePriceUnits: Math.round(form.priceSwyp * SWYP_UNITS_PER_COIN),
+        episodePriceCents: Math.round(form.priceRon * 100),
         licenseNote: form.licenseNote || null,
         isAdult: form.isAdult,
       }),
@@ -102,7 +103,7 @@ export default function CreatorMoviesPage() {
       </header>
       <div className="rounded-2xl bg-[#0D0D0D] p-4 text-white">
         <p className="text-xs uppercase tracking-wider text-white/60">{t("earnings")}</p>
-        <p className="text-2xl font-black">{unitsToSwyp(data.earnings.total_units)} SWYP</p>
+        <p className="text-2xl font-black">{formatPrice(data.earnings.total_units, { sourceCurrency: "RON" })}</p>
         <p className="text-xs text-white/60">{t("earningsUnlocks", { count: data.earnings.unlocks })}</p>
       </div>
       {msg && <p className="text-sm font-semibold text-emerald-700">{msg}</p>}
@@ -159,7 +160,7 @@ export default function CreatorMoviesPage() {
             <input type="number" min={0} max={MOVIES_MAX_FREE_EPISODES} value={form.freeEpisodes} onChange={(e) => setForm({ ...form, freeEpisodes: Number(e.target.value) })} className={INPUT} />
           </label>
           <label className="text-xs">{t("episodePrice")}
-            <input type="number" min={1} step={0.5} value={form.priceSwyp} onChange={(e) => setForm({ ...form, priceSwyp: Number(e.target.value) })} className={INPUT} />
+            <input type="number" min={1} step={0.5} value={form.priceRon} onChange={(e) => setForm({ ...form, priceRon: Number(e.target.value) })} className={INPUT} />
           </label>
         </div>
         <textarea value={form.licenseNote} onChange={(e) => setForm({ ...form, licenseNote: e.target.value })} placeholder={t("licenseNote")} rows={2} className={INPUT} />

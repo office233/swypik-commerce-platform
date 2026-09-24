@@ -80,13 +80,17 @@ export type PublishResult =
     | { ok: false; reason: "not_found" | "not_approved" };
 
 async function lockTrackWithArtist(q: TxQuery, trackId: string): Promise<{ track: MusicTrackRow; artist: MusicArtistRow } | null> {
-    const { rows } = await q<MusicTrackRow & { price_units: string | null }>(
+    const { rows } = await q<MusicTrackRow & { price_units: string | null; price_cents: string | null }>(
         `SELECT ${TRACK_COLS} FROM music_tracks WHERE id = $1 FOR UPDATE`,
         [trackId],
     );
     const raw = rows[0];
     if (!raw) return null;
-    const track = { ...raw, price_units: raw.price_units === null ? null : Number(raw.price_units) };
+    const track = {
+        ...raw,
+        price_units: raw.price_units === null ? null : Number(raw.price_units),
+        price_cents: raw.price_cents === null ? null : Number(raw.price_cents),
+    };
     const { rows: artists } = await q<MusicArtistRow>(`SELECT * FROM music_artists WHERE user_id = $1`, [track.artist_user_id]);
     if (!artists[0]) return null;
     return { track, artist: artists[0] };
@@ -142,7 +146,7 @@ export async function updateTrackAndSync(trackId: string, artistUserId: string |
     return withTransaction(async (q) => {
         const update = buildTrackUpdate(trackId, artistUserId, patch);
         if (!update) return null;
-        const { rows } = await q<MusicTrackRow & { price_units: string | null }>(update.text, update.params);
+        const { rows } = await q<MusicTrackRow & { price_units: string | null; price_cents: string | null }>(update.text, update.params);
         if (!rows[0]) return null;
         const track = normalizeTrackRow(rows[0]);
         const { rows: artists } = await q<MusicArtistRow>(`SELECT * FROM music_artists WHERE user_id = $1`, [track.artist_user_id]);

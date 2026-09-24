@@ -4,12 +4,12 @@
  *  POST /api/admin/missions/submissions — { submissionId, action: approve|reject|pay }
  *    - approve: marchează eligibilă
  *    - reject:  respinsă
- *    - pay:     plătește premiul în SWYP (awardSwyp idempotent) + status paid
+ *    - pay:     creditează premiul în portofelul RON (lib/wallet/ledger, idempotent) + status paid
  */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { requireAuth } from "@/lib/auth/getAuthUser";
-import { awardSwyp } from "@/lib/swyp/rewards";
+import { creditUser } from "@/lib/wallet/ledger";
 import { logAdminAction } from "@/lib/security/admin-audit";
 import { logger } from "@/lib/logger";
 
@@ -67,10 +67,11 @@ export async function POST(req: Request) {
         user_id: string;
         mission_id: string;
         prize_amount_minor: number;
+        prize_currency: string;
         mission_slug: string;
     }>(
         `SELECT s.id, s.status, s.user_id, s.mission_id,
-            m.prize_amount_minor, m.slug AS mission_slug
+            m.prize_amount_minor, m.prize_currency, m.slug AS mission_slug
        FROM creator_mission_submissions s
        JOIN creator_missions m ON m.id = s.mission_id
       WHERE s.id = $1`,
@@ -109,22 +110,31 @@ export async function POST(req: Request) {
     if (sub.status !== "approved") {
         return NextResponse.json({ error: "not_approved" }, { status: 409 });
     }
-    const res = await awardSwyp({
-        userId: sub.user_id,
-        action: "mission_prize",
-        refId: `mission:${sub.mission_id}:submission:${sub.id}`,
-        metadata: { missionSlug: sub.mission_slug, submissionId: sub.id },
-    });
-    // awardSwyp e idempotent pe refId — un ref deja plătit întoarce awarded:true.
-    if (!res.awarded) {
+    // Portofelul intern e în RON (cenți). Premiile în altă monedă (inclusiv
+    // vechile premii SWYP, sistem eliminat) nu se plătesc automat.
+    if (sub.prize_currency !== "RON") {
         return NextResponse.json(
-            { error: "payout_failed", reason: res.reason },
+            { error: "unsupported_prize_currency", currency: sub.prize_currency },
             { status: 422 },
         );
     }
+    try {
+        // Idempotent pe (refType, refId): o a doua plată pentru aceeași submisie e no-op.
+        await creditUser({
+            userId: sub.user_id,
+            amountCents: sub.prize_amount_minor,
+            refType: "mission_prize",
+            refId: `mission:${sub.mission_id}:submission:${sub.id}`,
+            description: `Premiu misiune ${sub.mission_slug}`,
+            metadata: { missionSlug: sub.mission_slug, submissionId: sub.id },
+        });
+    } catch (err) {
+        logger.error({ err, submissionId }, "mission.submission.payout_failed");
+        return NextResponse.json({ error: "payout_failed" }, { status: 422 });
+    }
     await dbQuery(
         `UPDATE creator_mission_submissions
-        SET status = 'paid', paid_at = now(), payout_minor = $2, payout_currency = 'SWYP'
+        SET status = 'paid', paid_at = now(), payout_minor = $2, payout_currency = 'RON'
       WHERE id = $1`,
         [submissionId, sub.prize_amount_minor],
     );

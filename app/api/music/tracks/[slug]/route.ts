@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
-import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
 import { getTrackBySlug, getAlbumById, listAlbumTracks, getLikedTrackIds } from "@/lib/music/repository";
 import { buildMusicViewer } from "@/lib/music/viewer";
 import { toTrackDto, toAlbumDto } from "@/lib/music/dto";
@@ -28,7 +27,7 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
             return NextResponse.json({
                 track: ytTrack,
                 album: null,
-                viewer: { balanceUnits: null, requireAuth: false },
+                viewer: { requireAuth: false },
             });
         }
         return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -40,11 +39,10 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
         track.album_id ? getAlbumById(track.album_id) : Promise.resolve(null),
     ]);
     const albumTracks = album ? await listAlbumTracks(album.id, !(user.isAdmin || isOwner)) : [];
-    const balanceUnits = user.userId ? Number(await getSwypBalanceUnits(user.userId)) : null;
 
     return NextResponse.json({
         track: toTrackDto(track, viewer, likedIds.has(track.id)),
         album: album ? toAlbumDto(album, albumTracks, viewer) : null,
-        viewer: { balanceUnits, requireAuth: !user.userId },
+        viewer: { requireAuth: !user.userId },
     });
 });

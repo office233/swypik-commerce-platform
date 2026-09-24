@@ -23,6 +23,8 @@ export type MusicAlbumRow = {
     release_date: string | null;
     status: ContentStatus;
     price_units: number | null;
+    /** Preț RON (cenți), plătit cu cardul (Stripe). `null` = „preț în curând". */
+    price_cents: number | null;
     created_at: string;
     updated_at: string;
 };
@@ -43,6 +45,8 @@ export type MusicTrackRow = {
     public_url: string | null;
     is_premium: boolean;
     price_units: number | null;
+    /** Preț RON (cenți), plătit cu cardul (Stripe). `null` = „preț în curând". */
+    price_cents: number | null;
     allow_reels: boolean;
     audio_track_id: number | null;
     audience: MusicAudience;
@@ -80,7 +84,7 @@ export type TrackDto = {
     durationMs: number;
     explicit: boolean;
     isPremium: boolean;
-    priceUnits: number | null;
+    priceCents: number | null;
     locked: boolean;
     allowReels: boolean;
     audioTrackId: number | null;
@@ -101,8 +105,10 @@ export type AlbumDto = {
     title: string;
     coverUrl: string | null;
     releaseDate: string | null;
-    priceUnits: number | null;
+    priceCents: number | null;
     locked: boolean;
     artist: ArtistDto;
     trackCount: number;
 };
+
+export type MusicUnlockStatus = "pending" | "paid" | "failed";

@@ -49,7 +49,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
                 ["Fly (bilete avion)", "vânzător (merchant of record)", "Swypik"],
                 ["Go, Send, Move", "intermediar", "șoferul/curierul"],
                 ["Swypik Cares", "facilitator tehnic și de donații (0% comision)", "cauza verificată"],
-                ["SWYP Pay", "furnizor de portofel intern și plăți", "Swypik"],
+                ["Portofel Swypik", "furnizor de portofel intern și plăți", "Swypik"],
             ],
         },
         bullets: [
@@ -81,7 +81,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
                 ["Fly (zboruri)", "10% din tariful net, minimum 15 lei"],
                 ["Food, Shop, Go", "conform contractului cu partenerul"],
                 ["Swypik Cares (cauze caritabile)", "0% comision platformă (100% ajunge la cauză)"],
-                ["SWYP Pay (portofel intern)", "0% comision pe transferuri între utilizatori"],
+                ["Portofel Swypik (intern)", "0% comision pe transferuri între utilizatori"],
             ],
         },
         bullets: [

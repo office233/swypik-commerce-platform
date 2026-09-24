@@ -3,9 +3,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Loader2, Lock, X } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { haptic } from "@/lib/haptic";
-import { unitsToSwyp } from "./format";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import type { MusicLockedInfo } from "./MusicPlayerProvider";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
 type UnlockTarget = "track" | "album";
 
@@ -22,19 +26,76 @@ type Props = {
   albumSlug?: string;
 };
 
-/** Card de paywall: preț piesă / album, butoane de deblocare, sold curent. */
+function ConfirmForm({ amountCents, onDone, onCancel }: { amountCents: number; onDone: () => void; onCancel: () => void }) {
+  const t = useTranslations("music");
+  const formatPrice = useFormatPrice();
+  const stripe = useStripe();
+  const elements = useElements();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (!stripe || !elements) return;
+    setBusy(true);
+    setError(null);
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      setError(submitError.message || t("error"));
+      setBusy(false);
+      return;
+    }
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({ elements, redirect: "if_required" });
+    if (confirmError) {
+      setError(confirmError.message || t("error"));
+      setBusy(false);
+      return;
+    }
+    if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "processing") {
+      onDone();
+      return;
+    }
+    setError(t("error"));
+    setBusy(false);
+  };
+
+  return (
+    <div className="space-y-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-black uppercase tracking-wide text-white/60">{t("payWithCard")}</p>
+        <button type="button" onClick={onCancel} aria-label={t("close")} className="rounded-full bg-white/10 p-1.5 text-white/70">
+          <X size={14} />
+        </button>
+      </div>
+      <PaymentElement options={{ layout: "tabs" }} />
+      {error && <p className="text-xs font-semibold text-amber-300">{error}</p>}
+      <button
+        type="button"
+        onClick={submit}
+        disabled={busy || !stripe || !elements}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3.5 text-sm font-black text-black active:scale-95 disabled:opacity-50"
+      >
+        {busy ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
+        {busy ? t("unlocking") : `${t("plateste")} ${formatPrice(amountCents, { sourceCurrency: "RON" })}`}
+      </button>
+    </div>
+  );
+}
+
+/** Card de paywall: preț piesă/album în RON, plată cu cardul (Stripe Elements). */
 export default function MusicPaywall({ locked, onUnlocked, onClose, albumSlug }: Props) {
   const t = useTranslations("music");
   const router = useRouter();
+  const formatPrice = useFormatPrice();
   const [busy, setBusy] = useState<UnlockTarget | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ target: UnlockTarget; clientSecret: string; amountCents: number } | null>(null);
 
   if (!locked) return null;
-  const { track, priceUnits, albumPriceUnits, balanceUnits, requireAuth } = locked;
+  const { track, priceCents, albumPriceCents, requireAuth } = locked;
 
   const goLogin = () => router.push(`/auth?next=/music/track/${track.slug}`);
 
-  const unlock = async (target: UnlockTarget) => {
+  const start = async (target: UnlockTarget) => {
     if (requireAuth) { goLogin(); return; }
     haptic("tap");
     setBusy(target);
@@ -43,12 +104,16 @@ export default function MusicPaywall({ locked, onUnlocked, onClose, albumSlug }:
       const path = target === "track" ? `/api/music/tracks/${track.slug}/unlock` : `/api/music/albums/${albumSlug}/unlock`;
       const res = await fetch(path, { method: "POST" });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) {
+      if (res.status === 401) { goLogin(); return; }
+      if (!res.ok) {
+        setNotice(data.error === "price_not_set" ? t("priceComingSoon") : t("error"));
+        return;
+      }
+      if (data.alreadyUnlocked) {
         onUnlocked();
         return;
       }
-      if (res.status === 401) { goLogin(); return; }
-      setNotice(data.error === "insufficient_balance" ? t("insufficient") : t("error"));
+      setPending({ target, clientSecret: data.clientSecret, amountCents: data.amountCents });
     } catch {
       setNotice(t("error"));
     } finally {
@@ -56,7 +121,20 @@ export default function MusicPaywall({ locked, onUnlocked, onClose, albumSlug }:
     }
   };
 
-  const insufficientTrack = balanceUnits !== null && priceUnits !== null && balanceUnits < priceUnits;
+  if (pending) {
+    return (
+      <Elements stripe={stripePromise} options={{ clientSecret: pending.clientSecret, appearance: { theme: "night" } }}>
+        <ConfirmForm
+          amountCents={pending.amountCents}
+          onCancel={() => setPending(null)}
+          onDone={() => {
+            setPending(null);
+            onUnlocked();
+          }}
+        />
+      </Elements>
+    );
+  }
 
   return (
     <div className="relative flex flex-col items-center gap-3 rounded-2xl bg-[#121218] p-5 text-center text-white ring-1 ring-white/10">
@@ -69,31 +147,31 @@ export default function MusicPaywall({ locked, onUnlocked, onClose, albumSlug }:
       <p className="text-lg font-black">{t("locked")}</p>
       <p className="truncate text-sm text-white/70">{track.title} · {track.artist.stageName}</p>
 
-      {priceUnits !== null && (
+      {priceCents !== null && (
         <button
           type="button"
-          onClick={() => unlock("track")}
-          disabled={busy !== null || (!requireAuth && insufficientTrack)}
+          onClick={() => start("track")}
+          disabled={busy !== null}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3.5 text-sm font-black text-black active:scale-95 disabled:opacity-50"
         >
           {busy === "track" ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
-          {busy === "track" ? t("unlocking") : requireAuth ? t("loginToUnlock") : `${t("unlockTrack")} · ${t("priceSwyp", { amount: unitsToSwyp(priceUnits) })}`}
+          {busy === "track" ? t("unlocking") : requireAuth ? t("loginToUnlock") : `${t("unlockTrack")} · ${formatPrice(priceCents, { sourceCurrency: "RON" })}`}
         </button>
       )}
+      {priceCents === null && <p className="text-xs text-white/60">{t("priceComingSoon")}</p>}
 
-      {albumPriceUnits !== null && albumSlug && (
+      {albumPriceCents !== null && albumSlug && (
         <button
           type="button"
-          onClick={() => unlock("album")}
+          onClick={() => start("album")}
           disabled={busy !== null}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-5 py-3.5 text-sm font-black text-white ring-1 ring-white/20 active:scale-95 disabled:opacity-50"
         >
           {busy === "album" ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
-          {busy === "album" ? t("unlocking") : requireAuth ? t("loginToUnlock") : `${t("unlockAlbum")} · ${t("albumPriceSwyp", { amount: unitsToSwyp(albumPriceUnits) })}`}
+          {busy === "album" ? t("unlocking") : requireAuth ? t("loginToUnlock") : `${t("unlockAlbum")} · ${formatPrice(albumPriceCents, { sourceCurrency: "RON" })}`}
         </button>
       )}
 
-      {!requireAuth && balanceUnits !== null && <p className="text-[11px] text-white/60">{t("yourBalance", { amount: unitsToSwyp(balanceUnits) })}</p>}
       {notice && <p className="text-xs text-amber-300">{notice}</p>}
     </div>
   );

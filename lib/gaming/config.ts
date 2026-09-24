@@ -28,5 +28,5 @@ export const SESSION_TOKEN_TTL_SECONDS = 30 * 60;
 /** Trivia round token lifetime, per spec (single-use, ~10 min). */
 export const TRIVIA_ROUND_TTL_SECONDS = 10 * 60;
 
-/** Hard daily ceiling on gaming XP per user, independent of SWYP caps. */
+/** Hard daily ceiling on gaming XP per user. */
 export const DAILY_XP_CAP = 300;

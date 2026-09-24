@@ -18,9 +18,9 @@ export function collectIssues(page: Page): PageIssues {
       if (/favicon|ERR_ABORTED|net::ERR_FAILED.*(hls|\.m3u8|\.ts\b)/i.test(text)) return;
       // fetch anulat de navigare (unmount) — nu e bug de aplicație
       if (/TypeError: Failed to fetch/.test(text)) return;
-        // 401 pe check-uri best-effort de sesiune (wallet SWYP) când ești nelogat = comportament așteptat
+        // 401 pe check-uri best-effort de sesiune când ești nelogat = comportament așteptat
         const locUrl = msg.location()?.url ?? '';
-        if (/status of 401/.test(text) && /\/api\/(auth|me|session|swyp\/wallet)/.test(locUrl)) return;
+        if (/status of 401/.test(text) && /\/api\/(auth|me|session)/.test(locUrl)) return;
       issues.consoleErrors.push(text.slice(0, 300));
     }
   });
@@ -28,7 +28,7 @@ export function collectIssues(page: Page): PageIssues {
     const url = res.url();
     if (res.status() >= 400 && url.startsWith(BASE)) {
       // Expected 401s on auth-check endpoints when logged out
-        if (res.status() === 401 && /\/api\/(auth|me|session|swyp\/wallet)/.test(url)) return;
+        if (res.status() === 401 && /\/api\/(auth|me|session)/.test(url)) return;
       issues.failedRequests.push(`${res.status()} ${url.slice(0, 200)}`);
     }
   });

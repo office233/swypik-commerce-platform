@@ -7,13 +7,12 @@
  * piese. Mirror-uiește structura `app/[locale]/movies/[slug]/SeriesClient.tsx`.
  */
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Heart, Play, Shuffle } from "lucide-react";
+import { ArrowLeft, Play, Shuffle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import TrackRow from "@/components/music/TrackRow";
-import TipSheet from "@/components/music/TipSheet";
 import { useMusicPlayer } from "@/components/music/MusicPlayerProvider";
-import { unitsToSwyp } from "@/components/music/format";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { moviesDisplayFont, MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
 import { haptic } from "@/lib/haptic";
 import type { AlbumDto, ArtistDto, TrackDto } from "@/lib/music/types";
@@ -25,11 +24,11 @@ type Payload = { artist: ArtistDto; tracks: TrackDto[]; albums: AlbumDto[]; reel
 
 export default function ArtistClient({ slug }: { slug: string }) {
     const t = useTranslations("music");
+    const formatPrice = useFormatPrice();
     const { play } = useMusicPlayer();
     const [data, setData] = useState<Payload | null>(null);
     const [notFoundState, setNotFoundState] = useState(false);
     const [error, setError] = useState(false);
-    const [tipOpen, setTipOpen] = useState(false);
     const [playlistTarget, setPlaylistTarget] = useState<TrackDto | null>(null);
 
     const load = useCallback(() => {
@@ -111,13 +110,6 @@ export default function ArtistClient({ slug }: { slug: string }) {
                     >
                         <Shuffle size={18} /> {t("shuffle")}
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => { haptic("tap"); setTipOpen(true); }}
-                        className="flex items-center gap-2 rounded-full bg-[#7C3AED]/20 px-5 py-2.5 text-sm font-black text-[#A78BFA] ring-1 ring-[#7C3AED]/40 active:scale-95"
-                    >
-                        <Heart size={18} /> {t("support")}
-                    </button>
                 </div>
             </section>
 
@@ -136,8 +128,8 @@ export default function ArtistClient({ slug }: { slug: string }) {
                                     )}
                                 </div>
                                 <p className="mt-1.5 truncate text-[13px] font-bold text-white">{album.title}</p>
-                                {album.priceUnits !== null && (
-                                    <p className="truncate text-[11px] text-[#A78BFA]">{t("albumPriceSwyp", { amount: unitsToSwyp(album.priceUnits) })}</p>
+                                {album.priceCents !== null && (
+                                    <p className="truncate text-[11px] text-[#A78BFA]">{formatPrice(album.priceCents, { sourceCurrency: "RON" })}</p>
                                 )}
                             </Link>
                         ))}
@@ -163,7 +155,6 @@ export default function ArtistClient({ slug }: { slug: string }) {
                 )}
             </section>
 
-            <TipSheet open={tipOpen} onClose={() => setTipOpen(false)} artistSlug={artist.slug} onSent={() => setTipOpen(false)} />
             <LockedOverlay />
             <AddToPlaylistSheet track={playlistTarget} onClose={() => setPlaylistTarget(null)} />
         </main>

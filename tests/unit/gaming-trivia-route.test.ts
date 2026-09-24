@@ -25,10 +25,6 @@ vi.mock("@/lib/security/rate-limit", () => ({
   getClientIP: () => "127.0.0.1",
 }));
 
-vi.mock("@/lib/swyp/rewards", () => ({
-  awardSwyp: vi.fn(async () => ({ awarded: true })),
-}));
-
 vi.mock("@/lib/db", () => {
   const dbQuery = vi.fn(async (sql: string) => {
     if (sql.includes("UPDATE gaming_trivia_rounds") && sql.includes("used_at = now()")) {

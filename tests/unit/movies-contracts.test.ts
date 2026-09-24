@@ -23,10 +23,10 @@ describe("movies/contracts", () => {
     const series: MovieSeriesRow = {
       id: "s1", slug: "s", owner_user_id: "o", title: "T", synopsis: "", genres: [], language_code: "ro",
       cover_url: null, poster_url: null, trailer_video_id: null, status: "published", free_episodes: 3,
-      episode_price_units: 500, is_adult: false, license_note: null, published_at: null, created_at: "", updated_at: "",
+      episode_price_units: 500, episode_price_cents: 500, is_adult: false, license_note: null, published_at: null, created_at: "", updated_at: "",
     };
     const dto = toSeriesDto(series, 40, null);
     expect(dto.seasonDiscountPct).toBe(MOVIES_SEASON_DISCOUNT_PCT);
-    expect(dto.seasonPriceUnits).toBe(Math.round(37 * 500 * (1 - MOVIES_SEASON_DISCOUNT_PCT / 100)));
+    expect(dto.seasonPriceCents).toBe(Math.round(37 * 500 * (1 - MOVIES_SEASON_DISCOUNT_PCT / 100)));
   });
 });
