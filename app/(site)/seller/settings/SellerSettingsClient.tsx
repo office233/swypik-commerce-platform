@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { logger } from "@/lib/logger";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 import {
   Store,
   ExternalLink,
@@ -31,6 +32,7 @@ type Props = {
 
 export default function SellerSettingsClient({ initialData }: Props) {
   const t = useTranslations("sellerGrowthSettings");
+  const locale = useLocale();
   const [name, setName] = useState(initialData.name);
   const [username, setUsername] = useState(initialData.username);
   const [bio, setBio] = useState(initialData.bio);
@@ -70,7 +72,7 @@ export default function SellerSettingsClient({ initialData }: Props) {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || t("errorSaveGeneric"));
+        throw new Error(apiErrorMessage(data, locale, t("errorSaveGeneric")));
       }
 
       setSuccessMsg(data.message || t("saveSuccess"));

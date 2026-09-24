@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 import { Star } from "lucide-react";
 
 export type ReviewFormProps = {
@@ -12,6 +13,7 @@ export type ReviewFormProps = {
 export default function ReviewForm({ productId }: ReviewFormProps) {
   const router = useRouter();
   const t = useTranslations("reviewForm");
+  const locale = useLocale();
   const [rating, setRating] = useState<number>(0);
   const [hover, setHover] = useState<number>(0);
   const [title, setTitle] = useState("");
@@ -39,7 +41,7 @@ export default function ReviewForm({ productId }: ReviewFormProps) {
         setError(t("errDeja"));
       } else if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error || t("errGenerica"));
+        setError(apiErrorMessage(data, locale, t("errGenerica")));
       } else {
         setTitle("");
         setBody("");

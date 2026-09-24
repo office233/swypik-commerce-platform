@@ -114,7 +114,7 @@ export async function POST(
     }
     const rawBody = await req.json().catch(() => null);
     const parsedBody = parseBody(ProductReviewCreateSchema, rawBody);
-    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+    if (!parsedBody.ok) return NextResponse.json({ error: parsedBody.error, code: parsedBody.code }, { status: 400 });
     const rating = parsedBody.data.rating;
     const title: string | null = parsedBody.data.title ?? null;
     const text: string | null = parsedBody.data.body ?? null;

@@ -19,7 +19,8 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AudioPicker, { type AudioTrackDTO } from "@/components/reels/AudioPicker";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type Step = 1 | 2 | 3;
 type TranscodeStatus = "pending" | "processing" | "ready" | "failed" | "uploading";
@@ -34,6 +35,7 @@ function extractHashtags(text: string): string[] {
 
 export default function UploadClient() {
   const t = useTranslations("upload");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get("draft");
@@ -158,7 +160,7 @@ export default function UploadClient() {
         }),
       });
       const session = await sessionRes.json();
-      if (!sessionRes.ok) throw new Error(session.error || "Eroare sesiune upload.");
+      if (!sessionRes.ok) throw new Error(apiErrorMessage(session, locale, t("sessionError")));
 
       // Upload PUT cu XHR pt progress
       await new Promise<void>((resolve, reject) => {
@@ -185,11 +187,11 @@ export default function UploadClient() {
         },
       );
       const completeData = await completeRes.json();
-      if (!completeRes.ok) throw new Error(completeData.error || "Eroare finalizare.");
+      if (!completeRes.ok) throw new Error(apiErrorMessage(completeData, locale, t("completeError")));
       setVideoId(completeData.videoId || session.videoId);
       setTranscodeStatus("processing");
     } catch (err: any) {
-      setErrorMsg(err.message || "Eroare upload.");
+      setErrorMsg(err.message || t("uploadErrorGeneric"));
       setTranscodeStatus("failed");
     }
   }

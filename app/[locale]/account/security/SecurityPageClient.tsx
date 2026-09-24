@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Loader2, Lock, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Copy, Download } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 export default function SecurityPageClient({
   hasPassword,
@@ -15,6 +16,7 @@ export default function SecurityPageClient({
   connectedAccounts: { provider: string; email: string | null; createdAt: string }[];
 }) {
   const t = useTranslations("security");
+  const locale = useLocale();
   const [accounts, setAccounts] = useState(connectedAccounts);
   const [accLoading, setAccLoading] = useState<string | null>(null);
   const [accError, setAccError] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export default function SecurityPageClient({
       });
       const j = await r.json();
       if (!r.ok) {
-        setTwoFaError(j.error || "Eroare la regenerare.");
+        setTwoFaError(apiErrorMessage(j, locale, t("eroareLaRegenerare")));
         return;
       }
       setBackupCodes(j.backup_codes || []);
@@ -150,7 +152,7 @@ export default function SecurityPageClient({
       });
       const j = await r.json();
       if (!r.ok) {
-        setTwoFaError(j.error || t("codInvalid"));
+        setTwoFaError(apiErrorMessage(j, locale, t("codInvalid")));
         return;
       }
       setBackupCodes(j.backup_codes || []);
@@ -177,7 +179,7 @@ export default function SecurityPageClient({
       });
       const j = await r.json();
       if (!r.ok) {
-        setTwoFaError(j.error || t("eroareLaDezactivare"));
+        setTwoFaError(apiErrorMessage(j, locale, t("eroareLaDezactivare")));
         return;
       }
       setTwoFaEnabled(false);

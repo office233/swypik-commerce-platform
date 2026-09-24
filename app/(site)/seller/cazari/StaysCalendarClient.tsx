@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type Stay = {
   id: string;
@@ -182,7 +183,7 @@ export default function StaysCalendarClient() {
         setSelected(new Set());
         void loadCalendar();
       } else {
-        setMsg(data?.error ?? t("saveError"));
+        setMsg(apiErrorMessage(data, locale, t("saveError")));
       }
     } finally {
       setSaving(false);

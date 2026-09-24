@@ -45,7 +45,7 @@ export async function POST(
 
   const rawBody = await req.json().catch(() => null);
   const parsed = parseBody(PostVoteSchema, rawBody);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
   const { optionKey } = parsed.data;
 
   // Resolve post by slug

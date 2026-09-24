@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     const parsed = parseBody(SellerSettingsUpdateSchema, await req.json().catch(() => null));
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
     }
     const { name, bio, avatarUrl, cui, phone, iban, invoiceSeries } = parsed.data;
 

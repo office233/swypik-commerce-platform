@@ -758,7 +758,10 @@
     "overlaySecondsLabel": "Overlay „vezi produsul” la secunda",
     "allowComments": "Permite comentarii",
     "allowDuet": "Permite Duet",
-    "allowStitch": "Permite Stitch"
+    "allowStitch": "Permite Stitch",
+    "sessionError": "Eroare sesiune upload.",
+    "completeError": "Eroare finalizare.",
+    "uploadErrorGeneric": "Eroare upload."
   },
   "security": {
     "autentificareInDoiPasi": "Autentificare în doi pași (2FA)",
@@ -812,7 +815,8 @@
     "confidentialitate": "Confidențialitate",
     "descarcaDateleDescriere": "Descarcă un fișier cu datele tale personale de pe Swypik: cont, adrese, comenzi și activitate. Nu conține parole sau date de card.",
     "descarcaDatele": "Descarcă datele mele (JSON)",
-    "stergereContNota": "Pentru ștergerea contului sau alte drepturi GDPR, scrie-ne la privacy@swypik.com. Îți răspundem în cel mult 30 de zile."
+    "stergereContNota": "Pentru ștergerea contului sau alte drepturi GDPR, scrie-ne la privacy@swypik.com. Îți răspundem în cel mult 30 de zile.",
+    "eroareLaRegenerare": "Eroare la regenerare."
   },
   "orders": {
     "seIncarcaComanda": "Se încarcă comanda...",
@@ -1111,7 +1115,8 @@
     "adaugaLink": "+ Adaugă link",
     "displayName": "Nume afișat",
     "linkLabelPlaceholder": "Etichetă (ex: Site-ul meu)",
-    "removeLink": "Șterge linkul"
+    "removeLink": "Șterge linkul",
+    "eroareLaSalvare": "Eroare la salvare."
   },
   "returnForm": {
     "produsePentruRetur": "Produse pentru retur",
@@ -2634,7 +2639,9 @@
   "postVote": {
     "votes": "{count, plural, one {# vot} few {# voturi} other {# de voturi}}",
     "yourVote": "votul tău",
-    "tapToVote": "Apasă pe variantă pentru a vota."
+    "tapToVote": "Apasă pe variantă pentru a vota.",
+    "genericError": "A apărut o eroare. Încearcă din nou.",
+    "networkError": "Eroare de rețea."
   },
   "stayDetail": {
     "confirmed": "Rezervare confirmată!",

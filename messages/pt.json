@@ -623,7 +623,10 @@
     "overlaySecondsLabel": "Mostrar sobreposição \"ver produto\" no segundo",
     "allowComments": "Permitir comentários",
     "allowDuet": "Permitir Duet",
-    "allowStitch": "Permitir Stitch"
+    "allowStitch": "Permitir Stitch",
+    "sessionError": "Erro na sessão de envio.",
+    "completeError": "Não foi possível concluir o envio.",
+    "uploadErrorGeneric": "Erro de envio."
   },
   "security": {
     "autentificareInDoiPasi": "Autenticação em dois passos (2FA)",
@@ -677,7 +680,8 @@
     "confidentialitate": "Privacidade",
     "descarcaDateleDescriere": "Descarrega um ficheiro com os teus dados pessoais na Swypik: conta, moradas, encomendas e atividade. Não contém palavras-passe nem dados do cartão.",
     "descarcaDatele": "Descarregar os meus dados (JSON)",
-    "stergereContNota": "Para eliminar a tua conta ou exercer outros direitos do RGPD, escreve-nos para privacy@swypik.com. Respondemos no prazo de 30 dias."
+    "stergereContNota": "Para eliminar a tua conta ou exercer outros direitos do RGPD, escreve-nos para privacy@swypik.com. Respondemos no prazo de 30 dias.",
+    "eroareLaRegenerare": "Erro ao regenerar."
   },
   "orders": {
     "seIncarcaComanda": "A carregar encomenda...",
@@ -976,7 +980,8 @@
     "adaugaLink": "+ Adicionar link",
     "displayName": "Nome de exibição",
     "linkLabelPlaceholder": "Rótulo (ex.: Meu site)",
-    "removeLink": "Remover link"
+    "removeLink": "Remover link",
+    "eroareLaSalvare": "Erro ao salvar."
   },
   "returnForm": {
     "produsePentruRetur": "Produtos para devolver",
@@ -2634,7 +2639,9 @@
   "postVote": {
     "votes": "{count, plural, one {# voto} other {# votos}}",
     "yourVote": "seu voto",
-    "tapToVote": "Toque em uma opção para votar."
+    "tapToVote": "Toque em uma opção para votar.",
+    "genericError": "Ocorreu um erro. Tenta novamente.",
+    "networkError": "Erro de rede."
   },
   "stayDetail": {
     "confirmed": "Reserva confirmada!",

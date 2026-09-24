@@ -76,7 +76,7 @@ export const POST = withErrorHandling(async function POST(req: Request) {
 
   const parsed = parseBody(CreateAdSchema, await req.json().catch(() => null));
   if (!parsed.ok) {
-    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+    return NextResponse.json({ success: false, error: parsed.error, code: parsed.code }, { status: 400 });
   }
   const ad = parsed.data;
 

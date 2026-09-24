@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     const rawBody = await req.json().catch(() => null);
     const parsed = parseBody(CreatorUploadSessionCreateSchema, rawBody);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
     }
     const input = normalizeCreatorUploadInput({ ...parsed.data, creatorId });
 
@@ -112,7 +112,7 @@ export async function PATCH(req: Request) {
     const rawBody = await req.json().catch(() => ({}));
     const parsed = parseBody(CreatorUploadSessionCompleteSchema, rawBody);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
     }
     const sessionId = searchParams.get("id") || parsed.data.sessionId || parsed.data.uploadId;
     const action = searchParams.get("action") || parsed.data.action;

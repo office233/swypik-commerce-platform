@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const rawBody = await req.json().catch(() => null);
     const parsed = parseBody(CheckoutCreateIntentSchema, rawBody);
     if (!parsed.ok) {
-      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+      return NextResponse.json({ success: false, error: parsed.error, code: parsed.code }, { status: 400 });
     }
     const rawItems = parsed.data.products;
     const idempotencyKey = parsed.data.idempotencyKey ?? null;

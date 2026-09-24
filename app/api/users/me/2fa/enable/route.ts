@@ -15,7 +15,7 @@ async function POST_impl(req: Request) {
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const rawBody = await req.json().catch(() => null);
   const parsed = parseBody(TwoFactorTokenSchema, rawBody);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
   const { token } = parsed.data;
 
   const { rows } = await dbQuery<{ totp_secret: string | null; totp_enabled_at: string | null }>(

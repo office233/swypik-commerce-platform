@@ -5,7 +5,8 @@
  * Creează local_merchant cu status='pending'; adminul aprobă în /admin/aplicatii.
  */
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type FormState = {
   name: string;
@@ -29,6 +30,7 @@ const EMPTY: FormState = {
 
 export default function ApplyFormClient() {
   const t = useTranslations("foodApply");
+  const locale = useLocale();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -48,7 +50,11 @@ export default function ApplyFormClient() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setErrorMsg(typeof data.error === "string" && data.error !== "rate_limited" ? data.error : t("error"));
+        setErrorMsg(
+          typeof data.error === "string" && data.error !== "rate_limited"
+            ? apiErrorMessage(data, locale, t("error"))
+            : t("error")
+        );
         setStatus("error");
         return;
       }

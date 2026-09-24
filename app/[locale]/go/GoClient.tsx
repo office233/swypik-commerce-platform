@@ -28,6 +28,7 @@ import {
 import { haptic } from "@/lib/haptic";
 import { DEFAULT_MAP_CENTER } from "@/lib/config/geo";
 import { APP_URL } from "@/lib/app-url";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
 const LiveMarker = dynamic(() => import("@/components/map/LiveMarker"), { ssr: false });
@@ -276,7 +277,7 @@ export default function GoClient() {
             out[c.id] = null;
           } else {
             const data = await res.json().catch(() => ({}));
-            if (data.error) setError(data.error);
+            if (data.error) setError(apiErrorMessage(data, locale, t("estimateError")));
             out[c.id] = null;
           }
         }),
@@ -285,7 +286,7 @@ export default function GoClient() {
     } finally {
       setLoading(false);
     }
-  }, [pickup, dropoff, t]);
+  }, [pickup, dropoff, t, locale]);
 
   useEffect(() => {
     void fetchEstimates();
@@ -317,7 +318,7 @@ export default function GoClient() {
           router.push(`/auth/login?next=${encodeURIComponent("/go")}`);
           return;
         }
-        setError(res.status === 422 ? t("noZone") : data.error ?? t("orderError"));
+        setError(res.status === 422 ? t("noZone") : apiErrorMessage(data, locale, t("orderError")));
         return;
       }
       router.push(`/go/${data.ride_id}`);

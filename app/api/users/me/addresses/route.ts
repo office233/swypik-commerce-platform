@@ -79,7 +79,7 @@ async function POST_impl(req: Request) {
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const rawBody = await req.json().catch(() => ({}));
   const parsed = parseBody(UserAddressCreateSchema, rawBody);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, code: parsed.code, issues: parsed.issues }, { status: 400 });
   const data = parsed.data;
   let isDefault = Boolean(data.is_default);
 

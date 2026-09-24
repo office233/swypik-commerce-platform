@@ -3,8 +3,9 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { ArrowRight, Mail, KeyRound, Loader2, ArrowLeft, AlertCircle } from "lucide-react";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 /** Only allow same-site relative paths for the post-login redirect (avoid open redirect). */
 function safeNextPath(next: string | null): string {
@@ -27,6 +28,7 @@ export default function SellerLogin() {
 
 function SellerLoginForm() {
   const t = useTranslations("sellerGrowthLogin");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState<1 | 2>(1);
@@ -50,7 +52,7 @@ function SellerLoginForm() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || t("errorGeneric"));
+        throw new Error(apiErrorMessage(data, locale, t("errorGeneric")));
       }
 
       // API răspunde generic (anti-enumeration) cu {success:true, message}
@@ -82,7 +84,7 @@ function SellerLoginForm() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || t("errorInvalidOtp"));
+        throw new Error(apiErrorMessage(data, locale, t("errorInvalidOtp")));
       }
 
       // Success — redirect to the originally requested page, or the dashboard.

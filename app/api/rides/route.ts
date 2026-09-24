@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => null);
     const parsed = parseBody(RideCreateSchema, body);
-    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
     const input = parsed.data;
 
     // O singură cursă activă per rider.

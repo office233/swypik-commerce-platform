@@ -4,7 +4,8 @@ import { Check, ShoppingBag } from "lucide-react";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type Item = {
   optionKey: string;
@@ -22,6 +23,7 @@ export default function VoteButtons({
 }) {
   const router = useRouter();
   const t = useTranslations("postVote");
+  const locale = useLocale();
   const [items, setItems] = useState<Item[]>(initial);
   const [myVote, setMyVote] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function VoteButtons({
       }
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json?.error || `Eroare ${res.status}`);
+        setError(apiErrorMessage(json, locale, t("genericError")));
         return;
       }
       setItems((prev) => {
@@ -59,8 +61,8 @@ export default function VoteButtons({
       });
       setMyVote(optionKey);
       startTransition(() => router.refresh());
-    } catch (err) {
-      setError((err as Error).message || "Eroare rețea");
+    } catch {
+      setError(t("networkError"));
     } finally {
       setPending(null);
     }

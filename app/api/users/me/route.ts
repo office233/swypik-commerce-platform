@@ -88,7 +88,7 @@ async function handlePatch(request: Request) {
   const rawBody = await request.json().catch(() => null);
   const parsed = parseBody(UserProfilePatchSchema, rawBody);
   if (!parsed.ok) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
+    return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
   }
   const body = parsed.data;
 

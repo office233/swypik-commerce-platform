@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { AlertTriangle, Car, CircleUserRound, Phone, Share, Star } from "lucide-react";
 import { haptic } from "@/lib/haptic";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), { ssr: false });
 const LiveMarker = dynamic(() => import("@/components/map/LiveMarker"), { ssr: false });
@@ -176,7 +177,7 @@ export default function RideClient({ rideId }: { rideId: string }) {
                 void refresh();
             } else {
                 const data = await res.json().catch(() => ({}));
-                setError(data.error ?? t("cancel.error"));
+                setError(apiErrorMessage(data, locale, t("cancel.error")));
             }
         } finally {
             setCancelling(false);

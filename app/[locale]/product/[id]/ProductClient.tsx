@@ -10,7 +10,8 @@ import type { Product } from "@/types/product";
 
 import type { ProductDetail } from "@/lib/products/get-product-detail";
 import VideoSection from "./VideoSection";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 import { SquadBuyModal } from "@/components/squad/SquadBuyModal";
 import { isEnabledClient } from "@/lib/feature-flags-client";
 import { SQUAD_DISCOUNT_PCT, SQUAD_REQUIRED_MEMBERS, squadPriceCents } from "@/lib/squad/config";
@@ -44,6 +45,7 @@ type Props = { initialData?: ProductDetail | null; initialVideos?: any[] };
 
 export default function ProductClient({ initialData, initialVideos }: Props) {
   const t = useTranslations("product");
+  const locale = useLocale();
   const { id } = useParams();
   const router = useRouter();
   const [product, setProduct] = useState<any>(initialData?.product || null);
@@ -252,7 +254,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         let msg = t("addToCartError");
         try {
           const data = await resp.json();
-          if (data?.error && typeof data.error === "string") msg = data.error;
+          msg = apiErrorMessage(data, locale, t("addToCartError"));
         } catch { /* raspuns non-JSON */ }
         setCartError(msg);
         setTimeout(() => setCartError(null), 4000);
