@@ -6,6 +6,7 @@
  * pentru a nu depăși cota zilnică de 10.000 unități.
  */
 
+import { logger } from "@/lib/logger";
 import type { TrackDto } from "./types";
 
 interface CacheEntry {
@@ -36,125 +37,11 @@ export function cleanHtmlEntities(str: string): string {
         .replace(/&gt;/g, ">");
 }
 
-/** Piese demonstrative reale cu ID-uri YouTube valide când API key lipsește sau cota e atinsă */
-const FALLBACK_DEMO_TRACKS: TrackDto[] = [
-    {
-        id: "yt_kJQP7kiw5Fk",
-        slug: "yt-kJQP7kiw5Fk",
-        title: "Despacito",
-        coverUrl: "https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg",
-        genre: "latino",
-        durationMs: 282000,
-        explicit: false,
-        isPremium: false,
-        priceUnits: null,
-        locked: false,
-        allowReels: false,
-        audioTrackId: null,
-        albumId: null,
-        trackNumber: null,
-        artist: {
-            id: "UCb2HGwORvAakq_0XWlsXfCw",
-            slug: "luis-fonsi",
-            stageName: "Luis Fonsi ft. Daddy Yankee",
-            bio: "Official Artist Channel",
-            avatarUrl: null,
-            coverUrl: null,
-            isOfficial: false,
-        },
-        plays7d: 1450,
-        liked: false,
-        source: "youtube",
-        youtubeVideoId: "kJQP7kiw5Fk",
-    },
-    {
-        id: "yt_JGwWNGJdvx8",
-        slug: "yt-JGwWNGJdvx8",
-        title: "Shape of You",
-        coverUrl: "https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg",
-        genre: "pop",
-        durationMs: 263000,
-        explicit: false,
-        isPremium: false,
-        priceUnits: null,
-        locked: false,
-        allowReels: false,
-        audioTrackId: null,
-        albumId: null,
-        trackNumber: null,
-        artist: {
-            id: "UC0C-w0YjGpqDXGB8Tr0GGyA",
-            slug: "ed-sheeran",
-            stageName: "Ed Sheeran",
-            bio: "Official Artist Channel",
-            avatarUrl: null,
-            coverUrl: null,
-            isOfficial: false,
-        },
-        plays7d: 2310,
-        liked: false,
-        source: "youtube",
-        youtubeVideoId: "JGwWNGJdvx8",
-    },
-    {
-        id: "yt_4NRXx6U8ABQ",
-        slug: "yt-4NRXx6U8ABQ",
-        title: "Blinding Lights",
-        coverUrl: "https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg",
-        genre: "synthwave",
-        durationMs: 260000,
-        explicit: false,
-        isPremium: false,
-        priceUnits: null,
-        locked: false,
-        allowReels: false,
-        audioTrackId: null,
-        albumId: null,
-        trackNumber: null,
-        artist: {
-            id: "UC0WP5P-ufpRfjbNrmOWwLBQ",
-            slug: "the-weeknd",
-            stageName: "The Weeknd",
-            bio: "Official Artist Channel",
-            avatarUrl: null,
-            coverUrl: null,
-            isOfficial: false,
-        },
-        plays7d: 3100,
-        liked: false,
-        source: "youtube",
-        youtubeVideoId: "4NRXx6U8ABQ",
-    },
-    {
-        id: "yt_fJ9rUzIMcZQ",
-        slug: "yt-fJ9rUzIMcZQ",
-        title: "Bohemian Rhapsody",
-        coverUrl: "https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg",
-        genre: "rock",
-        durationMs: 359000,
-        explicit: false,
-        isPremium: false,
-        priceUnits: null,
-        locked: false,
-        allowReels: false,
-        audioTrackId: null,
-        albumId: null,
-        trackNumber: null,
-        artist: {
-            id: "UCiMhD4jzUqG-IgPzUmmytRQ",
-            slug: "queen-official",
-            stageName: "Queen",
-            bio: "Official Artist Channel",
-            avatarUrl: null,
-            coverUrl: null,
-            isOfficial: false,
-        },
-        plays7d: 980,
-        liked: false,
-        source: "youtube",
-        youtubeVideoId: "fJ9rUzIMcZQ",
-    },
-];
+/**
+ * Timeout implicit pentru orice cerere externă (YouTube Data API) — nu lăsăm
+ * un mirror lent să blocheze indefinit ruta.
+ */
+const FETCH_TIMEOUT_MS = 5_000;
 
 async function getCachedTracksFromDb(query: string): Promise<TrackDto[] | null> {
     try {
@@ -221,15 +108,9 @@ export async function searchYouTubeMusic(query: string, limit = 15): Promise<Tra
 
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-        // Fallback demonstrativ dacă lipsește cheia API
-        const filtered = FALLBACK_DEMO_TRACKS.filter(
-            (t) =>
-                t.title.toLowerCase().includes(trimmed.toLowerCase()) ||
-                t.artist.stageName.toLowerCase().includes(trimmed.toLowerCase())
-        );
-        const result = filtered.length > 0 ? filtered : FALLBACK_DEMO_TRACKS.slice(0, limit);
-        memoryCache.set(cacheKey, { tracks: result, expiresAt: Date.now() + CACHE_TTL_MS });
-        return result;
+        // Fără cheie API nu putem interoga YouTube — nu inventăm date, returnăm listă goală.
+        logger.warn("[YouTube API] YOUTUBE_API_KEY lipsește — nu se pot căuta piese");
+        return [];
     }
 
     try {
@@ -242,10 +123,13 @@ export async function searchYouTubeMusic(query: string, limit = 15): Promise<Tra
         searchUrl.searchParams.set("maxResults", String(Math.min(limit, 25)));
         searchUrl.searchParams.set("key", apiKey);
 
-        const searchRes = await fetch(searchUrl.toString(), { next: { revalidate: 3600 } });
+        const searchRes = await fetch(searchUrl.toString(), {
+            next: { revalidate: 3600 },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        });
         if (!searchRes.ok) {
-            console.warn(`[YouTube API] Search failed with status ${searchRes.status}`);
-            return FALLBACK_DEMO_TRACKS.slice(0, limit);
+            logger.warn({ status: searchRes.status }, "[YouTube API] Search failed");
+            return [];
         }
 
         const searchData = (await searchRes.json()) as {
@@ -275,7 +159,10 @@ export async function searchYouTubeMusic(query: string, limit = 15): Promise<Tra
         videosUrl.searchParams.set("id", videoIds.join(","));
         videosUrl.searchParams.set("key", apiKey);
 
-        const videosRes = await fetch(videosUrl.toString(), { next: { revalidate: 7200 } });
+        const videosRes = await fetch(videosUrl.toString(), {
+            next: { revalidate: 7200 },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        });
         const durationsMap = new Map<string, number>();
 
         if (videosRes.ok) {
@@ -342,8 +229,8 @@ export async function searchYouTubeMusic(query: string, limit = 15): Promise<Tra
 
         return tracks;
     } catch (err) {
-        console.error("[YouTube API] Error searching:", err);
-        return FALLBACK_DEMO_TRACKS.slice(0, limit);
+        logger.error({ err }, "[YouTube API] Error searching");
+        return [];
     }
 }
 
@@ -355,14 +242,7 @@ export async function getYouTubeTrackByVideoId(videoId: string): Promise<TrackDt
     if (!videoId) return null;
     const cleanId = videoId.replace(/^yt[-_]/, "");
 
-    // 1. Verificare piese demo / fallback
-    for (const fb of FALLBACK_DEMO_TRACKS) {
-        if (fb.youtubeVideoId === cleanId || fb.slug === `yt-${cleanId}`) {
-            return fb;
-        }
-    }
-
-    // 2. Verificare tabel youtube_tracks din baza de date
+    // 1. Verificare tabel youtube_tracks din baza de date
     try {
         const { dbQuery } = await import("@/lib/db");
         const { rows } = await dbQuery<{ video_id: string; title: string; channel: string; cover_url: string; duration_ms: number }>(
@@ -406,7 +286,7 @@ export async function getYouTubeTrackByVideoId(videoId: string): Promise<TrackDt
         // DB fallback
     }
 
-    // 3. YouTube API call direct dacă este configurat API key
+    // 2. YouTube API call direct dacă este configurat API key
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (apiKey) {
         try {
@@ -415,7 +295,10 @@ export async function getYouTubeTrackByVideoId(videoId: string): Promise<TrackDt
             videosUrl.searchParams.set("id", cleanId);
             videosUrl.searchParams.set("key", apiKey);
 
-            const res = await fetch(videosUrl.toString(), { next: { revalidate: 86400 } });
+            const res = await fetch(videosUrl.toString(), {
+                next: { revalidate: 86400 },
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            });
             if (res.ok) {
                 const data = (await res.json()) as {
                     items?: Array<{
@@ -489,7 +372,7 @@ export async function getYouTubeTrackByVideoId(videoId: string): Promise<TrackDt
                 }
             }
         } catch (err) {
-            console.error("[YouTube API] Error fetching single video:", err);
+            logger.error({ err }, "[YouTube API] Error fetching single video");
         }
     }
 

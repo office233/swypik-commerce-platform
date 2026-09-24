@@ -7,7 +7,6 @@
  * `components/movies/UnlockButton.tsx`, dar pentru `/api/music/albums/<slug>/unlock`.
  */
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Lock, Play } from "lucide-react";
 import { useTranslations } from "next-intl";

@@ -7,7 +7,6 @@
  * la `/api/music/tracks/<slug>` nu include piesele albumului).
  */
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { ArrowLeft, Heart, ListPlus, Music2, Pause, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";

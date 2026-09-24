@@ -1,34 +1,78 @@
 "use client";
 
 import { useEffect, useState, type MouseEvent } from "react";
-import { ChevronDown, Heart, MoreHorizontal, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, Radio } from "lucide-react";
+import { ChevronDown, Heart, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, Radio } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMusicPlayer } from "./MusicPlayerProvider";
 import { formatDuration } from "./format";
 import StationBadge from "./StationBadge";
 import { haptic } from "@/lib/haptic";
+import { setTrackLiked } from "@/app/[locale]/music/_lib/track-actions";
 
 type Props = {
     isOpen: boolean;
     onClose: () => void;
 };
 
+/** Surse externe fără like server-side — Swypik nu are ce persista pentru ele. */
+const NON_LIKEABLE_SOURCES = new Set(["youtube", "radio", "audius", "jamendo", "podcast"]);
+
+/** Lățimea video-ului expandat (vezi containerul din MusicPlayerProvider): min(100vw - 24px, 560px). */
+const YT_VIDEO_WIDTH_CSS = "min(100vw - 24px, 560px)";
+/** Header-ul „SWYPIK PLAYER" din containerul video (px-3 py-1.5 + text ~ 30px). */
+const YT_VIDEO_HEADER_PX = 30;
+/** Offset-ul de sus al containerului video expandat: max(12px, safe-area-inset-top). */
+const YT_VIDEO_TOP_CSS = "max(12px, env(safe-area-inset-top, 12px))";
+/** Înălțimea rezervată în FullScreenPlayer pentru ca video-ul YouTube expandat să nu acopere
+ * nimic din bara de sus (chevron, titlu, controale) — safe-area + header + 16:9 din lățimea video. */
+const YT_SPACER_HEIGHT_CSS = `calc(${YT_VIDEO_TOP_CSS} + ${YT_VIDEO_HEADER_PX}px + (${YT_VIDEO_WIDTH_CSS}) * 9 / 16)`;
+
 export default function FullScreenPlayer({ isOpen, onClose }: Props) {
     const t = useTranslations("music");
-    const { current, playing, positionMs, durationMs, toggle, next, prev, seek } = useMusicPlayer();
+    const {
+        current,
+        playing,
+        positionMs,
+        durationMs,
+        toggle,
+        next,
+        prev,
+        seek,
+        setVideoExpanded,
+        shuffle,
+        toggleShuffle,
+        repeat,
+        cycleRepeat,
+        volume,
+        muted,
+        setVolume,
+        setMuted,
+    } = useMusicPlayer();
     const [isLiked, setIsLiked] = useState(false);
-    const [volume, setVolume] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
-    const [isShuffle, setIsShuffle] = useState(false);
-    const [isRepeat, setIsRepeat] = useState(false);
+    const [likeBusy, setLikeBusy] = useState(false);
 
     useEffect(() => {
         if (current) setIsLiked(Boolean(current.liked));
     }, [current]);
 
+    const isYouTubeTrack = Boolean(current) && (current?.source === "youtube" || Boolean(current?.youtubeVideoId));
+
+    // Video-ul YouTube trebuie să rămână MEREU vizibil cât timp piesa redă (cerință ToS) — la
+    // deschiderea full-screen cu o piesă YouTube, forțăm modul expanded; la închidere, revenim
+    // la docked. Pentru orice altă sursă, nu atingem starea expanded (rămâne cum a lăsat-o userul).
+    useEffect(() => {
+        if (isOpen && isYouTubeTrack) {
+            setVideoExpanded(true);
+            return () => setVideoExpanded(false);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, isYouTubeTrack]);
+
     if (!isOpen || !current) return null;
 
     const pct = durationMs > 0 ? Math.min(100, Math.max(0, (positionMs / durationMs) * 100)) : 0;
+    const canLike = !NON_LIKEABLE_SOURCES.has(current.source ?? "swypik");
+    const showShuffleRepeat = !current.isLive;
 
     const handleSeek = (event: MouseEvent<HTMLDivElement>) => {
         if (durationMs <= 0 || current.isLive) return;
@@ -37,71 +81,82 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
         seek(ratio * durationMs);
     };
 
-    const toggleLike = () => {
+    const toggleLike = async () => {
+        if (!canLike || likeBusy) return;
         haptic("tap");
-        setIsLiked(!isLiked);
+        const nextLiked = !isLiked;
+        setIsLiked(nextLiked);
+        setLikeBusy(true);
+        const ok = await setTrackLiked(current.slug, nextLiked);
+        setLikeBusy(false);
+        if (!ok) setIsLiked(!nextLiked); // rollback — API-ul a eșuat
     };
+
+    const repeatLabel =
+        repeat === "one" ? t("audio.repeatOne") : repeat === "all" ? t("audio.repeatAll") : t("audio.repeatOff");
 
     return (
         <div className="fixed inset-0 z-50 flex flex-col justify-between bg-gradient-to-b from-[#1E1736] via-[#0E0C18] to-black px-6 py-6 text-white animate-in slide-in-from-bottom duration-300">
-            {/* Top Bar stil Spotify */}
-            <div className="flex items-center justify-between">
-                <button
-                    type="button"
-                    onClick={() => { haptic("tap"); onClose(); }}
-                    aria-label={t("close")}
-                    className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 active:scale-95 transition-all"
-                >
-                    <ChevronDown size={22} />
-                </button>
-                <div className="text-center">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-white/50">
-                        {current.isLive ? "Radio Live" : "Swypik Audio"}
-                    </p>
-                    <p className="text-xs font-black text-white/90 truncate max-w-[200px]">
-                        {current.artist.stageName || "Swypik Music"}
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => haptic("tap")}
-                    aria-label="Options"
-                    className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 active:scale-95 transition-all"
-                >
-                    <MoreHorizontal size={20} />
-                </button>
-            </div>
+            <div>
+                {/* Spațiu rezervat pentru video-ul YouTube expandat (randat de MusicPlayerProvider,
+                    la z-[60], deasupra acestui ecran) — nimic de aici nu trebuie să-l acopere. */}
+                {isYouTubeTrack && <div aria-hidden="true" style={{ height: YT_SPACER_HEIGHT_CSS }} />}
 
-            {/* Artwork Mare Centrat */}
-            <div className="my-auto flex flex-col items-center">
-                <div className="relative aspect-square w-[75vw] max-w-[320px] overflow-hidden rounded-3xl bg-neutral-900 shadow-[0_24px_64px_rgba(124,58,237,0.35)] ring-1 ring-white/15">
-                    {current.source === "radio" ? (
-                        <div className="h-full w-full flex items-center justify-center p-8 bg-gradient-to-br from-[#1C162E] to-black">
-                            <StationBadge slug={current.slug} title={current.title} coverUrl={current.coverUrl} size="lg" />
-                        </div>
-                    ) : current.coverUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={current.coverUrl}
-                            alt={current.title}
-                            referrerPolicy="no-referrer"
-                            className="h-full w-full object-cover"
-                        />
-                    ) : (
-                        <div className="h-full w-full flex flex-col items-center justify-center bg-gradient-to-br from-[#7C3AED] to-[#EC4899] p-4 text-center">
-                            <Radio size={48} className="text-white/80 mb-2" />
-                            <span className="text-sm font-bold text-white line-clamp-2">{current.title}</span>
-                        </div>
-                    )}
-
-                    {current.isLive && (
-                        <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-red-600/90 backdrop-blur-md px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg">
-                            <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-                            LIVE AUDIO
-                        </span>
-                    )}
+                {/* Top Bar stil Spotify */}
+                <div className="flex items-center justify-between">
+                    <button
+                        type="button"
+                        onClick={() => { haptic("tap"); onClose(); }}
+                        aria-label={t("close")}
+                        className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 active:scale-95 transition-all"
+                    >
+                        <ChevronDown size={22} />
+                    </button>
+                    <div className="text-center">
+                        <p className="text-[10px] uppercase font-bold tracking-widest text-white/50">
+                            {current.isLive ? t("audio.radioLive") : t("title")}
+                        </p>
+                        <p className="text-xs font-black text-white/90 truncate max-w-[200px]">
+                            {current.artist.stageName || t("title")}
+                        </p>
+                    </div>
+                    {/* Slot simetric cu butonul din stânga, pentru centrarea titlului — fără acțiune de „opțiuni" încă neimplementată */}
+                    <div className="h-9 w-9" aria-hidden="true" />
                 </div>
             </div>
+
+            {/* Artwork Mare Centrat — ascuns pentru piesele YouTube (video-ul expandat îi ia locul) */}
+            {!isYouTubeTrack && (
+                <div className="my-auto flex flex-col items-center">
+                    <div className="relative aspect-square w-[75vw] max-w-[320px] overflow-hidden rounded-3xl bg-neutral-900 shadow-[0_24px_64px_rgba(124,58,237,0.35)] ring-1 ring-white/15">
+                        {current.source === "radio" ? (
+                            <div className="h-full w-full flex items-center justify-center p-8 bg-gradient-to-br from-[#1C162E] to-black">
+                                <StationBadge slug={current.slug} title={current.title} coverUrl={current.coverUrl} size="lg" />
+                            </div>
+                        ) : current.coverUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={current.coverUrl}
+                                alt={current.title}
+                                referrerPolicy="no-referrer"
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <div className="h-full w-full flex flex-col items-center justify-center bg-gradient-to-br from-[#7C3AED] to-[#EC4899] p-4 text-center">
+                                <Radio size={48} className="text-white/80 mb-2" />
+                                <span className="text-sm font-bold text-white line-clamp-2">{current.title}</span>
+                            </div>
+                        )}
+
+                        {current.isLive && (
+                            <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-red-600/90 backdrop-blur-md px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg">
+                                <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                                {t("audio.liveAudio")}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Informații Piesă & Like */}
             <div className="space-y-4">
@@ -114,14 +169,17 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
                             {current.artist.stageName}
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={toggleLike}
-                        aria-label={isLiked ? t("unlike") : t("like")}
-                        className="rounded-full p-2 text-white/70 hover:text-white active:scale-90 transition-transform"
-                    >
-                        <Heart size={24} className={isLiked ? "fill-[#EC4899] text-[#EC4899]" : ""} />
-                    </button>
+                    {canLike && (
+                        <button
+                            type="button"
+                            onClick={() => void toggleLike()}
+                            aria-label={isLiked ? t("unlike") : t("like")}
+                            disabled={likeBusy}
+                            className="rounded-full p-2 text-white/70 hover:text-white active:scale-90 transition-transform disabled:opacity-60"
+                        >
+                            <Heart size={24} className={isLiked ? "fill-[#EC4899] text-[#EC4899]" : ""} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Scrubber / Bară de Progres stil Spotify */}
@@ -130,9 +188,9 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
                         <div className="flex items-center justify-between py-2 px-1">
                             <div className="flex items-center gap-2">
                                 <span className="flex h-2 w-2 rounded-full bg-red-500 animate-ping" />
-                                <span className="text-xs font-bold text-red-400 uppercase tracking-wider">Live Stream Radio</span>
+                                <span className="text-xs font-bold text-red-400 uppercase tracking-wider">{t("audio.liveStreamRadio")}</span>
                             </div>
-                            <span className="text-xs font-mono text-white/50">DIRECT</span>
+                            <span className="text-xs font-mono text-white/50">{t("audio.direct")}</span>
                         </div>
                     ) : (
                         <>
@@ -160,14 +218,19 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
 
                 {/* Comenzi de Redare Principale stil Spotify */}
                 <div className="flex items-center justify-between pt-2">
-                    <button
-                        type="button"
-                        onClick={() => { haptic("tap"); setIsShuffle(!isShuffle); }}
-                        aria-label={t("shuffle")}
-                        className={`p-2 transition-colors ${isShuffle ? "text-[#A78BFA]" : "text-white/40 hover:text-white"}`}
-                    >
-                        <Shuffle size={20} />
-                    </button>
+                    {showShuffleRepeat ? (
+                        <button
+                            type="button"
+                            onClick={() => { haptic("tap"); toggleShuffle(); }}
+                            aria-label={t("shuffle")}
+                            aria-pressed={shuffle}
+                            className={`p-2 transition-colors ${shuffle ? "text-[#A78BFA]" : "text-white/40 hover:text-white"}`}
+                        >
+                            <Shuffle size={20} />
+                        </button>
+                    ) : (
+                        <div className="h-9 w-9" aria-hidden="true" />
+                    )}
 
                     <button
                         type="button"
@@ -196,39 +259,38 @@ export default function FullScreenPlayer({ isOpen, onClose }: Props) {
                         <SkipForward size={26} />
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => { haptic("tap"); setIsRepeat(!isRepeat); }}
-                        aria-label="Repeat"
-                        className={`p-2 transition-colors ${isRepeat ? "text-[#A78BFA]" : "text-white/40 hover:text-white"}`}
-                    >
-                        <Repeat size={20} />
-                    </button>
+                    {showShuffleRepeat ? (
+                        <button
+                            type="button"
+                            onClick={() => { haptic("tap"); cycleRepeat(); }}
+                            aria-label={repeatLabel}
+                            title={repeatLabel}
+                            className={`p-2 transition-colors ${repeat !== "off" ? "text-[#A78BFA]" : "text-white/40 hover:text-white"}`}
+                        >
+                            {repeat === "one" ? <Repeat1 size={20} /> : <Repeat size={20} />}
+                        </button>
+                    ) : (
+                        <div className="h-9 w-9" aria-hidden="true" />
+                    )}
                 </div>
 
                 {/* Control Volum */}
                 <div className="flex items-center gap-3 pt-2 px-2 text-white/40">
                     <button
                         type="button"
-                        onClick={() => setIsMuted(!isMuted)}
-                        aria-label="Mute"
+                        onClick={() => setMuted(!muted)}
+                        aria-label={t("audio.mute")}
                         className="hover:text-white transition-colors"
                     >
-                        {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                        {muted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
                     </button>
                     <input
                         type="range"
                         min="0"
                         max="1"
                         step="0.05"
-                        value={isMuted ? 0 : volume}
-                        onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            setVolume(val);
-                            if (val > 0) setIsMuted(false);
-                            const audio = document.querySelector("audio");
-                            if (audio) audio.volume = val;
-                        }}
+                        value={muted ? 0 : volume}
+                        onChange={(e) => setVolume(parseFloat(e.target.value))}
                         className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-white/20 accent-[#7C3AED]"
                     />
                 </div>

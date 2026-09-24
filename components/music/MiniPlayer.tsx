@@ -21,7 +21,7 @@ const MOVIES_PLAYER_PATH = /^\/movies\/[^/]+\/\d+/;
 export default function MiniPlayer() {
     const t = useTranslations("music");
     const pathname = usePathname();
-    const { current, playing, positionMs, durationMs, toggle, next, seek, close, isVideoVisible, toggleVideo } = useMusicPlayer();
+    const { current, playing, positionMs, durationMs, toggle, next, seek, close, isVideoExpanded, toggleVideoExpanded } = useMusicPlayer();
     const [showFullScreen, setShowFullScreen] = useState(false);
 
     if (!current) return null;
@@ -115,7 +115,7 @@ export default function MiniPlayer() {
                             </span>
                             {current.isLive && (
                                 <span className="rounded bg-red-600 px-1 py-0.2 text-[8px] font-black uppercase text-white tracking-wider">
-                                    LIVE
+                                    {t("audio.liveBadge")}
                                 </span>
                             )}
                         </div>
@@ -129,11 +129,11 @@ export default function MiniPlayer() {
                         {current.source === "youtube" && (
                             <button
                                 type="button"
-                                onClick={() => { haptic("tap"); toggleVideo(); }}
-                                aria-label={isVideoVisible ? "Ascunde video" : "Arată video"}
-                                title={isVideoVisible ? "Ascunde video" : "Arată video"}
+                                onClick={() => { haptic("tap"); toggleVideoExpanded(); }}
+                                aria-label={isVideoExpanded ? t("audio.videoCollapse") : t("audio.videoExpand")}
+                                title={isVideoExpanded ? t("audio.videoCollapse") : t("audio.videoExpand")}
                                 className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold active:scale-95 transition-colors ${
-                                    isVideoVisible ? "bg-[#7C3AED] text-white" : "bg-white/10 text-white/70 hover:text-white"
+                                    isVideoExpanded ? "bg-[#7C3AED] text-white" : "bg-white/10 text-white/70 hover:text-white"
                                 }`}
                             >
                                 <Tv size={15} />
@@ -161,7 +161,7 @@ export default function MiniPlayer() {
                         <button
                             type="button"
                             onClick={() => { haptic("tap"); setShowFullScreen(true); }}
-                            aria-label="Expand"
+                            aria-label={t("audio.expand")}
                             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/50 active:scale-90 hover:text-white transition-colors"
                         >
                             <Maximize2 size={15} />

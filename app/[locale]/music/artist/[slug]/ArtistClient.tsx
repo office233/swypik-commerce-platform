@@ -7,7 +7,6 @@
  * piese. Mirror-uiește structura `app/[locale]/movies/[slug]/SeriesClient.tsx`.
  */
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { ArrowLeft, Heart, Play, Shuffle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";

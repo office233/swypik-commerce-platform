@@ -66,6 +66,8 @@ export const CURATED_PODCAST_SHOWS = [
     }
 ];
 
+const FETCH_TIMEOUT_MS = 5_000;
+
 export async function fetchPodcastEpisodes(term: string, country = "ro", limit = 10): Promise<AudioItemDto[]> {
     try {
         const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=podcast&entity=podcastEpisode&country=${country}&limit=${limit}`;
@@ -75,6 +77,7 @@ export async function fetchPodcastEpisodes(term: string, country = "ro", limit =
                 "User-Agent": "SwypikAudio/1.0",
             },
             next: { revalidate: 3600 },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
 
         if (!res.ok) {

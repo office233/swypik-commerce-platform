@@ -21,57 +21,7 @@ interface JamendoResponse {
 }
 
 const DEFAULT_JAMENDO_CLIENT_ID = "56d30c95"; // Jamendo public client ID
-
-const JAMENDO_FALLBACK_TRACKS: AudioItemDto[] = [
-    {
-        id: "jamendo_1892831",
-        slug: "autumn-breeze-acoustic",
-        title: "Autumn Breeze",
-        artist: "Acoustic Morning",
-        coverUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80",
-        streamUrl: "https://prod-1.storage.jamendo.com/download/track/1892831/mp32/",
-        durationMs: 215000,
-        genre: "Acoustic & Chill",
-        source: "jamendo",
-        isLive: false,
-    },
-    {
-        id: "jamendo_1749281",
-        slug: "piano-memories-relax",
-        title: "Memories in the Rain",
-        artist: "Serene Piano Duo",
-        coverUrl: "https://images.unsplash.com/photo-1520523839898-507127053c37?w=600&auto=format&fit=crop&q=80",
-        streamUrl: "https://prod-1.storage.jamendo.com/download/track/1749281/mp32/",
-        durationMs: 195000,
-        genre: "Piano & Ambient",
-        source: "jamendo",
-        isLive: false,
-    },
-    {
-        id: "jamendo_1623910",
-        slug: "coffee-shop-jazz",
-        title: "Sunday Morning Coffee",
-        artist: "Smooth Jazz Collective",
-        coverUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80",
-        streamUrl: "https://prod-1.storage.jamendo.com/download/track/1623910/mp32/",
-        durationMs: 240000,
-        genre: "Lounge & Jazz",
-        source: "jamendo",
-        isLive: false,
-    },
-    {
-        id: "jamendo_1582910",
-        slug: "deep-focus-study",
-        title: "Deep Space Focus",
-        artist: "Nordic Soundscapes",
-        coverUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=80",
-        streamUrl: "https://prod-1.storage.jamendo.com/download/track/1582910/mp32/",
-        durationMs: 310000,
-        genre: "Ambient & Study",
-        source: "jamendo",
-        isLive: false,
-    },
-];
+const FETCH_TIMEOUT_MS = 5_000;
 
 let cachedChill: { data: AudioItemDto[]; expiresAt: number } | null = null;
 const CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 ore
@@ -88,15 +38,16 @@ export async function getJamendoChillTracks(tags = "chillout+lounge+acoustic", l
         const res = await fetch(url, {
             headers: { "User-Agent": "SwypikAudio/1.0" },
             next: { revalidate: 7200 },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
 
         if (!res.ok) {
-            return JAMENDO_FALLBACK_TRACKS;
+            return [];
         }
 
         const json = (await res.json()) as JamendoResponse;
         if (!json.results || !Array.isArray(json.results) || json.results.length === 0) {
-            return JAMENDO_FALLBACK_TRACKS;
+            return [];
         }
 
         const tracks: AudioItemDto[] = json.results
@@ -120,7 +71,7 @@ export async function getJamendoChillTracks(tags = "chillout+lounge+acoustic", l
         cachedChill = { data: tracks, expiresAt: Date.now() + CACHE_TTL_MS };
         return tracks;
     } catch {
-        return JAMENDO_FALLBACK_TRACKS;
+        return [];
     }
 }
 
@@ -137,6 +88,7 @@ export async function searchJamendoTracks(query: string, limit = 10): Promise<Au
         const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${clientId}&format=json&limit=${limit}&namesearch=${encodeURIComponent(trimmed)}&audioformat=mp32`;
         const res = await fetch(url, {
             headers: { "User-Agent": "SwypikAudio/1.0" },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
 
         if (!res.ok) return [];
