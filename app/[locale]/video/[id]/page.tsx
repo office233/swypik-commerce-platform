@@ -7,7 +7,6 @@
  */
 
 import { Metadata } from "next";
-import Link from "next/link";
 import { parseHashtags } from "@/lib/text/parseHashtags";
 import { dbQuery } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -16,7 +15,7 @@ import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { APP_URL } from "@/lib/app-url";
 import { getTranslations } from "next-intl/server";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = { params: Promise<{ id: string; locale: string }> };
 
 export const dynamic = "force-dynamic";
 
@@ -45,20 +44,21 @@ async function getVideo(id: string) {
 
 // ── Metadata ────────────────────────────────────────────────────
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
+  const t = await getTranslations({ locale, namespace: "video" });
   const video = await getVideo(id);
 
   if (!video) {
-    return { title: "Video negăsit — Swypik" };
+    return { title: t("videoNotFoundTitle") };
   }
 
   const rawCreator = (video.creator_name || "").trim();
   const isGenericCreator = !rawCreator || /^(swypik|swypik\s*system|system|bot|admin)$/i.test(rawCreator);
-  const creatorSuffix = isGenericCreator ? "" : ` de ${rawCreator}`;
+  const creatorSuffix = isGenericCreator ? "" : ` ${t("byCreator", { name: rawCreator })}`;
   const title = `${video.title}${creatorSuffix} — Swypik`;
   const description = video.description
     ? video.description.replace(/<[^>]*>/g, " ").trim().slice(0, 155)
-    : `Vizionează ${video.title} pe Swypik — social video commerce.`;
+    : t("watchOnSwypik", { title: video.title });
 
   const canonical = `${APP_URL}/video/${id}`;
   const languages = languagesForMetadata(`/video/${id}`);
@@ -276,7 +276,7 @@ export default async function VideoPage({ params }: Props) {
               margin: "0 0 6px",
             }}
           >
-            de <span style={{ color: "#f43f5e", fontWeight: 600 }}>{creatorLabel}</span>
+            {t("byCreatorPrefix")} <span style={{ color: "#f43f5e", fontWeight: 600 }}>{creatorLabel}</span>
           </p>
 
           {/* View count */}

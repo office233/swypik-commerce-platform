@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { dbQuery } from "@/lib/db";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Trophy, Coins, Clock, Users, Target } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -32,23 +32,31 @@ type MissionRow = {
   submissions_count: number;
 };
 
-function fmtPrize(amount: number, currency: string): string {
-  if (currency === "SWYP") return `${amount.toLocaleString("ro-RO")} SWYP`;
-  return `${(amount / 100).toFixed(2)} ${currency}`;
+function fmtPrize(amount: number, currency: string, locale: string): string {
+  if (currency === "SWYP") return `${new Intl.NumberFormat(locale).format(amount)} SWYP`;
+  try {
+    return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount / 100);
+  } catch {
+    return `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount / 100)} ${currency}`;
+  }
 }
 
-function fmtRemaining(endsAt: string | null, t: (k: string) => string): string {
+function fmtRemaining(
+  endsAt: string | null,
+  t: (k: string, values?: Record<string, number>) => string,
+): string {
   if (!endsAt) return t("noDeadline");
   const ms = new Date(endsAt).getTime() - Date.now();
   if (ms <= 0) return t("ended");
   const d = Math.floor(ms / 86_400_000);
   const h = Math.floor((ms % 86_400_000) / 3_600_000);
-  if (d > 0) return `${d}z ${h}h`;
-  return `${h}h`;
+  if (d > 0) return t("remainingDaysHours", { d, h });
+  return t("remainingHours", { h });
 }
 
 export default async function MissionsPage() {
   const t = await getTranslations("missionsPage");
+  const locale = await getLocale();
   const { rows } = await dbQuery<MissionRow>(
     `SELECT
        m.id, m.slug, m.title, m.brief, m.format_hint,
@@ -113,11 +121,12 @@ export default async function MissionsPage() {
                       ) : null}
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                         <span className="inline-flex items-center gap-1 rounded-full bg-yellow-400/15 px-2 py-1 text-yellow-300">
-                          <Coins className="w-3 h-3" /> {fmtPrize(m.prize_amount_minor, m.prize_currency)}
+                          <Coins className="w-3 h-3" /> {fmtPrize(m.prize_amount_minor, m.prize_currency, locale)}
                         </span>
                         {m.bounty_per_sale_minor > 0 ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-400/15 px-2 py-1 text-green-300">
-                            +{(m.bounty_per_sale_minor / 100).toFixed(2)}{t("perSale")}
+                            {/* Bounty-ul e în unități minore fiat (bani); schema nu are monedă separată — la premii SWYP îl afișăm în RON, ca înainte. */}
+                            +{fmtPrize(m.bounty_per_sale_minor, m.prize_currency === "SWYP" ? "RON" : m.prize_currency, locale)}{t("perSale")}
                           </span>
                         ) : null}
                         <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 text-white/60">

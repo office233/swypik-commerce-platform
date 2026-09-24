@@ -1,52 +1,51 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Bot, Bookmark, ChevronDown, ChevronRight, ClipboardList, Compass, Flame, Home, LogOut, Menu, MessageCircle, Package, Plus, Search, Send, Shield, ShoppingCart, SlidersHorizontal, Sparkles, Star, Tag, Trophy, Truck, Upload, User, X, Zap } from "lucide-react";
+import { Bot, Bookmark, ClipboardList, Compass, Flame, Menu, Package, Send, Shield, ShoppingCart, Sparkles, Star, Upload, User, X, Zap } from "lucide-react";
 import ProductFeed from "./ProductFeed";
 import OffersFeed from "./home/OffersFeed";
-import CategorySidebar from "./home/CategorySidebar";
+import CategorySidebar, { type CategoryNode } from "./home/CategorySidebar";
 import type { OfferPost } from "@/lib/types/feed";
-import { THEME, commerceBadgeClass, translateCategory } from "@/lib/ui/theme";
+import { THEME, commerceBadgeClass } from "@/lib/ui/theme";
 import { Link } from "@/lib/i18n/navigation";
 
 import Image from "next/image";
 
 import type { Product } from "@/types/product";
 import type { CartItem } from "@/types/cart";
-import { mergeIntoCart, buildCheckoutPayload, cartItemKey } from "@/types/cart";
-import { useTranslations } from "next-intl";
-import { APP_URL } from "@/lib/app-url";
+import { mergeIntoCart, cartItemKey } from "@/types/cart";
+import { useTranslations, useLocale } from "next-intl";
+import type { Locale } from "@/lib/i18n/config";
+import { formatPriceLegacy } from "@/lib/i18n/currency";
 import ProductModal from "./chat/ProductModal";
-import { normalizeSocialFeedProducts, fetchSocialFeed, isSafeDirectVideoUrl } from "@/lib/chat/feed-normalize";
+import { fetchSocialFeed } from "@/lib/chat/feed-normalize";
 
 type ChatProduct = Product; // alias for backwards compat within this file
 
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string; products?: ChatProduct[]; bundleProducts?: ChatProduct[]; timestamp: Date };
 type Tab = "home" | "chat" | "deals" | "feed" | "cart";
-type Suggestion = { label: string; type: "product" | "category" | "tag"; score: number };
 type FunnelStage = "discover" | "compare" | "consider" | "cart" | "checkout" | "upsell";
 
-const AI_WELCOME: ChatMessage = {
-  id: "welcome", role: "assistant", timestamp: new Date(),
-  content: `Bună! Sunt asistentul tău de shopping.
-
-Spune-mi ce cauți și eu:
-• Găsesc cele mai bune opțiuni
-• Explic de ce merită fiecare
-• Fac bundle-uri complete cu tot ce ai nevoie
-• Compar prețuri și calitate
-
-Încearcă ceva de genul:
-"Setup gaming sub 4000 lei"
-"Outfit elegant pentru nuntă"
-"Apartament nou sub 2000 lei"`,
+/** POST /api/chat response shape (see app/api/chat/route.ts). */
+type ChatApiResponse = {
+  intent?: string;
+  reply?: string;
+  products?: ChatProduct[];
+  bundleProducts?: ChatProduct[];
+  sessionId?: string;
+  productId?: string;
+  productTitle?: string;
+  error?: string;
 };
 
 export default function ChatInterface({
   initialTrending = [],
-  initialBestValue = [],
-  initialTopRated = [],
+  // Fetched server-side (see app/[locale]/page.tsx) but there is no "best value" /
+  // "top rated" carousel wired into this redesign (chat + OffersFeed centric) —
+  // kept as accepted props so the caller's contract doesn't change; prefixed with
+  // `_` (this project's allowed-unused convention) instead of holding dead state.
+  initialBestValue: _initialBestValue = [],
+  initialTopRated: _initialTopRated = [],
   initialOffers = []
 }: {
   initialTrending?: ChatProduct[],
@@ -55,7 +54,9 @@ export default function ChatInterface({
   initialOffers?: OfferPost[]
 }) {
   const t = useTranslations("chatInterface");
-  const router = useRouter();
+  const locale = useLocale() as Locale;
+  /** Formats a whole-RON price for the current locale (Product prices are stored as whole RON units). */
+  const money = useCallback((amount: number) => formatPriceLegacy(amount, { locale }), [locale]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
@@ -70,8 +71,8 @@ export default function ChatInterface({
       }
       const saved = localStorage.getItem("aicv_chat");
       if (saved) {
-        const parsed = JSON.parse(saved);
-        setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
+        const parsed = JSON.parse(saved) as Array<ChatMessage & { timestamp: string }>;
+        setMessages(parsed.map((m) => ({ ...m, timestamp: new Date(m.timestamp) })));
       }
     } catch { }
   }, []);
@@ -79,9 +80,7 @@ export default function ChatInterface({
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [sessionId, setSessionId] = useState("");
-  const [trendingProducts, setTrendingProducts] = useState<ChatProduct[]>(initialTrending);
-  const [bestValueProducts, setBestValueProducts] = useState<ChatProduct[]>(initialBestValue);
-  const [topRatedProducts, setTopRatedProducts] = useState<ChatProduct[]>(initialTopRated);
+  const [trendingProducts] = useState<ChatProduct[]>(initialTrending);
   const [dealsProducts, setDealsProducts] = useState<ChatProduct[]>([]);
   const [dealsLoading, setDealsLoading] = useState(false);
   const [feedProducts, setFeedProducts] = useState<ChatProduct[]>([]);
@@ -112,36 +111,13 @@ export default function ChatInterface({
   }, []);
   const [lastShownProducts, setLastShownProducts] = useState<ChatProduct[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    /* legacy aicv_cart removed — chat AI cart now ephemeral until server integration */
-  }, []);
   const [toastMessage, setToastMessage] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [searchResults, setSearchResults] = useState<ChatProduct[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [funnelStage, setFunnelStage] = useState<FunnelStage>("discover");
   const [upsellProduct, setUpsellProduct] = useState<ChatProduct | null>(null);
-  const [showBundleSheet, setShowBundleSheet] = useState(false);
-  const [categoryTree, setCategoryTree] = useState<any[]>([]);
+  const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
   const [homeCategory, setHomeCategory] = useState<string | null>(null);
   const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
-  const [expandedCat, setExpandedCat] = useState<string | null>(null);
-  const [expandedMid, setExpandedMid] = useState<string | null>(null);
-  const [activeSub, setActiveSub] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filterSort, setFilterSort] = useState("popular");
-  const [filterMaxPrice, setFilterMaxPrice] = useState(500);
-  const [catProducts, setCatProducts] = useState<ChatProduct[]>([]);
-  const [catLoading, setCatLoading] = useState(false);
-  const [catTitle, setCatTitle] = useState("");
-  const [activeCatId, setActiveCatId] = useState<string | null>(null);
-  const [catPage, setCatPage] = useState(1);
-  const [catTotal, setCatTotal] = useState(0);
-  const [catBrowsing, setCatBrowsing] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const feedSeed = useRef(Math.floor(Math.random() * 100000));
@@ -197,7 +173,7 @@ export default function ChatInterface({
 
   useEffect(() => {
     setSessionId(Math.random().toString(36).slice(2) + Date.now().toString(36));
-    fetch("/api/products?hierarchy=true").then(r => r.json()).then(d => setCategoryTree(d.hierarchy || [])).catch(() => { });
+    fetch("/api/products?hierarchy=true").then(r => r.json()).then((d: { hierarchy?: CategoryNode[] }) => setCategoryTree(d.hierarchy || [])).catch(() => { });
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "feed") {
       setActiveTab("feed");
       loadFeed();
@@ -209,21 +185,8 @@ export default function ChatInterface({
     if (activeTab === "feed" && feedProducts.length === 0) loadFeed();
   }, [activeTab, dealsProducts.length, feedProducts.length, loadDeals, loadFeed]);
 
-  useEffect(() => {
-    if (activeTab !== "home" || input.trim().length < 2) { setSuggestions([]); return; }
-    const ctrl = new AbortController();
-    const t = setTimeout(() => { fetch(`/api/search/suggest?q=${encodeURIComponent(input.trim())}&limit=8`, { signal: ctrl.signal }).then((r) => r.json()).then((d) => setSuggestions(d.suggestions || [])).catch(() => { }); }, 180);
-    return () => { clearTimeout(t); ctrl.abort(); };
-  }, [input, activeTab]);
-
   const cartTotal = cartItems.reduce((sum, item) => sum + item.product.price * item.qty, 0);
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
-  const funnelCta = funnelStage === "compare" ? "Vezi alternative" : funnelStage === "cart" || funnelStage === "upsell" ? "Completează bundle-ul" : "Caută";
-  const bundleCandidates = lastShownProducts.filter((p) => !cartItems.some((item) => item.product.id === p.id)).slice(0, 4);
-  const bundleTotal = [...cartItems.map((i) => i.product), ...bundleCandidates.slice(0, 2)].reduce((sum, p) => sum + p.price, 0);
-  const bundleOldTotal = [...cartItems.map((i) => i.product), ...bundleCandidates.slice(0, 2)].reduce((sum, p) => sum + (p.oldPrice || p.price), 0);
-  const bundleSavings = Math.max(0, Math.round(bundleOldTotal - bundleTotal));
-
   function addToCart(product: ChatProduct, quantity: number = 1) {
     setCartItems((prev) => mergeIntoCart(prev, product, quantity));
     // Persist to server cart (fire-and-forget; UI already reflects optimistic state)
@@ -244,49 +207,7 @@ export default function ChatInterface({
     setTimeout(() => setToastMessage(""), 2500);
   }
 
-  function findProductForAI(data: any) { const all = [...lastShownProducts, ...(data.products || []), ...(data.bundleProducts || [])]; if (data.productId) return all.find((p) => p.id === data.productId); if (data.productTitle) { const needle = String(data.productTitle).toLowerCase(); return all.find((p) => p.title.toLowerCase().includes(needle)); } return all.length === 1 ? all[0] : null; }
-
-  async function runRealSearch(query: string) {
-    const q = query.trim(); if (!q) return;
-    setSearchLoading(true); setSuggestions([]); setInput(q); setFunnelStage(q.includes("ieftin") || q.includes("sub") ? "compare" : "discover");
-    try { const res = await fetch(`/api/products?search=${encodeURIComponent(q)}&limit=24`); const data = await res.json(); setSearchResults(data.products || []); if (data.products?.length) setLastShownProducts(data.products); } finally { setSearchLoading(false); }
-  }
-  async function browseCategory(catPath: string, fromCatTab = false, page = 1, catId?: string) {
-    const effectiveCatId = catId ?? (fromCatTab && catPath === catTitle ? activeCatId || undefined : undefined);
-    if (fromCatTab) {
-      if (page === 1) setCatLoading(true);
-      setCatTitle(catPath); setActiveCatId(effectiveCatId || null); setCatPage(page); setCatBrowsing(true);
-    } else { setSearchLoading(true); }
-    setActiveSub(catPath);
-    const offset = (page - 1) * 20;
-    try {
-      const catName = catPath.includes(" > ") ? catPath.split(" > ").pop()!.trim() : catPath;
-      // Tag-based filtering (AI tags) vs category-based (id-uri numerice legacy)
-      let catParam: string;
-      if (effectiveCatId?.startsWith("tag:")) {
-        catParam = `tag=${encodeURIComponent(effectiveCatId.replace("tag:", ""))}`;
-      } else if (effectiveCatId) {
-        catParam = `categoryId=${encodeURIComponent(effectiveCatId)}`;
-      } else {
-        catParam = `category=${encodeURIComponent(catName)}`;
-      }
-      const res = await fetch(`/api/products?${catParam}&limit=20&offset=${offset}&sort=${filterSort}&maxPrice=${filterMaxPrice}&includeCount=1`);
-      const data = await res.json();
-      if (fromCatTab) {
-        if (page === 1) {
-          setCatProducts(data.products || []);
-        } else {
-          setCatProducts(prev => [...prev, ...(data.products || [])]);
-        }
-        setCatTotal(data.total || data.products?.length || 0);
-      } else {
-        setSearchResults(data.products || []);
-      }
-      if (data.products?.length) setLastShownProducts(data.products);
-    } finally {
-      if (fromCatTab) setCatLoading(false); else setSearchLoading(false);
-    }
-  }
+  function findProductForAI(data: ChatApiResponse) { const all = [...lastShownProducts, ...(data.products || []), ...(data.bundleProducts || [])]; if (data.productId) return all.find((p) => p.id === data.productId); if (data.productTitle) { const needle = String(data.productTitle).toLowerCase(); return all.find((p) => p.title.toLowerCase().includes(needle)); } return all.length === 1 ? all[0] : null; }
 
   async function sendMessage(text?: string) {
     const msg = (text || input).trim(); if (!msg || isLoading) return;
@@ -294,20 +215,23 @@ export default function ChatInterface({
     setMessages((prev) => [...prev, userMsg]); setInput(""); setIsLoading(true); setActiveTab("chat");
     try {
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: msg, sessionId, productContext: lastShownProducts.slice(0, 12), chatHistory: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })) }) });
-      const data = await res.json(); if (!res.ok) throw new Error(data?.error || "Nu am putut căuta produsele.");
+      const data: ChatApiResponse = await res.json(); if (!res.ok) throw new Error(data?.error || t("errCauta"));
       setFunnelStage(data.intent === "add_to_cart" ? "cart" : data.intent === "checkout" ? "checkout" : data.intent === "find_cheaper" ? "compare" : data.intent === "search_product" ? "discover" : funnelStage);
       if (data.intent === "add_to_cart") { const product = findProductForAI(data); if (product) addToCart(product); }
       const products = data.products || []; const bundleProducts = data.bundleProducts || [];
       if (products.length || bundleProducts.length) setLastShownProducts([...products, ...bundleProducts]);
-      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: data.reply || "Am căutat în magazin.", products, bundleProducts, timestamp: new Date() }]);
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: data.reply || t("amCautatInMagazin"), products, bundleProducts, timestamp: new Date() }]);
       if (data.sessionId) setSessionId(data.sessionId);
-    } catch (error: any) { setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: error?.message || "A apărut o eroare.", timestamp: new Date() }]); } finally { setIsLoading(false); }
+    } catch (error) { const message = error instanceof Error ? error.message : t("errGenerica"); setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: message || t("errGenerica"), timestamp: new Date() }]); } finally { setIsLoading(false); }
   }
 
   const [touchStart, setTouchStart] = useState<{ x: number, y: number } | null>(null);
 
   function updateQty(index: number, delta: number) { setCartItems((prev) => { const next = [...prev]; next[index] = { ...next[index], qty: Math.max(0, next[index].qty + delta) }; return next.filter((item) => item.qty > 0); }); }
-  async function submitOrder() { if (cartItems.length === 0 || checkoutLoading) return; window.location.href = "/checkout"; }
+  // Bug fix (i18n/UI audit 2026-09-24): checkoutLoading was read (to disable the
+  // button + show "Se procesează") but never actually set, so a double-tap could
+  // fire /checkout navigation twice and the loading state never appeared.
+  async function submitOrder() { if (cartItems.length === 0 || checkoutLoading) return; setCheckoutLoading(true); window.location.href = "/checkout"; }
 
   const isSwipeCandidate = (target: EventTarget | null) => {
     if (!(target instanceof HTMLElement)) return false;
@@ -327,9 +251,9 @@ export default function ChatInterface({
     const dx = touchStart.x - e.changedTouches[0].clientX;
     const dy = touchStart.y - e.changedTouches[0].clientY;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      const tabs = ["home", "feed", "chat", "cart"] as const;
-      const idx = tabs.indexOf(activeTab as any);
-      if (dx > 0 && idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
+      const tabs: Tab[] = ["home", "feed", "chat", "cart"];
+      const idx = tabs.indexOf(activeTab);
+      if (dx > 0 && idx >= 0 && idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
       if (dx < 0 && idx > 0) setActiveTab(tabs[idx - 1]);
     }
     setTouchStart(null);
@@ -341,7 +265,7 @@ export default function ChatInterface({
 
   const ProductCard = ({ product, compact = false }: { product: ChatProduct; compact?: boolean }) => {
     const badge = product.commerceBadge;
-    const insight = product.rating >= 4.8 && product.orders >= 200 ? 'Calitate peste medie' : product.orders >= 500 ? 'Seller verificat' : product.discountPercent >= 25 ? 'Reducere reală' : product.qualityScore >= 9 ? 'Best value' : null;
+    const insight = product.rating >= 4.8 && product.orders >= 200 ? t("insightAboveAverageQuality") : product.orders >= 500 ? t("insightVerifiedSeller") : product.discountPercent >= 25 ? t("reducereReala") : product.qualityScore >= 9 ? t("insightBestValue") : null;
     const q = getCardQty(product.id);
     const vc = product.variantsCount || 0;
     return (
@@ -358,7 +282,7 @@ export default function ChatInterface({
             )}
             {product.discountPercent > 0 && <span className="absolute right-2 top-2 rounded-full bg-[#DC2626] px-2.5 py-1 text-[10px] font-black text-white z-10">-{product.discountPercent}%</span>}
             {badge && <span className={`absolute left-2 top-2 max-w-[80%] rounded-full px-2.5 py-1 text-[10px] font-black shadow z-10 ${commerceBadgeClass(badge)}`}>{badge}</span>}
-            {vc > 1 && <span className="absolute left-2 bottom-2 rounded-full bg-[#0D0D0D]/80 px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur z-10">{vc} variante</span>}
+            {vc > 1 && <span className="absolute left-2 bottom-2 rounded-full bg-[#0D0D0D]/80 px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur z-10">{t("variantsCount", { count: vc })}</span>}
           </div>
         </a>
         <div className="p-3">
@@ -366,11 +290,11 @@ export default function ChatInterface({
           {insight && <p className="mt-1 text-[11px] font-semibold text-[#0D0D0D] dark:text-white">{insight}</p>}
           <div className="mt-1 flex items-center gap-2 text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1AA]">
             <span className="text-[#B45309] inline-flex items-center gap-0.5"><Star size={12} fill="currentColor" /> {product.rating?.toFixed?.(1) || "4.8"}</span>
-            <span>{product.orders || 0}+ comenzi</span>
+            <span>{t("ordersSuffix", { count: product.orders || 0 })}</span>
           </div>
           <div className="mt-2 flex items-end gap-2">
-            <span className="text-base sm:text-lg font-black text-[#0D0D0D] dark:text-white product-card-price">{product.price} lei</span>
-            {product.oldPrice > product.price && <span className="text-[11px] text-[#6E6E80] dark:text-[#A1A1AA] line-through">{product.oldPrice} lei</span>}
+            <span className="text-base sm:text-lg font-black text-[#0D0D0D] dark:text-white product-card-price">{money(product.price)}</span>
+            {product.oldPrice > product.price && <span className="text-[11px] text-[#6E6E80] dark:text-[#A1A1AA] line-through">{money(product.oldPrice)}</span>}
           </div>
           <div className="mt-2 flex items-center gap-1.5">
             <div className="flex items-center rounded-lg border border-[#E5E5E5] dark:border-[#1F1F1F] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -379,7 +303,7 @@ export default function ChatInterface({
               <button type="button" onClick={(e) => { e.stopPropagation(); updateCardQty(product.id, 1); }} className="qty-btn grid h-11 w-11 place-items-center text-[#6E6E80] dark:text-[#A1A1AA] hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] active:scale-90 transition-all text-base font-bold" style={{ touchAction: "manipulation" }}>+</button>
             </div>
             <button type="button" onClick={(e) => { e.stopPropagation(); addToCart(product, q); setCardQty(prev => ({ ...prev, [product.id]: 1 })); }} className={`flex-1 rounded-lg py-3 text-xs font-bold min-h-[44px] ${THEME.classes.cartButton} dark:bg-white dark:text-black dark:hover:bg-[#E5E5E5]`} style={{ touchAction: "manipulation" }}>
-              <ShoppingCart size={13} className="mr-1 inline" />{q > 1 ? `${q}x Coș` : "Coș"}
+              <ShoppingCart size={13} className="mr-1 inline" />{q > 1 ? t("cosQty", { qty: q }) : t("cosShort")}
             </button>
           </div>
         </div>
@@ -389,119 +313,66 @@ export default function ChatInterface({
   const ProductSkeleton = ({ compact = false }) => <div className={`${compact ? "w-[10.5rem] sm:w-[11.5rem] shrink-0 carousel-card" : ""} overflow-hidden rounded-2xl bg-white dark:bg-[#111113] border border-[#E5E5E5] dark:border-[#1F1F1F] animate-pulse`}><div className="h-40 sm:h-44 bg-[#F7F7F8] dark:bg-[#1F1F23] product-card-image"></div><div className="p-3"><div className="h-4 bg-[#F7F7F8] dark:bg-[#1F1F23] rounded mb-2 w-3/4"></div><div className="h-4 bg-[#F7F7F8] dark:bg-[#1F1F23] rounded mb-4 w-1/2"></div><div className="h-6 bg-[#F7F7F8] dark:bg-[#1F1F23] rounded w-1/3"></div><div className="mt-2 h-8 w-full rounded-lg bg-[#F7F7F8] dark:bg-[#1F1F23]"></div></div></div>;
   const ProductCarousel = ({ title, products, isLoading }: { title: string; products?: ChatProduct[]; isLoading?: boolean }) => { if (isLoading) return <div className="mt-4 text-left"><p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#6E6E80] dark:text-[#A1A1AA]">{title}</p><div className="flex snap-x gap-3 overflow-x-auto pb-3 no-scrollbar"><div className="snap-start"><ProductSkeleton compact /></div><div className="snap-start"><ProductSkeleton compact /></div><div className="snap-start"><ProductSkeleton compact /></div></div></div>; if (!products?.length) return null; return <div className="mt-4 text-left" onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()}><p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#6E6E80] dark:text-[#A1A1AA]">{title}</p><div className="flex snap-x gap-3 overflow-x-auto pb-3 no-scrollbar">{products.map((p) => <div key={p.id} className="snap-start"><ProductCard product={p} compact /></div>)}</div></div>; };
 
-  const TrendingHero = () => {
-    const hero = trendingProducts[0];
-    // Fără produse → fără bloc negru gol. Secțiunea apare doar cu conținut real.
-    if (!hero) return null;
-    const heroImg = hero?.images?.[0];
-    const heroVid = isSafeDirectVideoUrl(hero?.video) ? hero?.video : undefined;
-    return (
-      <div className="mt-4 overflow-hidden rounded-2xl bg-black relative h-[500px]">
-        {/* IMAGINEA stă mereu dedesubt ca fallback dacă videoclipul nu se încarcă */}
-        {heroImg ? (
-          <Image
-            src={heroImg}
-            alt={hero?.title || ""}
-            fill
-            sizes="(max-width: 768px) 100vw, 672px"
-            priority
-            className="absolute inset-0 h-full w-full object-cover opacity-90"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-[#1a1a1a]"></div>
-        )}
-        {heroVid && (
-          <video
-            src={heroVid}
-            poster={heroImg}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            crossOrigin="anonymous"
-            onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
-            className="absolute inset-0 h-full w-full object-cover opacity-80"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/80 z-10"></div>
-        <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="rounded-full bg-[#DC2626] px-2 py-1 text-[10px] font-black text-white uppercase tracking-wider animate-pulse inline-flex items-center gap-1"><Flame size={12} /> Trending Today</span>
-          </div>
-          {trendingProducts.length > 0 && (
-            <>
-              <h2 className="text-2xl font-black text-white mb-1 drop-shadow-md">{trendingProducts[0].title}</h2>
-              <div className="flex items-end gap-3 mb-4">
-                <span className="text-3xl font-black text-white drop-shadow-md">{trendingProducts[0].price} lei</span>
-              </div>
-              <button onClick={() => router.push(`/product/${trendingProducts[0].pgId || trendingProducts[0].id}`)} className="w-full sm:w-auto rounded-xl bg-white px-8 py-3.5 text-sm font-black text-[#0D0D0D] hover:scale-105 transition-transform active:scale-95 shadow-xl">{t("cumparaAcum")}</button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const welcomeMessage: ChatMessage = { id: "welcome", role: "assistant", content: t("welcomeContent"), timestamp: new Date() };
 
-  return <main className={`min-h-screen ${THEME.classes.appBg} dark:bg-black dark:text-white`}><div className={`relative mx-auto min-h-screen w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl app-container ${THEME.classes.pageBg} dark:bg-black`}>{activeTab !== "feed" && <header className="sticky top-0 z-30 border-b border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 px-4 py-3 backdrop-blur-xl safe-top"><div className="flex items-center justify-between h-12"><div className="flex items-center gap-1"><button type="button" onClick={() => setCategoryDrawerOpen(true)} className="grid h-11 w-11 place-items-center rounded-full transition-transform hover:bg-[#F0F0F2] dark:hover:bg-[#1F1F23] active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Categorii"><Menu size={22} className="text-[#0D0D0D] dark:text-white" /></button><button type="button" onClick={() => { setActiveTab("home"); setCatBrowsing(false); setExpandedCat(null); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-2" aria-label={t("inapoiAcasa")}><span className="text-2xl font-black text-[#0D0D0D] dark:text-white tracking-tight">Swypik</span></button></div><div className="flex items-center gap-2"><a href="/cart" aria-label={t("cosulMeu")} className="relative grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] dark:bg-white text-white dark:text-black active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><ShoppingCart size={18} />{cartCount > 0 && <span className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-[#7C3AED] px-1 text-[9px] font-black text-white leading-none ring-2 ring-[#0D0D0D] dark:ring-white">{cartCount > 99 ? "99+" : cartCount}</span>}</a></div></div></header>}
+  return <main className={`min-h-screen ${THEME.classes.appBg} dark:bg-black dark:text-white`}><div className={`relative mx-auto min-h-screen w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl app-container ${THEME.classes.pageBg} dark:bg-black`}>{activeTab !== "feed" && <header className="sticky top-0 z-30 border-b border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 px-4 py-3 backdrop-blur-xl safe-top"><div className="flex items-center justify-between h-12"><div className="flex items-center gap-1"><button type="button" onClick={() => setCategoryDrawerOpen(true)} className="grid h-11 w-11 place-items-center rounded-full transition-transform hover:bg-[#F0F0F2] dark:hover:bg-[#1F1F23] active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("categorii")}><Menu size={22} className="text-[#0D0D0D] dark:text-white" /></button><button type="button" onClick={() => { setActiveTab("home"); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex items-center gap-2" aria-label={t("inapoiAcasa")}><span className="text-2xl font-black text-[#0D0D0D] dark:text-white tracking-tight">Swypik</span></button></div><div className="flex items-center gap-2"><a href="/cart" aria-label={t("cosulMeu")} className="relative grid h-11 w-11 place-items-center rounded-full bg-[#0D0D0D] dark:bg-white text-white dark:text-black active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"><ShoppingCart size={18} />{cartCount > 0 && <span className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-[#7C3AED] px-1 text-[9px] font-black text-white leading-none ring-2 ring-[#0D0D0D] dark:ring-white">{cartCount > 99 ? "99+" : cartCount}</span>}</a></div></div></header>}
     {/* Slide-out Menu */}
-    {showMenu && <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Meniu navigare" onClick={() => setShowMenu(false)}>
+    {showMenu && <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("meniuNavigareAria")} onClick={() => setShowMenu(false)}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div className="absolute right-0 top-0 h-full w-72 bg-white dark:bg-[#111113] shadow-2xl" onClick={e => e.stopPropagation()} style={{ animation: 'slideInRight 0.2s ease-out' }}>
         <div className="p-5 border-b border-[#E5E5E5] dark:border-[#1F1F1F] flex items-center justify-between">
-          <h2 className="text-lg font-black text-[#0D0D0D] dark:text-white">Meniu</h2>
+          <h2 className="text-lg font-black text-[#0D0D0D] dark:text-white">{t("meniu")}</h2>
           <button onClick={() => setShowMenu(false)} className="rounded-lg p-1.5 hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition" aria-label={t("inchide")}><X size={20} /></button>
         </div>
         <div className="p-3 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 120px)' }}>
           <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">{t("descopera")}</p>
           <Link href="/explore" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Compass size={18} className="text-[#0D0D0D] dark:text-white" /> Feed
+            <Compass size={18} className="text-[#0D0D0D] dark:text-white" /> {t("feedLabel")}
           </Link>
           <Link href="/onboarding" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Sparkles size={18} className="text-[#8B5CF6]" /> Alege interese
+            <Sparkles size={18} className="text-[#8B5CF6]" /> {t("alegeInterese")}
           </Link>
           <Link href="/collections" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
             <Bookmark size={18} className="text-[#EC4899]" />  {t("colectiileMele")}
           </Link>
           <div className="my-2 border-t border-[#E5E5E5] dark:border-[#1F1F1F]" />
-          <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">Cont</p>
+          <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">{t("cont")}</p>
           <Link href="/account" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
             <User size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" />  {t("contulMeu")}
           </Link>
           <Link href="/account" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <ClipboardList size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" /> Comenzile mele
+            <ClipboardList size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" /> {t("comenzileMele")}
           </Link>
           <button onClick={() => { setActiveTab("cart"); setShowMenu(false); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
             <ShoppingCart size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" />  {t("cosulMeu2")} {cartCount > 0 && <span className="ml-auto rounded-full bg-[#0D0D0D] dark:bg-white px-2 py-0.5 text-[10px] font-bold text-white dark:text-black">{cartCount}</span>}
           </button>
           <div className="my-2 border-t border-[#E5E5E5] dark:border-[#1F1F1F]" />
-          <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">Creator</p>
+          <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA]">{t("creator")}</p>
           <Link href="/creator" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Zap size={18} className="text-[#0D0D0D] dark:text-white" /> Dashboard Creator
+            <Zap size={18} className="text-[#0D0D0D] dark:text-white" /> {t("dashboardCreator")}
           </Link>
           <Link href="/upload" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
             <Upload size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" />  {t("incarcaClip")}
           </Link>
           <Link href="/creator/videos" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Flame size={18} className="text-[#EF4444]" /> Clipurile mele
+            <Flame size={18} className="text-[#EF4444]" /> {t("clipurileMele")}
           </Link>
           <Link href="/creator/earnings" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#0D0D0D] dark:text-white hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
             <Star size={18} className="text-[#6E6E80] dark:text-[#A1A1AA]" />  {t("castiguri")}
           </Link>
           <div className="my-2 border-t border-[#E5E5E5] dark:border-[#1F1F1F]" />
           <Link href="/admin" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#A1A1AA] hover:bg-[#F7F7F8] dark:hover:bg-[#1F1F23] transition">
-            <Shield size={18} /> Admin
+            <Shield size={18} /> {t("admin")}
           </Link>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-[#E5E5E5] dark:border-[#1F1F1F]">
-          <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest text-center">Swypik © 2026</p>
+          <p className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest text-center">{t("copyrightLine")}</p>
         </div>
       </div>
     </div>}
     <section className={activeTab === "feed" ? "h-[100dvh]" : "min-h-[calc(100dvh-132px)] pb-20"} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {activeTab === "home" && (
         <div className="px-2 pt-2 sm:px-4 sm:pt-4">
-          {searchLoading ? <div className="px-2"><ProductCarousel title={`Se caută rezultate...`} isLoading={true} /></div> : searchResults.length > 0 && <div className="px-2"><ProductCarousel title={`Rezultate (${searchResults.length})`} products={searchResults} /></div>}
           {/* Feed social centrat; categoriile stau in drawer-ul din ☰ (langa logo) */}
           <CategorySidebar
             categories={categoryTree}
@@ -521,16 +392,29 @@ export default function ChatInterface({
           <button
             type="button"
             onClick={() => setActiveTab("chat")}
-            aria-label={t("asistentShoppingAi") || "Asistent Shopping AI"}
+            aria-label={t("asistentShoppingAi")}
             className="fixed bottom-24 right-4 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-pink-500 text-white shadow-lg shadow-violet-500/30 transition-transform hover:scale-105 active:scale-95 safe-bottom"
           >
             <Bot size={24} />
           </button>
         </div>
       )}
-      {activeTab === "chat" && <div className="px-4 pt-4"><div className="space-y-4">{(messages.length === 0 ? [AI_WELCOME] : messages).map((m) => <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}><div className={`inline-block max-w-[88%] rounded-2xl px-4 py-3 text-sm font-medium ${m.role === "user" ? "bg-[#0D0D0D] text-white dark:bg-white dark:text-black" : "bg-[#F7F7F8] text-[#0D0D0D] border border-[#E5E5E5] dark:bg-[#1F1F23] dark:text-white dark:border-[#1F1F1F]"}`}>{m.role === "assistant" && <div className="mb-1 flex items-center gap-1 text-xs font-bold text-[#0D0D0D] dark:text-white"><Bot size={13} /> Asistent Shopping AI</div>}<p className="whitespace-pre-wrap">{m.content}</p></div>{m.role === "assistant" && <><ProductCarousel title={t("recomandatePentruTine")} products={m.products} />{(m.bundleProducts?.length || 0) > 0 && <div className="mt-3 rounded-2xl border border-[#0D0D0D]/30 dark:border-white/20 bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] dark:from-[#0E1F16] dark:to-[#0B1A15] p-4"><div className="flex items-center justify-between mb-3"><p className="text-xs font-black uppercase tracking-widest text-[#0D0D0D] dark:text-white">{t("bundleAiCompleteazaSetul")}</p><p className="text-xs font-bold text-[#6E6E80] dark:text-[#A1A1AA]">{(() => { const t = (m.bundleProducts || []).reduce((s, p) => s + p.price, 0); const o = (m.bundleProducts || []).reduce((s, p) => s + (p.oldPrice || p.price), 0); return o > t ? `Economisești ${Math.round(o - t)} lei` : `Total: ${Math.round(t)} lei`; })()}</p></div><div className="space-y-2">{(m.bundleProducts || []).map(bp => <div key={bp.id} className="flex items-center gap-3 rounded-xl bg-white/80 dark:bg-[#111113]/80 p-2.5 border border-[#E5E5E5]/50 dark:border-[#1F1F1F]/50"><Image src={bp.images?.[0] || ""} alt="" width={48} height={48} className="h-12 w-12 rounded-lg object-cover shrink-0" /><div className="flex-1 min-w-0"><p className="text-xs font-bold text-[#0D0D0D] dark:text-white truncate">{bp.title}</p><p className="text-xs font-bold text-[#0D0D0D] dark:text-white">{bp.price} lei {bp.oldPrice > bp.price && <span className="text-[#A1A1AA] line-through ml-1">{bp.oldPrice}</span>}</p></div><button type="button" onClick={() => addToCart(bp)} className="shrink-0 rounded-lg bg-[#0D0D0D] dark:bg-white px-2.5 py-1.5 text-[10px] font-black text-white dark:text-black active:scale-90 transition-transform">{t("cos")}</button></div>)}</div><button type="button" onClick={() => { (m.bundleProducts || []).forEach(bp => addToCart(bp)); setToastMessage(t("totBundleulAdaugat")); setTimeout(() => setToastMessage(""), 2500); }} className="mt-3 w-full rounded-xl bg-[#0D0D0D] dark:bg-white py-3 text-xs font-black text-white dark:text-black active:scale-95 transition-transform"><ShoppingCart size={13} className="inline mr-1.5" />{t("adaugaTotBundleul")} {Math.round((m.bundleProducts || []).reduce((s, p) => s + p.price, 0))} lei</button></div>}{(m.products?.length || 0) > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{[{ label: "Arată altele", query: "arată-mi altceva" }, { label: "Mai ieftin", query: "vreau mai ieftin" }, { label: "Top calitate", query: "arată-mi doar top calitate" }, { label: "Mai noi", query: "arată-mi produse mai noi" }, { label: "Compară top 2", query: "compară primele 2 produse" }].map(chip => <button type="button" key={chip.label} onClick={() => sendMessage(chip.query)} className="rounded-full bg-white dark:bg-[#111113] border border-[#E5E5E5] dark:border-[#1F1F1F] px-3 py-1.5 text-[11px] font-bold text-[#6E6E80] dark:text-[#A1A1AA] hover:border-[#0D0D0D] dark:hover:border-white hover:text-[#0D0D0D] dark:hover:text-white active:scale-95 transition-all">{chip.label}</button>)}</div>}</>}</div>)}{isLoading && <div className="rounded-xl bg-[#F7F7F8] dark:bg-[#1F1F23] p-3 text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA] border border-[#E5E5E5] dark:border-[#1F1F1F]">{t("aiAnalizeazaSiCauta")}</div>}{messages.length > 0 && !isLoading && <button type="button" onClick={() => { setMessages([]); try { localStorage.removeItem("aicv_chat"); } catch { } }} className="mx-auto block text-[10px] font-bold text-[#A1A1AA] hover:text-[#6E6E80] dark:hover:text-[#D4D4D8] mt-2">{t("stergeConversatia")}</button>}<div ref={messagesEndRef} /></div></div>}
-      {activeTab === "deals" && <div className="px-4 pt-4"><h2 className="mb-3 text-2xl font-black text-[#0D0D0D] dark:text-white">Reduceri</h2>{dealsLoading ? <p className="py-20 text-center font-medium text-[#6E6E80] dark:text-[#A1A1AA]">{t("seIncarca")}</p> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 product-grid">{dealsProducts.map((p) => <ProductCard key={p.id} product={p} />)}</div>}</div>}
-      {activeTab === "feed" && <ProductFeed products={feedProducts} onAddToCart={(p: any, q?: number) => addToCart(p, q || 1)} onLoadMore={loadMoreFeed} onClose={() => setActiveTab("home")} isLoading={feedLoading} />}
+      {activeTab === "chat" && <div className="px-4 pt-4"><div className="space-y-4">{(messages.length === 0 ? [welcomeMessage] : messages).map((m) => <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}><div className={`inline-block max-w-[88%] rounded-2xl px-4 py-3 text-sm font-medium ${m.role === "user" ? "bg-[#0D0D0D] text-white dark:bg-white dark:text-black" : "bg-[#F7F7F8] text-[#0D0D0D] border border-[#E5E5E5] dark:bg-[#1F1F23] dark:text-white dark:border-[#1F1F1F]"}`}>{m.role === "assistant" && <div className="mb-1 flex items-center gap-1 text-xs font-bold text-[#0D0D0D] dark:text-white"><Bot size={13} /> {t("asistentShoppingAi")}</div>}<p className="whitespace-pre-wrap">{m.content}</p></div>{m.role === "assistant" && <><ProductCarousel title={t("recomandatePentruTine")} products={m.products} />{(m.bundleProducts?.length || 0) > 0 && <div className="mt-3 rounded-2xl border border-[#0D0D0D]/30 dark:border-white/20 bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] dark:from-[#0E1F16] dark:to-[#0B1A15] p-4"><div className="flex items-center justify-between mb-3"><p className="text-xs font-black uppercase tracking-widest text-[#0D0D0D] dark:text-white">{t("bundleAiCompleteazaSetul")}</p><p className="text-xs font-bold text-[#6E6E80] dark:text-[#A1A1AA]">{(() => { const bundleTotalPrice = (m.bundleProducts || []).reduce((s, p) => s + p.price, 0); const bundleOldPrice = (m.bundleProducts || []).reduce((s, p) => s + (p.oldPrice || p.price), 0); return bundleOldPrice > bundleTotalPrice ? t("economisestiSuma", { amount: money(Math.round(bundleOldPrice - bundleTotalPrice)) }) : t("totalSuma", { amount: money(Math.round(bundleTotalPrice)) }); })()}</p></div><div className="space-y-2">{(m.bundleProducts || []).map(bp => <div key={bp.id} className="flex items-center gap-3 rounded-xl bg-white/80 dark:bg-[#111113]/80 p-2.5 border border-[#E5E5E5]/50 dark:border-[#1F1F1F]/50"><Image src={bp.images?.[0] || ""} alt="" width={48} height={48} className="h-12 w-12 rounded-lg object-cover shrink-0" /><div className="flex-1 min-w-0"><p className="text-xs font-bold text-[#0D0D0D] dark:text-white truncate">{bp.title}</p><p className="text-xs font-bold text-[#0D0D0D] dark:text-white">{money(bp.price)} {bp.oldPrice > bp.price && <span className="text-[#A1A1AA] line-through ml-1">{money(bp.oldPrice)}</span>}</p></div><button type="button" onClick={() => addToCart(bp)} className="shrink-0 rounded-lg bg-[#0D0D0D] dark:bg-white px-2.5 py-1.5 text-[10px] font-black text-white dark:text-black active:scale-90 transition-transform">{t("cos")}</button></div>)}</div><button type="button" onClick={() => { (m.bundleProducts || []).forEach(bp => addToCart(bp)); setToastMessage(t("totBundleulAdaugat")); setTimeout(() => setToastMessage(""), 2500); }} className="mt-3 w-full rounded-xl bg-[#0D0D0D] dark:bg-white py-3 text-xs font-black text-white dark:text-black active:scale-95 transition-transform"><ShoppingCart size={13} className="inline mr-1.5" />{t("adaugaTotBundleul")} {money(Math.round((m.bundleProducts || []).reduce((s, p) => s + p.price, 0)))}</button></div>}{(m.products?.length || 0) > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{[
+                    { label: t("arataAltele"), query: t("promptArataAltceva") },
+                    { label: t("maiIeftin"), query: t("promptMaiIeftin") },
+                    { label: t("topCalitate"), query: t("promptDoarTopCalitate") },
+                    { label: t("maiNoi"), query: t("promptProduseNoi") },
+                    { label: t("comparaTop2"), query: t("promptComparaTop2") },
+                  ].map(chip => <button type="button" key={chip.label} onClick={() => sendMessage(chip.query)} className="rounded-full bg-white dark:bg-[#111113] border border-[#E5E5E5] dark:border-[#1F1F1F] px-3 py-1.5 text-[11px] font-bold text-[#6E6E80] dark:text-[#A1A1AA] hover:border-[#0D0D0D] dark:hover:border-white hover:text-[#0D0D0D] dark:hover:text-white active:scale-95 transition-all">{chip.label}</button>)}</div>}</>}</div>)}{isLoading && <div className="rounded-xl bg-[#F7F7F8] dark:bg-[#1F1F23] p-3 text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA] border border-[#E5E5E5] dark:border-[#1F1F1F]">{t("aiAnalizeazaSiCauta")}</div>}{messages.length > 0 && !isLoading && <button type="button" onClick={() => { setMessages([]); try { localStorage.removeItem("aicv_chat"); } catch { } }} className="mx-auto block text-[10px] font-bold text-[#A1A1AA] hover:text-[#6E6E80] dark:hover:text-[#D4D4D8] mt-2">{t("stergeConversatia")}</button>}<div ref={messagesEndRef} /></div></div>}
+      {activeTab === "deals" && <div className="px-4 pt-4"><h2 className="mb-3 text-2xl font-black text-[#0D0D0D] dark:text-white">{t("reduceri")}</h2>{dealsLoading ? <p className="py-20 text-center font-medium text-[#6E6E80] dark:text-[#A1A1AA]">{t("seIncarca")}</p> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 product-grid">{dealsProducts.map((p) => <ProductCard key={p.id} product={p} />)}</div>}</div>}
+      {activeTab === "feed" && <ProductFeed products={feedProducts} onAddToCart={(p, q) => addToCart({
+        ...p,
+        // FeedProduct (components/ProductFeed.tsx) keeps loose string|number id
+        // fields for legacy back-compat; Product (types/product.ts) wants strings.
+        video: p.video ?? undefined,
+        videoId: p.videoId != null ? String(p.videoId) : undefined,
+        video_id: p.video_id != null ? String(p.video_id) : undefined,
+      }, q || 1)} onLoadMore={loadMoreFeed} onClose={() => setActiveTab("home")} isLoading={feedLoading} />}
       {activeTab === "cart" && (
         <div className="px-4 pt-4 pb-10">
           <h2 className="mb-4 text-2xl font-black text-[#0D0D0D] dark:text-white">{t("cosulTau")}</h2>
@@ -542,7 +426,7 @@ export default function ChatInterface({
                     {item.product.images?.[0] && <Image src={item.product.images[0]} alt="" width={64} height={64} className="h-16 w-16 rounded-xl object-cover" />}
                     <div className="flex-1">
                       <p className="line-clamp-2 text-sm font-bold text-[#0D0D0D] dark:text-white">{item.product.title}</p>
-                      <p className="text-xs font-bold text-[#0D0D0D] dark:text-white">{item.product.price * item.qty} lei</p>
+                      <p className="text-xs font-bold text-[#0D0D0D] dark:text-white">{money(item.product.price * item.qty)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button type="button" onClick={() => updateQty(i, -1)} className="grid h-8 w-8 place-items-center rounded-full bg-[#E5E5E5] dark:bg-[#3F3F46] font-bold text-[#0D0D0D] dark:text-white hover:bg-[#D1D1D6] dark:hover:bg-[#52525B] active:scale-90 transition-transform">-</button>
@@ -559,11 +443,11 @@ export default function ChatInterface({
 
               <div className="mt-5 rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23] p-4 border border-[#E5E5E5] dark:border-[#1F1F1F]">
                 <div className="flex justify-between text-xl font-black">
-                  <span>Total</span>
-                  <span className="text-[#0D0D0D] dark:text-white">{cartTotal} lei</span>
+                  <span>{t("totalLabel")}</span>
+                  <span className="text-[#0D0D0D] dark:text-white">{money(cartTotal)}</span>
                 </div>
                 <button type="button" onClick={submitOrder} disabled={checkoutLoading} className={`mt-4 w-full rounded-xl py-4 font-bold disabled:opacity-50 ${THEME.classes.cartButton} dark:bg-white dark:text-black dark:hover:bg-[#E5E5E5] active:scale-[0.98] transition-transform`}>
-                  {checkoutLoading ? "Se procesează..." : `Finalizează comanda — ${cartTotal} lei`}
+                  {checkoutLoading ? t("seProceseaza") : t("finalizeazaComandaSuma", { amount: money(cartTotal) })}
                 </button>
               </div>
             </>
@@ -571,8 +455,7 @@ export default function ChatInterface({
         </div>
       )}
     </section>
-    {activeTab === "chat" && <div className="fixed z-30 w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl left-1/2 -translate-x-1/2 border-t border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 px-3 py-2 backdrop-blur-xl chat-input-bar" onTouchStart={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}><div className={`flex gap-2 rounded-xl p-2 ${THEME.classes.softInput} dark:bg-[#1F1F23] dark:border-[#1F1F1F] dark:focus-within:border-white dark:focus-within:shadow-[0_0_0_1px_#FFFFFF]`}><input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} className="flex-1 bg-transparent px-2 text-base font-medium text-[#0D0D0D] dark:text-white outline-none placeholder:text-[#A1A1AA]" placeholder={t("scrieCeCauti")} /><button type="button" onClick={() => sendMessage()} disabled={!input.trim() || isLoading} className="grid h-11 w-11 place-items-center rounded-xl bg-[#0D0D0D] dark:bg-white text-white dark:text-black disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label="Trimite"><Send size={18} /></button></div></div>}
-    {upsellProduct && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={() => setUpsellProduct(null)}><div className="w-full max-w-lg rounded-t-[2rem] bg-white dark:bg-[#111113] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#0D0D0D] dark:text-white">{t("completeazaBundleul")}</p><h3 className="text-2xl font-black text-[#0D0D0D] dark:text-white">{t("maiVreiSiAsta")}</h3><p className="mt-1 text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA]">{t("mergeBineCuCe")}</p></div><button type="button" onClick={() => setUpsellProduct(null)} aria-label={t("inchide2")}><X size={18} /></button></div><div className="mt-4 flex gap-3 rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23] p-3 border border-[#E5E5E5] dark:border-[#1F1F1F]">{upsellProduct.images?.[0] && <Image src={upsellProduct.images[0]} alt="" width={96} height={96} className="h-24 w-24 rounded-xl object-cover" />}<div className="flex-1"><p className="line-clamp-2 text-sm font-bold">{upsellProduct.title}</p><p className="mt-1 text-xl font-black text-[#0D0D0D] dark:text-white">{upsellProduct.price} lei</p><button type="button" onClick={() => { addToCart(upsellProduct); setUpsellProduct(null); }} className={`mt-2 w-full rounded-xl py-2 font-bold ${THEME.classes.cartButton} dark:bg-white dark:text-black dark:hover:bg-[#E5E5E5]`}>{t("adaugaLaBundle")}</button></div></div><button type="button" onClick={() => setUpsellProduct(null)} className="mt-3 w-full rounded-xl bg-[#F7F7F8] dark:bg-[#1F1F23] py-3 font-bold text-[#6E6E80] dark:text-[#A1A1AA]">{t("nuAcum")}</button></div></div>}
-    {showBundleSheet && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={() => setShowBundleSheet(false)}><div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-white dark:bg-[#111113] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#0D0D0D] dark:text-white">AI Bundle</p><h3 className="text-2xl font-black">Bundle complet</h3><p className="text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA]">Total: {Math.round(bundleTotal)} lei {bundleSavings > 0 ? `• economisești ${bundleSavings} lei` : ""}</p></div><button type="button" onClick={() => setShowBundleSheet(false)} aria-label={t("inchide3")}><X size={18} /></button></div><div className="mt-4 space-y-3">{bundleCandidates.map((p) => <div key={p.id} className="flex gap-3 rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23] p-3 border border-[#E5E5E5] dark:border-[#1F1F1F]">{p.images?.[0] && <Image src={p.images[0]} alt="" width={64} height={64} className="h-16 w-16 rounded-xl object-cover" />}<div className="flex-1"><p className="line-clamp-2 text-sm font-bold">{p.title}</p><p className="text-sm font-bold text-[#0D0D0D] dark:text-white">{p.price} lei</p></div><button type="button" onClick={() => addToCart(p)} className="rounded-xl bg-[#0D0D0D] dark:bg-white px-3 text-xs font-bold text-white dark:text-black">{t("cos2")}</button></div>)}</div></div></div>}
+    {activeTab === "chat" && <div className="fixed z-30 w-full md:max-w-2xl lg:max-w-4xl xl:max-w-6xl left-1/2 -translate-x-1/2 border-t border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 px-3 py-2 backdrop-blur-xl chat-input-bar" onTouchStart={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}><div className={`flex gap-2 rounded-xl p-2 ${THEME.classes.softInput} dark:bg-[#1F1F23] dark:border-[#1F1F1F] dark:focus-within:border-white dark:focus-within:shadow-[0_0_0_1px_#FFFFFF]`}><input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} className="flex-1 bg-transparent px-2 text-base font-medium text-[#0D0D0D] dark:text-white outline-none placeholder:text-[#A1A1AA]" placeholder={t("scrieCeCauti")} /><button type="button" onClick={() => sendMessage()} disabled={!input.trim() || isLoading} className="grid h-11 w-11 place-items-center rounded-xl bg-[#0D0D0D] dark:bg-white text-white dark:text-black disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none" aria-label={t("trimite")}><Send size={18} /></button></div></div>}
+    {upsellProduct && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30" onClick={() => setUpsellProduct(null)}><div className="w-full max-w-lg rounded-t-[2rem] bg-white dark:bg-[#111113] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-[#0D0D0D] dark:text-white">{t("completeazaBundleul")}</p><h3 className="text-2xl font-black text-[#0D0D0D] dark:text-white">{t("maiVreiSiAsta")}</h3><p className="mt-1 text-sm font-medium text-[#6E6E80] dark:text-[#A1A1AA]">{t("mergeBineCuCe")}</p></div><button type="button" onClick={() => setUpsellProduct(null)} aria-label={t("inchide2")}><X size={18} /></button></div><div className="mt-4 flex gap-3 rounded-2xl bg-[#F7F7F8] dark:bg-[#1F1F23] p-3 border border-[#E5E5E5] dark:border-[#1F1F1F]">{upsellProduct.images?.[0] && <Image src={upsellProduct.images[0]} alt="" width={96} height={96} className="h-24 w-24 rounded-xl object-cover" />}<div className="flex-1"><p className="line-clamp-2 text-sm font-bold">{upsellProduct.title}</p><p className="mt-1 text-xl font-black text-[#0D0D0D] dark:text-white">{money(upsellProduct.price)}</p><button type="button" onClick={() => { addToCart(upsellProduct); setUpsellProduct(null); }} className={`mt-2 w-full rounded-xl py-2 font-bold ${THEME.classes.cartButton} dark:bg-white dark:text-black dark:hover:bg-[#E5E5E5]`}>{t("adaugaLaBundle")}</button></div></div><button type="button" onClick={() => setUpsellProduct(null)} className="mt-3 w-full rounded-xl bg-[#F7F7F8] dark:bg-[#1F1F23] py-3 font-bold text-[#6E6E80] dark:text-[#A1A1AA]">{t("nuAcum")}</button></div></div>}
     {selectedProduct && <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={() => addToCart(selectedProduct)} />}{toastMessage && <div className="fixed left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#0D0D0D] dark:bg-white px-5 py-2.5 text-sm font-bold text-white dark:text-black shadow-xl toast-position">{toastMessage}</div>}</div></main>;
 }

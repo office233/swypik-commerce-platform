@@ -7,12 +7,17 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bookmark, EyeOff, Heart, MessageCircle, Search, Share2, ShoppingCart, Sparkles, Volume2, VolumeX } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import MovieEpisodeBadge from "@/components/movies/MovieEpisodeBadge";
+import MovieEpisodeBadge, { type FeedMovieRef } from "@/components/movies/MovieEpisodeBadge";
 import { useHlsVideo } from "@/lib/video/useHlsVideo";
 import { haptic } from "@/lib/haptic";
 import { trackEvent as trackFeedEvent, trackWatchTime, flushWatchTime, resetWatchTime, getSessionId } from "@/lib/feed/track";
-import { useTranslations } from "next-intl";
+import { isFeedEventType, type FeedEventType } from "@/lib/feed/event-types";
+import { useTranslations, useLocale } from "next-intl";
 import { routeForProduct } from "@/lib/products/product-route";
+import { logger } from "@/lib/logger";
+import type { ProductData } from "@/components/ProductDrawer";
+import type { Locale } from "@/lib/i18n/config";
+import { formatMoneyCents } from "@/lib/i18n/currency";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
@@ -21,6 +26,36 @@ const MUTE_STORAGE_KEY = "swypik.feed.muted";
 // Mount range: only render real <video src> for slides within Â±MOUNT_RADIUS of currentIndex
 const MOUNT_RADIUS = 1;
 const FEED_FORMATS = ["formatMerita", "formatSub50", "formatTestate", "formatSwypikFinds", "formatSelleriLocali", "formatBattles", "formatLiveDeals"] as const;
+
+/** Video feed item shape returned by GET /api/explore/feed (see app/api/explore/feed/route.ts). */
+type FeedCreator = {
+  id: string;
+  name?: string | null;
+  username?: string | null;
+  verified?: boolean;
+  avatar?: string | null;
+};
+
+type FeedProduct = ProductData & { videoId?: string };
+
+export type FeedVideo = {
+  id: string;
+  url?: string | null;
+  hlsUrl?: string | null;
+  fallbackUrl?: string | null;
+  thumbnail?: string | null;
+  duration?: number | null;
+  creator?: FeedCreator;
+  description?: string;
+  title?: string;
+  likes?: string | number;
+  saves?: string | number;
+  shares?: string | number;
+  comments?: string | number;
+  viewer?: { liked?: boolean; saved?: boolean; following?: boolean };
+  product?: FeedProduct | null;
+  movie?: FeedMovieRef | null;
+};
 
 interface FeedVideoProps {
   videoId: string;
@@ -65,21 +100,22 @@ function FeedVideo({ videoId, src, hlsUrl, fallbackSrc, poster, isCurrent, muted
   );
 }
 
-function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: any[]; initialCategory?: string }) {
+function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: FeedVideo[]; initialCategory?: string }) {
   const t = useTranslations("explore");
+  const locale = useLocale() as Locale;
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialVideoId = searchParams.get("v");
   // Context de profil: player-ul navighează DOAR prin clipurile acestui creator.
   const creatorContextId = searchParams.get("creator_id");
 
-  const [videos, setVideos] = useState<any[]>(initialVideos || []);
+  const [videos, setVideos] = useState<FeedVideo[]>(initialVideos || []);
   const [loading, setLoading] = useState((initialVideos?.length || 0) === 0);
   const [feedSource, setFeedSource] = useState<"foryou" | "following">("foryou");
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [activeProduct, setActiveProduct] = useState<any | null>(null);
-  const [activeCommentsVideo, setActiveCommentsVideo] = useState<any | null>(null);
+  const [activeProduct, setActiveProduct] = useState<FeedProduct | null>(null);
+  const [activeCommentsVideo, setActiveCommentsVideo] = useState<FeedVideo | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [shareToast, setShareToast] = useState<string | null>(null);
   const [activeFormat, setActiveFormat] = useState<typeof FEED_FORMATS[number]>(FEED_FORMATS[0]);
@@ -101,6 +137,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const progressBarRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const currentTimeRefs = useRef<Map<string, { current: number }>>(new Map());
+  /** Pending "3s real view" timers per video id — replaces stashing timer ids on DOM nodes. */
+  const viewTimersRef = useRef<Map<string, number>>(new Map());
 
   const viewedVideosRef = useRef<Set<string>>(new Set());
   /** Ultimul clip devenit activ — distinge o activare reală de o re-observare. */
@@ -149,9 +187,9 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     trackWatchTime(videoId, Math.round(currentTime * 1000));
   }, []);
 
-  const trackEvent = useCallback((videoId: string, eventType: string, data?: any) => {
+  const trackEvent = useCallback((videoId: string, eventType: string, data?: Record<string, unknown>) => {
     // Route via batched client. Map legacy event names to canonical FeedEventType.
-    const map: Record<string, string> = {
+    const map: Record<string, FeedEventType> = {
       impression: "impression",
       like: "like",
       unlike: "unlike",
@@ -161,7 +199,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       buy_now: "product_click",
       add_to_cart: "add_to_cart",
     };
-    const mapped = (map[eventType] || eventType) as any;
+    const mapped = map[eventType] ?? (isFeedEventType(eventType) ? eventType : null);
+    if (!mapped) return;
     try {
       trackFeedEvent(mapped, { video_id: videoId, metadata: data });
     } catch { }
@@ -173,7 +212,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     // legacy server counter
     fetch(`/api/videos/${videoId}/view`, { method: "POST" }).catch(() => { });
     // batched feed event
-    try { trackFeedEvent("video_view" as any, { video_id: videoId }); } catch { }
+    try { trackFeedEvent("video_view", { video_id: videoId }); } catch { }
   }, []);
 
   useEffect(() => {
@@ -200,17 +239,17 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          const nextVideos = (data.videos || []) as any[];
+          const nextVideos = (data.videos || []) as FeedVideo[];
           for (const v of nextVideos) seenIdsRef.current.add(v.id);
           hasMoreRef.current = Boolean(data.hasMore);
           pageRef.current = 1;
           setVideos(nextVideos);
-          setLikedVideos(new Set(nextVideos.filter((video: any) => video.viewer?.liked).map((video: any) => video.id)));
-          setSavedVideos(new Set(nextVideos.filter((video: any) => video.viewer?.saved).map((video: any) => video.id)));
-          setFollowingCreators(new Set(nextVideos.filter((video: any) => video.viewer?.following).map((video: any) => video.creator?.id).filter(Boolean)));
+          setLikedVideos(new Set(nextVideos.filter((video) => video.viewer?.liked).map((video) => video.id)));
+          setSavedVideos(new Set(nextVideos.filter((video) => video.viewer?.saved).map((video) => video.id)));
+          setFollowingCreators(new Set(nextVideos.filter((video) => video.viewer?.following).map((video) => video.creator?.id).filter((id): id is string => Boolean(id))));
         }
       } catch (err) {
-        console.error("Error fetching videos:", err);
+        logger.error({ err }, "[explore] fetchVideos failed");
       } finally {
         setLoading(false);
       }
@@ -222,9 +261,9 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       for (const v of seeded) seenIdsRef.current.add(v.id);
       pageRef.current = 1;
       hasMoreRef.current = true; // server seed always assumed to have more
-      setLikedVideos(new Set(seeded.filter((v: any) => v.viewer?.liked).map((v: any) => v.id)));
-      setSavedVideos(new Set(seeded.filter((v: any) => v.viewer?.saved).map((v: any) => v.id)));
-      setFollowingCreators(new Set(seeded.filter((v: any) => v.viewer?.following).map((v: any) => v.creator?.id).filter(Boolean)));
+      setLikedVideos(new Set(seeded.filter((v) => v.viewer?.liked).map((v) => v.id)));
+      setSavedVideos(new Set(seeded.filter((v) => v.viewer?.saved).map((v) => v.id)));
+      setFollowingCreators(new Set(seeded.filter((v) => v.viewer?.following).map((v) => v.creator?.id).filter((id): id is string => Boolean(id))));
       setLoading(false);
       return;
     }
@@ -245,7 +284,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
-      const incoming: any[] = data.videos || [];
+      const incoming: FeedVideo[] = data.videos || [];
       // Dedup against previously seen ids (server uses OFFSET so dups are rare,
       // but ranking jitter can return same video on adjacent pages).
       const fresh = incoming.filter((v) => v?.id && !seenIdsRef.current.has(v.id));
@@ -271,7 +310,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         });
       }
     } catch (err) {
-      console.error("loadMoreVideos error:", err);
+      logger.error({ err }, "[explore] loadMoreVideos failed");
     } finally {
       loadingMoreRef.current = false;
     }
@@ -286,7 +325,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
   }, [currentIndex, videos.length, loadMoreVideos]);
 
   // Intersection Observer â€” snap play/pause + currentIndex tracking
-  const videoIdsKey = useMemo(() => videos.map((video: any) => video.id).join(","), [videos]);
+  const videoIdsKey = useMemo(() => videos.map((video) => video.id).join(","), [videos]);
 
   useEffect(() => {
     if (videos.length === 0) return;
@@ -322,19 +361,19 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
             // REAL VIEWS (2026-08-09): view doar după 3s de REDARE EFECTIVĂ
             // (nu doar vizibilitate). Dacă clipul e în pauză / nu a pornit
             // (autoplay blocat), view-ul NU se contorizează.
-            const t = window.setTimeout(() => {
+            const viewTimer = window.setTimeout(() => {
               const v = videoRefs.current.get(videoId);
               if (v && !v.paused && !v.ended && v.currentTime > 0) {
                 sendView(videoId);
               }
             }, 3000);
-            (el as any).__viewTimer = t;
+            viewTimersRef.current.set(videoId, viewTimer);
           } else {
             if (videoEl) videoEl.pause();
-            const t = (el as any).__viewTimer;
-            if (t) {
-              clearTimeout(t);
-              (el as any).__viewTimer = null;
+            const pendingTimer = viewTimersRef.current.get(videoId);
+            if (pendingTimer) {
+              clearTimeout(pendingTimer);
+              viewTimersRef.current.delete(videoId);
             }
             // flush residual watch_time when slide leaves viewport
             if (videoId) {
@@ -356,12 +395,11 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     const containers = containerRef.current?.querySelectorAll("[data-video-id]");
     containers?.forEach((el) => observer.observe(el));
 
+    const viewTimers = viewTimersRef.current;
     return () => {
       // clear pending view timers
-      containers?.forEach((el) => {
-        const t = (el as any).__viewTimer;
-        if (t) clearTimeout(t);
-      });
+      viewTimers.forEach((timer) => clearTimeout(timer));
+      viewTimers.clear();
       observer.disconnect();
     };
     // Cheia e SETUL de id-uri, nu `videos` (care se schimbă la fiecare like) și
@@ -406,7 +444,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
   };
 
-  const updateVideo = useCallback((videoId: string, changes: Record<string, any>) => {
+  const updateVideo = useCallback((videoId: string, changes: Partial<FeedVideo>) => {
     setVideos((current) =>
       current.map((video) =>
         video.id === videoId
@@ -470,7 +508,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         viewer: { liked: Boolean(data.liked) },
       });
       if (data.liked) {
-        window.dispatchEvent(new CustomEvent('reward', { detail: { points: 3, msg: '+3 XP' } }));
+        window.dispatchEvent(new CustomEvent('reward', { detail: { points: 3, msg: t("xpReward", { points: 3 }) } }));
       }
     } catch {
       setLikedVideos(prev => {
@@ -480,7 +518,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       });
       updateVideo(videoId, { likes: String(previousCount), viewer: { liked: wasLiked } });
     }
-  }, [likedVideos, trackEvent, updateVideo, videos, router]);
+  }, [likedVideos, updateVideo, videos, router, t]);
 
   const handleSave = useCallback(async (videoId: string) => {
     haptic("tap");
@@ -519,7 +557,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         viewer: { saved: Boolean(data.saved) },
       });
       if (data.saved) {
-        window.dispatchEvent(new CustomEvent('reward', { detail: { points: 5, msg: 'Salvat +5 XP' } }));
+        window.dispatchEvent(new CustomEvent('reward', { detail: { points: 5, msg: t("savedXpReward", { points: 5 }) } }));
       }
     } catch {
       setSavedVideos(prev => {
@@ -529,7 +567,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       });
       updateVideo(videoId, { saves: String(previousCount), viewer: { saved: wasSaved } });
     }
-  }, [savedVideos, trackEvent, updateVideo, videos, router]);
+  }, [savedVideos, trackEvent, updateVideo, videos, router, t]);
 
   const handleShare = useCallback(async (videoId: string) => {
     haptic("tap");
@@ -541,7 +579,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     try {
       if (navigator.share) {
         channel = "native_share";
-        await navigator.share({ title: 'Swypik Video', url: shareUrl }).catch(() => { });
+        await navigator.share({ title: t("shareVideoTitle"), url: shareUrl }).catch(() => { });
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl).catch(() => { });
         setShareToast(t("linkCopiat"));
@@ -557,14 +595,14 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
 
       updateVideo(videoId, { shares: String(data.share_count ?? previousCount + 1) });
       trackEvent(videoId, "share", { channel });
-      window.dispatchEvent(new CustomEvent('reward', { detail: { points: 15, msg: 'Share +15 XP' } }));
+      window.dispatchEvent(new CustomEvent('reward', { detail: { points: 15, msg: t("shareXpReward", { points: 15 }) } }));
     } catch {
       // Share-ul local (native sheet / clipboard) a avut deja loc — doar
       // contorul+XP au eșuat. Anunțăm în loc să înghițim tăcut.
-      setShareToast("Share-ul nu s-a putut înregistra");
+      setShareToast(t("shareNotRecorded"));
       setTimeout(() => setShareToast(null), 1800);
     }
-  }, [trackEvent, updateVideo, videos]);
+  }, [trackEvent, updateVideo, videos, t]);
 
   const handleFollow = useCallback(async (creatorId: string) => {
     if (!creatorId) return;
@@ -604,7 +642,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     }
   }, [followingCreators]);
 
-  const openProduct = useCallback((video: any) => {
+  const openProduct = useCallback((video: FeedVideo) => {
     if (!video.product?.id) {
       setActiveProduct(null);
       return;
@@ -615,7 +653,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     setActiveProduct({ ...video.product, videoId: video.id });
   }, [trackEvent]);
 
-  const handleAddProductToCart = useCallback(async (video: any) => {
+  const handleAddProductToCart = useCallback(async (video: FeedVideo) => {
     if (!video?.product?.id || cartBusyProductId === String(video.product.id)) return;
     haptic("tap");
     setCartBusyProductId(String(video.product.id));
@@ -628,7 +666,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         body: JSON.stringify({
           productId: String(product.id),
           quantity: 1,
-          title: product.name || product.title || "Produs",
+          title: product.name || product.title || t("genericProduct"),
           image: product.image || product.image_url || null,
           priceCents: product.priceCents || undefined,
           currency: product.currency || "RON",
@@ -644,7 +682,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
       setCartBusyProductId(null);
       setTimeout(() => setShareToast(null), 1600);
     }
-  }, [cartBusyProductId, trackEvent]);
+  }, [cartBusyProductId, trackEvent, t]);
 
   const submitAiPrompt = useCallback(() => {
     const q = aiPrompt.trim();
@@ -652,15 +690,15 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
     router.push(`/search?q=${encodeURIComponent(q)}`);
   }, [aiPrompt, router]);
 
-  const formatCount = (n: string | number) => {
-    const num = typeof n === 'string' ? parseInt(n) : n;
+  const formatCount = (n: string | number | undefined) => {
+    const num = typeof n === 'string' ? parseInt(n, 10) : (n ?? 0);
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return String(num || 0);
   };
 
   return (
-    <main className="explore-root" aria-label="Discover videos">
+    <main className="explore-root" aria-label={t("discoverVideosAria")}>
       <h1 className="sr-only">{t("descoperaVideoclipuriSwypik")}</h1>
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -754,7 +792,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         </div>
       </div>
 
-      <div className="feed-header" role="tablist" aria-label="Feed source">
+      <div className="feed-header" role="tablist" aria-label={t("feedSourceAria")}>
         <button
           type="button"
           className={`feed-tab ${feedSource === "following" ? "active" : ""}`}
@@ -762,7 +800,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
           aria-selected={feedSource === "following"}
           onClick={() => setFeedSource("following")}
         >
-          Following
+          {t("followingTab")}
         </button>
         <button
           type="button"
@@ -771,7 +809,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
           aria-selected={feedSource === "foryou"}
           onClick={() => setFeedSource("foryou")}
         >
-          For You
+          {t("forYouTab")}
         </button>
       </div>
 
@@ -854,12 +892,12 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                 {nearActive && (
                   <div className="bottom-content">
                     <Link
-                      href={`/u/${(video.creator as any)?.username || video.creator?.id || ''}`}
+                      href={`/u/${video.creator?.username || video.creator?.id || ''}`}
                       className="creator-name"
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#fff', textDecoration: 'none' }}
                     >
-                      @{(video.creator as any)?.username || video.creator?.name || 'swypik'}
-                      {(video.creator as any)?.verified && <VerifiedBadge size={14} />}
+                      @{video.creator?.username || video.creator?.name || 'swypik'}
+                      {video.creator?.verified && <VerifiedBadge size={14} />}
                     </Link>
                     {(video.description || video.title) && (
                       <p className="video-desc">{video.description || video.title}</p>
@@ -867,11 +905,16 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                     {video.product?.id && (
                       <button type="button" className="product-chip" onClick={() => { haptic("tap"); openProduct(video); }}>
                         {video.product.image ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
+                          /* eslint-disable-next-line @next/next/no-img-element -- external AliExpress/seller image hosts, not part of next/image's configured domains */
                           <img src={video.product.image} alt="" />
                         ) : null}
-                        <span className="chip-label">{video.product.name || video.product.title || 'Produs'}</span>
-                        <span className="chip-price">{video.product.priceDisplay || video.product.price || t("veziPret")}</span>
+                        <span className="chip-label">{video.product.name || video.product.title || t("genericProduct")}</span>
+                        <span className="chip-price">
+                          {video.product.priceDisplay
+                            || (typeof video.product.priceCents === "number"
+                              ? formatMoneyCents(video.product.priceCents, video.product.currency || "RON", locale)
+                              : t("veziPret"))}
+                        </span>
                         <span className="chip-buy" onClick={(e) => { e.stopPropagation(); handleAddProductToCart(video); }} role="button" aria-label={t("cos")}>
                           <ShoppingCart size={14} color="#fff" />
                         </span>
@@ -882,18 +925,22 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
 
                 {nearActive && (
                   <div className="action-bar" aria-label={t("actiuniVideo")}>
-                    {video.creator?.id && (
-                      <button type="button" className="creator-avatar" onClick={() => router.push(`/u/${(video.creator as any)?.username || video.creator?.id}`)} aria-label={`@${(video.creator as any)?.username || video.creator?.name || 'creator'}`}>
-                        {(video.creator as any)?.avatar ? (
-                          <img src={(video.creator as any).avatar} alt="" />
-                        ) : (
-                          <span className="creator-avatar-fallback">{((video.creator as any)?.username || video.creator?.name || 'S').charAt(0).toUpperCase()}</span>
-                        )}
-                        {!followingCreators.has(video.creator.id) && (
-                          <span className="avatar-plus" role="button" aria-label={t("urmareste")} onClick={(e) => { e.stopPropagation(); handleFollow(video.creator?.id); }} />
-                        )}
-                      </button>
-                    )}
+                    {video.creator?.id && (() => {
+                      const creatorId = video.creator.id;
+                      return (
+                        <button type="button" className="creator-avatar" onClick={() => router.push(`/u/${video.creator?.username || creatorId}`)} aria-label={`@${video.creator?.username || video.creator?.name || t("genericCreator")}`}>
+                          {video.creator?.avatar ? (
+                            /* eslint-disable-next-line @next/next/no-img-element -- external AliExpress/seller image hosts, not part of next/image's configured domains */
+                            <img src={video.creator.avatar} alt="" />
+                          ) : (
+                            <span className="creator-avatar-fallback">{(video.creator?.username || video.creator?.name || 'S').charAt(0).toUpperCase()}</span>
+                          )}
+                          {!followingCreators.has(creatorId) && (
+                            <span className="avatar-plus" role="button" aria-label={t("urmareste")} onClick={(e) => { e.stopPropagation(); handleFollow(creatorId); }} />
+                          )}
+                        </button>
+                      );
+                    })()}
                     <button type="button" className={`action-btn ${likedVideos.has(video.id) ? 'liked' : ''}`} onClick={() => handleLike(video.id)} aria-pressed={likedVideos.has(video.id)} aria-label={t("apreciaza")}>
                       <span className="icon-wrap"><Heart size={30} fill={likedVideos.has(video.id) ? '#ff2d55' : 'transparent'} color={likedVideos.has(video.id) ? '#ff2d55' : '#fff'} /></span>
                       <span className="count">{formatCount(video.likes)}</span>
@@ -910,7 +957,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
                       <span className="icon-wrap"><Share2 size={28} color="#fff" /></span>
                       <span className="count">{formatCount(video.shares)}</span>
                     </button>
-                    <button type="button" className="action-btn" onClick={() => handleNotInterested(video.id)} aria-label="Nu mă interesează">
+                    <button type="button" className="action-btn" onClick={() => handleNotInterested(video.id)} aria-label={t("notInterested")}>
                       <span className="icon-wrap"><EyeOff size={26} color="#fff" /></span>
                     </button>
                   </div>
@@ -925,7 +972,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         <ProductDrawer
           initialProduct={activeProduct}
           onClose={() => setActiveProduct(null)}
-          onVoteChange={(nextProduct: any) => {
+          onVoteChange={(nextProduct: ProductData) => {
             if (!activeProduct?.videoId) return;
             const mergedProduct = { ...activeProduct, ...nextProduct };
             setActiveProduct(mergedProduct);
@@ -937,7 +984,9 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
             });
           }}
           onBuyNow={() => {
-            trackEvent(activeProduct.videoId, "buy_now", { product_id: activeProduct.id, surface: "product_drawer" });
+            if (activeProduct.videoId) {
+              trackEvent(activeProduct.videoId, "buy_now", { product_id: activeProduct.id, surface: "product_drawer" });
+            }
             router.push(routeForProduct(activeProduct));
           }}
         />
@@ -951,15 +1000,14 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: a
         onCountChange={(nextCount: number) => {
           if (!activeCommentsVideo?.id) return;
           updateVideo(activeCommentsVideo.id, { comments: String(nextCount) });
-          setActiveCommentsVideo((current: any) => current ? { ...current, comments: String(nextCount) } : current);
+          setActiveCommentsVideo((current) => current ? { ...current, comments: String(nextCount) } : current);
         }}
       />
     </main>
   );
 }
 
-export default function ExploreClient({ initialVideos = [], initialCategory = "" }: { initialVideos?: any[]; initialCategory?: string }) {
-  const t = useTranslations("explore");
+export default function ExploreClient({ initialVideos = [], initialCategory = "" }: { initialVideos?: FeedVideo[]; initialCategory?: string }) {
   return (
     <Suspense fallback={<div style={{ background: '#000', height: '100dvh' }} />}>
       <ExplorePageInner initialVideos={initialVideos} initialCategory={initialCategory} />

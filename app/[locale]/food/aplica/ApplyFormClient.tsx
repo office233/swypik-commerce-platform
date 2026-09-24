@@ -61,53 +61,54 @@ export default function ApplyFormClient() {
 
   if (status === "done") {
     return (
-      <div className="mt-8 rounded-2xl border border-green-200 bg-green-50 p-6 text-center">
-        <p className="text-lg font-bold text-green-700">{t("successTitle")}</p>
-        <p className="mt-2 text-[14px] text-green-800">{t("successBody")}</p>
+      <div className="mt-8 rounded-2xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 p-6 text-center">
+        <p className="text-lg font-bold text-green-700 dark:text-green-400">{t("successTitle")}</p>
+        <p className="mt-2 text-[14px] text-green-800 dark:text-green-300">{t("successBody")}</p>
       </div>
     );
   }
 
   const input =
-    "w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-[14px] outline-none focus:border-violet-400";
+    "w-full rounded-xl border border-black/10 dark:border-white/15 bg-white dark:bg-[#111113] dark:text-white px-4 py-2.5 text-[14px] outline-none focus:border-violet-400";
+  const label = "mb-1 block text-[13px] font-bold dark:text-white";
 
   return (
     <form onSubmit={onSubmit} className="mt-8 space-y-4">
       <div>
-        <label className="mb-1 block text-[13px] font-bold" htmlFor="fa-name">{t("nameLabel")}</label>
+        <label className={label} htmlFor="fa-name">{t("nameLabel")}</label>
         <input id="fa-name" className={input} required minLength={2} maxLength={160} value={form.name} onChange={set("name")} />
       </div>
       <div>
-        <label className="mb-1 block text-[13px] font-bold" htmlFor="fa-address">{t("addressLabel")}</label>
+        <label className={label} htmlFor="fa-address">{t("addressLabel")}</label>
         <input id="fa-address" className={input} required minLength={5} maxLength={400} value={form.address} onChange={set("address")} />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-[13px] font-bold" htmlFor="fa-city">{t("cityLabel")}</label>
+          <label className={label} htmlFor="fa-city">{t("cityLabel")}</label>
           <input id="fa-city" className={input} required minLength={2} maxLength={120} value={form.city} onChange={set("city")} />
         </div>
         <div>
-          <label className="mb-1 block text-[13px] font-bold" htmlFor="fa-phone">{t("phoneLabel")}</label>
+          <label className={label} htmlFor="fa-phone">{t("phoneLabel")}</label>
           <input id="fa-phone" type="tel" className={input} required minLength={5} maxLength={32} value={form.phone} onChange={set("phone")} />
         </div>
       </div>
       <div>
-        <label className="mb-1 block text-[13px] font-bold" htmlFor="fa-email">{t("emailLabel")}</label>
+        <label className={label} htmlFor="fa-email">{t("emailLabel")}</label>
         <input id="fa-email" type="email" className={input} maxLength={254} value={form.email} onChange={set("email")} />
       </div>
       <div>
-        <label className="mb-1 block text-[13px] font-bold" htmlFor="fa-schedule">{t("scheduleLabel")}</label>
+        <label className={label} htmlFor="fa-schedule">{t("scheduleLabel")}</label>
         <input id="fa-schedule" className={input} maxLength={400} placeholder={t("schedulePlaceholder")} value={form.schedule} onChange={set("schedule")} />
       </div>
       <div>
-        <label className="mb-1 block text-[13px] font-bold" htmlFor="fa-desc">{t("descriptionLabel")}</label>
+        <label className={label} htmlFor="fa-desc">{t("descriptionLabel")}</label>
         <textarea id="fa-desc" className={`${input} min-h-[100px]`} maxLength={2000} value={form.description} onChange={set("description")} />
       </div>
-      {errorMsg && <p className="text-[13px] font-bold text-red-600">{errorMsg}</p>}
+      {errorMsg && <p className="text-[13px] font-bold text-red-600 dark:text-red-400">{errorMsg}</p>}
       <button
         type="submit"
         disabled={status === "sending"}
-        className="w-full rounded-xl bg-black py-3 text-[15px] font-bold text-white hover:bg-black/85 disabled:opacity-50"
+        className="w-full rounded-xl bg-black dark:bg-white py-3 text-[15px] font-bold text-white dark:text-black hover:bg-black/85 dark:hover:bg-white/85 disabled:opacity-50"
       >
         {status === "sending" ? t("sending") : t("submit")}
       </button>

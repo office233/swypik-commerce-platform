@@ -6,10 +6,10 @@
  * selector clasă vehicul cu preț estimat (POST /api/rides/estimate) +
  * buton „Comandă” (POST /api/rides → redirect /go/[id]).
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 import {
   ArrowLeft,
@@ -165,6 +165,14 @@ export default function GoClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations("go");
+  const locale = useLocale();
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const [pickup, setPickup] = useState<AddressResult | null>(null);
   const [dropoff, setDropoff] = useState<AddressResult | null>(null);
   const [step, setStep] = useState<"destination" | "vehicle">("destination");
@@ -210,12 +218,14 @@ export default function GoClient() {
     if (!navigator.geolocation || pickup) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (!mountedRef.current) return;
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setPickup((p) => p ?? { address: t("myLocation"), lat, lng });
         void fetch(`/api/geo/reverse?lat=${lat}&lng=${lng}`)
           .then((r) => (r.ok ? r.json() : null))
           .then((d: { result?: { address?: string } } | null) => {
+            if (!mountedRef.current) return;
             const address = d?.result?.address;
             if (address) {
               setPickup((p) => (p && p.lat === lat && p.lng === lng ? { ...p, address } : p));
@@ -236,12 +246,14 @@ export default function GoClient() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (!mountedRef.current) return;
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        setPickup({ address: "Locația mea curentă", lat, lng });
+        setPickup({ address: t("currentLocationLabel"), lat, lng });
         void fetch(`/api/geo/reverse?lat=${lat}&lng=${lng}`)
           .then((r) => (r.ok ? r.json() : null))
           .then((d: { result?: { address?: string } } | null) => {
+            if (!mountedRef.current) return;
             if (d?.result?.address) {
               setPickup({ address: d.result.address, lat, lng });
             }
@@ -251,7 +263,7 @@ export default function GoClient() {
       () => undefined,
       { enableHighAccuracy: true, timeout: 5000 },
     );
-  }, []);
+  }, [t]);
 
   const swapLocations = () => {
     haptic("tap");
@@ -334,12 +346,17 @@ export default function GoClient() {
 
   const fmt = (e: Estimate | null | undefined) => {
     if (!e) return "—";
-    const baseRon = e.total_cents / 100;
-    if (useSwyp && swypInfo) {
-      const discounted = baseRon * 0.9;
-      return `${discounted.toFixed(0)} lei`;
+    const baseAmount = e.total_cents / 100;
+    const amount = useSwyp && swypInfo ? baseAmount * 0.9 : baseAmount;
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: e.currency || "RON",
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `${amount.toFixed(0)} ${e.currency || "RON"}`;
     }
-    return `${baseRon.toFixed(0)} lei`;
   };
 
   const bounds = useMemo(() => (pickup && dropoff ? [pickup, dropoff] : null), [pickup, dropoff]);
@@ -372,7 +389,7 @@ export default function GoClient() {
             <span className="text-amber-500">🚕</span> Swypik Go
           </span>
           <span className="text-[10px] font-bold text-neutral-400 pl-1.5 border-l border-neutral-200">
-            București & Ilfov
+            {t("serviceArea")}
           </span>
         </div>
 
@@ -393,11 +410,12 @@ export default function GoClient() {
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[11px] font-black tracking-tight">{t("trafficOptimal")}</span>
             <span className="text-white/30 text-[10px]">•</span>
-            <span className="text-amber-400 text-[11px] font-black">~{selected.duration_min} min</span>
-            <span className="text-white/60 text-[10px] font-semibold">({selected.distance_km.toFixed(1)} km)</span>
+            <span className="text-amber-400 text-[11px] font-black">
+              {t("eta", { min: selected.duration_min, km: selected.distance_km.toFixed(1) })}
+            </span>
             {arrivalTime ? (
               <span className="text-[9.5px] font-extrabold bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-md border border-emerald-500/30">
-                Sosire {arrivalTime}
+                {t("arrivalLabel", { time: arrivalTime })}
               </span>
             ) : null}
           </div>
@@ -454,16 +472,16 @@ export default function GoClient() {
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
-                      ✦ Pasul 1 din 2 • Traseu
+                      {t("step1Label")}
                     </span>
                   </div>
                   <h1 className="text-[17px] font-black tracking-tight text-neutral-950 leading-tight">
-                    Unde dorești să mergi?
+                    {t("destinationHeading")}
                   </h1>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shadow-xs">
-                    <Clock size={12} className="text-emerald-600" /> ~2-3 min
+                    <Clock size={12} className="text-emerald-600" /> {t("etaBadge")}
                   </span>
                   <span className="text-[9px] font-bold text-neutral-400 mt-0.5">{t("driversNearby")}</span>
                 </div>
@@ -585,14 +603,20 @@ export default function GoClient() {
                 <div className="flex items-center gap-2">
                   {selected ? (
                     <span className="text-[11px] font-black text-neutral-800 bg-neutral-100 px-2.5 py-1 rounded-xl">
-                      {selected.distance_km.toFixed(1)} km • ~{selected.duration_min} min
+                      {t("eta", { min: selected.duration_min, km: selected.distance_km.toFixed(1) })}
                     </span>
                   ) : null}
                   <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                    Pasul 2 din 2
+                    {t("step2Label")}
                   </span>
                 </div>
               </div>
+
+              {selected && selected.breakdown.surge_multiplier > 1 ? (
+                <p className="mt-1.5 text-center text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-xl py-1.5">
+                  {t("surge", { mult: selected.breakdown.surge_multiplier })}
+                </p>
+              ) : null}
 
               {/* Selector Clase Vehicule — Carduri Luxury cu SVG-uri Realiste (FĂRĂ emoticoane) */}
               <div className="grid grid-cols-3 gap-2">
@@ -614,7 +638,7 @@ export default function GoClient() {
                     >
                       {isSel && (
                         <div className="absolute -top-2 right-2 px-1.5 py-0.5 rounded-full bg-emerald-500 text-[8px] font-black uppercase tracking-wider text-black shadow-sm">
-                          Selectat
+                          {t("selectedBadge")}
                         </div>
                       )}
                       <div className="flex items-center justify-center my-0.5 h-8">
@@ -632,7 +656,7 @@ export default function GoClient() {
                         </div>
                         <div className={`text-[9px] font-semibold flex items-center gap-1 mt-0.5 ${isSel ? "text-neutral-400" : "text-neutral-400"}`}>
                           <Users size={10} />
-                          <span>{c.seats} locuri</span>
+                          <span>{t("seatsCount", { count: c.seats })}</span>
                         </div>
                       </div>
                     </button>
@@ -672,7 +696,7 @@ export default function GoClient() {
                     }`}
                     title={t("featureQuiet")}
                   >
-                    <VolumeX size={11} /> Silențios
+                    <VolumeX size={11} /> {t("quietLabel")}
                   </button>
                   <button
                     type="button"
@@ -687,7 +711,7 @@ export default function GoClient() {
                     }`}
                     title={t("featureLuggage")}
                   >
-                    <Luggage size={11} /> Bagaje
+                    <Luggage size={11} /> {t("luggageLabel")}
                   </button>
                 </div>
 
@@ -765,12 +789,12 @@ export default function GoClient() {
               ) : selected ? (
                 <>
                   <div className="flex items-center gap-2 text-[15px] font-black tracking-tight">
-                    <span>CHEAMĂ {CLASSES.find((c) => c.id === vehicleClass)?.name.toUpperCase()}</span>
+                    <span>{t("callVehicle", { vehicle: CLASSES.find((c) => c.id === vehicleClass)?.name.toUpperCase() ?? "" })}</span>
                     <span className="text-amber-400 font-extrabold">•</span>
                     <span className="text-amber-300">{fmt(selected)}</span>
                   </div>
                   <span className="text-[10px] font-medium text-neutral-400">
-                    ✓ Preț garantat • Șofer alocat în ~30 secunde
+                    {t("priceGuaranteed")}
                   </span>
                 </>
               ) : (
@@ -784,21 +808,22 @@ export default function GoClient() {
       {/* Modal Swypik Shield (Opțiuni de Siguranță stil Uber/Bolt) */}
       {showSafetyModal ? (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl bg-white p-6 shadow-2xl border border-neutral-200 animate-in slide-in-from-bottom-6 duration-300">
+          <div className="w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white dark:bg-zinc-900 p-6 shadow-2xl border border-neutral-200 dark:border-white/10 animate-in slide-in-from-bottom-6 duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600">
                   <ShieldCheck size={22} />
                 </div>
                 <div>
-                  <h2 className="text-[17px] font-black text-neutral-900 tracking-tight">{t("shieldTitle")}</h2>
-                  <p className="text-[11px] text-neutral-500 font-medium">{t("shieldSubtitle")}</p>
+                  <h2 className="text-[17px] font-black text-neutral-900 dark:text-neutral-100 tracking-tight">{t("shieldTitle")}</h2>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium">{t("shieldSubtitle")}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowSafetyModal(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                aria-label={t("close")}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-white/20"
               >
                 ✕
               </button>
@@ -818,13 +843,13 @@ export default function GoClient() {
                     alert(t("shareCopied"));
                   }
                 }}
-                className="w-full flex items-center justify-between p-3 rounded-2xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 transition text-left"
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-neutral-50 dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 border border-neutral-200 dark:border-white/10 transition text-left"
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-xl">📱</span>
                   <div>
-                    <span className="block text-xs font-black text-neutral-900">{t("shareFriendsTitle")}</span>
-                    <span className="block text-[10px] text-neutral-500">{t("shareFriendsSubtitle")}</span>
+                    <span className="block text-xs font-black text-neutral-900 dark:text-neutral-100">{t("shareFriendsTitle")}</span>
+                    <span className="block text-[10px] text-neutral-500 dark:text-neutral-400">{t("shareFriendsSubtitle")}</span>
                   </div>
                 </div>
                 <span className="text-xs font-black text-emerald-600">{t("shareCta")}</span>
@@ -833,27 +858,27 @@ export default function GoClient() {
               {/* Buton 112 Urgență */}
               <a
                 href="tel:112"
-                className="w-full flex items-center justify-between p-3 rounded-2xl bg-rose-50 hover:bg-rose-100 border border-rose-200 transition text-left"
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 border border-rose-200 dark:border-rose-500/30 transition text-left"
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-xl">🚨</span>
                   <div>
-                    <span className="block text-xs font-black text-rose-700">{t("emergencyCall")}</span>
-                    <span className="block text-[10px] text-rose-600">
-                      GPS: {pickup ? `${pickup.lat.toFixed(4)}, ${pickup.lng.toFixed(4)}` : "Disponibil live"}
+                    <span className="block text-xs font-black text-rose-700 dark:text-rose-400">{t("emergencyCall")}</span>
+                    <span className="block text-[10px] text-rose-600 dark:text-rose-400">
+                      {t("gpsLabel", { coords: pickup ? `${pickup.lat.toFixed(4)}, ${pickup.lng.toFixed(4)}` : t("gpsUnavailable") })}
                     </span>
                   </div>
                 </div>
-                <span className="text-xs font-black text-rose-700">{t("callNow")}</span>
+                <span className="text-xs font-black text-rose-700 dark:text-rose-400">{t("callNow")}</span>
               </a>
             </div>
 
             <button
               type="button"
               onClick={() => setShowSafetyModal(false)}
-              className="w-full py-3 rounded-2xl bg-neutral-950 text-white font-black text-xs uppercase tracking-wider"
+              className="w-full py-3 rounded-2xl bg-neutral-950 dark:bg-white dark:text-neutral-950 text-white font-black text-xs uppercase tracking-wider"
             >
-              Închide
+              {t("close")}
             </button>
           </div>
         </div>

@@ -28,24 +28,66 @@ const STATUS_BADGE: Record<string, string> = {
   in_progress: "bg-blue-100 text-blue-700",
 };
 
+const RIDE_STATUS_KEYS = [
+  "requested",
+  "searching",
+  "accepted",
+  "arriving",
+  "in_progress",
+  "completed",
+  "cancelled",
+];
+
+const VEHICLE_CLASS_KEYS: Record<string, string> = {
+  economy: "classEconomy",
+  comfort: "classComfort",
+  van: "classVan",
+};
+
 export default function HistoryClient() {
   const t = useTranslations("goHistory");
+  const tGo = useTranslations("go");
   const locale = useLocale();
   const [rides, setRides] = useState<RideRow[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/rides?limit=50", { cache: "no-store" })
       .then(async (res) => {
         if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? t("error"));
         return res.json();
       })
-      .then((d) => setRides(d.rides))
-      .catch((e) => setError(e.message));
+      .then((d) => {
+        if (!cancelled) setRides(d.rides);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [t]);
 
-  const fmt = (c: number | null, cur: string) => (c != null ? `${(c / 100).toFixed(2)} ${cur}` : "—");
+  const fmt = (c: number | null, cur: string) => {
+    if (c == null) return "—";
+    try {
+      return new Intl.NumberFormat(locale, { style: "currency", currency: cur }).format(c / 100);
+    } catch {
+      return `${(c / 100).toFixed(2)} ${cur}`;
+    }
+  };
+
+  const statusLabel = (status: string) => {
+    const key = RIDE_STATUS_KEYS.includes(status) ? `status.${status}` : null;
+    return key ? tGo(key) : status;
+  };
+
+  const classLabel = (vehicleClass: string) => {
+    const key = VEHICLE_CLASS_KEYS[vehicleClass];
+    return key ? tGo(key) : vehicleClass;
+  };
 
   return (
     <div className="mx-auto min-h-[100dvh] max-w-lg bg-neutral-50 p-4 pb-24">
@@ -82,7 +124,7 @@ export default function HistoryClient() {
                     {r.pickup_address.split(",")[0]} → {r.dropoff_address.split(",")[0]}
                   </span>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_BADGE[r.status] ?? "bg-neutral-100 text-neutral-600"}`}>
-                    {r.status}
+                    {statusLabel(r.status)}
                   </span>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-[12px] text-neutral-500">
@@ -97,14 +139,14 @@ export default function HistoryClient() {
                 <div className="border-t border-dashed border-neutral-200 p-3 text-[13px]">
                   <p className="font-semibold text-neutral-400">{t("receipt")}</p>
                   <dl className="mt-1 space-y-1">
-                    <div className="flex justify-between"><dt>{t("class")}</dt><dd className="font-semibold capitalize">{r.vehicle_class}</dd></div>
+                    <div className="flex justify-between"><dt>{t("class")}</dt><dd className="font-semibold">{classLabel(r.vehicle_class)}</dd></div>
                     <div className="flex justify-between"><dt>{t("from")}</dt><dd className="max-w-[60%] truncate text-right">{r.pickup_address}</dd></div>
                     <div className="flex justify-between"><dt>{t("to")}</dt><dd className="max-w-[60%] truncate text-right">{r.dropoff_address}</dd></div>
                     {r.distance_km ? (
-                      <div className="flex justify-between"><dt>{t("distance")}</dt><dd>{Number(r.distance_km).toFixed(1)} km</dd></div>
+                      <div className="flex justify-between"><dt>{t("distance")}</dt><dd>{tGo("distanceKm", { km: Number(r.distance_km).toFixed(1) })}</dd></div>
                     ) : null}
                     {r.duration_min ? (
-                      <div className="flex justify-between"><dt>{t("duration")}</dt><dd>{r.duration_min} min</dd></div>
+                      <div className="flex justify-between"><dt>{t("duration")}</dt><dd>{tGo("durationMin", { min: r.duration_min })}</dd></div>
                     ) : null}
                     {r.driver_name ? (
                       <div className="flex justify-between">

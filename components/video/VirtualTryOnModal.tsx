@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Camera, Sliders, RefreshCw, Check } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { haptic } from "@/lib/haptic";
 
 interface VirtualTryOnModalProps {
@@ -20,9 +21,11 @@ export default function VirtualTryOnModal({
   onClose,
   onApplyShade,
 }: VirtualTryOnModalProps) {
+  // Namespace kept distinct ("wave2TryOn") to avoid clashing with the many
+  // shared/generic namespaces other areas already use.
+  const t = useTranslations("wave2TryOn");
   const [activeShade, setActiveShade] = useState(0);
   const [splitPosition, setSplitPosition] = useState(50);
-  const [cameraActive, setCameraActive] = useState(true);
 
   const shades = [
     { name: "Radiant Golden 01", hex: "#E8C39E", finish: "Luminous Dewy" },
@@ -42,44 +45,49 @@ export default function VirtualTryOnModal({
       <div className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl bg-neutral-950 text-white p-5 border border-white/10 shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400">
-              <Sparkles size={18} />
-            </span>
+          <div className="flex items-center gap-2 min-w-0">
+            {product.images[0] ? (
+              // eslint-disable-next-line @next/next/no-img-element -- product thumbnail from R2/CDN, arbitrary host
+              <img
+                src={product.images[0]}
+                alt={product.title}
+                width={32}
+                height={32}
+                className="h-8 w-8 shrink-0 rounded-xl object-cover border border-white/10"
+              />
+            ) : (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400">
+                <Sparkles size={18} />
+              </span>
+            )}
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black tracking-tight">AI Virtual Try-On Studio</span>
-                <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  AR Generativ Video
-                </span>
-              </div>
-              <p className="text-[10px] text-neutral-400">Adaptare inteligenta de ton & textura in timp real</p>
+              <span className="text-xs font-black tracking-tight">{t("tryOnStudioTitle")}</span>
+              <p className="text-[10px] text-neutral-400 truncate max-w-[200px]" title={product.title}>
+                {t("tryOnSubtitle", { product: product.title })}
+              </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("close")}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-neutral-400 hover:text-white"
           >
             ✕
           </button>
         </div>
 
-        {/* Zona Camera / AR Simulator */}
+        {/* Color/finish preview — an illustrative swatch, NOT a camera or AR overlay. */}
         <div className="relative my-4 aspect-[4/5] w-full rounded-2xl overflow-hidden bg-neutral-900 border border-white/10 flex items-center justify-center">
-          {/* Mock Camera Feed cu textura fetei si aplicare produs */}
           <div className="absolute inset-0 bg-gradient-to-b from-neutral-800 to-neutral-950 flex flex-col items-center justify-center">
             <div className="relative h-44 w-44 rounded-full border-2 border-dashed border-purple-400/40 flex items-center justify-center">
               <div
                 className="h-36 w-36 rounded-full opacity-60 blur-md transition-all duration-500"
                 style={{ backgroundColor: shades[activeShade].hex }}
               />
-              <span className="absolute text-[11px] font-bold text-white/80 bg-black/60 px-2.5 py-1 rounded-full backdrop-blur-sm">
-                Fata Detectata (AR 60 FPS)
-              </span>
             </div>
 
-            {/* Split Slider Preview: Inainte / Dupa */}
+            {/* Split slider: compare the "natural" label against the selected finish. */}
             <div
               className="absolute inset-y-0 w-0.5 bg-white/80 shadow-[0_0_10px_white]"
               style={{ left: `${splitPosition}%` }}
@@ -90,7 +98,7 @@ export default function VirtualTryOnModal({
             </div>
 
             <div className="absolute top-3 left-3 text-[10px] font-black px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm text-neutral-400">
-              Natural
+              {t("natural")}
             </div>
             <div className="absolute top-3 right-3 text-[10px] font-black px-2 py-0.5 rounded bg-purple-500/40 backdrop-blur-sm text-purple-200">
               {shades[activeShade].finish}
@@ -98,13 +106,14 @@ export default function VirtualTryOnModal({
           </div>
 
           <div className="absolute bottom-3 inset-x-4 flex items-center gap-2">
-            <span className="text-[10px] text-neutral-400 font-bold shrink-0">Comparație:</span>
+            <span className="text-[10px] text-neutral-400 font-bold shrink-0">{t("comparisonLabel")}</span>
             <input
               type="range"
               min="10"
               max="90"
               value={splitPosition}
               onChange={(e) => setSplitPosition(Number(e.target.value))}
+              aria-label={t("comparisonLabel")}
               className="w-full accent-purple-400 cursor-pointer h-1.5 bg-white/20 rounded-lg"
             />
           </div>
@@ -113,7 +122,7 @@ export default function VirtualTryOnModal({
         {/* Nuanțe & Finisaje Inteligente */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-neutral-400">Selectează nuanța optimizată cu tonul tău:</span>
+            <span className="text-neutral-400">{t("selectShadeLabel")}</span>
             <span className="text-purple-300 font-bold">{shades[activeShade].name}</span>
           </div>
 
@@ -150,11 +159,11 @@ export default function VirtualTryOnModal({
           }}
           className="w-full mt-4 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-500/25 active:scale-[0.98] transition"
         >
-          Aplică Nuanța {shades[activeShade].name} în Comandă
+          {t("applyShadeToOrder", { shade: shades[activeShade].name })}
         </button>
 
         <p className="text-center text-[9px] text-neutral-400 mt-2">
-          ✓ Reduce rata de retur cu 62% prin potrivire spectrala ghidata de AI
+          {t("previewDisclaimer")}
         </p>
       </div>
     </div>

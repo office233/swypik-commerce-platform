@@ -99,7 +99,7 @@ export default function FleetPartnerClient() {
                     <div className="min-w-0 flex-1">
                         <h1 className="text-xl font-black text-[#0D0D0D]">{partner.company_name}</h1>
                         <p className="text-[13px] text-[#6E6E80]">
-                            {partner.city} · {partner.vertical === "both" ? "Go + Food" : partner.vertical === "go" ? "Swypik Go" : "Swypik Food"}
+                            {partner.city} · {partner.vertical === "both" ? t("verticalBoth") : partner.vertical === "go" ? "Swypik Go" : "Swypik Food"}
                         </p>
                     </div>
                     <span className={`rounded-full px-3 py-1 text-[12px] font-bold ${partner.status === "active" ? activeBadge : pendingBadge}`}>
@@ -117,20 +117,20 @@ export default function FleetPartnerClient() {
                     <div className="mt-6 grid grid-cols-3 gap-3">
                         <div className="rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-black/5">
                             <p className="text-2xl font-black text-[#0D0D0D]">{stats?.rides_30d ?? 0}</p>
-                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#A1A1AA]">Curse 30 zile</p>
+                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#A1A1AA]">{t("rides30d")}</p>
                         </div>
                         <div className="rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-black/5">
                             <p className="text-2xl font-black text-[#0D0D0D]">
                                 {((stats?.revenue_30d_cents ?? 0) / 100).toFixed(0)}
                             </p>
-                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#A1A1AA]">Volum RON</p>
+                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#A1A1AA]">{t("volumeRon")}</p>
                         </div>
                         <div className="rounded-2xl bg-violet-50 p-4 text-center shadow-sm ring-1 ring-violet-200">
                             <p className="text-2xl font-black text-violet-700">
                                 {((stats?.commission_30d_cents ?? 0) / 100).toFixed(0)}
                             </p>
                             <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-violet-500">
-                                Comisionul tău ({((partner.commission_bps ?? 0) / 100).toFixed(1)}%)
+                                {t("yourCommission", { pct: ((partner.commission_bps ?? 0) / 100).toFixed(1) })}
                             </p>
                         </div>
                     </div>
@@ -140,15 +140,14 @@ export default function FleetPartnerClient() {
                     <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
                         <p className="text-[13px] font-bold text-[#0D0D0D]">{t("fleet.recruitTitle" as never)}</p>
                         <p className="mt-1 text-[12px] text-[#6E6E80]">
-                            Trimite acest link candidaților din {partner.city}. Aplicațiile ajung la Swypik pentru verificare,
-                            iar la aprobare îi alocăm francizei tale.
+                            {t("recruitNote", { city: partner.city })}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                             <a href="/join/fleet?kind=driver" className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-[12px] font-bold text-white">
-                                <Car size={14} /> Link șoferi Go
+                                <Car size={14} /> {t("driverLinkGo")}
                             </a>
                             <a href="/join/fleet?kind=courier" className="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-3 py-2 text-[12px] font-bold text-white">
-                                <Bike size={14} /> Link curieri Food
+                                <Bike size={14} /> {t("courierLinkFood")}
                             </a>
                         </div>
                     </div>

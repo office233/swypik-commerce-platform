@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,10 @@ type Video = {
 export default async function HashtagPage({
   params,
 }: {
-  params: Promise<Params>;
+  params: Promise<Params & { locale: string }>;
 }) {
   const p = await params;
+  const t = await getTranslations({ locale: p.locale, namespace: "hashtag" });
   const raw = decodeURIComponent(p.tag || "").replace(/^#+/, "").trim().toLowerCase();
 
   const { rows } = await dbQuery<Video>(
@@ -44,12 +46,12 @@ export default async function HashtagPage({
       <div className="mx-auto max-w-5xl px-4 py-6">
         <header className="mb-6">
           <h1 className="text-3xl font-bold">#{raw}</h1>
-          <p className="text-sm text-neutral-400 mt-1">{rows.length} videos</p>
+          <p className="text-sm text-neutral-400 mt-1">{t("videoCount", { count: rows.length })}</p>
         </header>
 
         {rows.length === 0 ? (
           <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-8 text-center text-neutral-400">
-            No videos for this hashtag yet.
+            {t("noVideos")}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -69,7 +71,7 @@ export default async function HashtagPage({
                   </div>
                 </div>
                 <div className="p-2">
-                  <div className="text-sm font-medium truncate">{v.title ?? "Untitled"}</div>
+                  <div className="text-sm font-medium truncate">{v.title ?? t("untitled")}</div>
                   <div className="text-xs text-neutral-400 truncate">{v.creator_name ?? "—"}</div>
                 </div>
               </Link>

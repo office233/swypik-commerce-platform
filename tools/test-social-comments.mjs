@@ -45,12 +45,12 @@ assertJsonEqual(validateCommentText("  Salut   lume  "), {
 
 assertJsonEqual(validateCommentText("    "), {
   ok: false,
-  error: "Comment text is required",
+  code: "comment_text_required",
 });
 
 assertJsonEqual(validateCommentText("x".repeat(501)), {
   ok: false,
-  error: "Comment text must be 500 characters or less",
+  code: "comment_text_too_long",
 });
 
 assert.equal(chooseCommentStatus("produs fake scam"), "flagged");

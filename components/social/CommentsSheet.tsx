@@ -40,6 +40,37 @@ function parseCount(value: Props["initialCount"]): number {
   return Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0;
 }
 
+/**
+ * Maps stable API error codes (app/api/videos/[id]/comments/route.ts,
+ * lib/social/comments.ts) to a translated message. Anything unrecognized
+ * (including a raw Zod validation sentence from lib/validation/schemas.ts'
+ * `parseBody`) falls back to a generic translated message — never shown raw.
+ * Audit 2026-09-24 (wave2-misc).
+ */
+function translateApiError(
+  code: unknown,
+  t: ReturnType<typeof useTranslations>,
+  fallbackKey: "loadError" | "submitError" | "deleteError",
+): string {
+  switch (code) {
+    case "rate_limited":
+      return t("rateLimitedError");
+    case "comment_text_required":
+      return t("emptyError");
+    case "comment_text_too_long":
+      return t("tooLongError");
+    case "unauthorized":
+    case "forbidden":
+      return t("unauthorizedError");
+    case "video_not_found":
+    case "parent_comment_not_found":
+    case "comment_not_found":
+      return t("notFoundError");
+    default:
+      return t(fallbackKey);
+  }
+}
+
 function displayName(author: CommentAuthor): string {
   return author.displayName || author.username || "@user";
 }
@@ -86,7 +117,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
     try {
       const res = await fetch(`/api/videos/${videoId}/comments?comment_id=${comment.id}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || t("deleteError"));
+      if (!res.ok) throw new Error(translateApiError(data?.error, t, "deleteError"));
       setComments((list) =>
         list
           .filter((c) => c.id !== comment.id)
@@ -177,7 +208,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
     try {
       const res = await fetch(`/api/videos/${videoId}/comments?limit=30`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || t("loadError"));
+      if (!res.ok) throw new Error(translateApiError(data?.error, t, "loadError"));
 
       const list: CommentItem[] = Array.isArray(data.comments) ? data.comments : [];
       setComments(list);
@@ -235,7 +266,7 @@ export default function CommentsSheet({ open, videoId, initialCount, onClose, on
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || t("submitError"));
+      if (!res.ok) throw new Error(translateApiError(data?.error, t, "submitError"));
 
       const posted = data.comment as CommentItem | undefined;
       const nextCount = Number(data.comment_count);

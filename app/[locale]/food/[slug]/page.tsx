@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import MenuClient from "./MenuClient";
 
@@ -19,14 +20,15 @@ async function getMerchant(slug: string) {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; locale: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, locale } = await params;
+  const t = await getTranslations({ locale, namespace: "food" });
   const m = await getMerchant(slug);
   if (!m) return { title: "Swypik Food" };
   return {
-    title: `${m.name} — comandă online | Swypik Food`,
-    description: m.description ?? `Comandă de la ${m.name} prin Swypik Food. Livrare rapidă.`,
+    title: `${m.name} — ${t("meta.orderOnline")} | Swypik Food`,
+    description: m.description ?? t("meta.merchantDescription", { name: m.name }),
   };
 }
 

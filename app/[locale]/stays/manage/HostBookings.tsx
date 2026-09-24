@@ -5,9 +5,9 @@
  * Anularea de către gazdă = refund integral pentru client și retragerea
  * sumei din portofelul gazdei (politica e afișată înainte de confirmare).
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarCheck, Loader2, Phone, Mail, XCircle, AlertTriangle } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 type HostBooking = {
     id: string;
@@ -24,9 +24,6 @@ type HostBooking = {
     created_at: string;
 };
 
-const lei = (c: number) =>
-    new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(c / 100);
-
 const STATUS_CLS: Record<string, string> = {
     pending: "bg-amber-100 text-amber-800",
     confirmed: "bg-green-100 text-green-800",
@@ -36,15 +33,32 @@ const STATUS_CLS: Record<string, string> = {
 
 export default function HostBookings() {
     const t = useTranslations("hostBookings");
+    const ts = useTranslations("stays");
+    const locale = useLocale();
+    const lei = (c: number) =>
+        new Intl.NumberFormat(locale, { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(c / 100);
     const [bookings, setBookings] = useState<HostBooking[] | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const mountedRef = useRef(true);
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
 
     const load = useCallback(async () => {
-        const r = await fetch("/api/host/bookings", { credentials: "include" });
-        if (!r.ok) { setBookings([]); return; }
-        setBookings((await r.json()).bookings ?? []);
-    }, []);
+        try {
+            const r = await fetch("/api/host/bookings", { credentials: "include" });
+            if (!mountedRef.current) return;
+            if (!r.ok) { setBookings([]); setError(ts("bookingsLoadFailed")); return; }
+            const j = await r.json();
+            if (!mountedRef.current) return;
+            setBookings(j.bookings ?? []);
+            setError(null);
+        } catch {
+            if (mountedRef.current) { setBookings([]); setError(ts("bookingsLoadFailed")); }
+        }
+    }, [ts]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -59,17 +73,27 @@ export default function HostBookings() {
         try {
             const r = await fetch(`/api/stays/bookings/${b.id}/cancel`, { method: "POST", credentials: "include" });
             const j = await r.json().catch(() => ({}));
+            if (!mountedRef.current) return;
             if (!r.ok) { setError(j.error ?? t("cancelFailed")); return; }
             await load();
+        } catch {
+            if (mountedRef.current) setError(t("cancelFailed"));
         } finally {
-            setBusy(null);
+            if (mountedRef.current) setBusy(null);
         }
     }
 
     if (bookings === null) {
         return <div className="mt-6 grid place-items-center"><Loader2 className="animate-spin text-neutral-400" size={20} /></div>;
     }
-    if (bookings.length === 0) return null;
+    if (bookings.length === 0) {
+        if (!error) return null;
+        return (
+            <div className="mt-6 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" /> {error}
+            </div>
+        );
+    }
 
     const upcoming = bookings.filter((b) => b.status !== "cancelled" && b.status !== "completed");
     const past = bookings.filter((b) => b.status === "cancelled" || b.status === "completed");
@@ -132,7 +156,7 @@ export default function HostBookings() {
                                         className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40 dark:hover:bg-red-950"
                                     >
                                         {busy === b.id ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
-                                        Anulează
+                                        {ts("cancelBooking")}
                                     </button>
                                 )}
                             </div>

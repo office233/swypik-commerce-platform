@@ -7,7 +7,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { BedDouble, Loader2, MapPin, Star, AlertTriangle, CalendarDays, Users } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 type City = { slug: string; name: string; country: string };
 type StayResult = {
@@ -20,9 +20,14 @@ type StayResult = {
     currency: string;
     nights: number;
 };
-
-const lei = (cents: number) =>
-    new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(cents / 100);
+type LocalListing = {
+    id: string;
+    title: string;
+    image_url: string | null;
+    location_city: string | null;
+    max_guests: number | null;
+    price_cents: number | null;
+};
 
 function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | null) => void }) {
     const t = useTranslations("stays");
@@ -30,6 +35,7 @@ function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | n
     const [results, setResults] = useState<City[]>([]);
     const [open, setOpen] = useState(false);
     const boxRef = useRef<HTMLDivElement>(null);
+    const reqRef = useRef(0);
 
     useEffect(() => {
         const onDoc = (e: MouseEvent) => {
@@ -43,16 +49,23 @@ function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | n
         setText(q);
         onPick(null);
         if (q.trim().length < 2) { setResults([]); setOpen(false); return; }
-        const r = await fetch(`/api/stays/cities?q=${encodeURIComponent(q)}`);
-        const j = await r.json();
-        setResults(j.cities ?? []);
-        setOpen((j.cities ?? []).length > 0);
+        const reqId = ++reqRef.current;
+        try {
+            const r = await fetch(`/api/stays/cities?q=${encodeURIComponent(q)}`);
+            if (reqId !== reqRef.current) return; // răspuns învechit, ignorat
+            if (!r.ok) { setResults([]); setOpen(false); return; }
+            const j = await r.json();
+            if (reqId !== reqRef.current) return;
+            setResults(j.cities ?? []);
+            setOpen((j.cities ?? []).length > 0);
+        } catch {
+            if (reqId === reqRef.current) { setResults([]); setOpen(false); }
+        }
     };
 
     return (
         <div ref={boxRef} className="relative">
             <label className="text-xs font-medium text-neutral-500">
-                
                 {t("destinatie")}
                 <input
                     value={text}
@@ -85,8 +98,8 @@ function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | n
 
 export default function StaysClient() {
     const t = useTranslations("stays");
-    const today = new Date();
-    const plus = (d: number) => new Date(today.getTime() + d * 86400000).toISOString().slice(0, 10);
+    const locale = useLocale();
+    const plus = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
 
     const [city, setCity] = useState<City | null>(null);
     const [form, setForm] = useState({ checkIn: plus(14), checkOut: plus(16), adults: 2 });
@@ -94,15 +107,20 @@ export default function StaysClient() {
     const [results, setResults] = useState<StayResult[] | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [local, setLocal] = useState<any[]>([]);
+    const [local, setLocal] = useState<LocalListing[]>([]);
+
+    const lei = (cents: number) =>
+        new Intl.NumberFormat(locale, { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(cents / 100);
 
     // Cazările gazdelor Swypik — mereu vizibile (inventar propriu, fără Duffel).
     useEffect(() => {
+        let cancelled = false;
         const q = city ? `?city=${encodeURIComponent(city.name)}` : "";
         fetch(`/api/stays/local${q}`)
             .then((r) => (r.ok ? r.json() : { listings: [] }))
-            .then((j) => setLocal(j.listings ?? []))
-            .catch(() => setLocal([]));
+            .then((j) => { if (!cancelled) setLocal(j.listings ?? []); })
+            .catch(() => { if (!cancelled) setLocal([]); });
+        return () => { cancelled = true; };
     }, [city]);
 
     const search = async () => {
@@ -117,16 +135,16 @@ export default function StaysClient() {
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ city: city.slug, checkIn: form.checkIn, checkOut: form.checkOut, adults: form.adults }),
             });
-            const j = await r.json();
+            const j = await r.json().catch(() => ({}));
             if (j.error === "stays_not_enabled") {
-                setNotice("Rezervările de cazări se lansează în curând pe Swypik. Zborurile sunt deja disponibile în Fly!");
+                setNotice(t("staysComingSoonNotice"));
             } else if (!r.ok) {
-                setError(j.error ?? "Căutarea a eșuat");
+                setError(j.error ?? t("searchFailed"));
             } else {
                 setResults(j.results ?? []);
             }
         } catch {
-            setError("Căutarea a eșuat. Încearcă din nou.");
+            setError(t("searchFailedRetry"));
         } finally {
             setLoading(false);
         }
@@ -148,7 +166,7 @@ export default function StaysClient() {
                 <CityInput value={city} onPick={setCity} />
                 <div className="mt-3 grid grid-cols-2 gap-3">
                     <label className="text-xs font-medium text-neutral-500">
-                        Check-in
+                        {t("checkInLabel")}
                         <input
                             type="date"
                             value={form.checkIn}
@@ -158,7 +176,7 @@ export default function StaysClient() {
                         />
                     </label>
                     <label className="text-xs font-medium text-neutral-500">
-                        Check-out
+                        {t("checkOutLabel")}
                         <input
                             type="date"
                             value={form.checkOut}
@@ -169,14 +187,14 @@ export default function StaysClient() {
                     </label>
                 </div>
                 <label className="mt-3 block text-xs font-medium text-neutral-500">
-                    Persoane
+                    {t("personsLabel")}
                     <select
                         value={form.adults}
                         onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })}
                         className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
                     >
                         {[1, 2, 3, 4, 5, 6].map((n) => (
-                            <option key={n} value={n}>{n} {n === 1 ? "persoană" : "persoane"}</option>
+                            <option key={n} value={n}>{t("personsCount", { count: n })}</option>
                         ))}
                     </select>
                 </label>
@@ -186,7 +204,7 @@ export default function StaysClient() {
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 font-semibold text-white shadow disabled:opacity-40"
                 >
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <BedDouble size={16} />}
-                    {loading ? "Se caută..." : "Caută cazări"}
+                    {loading ? t("searching") : t("searchButton")}
                 </button>
             </div>
 
@@ -204,13 +222,13 @@ export default function StaysClient() {
             {results && (
                 <div className="mt-5 space-y-3">
                     <p className="text-sm text-neutral-500">
-                        {results.length}  {t("cazariGasiteTotalulInclude")}
+                        {results.length} {t("cazariGasiteTotalulInclude")}
                     </p>
                     {results.map((s) => (
                         <div key={s.searchResultId} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                             {s.photoUrl && (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={s.photoUrl} alt={s.name} className="h-40 w-full object-cover" loading="lazy" />
+                                <img src={s.photoUrl} alt={s.name} width={640} height={160} className="h-40 w-full object-cover" loading="lazy" />
                             )}
                             <div className="p-3">
                                 <div className="flex items-start justify-between gap-2">
@@ -225,7 +243,7 @@ export default function StaysClient() {
                                     </div>
                                     <div className="text-right">
                                         <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{lei(s.totalCents)}</div>
-                                        <div className="text-xs text-neutral-500">{s.nights} {s.nights === 1 ? "noapte" : "nopți"} · total</div>
+                                        <div className="text-xs text-neutral-500">{t("nightsCount", { count: s.nights })} · {t("totalLabel")}</div>
                                     </div>
                                 </div>
                             </div>
@@ -233,7 +251,6 @@ export default function StaysClient() {
                     ))}
                     {results.length === 0 && (
                         <p className="rounded-xl bg-neutral-50 p-4 text-center text-sm text-neutral-500 dark:bg-neutral-900">
-                            
                             {t("nicioCazareGasitaPentru")}
                         </p>
                     )}
@@ -243,7 +260,6 @@ export default function StaysClient() {
             {!results && !notice && !loading && (
                 <p className="mt-6 text-center text-xs text-neutral-400">
                     <Users size={14} className="mr-1 inline" />
-                    
                     {t("cazariDin1mProprietati")}
                 </p>
             )}
@@ -252,8 +268,7 @@ export default function StaysClient() {
             {local.length > 0 && (
                 <div className="mt-8">
                     <h2 className="text-lg font-bold">
-                        
-                        {t("cazariDeLaGazde")} {city ? `în ${city.name}` : ""}
+                        {t("cazariDeLaGazde")} {city ? t("inCityName", { city: city.name }) : ""}
                     </h2>
                     <p className="mb-3 text-xs text-neutral-500">{t("verifiedNote")}</p>
                     <div className="space-y-3">
@@ -261,21 +276,21 @@ export default function StaysClient() {
                             <a key={l.id} href={`/stays/${l.id}`} className="block overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition active:scale-[0.99] dark:border-neutral-800 dark:bg-neutral-900">
                                 {l.image_url && (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={l.image_url} alt={l.title} className="h-40 w-full object-cover" loading="lazy" />
+                                    <img src={l.image_url} alt={l.title} width={640} height={160} className="h-40 w-full object-cover" loading="lazy" />
                                 )}
                                 <div className="p-3">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
                                             <h3 className="truncate font-bold">{l.title}</h3>
                                             <p className="text-xs text-neutral-500">
-                                                {l.location_city}  {t("panaLa")} {l.max_guests ?? "?"}  {t("oaspeti")}
+                                                {l.location_city} {t("panaLa")} {l.max_guests ?? "?"} {t("oaspeti")}
                                             </p>
                                         </div>
                                         <div className="shrink-0 text-right">
                                             <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
-                                                {lei(l.price_cents)}
+                                                {lei(l.price_cents ?? 0)}
                                             </div>
-                                            <div className="text-xs text-neutral-500">/ noapte</div>
+                                            <div className="text-xs text-neutral-500">{t("perNight")}</div>
                                         </div>
                                     </div>
                                 </div>

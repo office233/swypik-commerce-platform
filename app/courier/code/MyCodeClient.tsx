@@ -66,7 +66,7 @@ export default function MyCodeClient() {
             navigator
                 .share({
                     title: "Swypik",
-                    text: `Primele ${data.terms.discounted_rides} curse la jumătate de preț pe Swypik Go — folosește codul meu ${data.code}`,
+                    text: t("shareText", { rides: data.terms.discounted_rides, code: data.code }),
                     url: data.share_url,
                 })
                 .catch(() => { });
@@ -81,17 +81,17 @@ export default function MyCodeClient() {
                 <Link href="/courier" className="rounded-full p-2 hover:bg-neutral-100" aria-label={t("backAria")}>
                     <ArrowLeft size={20} />
                 </Link>
-                <h1 className="text-xl font-extrabold">Codul meu</h1>
+                <h1 className="text-xl font-extrabold">{t("myCodeTitle")}</h1>
             </div>
 
             {error === "not_approved" && (
                 <p className="rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-                    Codul devine disponibil după aprobarea contului tău.
+                    {t("codeAfterApproval")}
                 </p>
             )}
             {error && error !== "not_approved" && (
                 <p className="rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-700">
-                    Nu am putut încărca codul. Reîncearcă.
+                    {t("codeLoadError")}
                 </p>
             )}
 
@@ -99,17 +99,18 @@ export default function MyCodeClient() {
                 <>
                     <div className="rounded-3xl border border-neutral-200 p-6 text-center shadow-sm">
                         <p className="text-[13px] font-semibold uppercase tracking-wide text-neutral-500">
-                            Codul tău de invitație
+                            {t("yourInviteCode")}
                         </p>
                         <p className="mt-2 font-mono text-4xl font-extrabold tracking-[0.3em]">{data.code}</p>
                         <div className="mt-5 flex justify-center">
                             <canvas ref={canvasRef} className="rounded-xl" />
                         </div>
                         <p className="mt-4 text-[13px] leading-relaxed text-neutral-600">
-                            Clienții tăi primesc primele {data.terms.discounted_rides} curse la −
-                            {data.terms.discount_pct}%. Tu primești{" "}
-                            {(data.terms.first_ride_bonus_cents / 100).toFixed(0)} lei la prima lor cursă și 2%
-                            din cursele lor timp de 6 luni.
+                            {t("codeTermsNote", {
+                                rides: data.terms.discounted_rides,
+                                discountPct: data.terms.discount_pct,
+                                bonus: (data.terms.first_ride_bonus_cents / 100).toFixed(0),
+                            })}
                         </p>
                         <div className="mt-5 grid grid-cols-2 gap-3">
                             <button
@@ -117,20 +118,20 @@ export default function MyCodeClient() {
                                 className="flex items-center justify-center gap-2 rounded-2xl border border-neutral-300 px-4 py-3 text-sm font-bold"
                             >
                                 {copied ? <Check size={16} /> : <Copy size={16} />}
-                                {copied ? "Copiat" : "Copiază link"}
+                                {copied ? t("copied") : t("copyLink")}
                             </button>
                             <button
                                 onClick={share}
                                 className="flex items-center justify-center gap-2 rounded-2xl bg-[#111] px-4 py-3 text-sm font-bold text-white"
                             >
-                                <Share2 size={16} /> Trimite
+                                <Share2 size={16} /> {t("sendBtn")}
                             </button>
                         </div>
                     </div>
 
                     <div className="mt-6 rounded-3xl border border-neutral-200 p-5">
                         <h2 className="flex items-center gap-2 text-[15px] font-extrabold">
-                            <Users size={17} /> Clienții mei
+                            <Users size={17} /> {t("myClients")}
                         </h2>
                         <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                             <div>
@@ -139,12 +140,12 @@ export default function MyCodeClient() {
                             </div>
                             <div>
                                 <p className="text-2xl font-extrabold tabular-nums">{data.stats.active_referred}</p>
-                                <p className="text-[12px] font-semibold text-neutral-500">Activi</p>
+                                <p className="text-[12px] font-semibold text-neutral-500">{t("active")}</p>
                             </div>
                             <div>
                                 <p className="text-2xl font-extrabold tabular-nums">
                                     {(data.stats.total_earned_cents / 100).toFixed(0)}
-                                    <span className="text-sm font-bold"> lei</span>
+                                    <span className="text-sm font-bold"> {t("currencyLei")}</span>
                                 </p>
                                 <p className="text-[12px] font-semibold text-neutral-500">{t("earned")}</p>
                             </div>
@@ -153,7 +154,7 @@ export default function MyCodeClient() {
                             href="/courier/earnings"
                             className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-neutral-100 px-4 py-3 text-sm font-bold"
                         >
-                            <Wallet size={16} /> Vezi câștigurile
+                            <Wallet size={16} /> {t("seeEarnings")}
                         </Link>
                     </div>
                 </>

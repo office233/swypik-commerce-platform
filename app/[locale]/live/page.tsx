@@ -1,9 +1,20 @@
 import { dbQuery } from "@/lib/db";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { CircleDot, Eye } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "livePage" });
+  return { title: t("metaTitle"), description: t("metaDescription") };
+}
 
 export default async function LivePage() {
   const t = await getTranslations("livePage");

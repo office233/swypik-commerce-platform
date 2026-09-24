@@ -52,14 +52,14 @@ const FORMAT_LABEL: Record<string, string> = {
   roast_cart: "Roast Cart",
 };
 
-function fmtRemaining(endsAt: string | null): string {
+function fmtRemaining(endsAt: string | null, t: (key: string, values?: Record<string, string | number | Date>) => string): string {
   if (!endsAt) return "";
   const ms = new Date(endsAt).getTime() - Date.now();
-  if (ms <= 0) return "Încheiat";
+  if (ms <= 0) return t("ended");
   const d = Math.floor(ms / 86_400_000);
   const h = Math.floor((ms % 86_400_000) / 3_600_000);
-  if (d > 0) return `${d}z ${h}h rămase`;
-  return `${h}h rămase`;
+  if (d > 0) return t("remainingDaysHours", { d, h });
+  return t("remainingHours", { h });
 }
 
 export async function generateMetadata({
@@ -165,11 +165,11 @@ export default async function PostPage({
               <span>@{post.author_handle}</span>
             </Link>
           ) : (
-            <span className="text-white/40">anonim</span>
+            <span className="text-white/40">{t("anonymous")}</span>
           )}
           {post.ends_at ? (
             <span className="inline-flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {fmtRemaining(post.ends_at)}
+              <Clock className="w-3 h-3" /> {fmtRemaining(post.ends_at, t)}
             </span>
           ) : null}
         </div>

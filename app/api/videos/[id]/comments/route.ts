@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, dbQuery } from "@/lib/db";
 import { attachReplies, chooseCommentStatus, mapCommentRow, validateCommentText } from "@/lib/social/comments";
 import { moderateText } from "@/lib/moderation/moderateText";
-import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
+import { recordStrike } from "@/lib/moderation/strikes";
 import { getOptionalSocialUserId, getOrCreateSocialUser, setAnonSessionCookie } from "@/lib/social/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
@@ -99,7 +99,7 @@ export async function GET(
       const totalCount = Number(countRes.rows[0]?.count || 0);
       await annotateViewerLikes([rows], await getOptionalSocialUserId().catch(() => null));
       return NextResponse.json({
-        comments: rows.map(mapCommentRow),
+        comments: rows.map((row) => mapCommentRow(row)),
         page,
         totalCount,
         hasMore: offset + rows.length < totalCount,
@@ -160,7 +160,7 @@ export async function GET(
     });
   } catch (error) {
     logger.error({ err: error }, "[Comments API] GET Error:");
-    return NextResponse.json({ error: "Failed to load comments" }, { status: 500 });
+    return NextResponse.json({ error: "failed_to_load_comments" }, { status: 500 });
   }
 }
 
@@ -175,7 +175,7 @@ export async function POST(
     const { id: videoId } = await params;
     const rawBody = await request.json().catch(() => null);
     if (!UUID_RE.test(videoId)) {
-      return NextResponse.json({ error: "Video not found" }, { status: 404 });
+      return NextResponse.json({ error: "video_not_found" }, { status: 404 });
     }
     const parsedBody = parseBody(VideoCommentPostSchema, rawBody);
     if (!parsedBody.ok) {
@@ -185,7 +185,7 @@ export async function POST(
     const textResult = validateCommentText(body?.text ?? body?.body ?? body?.comment);
 
     if (!textResult.ok) {
-      return NextResponse.json({ error: textResult.error }, { status: 400 });
+      return NextResponse.json({ error: textResult.code }, { status: 400 });
     }
 
     const session = await getOrCreateSocialUser();
@@ -252,7 +252,7 @@ export async function POST(
 
     if (videoRes.rows.length === 0) {
       await client.query("ROLLBACK");
-      return NextResponse.json({ error: "Video not found" }, { status: 404 });
+      return NextResponse.json({ error: "video_not_found" }, { status: 404 });
     }
 
     commentCount = Number(videoRes.rows[0].comment_count || 0);
@@ -270,7 +270,7 @@ export async function POST(
 
       if (parentRes.rows.length === 0) {
         await client.query("ROLLBACK");
-        return NextResponse.json({ error: "Parent comment not found" }, { status: 404 });
+        return NextResponse.json({ error: "parent_comment_not_found" }, { status: 404 });
       }
 
       parentCommentId = parentRes.rows[0].parent_comment_id || parentRes.rows[0].id;
@@ -395,7 +395,7 @@ export async function POST(
   } catch (error) {
     await client.query("ROLLBACK").catch(() => { });
     logger.error({ err: error }, "[Comments API] POST Error:");
-    return NextResponse.json({ error: "Failed to post comment" }, { status: 500 });
+    return NextResponse.json({ error: "failed_to_post_comment" }, { status: 500 });
   } finally {
     client.release();
   }
@@ -417,11 +417,11 @@ export async function DELETE(
     const { id: videoId } = await params;
     const commentId = request.nextUrl.searchParams.get("comment_id")?.trim();
     if (!commentId) {
-      return NextResponse.json({ error: "comment_id required" }, { status: 400 });
+      return NextResponse.json({ error: "comment_id_required" }, { status: 400 });
     }
     const session = await getOrCreateSocialUser();
     if (!session.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
     await client.query("BEGIN");
@@ -434,11 +434,11 @@ export async function DELETE(
     const comment = rows[0];
     if (!comment) {
       await client.query("ROLLBACK");
-      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+      return NextResponse.json({ error: "comment_not_found" }, { status: 404 });
     }
     if (comment.user_id !== session.userId) {
       await client.query("ROLLBACK");
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
     await client.query(`UPDATE comments SET status = 'deleted' WHERE id = $1`, [commentId]);
@@ -462,7 +462,7 @@ export async function DELETE(
   } catch (error) {
     await client.query("ROLLBACK").catch(() => { });
     logger.error({ err: error }, "[Comments API] DELETE Error:");
-    return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
+    return NextResponse.json({ error: "failed_to_delete_comment" }, { status: 500 });
   } finally {
     client.release();
   }

@@ -20,23 +20,31 @@ import {
 
 const BASE = () => process.env.DUFFEL_API_URL || "https://api.duffel.com";
 
-async function duffelFetch<T = any>(
+type DuffelApiError = { message?: string; [key: string]: unknown };
+
+async function duffelFetch<T = unknown>(
     path: string,
     init?: { method?: string; body?: unknown },
-): Promise<{ ok: boolean; status: number; data?: T; errors?: any[] }> {
-    const res = await fetch(`${BASE()}${path}`, {
-        method: init?.method ?? "GET",
-        headers: {
-            Authorization: `Bearer ${process.env.DUFFEL_API_KEY}`,
-            "Duffel-Version": "v2",
-            "Content-Type": "application/json",
-            Accept: "application/json",
-        },
-        body: init?.body ? JSON.stringify({ data: init.body }) : undefined,
-        cache: "no-store",
-    });
-    const json = await res.json().catch(() => ({}));
-    return { ok: res.ok, status: res.status, data: json?.data, errors: json?.errors };
+): Promise<{ ok: boolean; status: number; data?: T; errors?: DuffelApiError[] }> {
+    let res: Response;
+    try {
+        res = await fetch(`${BASE()}${path}`, {
+            method: init?.method ?? "GET",
+            headers: {
+                Authorization: `Bearer ${process.env.DUFFEL_API_KEY}`,
+                "Duffel-Version": "v2",
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: init?.body ? JSON.stringify({ data: init.body }) : undefined,
+            cache: "no-store",
+        });
+    } catch (err) {
+        logger.warn({ err, path }, "[fly/duffel] fetch failed or timed out");
+        return { ok: false, status: 599, errors: [{ message: "duffel_unreachable" }] };
+    }
+    const json = await res.json().catch(() => ({} as Record<string, unknown>));
+    return { ok: res.ok, status: res.status, data: (json as Record<string, unknown>)?.data as T, errors: (json as Record<string, unknown>)?.errors as DuffelApiError[] };
 }
 
 function minutesBetween(a: string, b: string): number {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { Search, X, Play, Pause, Check, Music } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -69,12 +69,12 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
       }
     } catch (err: any) {
       if (err?.name === "AbortError") return;
-      setError("Nu am putut încărca piesele.");
+      setError(t("loadTracksError"));
       setTracks([]);
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Fetch on open + on filter change (debounced)
   useEffect(() => {
@@ -167,12 +167,12 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
           >
             <X size={18} />
           </button>
-          <h2 id={titleId} className="text-sm font-bold">Alege piesa</h2>
+          <h2 id={titleId} className="text-sm font-bold">{t("choosePiece")}</h2>
           <button
             onClick={handleClear}
             className="text-xs font-bold text-white/60 hover:text-white"
           >
-            {selectedId ? "Elimină" : "Fără"}
+            {selectedId ? t("remove") : t("none")}
           </button>
         </div>
 
@@ -201,7 +201,7 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
                 genre === "" ? "bg-white text-black" : "bg-white/10 text-white/80"
               }`}
             >
-              Toate
+              {t("allGenres")}
             </button>
             {GENRES.map((g) => (
               <button
@@ -228,23 +228,23 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
           {!loading && !error && tracks.length === 0 && (
             <div className="text-center text-xs text-white/40 py-8">{t("nicioPiesaGasita")}</div>
           )}
-          {tracks.map((t) => {
-            const isPlaying = playingId === t.id;
-            const isSelected = selectedId === t.id;
+          {tracks.map((track) => {
+            const isPlaying = playingId === track.id;
+            const isSelected = selectedId === track.id;
             return (
               <div
-                key={t.id}
+                key={track.id}
                 className={`flex items-center gap-3 p-2 rounded-xl my-0.5 ${
                   isSelected ? "bg-white/10" : "hover:bg-white/5"
                 }`}
               >
                 <button
-                  onClick={() => togglePlay(t)}
-                  aria-label={isPlaying ? "Pauză" : "Redă"}
+                  onClick={() => togglePlay(track)}
+                  aria-label={isPlaying ? t("pause") : t("play")}
                   className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 active:scale-95"
                 >
-                  {t.imageUrl ? (
-                    <Image src={t.imageUrl} alt="" width={48} height={48} className="h-full w-full object-cover" unoptimized />
+                  {track.imageUrl ? (
+                    <Image src={track.imageUrl} alt="" width={48} height={48} className="h-full w-full object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Music size={18} className="text-white/40" />
@@ -255,13 +255,13 @@ export default function AudioPicker({ open, onClose, selectedId, onSelect }: Aud
                   </div>
                 </button>
                 <button
-                  onClick={() => handleSelect(t)}
+                  onClick={() => handleSelect(track)}
                   className="flex-1 text-left min-w-0"
                 >
-                  <div className="text-sm font-bold truncate">{t.title}</div>
+                  <div className="text-sm font-bold truncate">{track.title}</div>
                   <div className="text-[11px] text-white/50 truncate">
-                    {t.artist} · {formatDur(t.durationS)}
-                    {t.genre ? ` · ${t.genre}` : ""}
+                    {track.artist} · {formatDur(track.durationS)}
+                    {track.genre ? ` · ${track.genre}` : ""}
                   </div>
                 </button>
                 {isSelected && (

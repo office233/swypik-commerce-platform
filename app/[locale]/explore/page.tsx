@@ -3,11 +3,11 @@
  * Fetches the first feed batch server-side so LCP gets a poster without waiting for JS.
  * Heavy interactive feed lives in ExploreClient.tsx (client component).
  */
-import { headers, cookies } from "next/headers";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import ExploreClient from "./ExploreClient";
 import LiveBadge from "@/components/live/LiveBadge";
-import { LOCALE_COOKIE, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
+import { isLocale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
 import { getAppBaseUrl, getRequestBaseUrl } from "@/lib/url";
 
@@ -32,12 +32,30 @@ const META_BY_LOCALE: Record<string, { title: string; description: string }> = {
     title: "Explore — Shopping vidéo | Swypik",
     description: "Découvrez des produits via des vidéos courtes curatées. Achetez directement depuis le feed.",
   },
+  es: {
+    title: "Explore — Compra por video | Swypik",
+    description: "Desliza por cientos de videos cortos curados por IA. Compra directamente desde el feed, sin complicaciones.",
+  },
+  pt: {
+    title: "Explore — Compre por vídeo | Swypik",
+    description: "Deslize por centenas de vídeos curtos selecionados por IA. Compre diretamente do feed, sem complicações.",
+  },
+  it: {
+    title: "Explore — Fai shopping tramite video | Swypik",
+    description: "Scorri centinaia di brevi video selezionati dall'IA. Acquista direttamente dal feed, senza complicazioni.",
+  },
 };
 
-export async function generateMetadata(): Promise<Metadata> {
-  const c = await cookies();
-  const v = c.get(LOCALE_COOKIE)?.value;
-  const locale = isLocale(v) ? v : DEFAULT_LOCALE;
+// Bug fix (i18n/UI audit 2026-09-24): metadata previously read the locale
+// cookie instead of the route's own [locale] segment, so /en/explore could
+// render the Romanian <title> whenever the cookie was stale or unset.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: rawLocale } = await params;
+  const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   const meta = META_BY_LOCALE[locale] ?? META_BY_LOCALE.ro;
   const canonical = `${BASE_URL}/explore`;
   return {

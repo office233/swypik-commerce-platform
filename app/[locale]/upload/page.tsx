@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
-import { dbQuery } from "@/lib/db";
 import UploadClient from "./UploadClient";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +16,15 @@ export default async function UploadPage() {
     redirect("/auth?next=/upload");
   }
 
-  // Pe Swypik orice utilizator autentificat este creator by default.
-  // Dacă cineva încă mai are role='shopper' din vechea schemă, îl promovăm
-  // automat la 'creator' la prima vizită pe /upload — fără ecran de apply.
-  if (auth.role !== "creator" && auth.role !== "admin") {
-    await dbQuery(`UPDATE users SET role = 'creator' WHERE id = $1 AND role = 'shopper'`, [auth.userId]);
+  // Bug fix (i18n/UI audit 2026-09-24): this page used to silently run
+  // `UPDATE users SET role='creator'` for any signed-in shopper who simply
+  // opened /upload, bypassing the explicit creator opt-in at
+  // /become-a-creator (POST /api/creator/apply). Never mutate roles on a
+  // page GET — send non-creators to the explicit apply flow instead. The
+  // upload API routes (app/api/creator/upload-session, etc.) already reject
+  // non-creator/seller/admin roles server-side regardless of this gate.
+  if (auth.role !== "creator" && auth.role !== "admin" && auth.role !== "seller") {
+    redirect("/become-a-creator");
   }
 
   return <UploadClient />;

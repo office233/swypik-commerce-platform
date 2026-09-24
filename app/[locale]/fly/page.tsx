@@ -1,11 +1,18 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import FlyClient from "./FlyClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-    title: "Swypik Fly — bilete de avion",
-    description: "Caută și rezervă zboruri cu preț final afișat din start. În lei, fără taxe ascunse la plată.",
-};
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: "fly" });
+    return { title: t("metaTitle"), description: t("metaDescription") };
+}
 
 export default function FlyPage() {
     return <FlyClient />;
