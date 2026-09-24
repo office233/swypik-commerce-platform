@@ -20,18 +20,6 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
     const episodeNumber = Number(n);
     if (!Number.isInteger(episodeNumber) || episodeNumber < 1) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-    if (slug.startsWith("tmdb-")) {
-        const { CURATED_TMDB_MOVIES } = await import("@/lib/movies/tmdb");
-        const movie = CURATED_TMDB_MOVIES.find((m) => m.id === slug) || CURATED_TMDB_MOVIES[0];
-        const trailerKey = movie.trailerYoutubeKey || "Way9Dexny3w";
-        return NextResponse.json({
-            videoId: trailerKey,
-            playbackUrl: `https://www.youtube.com/watch?v=${trailerKey}`,
-            poster: movie.posterUrl,
-            expiresAt: null,
-        });
-    }
-
     const series = await getSeriesBySlug(slug);
     if (!series || series.status !== "published") return NextResponse.json({ error: "not_found" }, { status: 404 });
     const episode = await getEpisode(series.id, episodeNumber);

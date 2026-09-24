@@ -61,10 +61,7 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
       <div className="absolute inset-x-0 bottom-0 px-4 pb-6 sm:px-6 sm:pb-8 max-w-4xl" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
         <div className="flex items-center gap-2 mb-2">
           <span className="rounded-full bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#EC4899] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_0_16px_rgba(124,58,237,0.6)]">
-            SWYPIK CINEMA 4K
-          </span>
-          <span className="rounded-full bg-black/60 backdrop-blur-md px-2 py-0.5 text-xs font-bold text-yellow-400 border border-white/10 flex items-center gap-1 shadow-sm">
-            ★ {series.slug.includes("dune") ? "8.6" : "8.4"} TMDB
+            {t("brandBadge")}
           </span>
         </div>
 
@@ -95,7 +92,7 @@ export default function HeroTrailer({ series, playbackUrl }: { series: SeriesDto
               onClick={() => setShowTrailerModal(true)}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#EC4899] px-4 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-sm font-black text-white shadow-[0_0_20px_rgba(124,58,237,0.5)] active:scale-95 hover:brightness-110 transition-all shrink-0"
             >
-              <Play size={15} fill="currentColor" /> Redă Trailer 4K
+              <Play size={15} fill="currentColor" /> {t("playTrailer")}
             </button>
           ) : (
             <Link

@@ -1,185 +1,145 @@
 /**
- * Client TMDB (The Movie Database) & Catalog Cinema 4K pentru Swypik Movies.
- * Oferă postere oficiale, sinopsis în română, note, genuri și trailere oficiale 4K.
- * Include fallback complet de blockbustere (2025-2026) dacă TMDB_API_KEY nu este setat.
+ * Client TMDB (The Movie Database) pentru rândul onest „Trailere populare”.
+ * Activ DOAR când TMDB_API_KEY este setat — fără cheie, fără rând, fără date
+ * simulate. Titlurile TMDB nu sunt niciodată tratate ca seriale Swypik: au un
+ * DTO separat (`TrailerItem`) și apar exclusiv în acest rând dedicat, cu
+ * atribuire TMDB vizibilă. Vezi lib/movies/home.ts pentru compunerea rândului.
  */
+import { logger } from "@/lib/logger";
+import { MOVIE_GENRES, type MovieGenre } from "./genres";
 
-export interface TmdbMovieDto {
+/** Trailer TMDB — niciodată confundat cu un SeriesDto (nu are episoade, preț sau owner). */
+export interface TrailerItem {
     id: string;
+    tmdbId: number;
     title: string;
     originalTitle: string;
     overview: string;
-    posterUrl: string;
-    backdropUrl: string;
-    rating: number; // 0 - 10
+    posterUrl: string | null;
+    backdropUrl: string | null;
+    /** Nota TMDB brută (0-10), afișată etichetat „TMDB” în UI — niciodată ca rating propriu Swypik. */
+    voteAverage: number;
     releaseYear: string;
-    genres: string[];
-    trailerYoutubeKey?: string | null;
-    tagline?: string;
-    durationMinutes?: number;
-    badge?: string;
+    genres: MovieGenre[];
+    youtubeKey: string;
 }
 
-export const CURATED_TMDB_MOVIES: TmdbMovieDto[] = [
-    {
-        id: "tmdb-dune-2",
-        title: "Dune: Partea a II-a",
-        originalTitle: "Dune: Part Two",
-        overview: "Paul Atreides se aliază cu Chani și Fremenii în timp ce caută răzbunare împotriva conspiratorilor care i-au distrus familia. Confruntat cu o alegere între dragostea vieții sale și soarta universului cunoscut, el încearcă să prevină un viitor teribil pe care numai el îl poate prevedea.",
-        posterUrl: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
-        backdropUrl: "https://image.tmdb.org/t/p/original/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
-        rating: 8.6,
-        releaseYear: "2024",
-        genres: ["action", "fantasy"],
-        trailerYoutubeKey: "Way9Dexny3w",
-        tagline: "Lupta pentru Arrakis continuă.",
-        durationMinutes: 166,
-        badge: "TOP 10",
-    },
-    {
-        id: "tmdb-oppenheimer",
-        title: "Oppenheimer",
-        originalTitle: "Oppenheimer",
-        overview: "Povestea fizicianului american J. Robert Oppenheimer, supranumit „părintele bombei atomice”, și rolul său crucial în Proiectul Manhattan în timpul celui de-al Doilea Război Mondial.",
-        posterUrl: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
-        backdropUrl: "https://image.tmdb.org/t/p/original/rLb2cwF3Pazuxaj0sRXQ037tGI1.jpg",
-        rating: 8.9,
-        releaseYear: "2023",
-        genres: ["drama"],
-        trailerYoutubeKey: "uYPbbksJxIg",
-        tagline: "Lumea se schimbă pentru totdeauna.",
-        durationMinutes: 180,
-        badge: "OSCAR",
-    },
-    {
-        id: "tmdb-gladiator-2",
-        title: "Gladiatorul II",
-        originalTitle: "Gladiator II",
-        overview: "După ani de zile de la moartea eroului Maximus, Lucius este forțat să intre în Colosseum după ce casa sa este cucerită de împărații tirani care conduc acum Roma cu o mână de fier.",
-        posterUrl: "https://image.tmdb.org/t/p/w500/2cxhvwyEwRlysAmRH4iodkvo0z5.jpg",
-        backdropUrl: "https://image.tmdb.org/t/p/original/tOqIwliWMovSIZ9DyvHcHI7p2im.jpg",
-        rating: 8.1,
-        releaseYear: "2024",
-        genres: ["action", "drama"],
-        trailerYoutubeKey: "4rgYUipGJNo",
-        tagline: "Ce facem în viață răsună în eternitate.",
-        durationMinutes: 148,
-        badge: "CINEMA 4K",
-    },
-    {
-        id: "tmdb-deadpool-wolverine",
-        title: "Deadpool & Wolverine",
-        originalTitle: "Deadpool & Wolverine",
-        overview: "Un Deadpool apatic din punct de vedere profesional trece printr-o criză a vârstei de mijloc în timp ce lucrează ca vânzător de mașini second-hand. Când universul său este amenințat, el face echipă fără tragere de inimă cu un Wolverine refractar.",
-        posterUrl: "https://image.tmdb.org/t/p/w500/tiOVgX0i0uvSyMZYs05P0RKcrhS.jpg",
-        backdropUrl: "https://image.tmdb.org/t/p/original/by8z9Fe8y7p4jo2YlW2SZDnptyT.jpg",
-        rating: 8.4,
-        releaseYear: "2024",
-        genres: ["action", "comedy"],
-        trailerYoutubeKey: "73_1biulkYk",
-        tagline: "Toți merită un final fericit.",
-        durationMinutes: 127,
-        badge: "BLOCKBUSTER",
-    },
-    {
-        id: "tmdb-interstellar",
-        title: "Interstellar: Călătorind prin spațiu",
-        originalTitle: "Interstellar",
-        overview: "Într-un viitor în care Pământul devine nelocuibil, o echipă de exploratori călătorește printr-o gaură de vierme în spațiu, în încercarea de a asigura supraviețuirea umanității.",
-        posterUrl: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-        backdropUrl: "https://image.tmdb.org/t/p/original/xJHokMbljvjADYdit5fK5VQsXEG.jpg",
-        rating: 8.7,
-        releaseYear: "2014",
-        genres: ["fantasy", "drama"],
-        trailerYoutubeKey: "zSWdZVtXT7E",
-        tagline: "Sfârșitul omenirii nu va fi sfârșitul nostru.",
-        durationMinutes: 169,
-        badge: "CLASIC 4K",
-    },
-    {
-        id: "tmdb-joker-folie",
-        title: "Joker: Folie à Deux",
-        originalTitle: "Joker: Folie à Deux",
-        overview: "Arthur Fleck este instituționalizat la Arkham în așteptarea procesului pentru crimele sale ca Joker. În timp ce se luptă cu dubla sa identitate, Arthur nu doar că se împiedică de dragostea adevărată, dar găsește și muzica care a fost mereu în el.",
-        posterUrl: "https://image.tmdb.org/t/p/w500/IqeME8MTbpar00sQCKVYQe6ML0.jpg",
-        backdropUrl: "https://image.tmdb.org/t/p/original/AVWlQpVhpudyFsSh3OQIieHHYf.jpg",
-        rating: 7.6,
-        releaseYear: "2024",
-        genres: ["drama", "crime", "thriller"],
-        trailerYoutubeKey: "_OKAwz2NiOI",
-        tagline: "Lumea este o scenă.",
-        durationMinutes: 138,
-        badge: "PREMIERĂ",
-    },
-    {
-        id: "tmdb-miami-bici-2",
-        title: "Miami Bici 2",
-        originalTitle: "Miami Bici 2",
-        overview: "Ion Bilcea și Ilie Piciu ajung în Los Angeles, unde încearcă să-și trăiască visul american, intrând însă în încurcături amuzante cu mafia locală.",
-        posterUrl: "https://image.tmdb.org/t/p/w500/dfQ5sSFXAmnPtJRsiUBD82zgFMm.jpg",
-        backdropUrl: "https://image.tmdb.org/t/p/original/1pmXyN3sKeYoUhu5VBZiDU4BX21.jpg",
-        rating: 7.2,
-        releaseYear: "2023",
-        genres: ["comedy"],
-        trailerYoutubeKey: "v94d_q4QjT0",
-        tagline: "Visul american cu aromă românească.",
-        durationMinutes: 102,
-        badge: "ROMÂNESC",
-    },
-    {
-        id: "tmdb-teambuilding",
-        title: "Teambuilding",
-        originalTitle: "Teambuilding",
-        overview: "Emil lucrează prea mult și speră la o promovare. Când corporația anunță restructurări, el organizează cel mai nebun teambuilding pentru a-și salva filiala.",
-        posterUrl: "https://image.tmdb.org/t/p/w500/kvJqs0vm29U0xJa373wlzHb3FRh.jpg",
-        backdropUrl: "https://image.tmdb.org/t/p/original/7hYG0v6BEErqqwnU7vWJjWgYJJp.jpg",
-        rating: 7.0,
-        releaseYear: "2022",
-        genres: ["comedy"],
-        trailerYoutubeKey: "Z6jS4_47Q1c",
-        tagline: "Cea mai mare comedie românească.",
-        durationMinutes: 98,
-        badge: "ROMÂNESC",
-    }
-];
+const TMDB_API_BASE = "https://api.themoviedb.org/3";
+const TMDB_FETCH_TIMEOUT_MS = 5000;
+const TMDB_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
+const TMDB_MAX_ITEMS = 15;
 
-export async function getTrendingMovies(): Promise<TmdbMovieDto[]> {
-    const apiKey = process.env.TMDB_API_KEY;
-    if (!apiKey) {
-        return CURATED_TMDB_MOVIES;
+/** Mapare oficială TMDB genre_ids → taxonomia noastră fixă (lib/movies/genres.ts). Genurile TMDB fără corespondent sunt ignorate. */
+const TMDB_GENRE_MAP: Record<number, MovieGenre> = {
+    18: "drama",
+    10749: "romance",
+    35: "comedy",
+    53: "thriller",
+    28: "action",
+    14: "fantasy",
+    80: "crime",
+    9648: "mystery",
+    10751: "family",
+};
+
+function mapTmdbGenreIds(genreIds: unknown): MovieGenre[] {
+    if (!Array.isArray(genreIds)) return [];
+    const out: MovieGenre[] = [];
+    for (const id of genreIds) {
+        const genre = typeof id === "number" ? TMDB_GENRE_MAP[id] : undefined;
+        if (genre && !out.includes(genre)) out.push(genre);
     }
+    return out;
+}
+
+/** v4 read access tokens sunt JWT-uri lungi (încep cu "eyJ"); v3 e o cheie hex scurtă. */
+function isV4ReadToken(key: string): boolean {
+    return key.startsWith("eyJ");
+}
+
+function tmdbFetch(path: string, apiKey: string, extraParams?: Record<string, string>): Promise<Response> {
+    const url = new URL(`${TMDB_API_BASE}${path}`);
+    const params = { language: "ro-RO", ...extraParams };
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    const useBearer = isV4ReadToken(apiKey);
+    if (!useBearer) url.searchParams.set("api_key", apiKey);
+    return fetch(url.toString(), {
+        headers: useBearer ? { Authorization: `Bearer ${apiKey}`, accept: "application/json" } : { accept: "application/json" },
+        signal: AbortSignal.timeout(TMDB_FETCH_TIMEOUT_MS),
+    });
+}
+
+type TmdbVideo = { key: string; site: string; type: string };
+type TmdbPopularItem = {
+    id: number;
+    title?: string;
+    original_title?: string;
+    overview?: string;
+    poster_path?: string | null;
+    backdrop_path?: string | null;
+    vote_average?: number;
+    release_date?: string;
+    genre_ids?: number[];
+};
+
+async function fetchYoutubeTrailerKey(movieId: number, apiKey: string): Promise<string | null> {
+    const res = await tmdbFetch(`/movie/${movieId}/videos`, apiKey, {});
+    if (!res.ok) return null;
+    const data: unknown = await res.json();
+    const results = (data as { results?: TmdbVideo[] }).results;
+    if (!Array.isArray(results)) return null;
+    const trailer = results.find((v) => v.site === "YouTube" && v.type === "Trailer");
+    return trailer?.key ?? null;
+}
+
+let cache: { expiresAt: number; items: TrailerItem[] } | null = null;
+
+/** Trailere TMDB populare, cu cheia YouTube reală atașată. [] dacă TMDB_API_KEY lipsește sau la orice eroare. */
+export async function getPopularTrailers(): Promise<TrailerItem[]> {
+    const apiKey = process.env.TMDB_API_KEY;
+    if (!apiKey) return [];
+
+    if (cache && cache.expiresAt > Date.now()) return cache.items;
 
     try {
-        const res = await fetch(
-            `https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}&language=ro-RO`,
-            { next: { revalidate: 3600 } }
+        const res = await tmdbFetch("/movie/popular", apiKey, { page: "1" });
+        if (!res.ok) {
+            logger.warn({ status: res.status }, "tmdb popular movies request failed");
+            return cache?.items ?? [];
+        }
+        const data: unknown = await res.json();
+        const results = (data as { results?: TmdbPopularItem[] }).results;
+        if (!Array.isArray(results)) return cache?.items ?? [];
+
+        const candidates = results.slice(0, TMDB_MAX_ITEMS);
+        const withTrailers = await Promise.all(
+            candidates.map(async (item): Promise<TrailerItem | null> => {
+                const youtubeKey = await fetchYoutubeTrailerKey(item.id, apiKey).catch(() => null);
+                if (!youtubeKey) return null;
+                return {
+                    id: `trailer-${item.id}`,
+                    tmdbId: item.id,
+                    title: item.title || item.original_title || "",
+                    originalTitle: item.original_title || item.title || "",
+                    overview: item.overview || "",
+                    posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+                    backdropUrl: item.backdrop_path ? `https://image.tmdb.org/t/p/original${item.backdrop_path}` : null,
+                    voteAverage: Math.round((item.vote_average || 0) * 10) / 10,
+                    releaseYear: (item.release_date || "").substring(0, 4) || "",
+                    genres: mapTmdbGenreIds(item.genre_ids),
+                    youtubeKey,
+                };
+            })
         );
 
-        if (!res.ok) {
-            return CURATED_TMDB_MOVIES;
-        }
-
-        const data = await res.json();
-        if (!data.results || !Array.isArray(data.results)) {
-            return CURATED_TMDB_MOVIES;
-        }
-
-        const tmdbMovies: TmdbMovieDto[] = data.results.slice(0, 15).map((item: any) => ({
-            id: `tmdb-${item.id}`,
-            title: item.title || item.original_title,
-            originalTitle: item.original_title,
-            overview: item.overview || "Descriere în curs de actualizare.",
-            posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : CURATED_TMDB_MOVIES[0].posterUrl,
-            backdropUrl: item.backdrop_path ? `https://image.tmdb.org/t/p/original${item.backdrop_path}` : CURATED_TMDB_MOVIES[0].backdropUrl,
-            rating: Math.round((item.vote_average || 7.0) * 10) / 10,
-            releaseYear: (item.release_date || "").substring(0, 4) || "2024",
-            genres: ["Cinema 4K", "Trending"],
-            trailerYoutubeKey: null,
-            badge: "TMDB HD",
-        }));
-
-        return tmdbMovies.length > 0 ? tmdbMovies : CURATED_TMDB_MOVIES;
-    } catch {
-        return CURATED_TMDB_MOVIES;
+        const items = withTrailers.filter((m): m is TrailerItem => m !== null);
+        cache = { items, expiresAt: Date.now() + TMDB_CACHE_TTL_MS };
+        return items;
+    } catch (err) {
+        logger.warn({ err }, "tmdb popular movies fetch error");
+        return cache?.items ?? [];
     }
 }
+
+/** Exportat doar pentru teste unitare. */
+export const __testables = { mapTmdbGenreIds, isV4ReadToken, TMDB_GENRE_MAP, MOVIE_GENRES };

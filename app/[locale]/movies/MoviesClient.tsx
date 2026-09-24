@@ -60,7 +60,7 @@ export default function MoviesClient() {
             <MoviesBrand size="sm" />
           </div>
           <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#7C3AED]/20 to-[#EC4899]/20 border border-[#7C3AED]/40 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-pink-300">
-            CINEMA
+            {t("cinemaBadge")}
           </span>
         </div>
         <GenreChips selected={genre} onSelect={setGenre} />

@@ -13,5 +13,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default function MoviesPage() {
+  if (!isEnabled("movies")) notFound();
   return <MoviesClient />;
 }
