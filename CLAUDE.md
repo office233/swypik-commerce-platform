@@ -27,14 +27,13 @@ Swypik = platforma social commerce (TikTok Shop style) care combina video-uri sc
 ## Workflow (de aici inainte)
 1. Editezi in `E:\Swypik\swypik\app`, pe branch de feature; gate-uri: `npx tsc --noEmit --incremental false`, `npx vitest run`, `npx next lint`, `node scripts/i18n-guard.mjs`, `npx next build`.
 2. Merge in `main` + `git push origin main`.
-3. Deploy local, ca root in distro (`wsl -d swypik -u root`), din `/opt/swypik/app`:
-   - backup: `docker exec swypik-prod-postgres-1 pg_dump -U swypik swypik_prod | gzip > /opt/swypik/backups/<data>.sql.gz`
-   - `sudo -u dev git pull --ff-only origin main`
-   - migrari noi: `docker exec -i swypik-prod-postgres-1 psql -v ON_ERROR_STOP=1 -U swypik -d swypik_prod < db/migrations/<f>.sql` + `insert into schema_migrations (version) values ('<f fara .sql>')`
-   - build + recreate: `cd infra/hetzner && BUILD_COMMIT=$(git rev-parse HEAD) BUILD_TIME=$(date -u +%FT%TZ) DEPLOYED_AT=$BUILD_TIME docker compose -p swypik-prod --env-file .env.production -f docker-compose.prod.yml -f docker-compose.vps.yml -f docker-compose.minio.yml build web-next && ... up -d --no-deps --force-recreate web-next`
-   - health: `curl http://127.0.0.1:3005/api/health` (release.commit = HEAD), apoi `https://swypik.com/...`
-   Scripturile folosite la release-ul Movies+Music: `E:\Swypik\deploy-step-a.sh` (backup, pull, flag-uri), `deploy-step-a2.sh` (migrari), `deploy-step-b.sh` (build, recreate, health, smoke).
-4. `wsl.exe` da eroarea `0x80072747` cand serviciul WSL e sufocat de ancore duplicate — verifica `tasklist | findstr wsl.exe`; NU rula `wsl --shutdown` (opreste site-ul).
+3. Deploy: **un singur script**, `E:\Swypik\ops\deploy.bat` (sau, ca root in distro, `bash /mnt/e/Swypik/ops/deploy.sh [--flags "FEATURE_X FEATURE_Y"]`).
+   Face: lock (un singur deploy o data), refuza clona live murdara, backup `pg_dump`, `git pull --ff-only origin main`,
+   aplica toate migrarile neinregistrate in `schema_migrations`, build + recreate `web-next`, asteapta ca
+   `/api/health` sa raporteze noul commit, smoke test. Rollback: imaginea `swypik-prod-web-next:rollback`.
+   Nu se mai copiaza NICIODATA fisiere locale in productie (vechile `deploy-step-*.sh` faceau rsync din working tree — arhivate in `E:\Swypik\_arhiva\`).
+4. WSL: daca `wsl.exe` da `HCS_E_CONNECTION_TIMEOUT` / `0x80072747`, serviciul WSL e blocat — repornire ca admin: `Restart-Service WslService -Force`.
+   Nu rula doua deploy-uri in paralel (2026-09-24: doua build-uri simultane au blocat VM-ul si site-ul).
 
 GitHub `main` = sursa de adevar; `/opt/swypik/app` e doar clona de rulare.
 

@@ -54,3 +54,7 @@ tsc_out.txt
 build_*.log
 knip_out.txt
 workers/**/__pycache__/
+
+# rapoarte generate local
+i18n-audit.json
+.next-*/
