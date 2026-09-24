@@ -17,9 +17,21 @@ export default function ModerationActions({ reportId, videoId, creatorId }: Prop
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  function translateError(code: string | undefined, status: number): string {
+    const known: Record<string, string> = {
+      forbidden: t("errorForbidden"),
+      invalid_id: t("errorInvalidId"),
+      creator_not_found: t("errorCreatorNotFound"),
+      report_invalid_no_video: t("errorReportInvalidNoVideo"),
+      report_not_found: t("errorReportNotFound"),
+    };
+    if (code && known[code]) return known[code];
+    return t("errorGeneric", { status });
+  }
+
   async function run(action: string, confirmMsg: string, doubleConfirm = false) {
     if (!confirm(confirmMsg)) return;
-    if (doubleConfirm && !confirm("Ești absolut sigur? Această acțiune este permanentă.")) return;
+    if (doubleConfirm && !confirm(t("confirmIrreversible"))) return;
     setLoading(action);
     setError(null);
     try {
@@ -30,14 +42,14 @@ export default function ModerationActions({ reportId, videoId, creatorId }: Prop
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data?.error || `Eroare ${res.status}`);
+        setError(translateError(data?.error, res.status));
         setLoading(null);
         return;
       }
       router.push("/admin/moderation");
       router.refresh();
-    } catch (e: any) {
-      setError(e?.message || "Eroare de rețea");
+    } catch {
+      setError(t("errorNetwork"));
       setLoading(null);
     }
   }
@@ -63,38 +75,38 @@ export default function ModerationActions({ reportId, videoId, creatorId }: Prop
         <button
           type="button"
           disabled={loading !== null}
-          onClick={() => run("dismiss", "Respingi raportul? (nu se aplică nicio sancțiune)")}
+          onClick={() => run("dismiss", t("confirmDismiss"))}
           className="rounded-lg border border-black/15 px-4 py-2 text-sm font-bold disabled:opacity-50"
         >
-          {loading === "dismiss" ? "..." : "Respinge raport"}
+          {loading === "dismiss" ? t("loading") : t("dismissReport")}
         </button>
         <button
           type="button"
           disabled={loading !== null || !videoId}
-          onClick={() => run("hide-video", "Ascunzi videoul din feed?")}
+          onClick={() => run("hide-video", t("confirmHideVideo"))}
           className="rounded-lg bg-orange-500 text-white px-4 py-2 text-sm font-bold disabled:opacity-50"
         >
-          {loading === "hide-video" ? "..." : "Ascunde video"}
+          {loading === "hide-video" ? t("loading") : t("hideVideo")}
         </button>
         <button
           type="button"
           disabled={loading !== null || !creatorId}
           onClick={() =>
-            run("ban-creator", "Suspenzi creatorul pentru 7 zile?")
+            run("ban-creator", t("confirmBanCreator"))
           }
           className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-bold disabled:opacity-50"
         >
-          {loading === "ban-creator" ? "..." : "Banează creator 7 zile"}
+          {loading === "ban-creator" ? t("loading") : t("banCreator")}
         </button>
         <button
           type="button"
           disabled={loading !== null || !videoId}
           onClick={() =>
-            run("delete-video", "Elimini permanent videoul?", true)
+            run("delete-video", t("confirmDeleteVideo"), true)
           }
           className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold disabled:opacity-50"
         >
-          {loading === "delete-video" ? "..." : "Elimină permanent"}
+          {loading === "delete-video" ? t("loading") : t("deletePermanently")}
         </button>
       </div>
     </div>

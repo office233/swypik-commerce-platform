@@ -23,8 +23,7 @@ type AppDetail = {
 };
 
 export default function AppDetailClient({ slug }: { slug: string }) {
-  const t = useTranslations("appsAppDetail");
-  const tx = useTranslations("appDetail");
+  const t = useTranslations("appDetail");
   const [app, setApp] = useState<AppDetail | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
@@ -70,10 +69,10 @@ export default function AppDetailClient({ slug }: { slug: string }) {
       if (res.ok) {
         setInstalled(true);
         setShowConsent(false);
-        setMessage("Aplicația a fost instalată. Dezvoltatorul o poate conecta acum prin OAuth.");
+        setMessage(t("installSuccess"));
       } else {
         const data = await res.json().catch(() => ({}));
-        setMessage(data.error === "seller_login_required" ? "Trebuie să fii logat ca seller." : "Instalarea a eșuat.");
+        setMessage(data.error === "seller_login_required" ? t("sellerLoginRequired") : t("installFailed"));
       }
     } finally {
       setBusy(false);
@@ -81,42 +80,42 @@ export default function AppDetailClient({ slug }: { slug: string }) {
   }
 
   async function uninstall() {
-    if (!app || !confirm(`Dezinstalezi „${app.name}"? Tokenul de acces va fi revocat.`)) return;
+    if (!app || !confirm(t("uninstallConfirm", { name: app.name }))) return;
     const res = await fetch(`/api/apps/installs?app_id=${app.id}`, { method: "DELETE" });
     if (res.ok) {
       setInstalled(false);
-      setMessage("Aplicația a fost dezinstalată.");
+      setMessage(t("uninstallSuccess"));
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">{tx("loading")}</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
   if (notFound || !app) {
     return (
       <div className="p-8 text-center text-gray-500">
-        {tx("notFound")} <Link href="/apps" className="underline">{tx("backToStore")}</Link>
+        {t("notFound")} <Link href="/apps" className="underline">{t("backToStore")}</Link>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4">
-      <Link href="/apps" className="text-sm text-gray-500 underline">← App Store</Link>
+      <Link href="/apps" className="text-sm text-gray-500 underline">← {t("appStore")}</Link>
 
       <header className="flex items-center gap-4">
         {app.icon_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={app.icon_url} alt="" className="h-16 w-16 rounded-lg object-cover" />
+          <img src={app.icon_url} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-2xl font-bold text-gray-500">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-2xl font-bold text-gray-500">
             {app.name.charAt(0).toUpperCase()}
           </div>
         )}
-        <div>
-          <h1 className="text-2xl font-bold">{app.name}</h1>
-          <p className="text-sm text-gray-500">
-            de {app.developer_company}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold truncate">{app.name}</h1>
+          <p className="text-sm text-gray-500 truncate">
+            {t("byDeveloper", { company: app.developer_company })}
             {app.developer_website && (
-              <> · <a href={app.developer_website} target="_blank" rel="noopener noreferrer" className="underline">website</a></>
+              <> · <a href={app.developer_website} target="_blank" rel="noopener noreferrer" className="underline">{t("website")}</a></>
             )}
           </p>
         </div>
@@ -129,12 +128,11 @@ export default function AppDetailClient({ slug }: { slug: string }) {
       {isSeller ? (
         installed ? (
           <button className="rounded border border-red-300 px-4 py-2 text-red-600" onClick={() => void uninstall()}>
-            
-            {t("dezinstaleaza")}
+            {t("uninstall")}
           </button>
         ) : showConsent ? (
           <div className="rounded-lg border p-4">
-            <h2 className="font-semibold">&bdquo;{app.name}{t("rdquoCereAccesLa")}</h2>
+            <h2 className="font-semibold">{t("consentTitle", { name: app.name })}</h2>
             <ul className="mt-3 space-y-2">
               {app.scope_details.map((s) => (
                 <li key={s.scope} className="flex items-center gap-2 text-sm">
@@ -151,25 +149,24 @@ export default function AppDetailClient({ slug }: { slug: string }) {
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <button
                 className="rounded bg-black px-4 py-2 text-white disabled:opacity-40"
                 disabled={busy || accepted.length === 0}
                 onClick={() => void install()}
               >
-                {busy ? "Se instalează…" : "Acceptă și instalează"}
+                {busy ? t("installing") : t("acceptAndInstall")}
               </button>
-              <button className="rounded border px-4 py-2" onClick={() => setShowConsent(false)}>{tx("cancel")}</button>
+              <button className="rounded border px-4 py-2" onClick={() => setShowConsent(false)}>{t("cancel")}</button>
             </div>
           </div>
         ) : (
           <button className="rounded bg-black px-6 py-2 text-white" onClick={() => setShowConsent(true)}>
-            
-            {t("instaleaza")}
+            {t("install")}
           </button>
         )
       ) : (
-        <p className="text-sm text-gray-500">{tx("loginPrompt")}</p>
+        <p className="text-sm text-gray-500">{t("loginPrompt")}</p>
       )}
     </div>
   );

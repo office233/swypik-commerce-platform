@@ -20,12 +20,12 @@ export function UserFraudActions({ userId, blocked }: Props) {
     if (busy || pending) return;
     const reason = prompt(
       action === "unblock"
-        ? "Motiv deblocare user (ex: identitate verificată, false positive):"
-        : "Motiv blocare user (ex: pattern fraudă multi-order):",
+        ? t("unblockReasonPrompt")
+        : t("blockUserReasonPrompt"),
     );
     if (reason === null) return;
     if (!reason.trim()) {
-      alert("Motivul este obligatoriu.");
+      alert(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -37,12 +37,19 @@ export function UserFraudActions({ userId, blocked }: Props) {
       });
       const data = await res.json();
       if (!res.ok || !data?.success) {
-        alert(`Eroare: ${data?.error || res.status}`);
+        const known: Record<string, string> = {
+          forbidden: t("errApiForbidden"),
+          invalid_id: t("errApiInvalidId"),
+          invalid_action: t("errApiInvalidAction"),
+          reason_required: t("reasonRequired"),
+          user_not_found: t("errApiUserNotFound"),
+        };
+        alert(t("errorPrefix") + (known[data?.error] || data?.error || res.status));
         return;
       }
       startTransition(() => router.refresh());
-    } catch (e: any) {
-      alert(`Network error: ${e?.message}`);
+    } catch (e) {
+      alert(t("networkErrorPrefix") + (e instanceof Error ? e.message : ""));
     } finally {
       setBusy(false);
     }
@@ -56,7 +63,7 @@ export function UserFraudActions({ userId, blocked }: Props) {
       disabled={disabled}
       className="shrink-0 text-[11px] px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 font-semibold disabled:opacity-50"
     >
-      {disabled ? "..." : <span className="inline-flex items-center gap-1"><Check size={12} /> {t("unblock")}</span>}
+      {disabled ? t("loading") : <span className="inline-flex items-center gap-1"><Check size={12} /> {t("unblock")}</span>}
     </button>
   ) : (
     <button
@@ -65,7 +72,7 @@ export function UserFraudActions({ userId, blocked }: Props) {
       disabled={disabled}
       className="shrink-0 text-[11px] px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 font-semibold disabled:opacity-50"
     >
-      {disabled ? "..." : <span className="inline-flex items-center gap-1"><Ban size={12} /> {t("blockUser")}</span>}
+      {disabled ? t("loading") : <span className="inline-flex items-center gap-1"><Ban size={12} /> {t("blockUser")}</span>}
     </button>
   );
 }

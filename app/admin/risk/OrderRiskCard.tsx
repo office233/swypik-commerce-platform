@@ -1,7 +1,18 @@
 import Link from "next/link";
 import { Ban, Lightbulb } from "lucide-react";
+import { getTranslations, getLocale } from "next-intl/server";
 import type { OrderRiskScore } from "@/lib/risk/order-fraud-score";
 import { FraudActions } from "./FraudActions";
+
+type OrderMetadata = {
+  shipping_address?: { line1?: string; address_line_1?: string; country?: string };
+  billing_address?: { country?: string };
+  items?: unknown[];
+  item_count?: number;
+  checkout_ip_country?: string;
+  fraud_block?: boolean;
+  fraud_last_decision?: { action: string; at: string; reason?: string };
+};
 
 export type OrderRow = {
   id: string;
@@ -10,7 +21,7 @@ export type OrderRow = {
   currency: string;
   total_cents: number;
   created_at: string;
-  metadata: any;
+  metadata: OrderMetadata | null;
   buyer_email: string | null;
   buyer_phone: string | null;
   buyer_email_verified_at: string | null;
@@ -21,12 +32,12 @@ export type OrderRow = {
   prior_chargebacks_lost: number;
 };
 
-function levelBadge(level: OrderRiskScore["level"]) {
+function levelBadge(level: OrderRiskScore["level"], t: Awaited<ReturnType<typeof getTranslations>>) {
   switch (level) {
-    case "critical": return { bg: "bg-red-600", text: "text-white", label: "CRITIC" };
-    case "high": return { bg: "bg-orange-500", text: "text-white", label: "ÎNALT" };
-    case "medium": return { bg: "bg-amber-100", text: "text-amber-900", label: "MEDIU" };
-    case "low": return { bg: "bg-emerald-100", text: "text-emerald-900", label: "SCĂZUT" };
+    case "critical": return { bg: "bg-red-600", text: "text-white", label: t("levelCritical") };
+    case "high": return { bg: "bg-orange-500", text: "text-white", label: t("levelHigh") };
+    case "medium": return { bg: "bg-amber-100", text: "text-amber-900", label: t("levelMedium") };
+    case "low": return { bg: "bg-emerald-100", text: "text-emerald-900", label: t("levelLow") };
   }
 }
 
@@ -34,10 +45,13 @@ function fmtMoney(cents: number, currency: string): string {
   return `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`;
 }
 
-export function OrderRiskCard({ row, risk }: { row: OrderRow; risk: OrderRiskScore }) {
-  const badge = levelBadge(risk.level);
+export async function OrderRiskCard({ row, risk }: { row: OrderRow; risk: OrderRiskScore }) {
+  const t = await getTranslations("adminRisk");
+  const locale = await getLocale();
+  const badge = levelBadge(risk.level, t);
   const positives = risk.factors.filter((f) => f.delta > 0);
   const negatives = risk.factors.filter((f) => f.delta < 0);
+  const dateFmt = (d: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(d));
 
   return (
     <details className="bg-white border border-[#E5E5E5] rounded p-3 group">
@@ -56,22 +70,22 @@ export function OrderRiskCard({ row, risk }: { row: OrderRow; risk: OrderRiskSco
           </span>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-[#0D0D0D] truncate">
-              {row.buyer_email || "(guest)"}{" "}
+              {row.buyer_email || t("guest")}{" "}
               <span className="text-xs text-gray-500 font-normal">
-                · {fmtMoney(row.total_cents, row.currency)} · {row.status}
+                &middot; {fmtMoney(row.total_cents, row.currency)} &middot; {row.status}
               </span>
             </div>
             <div className="text-xs text-gray-500 truncate">
-              Order <code className="font-mono">{row.id.slice(0, 8)}</code> ·{" "}
-              {new Date(row.created_at).toLocaleString("ro-RO")}
-              {row.prior_paid > 0 && ` · ${row.prior_paid} comenzi anterioare`}
-              {row.prior_disputes > 0 && ` · ${row.prior_disputes} dispute prior`}
+              {t("orderLabel")} <code className="font-mono">{row.id.slice(0, 8)}</code> &middot;{" "}
+              {dateFmt(row.created_at)}
+              {row.prior_paid > 0 && ` · ${t("priorOrders", { count: row.prior_paid })}`}
+              {row.prior_disputes > 0 && ` · ${t("priorDisputes", { count: row.prior_disputes })}`}
             </div>
           </div>
         </div>
         {risk.blockSuggested && (
           <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold bg-red-100 text-red-800 px-1.5 py-0.5 rounded">
-            <Ban size={10} /> BLOCHEAZĂ
+            <Ban size={10} /> {t("blockSuggested")}
           </span>
         )}
       </summary>
@@ -82,17 +96,17 @@ export function OrderRiskCard({ row, risk }: { row: OrderRow; risk: OrderRiskSco
         </div>
 
         {positives.length > 0 && (
-          <FactorList title={`Semnale negative (${positives.length})`} factors={positives} tone="red" />
+          <FactorList title={t("negativeSignals", { count: positives.length })} factors={positives} tone="red" />
         )}
         {negatives.length > 0 && (
-          <FactorList title={`Semnale pozitive (${negatives.length})`} factors={negatives} tone="emerald" />
+          <FactorList title={t("positiveSignals", { count: negatives.length })} factors={negatives} tone="emerald" />
         )}
 
         {row.metadata?.fraud_last_decision && (
           <div className="text-xs bg-blue-50 text-blue-900 px-2 py-1.5 rounded">
-            <span className="font-semibold">Ultima decizie:</span>{" "}
-            <span className="font-mono">{row.metadata.fraud_last_decision.action}</span> la{" "}
-            {new Date(row.metadata.fraud_last_decision.at).toLocaleString("ro-RO")}
+            <span className="font-semibold">{t("lastDecision")}:</span>{" "}
+            <span className="font-mono">{row.metadata.fraud_last_decision.action}</span> {t("atTime")}{" "}
+            {dateFmt(row.metadata.fraud_last_decision.at)}
             {row.metadata.fraud_last_decision.reason && (
               <>
                 {" — "}
@@ -107,7 +121,7 @@ export function OrderRiskCard({ row, risk }: { row: OrderRow; risk: OrderRiskSco
             href={`/admin/orders/${row.id}`}
             className="text-xs px-2.5 py-1 rounded bg-violet-100 text-violet-800 hover:bg-violet-200 font-semibold"
           >
-            Vezi comanda →
+            {t("viewOrder")} &rarr;
           </Link>
           <FraudActions orderId={row.id} blocked={row.metadata?.fraud_block === true} />
         </div>

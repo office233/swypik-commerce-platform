@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { FileSpreadsheet, Plus } from "lucide-react";
 
 import { MarketplaceFilters } from "./MarketplaceFilters";
@@ -11,6 +12,7 @@ import { SummaryCards } from "./SummaryCards";
 import { PAGE_SIZE, type Product, type ServerTotals, type SortDir, type SortField } from "./types";
 
 export default function MarketplaceAdminPage() {
+  const t = useTranslations("adminMarketplace");
   const [pageProducts, setPageProducts] = useState<Product[]>([]);
   const [serverTotals, setServerTotals] = useState<ServerTotals>({ total: 0, active: 0, with_image: 0, with_video: 0 });
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function MarketplaceAdminPage() {
     setLoading(true);
     fetch(`/api/admin/marketplace?${params.toString()}`, { credentials: "same-origin" })
       .then((res) => {
-        if (!res.ok) throw new Error("Nu am putut incarca produsele.");
+        if (!res.ok) throw new Error(t("loadError"));
         return res.json();
       })
       .then((data) => {
@@ -56,10 +58,10 @@ export default function MarketplaceAdminPage() {
       })
       .catch((error) => {
         setPageProducts([]);
-        setLoadError(error instanceof Error ? error.message : "Nu am putut incarca produsele.");
+        setLoadError(error instanceof Error ? error.message : t("loadError"));
       })
       .finally(() => setLoading(false));
-  }, [debouncedSearch, statusFilter, sourceFilter, sortField, sortDir, currentPage]);
+  }, [debouncedSearch, statusFilter, sourceFilter, sortField, sortDir, currentPage, t]);
 
   const handleSearchChange = useCallback((v: string) => {
     setSearchQuery(v);
@@ -96,26 +98,26 @@ export default function MarketplaceAdminPage() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900">Marketplace products</h1>
+        <div className="min-w-0">
+          <h1 className="text-3xl font-black text-slate-900">{t("pageTitle")}</h1>
           <p className="mt-2 text-slate-500">
-            Create, price, and maintain marketplace listings without leaving the admin surface.
+            {t("pageSubtitle")}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/admin/marketplace/import"
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            Import CSV
+            {t("importCsv")}
           </Link>
           <Link
             href="/admin/marketplace/new"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            New product
+            {t("newProduct")}
           </Link>
         </div>
       </div>

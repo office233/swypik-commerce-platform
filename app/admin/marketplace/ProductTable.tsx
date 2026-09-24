@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowUpDown,
   ChevronDown,
@@ -32,6 +33,7 @@ export function ProductTable({
   sortDir,
   onToggleSort,
 }: Props) {
+  const t = useTranslations("adminMarketplace");
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-left text-sm">
@@ -39,23 +41,23 @@ export function ProductTable({
           <tr>
             <th className="px-6 py-4 font-bold text-slate-700">
               <SortButton field="title" current={sortField} dir={sortDir} onClick={onToggleSort}>
-                Listing
+                {t("thListing")}
               </SortButton>
             </th>
-            <th className="px-6 py-4 font-bold text-slate-700">Source</th>
+            <th className="px-6 py-4 font-bold text-slate-700">{t("thSource")}</th>
             <th className="px-6 py-4 font-bold text-slate-700">
               <SortButton field="price" current={sortField} dir={sortDir} onClick={onToggleSort}>
-                Price
+                {t("thPrice")}
               </SortButton>
             </th>
-            <th className="px-6 py-4 font-bold text-slate-700">Inventory</th>
-            <th className="px-6 py-4 font-bold text-slate-700">Assets</th>
+            <th className="px-6 py-4 font-bold text-slate-700">{t("thInventory")}</th>
+            <th className="px-6 py-4 font-bold text-slate-700">{t("thAssets")}</th>
             <th className="px-6 py-4 font-bold text-slate-700">
               <SortButton field="date" current={sortField} dir={sortDir} onClick={onToggleSort}>
-                Status / Data
+                {t("thStatusDate")}
               </SortButton>
             </th>
-            <th className="px-6 py-4 font-bold text-slate-700 text-right">Actions</th>
+            <th className="px-6 py-4 font-bold text-slate-700 text-right">{t("thActions")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -64,16 +66,14 @@ export function ProductTable({
               <td colSpan={7} className="px-6 py-16 text-center">
                 <div className="inline-flex items-center gap-3 text-slate-500">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Se încarcă produsele…
+                  {t("loadingProducts")}
                 </div>
               </td>
             </tr>
           ) : products.length === 0 ? (
             <tr>
               <td colSpan={7} className="px-6 py-16 text-center text-slate-500">
-                {totalProducts === 0 && !hasFiltersActive
-                  ? "No marketplace products found yet. Create the first record to start merchandising inventory."
-                  : "Niciun produs nu corespunde filtrelor selectate."}
+                {totalProducts === 0 && !hasFiltersActive ? t("emptyNoProducts") : t("emptyNoMatches")}
               </td>
             </tr>
           ) : (
@@ -119,13 +119,15 @@ function SortButton({
 }
 
 function ProductRow({ product }: { product: Product }) {
+  const t = useTranslations("adminMarketplace");
+  const locale = useLocale();
   return (
     <tr className="hover:bg-slate-50/70 transition-colors group">
       <td className="px-6 py-4">
         <div className="flex items-start gap-3">
           <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
             {product.image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
+              // eslint-disable-next-line @next/next/no-img-element -- external/arbitrary product image hosts (AliExpress, seller CDNs), not a fixed known set
               <img src={product.image_url} alt={product.title} className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-slate-400">
@@ -135,36 +137,36 @@ function ProductRow({ product }: { product: Product }) {
           </div>
           <div className="min-w-0">
             <div className="font-semibold text-slate-900 line-clamp-1">{product.title}</div>
-            <div className="mt-1 text-xs text-slate-500">
-              {product.brand || product.category || "Unclassified"}
+            <div className="mt-1 text-xs text-slate-500 truncate">
+              {product.brand || product.category || t("unclassified")}
             </div>
-            <div className="mt-1 font-mono text-[11px] text-slate-400">{product.slug || product.id}</div>
+            <div className="mt-1 font-mono text-[11px] text-slate-400 truncate">{product.slug || product.id}</div>
           </div>
         </div>
       </td>
 
       <td className="px-6 py-4 text-slate-600">
-        <div className="font-semibold text-slate-900">{product.source_type || "manual"}</div>
-        <div className="text-xs text-slate-500">{product.orders || 0} orders</div>
+        <div className="font-semibold text-slate-900">{product.source_type || t("sourceManual")}</div>
+        <div className="text-xs text-slate-500">{t("ordersCount", { count: product.orders || 0 })}</div>
       </td>
 
       <td className="px-6 py-4 font-semibold text-slate-900">
         {typeof product.price_cents === "number"
           ? `${(product.price_cents / 100).toFixed(2)} ${product.currency || "USD"}`
-          : "Not set"}
+          : t("notSet")}
       </td>
 
       <td className="px-6 py-4">
         <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
-          {(product.inventory_status || "unknown").replace(/_/g, " ")}
+          {(product.inventory_status || t("unknown")).replace(/_/g, " ")}
         </span>
       </td>
 
       <td className="px-6 py-4">
         <div className="flex flex-wrap gap-2">
-          <AssetPill label={product.image_url ? "Image" : "No image"} tone={product.image_url ? "ready" : "muted"} />
+          <AssetPill label={product.image_url ? t("assetImage") : t("assetNoImage")} tone={product.image_url ? "ready" : "muted"} />
           <AssetPill
-            label={product.has_video ? "Video" : "No video"}
+            label={product.has_video ? t("assetVideo") : t("assetNoVideo")}
             tone={product.has_video ? "ready" : "muted"}
             icon={product.has_video ? <Video className="w-3 h-3" /> : undefined}
           />
@@ -181,11 +183,11 @@ function ProductRow({ product }: { product: Product }) {
               : "border-slate-200 bg-slate-100 text-slate-700"
           }`}
         >
-          {product.status || "draft"}
+          {product.status || t("statusDraft")}
         </span>
         {product.updated_at && (
           <div className="mt-1 text-[11px] text-slate-400">
-            {new Date(product.updated_at).toLocaleDateString("ro-RO", {
+            {new Date(product.updated_at).toLocaleDateString(locale, {
               day: "2-digit",
               month: "short",
               year: "numeric",
@@ -203,7 +205,7 @@ function ProductRow({ product }: { product: Product }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-slate-900"
             >
-              Source
+              {t("source")}
               <ExternalLink className="w-4 h-4" />
             </a>
           ) : null}
@@ -211,7 +213,7 @@ function ProductRow({ product }: { product: Product }) {
             href={`/admin/marketplace/${product.id}`}
             className="text-sm font-bold text-orange-600 hover:underline"
           >
-            Edit
+            {t("edit")}
           </Link>
         </div>
       </td>

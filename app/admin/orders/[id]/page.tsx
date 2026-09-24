@@ -1,18 +1,47 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { Rocket, Package, Eye, Truck } from "lucide-react";
 import { useParams } from "next/navigation";
 
+type OrderItem = {
+  title: string;
+  quantity: number;
+  unit_price: number | string;
+};
+
+type AdminOrder = {
+  id: string;
+  status: string;
+  fulfillmentStatus?: string | null;
+  statusLabel?: string;
+  statusDetail?: string;
+  totalRon: number;
+  createdAt: string;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  shipping?: {
+    name?: string;
+    phone?: string;
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    postal_code?: string;
+    country?: string;
+  } | null;
+};
+
 export default function AdminOrderDetailPage() {
   const t = useTranslations("adminOrders");
+  const locale = useLocale();
   const params = useParams();
   const orderId = params.id as string;
 
-  const [order, setOrder] = useState<any>(null);
-  const [items, setItems] = useState<any[]>([]);
+  const [order, setOrder] = useState<AdminOrder | null>(null);
+  const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState("");
@@ -22,6 +51,7 @@ export default function AdminOrderDetailPage() {
   const loadOrder = useCallback(async () => {
     try {
       const res = await fetch(`/api/orders/${orderId}`);
+      if (!res.ok) return;
       const data = await res.json();
       if (!data.error) {
         setOrder(data);
@@ -34,7 +64,18 @@ export default function AdminOrderDetailPage() {
 
   useEffect(() => { loadOrder(); }, [loadOrder]);
 
-  async function doAction(action: string, extra: Record<string, any> = {}) {
+  function translateActionError(code: string | undefined): string {
+    switch (code) {
+      case "tracking_number_required":
+      case "invalid_body":
+        return t("unknownError");
+      default:
+        return code || t("unknownError");
+    }
+  }
+
+  async function doAction(action: string, extra: Record<string, string> = {}) {
+    if (actionLoading) return; // double-submit protection
     setActionLoading(action);
     try {
       const res = await fetch("/api/admin/fulfillment", {
@@ -43,16 +84,21 @@ export default function AdminOrderDetailPage() {
         body: JSON.stringify({ action, orderId, ...extra }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setToast(t("toastErrorPrefix", { msg: translateActionError(data.error) }));
+        setTimeout(() => setToast(""), 4000);
+        return;
+      }
       if (data.success) {
         setToast(
-          action === "fulfill" ? "Comanda a fost trimisă la furnizor!" :
-            action === "add_tracking" ? "Cod AWB adăugat cu succes!" :
-              action === "cancel" ? "Comanda a fost anulată." : "Acțiune completă!"
+          action === "fulfill" ? t("toastFulfilled") :
+            action === "add_tracking" ? t("toastTrackingAdded") :
+              action === "cancel" ? t("toastCancelled") : t("toastActionDone")
         );
         setTimeout(() => setToast(""), 3000);
         loadOrder(); // reload
       } else {
-        setToast(`Eroare: ${data.error || "Necunoscută"}`);
+        setToast(t("toastErrorPrefix", { msg: translateActionError(data.error) }));
         setTimeout(() => setToast(""), 4000);
       }
     } finally {
@@ -102,22 +148,22 @@ export default function AdminOrderDetailPage() {
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Link href="/admin/orders" className="text-sm font-bold text-[#6E6E80] hover:text-[#0D0D0D] mb-2 inline-block">
-              ← Înapoi la comenzi
+              {t("backToOrders")}
             </Link>
             <h1 className="text-2xl font-black text-[#0D0D0D] flex items-center gap-3 flex-wrap">
-              Comanda #{orderId.split("-")[0]}
+              {t("orderNumber", { id: orderId.split("-")[0] })}
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${statusColor}`}>
                 {order.statusLabel || order.status.toUpperCase()}
               </span>
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${fulfillColor}`}>
-                {order.fulfillmentStatus || "pending"}
+                {order.fulfillmentStatus || t("fulfillmentPending")}
               </span>
             </h1>
             {order.statusDetail && (
               <p className="text-sm text-[#6E6E80] mt-1">{order.statusDetail}</p>
             )}
             <p className="text-sm text-[#6E6E80] mt-1">
-              Plasată pe {new Date(order.createdAt).toLocaleString("ro-RO")}
+              {t("placedOn", { date: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.createdAt)) })}
             </p>
           </div>
 
@@ -129,7 +175,7 @@ export default function AdminOrderDetailPage() {
                   disabled={!!actionLoading}
                   className="rounded-lg bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white hover:bg-[#0E906F] disabled:opacity-50 transition"
                 >
-                  {actionLoading === "fulfill" ? "Se procesează..." : <span className="inline-flex items-center gap-1.5"><Rocket size={14} /> Trimite la Furnizor</span>}
+                  {actionLoading === "fulfill" ? t("processingBtn") : <span className="inline-flex items-center gap-1.5"><Rocket size={14} /> {t("fulfillBtn")}</span>}
                 </button>
                 <button
                   onClick={() => setShowTrackingModal(true)}
@@ -151,11 +197,11 @@ export default function AdminOrderDetailPage() {
             )}
             {order.status !== "cancelled" && (
               <button
-                onClick={() => { if (confirm("Ești sigur că vrei să anulezi comanda?")) doAction("cancel"); }}
+                onClick={() => { if (confirm(t("cancelConfirm"))) doAction("cancel"); }}
                 disabled={!!actionLoading}
                 className="rounded-lg bg-white border border-[#E5E5E5] px-4 py-2 text-sm font-bold text-[#df1b41] hover:bg-red-50 disabled:opacity-50 transition"
               >
-                {actionLoading === "cancel" ? "Se anulează..." : "Anulează"}
+                {actionLoading === "cancel" ? t("cancelling") : t("cancelBtn")}
               </button>
             )}
             <Link
@@ -163,7 +209,7 @@ export default function AdminOrderDetailPage() {
               target="_blank"
               className="rounded-lg bg-white border border-[#E5E5E5] px-4 py-2 text-sm font-bold text-[#6E6E80] hover:bg-[#F7F7F8] transition"
             >
-              <span className="inline-flex items-center gap-1.5"><Eye size={14} /> Pagina client</span>
+              <span className="inline-flex items-center gap-1.5"><Eye size={14} /> {t("clientPage")}</span>
             </Link>
           </div>
         </div>
@@ -175,19 +221,19 @@ export default function AdminOrderDetailPage() {
 
             {/* Items */}
             <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 shadow-sm">
-              <h2 className="text-lg font-black mb-4">Produse comandate</h2>
+              <h2 className="text-lg font-black mb-4">{t("itemsTitle")}</h2>
               <div className="space-y-4">
-                {items.map((item: any, i: number) => (
-                  <div key={i} className="flex gap-4 items-center pb-4 border-b border-[#E5E5E5] last:border-0 last:pb-0">
+                {items.map((item, i) => (
+                  <div key={`${item.title}-${i}`} className="flex gap-4 items-center pb-4 border-b border-[#E5E5E5] last:border-0 last:pb-0">
                     <div className="h-16 w-16 bg-[#F7F7F8] rounded-xl flex items-center justify-center font-bold text-2xl">
                       <Package size={24} className="text-[#6E6E80]" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-[#0D0D0D]">{item.title}</p>
-                      <p className="text-xs text-[#6E6E80]">Cantitate: {item.quantity}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-[#0D0D0D] break-words">{item.title}</p>
+                      <p className="text-xs text-[#6E6E80]">{t("quantityLabel", { qty: item.quantity })}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-sm">{Number(item.unit_price).toFixed(2)} lei</p>
+                      <p className="font-black text-sm">{new Intl.NumberFormat(locale, { style: "currency", currency: "RON" }).format(Number(item.unit_price))}</p>
                       <p className="text-xs text-[#6E6E80]">x {item.quantity}</p>
                     </div>
                   </div>
@@ -201,7 +247,7 @@ export default function AdminOrderDetailPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-base font-black pt-2">
                   <span>{t("totalPaid")}</span>
-                  <span>{Number(order.totalRon).toFixed(2)} lei</span>
+                  <span>{new Intl.NumberFormat(locale, { style: "currency", currency: "RON" }).format(Number(order.totalRon))}</span>
                 </div>
               </div>
             </div>
@@ -215,7 +261,7 @@ export default function AdminOrderDetailPage() {
                     <p className="text-xl font-black font-mono text-[#0D0D0D]">{order.trackingNumber}</p>
                     {order.trackingUrl && (
                       <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#0D0D0D] font-bold hover:underline">
-                        Urmărește coletul →
+                        {t("trackPackage")}
                       </a>
                     )}
                   </div>
@@ -230,10 +276,10 @@ export default function AdminOrderDetailPage() {
 
             {/* Customer Info */}
             <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 shadow-sm">
-              <h2 className="text-base font-black mb-4">Client</h2>
+              <h2 className="text-base font-black mb-4">{t("customerTitle")}</h2>
               <div className="space-y-1 text-sm">
-                <p className="font-bold text-[#0D0D0D]">{order.shipping?.name || "Nespecificat"}</p>
-                <p className="text-[#6E6E80]">{order.shipping?.phone || "Fără telefon"}</p>
+                <p className="font-bold text-[#0D0D0D]">{order.shipping?.name || t("notSpecified")}</p>
+                <p className="text-[#6E6E80]">{order.shipping?.phone || t("noPhone")}</p>
               </div>
             </div>
 
@@ -262,14 +308,16 @@ export default function AdminOrderDetailPage() {
       {/* Tracking Modal */}
       {showTrackingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowTrackingModal(false)}>
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-black text-[#0D0D0D] mb-2">{t("addAwbTitle")}</h3>
             <p className="text-sm text-[#6E6E80] mb-4">{t("addAwbDesc")}</p>
+            <label htmlFor="tracking-number-input" className="sr-only">{t("addAwbTitle")}</label>
             <input
+              id="tracking-number-input"
               type="text"
               value={trackingInput}
               onChange={e => setTrackingInput(e.target.value)}
-              placeholder="Ex: RO123456789CN"
+              placeholder={t("trackingPlaceholder")}
               className="w-full rounded-lg border border-[#E5E5E5] px-4 py-3 text-sm focus:border-[#0D0D0D] focus:outline-none focus:ring-1 focus:ring-[#0D0D0D]"
               autoFocus
             />
@@ -279,13 +327,13 @@ export default function AdminOrderDetailPage() {
                 disabled={!trackingInput.trim() || !!actionLoading}
                 className="flex-1 rounded-lg bg-[#0D0D0D] py-3 text-sm font-bold text-white disabled:opacity-50"
               >
-                {actionLoading === "add_tracking" ? "Se salvează..." : "Salvează AWB"}
+                {actionLoading === "add_tracking" ? t("saving") : t("saveAwb")}
               </button>
               <button
                 onClick={() => setShowTrackingModal(false)}
                 className="rounded-lg bg-[#F7F7F8] px-4 py-3 text-sm font-bold text-[#6E6E80]"
               >
-                Anulează
+                {t("cancelBtn")}
               </button>
             </div>
           </div>

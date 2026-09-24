@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminSessionAndGetCookie, isAdminConfigured, isAdminToken } from "@/lib/security/admin-auth";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 import { logger } from "@/lib/logger";
 export async function POST(req: Request) {
@@ -30,15 +31,17 @@ export async function POST(req: Request) {
 
     // Timing-safe comparison via isAdminToken (uses crypto.timingSafeEqual)
     if (!isAdminToken(password)) {
+      await logAdminAction({ action: "admin.login_failed", req });
       return NextResponse.json({ success: false, error: "Incorrect admin password." }, { status: 401 });
     }
 
     const cookieHeader = await createAdminSessionAndGetCookie();
     const response = NextResponse.json({ success: true });
     response.headers.set("Set-Cookie", cookieHeader);
+    await logAdminAction({ action: "admin.login", req });
     return response;
-  } catch (error: any) {
-    logger.error({ err: error?.message }, "[Admin Login] Error:");
+  } catch (error) {
+    logger.error({ err: error instanceof Error ? error.message : error }, "[Admin Login] Error:");
     return NextResponse.json({ success: false, error: "Login failed." }, { status: 500 });
   }
 }

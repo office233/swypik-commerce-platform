@@ -103,7 +103,8 @@ export default function AdminMusicPage() {
       {tab === "artists" && (
         <>
           <p className="text-sm text-neutral-600">{t("artistsIntro")}</p>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="text-left text-xs uppercase text-neutral-500">
                 <th>{t("stageName")}</th><th>{t("trackCount")}</th><th></th>
@@ -126,6 +127,7 @@ export default function AdminMusicPage() {
               ))}
             </tbody>
           </table>
+          </div>
           <section className="rounded-2xl border border-[#E5E5E5] p-4">
             <h2 className="mb-2 font-black">{t("approveArtist")}</h2>
             <form onSubmit={approveArtist} className="grid gap-2 sm:grid-cols-3">
@@ -171,7 +173,8 @@ export default function AdminMusicPage() {
               </button>
             ))}
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="text-left text-xs uppercase text-neutral-500">
                 <th>{t("trackTitle")}</th><th>{t("artists")}</th><th>{t("review")}</th><th></th>
@@ -226,6 +229,7 @@ export default function AdminMusicPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </>
       )}
     </div>

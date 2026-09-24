@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { requireAuth } from "@/lib/auth/getAuthUser";
 import { awardSwyp } from "@/lib/swyp/rewards";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
     const status = (url.searchParams.get("status") || "submitted").toLowerCase();
     const allowed = ["submitted", "approved", "rejected", "paid", "all"];
     if (!allowed.includes(status)) {
-        return NextResponse.json({ error: "status invalid" }, { status: 400 });
+        return NextResponse.json({ error: "invalid_status" }, { status: 400 });
     }
 
     const { rows } = await dbQuery(
@@ -52,12 +53,12 @@ export async function POST(req: Request) {
     try {
         body = await req.json();
     } catch {
-        return NextResponse.json({ error: "Body invalid." }, { status: 400 });
+        return NextResponse.json({ error: "invalid_body" }, { status: 400 });
     }
     const submissionId = String(body.submissionId || "").trim();
     const action = String(body.action || "").trim();
     if (!/^[0-9a-f-]{36}$/i.test(submissionId) || !["approve", "reject", "pay"].includes(action)) {
-        return NextResponse.json({ error: "Parametri invalizi." }, { status: 400 });
+        return NextResponse.json({ error: "invalid_params" }, { status: 400 });
     }
 
     const { rows } = await dbQuery<{
@@ -76,35 +77,37 @@ export async function POST(req: Request) {
         [submissionId],
     );
     if (!rows.length) {
-        return NextResponse.json({ error: "Submisie inexistentă." }, { status: 404 });
+        return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
     const sub = rows[0];
 
     if (action === "approve") {
         if (sub.status !== "submitted") {
-            return NextResponse.json({ error: `Tranziție invalidă din '${sub.status}'.` }, { status: 409 });
+            return NextResponse.json({ error: "invalid_transition", from: sub.status }, { status: 409 });
         }
         await dbQuery(
             `UPDATE creator_mission_submissions SET status = 'approved' WHERE id = $1`,
             [submissionId],
         );
+        await logAdminAction({ action: "mission_submission.approve", targetType: "mission_submission", targetId: submissionId, req });
         return NextResponse.json({ ok: true, status: "approved" });
     }
 
     if (action === "reject") {
         if (!["submitted", "approved"].includes(sub.status)) {
-            return NextResponse.json({ error: `Tranziție invalidă din '${sub.status}'.` }, { status: 409 });
+            return NextResponse.json({ error: "invalid_transition", from: sub.status }, { status: 409 });
         }
         await dbQuery(
             `UPDATE creator_mission_submissions SET status = 'rejected' WHERE id = $1`,
             [submissionId],
         );
+        await logAdminAction({ action: "mission_submission.reject", targetType: "mission_submission", targetId: submissionId, req });
         return NextResponse.json({ ok: true, status: "rejected" });
     }
 
     // pay
     if (sub.status !== "approved") {
-        return NextResponse.json({ error: "Doar submisiile aprobate pot fi plătite." }, { status: 409 });
+        return NextResponse.json({ error: "not_approved" }, { status: 409 });
     }
     const res = await awardSwyp({
         userId: sub.user_id,
@@ -115,7 +118,7 @@ export async function POST(req: Request) {
     // awardSwyp e idempotent pe refId — un ref deja plătit întoarce awarded:true.
     if (!res.awarded) {
         return NextResponse.json(
-            { error: `Plata SWYP a eșuat: ${res.reason}` },
+            { error: "payout_failed", reason: res.reason },
             { status: 422 },
         );
     }
@@ -126,5 +129,6 @@ export async function POST(req: Request) {
         [submissionId, sub.prize_amount_minor],
     );
     logger.info({ submissionId, userId: sub.user_id }, "mission.submission.paid");
+    await logAdminAction({ action: "mission_submission.pay", targetType: "mission_submission", targetId: submissionId, details: { userId: sub.user_id, amountMinor: sub.prize_amount_minor }, req });
     return NextResponse.json({ ok: true, status: "paid" });
 }

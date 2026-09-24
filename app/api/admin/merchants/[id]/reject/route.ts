@@ -6,12 +6,13 @@ import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   if (!(await hasAdminSession())) {
@@ -29,6 +30,12 @@ export async function POST(
     if (rows.length === 0) {
       return NextResponse.json({ success: false, error: "not_found_or_processed" }, { status: 404 });
     }
+    await logAdminAction({
+      action: "merchant.reject",
+      targetType: "local_merchant",
+      targetId: id,
+      req,
+    });
     return NextResponse.json({ success: true, merchant: rows[0] });
   } catch (error: unknown) {
     logger.error({ err: error, id }, "[admin/merchants/reject] error");

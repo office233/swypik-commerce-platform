@@ -7,7 +7,7 @@
  *  - afișare chei (client_secret o singură dată) + regenerare secret
  */
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 type Developer = {
   id: string;
@@ -49,6 +49,7 @@ const ALL_SCOPES = [
 export default function DevelopersClient() {
   const t = useTranslations("developers");
   const tx = useTranslations("devPortal");
+  const locale = useLocale();
   const [loading, setLoading] = useState(true);
   const [developer, setDeveloper] = useState<Developer | null>(null);
   const [apps, setApps] = useState<App[]>([]);
@@ -86,7 +87,7 @@ export default function DevelopersClient() {
     try {
       const meRes = await fetch("/api/developers/me");
       if (meRes.status === 401) {
-        setError("Trebuie să fii logat pentru a accesa portalul de dezvoltatori.");
+        setError(tx("errorLoginRequired"));
         return;
       }
       const me = await meRes.json();
@@ -99,11 +100,11 @@ export default function DevelopersClient() {
         }
       }
     } catch {
-      setError("Eroare de rețea.");
+      setError(tx("errorNetwork"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tx]);
 
   useEffect(() => {
     void load();
@@ -116,7 +117,7 @@ export default function DevelopersClient() {
       body: JSON.stringify({ company, website: website || undefined }),
     });
     if (res.ok || res.status === 409) void load();
-    else setError("Înregistrarea a eșuat. Verifică datele.");
+    else setError(tx("errorRegisterFailed"));
   }
 
   async function createApp() {
@@ -139,12 +140,12 @@ export default function DevelopersClient() {
       void load();
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error === "slug_taken" ? "Slug-ul este deja folosit." : "Crearea a eșuat.");
+      setError(data.error === "slug_taken" ? tx("errorSlugTaken") : tx("errorCreateFailed"));
     }
   }
 
   async function rotateSecret(app: App) {
-    if (!confirm(`Regenerezi secretul pentru „${app.name}"? Cel vechi devine invalid.`)) return;
+    if (!confirm(tx("confirmRotateSecret", { appName: app.name }))) return;
     const res = await fetch(`/api/developers/apps/${app.id}/rotate-secret`, { method: "POST" });
     if (res.ok) {
       const data = await res.json();
@@ -182,7 +183,7 @@ export default function DevelopersClient() {
       setEditingId(null);
       void load();
     } else {
-      setError("Salvarea a eșuat. Verifică datele (webhook trebuie să fie URL valid).");
+      setError(tx("errorSaveFailed"));
     }
   }
 
@@ -216,21 +217,21 @@ export default function DevelopersClient() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-4">
       <header>
-        <h1 className="text-2xl font-bold">Portal dezvoltatori</h1>
+        <h1 className="text-2xl font-bold">{tx("title")}</h1>
         <p className="text-sm text-gray-500">{tx("subtitle")}</p>
       </header>
 
-      {error && <div className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{error}</div>}
 
       {freshSecret && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
-          <p className="font-semibold">{t("cheiPentruBdquo")}{freshSecret.appName}{t("rdquoSalveazaleAcumSecretul")}</p>
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-700 dark:bg-amber-950">
+          <p className="font-semibold break-words">{tx("keysForApp", { appName: freshSecret.appName })}</p>
           {freshSecret.clientId && (
-            <p className="mt-2">Client ID: <code className="rounded bg-white px-1 font-mono">{freshSecret.clientId}</code></p>
+            <p className="mt-2 break-all">{tx("clientIdLabel")} <code className="rounded bg-white px-1 font-mono dark:bg-gray-900">{freshSecret.clientId}</code></p>
           )}
-          <p className="mt-1">Client Secret: <code className="rounded bg-white px-1 font-mono break-all">{freshSecret.secret}</code></p>
-          <button className="mt-3 rounded bg-amber-600 px-3 py-1 text-white" onClick={() => setFreshSecret(null)}>
-            Am salvat cheile
+          <p className="mt-1 break-all">{tx("clientSecretLabel")} <code className="rounded bg-white px-1 font-mono break-all dark:bg-gray-900">{freshSecret.secret}</code></p>
+          <button className="mt-3 min-h-10 rounded bg-amber-600 px-3 py-1 text-white" onClick={() => setFreshSecret(null)}>
+            {tx("savedKeysButton")}
           </button>
         </div>
       )}
@@ -239,56 +240,54 @@ export default function DevelopersClient() {
         <section className="rounded-lg border p-4">
           <h2 className="font-semibold">{tx("registerTitle")}</h2>
           <div className="mt-3 space-y-2">
-            <input className="w-full rounded border p-2" placeholder="Companie *" value={company} onChange={(e) => setCompany(e.target.value)} />
-            <input className="w-full rounded border p-2" placeholder="Website (https://…)" value={website} onChange={(e) => setWebsite(e.target.value)} />
-            <button className="rounded bg-black px-4 py-2 text-white disabled:opacity-40" disabled={company.trim().length < 2} onClick={() => void register()}>
-              Trimite cererea
+            <input aria-label={tx("companyPlaceholder")} className="w-full rounded border p-2" placeholder={tx("companyPlaceholder")} value={company} onChange={(e) => setCompany(e.target.value)} />
+            <input aria-label={tx("websitePlaceholder")} className="w-full rounded border p-2" placeholder={tx("websitePlaceholder")} value={website} onChange={(e) => setWebsite(e.target.value)} />
+            <button className="min-h-10 rounded bg-black px-4 py-2 text-white disabled:opacity-40" disabled={company.trim().length < 2} onClick={() => void register()}>
+              {tx("submitRequest")}
             </button>
           </div>
         </section>
       )}
 
       {developer && developer.status === "pending" && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-          Cererea ta ({developer.company}{t("esteInAsteptareVei")}
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 break-words dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+          {tx("pendingStatus", { company: developer.company })}
         </div>
       )}
       {developer && developer.status === "rejected" && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          
-          {t("cerereaTaAFost")}
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+          {tx("rejectedStatus")}
         </div>
       )}
 
       {developer?.status === "approved" && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">{tx("myApps")}</h2>
-            <button className="rounded bg-black px-3 py-1.5 text-sm text-white" onClick={() => setShowCreate((v) => !v)}>
-              {showCreate ? "Anulează" : "+ App nou"}
+            <button className="min-h-10 rounded bg-black px-3 py-1.5 text-sm text-white" onClick={() => setShowCreate((v) => !v)}>
+              {showCreate ? tx("cancelButton") : tx("newAppButton")}
             </button>
           </div>
 
           {showCreate && (
             <div className="space-y-2 rounded-lg border p-4">
-              <input className="w-full rounded border p-2" placeholder="Nume *" value={name} onChange={(e) => setName(e.target.value)} />
-              <input className="w-full rounded border p-2" placeholder="slug-unic *" value={slug} onChange={(e) => setSlug(e.target.value)} />
-              <textarea className="w-full rounded border p-2" placeholder="Descriere" value={description} onChange={(e) => setDescription(e.target.value)} />
-              <input className="w-full rounded border p-2" placeholder="Webhook URL (https://…)" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} />
+              <input aria-label={tx("namePlaceholder")} className="w-full rounded border p-2" placeholder={tx("namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
+              <input aria-label={tx("slugPlaceholder")} className="w-full rounded border p-2" placeholder={tx("slugPlaceholder")} value={slug} onChange={(e) => setSlug(e.target.value)} />
+              <textarea aria-label={tx("descriptionPlaceholder")} className="w-full rounded border p-2" placeholder={tx("descriptionPlaceholder")} value={description} onChange={(e) => setDescription(e.target.value)} />
+              <input aria-label={tx("webhookPlaceholder")} className="w-full rounded border p-2" placeholder={tx("webhookPlaceholder")} value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} />
               <div className="flex flex-wrap gap-2 text-sm">
                 {ALL_SCOPES.map((s) => (
-                  <label key={s} className={`cursor-pointer rounded-full border px-3 py-1 ${scopes.includes(s) ? "border-black bg-black text-white" : ""}`}>
+                  <label key={s} className={`min-h-10 cursor-pointer rounded-full border px-3 py-1 flex items-center ${scopes.includes(s) ? "border-black bg-black text-white" : ""}`}>
                     <input type="checkbox" className="hidden" checked={scopes.includes(s)} onChange={() => toggleScope(s)} />
                     {s}
                   </label>
                 ))}
               </div>
               <button
-                className="rounded bg-black px-4 py-2 text-white disabled:opacity-40"
+                className="min-h-10 rounded bg-black px-4 py-2 text-white disabled:opacity-40"
                 disabled={name.trim().length < 2 || !/^[a-z0-9][a-z0-9-]*$/.test(slug)}
                 onClick={() => void createApp()}
               >
-                
                 {t("creeazaApp")}
               </button>
             </div>
@@ -297,51 +296,50 @@ export default function DevelopersClient() {
           {apps.length === 0 && !showCreate && <p className="text-sm text-gray-500">{tx("noApps")}</p>}
 
           {apps.map((app) => (
-            <div key={app.id} className="rounded-lg border p-4">
+            <div key={app.id} className="rounded-lg border p-4 min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <span className="font-semibold">{app.name}</span>{" "}
-                  <span className="text-xs text-gray-500">/{app.slug}</span>
+                <div className="min-w-0">
+                  <span className="font-semibold break-words">{app.name}</span>{" "}
+                  <span className="text-xs text-gray-500 break-all">/{app.slug}</span>
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-xs ${app.status === "published" ? "bg-green-100 text-green-800" : app.status === "review" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-600"}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs shrink-0 ${app.status === "published" ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300" : app.status === "review" ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>
                   {app.status}
                 </span>
               </div>
-              {app.description && <p className="mt-1 text-sm text-gray-600">{app.description}</p>}
-              <p className="mt-2 text-xs text-gray-500">
-                Client ID: <code className="font-mono">{app.oauth_client_id}</code>  {t("instalari")} {app.install_count} · Scopes: {app.scopes.join(", ") || "—"}
+              {app.description && <p className="mt-1 text-sm text-gray-600 break-words">{app.description}</p>}
+              <p className="mt-2 text-xs text-gray-500 break-all">
+                {tx("clientIdLabel")} <code className="font-mono">{app.oauth_client_id}</code> · {tx("installsCount", { count: app.install_count })} · {tx("scopesLabel")} {app.scopes.join(", ") || "—"}
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                <button className="rounded border px-3 py-1" onClick={() => void rotateSecret(app)}>{tx("rotateSecret")}</button>
+                <button className="min-h-10 rounded border px-3 py-1" onClick={() => void rotateSecret(app)}>{tx("rotateSecret")}</button>
                 {app.status === "draft" && (
-                  <button className="rounded border px-3 py-1" onClick={() => void submitReview(app)}>{t("trimiteSprePublicare")}</button>
+                  <button className="min-h-10 rounded border px-3 py-1" onClick={() => void submitReview(app)}>{t("trimiteSprePublicare")}</button>
                 )}
-                <button className="rounded border px-3 py-1" onClick={() => (editingId === app.id ? setEditingId(null) : startEdit(app))}>
-                  {editingId === app.id ? "Anulează editarea" : "Editează"}
+                <button className="min-h-10 rounded border px-3 py-1" onClick={() => (editingId === app.id ? setEditingId(null) : startEdit(app))}>
+                  {editingId === app.id ? tx("cancelEditButton") : tx("editButton")}
                 </button>
-                <button className="rounded border px-3 py-1" onClick={() => void loadDeliveries(app)}>
-                  {deliveriesFor === app.id ? "Ascunde livrările" : "Livrări webhook"}
+                <button className="min-h-10 rounded border px-3 py-1" onClick={() => void loadDeliveries(app)}>
+                  {deliveriesFor === app.id ? tx("hideDeliveriesButton") : tx("webhookDeliveriesButton")}
                 </button>
               </div>
 
               {editingId === app.id && (
                 <div className="mt-3 space-y-2 rounded border p-3">
-                  <input className="w-full rounded border p-2" placeholder="Nume *" value={editName} onChange={(e) => setEditName(e.target.value)} />
-                  <textarea className="w-full rounded border p-2" placeholder="Descriere" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
-                  <input className="w-full rounded border p-2" placeholder="Webhook URL (https://…)" value={editWebhookUrl} onChange={(e) => setEditWebhookUrl(e.target.value)} />
+                  <input aria-label={tx("namePlaceholder")} className="w-full rounded border p-2" placeholder={tx("namePlaceholder")} value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <textarea aria-label={tx("descriptionPlaceholder")} className="w-full rounded border p-2" placeholder={tx("descriptionPlaceholder")} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+                  <input aria-label={tx("webhookPlaceholder")} className="w-full rounded border p-2" placeholder={tx("webhookPlaceholder")} value={editWebhookUrl} onChange={(e) => setEditWebhookUrl(e.target.value)} />
                   <button
-                    className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40"
+                    className="min-h-10 rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40"
                     disabled={editName.trim().length < 2}
                     onClick={() => void saveEdit(app)}
                   >
-                    
                     {t("salveaza")}
                   </button>
                 </div>
               )}
 
               {deliveriesFor === app.id && (
-                <div className="mt-3 rounded border p-3">
+                <div className="mt-3 rounded border p-3 overflow-x-auto">
                   {deliveriesLoading && <p className="text-sm text-gray-500">{tx("loadingDeliveries")}</p>}
                   {!deliveriesLoading && deliveries.length === 0 && (
                     <p className="text-sm text-gray-500">{tx("noDeliveries")}</p>
@@ -350,21 +348,21 @@ export default function DevelopersClient() {
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="border-b text-gray-500">
-                          <th className="py-1 pr-2">Event</th>
-                          <th className="py-1 pr-2">Status</th>
+                          <th className="py-1 pr-2">{tx("tableEvent")}</th>
+                          <th className="py-1 pr-2">{tx("tableStatus")}</th>
                           <th className="py-1 pr-2">{tx("thAttempts")}</th>
                           <th className="py-1">{tx("thDate")}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {deliveries.map((d, i) => (
-                          <tr key={i} className="border-b last:border-0">
+                          <tr key={`${d.event}-${d.created_at}-${i}`} className="border-b last:border-0">
                             <td className="py-1 pr-2 font-mono">{d.event}</td>
                             <td className={`py-1 pr-2 ${d.error || (d.status_code ?? 0) >= 400 ? "text-red-600" : "text-green-700"}`}>
                               {d.status_code ?? d.error ?? "—"}
                             </td>
                             <td className="py-1 pr-2">{d.attempts}</td>
-                            <td className="py-1">{new Date(d.created_at).toLocaleString("ro-RO")}</td>
+                            <td className="py-1">{new Date(d.created_at).toLocaleString(locale)}</td>
                           </tr>
                         ))}
                       </tbody>

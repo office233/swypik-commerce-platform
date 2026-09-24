@@ -1,21 +1,30 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { Coins, BarChart3, Clock, CheckCircle2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = { status?: string; creator?: string; page?: string };
 
-const STATUS_OPTIONS = [
-  { value: "", label: "Toate" },
-  { value: "pending", label: "În așteptare" },
-  { value: "approved", label: "Aprobate" },
-  { value: "payable", label: "De plătit" },
-  { value: "paid", label: "Plătite" },
-  { value: "void", label: "Anulate" },
-  { value: "refunded", label: "Refundate" },
-];
+type CommissionRow = {
+  id: string;
+  creator_id: string | null;
+  gross_amount_cents: number;
+  creator_amount_cents: number;
+  platform_fee_cents: number;
+  currency: string;
+  status: string;
+  commission_type: string;
+  created_at: string;
+  paid_at: string | null;
+  commerce_order_id: string | null;
+  video_id: string | null;
+  commission_rate_bps: number | null;
+  username: string | null;
+  display_name: string | null;
+};
 
 function statusBadge(status: string) {
   const map: Record<string, string> = {
@@ -29,29 +38,34 @@ function statusBadge(status: string) {
   return map[status] || "bg-gray-100 text-gray-700";
 }
 
-function fmtMoney(cents: number, currency: string) {
-  const amt = (cents || 0) / 100;
-  return `${amt.toFixed(2)} ${(currency || "USD").toUpperCase()}`;
-}
-
-function fmtDate(d: Date | string | null) {
-  if (!d) return "—";
-  const dt = typeof d === "string" ? new Date(d) : d;
-  return dt.toLocaleString("ro-RO", { dateStyle: "short", timeStyle: "short" });
-}
-
 export default async function CommissionsAdminPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-    const t = await getTranslations("adminCommissions");
+  const t = await getTranslations("adminCommissions");
+  const locale = await getLocale();
   const sp = await searchParams;
   const status = (sp.status || "").trim();
   const creatorQ = (sp.creator || "").trim();
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
   const limit = 100;
   const offset = (page - 1) * limit;
+
+  const STATUS_OPTIONS = [
+    { value: "", label: t("optAll") },
+    { value: "pending", label: t("optPending") },
+    { value: "approved", label: t("optApproved") },
+    { value: "payable", label: t("optPayable") },
+    { value: "paid", label: t("optPaid") },
+    { value: "void", label: t("optVoid") },
+    { value: "refunded", label: t("optRefunded") },
+  ];
+
+  const money = (cents: number, currency: string) =>
+    new Intl.NumberFormat(locale, { style: "currency", currency: (currency || "USD").toUpperCase() }).format((cents || 0) / 100);
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" });
+  const fmtDate = (d: Date | string | null) => (d ? dateFmt.format(typeof d === "string" ? new Date(d) : d) : "—");
 
   let kpis = {
     totalCreatorCents: 0,
@@ -60,7 +74,7 @@ export default async function CommissionsAdminPage({
     paidCount: 0,
     last30Cents: 0,
   };
-  let rows: any[] = [];
+  let rows: CommissionRow[] = [];
   let totalRows = 0;
   let loadError: string | null = null;
 
@@ -84,7 +98,7 @@ export default async function CommissionsAdminPage({
     };
 
     const filters: string[] = [];
-    const params: any[] = [];
+    const params: string[] = [];
     if (status) {
       params.push(status);
       filters.push(`c.status = $${params.length}`);
@@ -106,8 +120,8 @@ export default async function CommissionsAdminPage({
     );
     totalRows = Number(countRes.rows[0]?.c || 0);
 
-    const dataParams = [...params, limit, offset];
-    const res = await dbQuery(
+    const dataParams: (string | number)[] = [...params, limit, offset];
+    const res = await dbQuery<CommissionRow>(
       `SELECT c.id, c.creator_id, c.gross_amount_cents, c.creator_amount_cents,
               c.platform_fee_cents, c.currency, c.status, c.commission_type,
               c.created_at, c.paid_at, c.commerce_order_id, c.video_id,
@@ -121,9 +135,9 @@ export default async function CommissionsAdminPage({
       dataParams
     );
     rows = res.rows;
-  } catch (err: any) {
-    console.error("Error fetching commissions:", err);
-    loadError = err.message || "Nu am putut încărca comisioanele.";
+  } catch (err) {
+    logger.error({ err }, "[admin/commissions] failed to load commissions");
+    loadError = t("loadError");
   }
 
   const totalPages = Math.max(1, Math.ceil(totalRows / limit));
@@ -139,7 +153,7 @@ export default async function CommissionsAdminPage({
     <div className="p-4 md:p-8">
       <div className="flex items-center gap-3 mb-6">
         <BarChart3 className="w-7 h-7 text-[#0D0D0D]" />
-        <h1 className="text-3xl font-black text-[#0D0D0D]">Comisioane</h1>
+        <h1 className="text-3xl font-black text-[#0D0D0D]">{t("pageTitle")}</h1>
       </div>
 
       {loadError && (
@@ -151,9 +165,9 @@ export default async function CommissionsAdminPage({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <KpiCard
           icon={<Coins className="w-5 h-5 text-emerald-600" />}
-          label="Total creatori"
-          value={fmtMoney(kpis.totalCreatorCents, "USD")}
-          sub={`Brut: ${fmtMoney(kpis.totalGrossCents, "USD")}`}
+          label={t("totalCreators")}
+          value={money(kpis.totalCreatorCents, "USD")}
+          sub={t("grossLabel", { amount: money(kpis.totalGrossCents, "USD") })}
         />
         <KpiCard
           icon={<Clock className="w-5 h-5 text-yellow-600" />}
@@ -167,8 +181,8 @@ export default async function CommissionsAdminPage({
         />
         <KpiCard
           icon={<BarChart3 className="w-5 h-5 text-blue-600" />}
-          label="Ultimele 30 zile"
-          value={fmtMoney(kpis.last30Cents, "USD")}
+          label={t("last30Days")}
+          value={money(kpis.last30Cents, "USD")}
         />
       </div>
 
@@ -178,7 +192,7 @@ export default async function CommissionsAdminPage({
       >
         <div className="flex flex-col">
           <label htmlFor="status" className="text-xs font-bold text-gray-600 mb-1">
-            Status
+            {t("statusLabel")}
           </label>
           <select
             id="status"
@@ -195,13 +209,13 @@ export default async function CommissionsAdminPage({
         </div>
         <div className="flex flex-col flex-1 min-w-[200px]">
           <label htmlFor="creator" className="text-xs font-bold text-gray-600 mb-1">
-            Creator (username / email)
+            {t("creatorSearchLabel")}
           </label>
           <input
             id="creator"
             name="creator"
             defaultValue={creatorQ}
-            placeholder="cauta…"
+            placeholder={t("searchPlaceholder")}
             className="px-3 py-2 rounded-lg border border-[#E5E5E5] text-sm"
           />
         </div>
@@ -209,14 +223,14 @@ export default async function CommissionsAdminPage({
           type="submit"
           className="px-4 py-2 rounded-lg bg-[#0D0D0D] text-white text-sm font-bold hover:bg-black transition"
         >
-          Filtrează
+          {t("filterBtn")}
         </button>
         {(status || creatorQ) && (
           <Link
             href="/admin/commissions"
             className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-bold text-gray-700 hover:bg-gray-50"
           >
-            Reset
+            {t("resetBtn")}
           </Link>
         )}
       </form>
@@ -226,15 +240,15 @@ export default async function CommissionsAdminPage({
           <table className="w-full text-left">
             <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
               <tr>
-                <th className="px-4 py-3">Creator</th>
-                <th className="px-4 py-3">Tip</th>
-                <th className="px-4 py-3">Brut</th>
-                <th className="px-4 py-3">Creator</th>
+                <th className="px-4 py-3">{t("thCreator")}</th>
+                <th className="px-4 py-3">{t("thType")}</th>
+                <th className="px-4 py-3">{t("thGross")}</th>
+                <th className="px-4 py-3">{t("thCreator")}</th>
                 <th className="px-4 py-3">{t("thPlatform")}</th>
-                <th className="px-4 py-3">Rate</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">{t("thRate")}</th>
+                <th className="px-4 py-3">{t("statusLabel")}</th>
                 <th className="px-4 py-3">{t("thOrder")}</th>
-                <th className="px-4 py-3">Creat</th>
+                <th className="px-4 py-3">{t("thCreated")}</th>
                 <th className="px-4 py-3">{t("thPaid")}</th>
               </tr>
             </thead>
@@ -242,11 +256,11 @@ export default async function CommissionsAdminPage({
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
-                    Niciun comision.
+                    {t("noCommissions")}
                   </td>
                 </tr>
               )}
-              {rows.map((r: any) => (
+              {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-[#F7F7F8]/50 transition">
                   <td className="px-4 py-3">
                     <div className="font-bold text-[#0D0D0D]">
@@ -258,13 +272,13 @@ export default async function CommissionsAdminPage({
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600">{r.commission_type}</td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                    {fmtMoney(r.gross_amount_cents, r.currency)}
+                    {money(r.gross_amount_cents, r.currency)}
                   </td>
                   <td className="px-4 py-3 font-mono font-bold text-emerald-700">
-                    {fmtMoney(r.creator_amount_cents, r.currency)}
+                    {money(r.creator_amount_cents, r.currency)}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-600">
-                    {fmtMoney(r.platform_fee_cents, r.currency)}
+                    {money(r.platform_fee_cents, r.currency)}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     {r.commission_rate_bps != null
@@ -308,7 +322,7 @@ export default async function CommissionsAdminPage({
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between text-sm">
           <div className="text-gray-600">
-            Pagina {page} din {totalPages} · {totalRows} rezultate
+            {t("pageOf", { page, total: totalPages, rows: totalRows })}
           </div>
           <div className="flex gap-2">
             {page > 1 && (
@@ -316,7 +330,7 @@ export default async function CommissionsAdminPage({
                 href={baseQs({ page: page - 1 })}
                 className="px-3 py-1.5 rounded-lg border border-[#E5E5E5] font-bold hover:bg-gray-50"
               >
-                ← Anterior
+                {t("prevPage")}
               </Link>
             )}
             {page < totalPages && (
@@ -324,7 +338,7 @@ export default async function CommissionsAdminPage({
                 href={baseQs({ page: page + 1 })}
                 className="px-3 py-1.5 rounded-lg border border-[#E5E5E5] font-bold hover:bg-gray-50"
               >
-                Următor →
+                {t("nextPage")}
               </Link>
             )}
           </div>

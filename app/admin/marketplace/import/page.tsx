@@ -16,6 +16,7 @@ interface PreviewRow {
 interface ImportError {
   row: number;
   reason: string;
+  params?: Record<string, string>;
   data?: Record<string, string>;
 }
 
@@ -110,7 +111,7 @@ export default function BulkImportPage() {
 
   const processFile = useCallback((file: File) => {
     if (!file.name.endsWith(".csv")) {
-      alert("Selectează un fișier .csv valid.");
+      alert(t("invalidCsvFile"));
       return;
     }
 
@@ -128,7 +129,7 @@ export default function BulkImportPage() {
       setResult(null);
     };
     reader.readAsText(file, "utf-8");
-  }, []);
+  }, [t]);
 
   const handleDrop = useCallback(
     (e: DragEvent) => {
@@ -174,13 +175,14 @@ export default function BulkImportPage() {
       const data: ImportResult = await res.json();
       setResult(data);
       setPhase("done");
-    } catch (err: any) {
+    } catch (err) {
       clearInterval(progressInterval);
+      const message = err instanceof Error ? err.message : "unknown";
       setResult({
         success: false,
         imported: 0,
         total: totalRows,
-        errors: [{ row: 0, reason: err.message || "Network error." }],
+        errors: [{ row: 0, reason: "client_network_error", params: { message } }],
       });
       setPhase("done");
     }
@@ -216,18 +218,20 @@ export default function BulkImportPage() {
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <Link
             href="/admin/marketplace"
             className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors mb-3"
           >
             <ArrowLeft className="w-4 h-4" />
-            Marketplace
+            {t("marketplace")}
           </Link>
-          <h1 className="text-3xl font-black text-slate-900">Import Produse (CSV)</h1>
+          <h1 className="text-3xl font-black text-slate-900">{t("pageTitle")}</h1>
           <p className="mt-2 text-slate-500">
-            Încarcă un fișier <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono">.csv</code> cu
-            coloanele: <strong>title, price, description, image_url, category, stock</strong>
+            {t.rich("pageSubtitle", {
+              code: (chunks) => <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono">{chunks}</code>,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
         </div>
       </div>
@@ -263,13 +267,13 @@ export default function BulkImportPage() {
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-slate-700">
-              {dragActive ? "Eliberează fișierul aici" : "Drag & Drop fișier CSV"}
+              {dragActive ? t("dropHere") : t("dragDrop")}
             </p>
-            <p className="mt-1 text-sm text-slate-400">sau click pentru a selecta de pe disc</p>
+            <p className="mt-1 text-sm text-slate-400">{t("orClickToSelect")}</p>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition-colors">
             <FileSpreadsheet className="w-4 h-4" />
-            Selectează fișier .csv
+            {t("selectCsvFile")}
           </span>
           <input ref={inputRef} type="file" accept=".csv" onChange={handleFileInput} className="hidden" />
         </div>
@@ -284,14 +288,14 @@ export default function BulkImportPage() {
             <div className="min-w-0">
               <p className="text-sm font-bold text-slate-900 truncate">{fileName}</p>
               <p className="text-xs text-slate-500">
-                {totalRows} produse detectate &middot; {headers.length} coloane
+                {t("rowsDetected", { count: totalRows })} &middot; {t("columnsDetected", { count: headers.length })}
               </p>
             </div>
             <button
               onClick={handleReset}
               className="ml-auto text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
             >
-              Schimbă fișier
+              {t("changeFile")}
             </button>
           </div>
 
@@ -319,7 +323,7 @@ export default function BulkImportPage() {
                       {c}
                     </code>
                   ))}
-                  — rândurile fără <strong>title</strong> sau <strong>price</strong> vor fi ignorate.
+                  — {t.rich("missingColumnsHint", { strong: (chunks) => <strong>{chunks}</strong> })}
                 </p>
               </div>
             </div>
@@ -329,7 +333,7 @@ export default function BulkImportPage() {
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
-                Preview — primele {previewRows.length} din {totalRows} rânduri
+                {t("previewOfTotal", { shown: previewRows.length, total: totalRows })}
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -367,13 +371,13 @@ export default function BulkImportPage() {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3.5 text-sm font-black text-white hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 active:scale-[0.98]"
             >
               <Upload className="w-4 h-4" />
-              Importă {totalRows} produse
+              {t("importCount", { count: totalRows })}
             </button>
             <button
               onClick={handleReset}
               className="rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              Anulează
+              {t("cancel")}
             </button>
           </div>
         </div>
@@ -385,7 +389,7 @@ export default function BulkImportPage() {
           <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
           <div className="text-center">
             <p className="text-lg font-bold text-slate-900">{t("importing")}</p>
-            <p className="text-sm text-slate-500 mt-1">{totalRows} produse în coadă</p>
+            <p className="text-sm text-slate-500 mt-1">{t("productsQueued", { count: totalRows })}</p>
           </div>
 
           {/* Progress bar */}
@@ -410,7 +414,7 @@ export default function BulkImportPage() {
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-6 h-6 text-neutral-900" />
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.12em] text-neutral-900">Importate cu succes</p>
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-neutral-900">{t("importedSuccessfully")}</p>
                   <p className="text-3xl font-black text-neutral-900 mt-1">{result.imported}</p>
                 </div>
               </div>
@@ -419,7 +423,7 @@ export default function BulkImportPage() {
               <div className="flex items-center gap-3">
                 <XCircle className="w-6 h-6 text-red-500" />
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.12em] text-red-600">Erori</p>
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-red-600">{t("errors")}</p>
                   <p className="text-3xl font-black text-red-800 mt-1">{result.errors.length}</p>
                 </div>
               </div>
@@ -454,7 +458,7 @@ export default function BulkImportPage() {
             <div className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
               <div className="px-5 py-3 border-b border-red-100 bg-red-50">
                 <p className="text-xs font-black uppercase tracking-[0.12em] text-red-600">
-                  Detalii erori ({result.errors.length})
+                  {t("errorDetails", { count: result.errors.length })}
                 </p>
               </div>
               <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
@@ -462,8 +466,8 @@ export default function BulkImportPage() {
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                     <tr>
                       <th className="px-4 py-3 font-bold text-slate-700 text-xs">{t("thRow")}</th>
-                      <th className="px-4 py-3 font-bold text-slate-700 text-xs">Motiv</th>
-                      <th className="px-4 py-3 font-bold text-slate-700 text-xs">Titlu</th>
+                      <th className="px-4 py-3 font-bold text-slate-700 text-xs">{t("thReason")}</th>
+                      <th className="px-4 py-3 font-bold text-slate-700 text-xs">{t("thProductTitle")}</th>
                       <th className="px-4 py-3 font-bold text-slate-700 text-xs">{t("thPrice")}</th>
                     </tr>
                   </thead>
@@ -471,7 +475,7 @@ export default function BulkImportPage() {
                     {result.errors.map((err, idx) => (
                       <tr key={idx} className="hover:bg-red-50/40 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs text-slate-500">{err.row}</td>
-                        <td className="px-4 py-3 text-red-700 text-xs font-semibold">{err.reason}</td>
+                        <td className="px-4 py-3 text-red-700 text-xs font-semibold">{t(`error.${err.reason}`, err.params)}</td>
                         <td className="px-4 py-3 text-slate-600 text-xs truncate max-w-[200px]">
                           {err.data?.title || "—"}
                         </td>
@@ -491,13 +495,13 @@ export default function BulkImportPage() {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Înapoi la Marketplace
+              {t("backToMarketplace")}
             </Link>
             <button
               onClick={handleReset}
               className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              Import nou
+              {t("newImport")}
             </button>
           </div>
         </div>

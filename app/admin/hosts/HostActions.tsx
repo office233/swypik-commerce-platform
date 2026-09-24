@@ -11,17 +11,29 @@ export default function HostActions({ applicationId }: { applicationId: string }
     const [loading, setLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    function translateError(code: string | undefined, status: number): string {
+        const known: Record<string, string> = {
+            unauthorized: t("errUnauthorized"),
+            invalid_data: t("errInvalidData"),
+            reason_required: t("reasonRequired"),
+            application_not_found_or_processed: t("errApplicationNotFoundOrProcessed"),
+        };
+        if (code && known[code]) return known[code];
+        return t("errorWithStatus", { status });
+    }
+
     async function run(action: "approve" | "reject" | "needs_info") {
+        if (loading !== null) return;
         if (action !== "approve" && !note.trim()) {
-            setError("Adaugă un motiv / ce documente lipsesc.");
+            setError(t("reasonRequired"));
             return;
         }
         const msg =
             action === "approve"
-                ? "Aprobi gazda? Va putea publica proprietatea."
+                ? t("confirmApprove")
                 : action === "reject"
-                    ? "Respingi aplicația?"
-                    : "Ceri documente suplimentare?";
+                    ? t("confirmReject")
+                    : t("confirmNeedsInfo");
         if (!confirm(msg)) return;
         setLoading(action);
         setError(null);
@@ -33,13 +45,13 @@ export default function HostActions({ applicationId }: { applicationId: string }
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                setError(data?.error || `Eroare ${res.status}`);
+                setError(translateError(data?.error, res.status));
                 setLoading(null);
                 return;
             }
             router.refresh();
-        } catch (e: any) {
-            setError(e?.message || "Eroare de rețea");
+        } catch (e) {
+            setError(e instanceof Error ? e.message : t("errorNetwork"));
             setLoading(null);
         }
     }
@@ -47,7 +59,7 @@ export default function HostActions({ applicationId }: { applicationId: string }
     return (
         <div className="mt-3 border-t border-black/10 pt-3">
             <label className="mb-1 block text-xs font-bold uppercase text-black/60">
-                Notă (obligatorie la respingere / cerere documente)
+                {t("noteLabelForm")}
             </label>
             <textarea
                 value={note}
@@ -67,7 +79,7 @@ export default function HostActions({ applicationId }: { applicationId: string }
                     onClick={() => run("approve")}
                     className="rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
                 >
-                    {loading === "approve" ? "..." : "Aprobă"}
+                    {loading === "approve" ? t("loading") : t("approve")}
                 </button>
                 <button
                     type="button"
@@ -75,7 +87,7 @@ export default function HostActions({ applicationId }: { applicationId: string }
                     onClick={() => run("needs_info")}
                     className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
                 >
-                    {loading === "needs_info" ? "..." : "Cere documente"}
+                    {loading === "needs_info" ? t("loading") : t("requestDocuments")}
                 </button>
                 <button
                     type="button"
@@ -83,7 +95,7 @@ export default function HostActions({ applicationId }: { applicationId: string }
                     onClick={() => run("reject")}
                     className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
                 >
-                    {loading === "reject" ? "..." : "Respinge"}
+                    {loading === "reject" ? t("loading") : t("reject")}
                 </button>
             </div>
         </div>

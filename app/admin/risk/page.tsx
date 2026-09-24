@@ -138,7 +138,7 @@ async function getBlockedUsers(): Promise<BlockedUser[]> {
 
 async function getOrders(statusFilter: string | undefined): Promise<OrderRow[]> {
   const conditions: string[] = ["co.created_at > now() - interval '90 days'"];
-  const args: any[] = [];
+  const args: string[] = [];
   if (statusFilter && statusFilter !== "all") {
     args.push(statusFilter);
     conditions.push(`co.status = $${args.length}`);
@@ -237,11 +237,11 @@ export default async function AdminRiskPage({
         <div>
           <h1 className="text-xl font-semibold text-[#0D0D0D]">{t("title")}</h1>
           <p className="text-xs text-gray-500 mt-1">
-            Scoring 0-100 per comandă (90 zile). Mai mare = risc mai mare. Review manual recomandat pentru ≥50.
+            {t("scoringExplanation")}
           </p>
         </div>
         <Link href="/admin" className="text-xs text-violet-700 hover:underline">
-          ← Admin home
+          &larr; {t("adminHome")}
         </Link>
       </header>
 
@@ -253,7 +253,7 @@ export default async function AdminRiskPage({
 
       {scored.length === 0 ? (
         <div className="bg-emerald-50 border border-emerald-200 rounded p-6 text-center text-emerald-800 text-sm">
-          <CheckCircle2 size={16} className="inline mr-1 align-text-bottom" /> Nicio comandă cu risc ≥{minScore} în ultimele 90 zile pentru status <strong>{statusFilter}</strong>.
+          <CheckCircle2 size={16} className="inline mr-1 align-text-bottom" /> {t("noOrdersWithRisk", { minScore, status: statusFilter })}
         </div>
       ) : (
         <div className="space-y-2">

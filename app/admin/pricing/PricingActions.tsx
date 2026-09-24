@@ -32,7 +32,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
     setErr(null);
     startTransition(async () => {
       const ok = await post(body);
-      if (!ok) setErr("Eroare — verifică valorile.");
+      if (!ok) setErr(t("errGeneric"));
       router.refresh();
     });
   }
@@ -44,7 +44,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
         onClick={() => run({ action: "toggle_zone", id: zone.id, active: !zone.active })}
         className="rounded border px-2 py-1 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800"
       >
-        {zone.active ? "Dezactivează" : "Activează"}
+        {zone.active ? t("deactivateBtn") : t("activateBtn")}
       </button>
     );
   }
@@ -56,7 +56,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
         onClick={() => run({ action: "end_surge", id: surge.id })}
         className="rounded border px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
       >
-        Oprește
+        {t("stopBtn")}
       </button>
     );
   }
@@ -71,7 +71,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
             onChange={(e) => setZoneId(e.target.value)}
             className="rounded border bg-transparent px-2 py-1"
           >
-            <option value="">— alege —</option>
+            <option value="">{t("chooseOption")}</option>
             {addSurgeZones.map((z) => (
               <option key={z.id} value={z.id}>
                 {z.label}
@@ -80,7 +80,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
           </select>
         </div>
         <div className="flex flex-col text-xs">
-          <label className="mb-1">Multiplicator (1.00–2.00)</label>
+          <label className="mb-1">{t("multiplierLabel")}</label>
           <input
             value={multiplier}
             onChange={(e) => setMultiplier(e.target.value)}
@@ -101,7 +101,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
             const m = Number(multiplier);
             const mins = Number(minutes);
             if (!Number.isFinite(m) || m < 1 || m > 2) {
-              setErr("Multiplicator între 1.00 și 2.00");
+              setErr(t("errMultiplierRange"));
               return;
             }
             run({
@@ -115,7 +115,7 @@ export default function PricingActions({ zone, surge, addSurgeZones }: Props) {
           }}
           className="rounded bg-amber-500 px-3 py-1 text-xs font-medium text-white hover:bg-amber-600 disabled:opacity-50"
         >
-          Pornește surge manual
+          {t("startSurgeBtn")}
         </button>
         {err && <span className="text-xs text-red-600">{err}</span>}
       </div>

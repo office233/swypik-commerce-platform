@@ -6,6 +6,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { parseBody } from "@/lib/validation/schemas";
 import { updateTrack } from "@/lib/music/repository";
 import { archiveTrack, publishTrack, updateTrackAndSync } from "@/lib/music/publish";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,14 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
         case "approve": {
             const track = await updateTrack(id, null, { moderationStatus: "approved" });
             if (!track) return NextResponse.json({ error: "not_found" }, { status: 404 });
+            await logAdminAction({ action: "music_track.approve", targetType: "music_track", targetId: id, req });
             return NextResponse.json({ track });
         }
         case "reject": {
             // O piesă publicată și respinsă ulterior iese din catalog și din sunetele pentru reels.
             const track = await updateTrackAndSync(id, null, { moderationStatus: "rejected", status: "draft" });
             if (!track) return NextResponse.json({ error: "not_found" }, { status: 404 });
+            await logAdminAction({ action: "music_track.reject", targetType: "music_track", targetId: id, req });
             return NextResponse.json({ track });
         }
         case "publish": {
@@ -37,11 +40,13 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
                 const status = result.reason === "not_approved" ? 409 : 404;
                 return NextResponse.json({ error: result.reason }, { status });
             }
+            await logAdminAction({ action: "music_track.publish", targetType: "music_track", targetId: id, req });
             return NextResponse.json({ track: result.track });
         }
         case "archive": {
             const track = await archiveTrack(id, null);
             if (!track) return NextResponse.json({ error: "not_found" }, { status: 404 });
+            await logAdminAction({ action: "music_track.archive", targetType: "music_track", targetId: id, req });
             return NextResponse.json({ track });
         }
     }

@@ -6,6 +6,7 @@
  */
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { dbQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,14 @@ export async function POST(
 
   const duration = Date.now() - start;
   const finalStatus = errMsg ? "failed" : "success";
+
+  await logAdminAction({
+    action: "cron.trigger",
+    targetType: "cron_job",
+    targetId: jobName,
+    details: { status: finalStatus, duration_ms: duration },
+    req,
+  });
 
   if (runId) {
     try {

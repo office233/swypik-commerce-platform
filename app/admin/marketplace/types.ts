@@ -30,14 +30,14 @@ export interface ServerTotals {
 export const PAGE_SIZE = 20;
 
 export const STATUS_OPTIONS = [
-  { value: "all", label: "Toate" },
-  { value: "active", label: "Active" },
-  { value: "draft", label: "Draft" },
-  { value: "inactive", label: "Inactive" },
+  { value: "all", labelKey: "statusAll" },
+  { value: "active", labelKey: "statusActive" },
+  { value: "draft", labelKey: "statusDraft" },
+  { value: "inactive", labelKey: "statusInactive" },
 ] as const;
 
 export const SOURCE_OPTIONS = [
-  { value: "all", label: "Toate sursele" },
-  { value: "multi_erp", label: "Multi-ERP" },
-  { value: "local_seller", label: "Local Seller" },
+  { value: "all", labelKey: "sourceAll" },
+  { value: "multi_erp", labelKey: "sourceMultiErp" },
+  { value: "local_seller", labelKey: "sourceLocalSeller" },
 ] as const;

@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { isAdminRequest } from "@/lib/security/admin-auth";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
@@ -69,6 +70,14 @@ export async function PATCH(
                         : `<h2>Salut</h2><p>Din păcate aplicația de franciză nu a fost aprobată momentan. Ne poți contacta pentru detalii.</p>`,
             }).catch((err) => logger.warn({ err }, "[admin/fleet-partners] email failed"));
         }
+
+        await logAdminAction({
+            action: `fleet_partner.${action}`,
+            targetType: "fleet_partner",
+            targetId: id,
+            details: { commission_bps: commissionBps },
+            req,
+        });
 
         return NextResponse.json({ success: true, partner });
     } catch (error) {

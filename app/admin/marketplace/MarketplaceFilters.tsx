@@ -49,7 +49,7 @@ export function MarketplaceFilters({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
           <Filter className="w-4 h-4" />
-          Filtre
+          {t("filters")}
         </div>
 
         <div className="flex-1 sm:max-w-[200px]">
@@ -62,7 +62,7 @@ export function MarketplaceFilters({
           >
             {STATUS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
-                Status: {o.label}
+                {t("statusPrefix")} {t(o.labelKey)}
               </option>
             ))}
           </select>
@@ -78,14 +78,14 @@ export function MarketplaceFilters({
           >
             {SOURCE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
-                Sursă: {o.label}
+                {t("sourcePrefix")} {t(o.labelKey)}
               </option>
             ))}
           </select>
         </div>
 
         <div className="ml-auto text-sm text-slate-500 tabular-nums">
-          {totalFiltered} {totalFiltered === 1 ? "produs" : "produse"} găsite
+          {t("productsFound", { count: totalFiltered })}
         </div>
       </div>
     </div>

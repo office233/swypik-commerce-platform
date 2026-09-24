@@ -4,6 +4,7 @@ import { autoEmbedProduct } from "@/lib/ai/auto-embed";
 import { dbQuery } from "@/lib/db";
 
 import { isAdminRequest } from "@/lib/security/admin-auth";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 import { logger } from "@/lib/logger";
 import { DEFAULT_CURRENCY } from "@/lib/i18n/config";
@@ -33,9 +34,12 @@ interface CsvRow {
   stock?: string;
 }
 
+// `reason` is a stable machine code the client translates; `params` carries
+// interpolation values (e.g. the offending raw price string, truncated DB error).
 interface ImportError {
   row: number;
   reason: string;
+  params?: Record<string, string>;
   data?: Record<string, string | undefined>;
 }
 
@@ -115,7 +119,7 @@ function inventoryFromStock(stock: string | undefined): string {
 
 export async function POST(req: Request) {
   if (!(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   try {
@@ -124,7 +128,7 @@ export async function POST(req: Request) {
 
     if (!csvText || typeof csvText !== "string") {
       return NextResponse.json(
-        { success: false, imported: 0, errors: [{ row: 0, reason: "No CSV data provided." }] },
+        { success: false, imported: 0, errors: [{ row: 0, reason: "no_csv_data" }] },
         { status: 400 }
       );
     }
@@ -134,7 +138,7 @@ export async function POST(req: Request) {
     const MAX_CSV_ROWS = 5000;
     if (Buffer.byteLength(csvText, "utf8") > MAX_CSV_BYTES) {
       return NextResponse.json(
-        { success: false, imported: 0, errors: [{ row: 0, reason: "CSV too large (max 5 MB)." }] },
+        { success: false, imported: 0, errors: [{ row: 0, reason: "csv_too_large" }] },
         { status: 413 }
       );
     }
@@ -143,14 +147,14 @@ export async function POST(req: Request) {
 
     if (rows.length > MAX_CSV_ROWS) {
       return NextResponse.json(
-        { success: false, imported: 0, errors: [{ row: 0, reason: `Too many rows (max ${MAX_CSV_ROWS}).` }] },
+        { success: false, imported: 0, errors: [{ row: 0, reason: "too_many_rows", params: { max: String(MAX_CSV_ROWS) } }] },
         { status: 413 }
       );
     }
 
     if (rows.length === 0) {
       return NextResponse.json(
-        { success: false, imported: 0, errors: [{ row: 0, reason: "CSV file is empty or has no data rows." }] },
+        { success: false, imported: 0, errors: [{ row: 0, reason: "empty_csv" }] },
         { status: 400 }
       );
     }
@@ -168,18 +172,18 @@ export async function POST(req: Request) {
 
       // ---- validation ----
       if (!title) {
-        errors.push({ row: rowNumber, reason: "Lipsește titlul (title).", data: rowData });
+        errors.push({ row: rowNumber, reason: "missing_title", data: rowData });
         continue;
       }
 
       if (!priceRaw) {
-        errors.push({ row: rowNumber, reason: "Lipsește prețul (price).", data: rowData });
+        errors.push({ row: rowNumber, reason: "missing_price", data: rowData });
         continue;
       }
 
       const priceNum = parseFloat(priceRaw);
       if (isNaN(priceNum) || priceNum < 0) {
-        errors.push({ row: rowNumber, reason: `Preț invalid: "${priceRaw}".`, data: rowData });
+        errors.push({ row: rowNumber, reason: "invalid_price", params: { price: priceRaw }, data: rowData });
         continue;
       }
 
@@ -208,14 +212,23 @@ export async function POST(req: Request) {
           labelProduct({ id: insRows[0].id, title, description, category }).catch(() => { });
         }
         imported++;
-      } catch (dbErr: any) {
+      } catch (dbErr) {
+        const message = dbErr instanceof Error ? dbErr.message.slice(0, 200) : "unknown";
         errors.push({
           row: rowNumber,
-          reason: `DB error: ${dbErr.message?.slice(0, 200) ?? "Unknown"}`,
+          reason: "db_error",
+          params: { message },
           data: rowData,
         });
       }
     }
+
+    await logAdminAction({
+      action: "marketplace_product.bulk_import",
+      targetType: "marketplace_product",
+      details: { imported, total: rows.length, errors: errors.length },
+      req,
+    });
 
     return NextResponse.json({
       success: true,
@@ -223,10 +236,11 @@ export async function POST(req: Request) {
       total: rows.length,
       errors,
     });
-  } catch (err: any) {
-    logger.error({ err: err }, "CSV import error:");
+  } catch (err) {
+    logger.error({ err }, "CSV import error:");
+    const message = err instanceof Error ? err.message : "server_error";
     return NextResponse.json(
-      { success: false, imported: 0, errors: [{ row: 0, reason: err.message || "Server error." }] },
+      { success: false, imported: 0, errors: [{ row: 0, reason: "server_error", params: { message } }] },
       { status: 500 }
     );
   }

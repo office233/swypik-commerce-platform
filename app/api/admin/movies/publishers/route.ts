@@ -5,6 +5,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { parseBody } from "@/lib/validation/schemas";
 import { dbQuery } from "@/lib/db";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export const POST = withErrorHandling(async function POST(req: Request) {
          ON CONFLICT (user_id) DO UPDATE SET note = EXCLUDED.note`,
         [parsed.data.userId, auth.userId, parsed.data.note ?? null],
     );
+    await logAdminAction({ action: "movie_publisher.approve", targetType: "user", targetId: parsed.data.userId, details: { note: parsed.data.note ?? null }, req });
     return NextResponse.json({ ok: true }, { status: 201 });
 });
 
@@ -42,5 +44,6 @@ export const DELETE = withErrorHandling(async function DELETE(req: Request) {
     const userId = new URL(req.url).searchParams.get("userId");
     if (!userId) return NextResponse.json({ error: "invalid_query" }, { status: 400 });
     await dbQuery(`DELETE FROM movie_publishers WHERE user_id = $1`, [userId]);
+    await logAdminAction({ action: "movie_publisher.remove", targetType: "user", targetId: userId, req });
     return NextResponse.json({ ok: true });
 });

@@ -49,7 +49,7 @@ interface OrderRiskMetadata {
 
 async function GET_impl(req: Request) {
   const ok = (await hasAdminSession()) || (await isAdminRequest(req));
-  if (!ok) return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
+  if (!ok) return NextResponse.json({ error: "unauthorized" }, { status: 403 });
 
   const url = new URL(req.url);
   const statusFilter = url.searchParams.get("status"); // "paid" | "pending" | null=all

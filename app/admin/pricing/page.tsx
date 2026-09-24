@@ -1,5 +1,5 @@
 import { dbQuery } from "@/lib/db";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { MapPin, Zap, CheckCircle2, Ban } from "lucide-react";
 import PricingActions from "./PricingActions";
 
@@ -34,12 +34,9 @@ type Surge = {
   vehicle_class: string;
 };
 
-function money(cents: number, currency: string) {
-  return `${(cents / 100).toFixed(2)} ${currency}`;
-}
-
 export default async function AdminPricingPage() {
   const t = await getTranslations("adminPricing");
+  const locale = await getLocale();
   const [{ rows: zones }, { rows: surges }] = await Promise.all([
     dbQuery<Zone>(
       `SELECT * FROM pricing_zones ORDER BY country, lower(city), kind, vehicle_class`,
@@ -52,30 +49,34 @@ export default async function AdminPricingPage() {
     ),
   ]);
 
+  const money = (cents: number, currency: string) =>
+    new Intl.NumberFormat(locale, { style: "currency", currency }).format(cents / 100);
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" });
+
   return (
     <div className="space-y-8 p-6">
       <div className="flex items-center gap-2">
         <MapPin className="h-6 w-6" />
-        <h1 className="text-2xl font-semibold">Pricing — zone & surge</h1>
+        <h1 className="text-2xl font-semibold">{t("pageTitle")}</h1>
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-medium">Zone tarifare ({zones.length})</h2>
+        <h2 className="mb-3 text-lg font-medium">{t("zonesTitle", { n: zones.length })}</h2>
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="bg-neutral-100 text-left dark:bg-neutral-800">
               <tr>
                 <th className="p-2">{t("thCity")}</th>
-                <th className="p-2">Tip</th>
+                <th className="p-2">{t("thType")}</th>
                 <th className="p-2">{t("thClass")}</th>
                 <th className="p-2">{t("thBase")}</th>
-                <th className="p-2">/km</th>
-                <th className="p-2">/min</th>
-                <th className="p-2">Min</th>
-                <th className="p-2">Booking</th>
-                <th className="p-2">Comision</th>
-                <th className="p-2">Curier %</th>
-                <th className="p-2">Activ</th>
+                <th className="p-2">{t("thPerKm")}</th>
+                <th className="p-2">{t("thPerMin")}</th>
+                <th className="p-2">{t("thMin")}</th>
+                <th className="p-2">{t("thBooking")}</th>
+                <th className="p-2">{t("thCommission")}</th>
+                <th className="p-2">{t("thCourierShare")}</th>
+                <th className="p-2">{t("thActive")}</th>
                 <th className="p-2">{t("thActions")}</th>
               </tr>
             </thead>
@@ -103,7 +104,7 @@ export default async function AdminPricingPage() {
               {zones.length === 0 && (
                 <tr>
                   <td colSpan={12} className="p-4 text-center text-neutral-500">
-                    Nicio zonă. Rulează migrarea 20260730_0008_pricing.sql pentru seed.
+                    {t("noZones")}
                   </td>
                 </tr>
               )}
@@ -115,14 +116,14 @@ export default async function AdminPricingPage() {
       <section>
         <div className="mb-3 flex items-center gap-2">
           <Zap className="h-5 w-5 text-amber-500" />
-          <h2 className="text-lg font-medium">Surge activ ({surges.length})</h2>
+          <h2 className="text-lg font-medium">{t("surgeTitle", { n: surges.length })}</h2>
         </div>
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="bg-neutral-100 text-left dark:bg-neutral-800">
               <tr>
                 <th className="p-2">{t("thZone")}</th>
-                <th className="p-2">Multiplicator</th>
+                <th className="p-2">{t("thMultiplier")}</th>
                 <th className="p-2">{t("thStart")}</th>
                 <th className="p-2">{t("thEnd")}</th>
                 <th className="p-2">{t("thSource")}</th>
@@ -136,11 +137,11 @@ export default async function AdminPricingPage() {
                     {s.city} / {s.kind} / {s.vehicle_class}
                   </td>
                   <td className="p-2 font-semibold">×{Number(s.multiplier).toFixed(2)}</td>
-                  <td className="p-2">{new Date(s.starts_at).toLocaleString("ro-RO")}</td>
-                  <td className="p-2">
-                    {s.ends_at ? new Date(s.ends_at).toLocaleString("ro-RO") : "—"}
+                  <td className="p-2 whitespace-nowrap">{dateFmt.format(new Date(s.starts_at))}</td>
+                  <td className="p-2 whitespace-nowrap">
+                    {s.ends_at ? dateFmt.format(new Date(s.ends_at)) : "—"}
                   </td>
-                  <td className="p-2">{s.auto ? "auto" : "manual"}</td>
+                  <td className="p-2">{s.auto ? t("sourceAuto") : t("sourceManual")}</td>
                   <td className="p-2">
                     <PricingActions surge={{ id: s.id }} />
                   </td>
@@ -149,7 +150,7 @@ export default async function AdminPricingPage() {
               {surges.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-4 text-center text-neutral-500">
-                    Niciun surge manual activ.
+                    {t("noSurge")}
                   </td>
                 </tr>
               )}

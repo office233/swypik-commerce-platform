@@ -3,6 +3,7 @@
  */
 import { dbQuery } from "@/lib/db";
 import { getTranslations } from "next-intl/server";
+import { requireAdminSession } from "@/lib/security/admin-auth";
 import { Clock } from "lucide-react";
 import CronJobRow from "./CronJobRow";
 import { CRON_JOBS } from "./jobs";
@@ -32,17 +33,18 @@ async function getLastRuns(): Promise<Map<string, LastRun>> {
 }
 
 export default async function AdminCronPage() {
-    const t = await getTranslations("adminCron");
+  await requireAdminSession();
+  const t = await getTranslations("adminCron");
   const lastRuns = await getLastRuns();
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <div className="mb-6 flex items-center gap-2">
-        <Clock className="w-6 h-6 text-[#0D0D0D]" />
-        <div>
-          <h1 className="text-2xl font-black text-[#0D0D0D]">Cron Jobs</h1>
+        <Clock className="w-6 h-6 text-[#0D0D0D] shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-2xl font-black text-[#0D0D0D]">{t("title")}</h1>
           <p className="text-sm text-[#0D0D0D]/60 mt-0.5">
-            Job-uri programate. Ultim run citit din <code>cron_runs</code>.
+            {t.rich("subtitle", { code: (chunks) => <code>{chunks}</code> })}
           </p>
         </div>
       </div>
@@ -51,10 +53,10 @@ export default async function AdminCronPage() {
         <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-[#F7F7F8] text-[10px] uppercase tracking-wider text-[#0D0D0D]/60">
             <tr>
-              <th className="text-left px-4 py-2 font-black">Job</th>
-              <th className="text-left px-4 py-2 font-black">Schedule</th>
-              <th className="text-left px-4 py-2 font-black">Ultim run</th>
-              <th className="text-left px-4 py-2 font-black">Status</th>
+              <th className="text-left px-4 py-2 font-black">{t("thJob")}</th>
+              <th className="text-left px-4 py-2 font-black">{t("thSchedule")}</th>
+              <th className="text-left px-4 py-2 font-black">{t("thLastRun")}</th>
+              <th className="text-left px-4 py-2 font-black">{t("thStatus")}</th>
               <th className="text-right px-4 py-2 font-black">{t("thActions")}</th>
             </tr>
           </thead>
@@ -71,9 +73,7 @@ export default async function AdminCronPage() {
       </div>
 
       <p className="text-xs text-[#0D0D0D]/50 mt-4">
-        Tabela <code>cron_runs</code> e populată când rulezi un job manual de
-        aici. Dacă „Ultim run” e gol, înseamnă că job-ul a rulat doar din
-        cron-worker (nu loghează încă în DB).
+        {t.rich("footnote", { code: (chunks) => <code>{chunks}</code> })}
       </p>
     </div>
   );

@@ -27,30 +27,35 @@ type FileKey =
   | "uncategorized_file";
 
 type EvidenceShape = Partial<Record<TextKey | FileKey, string>>;
+type Translator = ReturnType<typeof useTranslations>;
 
-const FIELDS: { key: TextKey; label: string; placeholder?: string; multiline?: boolean }[] = [
-  { key: "product_description", label: "Descriere produs", multiline: true, placeholder: "Numele și descrierea produsului livrat" },
-  { key: "customer_name", label: "Nume client" },
-  { key: "customer_email_address", label: "Email client" },
-  { key: "customer_communication_text", label: "Comunicare cu clientul (text)", multiline: true },
-  { key: "shipping_address", label: "Adresă livrare", multiline: true },
-  { key: "shipping_carrier", label: "Curier" },
-  { key: "shipping_tracking_number", label: "Tracking number" },
-  { key: "shipping_date", label: "Data expediere (YYYY-MM-DD)" },
-  { key: "service_date", label: "Data serviciu (YYYY-MM-DD)" },
-  { key: "refund_policy_disclosure", label: "Politica de retur (text)", multiline: true },
-  { key: "uncategorized_text", label: "Alte note", multiline: true },
-];
+function getFields(t: Translator): { key: TextKey; label: string; placeholder?: string; multiline?: boolean }[] {
+  return [
+    { key: "product_description", label: t("fieldProductDescription"), multiline: true, placeholder: t("fieldProductDescriptionPh") },
+    { key: "customer_name", label: t("fieldCustomerName") },
+    { key: "customer_email_address", label: t("fieldCustomerEmail") },
+    { key: "customer_communication_text", label: t("fieldCustomerCommText"), multiline: true },
+    { key: "shipping_address", label: t("fieldShippingAddress"), multiline: true },
+    { key: "shipping_carrier", label: t("fieldShippingCarrier") },
+    { key: "shipping_tracking_number", label: t("fieldTrackingNumber") },
+    { key: "shipping_date", label: t("fieldShippingDate") },
+    { key: "service_date", label: t("fieldServiceDate") },
+    { key: "refund_policy_disclosure", label: t("fieldRefundPolicyText"), multiline: true },
+    { key: "uncategorized_text", label: t("fieldOtherNotes"), multiline: true },
+  ];
+}
 
-const FILE_FIELDS: { key: FileKey; label: string }[] = [
-  { key: "receipt", label: "Receipt / Chitanță" },
-  { key: "shipping_documentation", label: "Doc. expediere (AWB)" },
-  { key: "service_documentation", label: "Doc. serviciu" },
-  { key: "customer_signature", label: "Semnătură client" },
-  { key: "customer_communication", label: "Conversație screenshot" },
-  { key: "refund_policy", label: "Politica de retur (PDF)" },
-  { key: "uncategorized_file", label: "Alt fișier" },
-];
+function getFileFields(t: Translator): { key: FileKey; label: string }[] {
+  return [
+    { key: "receipt", label: t("fileReceipt") },
+    { key: "shipping_documentation", label: t("fileShippingDoc") },
+    { key: "service_documentation", label: t("fileServiceDoc") },
+    { key: "customer_signature", label: t("fileCustomerSignature") },
+    { key: "customer_communication", label: t("fileCommScreenshot") },
+    { key: "refund_policy", label: t("fileRefundPolicyPdf") },
+    { key: "uncategorized_file", label: t("fileOther") },
+  ];
+}
 
 type FileSlot = { fileId?: string; filename?: string; uploading: boolean; error?: string };
 
@@ -63,7 +68,9 @@ export default function DisputeEvidenceForm({
   draft: Record<string, unknown> | null;
   suggestions?: { key: string; potentialDelta: number; newScore: number }[];
 }) {
-    const t = useTranslations("adminDisputes");
+  const t = useTranslations("adminDisputes");
+  const FIELDS = getFields(t);
+  const FILE_FIELDS = getFileFields(t);
   const suggMap = new Map<string, { potentialDelta: number; newScore: number }>();
   for (const s of suggestions || []) suggMap.set(s.key, s);
   const router = useRouter();
@@ -71,8 +78,8 @@ export default function DisputeEvidenceForm({
     const init: EvidenceShape = {};
     if (draft) {
       for (const f of [...FIELDS, ...FILE_FIELDS]) {
-        const v = (draft as any)[f.key];
-        if (typeof v === "string") (init as any)[f.key] = v;
+        const v = draft[f.key];
+        if (typeof v === "string") init[f.key] = v;
       }
     }
     return init;
@@ -81,7 +88,7 @@ export default function DisputeEvidenceForm({
     const init: Partial<Record<FileKey, FileSlot>> = {};
     if (draft) {
       for (const f of FILE_FIELDS) {
-        const v = (draft as any)[f.key];
+        const v = draft[f.key];
         if (typeof v === "string") init[f.key] = { fileId: v, filename: v, uploading: false };
       }
     }
@@ -91,10 +98,30 @@ export default function DisputeEvidenceForm({
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [suggesting, setSuggesting] = useState(false);
+  const [sending, setSending] = useState<"draft" | "submit" | null>(null);
   const [pending, startTransition] = useTransition();
 
   function update<K extends keyof EvidenceShape>(key: K, value: string) {
     setEvidence((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function translateApiError(code: string | undefined, status: number): string {
+    switch (code) {
+      case "unauthorized":
+        return t("errUnauthorized");
+      case "invalid_json_body":
+        return t("errInvalidJsonBody");
+      case "invalid_dispute_id":
+        return t("errInvalidDisputeId");
+      case "dispute_not_found":
+        return t("errDisputeNotFound");
+      case "evidence_already_submitted":
+        return t("errEvidenceAlreadySubmitted");
+      case "stripe_error":
+        return t("errStripe");
+      default:
+        return code || t("httpError", { status });
+    }
   }
 
   async function applySuggestions() {
@@ -104,7 +131,7 @@ export default function DisputeEvidenceForm({
       const res = await fetch(`/api/admin/disputes/${disputeId}/suggest`);
       const data = await res.json();
       if (!res.ok || !data?.success) {
-        setError(data?.error || `Eroare HTTP ${res.status}`);
+        setError(translateApiError(data?.error, res.status));
         return;
       }
       const s = (data.suggestion || {}) as Partial<Record<TextKey, string>>;
@@ -112,13 +139,13 @@ export default function DisputeEvidenceForm({
       setEvidence((prev) => {
         const next = { ...prev };
         for (const [k, v] of Object.entries(s)) {
-          if (typeof v === "string" && empty(k as TextKey)) (next as any)[k] = v;
+          if (typeof v === "string" && empty(k as TextKey)) next[k as TextKey] = v;
         }
         return next;
       });
-      setOkMsg(`Sugestii aplicate (${Object.keys(s).length} câmpuri). Cele completate manual nu au fost suprascrise.`);
-    } catch (e: any) {
-      setError(e?.message || "Eroare necunoscută");
+      setOkMsg(t("suggestionsApplied", { n: Object.keys(s).length }));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : t("unknownError"));
     } finally {
       setSuggesting(false);
     }
@@ -135,7 +162,7 @@ export default function DisputeEvidenceForm({
       });
       const data = await res.json();
       if (!res.ok || !data?.success) {
-        setFileSlots((prev) => ({ ...prev, [key]: { uploading: false, error: data?.error || `HTTP ${res.status}` } }));
+        setFileSlots((prev) => ({ ...prev, [key]: { uploading: false, error: translateApiError(data?.error, res.status) } }));
         return;
       }
       setFileSlots((prev) => ({
@@ -143,8 +170,8 @@ export default function DisputeEvidenceForm({
         [key]: { uploading: false, fileId: data.file_id, filename: data.filename },
       }));
       setEvidence((prev) => ({ ...prev, [key]: data.file_id }));
-    } catch (e: any) {
-      setFileSlots((prev) => ({ ...prev, [key]: { uploading: false, error: e?.message || "upload error" } }));
+    } catch (e: unknown) {
+      setFileSlots((prev) => ({ ...prev, [key]: { uploading: false, error: e instanceof Error ? e.message : t("unknownError") } }));
     }
   }
 
@@ -164,6 +191,7 @@ export default function DisputeEvidenceForm({
   }
 
   async function send(submit: boolean) {
+    if (sending) return; // double-submit protection
     setError(null);
     setOkMsg(null);
     const payload: Record<string, string> = {};
@@ -171,9 +199,10 @@ export default function DisputeEvidenceForm({
       if (typeof v === "string" && v.trim()) payload[k] = v.trim();
     }
     if (submit && Object.keys(payload).length === 0) {
-      setError("Trebuie cel puțin un câmp completat pentru submit.");
+      setError(t("submitNeedsField"));
       return;
     }
+    setSending(submit ? "submit" : "draft");
     try {
       const res = await fetch("/api/admin/disputes", {
         method: "POST",
@@ -182,13 +211,15 @@ export default function DisputeEvidenceForm({
       });
       const data = await res.json();
       if (!res.ok || !data?.success) {
-        setError(data?.error || `Eroare HTTP ${res.status}`);
+        setError(translateApiError(data?.error, res.status));
         return;
       }
-      setOkMsg(submit ? `Trimis la Stripe (status: ${data.status})` : "Draft salvat");
+      setOkMsg(submit ? t("sentToStripe", { status: data.status }) : t("draftSaved"));
       if (submit) startTransition(() => router.refresh());
-    } catch (e: any) {
-      setError(e?.message || "Eroare necunoscută");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : t("unknownError"));
+    } finally {
+      setSending(null);
     }
   }
 
@@ -202,7 +233,7 @@ export default function DisputeEvidenceForm({
           disabled={suggesting}
           className="px-2.5 py-1 rounded text-xs font-semibold bg-violet-100 text-violet-800 hover:bg-violet-200 disabled:opacity-60"
         >
-          {suggesting ? "Se completează…" : "Auto-completează din comandă"}
+          {suggesting ? t("autoFilling") : t("autoFillBtn")}
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -218,9 +249,9 @@ export default function DisputeEvidenceForm({
                 {sugg && (
                   <span
                     className="text-[10px] font-bold bg-violet-100 text-violet-800 px-1.5 py-0.5 rounded"
-                    title={`Ar urca scorul la ${sugg.newScore}%`}
+                    title={t("scoreBoostTitle", { score: sugg.newScore })}
                   >
-                    +{sugg.potentialDelta} pct
+                    {t("scoreBoostPts", { delta: sugg.potentialDelta })}
                   </span>
                 )}
               </span>
@@ -228,7 +259,7 @@ export default function DisputeEvidenceForm({
                 <textarea
                   rows={3}
                   placeholder={f.placeholder}
-                  value={(evidence[f.key] as string) || ""}
+                  value={evidence[f.key] || ""}
                   onChange={(e) => update(f.key, e.target.value)}
                   className={`border rounded p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y ${ringCls}`}
                 />
@@ -236,7 +267,7 @@ export default function DisputeEvidenceForm({
                 <input
                   type="text"
                   placeholder={f.placeholder}
-                  value={(evidence[f.key] as string) || ""}
+                  value={evidence[f.key] || ""}
                   onChange={(e) => update(f.key, e.target.value)}
                   className={`border rounded p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 ${ringCls}`}
                 />
@@ -262,9 +293,9 @@ export default function DisputeEvidenceForm({
                   {sugg && (
                     <span
                       className="text-[10px] font-bold bg-violet-100 text-violet-800 px-1.5 py-0.5 rounded"
-                      title={`Ar urca scorul la ${sugg.newScore}%`}
+                      title={t("scoreBoostTitle", { score: sugg.newScore })}
                     >
-                      +{sugg.potentialDelta} pct
+                      {t("scoreBoostPts", { delta: sugg.potentialDelta })}
                     </span>
                   )}
                 </div>
@@ -279,7 +310,7 @@ export default function DisputeEvidenceForm({
                       onClick={() => clearFile(f.key)}
                       className="ml-auto text-red-600 hover:underline"
                     >
-                      șterge
+                      {t("removeFile")}
                     </button>
                   </div>
                 ) : slot?.uploading ? (
@@ -290,6 +321,7 @@ export default function DisputeEvidenceForm({
                       fileInputRefs.current[f.key] = el;
                     }}
                     type="file"
+                    aria-label={f.label}
                     accept="application/pdf,image/png,image/jpeg,image/gif"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -311,20 +343,20 @@ export default function DisputeEvidenceForm({
         <button
           type="button"
           onClick={() => send(false)}
-          disabled={pending}
+          disabled={pending || !!sending}
           className="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold border border-[#E5E5E5] hover:bg-gray-50 disabled:opacity-60"
         >
-          Salvează draft
+          {sending === "draft" ? t("sending") : t("saveDraftBtn")}
         </button>
         <button
           type="button"
           onClick={() => {
-            if (confirm("Trimite definitiv evidence la Stripe? Nu mai poate fi modificat.")) send(true);
+            if (confirm(t("submitConfirm"))) send(true);
           }}
-          disabled={pending}
+          disabled={pending || !!sending}
           className="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-bold bg-[#0D0D0D] text-white hover:bg-black disabled:opacity-60"
         >
-          {pending ? "Se trimite…" : "Trimite la Stripe"}
+          {pending || sending === "submit" ? t("sending") : t("sendToStripeBtn")}
         </button>
       </div>
     </div>

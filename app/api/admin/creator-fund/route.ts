@@ -4,6 +4,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { requireAuth } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { distributeCreatorFund } from "@/lib/algo/attribution";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -74,5 +75,12 @@ export const POST = withErrorHandling(async function POST(req: Request) {
         `${parsed.data.month}-01`,
         parsed.data.poolCents,
     );
+    await logAdminAction({
+        action: "creator_fund.distribute",
+        targetType: "creator_fund_pool",
+        targetId: parsed.data.month,
+        details: { poolCents: parsed.data.poolCents },
+        req,
+    });
     return NextResponse.json({ ok: true, ...result });
 });

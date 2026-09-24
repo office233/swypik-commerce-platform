@@ -10,6 +10,7 @@ import { getDb } from "@/lib/db";
 import { sendEmail } from "@/lib/email/service";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 import { logger } from "@/lib/logger";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,18 +20,18 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!(await hasAdminSession())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) {
-    return NextResponse.json({ error: "ID invalid" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   }
   const body = await req.json().catch(() => ({}));
   const reason =
     typeof body?.reason === "string" ? body.reason.trim().slice(0, 500) : "";
   if (!reason) {
     return NextResponse.json(
-      { error: "Motivul respingerii este obligatoriu" },
+      { error: "reason_required" },
       { status: 400 }
     );
   }
@@ -96,10 +97,10 @@ export async function POST(
   }
 
   if (notFound) {
-    return NextResponse.json({ error: "Aplicație inexistentă" }, { status: 404 });
+    return NextResponse.json({ error: "application_not_found" }, { status: 404 });
   }
   if (alreadyRejected) {
-    return NextResponse.json({ error: "Aplicația este deja respinsă" }, { status: 409 });
+    return NextResponse.json({ error: "already_rejected" }, { status: 409 });
   }
 
   if (userEmail) {
@@ -123,6 +124,14 @@ export async function POST(
       logger.warn({ err }, "[admin/applications/reject] email send failed");
     }
   }
+
+  await logAdminAction({
+    action: "application.reject",
+    targetType: "creator_application",
+    targetId: id,
+    details: { reason },
+    req,
+  });
 
   return NextResponse.json({ ok: true, action: "reject" });
 }

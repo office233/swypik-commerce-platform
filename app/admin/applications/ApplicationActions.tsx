@@ -11,12 +11,26 @@ export default function ApplicationActions({ applicationId }: { applicationId: s
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  function translateError(code: string | undefined, status: number): string {
+    const known: Record<string, string> = {
+      forbidden: t("errForbidden"),
+      invalid_id: t("errInvalidId"),
+      application_not_found: t("errApplicationNotFound"),
+      already_approved: t("errAlreadyApproved"),
+      already_rejected: t("errAlreadyRejected"),
+      reason_required: t("reasonRequiredForRejection"),
+    };
+    if (code && known[code]) return known[code];
+    return t("errorWithStatus", { status });
+  }
+
   async function run(action: "approve" | "reject") {
+    if (loading !== null) return;
     if (action === "reject" && !reason.trim()) {
-      setError("Adaugă un motiv pentru respingere.");
+      setError(t("reasonRequiredForRejection"));
       return;
     }
-    if (!confirm(action === "approve" ? "Aprobi aplicația? Userul va primi rolul de creator." : "Respingi aplicația?")) return;
+    if (!confirm(action === "approve" ? t("confirmApprove") : t("confirmReject"))) return;
     setLoading(action);
     setError(null);
     try {
@@ -27,20 +41,20 @@ export default function ApplicationActions({ applicationId }: { applicationId: s
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data?.error || `Eroare ${res.status}`);
+        setError(translateError(data?.error, res.status));
         setLoading(null);
         return;
       }
       router.refresh();
-    } catch (e: any) {
-      setError(e?.message || "Eroare de rețea");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("errorNetwork"));
       setLoading(null);
     }
   }
 
   return (
     <div>
-      <label className="block text-xs font-bold text-black/60 uppercase mb-1">Motiv (obligatoriu pentru respingere)</label>
+      <label className="block text-xs font-bold text-black/60 uppercase mb-1">{t("reasonLabel")}</label>
       <textarea
         value={reason}
         onChange={(e) => setReason(e.target.value)}
@@ -59,7 +73,7 @@ export default function ApplicationActions({ applicationId }: { applicationId: s
           onClick={() => run("approve")}
           className="rounded-lg bg-green-600 text-white px-4 py-2 text-sm font-bold disabled:opacity-50"
         >
-          {loading === "approve" ? "..." : "Aprobă"}
+          {loading === "approve" ? t("loading") : t("approve")}
         </button>
         <button
           type="button"
@@ -67,7 +81,7 @@ export default function ApplicationActions({ applicationId }: { applicationId: s
           onClick={() => run("reject")}
           className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-bold disabled:opacity-50"
         >
-          {loading === "reject" ? "..." : "Respinge"}
+          {loading === "reject" ? t("loading") : t("reject")}
         </button>
       </div>
     </div>

@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminRequest } from "@/lib/security/admin-auth";
 import { notifyOps } from "@/lib/ops/alerts";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { logger } from "@/lib/logger";
 import { APP_URL } from "@/lib/app-url";
 
@@ -21,7 +22,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const ok = (await hasAdminSession()) || (await isAdminRequest(req));
-  if (!ok) return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
+  if (!ok) return NextResponse.json({ error: "unauthorized" }, { status: 403 });
 
   const { id: orderId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(orderId)) {
@@ -78,6 +79,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   );
 
   logger.info({ orderId, action, reason }, `[fraud-decision] admin ${action} order ${orderId}`);
+
+  await logAdminAction({
+    action: `order.fraud_${action}`,
+    targetType: "commerce_order",
+    targetId: orderId,
+    details: { reason: reason || null, score: decision.score },
+    req,
+  });
 
   await notifyOps({
     key: `fraud_decision:${orderId}:${action}`,
