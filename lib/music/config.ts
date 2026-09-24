@@ -8,14 +8,12 @@ import { intEnv } from "@/lib/config/env";
 export const MUSIC_ARTIST_SHARE_BPS = intEnv("MUSIC_ARTIST_SHARE_BPS", 7000, 0, 10_000);
 /** Reducere la deblocarea unui album întreg (procent din suma pieselor premium). */
 export const MUSIC_ALBUM_DISCOUNT_PCT = intEnv("MUSIC_ALBUM_DISCOUNT_PCT", 30, 0, 90);
-/** Limite pentru prețul unei piese premium (subunități; 100 = 1 SWYP). */
+/** Coloană legacy, neutilizată: valoare fixă scrisă doar pt. constrângerea NOT NULL a schemei DB vechi (piese premium). */
 export const MUSIC_TRACK_PRICE_MIN_UNITS = intEnv("MUSIC_TRACK_PRICE_MIN_UNITS", 100, 1, 1_000_000);
-export const MUSIC_TRACK_PRICE_MAX_UNITS = intEnv("MUSIC_TRACK_PRICE_MAX_UNITS", 2_000, 1, 1_000_000);
-export const MUSIC_DEFAULT_TRACK_PRICE_UNITS = intEnv("MUSIC_DEFAULT_TRACK_PRICE_UNITS", 300, 1, 1_000_000);
-/** Presetările de tip (5 / 10 / 25 SWYP) și limitele unui tip liber. */
-export const MUSIC_TIP_PRESETS_UNITS = [500, 1000, 2500] as const;
-export const MUSIC_TIP_MIN_UNITS = 100;
-export const MUSIC_TIP_MAX_UNITS = intEnv("MUSIC_TIP_MAX_UNITS", 50_000, 100, 10_000_000);
+/** Preț piesă/album în RON (bani/cenți). Plată cu cardul (Stripe) — înlocuiește sistemul legacy de mai sus. */
+export const MUSIC_TRACK_PRICE_MIN_CENTS = intEnv("MUSIC_TRACK_PRICE_MIN_CENTS", 100, 1, 10_000_000);
+export const MUSIC_TRACK_PRICE_MAX_CENTS = intEnv("MUSIC_TRACK_PRICE_MAX_CENTS", 20_000, 1, 10_000_000);
+export const MUSIC_DEFAULT_TRACK_PRICE_CENTS = intEnv("MUSIC_DEFAULT_TRACK_PRICE_CENTS", 300, 1, 10_000_000);
 /** Upload: mărime și durată maxime; MVP acceptă M4A/MP3/AAC servite progresiv. */
 export const MUSIC_MAX_UPLOAD_BYTES = intEnv("MUSIC_MAX_UPLOAD_MB", 40, 1, 500) * 1024 * 1024;
 export const MUSIC_MAX_DURATION_MS = intEnv("MUSIC_MAX_DURATION_MIN", 30, 1, 240) * 60_000;
@@ -30,7 +28,6 @@ export const MUSIC_PLAY_COUNT_AFTER_S = 30;
 export const MUSIC_CATALOG_PAGE_SIZE = 30;
 export const MUSIC_HOME_ROW_MAX = 20;
 export const MUSIC_TOP_COUNT = 10;
-export const SWYP_UNITS_PER_COIN = 100;
 /** Identitatea sunetelor Swypik Music în tabela partajată `audio_tracks`. */
 export const MUSIC_AUDIO_TRACK_SOURCE = "swypik_music";
 export const MUSIC_AUDIO_TRACK_LICENSE = "swypik-artist";

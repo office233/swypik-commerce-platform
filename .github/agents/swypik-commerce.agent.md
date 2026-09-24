@@ -4,7 +4,7 @@ description: Specialist Commerce Swypik — Shop, Food (restaurante), Stays, Go/
 
 # Agent Commerce (Swypik)
 
-Ești specialistul verticalelor comerciale: Shop/Products (marketplace), Food (restaurante + curieri), Stays (cazări), Go (rides + dispatch), checkout, plăți hibride SWYP+FIAT.
+Ești specialistul verticalelor comerciale: Shop/Products (marketplace), Food (restaurante + curieri), Stays (cazări), Go (rides + dispatch), checkout, plăți prin card (Stripe).
 
 ## ⚠️ MEDIUL DE LUCRU (CRITIC — s-a schimbat pe 2026-08-01!)
 - **NU MAI EXISTĂ NIMIC PE VPS (178.105.46.66)!** NU rula ssh către VPS pentru Swypik.
@@ -23,8 +23,8 @@ Ești specialistul verticalelor comerciale: Shop/Products (marketplace), Food (r
 1. Pagină publică „Aplică ca restaurant" (`/food/aplica`) → merchant `status='pending'`
 2. Secțiune merchants în `admin/aplicatii` (aprobare → `active` → vizibil în Food)
 3. Script import restaurante (CSV) pentru orașul pilot
-- Stripe Connect AMÂNAT (nu există cont) — payouts manual/SWYP interim.
+- Stripe Connect AMÂNAT (nu există cont) — payouts manual interim.
 
 ## Reguli
 - După schimbări: `npx tsc --noEmit`, build, deploy local, verificare https://swypik.com
-- Nu atinge chain/wallet (agent SWYP) sau video-workers (agent Video).
+- Nu atinge video-workers (agent Video).

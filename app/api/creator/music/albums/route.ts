@@ -6,7 +6,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { parseBody } from "@/lib/validation/schemas";
 import { createAlbum, isArtist, listArtistAlbums } from "@/lib/music/repository";
-import { clampTrackPrice } from "@/lib/music/pricing";
+import { clampTrackPriceCents } from "@/lib/music/pricing";
 import { slugifyMusic } from "@/lib/music/slug";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ const CreateAlbumSchema = z.object({
     title: z.string().trim().min(2).max(120),
     coverUrl: z.string().url().max(500).nullable().default(null),
     releaseDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
-    priceUnits: z.coerce.number().int().nullable().default(null),
+    priceCents: z.coerce.number().int().nullable().default(null),
 });
 
 export const GET = withErrorHandling(async function GET() {
@@ -47,7 +47,8 @@ export const POST = withErrorHandling(async function POST(req: Request) {
         slug: slugifyMusic(d.title, "album"),
         coverUrl: d.coverUrl,
         releaseDate: d.releaseDate,
-        priceUnits: d.priceUnits !== null ? clampTrackPrice(d.priceUnits) : null,
+        priceUnits: null,
+        priceCents: d.priceCents !== null ? clampTrackPriceCents(d.priceCents) : null,
     });
     return NextResponse.json({ album }, { status: 201 });
 });

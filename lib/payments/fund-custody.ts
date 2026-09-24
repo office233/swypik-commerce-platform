@@ -11,8 +11,8 @@
  *     ca datorie a platformei. Platforma nu încasase nimic.
  *   · `card_courier`: banii sunt fizic la curier (POS la ușă), dar era tratat
  *     ca plată online — curierul lua și numerarul, și creditul în wallet.
- *   · `wallet` / `swyp` la curse: acceptate de CHECK, neimplementate nicăieri,
- *     deci pasagerul nu era debitat niciodată, iar șoferul era creditat.
+ *   · `wallet` la curse: acceptat de CHECK, neimplementat nicăieri, deci
+ *     pasagerul nu era debitat niciodată, iar șoferul era creditat.
  *
  * Funcțiile de aici sunt pure și fail-closed: o metodă de plată necunoscută
  * întoarce "unpaid", nu "platform". Adăugarea unei metode noi în enum fără
@@ -21,7 +21,7 @@
  * Valorile acceptate vin din CHECK-urile reale:
  *   local_orders.payment_method  ∈ cash | card_online | card_courier
  *   local_orders.payment_status  ∈ pending | paid | refunded | failed
- *   rides.payment_method         ∈ cash | card | wallet | swyp | card_online | card_courier
+ *   rides.payment_method         ∈ cash | card | wallet | card_online | card_courier
  *   rides.payment_status         ∈ unpaid | authorized | captured | collected_cash | failed | refunded
  */
 
@@ -74,7 +74,7 @@ export function rideCustody(
     if (RIDE_COURIER_COLLECTED.has(method)) return "courier";
     if (method === "card") return paymentStatus === "captured" ? "platform" : "unpaid";
 
-    // wallet / swyp / card_online / card_courier — permise de CHECK, dar fără
+    // wallet / card_online / card_courier — permise de CHECK, dar fără
     // nicio cale de încasare implementată. Fail-closed.
     return "unpaid";
 }

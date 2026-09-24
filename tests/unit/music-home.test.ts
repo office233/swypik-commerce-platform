@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { buildMusicHomeRows } from "@/lib/music/home";
 import type { TrackDto } from "@/lib/music/types";
 const track = (id: string, genre: string, official = false): TrackDto => ({
-  id, slug: id, title: id, coverUrl: null, genre, durationMs: 1000, explicit: false, isPremium: false, priceUnits: null, locked: false,
+  id, slug: id, title: id, coverUrl: null, genre, durationMs: 1000, explicit: false, isPremium: false, priceCents: null, locked: false,
   allowReels: true, audioTrackId: null, albumId: null, trackNumber: null, plays7d: 0, liked: false,
   artist: { id: "a", slug: "a", stageName: "A", bio: "", avatarUrl: null, coverUrl: null, isOfficial: official },
 });

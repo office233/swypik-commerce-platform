@@ -108,11 +108,9 @@ app\api\cron\indexnow\route.ts | POST,GET |
 app\api\cron\indexnow-submit\route.ts | POST,GET | 
 app\api\cron\process-payouts\route.ts | GET,POST | Cron Job: Automatic Seller Payouts (Stripe Transfers) Runs on a schedule and transfers money to sellers / creators whose orders
 app\api\cron\publish-scheduled\route.ts | GET,POST | Cron Job: Publish scheduled videos. Selects videos where scheduled_publish_at <= now() and published_at is null.
-app\api\cron\reclaim-abandoned-swyp\route.ts | GET | Cron: recuperare SWYP din checkout-uri abandonate. Bug acoperit: create-intent debitează partea SWYP a comenzii ÎNAINTE de
 app\api\cron\reconcile-wallets\route.ts | GET,POST | FRONT R5 — GET|POST /api/cron/reconcile-wallets Reconciliere zilnică:
 app\api\cron\refresh-fx\route.ts | GET,POST | 
 app\api\cron\refresh-rank\route.ts | GET,POST | POST/GET /api/cron/refresh-rank Refreshes the `video_rank_14d` materialized view used by /api/explore/feed
-app\api\cron\scan-chain-deposits\route.ts | GET,POST | GET|POST /api/cron/scan-chain-deposits Deposit watcher: scanează blocurile noi de pe Swypik Chain și creditează
 app\api\cron\strikes-decay\route.ts | POST,GET | POST /api/cron/strikes-decay Fades old strikes (status='expired' when past expires_at) and rebuilds
 app\api\cron\suspend-unverified\route.ts | GET | Cron Job: Suspend unverified users after the 7-day grace period. Queries users where:
 app\api\cron\watchdog-videos\route.ts | GET,POST | 
@@ -250,15 +248,6 @@ app\api\stays\search\route.ts | POST | POST /api/stays/search — căutare cază
 app\api\stripe-connect\login-link\route.ts | POST | 
 app\api\stripe-connect\onboarding\start\route.ts | POST | 
 app\api\stripe-connect\status\route.ts | GET | 
-app\api\swyp\earn-rules\route.ts | GET | GET /api/swyp/earn-rules — regulile de câștig SWYP, direct din DB. Zero hardcodări în UI: sumele afișate în /pay ("cum câștigi") vin de aici,
-app\api\swyp\mining\route.ts | GET,POST | GET  /api/swyp/mining  — status sesiune mining (rată, streak, halving, countdown) POST /api/swyp/mining  — { action: "start" | "claim" }
-app\api\swyp\quote\route.ts | GET | GET /api/swyp/quote?totalCents=12345 Cât din acest total poate fi plătit în SWYP de utilizatorul logat.
-app\api\swyp\rate\route.ts | GET | GET /api/swyp/rate — cursul REAL al SWYP, derivat din fondul de acoperire. curs = fond (RON din comisioane încasate) / SWYP aflate la utilizatori.
-app\api\swyp\stake\route.ts | GET,POST | Staking SWYP. GET  — stake-urile mele + statistici (total stacat, stakeri, APY-uri)
-app\api\swyp\supply\route.ts | GET | GET /api/swyp/supply — transparență publică (fără auth). Expune supply-ul fix, distribuția pe pool-uri, cât e în mâinile userilor,
-app\api\swyp\transfer\route.ts | POST,GET | POST /api/swyp/transfer — P2P on-chain: SWYP din portofelul custodial al userului către ORICE adresă Swypik Chain.
-app\api\swyp\wallet\route.ts | GET | GET /api/swyp/wallet — soldul SWYP + istoricul din ledger (paginat). Query: ?limit=20&before=<ledger id>
-app\api\swyp\withdraw\route.ts | POST,GET | POST /api/swyp/withdraw — bridge: SWYP din aplicație → Swypik Chain. { amountSwyp: number }  → trimite către portofelul on-chain al userului.
 app\api\trips\packages\route.ts | GET | GET /api/trips/packages?origin=OTP — pachete de vacanță pe destinații. Acum: zbor live (Duffel, prețuri finale RON din sistemul Fly) + status
 app\api\unsubscribe\route.ts | GET,POST | 
 app\api\upload\route.ts | POST | Upload generic de imagini → S3/MinIO (bucket swypik-media). POST /api/upload  (multipart/form-data: file, scope?)

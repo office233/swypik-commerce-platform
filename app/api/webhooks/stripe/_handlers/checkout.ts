@@ -5,7 +5,7 @@ import { dbQuery, withTransaction, type TxQuery } from "@/lib/db";
 import { routeOrder } from "@/lib/fulfillment/order-router";
 import { dispatchAppWebhook } from "@/lib/apps/webhooks";
 import { logger } from "@/lib/logger";
-import { onOrderPaid } from "@/lib/swyp/hooks";
+import { onOrderPaid } from "@/lib/referral/validation";
 import { maybeSendOrderConfirmation } from "./shared";
 
 export async function handleCheckoutCompletedEvent(event: Stripe.Event) {
@@ -168,14 +168,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return currentOrderId;
   });
 
-  // Side-effects (email, ledger SWYP, webhooks, fulfillment) rulează DUPĂ
-  // commit: nu trebuie să țină tranzacția deschisă și nu se pot da rollback.
+  // Side-effects (email, webhooks, fulfillment) rulează DUPĂ commit: nu
+  // trebuie să țină tranzacția deschisă și nu se pot da rollback.
   await maybeSendOrderConfirmation(orderId);
 
-  // FRONT 4 — webhooks către apps terțe instalate (fire-and-forget)
-  // SWYP: referral validat la prima comandă plătită (idempotent în ledger).
+  // Referral: validat la prima comandă plătită (atomic, best-effort).
   await onOrderPaid(orderId, String(session.payment_intent || `checkout_${session.id}`));
 
+  // FRONT 4 — webhooks către apps terțe instalate (fire-and-forget)
   {
     const sellerIds = [...new Set(
       items

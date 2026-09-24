@@ -46,9 +46,9 @@ const YT_DOCKED_BOTTOM_PX = 148;
 
 export type MusicLockedInfo = {
     track: TrackDto;
-    priceUnits: number | null;
-    albumPriceUnits: number | null;
-    balanceUnits: number | null;
+    /** Preț RON (cenți); `null` = „preț în curând" (creatorul nu l-a setat încă). */
+    priceCents: number | null;
+    albumPriceCents: number | null;
     requireAuth: boolean;
 };
 
@@ -136,17 +136,15 @@ async function requestPlayUrl(track: TrackDto): Promise<PlayUrlResult> {
         }
         if (res.status === 402) {
             const data = (await res.json().catch(() => ({}))) as {
-                priceUnits?: number | null;
-                albumPriceUnits?: number | null;
-                balanceUnits?: number | null;
+                priceCents?: number | null;
+                albumPriceCents?: number | null;
                 requireAuth?: boolean;
             };
             return {
                 locked: {
                     track,
-                    priceUnits: data.priceUnits ?? null,
-                    albumPriceUnits: data.albumPriceUnits ?? null,
-                    balanceUnits: data.balanceUnits ?? null,
+                    priceCents: data.priceCents ?? null,
+                    albumPriceCents: data.albumPriceCents ?? null,
                     requireAuth: Boolean(data.requireAuth),
                 },
             };

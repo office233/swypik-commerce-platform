@@ -7,8 +7,8 @@ import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/gaming/profile — real level/XP/today's-SWYP data for the header,
- * replacing the previously hardcoded "Lv. 3" / "+2.50 SWYP".
+ * GET /api/gaming/profile — real level/XP data for the header, replacing
+ * the previously hardcoded "Lv. 3" placeholder.
  */
 export async function GET() {
   if (!isEnabled("gaming")) return frozenResponse("gaming");
@@ -26,21 +26,11 @@ export async function GET() {
     );
     const profile = profileRows[0] ?? { xp_points: "0", level: 1, trivia_streak_days: 0 };
 
-    const { rows: swypRows } = await dbQuery<{ amount_units: string }>(
-      `SELECT COALESCE(SUM(amount_units), 0)::text AS amount_units
-         FROM swyp_ledger_entries
-        WHERE to_user_id = $1 AND kind = 'reward' AND created_at >= CURRENT_DATE
-          AND ref_type IN ('reward:gaming_arcade_score', 'reward:gaming_trivia_daily')`,
-      [userId],
-    ).catch(() => ({ rows: [{ amount_units: "0" }] }));
-    const swypUnitsToday = BigInt(swypRows[0]?.amount_units ?? "0");
-
     return NextResponse.json({
       ok: true,
       level: profile.level,
       xp: Number(profile.xp_points),
       triviaStreakDays: profile.trivia_streak_days,
-      swypEarnedTodayUnits: swypUnitsToday.toString(),
     });
   } catch (err) {
     logger.error({ err }, "[gaming.profile] failed");

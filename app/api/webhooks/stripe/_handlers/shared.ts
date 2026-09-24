@@ -1,38 +1,5 @@
 import { dbQuery } from "@/lib/db";
 import { sendOrderConfirmation } from "@/lib/email/service";
-import { refundSwypForUnpaidOrder } from "@/lib/swyp/refund";
-import { logger } from "@/lib/logger";
-
-/**
- * SWYP: intent mort (canceled / expired / async payment failed) → găsește
- * comenzile neplătite cu parte SWYP debitată și recreditează integral.
- * Idempotent după (swyp_refund_intent, <obj_id>) în ledger.
- */
-export async function reclaimSwypForDeadIntent(objId: string, eventType: string) {
-  const { rows } = await dbQuery<{ id: string }>(
-    `SELECT id FROM commerce_orders
-      WHERE (metadata->>'paymentIntentId' = $1
-             OR metadata->>'payment_intent_id' = $1
-             OR metadata->>'sessionId' = $1
-             OR metadata->>'stripe_session_id' = $1
-             OR metadata->>'stripe_payment_intent' = $1)
-        AND status IN ('pending', 'cancelled', 'failed')
-        AND COALESCE(swyp_paid_cents, 0) > 0
-        AND metadata->>'swyp_refunded_at' IS NULL`,
-    [objId]
-  );
-  for (const row of rows) {
-    const res = await refundSwypForUnpaidOrder({
-      orderId: row.id,
-      refType: "swyp_refund_intent",
-      refId: objId,
-      reason: eventType,
-    });
-    if (res.credited) {
-      logger.info(`[Stripe Webhook] SWYP reclaimed for unpaid order ${row.id} (${eventType}, ${objId})`);
-    }
-  }
-}
 
 export async function maybeSendOrderConfirmation(orderId: string) {
   const { rows: orderRows } = await dbQuery(

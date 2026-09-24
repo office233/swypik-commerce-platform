@@ -23,4 +23,4 @@ Ești specialistul modulului VIDEO al Swypik: feed TikTok-style, explore, reels,
 ## Reguli
 - Direcția produsului: `docs/VIDEO_COMMERCE_ROADMAP.md` — „video sells everything" (video_attachments polimorf: video→produs/masă/cameră/cursă)
 - După orice schimbare: `npx tsc --noEmit` + build, apoi deploy local și verificare pe https://swypik.com
-- Nu atinge chain-ul, wallet-ul sau multi-erp — alte agenți se ocupă.
+- Nu atinge multi-erp — alte agenți se ocupă.

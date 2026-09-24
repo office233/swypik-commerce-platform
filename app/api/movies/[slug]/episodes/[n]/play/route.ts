@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
-import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
 import { getSeriesBySlug, getEpisode, getEpisodeById, listEpisodes } from "@/lib/movies/repository";
 import { buildViewerContext } from "@/lib/movies/viewer";
 import { canPlay, isFreeEpisode } from "@/lib/movies/access";
-import { seasonPriceUnits } from "@/lib/movies/pricing";
+import { seasonPriceCents } from "@/lib/movies/pricing";
 import { signStreamToken } from "@/lib/media/stream-token";
 import { MOVIES_STREAM_TOKEN_TTL_S } from "@/lib/movies/config";
 import { getStreamSecret } from "@/lib/media/stream-secret";
@@ -31,9 +30,9 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
         const total = (await listEpisodes(series.id, { publishedOnly: true })).length;
         return NextResponse.json({
             error: "locked",
-            priceUnits: series.episode_price_units,
-            seasonPriceUnits: seasonPriceUnits(series, total),
-            balanceUnits: user.userId ? Number(await getSwypBalanceUnits(user.userId)) : null,
+            // Preț RON (cenți) — deblocarea se plătește cu cardul (Stripe).
+            priceCents: series.episode_price_cents,
+            seasonPriceCents: seasonPriceCents(series, total),
             requireAuth: !user.userId,
         }, { status: 402 });
     }

@@ -6,9 +6,9 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { parseBody } from "@/lib/validation/schemas";
 import { createSeries, isPublisher, listSeriesForOwner, creatorShareTotals } from "@/lib/movies/repository";
-import { clampEpisodePrice } from "@/lib/movies/pricing";
+import { clampEpisodePriceCents } from "@/lib/movies/pricing";
 import { slugifySeriesTitle } from "@/lib/movies/slug";
-import { MOVIES_DEFAULT_EPISODE_PRICE_UNITS, MOVIES_DEFAULT_FREE_EPISODES, MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
+import { MOVIES_DEFAULT_EPISODE_PRICE_CENTS, MOVIES_DEFAULT_EPISODE_PRICE_UNITS, MOVIES_DEFAULT_FREE_EPISODES, MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
 import { LOCALES } from "@/lib/i18n/config";
 import { MOVIE_GENRES } from "@/lib/movies/genres";
 
@@ -22,7 +22,7 @@ const CreateSchema = z.object({
     coverUrl: z.string().url().max(500).nullable().default(null),
     posterUrl: z.string().url().max(500).nullable().default(null),
     freeEpisodes: z.coerce.number().int().min(0).max(MOVIES_MAX_FREE_EPISODES).default(MOVIES_DEFAULT_FREE_EPISODES),
-    episodePriceUnits: z.coerce.number().int().default(MOVIES_DEFAULT_EPISODE_PRICE_UNITS),
+    episodePriceCents: z.coerce.number().int().nullable().default(MOVIES_DEFAULT_EPISODE_PRICE_CENTS),
     isAdult: z.boolean().default(false),
     licenseNote: z.string().trim().max(1000).nullable().default(null),
 });
@@ -55,7 +55,9 @@ export const POST = withErrorHandling(async function POST(req: Request) {
         coverUrl: d.coverUrl,
         posterUrl: d.posterUrl,
         freeEpisodes: d.freeEpisodes,
-        episodePriceUnits: clampEpisodePrice(d.episodePriceUnits),
+        // Legacy: coloana SWYP e NOT NULL în schema veche — scriem valoarea minimă (nefolosită de UI).
+        episodePriceUnits: MOVIES_DEFAULT_EPISODE_PRICE_UNITS,
+        episodePriceCents: d.episodePriceCents !== null ? clampEpisodePriceCents(d.episodePriceCents) : null,
         isAdult: d.isAdult,
         licenseNote: d.licenseNote,
     });

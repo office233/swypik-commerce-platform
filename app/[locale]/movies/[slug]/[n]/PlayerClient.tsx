@@ -8,9 +8,9 @@ import PaywallSlide from "@/components/movies/PaywallSlide";
 import { moviesDisplayFont, MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
 import type { EpisodeDto, SeriesDto } from "@/lib/movies/types";
 
-type SeriesPayload = { series: SeriesDto; episodes: EpisodeDto[]; viewer: { balanceUnits: number | null } };
+type SeriesPayload = { series: SeriesDto; episodes: EpisodeDto[]; viewer: { isAuthed: boolean } };
 type PlayOk = { videoId: string; playbackUrl: string; poster: string | null };
-type PlayLocked = { error: "locked"; priceUnits: number; seasonPriceUnits: number; balanceUnits: number | null; requireAuth: boolean };
+type PlayLocked = { error: "locked"; priceCents: number | null; seasonPriceCents: number | null; requireAuth: boolean };
 type PlayState = { kind: "loading" } | { kind: "ok"; data: PlayOk } | { kind: "locked"; data: PlayLocked } | { kind: "error" };
 
 const PROGRESS_INTERVAL_MS = 5000;
@@ -80,7 +80,7 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
 
   const sendProgress = useCallback((positionMs: number, completed: boolean) => {
     // Vizitatorii anonimi nu au progres (nu există user în DB).
-    if (!episode || !payload?.viewer || payload.viewer.balanceUnits === null) return;
+    if (!episode || !payload?.viewer?.isAuthed) return;
     const body = JSON.stringify({ episodeId: episode.id, positionMs: Math.round(positionMs), completed });
     if (navigator.sendBeacon) navigator.sendBeacon("/api/movies/progress", new Blob([body], { type: "application/json" }));
     else void fetch("/api/movies/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
@@ -129,9 +129,8 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
           episodeId={episode.id}
           episodeNumber={current}
           totalEpisodes={total}
-          priceUnits={play.data.priceUnits}
-          seasonPriceUnits={play.data.seasonPriceUnits}
-          balanceUnits={play.data.balanceUnits}
+          priceCents={play.data.priceCents}
+          seasonPriceCents={play.data.seasonPriceCents}
           poster={payload.series.posterUrl}
           onUnlocked={() => { void loadSeries(); void loadPlay(current); }}
         />

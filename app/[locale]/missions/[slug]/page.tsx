@@ -24,7 +24,6 @@ type MissionDetailRow = {
 };
 
 function formatPrize(amount: number, currency: string): string {
-  if (currency === "SWYP") return `${amount.toLocaleString("ro-RO")} SWYP`;
   return `${(amount / 100).toFixed(2)} ${currency}`;
 }
 
@@ -53,6 +52,7 @@ async function getMission(slug: string) {
      WHERE missions.slug = $1
        AND missions.status = 'active'
        AND (missions.ends_at IS NULL OR missions.ends_at > now())
+       AND missions.prize_currency <> 'SWYP'
      LIMIT 1`,
     [slug],
   );

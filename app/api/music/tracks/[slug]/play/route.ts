@@ -3,11 +3,10 @@ import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
-import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
 import { getTrackBySlug, getAlbumById, listAlbumTracks } from "@/lib/music/repository";
 import { buildMusicViewer } from "@/lib/music/viewer";
 import { canStream } from "@/lib/music/access";
-import { albumPriceUnits as computeAlbumPriceUnits } from "@/lib/music/pricing";
+import { albumPriceCents as computeAlbumPriceCents } from "@/lib/music/pricing";
 import { MUSIC_STREAM_TOKEN_TTL_S } from "@/lib/music/config";
 import { signStreamToken } from "@/lib/media/stream-token";
 import { getStreamSecret } from "@/lib/media/stream-secret";
@@ -30,12 +29,11 @@ export const GET = withErrorHandling(async function GET(req: Request, { params }
     if (!canStream(viewer, track)) {
         const album = track.album_id ? await getAlbumById(track.album_id) : null;
         const albumTracks = album ? await listAlbumTracks(album.id, true) : [];
-        const balanceUnits = user.userId ? Number(await getSwypBalanceUnits(user.userId)) : null;
         return NextResponse.json({
             error: "locked",
-            priceUnits: track.price_units,
-            albumPriceUnits: album ? computeAlbumPriceUnits(album, albumTracks) : null,
-            balanceUnits,
+            // Preț RON (cenți) — deblocarea se plătește cu cardul (Stripe).
+            priceCents: track.price_cents,
+            albumPriceCents: album ? computeAlbumPriceCents(album, albumTracks) : null,
             requireAuth: !user.userId,
         }, { status: 402 });
     }

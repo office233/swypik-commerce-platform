@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import { musicGenreLabelKey, type MusicGenre } from "@/lib/music/genres";
 import type { ContentStatus, MusicArtistRow, MusicTrackRow } from "@/lib/music/types";
 
@@ -21,6 +22,7 @@ const STATUS_KEY: Record<ContentStatus, StatusKey> = {
 
 export default function AdminMusicPage() {
   const t = useTranslations("music");
+  const formatPrice = useFormatPrice();
   const [tab, setTab] = useState<Tab>("artists");
   const [artists, setArtists] = useState<AdminArtist[]>([]);
   const [status, setStatus] = useState<ContentStatus>("pending_review");
@@ -177,7 +179,7 @@ export default function AdminMusicPage() {
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="text-left text-xs uppercase text-neutral-500">
-                <th>{t("trackTitle")}</th><th>{t("artists")}</th><th>{t("review")}</th><th></th>
+                <th>{t("trackTitle")}</th><th>{t("artists")}</th><th>{t("priceLabel")}</th><th>{t("review")}</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -202,6 +204,7 @@ export default function AdminMusicPage() {
                     )}
                   </td>
                   <td>{tr.artist.stage_name}</td>
+                  <td>{tr.is_premium ? (tr.price_cents !== null ? formatPrice(tr.price_cents, { sourceCurrency: "RON" }) : t("priceComingSoon")) : "—"}</td>
                   <td>{t(STATUS_KEY[tr.status])}</td>
                   <td className="space-x-1 whitespace-nowrap text-right">
                     {tr.moderation_status !== "approved" && (

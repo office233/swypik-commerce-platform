@@ -45,8 +45,6 @@ export const RideCreateSchema = RideEstimateSchema.extend({
   // ar rămâne pur și simplu nedecontabilă — deci nu o mai acceptăm deloc.
   // Se readaugă odată cu implementarea debitului din wallet.
   payment_method: z.enum(["cash", "card"]).default("cash"),
-  /** Plată hibridă: acoperă cât se poate din tarif cu SWYP, restul prin payment_method. */
-  use_swyp: z.boolean().default(false),
   notes: z.string().trim().max(500).optional(),
 });
 

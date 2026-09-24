@@ -15,7 +15,6 @@ curl -s -o /dev/null -w 'GET /api/products -> %{http_code}\n' "${B}/api/products
 
 echo
 echo '=== WALLET fara sesiune (asteptam 401) ==='
-curl -s -o /dev/null -w 'GET /api/swyp/wallet -> %{http_code}\n' "${B}/api/swyp/wallet"
 curl -s -o /dev/null -w 'GET /api/me/activity -> %{http_code}\n' "${B}/api/me/activity"
 
 echo

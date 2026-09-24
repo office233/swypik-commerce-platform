@@ -20,7 +20,6 @@
         "app/api/orders/**/*.ts",
         "lib/stripe/**/*.ts",
         "lib/payments/**/*.ts",
-        "lib/swyp/**/*.ts",
         "lib/security/**/*.ts"
       ],
       "rules": {

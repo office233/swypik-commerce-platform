@@ -25,7 +25,6 @@ interface TriviaQuestion {
 interface Profile {
   level: number;
   xp: number;
-  swypEarnedTodayUnits: string;
 }
 
 interface FreeGameItem {
@@ -46,12 +45,6 @@ interface DealItem {
 }
 
 type LoadState = "idle" | "loading" | "ready" | "error" | "unauthorized";
-
-function unitsToSwyp(units: string): string {
-  // SWYP units are stored as integer smallest-unit; display with 2 decimals.
-  const n = Number(units) / 100;
-  return n.toFixed(2);
-}
 
 export default function GamingHubClient() {
   const t = useTranslations("gaming");
@@ -103,7 +96,7 @@ export default function GamingHubClient() {
         }
         const d = await r.json();
         if (d.ok) {
-          setProfile({ level: d.level, xp: d.xp, swypEarnedTodayUnits: d.swypEarnedTodayUnits });
+          setProfile({ level: d.level, xp: d.xp });
           setProfileState("ready");
         } else {
           setProfileState("error");
@@ -216,18 +209,14 @@ export default function GamingHubClient() {
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-2">
               {t("titlePrefix")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">{t("titleHighlight")}</span>
             </h1>
-            <p className="text-slate-400 text-sm sm:text-base max-w-xl">{t("subtitle")}</p>
+            <p className="text-slate-400 text-sm sm:text-base max-w-xl">{t("subtitleV2")}</p>
           </div>
 
           {profileState === "ready" && profile && (
             <div className="flex items-center gap-4 bg-slate-900/80 border border-slate-800 p-4 rounded-2xl shadow-xl">
-              <div className="text-center px-3 border-r border-slate-800">
+              <div className="text-center px-3">
                 <div className="text-xs text-slate-400 uppercase font-bold">{t("levelLabel")}</div>
                 <div className="text-2xl font-black text-amber-400">{t("levelValue", { level: profile.level })}</div>
-              </div>
-              <div className="text-center px-3">
-                <div className="text-xs text-slate-400 uppercase font-bold">{t("swypEarningLabel")}</div>
-                <div className="text-2xl font-black text-emerald-400">+{unitsToSwyp(profile.swypEarnedTodayUnits)}</div>
               </div>
             </div>
           )}
@@ -303,7 +292,7 @@ export default function GamingHubClient() {
                   <div className="p-4 flex items-center justify-between">
                     <div>
                       <h3 className="font-bold text-lg text-white group-hover:text-cyan-300 transition">{game.title}</h3>
-                      <p className="text-xs text-slate-400">{t("arcadeRewardHint")}</p>
+                      <p className="text-xs text-slate-400">{t("arcadeRewardHintV2")}</p>
                     </div>
                     <button
                       onClick={() => setActiveGame(game)}

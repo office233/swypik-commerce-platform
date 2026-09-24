@@ -80,8 +80,7 @@ describe("rideCustody — curse Go", () => {
         expect(rideCustody("wallet", "unpaid")).toBe("unpaid");
     });
 
-    it("swyp / card_online / card_courier: permise de CHECK, fără cale de încasare", () => {
-        expect(rideCustody("swyp", "captured")).toBe("unpaid");
+    it("card_online / card_courier: permise de CHECK, fără cale de încasare", () => {
         expect(rideCustody("card_online", "captured")).toBe("unpaid");
         expect(rideCustody("card_courier", "captured")).toBe("unpaid");
     });
@@ -117,11 +116,11 @@ describe("poarta e efectiv cablată în decontare", () => {
         expect(mobility).toMatch(/r\.payment_method,\s*r\.payment_status/);
     });
 
-    it("refuzul de decontare iese înainte de comision, acoperire SWYP și settled_at", () => {
+    it("refuzul de decontare iese înainte de comision și settled_at", () => {
         const rideBody = mobility.slice(mobility.indexOf("export async function settleRide"));
         const gate = rideBody.indexOf('custody === "unpaid"');
         expect(gate).toBeGreaterThan(-1);
-        for (const after of ["recordCommission(", "fundBacking(", "awardSwyp(", "SET settled_at"]) {
+        for (const after of ["recordCommission(", "SET settled_at"]) {
             expect(rideBody.indexOf(after), `${after} trebuie să vină DUPĂ poartă`).toBeGreaterThan(gate);
         }
     });

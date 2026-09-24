@@ -8,9 +8,8 @@ type Props = {
   episodeId: string;
   episodeNumber: number;
   totalEpisodes: number;
-  priceUnits: number;
-  seasonPriceUnits: number;
-  balanceUnits: number | null;
+  priceCents: number | null;
+  seasonPriceCents: number | null;
   poster: string | null;
   onUnlocked: () => void;
 };
@@ -29,17 +28,15 @@ export default function PaywallSlide(p: Props) {
         <UnlockButton
           slug={p.slug}
           target={{ episodeId: p.episodeId }}
-          priceUnits={p.priceUnits}
-          balanceUnits={p.balanceUnits}
+          priceCents={p.priceCents}
           label={t("unlockEpisode")}
           onUnlocked={p.onUnlocked}
         />
-        {p.seasonPriceUnits > 0 && (
+        {p.seasonPriceCents !== null && p.seasonPriceCents > 0 && (
           <UnlockButton
             slug={p.slug}
             target={{ season: true }}
-            priceUnits={p.seasonPriceUnits}
-            balanceUnits={p.balanceUnits}
+            priceCents={p.seasonPriceCents}
             label={t("unlockSeason")}
             onUnlocked={p.onUnlocked}
           />

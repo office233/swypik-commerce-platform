@@ -41,7 +41,6 @@ export const CLIENT_FEATURES = {
   music: flag(process.env.NEXT_PUBLIC_FEATURE_MUSIC, false),
   news: flag(process.env.NEXT_PUBLIC_FEATURE_NEWS, false),
   gaming: flag(process.env.NEXT_PUBLIC_FEATURE_GAMING, false),
-  crypto: flag(process.env.NEXT_PUBLIC_FEATURE_CRYPTO, false),
   messenger: flag(process.env.NEXT_PUBLIC_FEATURE_MESSENGER, false),
 } as const;
 

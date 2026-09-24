@@ -124,7 +124,6 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
                 ["Adresă IP, user-agent", "90 de zile, apoi anonimizare"],
                 ["Adresă IP în jurnale de plăți și antifraudă", "180 de zile, apoi anonimizare"],
                 ["Sesiuni expirate", "30 de zile"],
-                ["Registrul SWYP", "permanent, dezlegat de identitate la ștergerea contului"],
             ],
         },
     },
@@ -160,7 +159,6 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
         ],
         bullets: [
             "Facturile și documentele fiscale — 10 ani, obligație legală (Codul fiscal, Legea contabilității 82/1991). GDPR art. 17(3)(b) prevede explicit această excepție.",
-            "Înregistrările din registrul SWYP — tranzacțiile cu puncte de loialitate sunt înlănțuite criptografic, fiecare intrare confirmând-o pe precedenta. Ștergerea unei intrări ar invalida tot lanțul care urmează, inclusiv al altor utilizatori. Păstrăm înregistrarea, dar o dezlegăm de identitatea ta: rămâne suma și data, nu și cine ești.",
             "Datele necesare apărării unui drept în justiție sau soluționării unei dispute în curs — pe durata acesteia (art. 17(3)(e)).",
         ],
     },

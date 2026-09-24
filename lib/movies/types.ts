@@ -16,6 +16,8 @@ export type MovieSeriesRow = {
     free_episodes: number;
     /** bigint în DB; pg îl întoarce ca string — normalizat la number în repository. */
     episode_price_units: number;
+    /** Preț RON (cenți) per episod, plătit cu cardul (Stripe). `null` = creatorul nu a setat încă un preț — conținutul afișează „preț în curând". */
+    episode_price_cents: number | null;
     is_adult: boolean;
     license_note: string | null;
     published_at: string | null;
@@ -38,6 +40,8 @@ export type MovieEpisodeRow = {
     updated_at: string;
 };
 
+export type MovieUnlockStatus = "pending" | "paid" | "failed";
+
 export type MovieUnlockRow = {
     id: string;
     user_id: string;
@@ -47,6 +51,11 @@ export type MovieUnlockRow = {
     creator_share_units: number;
     ledger_ref: string | null;
     created_at: string;
+    /** Stripe PaymentIntent id — plata cu cardul care a deblocat acest rând. */
+    payment_intent_id: string | null;
+    amount_cents: number | null;
+    currency: string;
+    status: MovieUnlockStatus;
 };
 
 export type MovieProgressRow = {
@@ -73,7 +82,8 @@ export type EpisodeDto = {
     durationMs: number | null;
     thumbnailUrl: string | null;
     locked: boolean;
-    priceUnits: number;
+    /** Preț RON (cenți); `null` = „preț în curând" (creatorul nu l-a setat încă). */
+    priceCents: number | null;
     progress: { positionMs: number; completed: boolean } | null;
 };
 
@@ -87,8 +97,9 @@ export type SeriesDto = {
     posterUrl: string | null;
     trailerVideoId: string | null;
     freeEpisodes: number;
-    episodePriceUnits: number;
-    seasonPriceUnits: number;
+    /** Preț RON (cenți); `null` = „preț în curând". */
+    episodePriceCents: number | null;
+    seasonPriceCents: number | null;
     /** Procentul aplicat la sezon, calculat pe server (clientul nu vede env-ul). */
     seasonDiscountPct: number;
     isAdult: boolean;

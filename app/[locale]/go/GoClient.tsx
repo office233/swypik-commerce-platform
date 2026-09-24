@@ -23,7 +23,6 @@ import {
   ChevronRight,
   CreditCard,
   Banknote,
-  Coins,
   Users,
 } from "lucide-react";
 import { haptic } from "@/lib/haptic";
@@ -181,27 +180,11 @@ export default function GoClient() {
   const [loading, setLoading] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [useSwyp, setUseSwyp] = useState(false);
-  const [swypInfo, setSwypInfo] = useState<{ ronPerSwyp: number; balanceSwyp: number } | null>(null);
   const [ridePreferences, setRidePreferences] = useState({
     ac: true,
     quiet: false,
     luggage: false,
   });
-
-  // Soldul și cursul SWYP Pay
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/swyp/rate").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/swyp/wallet").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-    ])
-      .then(([rate, bal]) => {
-        const ron = Number(rate?.ron_per_swyp ?? 0);
-        const balance = Number(bal?.balanceUnits ?? 0) / 100;
-        if (ron > 0 && balance > 0) setSwypInfo({ ronPerSwyp: ron, balanceSwyp: balance });
-      })
-      .catch(() => {});
-  }, []);
 
   // Deep link din alte pagini: /go?dropoff=...&dlat=...&dlng=...
   useEffect(() => {
@@ -322,7 +305,6 @@ export default function GoClient() {
           dropoff,
           vehicle_class: vehicleClass,
           payment_method: paymentMethod,
-          use_swyp: useSwyp && !!swypInfo,
         }),
       });
       const data = await res.json();
@@ -346,8 +328,7 @@ export default function GoClient() {
 
   const fmt = (e: Estimate | null | undefined) => {
     if (!e) return "—";
-    const baseAmount = e.total_cents / 100;
-    const amount = useSwyp && swypInfo ? baseAmount * 0.9 : baseAmount;
+    const amount = e.total_cents / 100;
     try {
       return new Intl.NumberFormat(locale, {
         style: "currency",
@@ -715,7 +696,7 @@ export default function GoClient() {
                   </button>
                 </div>
 
-                {/* Selector Metodă de Plată (Card / Cash / SWYP) */}
+                {/* Selector Metodă de Plată (Card / Cash) */}
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
@@ -747,23 +728,6 @@ export default function GoClient() {
                     <Banknote size={11} />
                     <span>{t("payCash")}</span>
                   </button>
-                  {swypInfo ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        haptic("tap");
-                        setUseSwyp((v) => !v);
-                      }}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-lg font-black text-[10px] transition ${
-                        useSwyp
-                          ? "bg-amber-400 text-black shadow-xs ring-1 ring-amber-400"
-                          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                      }`}
-                    >
-                      <Coins size={11} />
-                      <span>-10%</span>
-                    </button>
-                  ) : null}
                 </div>
               </div>
             </div>

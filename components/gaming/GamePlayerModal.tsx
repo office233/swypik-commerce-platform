@@ -13,7 +13,7 @@ interface GamePlayerModalProps {
     embed_url: string;
   } | null;
   onClose: () => void;
-  /** Called after a score submission changes the user's XP/SWYP, so the
+  /** Called after a score submission changes the user's XP, so the
    *  header profile widget can refresh. */
   onScoreChanged?: () => void;
 }

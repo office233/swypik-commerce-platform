@@ -7,8 +7,8 @@ import { parseBody } from "@/lib/validation/schemas";
 import { getTrackById, isArtist, ownsAlbum, updateTrack, type TrackPatch } from "@/lib/music/repository";
 import { archiveTrack, updateTrackAndSync } from "@/lib/music/publish";
 import { canBecomePremium } from "@/lib/music/access";
-import { clampTrackPrice } from "@/lib/music/pricing";
-import { MUSIC_DEFAULT_TRACK_PRICE_UNITS } from "@/lib/music/config";
+import { clampTrackPriceCents } from "@/lib/music/pricing";
+import { MUSIC_DEFAULT_TRACK_PRICE_CENTS, MUSIC_TRACK_PRICE_MIN_UNITS } from "@/lib/music/config";
 import { MUSIC_GENRES } from "@/lib/music/genres";
 import { getVideoAssetUrl } from "@/lib/storage/video-storage";
 
@@ -19,7 +19,7 @@ const PatchTrackSchema = z.object({
     genre: z.enum(MUSIC_GENRES).optional(),
     explicit: z.boolean().optional(),
     isPremium: z.boolean().optional(),
-    priceUnits: z.coerce.number().int().optional(),
+    priceCents: z.coerce.number().int().optional(),
     allowReels: z.boolean().optional(),
     audience: z.enum(["general", "kids"]).optional(),
     coverUrl: z.string().url().max(500).nullable().optional(),
@@ -98,13 +98,16 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
         patch.isPremium = d.isPremium;
         patch.publicUrl = d.isPremium ? null : getVideoAssetUrl(existing.object_key);
     }
-    // Prețul se poate schimba și singur, pe o piesă deja premium; pe una gratuită rămâne NULL.
+    // Prețul RON se poate schimba și singur, pe o piesă deja premium; pe una gratuită rămâne NULL.
     if (willBePremium) {
-        if (d.isPremium !== undefined || d.priceUnits !== undefined) {
-            patch.priceUnits = clampTrackPrice(d.priceUnits ?? existing.price_units ?? MUSIC_DEFAULT_TRACK_PRICE_UNITS);
+        // Legacy: coloana SWYP e obligatorie când e premium (constrângere veche a schemei) — placeholder nefolosit de UI.
+        if (d.isPremium !== undefined) patch.priceUnits = existing.price_units ?? MUSIC_TRACK_PRICE_MIN_UNITS;
+        if (d.isPremium !== undefined || d.priceCents !== undefined) {
+            patch.priceCents = clampTrackPriceCents(d.priceCents ?? existing.price_cents ?? MUSIC_DEFAULT_TRACK_PRICE_CENTS);
         }
     } else if (d.isPremium === false) {
         patch.priceUnits = null;
+        patch.priceCents = null;
     }
 
     // Pe o piesă publicată, schimbările care ating sunetul din reels se aplică

@@ -83,8 +83,8 @@ GitHub `main` = sursa de adevar; `/opt/swypik/app` e doar clona de rulare.
 │   │   └── safety-filter.ts      # blocks weapons/drugs; tags adult-only
 │   ├── feed/
 │   │   └── track.ts              # batched sendBeacon emitter
-│   ├── movies/                   # acces/pret (pure), unlock SWYP + cota creator, proxy HLS cu token
-│   ├── music/                    # acces/pret (pure), unlock+tip SWYP, publish + sincronizare audio_tracks pentru reels
+│   ├── movies/                   # acces/pret (pure), unlock cu cardul (Stripe, RON) + cota creator, proxy HLS cu token
+│   ├── music/                    # acces/pret (pure), unlock cu cardul (Stripe, RON), publish + sincronizare audio_tracks pentru reels
 │   ├── media/                    # stream-token/path/secret, hls-rewrite — comun Movies + Music
 │   ├── feature-flags.ts          # 8 flags (DM, push, AI chat, etc)
 │   ├── feature-flags-client.ts   # client-side variant
@@ -141,16 +141,16 @@ Toate gated prin `lib/feature-flags.ts` (server) + `feature-flags-client.ts` (cl
 | `FEATURE_AI_CHAT_FULL` | OFF | Necesita `GITHUB_TOKEN` in `.env.production` |
 | `FEATURE_SQUAD_BUY` | OFF | Squad Buy — pana cand pretul de grup se aplica la checkout |
 | `FEATURE_VIRAL_CATALOG` | OFF | Catalog demo de produse (date de exemplu) |
-| `FEATURE_MYSTERY_DROP` | ON | Cutia zilnica — SWYP prin `swyp_emission_rules.mystery_drop_daily` |
 | `FEATURE_MOVIES` | OFF | Swypik Movies (+ `NEXT_PUBLIC_FEATURE_MOVIES`); migrarea `20260921_0003_movies.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-movies-design.md` |
 | `FEATURE_MUSIC` | OFF | Swypik Music (+ `NEXT_PUBLIC_FEATURE_MUSIC`); migrarea `20260922_0001_music.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-music-design.md` |
 | `FEATURE_NEWS` | OFF | Swypik AI News (+ `NEXT_PUBLIC_FEATURE_NEWS`); necesita `GEMINI_API_KEY` |
 | `FEATURE_GAMING` | OFF | Swypik Arcade (+ `NEXT_PUBLIC_FEATURE_GAMING`) |
-| `FEATURE_CRYPTO` | OFF | Swypik Crypto (+ `NEXT_PUBLIC_FEATURE_CRYPTO`) |
 | `FEATURE_MESSENGER` | OFF | Swypik Messenger — mesaje & apeluri video (+ `NEXT_PUBLIC_FEATURE_MESSENGER`); apelurile video necesita `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET`/`LIVEKIT_URL`/`NEXT_PUBLIC_LIVEKIT_URL` |
 
+Crypto/SWYP eliminat 2026-09-25 pentru eligibilitate NVIDIA Inception — tabelele DB rămân, neutilizate.
+
 Toate flag-urile de mai sus sunt OFF implicit (opt-in explicit). Pentru module noi
-(`movies`/`music`/`news`/`gaming`/`crypto`/`messenger`), perechea `FEATURE_X` +
+(`movies`/`music`/`news`/`gaming`/`messenger`), perechea `FEATURE_X` +
 `NEXT_PUBLIC_FEATURE_X` trebuie setata AMBELE la BUILD TIME (build arg in
 `infra/hetzner/docker-compose.prod.yml`, nu doar in `.env.production` la
 runtime) — altfel paginile index prerandate si bundle-ul de browser raman

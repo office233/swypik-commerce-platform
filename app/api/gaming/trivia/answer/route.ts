@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrCreateSocialUser } from "@/lib/social/session";
 import { dbQuery } from "@/lib/db";
 import { grantDailyCappedXp } from "@/lib/gaming/xp";
-import { awardSwyp } from "@/lib/swyp/rewards";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { verifyGamingToken, hashToken } from "@/lib/gaming/tokens";
@@ -101,26 +100,12 @@ export async function POST(req: NextRequest) {
              updated_at = now()`,
     );
 
-    let swypAwarded = false;
-    try {
-      const rewardResult = await awardSwyp({
-        userId,
-        action: "gaming_trivia_daily",
-        refId: `trivia_${round.id}`,
-        metadata: { correctCount, totalQuestions: questions.length, score },
-      });
-      swypAwarded = rewardResult.awarded;
-    } catch (e) {
-      logger.warn({ err: e, userId }, "[gaming.trivia.answer] awardSwyp failed");
-    }
-
     return NextResponse.json({
       ok: true,
       score,
       correctCount,
       totalQuestions: questions.length,
       earnedXp,
-      swypAwarded,
       results,
     });
   } catch (err) {

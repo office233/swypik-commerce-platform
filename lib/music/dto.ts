@@ -4,7 +4,7 @@
  */
 import { SWYPIK_OFFICIAL_ID } from "@/lib/config/accounts";
 import { canStream } from "./access";
-import { albumPriceUnits } from "./pricing";
+import { albumPriceCents } from "./pricing";
 import type { AlbumDto, ArtistDto, MusicAlbumRow, MusicArtistRow, MusicTrackRow, MusicViewer, TrackDto } from "./types";
 
 export function toArtistDto(a: MusicArtistRow): ArtistDto {
@@ -33,7 +33,7 @@ export function toTrackDto(
         durationMs: t.duration_ms,
         explicit: t.explicit,
         isPremium: t.is_premium,
-        priceUnits: t.price_units,
+        priceCents: t.price_cents,
         locked: !canStream(viewer, t),
         allowReels: t.allow_reels,
         audioTrackId: t.audio_track_id,
@@ -47,19 +47,20 @@ export function toTrackDto(
 
 export function toAlbumDto(
     album: MusicAlbumRow & { artist: MusicArtistRow; track_count: number },
-    tracks: Pick<MusicTrackRow, "is_premium" | "price_units">[],
+    tracks: Pick<MusicTrackRow, "is_premium" | "price_cents">[],
     viewer: MusicViewer,
 ): AlbumDto {
-    const priceUnitsRaw = albumPriceUnits(album, tracks);
+    const priceCents = albumPriceCents(album, tracks);
     const isOwner = Boolean(viewer.userId && viewer.userId === album.artist_user_id);
-    const locked = priceUnitsRaw > 0 && !viewer.unlockedAlbumIds.has(album.id) && !isOwner && !viewer.isAdmin;
+    // Blocat doar dacă are un preț RON real de plătit.
+    const locked = priceCents !== null && priceCents > 0 && !viewer.unlockedAlbumIds.has(album.id) && !isOwner && !viewer.isAdmin;
     return {
         id: album.id,
         slug: album.slug,
         title: album.title,
         coverUrl: album.cover_url,
         releaseDate: album.release_date,
-        priceUnits: priceUnitsRaw > 0 ? priceUnitsRaw : null,
+        priceCents,
         locked,
         artist: toArtistDto(album.artist),
         trackCount: album.track_count,

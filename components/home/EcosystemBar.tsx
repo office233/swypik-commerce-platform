@@ -2,18 +2,11 @@
 import { isEnabledClient } from "@/lib/feature-flags-client";
 
 import { useRouter } from "next/navigation";
-import { Users, UtensilsCrossed, Car, BedDouble, Plane, Gift, HeartHandshake, Wallet, ShoppingBag } from "lucide-react";
+import { Users, UtensilsCrossed, Car, BedDouble, Plane, HeartHandshake } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 
 export default function EcosystemBar() {
     const router = useRouter();
-
-    const openMysteryDrop = () => {
-        haptic("tap");
-        if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("open-mystery-drop"));
-        }
-    };
 
     const items = [
         ...(isEnabledClient("squadBuy") ? [{
@@ -53,15 +46,6 @@ export default function EcosystemBar() {
             },
         },
         {
-            id: "mystery",
-            title: "Mystery Box",
-            badge: "Cadou",
-            badgeColor: "bg-yellow-400 text-black",
-            icon: Gift,
-            iconBg: "from-amber-500 to-orange-500",
-            onClick: openMysteryDrop,
-        },
-        {
             id: "stays",
             title: "Stays",
             badge: "Hotel",
@@ -95,18 +79,6 @@ export default function EcosystemBar() {
             onClick: () => {
                 haptic("tap");
                 router.push("/cares");
-            },
-        },
-        {
-            id: "pay",
-            title: "SWYP Pay",
-            badge: "-10%",
-            badgeColor: "bg-indigo-600 text-white",
-            icon: Wallet,
-            iconBg: "from-indigo-500 to-purple-600",
-            onClick: () => {
-                haptic("tap");
-                router.push("/pay");
             },
         },
     ];

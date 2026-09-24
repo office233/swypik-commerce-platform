@@ -52,7 +52,7 @@ export function audioItemToTrackDto(item: AudioItemDto): TrackDto {
         durationMs: item.durationMs,
         explicit: false,
         isPremium: false,
-        priceUnits: null,
+        priceCents: null,
         locked: false,
         allowReels: false,
         audioTrackId: null,

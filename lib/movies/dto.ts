@@ -1,6 +1,6 @@
 import { SWYPIK_OFFICIAL_ID } from "@/lib/config/accounts";
 import { canPlay } from "./access";
-import { seasonPriceUnits } from "./pricing";
+import { seasonPriceCents } from "./pricing";
 import { MOVIES_SEASON_DISCOUNT_PCT } from "./config";
 import type { EpisodeDto, MovieEpisodeWithThumb, MovieProgressRow, MovieSeriesRow, SeriesDto, ViewerContext } from "./types";
 
@@ -15,8 +15,8 @@ export function toSeriesDto(series: MovieSeriesRow, episodeCount: number, ownerN
         posterUrl: series.poster_url,
         trailerVideoId: series.trailer_video_id,
         freeEpisodes: series.free_episodes,
-        episodePriceUnits: series.episode_price_units,
-        seasonPriceUnits: seasonPriceUnits(series, episodeCount),
+        episodePriceCents: series.episode_price_cents,
+        seasonPriceCents: seasonPriceCents(series, episodeCount),
         seasonDiscountPct: MOVIES_SEASON_DISCOUNT_PCT,
         isAdult: series.is_adult,
         episodeCount,
@@ -35,7 +35,7 @@ export function toEpisodeDtos(series: MovieSeriesRow, episodes: MovieEpisodeWith
             durationMs: e.duration_ms,
             thumbnailUrl: e.thumbnail_url,
             locked: !canPlay(viewer, series, e),
-            priceUnits: series.episode_price_units,
+            priceCents: series.episode_price_cents,
             progress: p ? { positionMs: p.position_ms, completed: p.completed } : null,
         };
     });

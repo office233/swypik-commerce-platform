@@ -24,18 +24,15 @@ export const FEATURES = {
   // Catalog demo de produse "virale" pentru selleri — date de exemplu, nu un
   // feed real de furnizor. OFF până există unul.
   viralCatalog: flag('FEATURE_VIRAL_CATALOG', false),
-  // Cutia zilnică (Mystery Drop) — acordă SWYP prin swyp_emission_rules.
-  mysteryDrop: flag('FEATURE_MYSTERY_DROP', true),
   // Squad Buy: grupurile se formează, dar NIMIC nu aplică prețul redus la
   // checkout și nu se reține niciun ban — OFF până există integrarea cu plata.
   squadBuy: flag('FEATURE_SQUAD_BUY', false),
-  // Swypik Movies/Music/News/Gaming/Crypto/Messenger — OFF by default, explicit
+  // Swypik Movies/Music/News/Gaming/Messenger — OFF by default, explicit
   // opt-in via env (FEATURE_X=1) once the module is verified ready for prod.
   movies: flag('FEATURE_MOVIES', false),
   music: flag('FEATURE_MUSIC', false),
   news: flag('FEATURE_NEWS', false),
   gaming: flag('FEATURE_GAMING', false),
-  crypto: flag('FEATURE_CRYPTO', false),
   messenger: flag('FEATURE_MESSENGER', false),
 } as const;
 

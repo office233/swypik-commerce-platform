@@ -69,8 +69,6 @@ while true; do
     # Dispecerizarea curselor Go / livrarilor Food — fara asta comenzile
     # raman neatribuite. (Adaugat 2026-07-31: ruta exista dar nu era programata.)
     run_job dispatch-tick POST
-    # Deposit watcher: crediteaza depozitele on-chain (chain -> app).
-    run_job scan-chain-deposits POST
   fi
   # Every 10 min
   if [ $((TICK % 600)) -lt 60 ]; then
@@ -90,17 +88,11 @@ while true; do
   fi
   # Every hour
   if [ $((TICK % 3600)) -lt 60 ]; then
-    run_job swyp-view-milestones GET
     run_job refresh-fx GET
     # Alerte operationale + agregari (adaugate 2026-07-31)
     run_job alert-video-queue GET
     run_job aggregate-video-stats POST
     run_job fly-price-watch GET
-    # Integritatea economiei SWYP: invariant supply + hash-chain ledger (2026-08-01)
-    run_job verify-supply POST
-    # Reconciliere on-chain <-> identitati: alerta pe adrese neetichetate care
-    # primesc fonduri (transparenta user<->bani, 2026-08-09)
-    run_job swyp-reconcile POST
     # Sanatatea platilor: alerta cand se incearca si esueaza tot. Adaugat
     # 2026-08-17 dupa ce prod a rulat cu chei Stripe placeholder 15 zile,
     # 13 comenzi failed / 0 paid, fara ca nimeni sa observe. Cauza era deja
@@ -133,9 +125,6 @@ while true; do
     run_job reconcile-wallets POST
     run_job indexnow GET
     run_job bing-url-submit GET
-    # Recuperare SWYP din checkout-uri abandonate (idempotent prin ledger ref).
-    # (Audit 2026-08-05: ruta exista dar nu era programata — SWYP ramanea blocat.)
-    run_job reclaim-abandoned-swyp GET
   fi
 
   sleep 60

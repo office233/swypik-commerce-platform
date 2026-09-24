@@ -2,16 +2,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Headphones, Music, Plus, UploadCloud } from "lucide-react";
-import { unitsToSwyp } from "@/components/movies/UnlockButton";
+import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import {
   MUSIC_ALLOWED_MIME,
-  MUSIC_DEFAULT_TRACK_PRICE_UNITS,
+  MUSIC_DEFAULT_TRACK_PRICE_CENTS,
   MUSIC_MAX_DURATION_MS,
   MUSIC_MAX_UPLOAD_BYTES,
   MUSIC_MIN_DURATION_MS,
-  MUSIC_TRACK_PRICE_MAX_UNITS,
-  MUSIC_TRACK_PRICE_MIN_UNITS,
-  SWYP_UNITS_PER_COIN,
+  MUSIC_TRACK_PRICE_MAX_CENTS,
+  MUSIC_TRACK_PRICE_MIN_CENTS,
 } from "@/lib/music/config";
 import { MUSIC_GENRES, musicGenreLabelKey, type MusicGenre } from "@/lib/music/genres";
 import type { ContentStatus, MusicArtistRow, MusicAudience } from "@/lib/music/types";
@@ -34,7 +33,7 @@ type TrackFormState = {
   genre: MusicGenre | "";
   explicit: boolean;
   isPremium: boolean;
-  priceSwyp: number;
+  priceRon: number;
   allowReels: boolean;
   audience: MusicAudience;
   albumId: string;
@@ -49,7 +48,7 @@ function emptyTrackForm(): TrackFormState {
     genre: "",
     explicit: false,
     isPremium: false,
-    priceSwyp: MUSIC_DEFAULT_TRACK_PRICE_UNITS / SWYP_UNITS_PER_COIN,
+    priceRon: MUSIC_DEFAULT_TRACK_PRICE_CENTS / 100,
     allowReels: true,
     audience: "general",
     albumId: "",
@@ -111,6 +110,7 @@ function GenrePicker({ value, onChange, t }: { value: MusicGenre | ""; onChange:
 
 export default function CreatorMusicPage() {
   const t = useTranslations("music");
+  const formatPrice = useFormatPrice();
   const [data, setData] = useState<Overview | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -125,7 +125,7 @@ export default function CreatorMusicPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<TrackFormState>(emptyTrackForm());
 
-  const [albumForm, setAlbumForm] = useState({ title: "", coverUrl: "", releaseDate: "", priceSwyp: "" });
+  const [albumForm, setAlbumForm] = useState({ title: "", coverUrl: "", releaseDate: "", priceRon: "" });
 
   const load = useCallback(() => {
     fetch("/api/creator/music").then((r) => r.json()).then(setData).catch(() => setMsg(t("loadError")));
@@ -195,7 +195,7 @@ export default function CreatorMusicPage() {
           durationMs,
           explicit: form.explicit,
           isPremium: form.isPremium,
-          priceUnits: form.isPremium ? Math.round(form.priceSwyp * SWYP_UNITS_PER_COIN) : undefined,
+          priceCents: form.isPremium ? Math.round(form.priceRon * 100) : undefined,
           allowReels: form.allowReels,
           audience: form.audience,
           albumId: form.albumId || null,
@@ -230,7 +230,7 @@ export default function CreatorMusicPage() {
       genre: track.genre as MusicGenre,
       explicit: track.explicit,
       isPremium: track.is_premium,
-      priceSwyp: (track.price_units ?? MUSIC_DEFAULT_TRACK_PRICE_UNITS) / SWYP_UNITS_PER_COIN,
+      priceRon: (track.price_cents ?? MUSIC_DEFAULT_TRACK_PRICE_CENTS) / 100,
       allowReels: track.allow_reels,
       audience: track.audience,
       albumId: track.album_id ?? "",
@@ -249,7 +249,7 @@ export default function CreatorMusicPage() {
         title: editForm.title,
         genre: editForm.genre,
         isPremium: editForm.isPremium,
-        priceUnits: editForm.isPremium ? Math.round(editForm.priceSwyp * SWYP_UNITS_PER_COIN) : undefined,
+        priceCents: editForm.isPremium ? Math.round(editForm.priceRon * 100) : undefined,
         allowReels: editForm.allowReels,
         audience: editForm.audience,
         coverUrl: editForm.coverUrl || null,
@@ -291,7 +291,7 @@ export default function CreatorMusicPage() {
         title: albumForm.title,
         coverUrl: albumForm.coverUrl || null,
         releaseDate: albumForm.releaseDate || null,
-        priceUnits: albumForm.priceSwyp ? Math.round(Number(albumForm.priceSwyp) * SWYP_UNITS_PER_COIN) : null,
+        priceCents: albumForm.priceRon ? Math.round(Number(albumForm.priceRon) * 100) : null,
       }),
     });
     if (!res.ok) {
@@ -299,7 +299,7 @@ export default function CreatorMusicPage() {
       return;
     }
     setMsg(t("saved"));
-    setAlbumForm({ title: "", coverUrl: "", releaseDate: "", priceSwyp: "" });
+    setAlbumForm({ title: "", coverUrl: "", releaseDate: "", priceRon: "" });
     load();
   };
 
@@ -318,9 +318,9 @@ export default function CreatorMusicPage() {
       {data.earnings && (
         <div className="rounded-2xl bg-[#0D0D0D] p-4 text-white">
           <p className="text-xs uppercase tracking-wider text-white/60">{t("earnings")}</p>
-          <p className="text-2xl font-black">{unitsToSwyp(data.earnings.tips_units + data.earnings.unlock_units)} SWYP</p>
+          <p className="text-2xl font-black">{formatPrice(data.earnings.unlock_units, { sourceCurrency: "RON" })}</p>
           <p className="text-xs text-white/60">
-            {t("earningsTips", { count: data.earnings.tips_count })} · {t("earningsUnlocks", { count: data.earnings.unlocks_count })}
+            {t("earningsUnlocks", { count: data.earnings.unlocks_count })}
           </p>
         </div>
       )}
@@ -357,11 +357,11 @@ export default function CreatorMusicPage() {
           <label className="block text-xs">{t("priceLabel")}
             <input
               type="number"
-              min={MUSIC_TRACK_PRICE_MIN_UNITS / SWYP_UNITS_PER_COIN}
-              max={MUSIC_TRACK_PRICE_MAX_UNITS / SWYP_UNITS_PER_COIN}
+              min={MUSIC_TRACK_PRICE_MIN_CENTS / 100}
+              max={MUSIC_TRACK_PRICE_MAX_CENTS / 100}
               step={0.5}
-              value={form.priceSwyp}
-              onChange={(e) => setForm({ ...form, priceSwyp: Number(e.target.value) })}
+              value={form.priceRon}
+              onChange={(e) => setForm({ ...form, priceRon: Number(e.target.value) })}
               className={INPUT}
             />
           </label>
@@ -440,11 +440,11 @@ export default function CreatorMusicPage() {
                 {editForm.isPremium && (
                   <input
                     type="number"
-                    min={MUSIC_TRACK_PRICE_MIN_UNITS / SWYP_UNITS_PER_COIN}
-                    max={MUSIC_TRACK_PRICE_MAX_UNITS / SWYP_UNITS_PER_COIN}
+                    min={MUSIC_TRACK_PRICE_MIN_CENTS / 100}
+                    max={MUSIC_TRACK_PRICE_MAX_CENTS / 100}
                     step={0.5}
-                    value={editForm.priceSwyp}
-                    onChange={(e) => setEditForm({ ...editForm, priceSwyp: Number(e.target.value) })}
+                    value={editForm.priceRon}
+                    onChange={(e) => setEditForm({ ...editForm, priceRon: Number(e.target.value) })}
                     className={INPUT}
                   />
                 )}
@@ -477,7 +477,7 @@ export default function CreatorMusicPage() {
           <input required value={albumForm.title} onChange={(e) => setAlbumForm({ ...albumForm, title: e.target.value })} placeholder={t("albumTitle")} className={INPUT} />
           <input value={albumForm.coverUrl} onChange={(e) => setAlbumForm({ ...albumForm, coverUrl: e.target.value })} placeholder={t("coverUrl")} className={INPUT} />
           <input type="date" value={albumForm.releaseDate} onChange={(e) => setAlbumForm({ ...albumForm, releaseDate: e.target.value })} className={INPUT} />
-          <input type="number" min={0} step={0.5} value={albumForm.priceSwyp} onChange={(e) => setAlbumForm({ ...albumForm, priceSwyp: e.target.value })} placeholder={t("priceLabel")} className={INPUT} />
+          <input type="number" min={0} step={0.5} value={albumForm.priceRon} onChange={(e) => setAlbumForm({ ...albumForm, priceRon: e.target.value })} placeholder={t("priceLabel")} className={INPUT} />
           <button type="submit" className="rounded-xl bg-[#0D0D0D] px-4 py-2 text-sm font-bold text-white sm:col-span-2"><Plus size={14} className="inline" /> {" "}{t("albums")}</button>
         </form>
       </section>

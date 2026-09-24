@@ -6,13 +6,11 @@ import { useTranslations, useLocale } from "next-intl";
 import {
   Radio,
   Clock,
-  CheckCircle2,
   Sparkles,
   ArrowRight,
   Bot,
   RefreshCw,
   TrendingUp,
-  ShieldCheck,
   Zap,
 } from "lucide-react";
 
@@ -30,11 +28,10 @@ interface Article {
   category_slug: string;
 }
 
-const CATEGORY_SLUGS = ["all", "tech-ai", "crypto", "gaming", "business", "science"] as const;
+const CATEGORY_SLUGS = ["all", "tech-ai", "gaming", "business", "science"] as const;
 const CATEGORY_ICONS: Record<(typeof CATEGORY_SLUGS)[number], string> = {
   all: "🌐",
   "tech-ai": "⚡",
-  crypto: "🪙",
   gaming: "🎮",
   business: "📈",
   science: "🔬",
@@ -218,9 +215,6 @@ export default function NewsListClient({ isAdmin }: { isAdmin: boolean }) {
                     <span className="absolute top-4 left-4 px-3 py-1 bg-black/80 backdrop-blur-md rounded-xl text-xs font-black text-cyan-300 border border-white/10 uppercase tracking-wider">
                       {heroArticle.category_name}
                     </span>
-                    <span className="absolute top-4 right-4 px-2.5 py-1 bg-emerald-500 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1 shadow-lg">
-                      <ShieldCheck size={14} /> {t("verifiedPct", { pct: heroArticle.fact_check_score })}
-                    </span>
                   </div>
 
                   <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between space-y-6">
@@ -261,7 +255,7 @@ export default function NewsListClient({ isAdmin }: { isAdmin: boolean }) {
                   <TrendingUp size={18} className="text-cyan-400" /> {t("recentFeeds")}
                 </h3>
                 <span className="text-xs text-slate-400">
-                  {t("articlesVerified", { count: articles.length })}
+                  {t("articlesCount", { count: articles.length })}
                 </span>
               </div>
 
@@ -283,9 +277,6 @@ export default function NewsListClient({ isAdmin }: { isAdmin: boolean }) {
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0C101A] via-transparent to-transparent" />
                       <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/75 backdrop-blur-md rounded-lg text-[11px] font-bold text-cyan-300 border border-white/10">
                         {art.category_name}
-                      </span>
-                      <span className="absolute top-3 right-3 px-2 py-0.5 bg-emerald-500/90 text-slate-950 font-black text-[10px] rounded-md flex items-center gap-1 shadow">
-                        <CheckCircle2 size={11} /> {art.fact_check_score}%
                       </span>
                     </div>
 

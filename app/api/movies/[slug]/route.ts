@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
-import { getSwypBalanceUnits } from "@/lib/swyp/ledger";
 import { dbQuery } from "@/lib/db";
 import { getSeriesBySlug, listEpisodes, getProgress, isInWatchlist } from "@/lib/movies/repository";
 import { buildViewerContext } from "@/lib/movies/viewer";
@@ -27,10 +26,9 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
         dbQuery<{ display_name: string | null }>(`SELECT display_name FROM users WHERE id = $1`, [series.owner_user_id]),
         user.userId ? isInWatchlist(user.userId, series.id) : Promise.resolve(false),
     ]);
-    const balanceUnits = user.userId ? Number(await getSwypBalanceUnits(user.userId)) : null;
     return NextResponse.json({
         series: toSeriesDto(series, episodes.length, ownerRows.rows[0]?.display_name ?? null),
         episodes: toEpisodeDtos(series, episodes, viewer, progress),
-        viewer: { balanceUnits, hasSeasonUnlock: viewer.hasSeasonUnlock, isOwner, inWatchlist },
+        viewer: { isAuthed: Boolean(user.userId), hasSeasonUnlock: viewer.hasSeasonUnlock, isOwner, inWatchlist },
     });
 });

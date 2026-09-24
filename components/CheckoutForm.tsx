@@ -10,7 +10,7 @@ import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 import CheckoutProductImage from "./checkout/CheckoutProductImage";
 import StripePaymentForm from "./checkout/StripePaymentForm";
 import type { CartItem } from "./checkout/types";
-import { ShoppingCart, AlertTriangle, Coins } from "lucide-react";
+import { ShoppingCart, AlertTriangle } from "lucide-react";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -27,11 +27,6 @@ export default function CheckoutForm() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [totalRon, setTotalRon] = useState(0);
-  /** Cât poate plăti userul în SWYP (null = opțiunea nu se afișează). */
-  const [swypQuote, setSwypQuote] = useState<{ maxCents: number; maxSwyp: string; balanceSwyp: string; maxPct: number } | null>(null);
-  const [useSwyp, setUseSwyp] = useState(false);
-  /** Cât s-a acoperit efectiv (confirmat de server). */
-  const [swypApplied, setSwypApplied] = useState(0);
   const [orderId, setOrderId] = useState("");
   const [orderLookupToken, setOrderLookupToken] = useState("");
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
@@ -77,19 +72,6 @@ export default function CheckoutForm() {
     (sum, item) => sum + item.product.price * item.qty, 0
   );
 
-  // ── Plată hibridă cu SWYP ──────────────────────────────────────────────
-  // Întrebăm serverul cât poate acoperi userul din SWYP. Dacă nu e logat,
-  // nu are sold sau cursul e 0 (fără încasări reale încă), opțiunea nu apare.
-  useEffect(() => {
-    if (subtotal <= 0) { setSwypQuote(null); return; }
-    let cancelled = false;
-    fetch(`/api/swyp/quote?totalCents=${Math.round(subtotal * 100)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (!cancelled && d?.available) setSwypQuote(d); })
-      .catch(() => { });
-    return () => { cancelled = true; };
-  }, [subtotal]);
-
   // Create Payment Intent when cart is loaded
   const createPaymentIntent = useCallback(async () => {
     if (cartItems.length === 0 || clientSecret) return;
@@ -107,7 +89,6 @@ export default function CheckoutForm() {
             videoId: item.product.videoId || undefined,
             quantity: item.qty,
           })),
-          ...(useSwyp && swypQuote ? { useSwyp: true } : {}),
         }),
       });
       const data = await res.json();
@@ -116,7 +97,6 @@ export default function CheckoutForm() {
         setTotalRon(data.totalRon);
         setOrderId(data.orderId);
         setOrderLookupToken(data.orderLookupToken);
-        setSwypApplied(Number(data.swypPaidCents ?? 0));
       } else {
         setError(data.error || t("errInitiereCheckout"));
       }
@@ -125,7 +105,7 @@ export default function CheckoutForm() {
     } finally {
       setIsCreatingIntent(false);
     }
-  }, [cartItems, clientSecret, t, useSwyp, swypQuote]);
+  }, [cartItems, clientSecret, t]);
 
   useEffect(() => {
     if (cartItems.length > 0 && !clientSecret) {
@@ -348,42 +328,10 @@ export default function CheckoutForm() {
                 <span className="font-bold text-[#10A37F]">{t("gratuit")}</span>
               </div>
 
-              {/* Plată parțială cu SWYP — apare doar dacă userul chiar poate. */}
-              {swypQuote && swypQuote.maxCents > 0 && (
-                <label className="flex items-start gap-3 rounded-xl border border-[#F5A623]/40 bg-[#F5A623]/5 p-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useSwyp}
-                    onChange={(e) => {
-                      setUseSwyp(e.target.checked);
-                      // forțăm recalcularea intenției de plată cu noua sumă
-                      setClientSecret(null);
-                    }}
-                    className="mt-0.5 h-4 w-4 accent-[#F5A623]"
-                  />
-                  <span className="text-xs leading-relaxed">
-                    <strong className="text-[#0D0D0D]">
-                      Plătește {formatPrice(swypQuote.maxCents, { sourceCurrency: "RON" })} cu SWYP
-                    </strong>
-                    <br />
-                    <span className="text-[#6E6E80]">
-                      Ai {swypQuote.balanceSwyp} SWYP. Poți acoperi până la {swypQuote.maxPct}% din comandă.
-                    </span>
-                  </span>
-                </label>
-              )}
-
-              {swypApplied > 0 && (
-                <div className="flex justify-between text-sm text-[#F5A623] font-bold">
-                  <span className="flex items-center gap-1.5"><Coins size={14} /> {t("paidWithSwyp")}</span>
-                  <span>−{formatPrice(swypApplied, { sourceCurrency: "RON" })}</span>
-                </div>
-              )}
-
               <div className="flex justify-between text-xl font-black pt-3 mt-1 border-t border-[#E5E5E5]">
-                <span>{swypApplied > 0 ? t("cardRemaining") : t("total")}</span>
+                <span>{t("total")}</span>
                 <span className="text-[#10A37F]">
-                  {formatPrice(Math.max(0, Math.round(subtotal * 100) - swypApplied), { sourceCurrency: "RON" })}
+                  {formatPrice(Math.round(subtotal * 100), { sourceCurrency: "RON" })}
                 </span>
               </div>
             </div>
