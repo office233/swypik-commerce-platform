@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Globe } from "lucide-react";
 import { useLocale } from "next-intl";
-// Navigație LOCALIZATĂ: router.replace(pathname, { locale }) reconstruiește URL-ul
-// cu prefixul corect al limbii alese. `next/navigation` brut + router.refresh()
-// lăsau paginile neprefixate (default ro) în romană oricât ai fi ales altă limbă
-// (audit 2026-08-25).
-import { useRouter, usePathname } from "@/lib/i18n/navigation";
+// Navigație LOCALIZATĂ: getPathname({ href, locale }) reconstruiește URL-ul cu
+// prefixul corect al limbii alese (as-needed). Navigarea e HARD (full reload):
+// NextIntlClientProvider + <html lang> stau în app/layout.tsx, deasupra
+// [locale], iar o navigare soft nu re-randează root layout-ul — BottomNav și
+// componentele client rămâneau în limba veche (audit 2026-09-24).
+import { usePathname, getPathname } from "@/lib/i18n/navigation";
 import { LOCALES, type Locale } from "@/lib/i18n/config";
 
 const META: Record<Locale, { label: string; flag: string }> = {
@@ -32,7 +33,6 @@ export default function LocaleQuickPicker({
   variant?: "dark" | "light";
 }) {
   const currentLocale = useLocale() as Locale;
-  const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -62,10 +62,11 @@ export default function LocaleQuickPicker({
       } catch {
         document.cookie = `swypik_locale=${loc}; Path=/; Max-Age=31536000; SameSite=Lax`;
       }
-      // Navighează la ACELAȘI path în noua limbă — router localizat pune/scoate
-      // prefixul de locale automat (as-needed): /explore → /en/explore, iar la
-      // revenirea pe ro scoate prefixul.
-      router.replace(pathname, { locale: loc });
+      // Navighează la ACELAȘI path în noua limbă — getPathname pune/scoate
+      // prefixul de locale (as-needed): /explore → /en/explore, iar la revenirea
+      // pe ro scoate prefixul. Full reload ca să se re-randeze root layout-ul.
+      const { search, hash } = window.location;
+      window.location.assign(`${getPathname({ href: pathname, locale: loc })}${search}${hash}`);
     });
   };
 
