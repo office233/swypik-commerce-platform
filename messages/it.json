@@ -623,7 +623,10 @@
     "overlaySecondsLabel": "Mostra overlay \"vedi prodotto\" al secondo",
     "allowComments": "Consenti commenti",
     "allowDuet": "Consenti Duet",
-    "allowStitch": "Consenti Stitch"
+    "allowStitch": "Consenti Stitch",
+    "sessionError": "Errore della sessione di caricamento.",
+    "completeError": "Impossibile completare il caricamento.",
+    "uploadErrorGeneric": "Errore di caricamento."
   },
   "security": {
     "autentificareInDoiPasi": "Autenticazione a due fattori (2FA)",
@@ -677,7 +680,8 @@
     "confidentialitate": "Privacy",
     "descarcaDateleDescriere": "Scarica un file con i tuoi dati personali su Swypik: account, indirizzi, ordini e attività. Non contiene password né dati della carta.",
     "descarcaDatele": "Scarica i miei dati (JSON)",
-    "stergereContNota": "Per eliminare il tuo account o esercitare altri diritti GDPR, scrivici a privacy@swypik.com. Rispondiamo entro 30 giorni."
+    "stergereContNota": "Per eliminare il tuo account o esercitare altri diritti GDPR, scrivici a privacy@swypik.com. Rispondiamo entro 30 giorni.",
+    "eroareLaRegenerare": "Errore durante la rigenerazione."
   },
   "orders": {
     "seIncarcaComanda": "Caricamento ordine...",
@@ -976,7 +980,8 @@
     "adaugaLink": "+ Aggiungi link",
     "displayName": "Nome visualizzato",
     "linkLabelPlaceholder": "Etichetta (es.: Il mio sito)",
-    "removeLink": "Rimuovi link"
+    "removeLink": "Rimuovi link",
+    "eroareLaSalvare": "Errore durante il salvataggio."
   },
   "returnForm": {
     "produsePentruRetur": "Prodotti da restituire",
@@ -2634,7 +2639,9 @@
   "postVote": {
     "votes": "{count, plural, one {# voto} other {# voti}}",
     "yourVote": "il tuo voto",
-    "tapToVote": "Tocca un'opzione per votare."
+    "tapToVote": "Tocca un'opzione per votare.",
+    "genericError": "Si è verificato un errore. Riprova.",
+    "networkError": "Errore di rete."
   },
   "stayDetail": {
     "confirmed": "Prenotazione confermata!",

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { MapPin, Plus, Pencil, Trash2, Star, Loader2, X } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type Address = {
   id: string;
@@ -59,6 +60,7 @@ const EMPTY_FORM: FormState = {
 
 export default function AddressesClient() {
   const t = useTranslations("addresses");
+  const locale = useLocale();
   const [items, setItems] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<FormState | null>(null);
@@ -115,7 +117,7 @@ export default function AddressesClient() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        showToast(j.error || t("eroareLaSalvare"));
+        showToast(apiErrorMessage(j, locale, t("eroareLaSalvare")));
         return;
       }
       if (!editing.id && editing.is_default) {

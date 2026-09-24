@@ -5,7 +5,8 @@
  * (doar cauze verificate) și raportare cheltuieli cu dovezi (prin /api/upload).
  */
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type Cause = {
   id: string;
@@ -40,6 +41,7 @@ function lei(cents: number): string {
 
 export default function CausesPanelClient() {
   const t = useTranslations("causesPanel");
+  const locale = useLocale();
   const VERIF_LABELS: Record<string, string> = {
     pending: t("verifPending"),
     in_review: t("verifInReview"),
@@ -105,13 +107,13 @@ export default function CausesPanelClient() {
         location_city: regForm.location_city || undefined,
       }),
     });
-    const data = (await res.json()) as { success?: boolean; error?: string };
+    const data = (await res.json()) as { success?: boolean; error?: string; code?: string };
     if (res.ok && data.success) {
       setMsg(t("registered"));
       setRegForm({ kind: "ngo", name: "", description: "", legal_id: "", contact_name: "", contact_email: "", contact_phone: "", location_city: "" });
       void load();
     } else {
-      setMsg(data.error ?? t("registerError"));
+      setMsg(apiErrorMessage(data, locale, t("registerError")));
     }
   }
 
@@ -133,13 +135,13 @@ export default function CausesPanelClient() {
         goal_cents: goalCents,
       }),
     });
-    const data = (await res.json()) as { success?: boolean; error?: string };
+    const data = (await res.json()) as { success?: boolean; error?: string; code?: string };
     if (res.ok && data.success) {
       setMsg(t("campaignCreated"));
       setCampForm({ cause_id: "", title: "", story: "", goal: "" });
       void load();
     } else {
-      setMsg(data.error ?? t("createError"));
+      setMsg(apiErrorMessage(data, locale, t("createError")));
     }
   }
 
@@ -179,14 +181,14 @@ export default function CausesPanelClient() {
         proof_url: expForm.proof_url,
       }),
     });
-    const data = (await res.json()) as { success?: boolean; error?: string };
+    const data = (await res.json()) as { success?: boolean; error?: string; code?: string };
     if (res.ok && data.success) {
       setMsg(t("expenseReported"));
       const cid = expForm.campaign_id;
       setExpForm({ campaign_id: "", amount: "", purpose: "", proof_url: "" });
       void loadExpenses(cid);
     } else {
-      setMsg(data.error ?? t("reportError"));
+      setMsg(apiErrorMessage(data, locale, t("reportError")));
     }
   }
 

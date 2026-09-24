@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements, AddressElement } from "@stripe/react-stripe-js";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 import CheckoutProductImage from "./checkout/CheckoutProductImage";
 import StripePaymentForm from "./checkout/StripePaymentForm";
 import type { CartItem } from "./checkout/types";
@@ -98,7 +99,7 @@ export default function CheckoutForm() {
         setOrderId(data.orderId);
         setOrderLookupToken(data.orderLookupToken);
       } else {
-        setError(data.error || t("errInitiereCheckout"));
+        setError(apiErrorMessage(data, locale, t("errInitiereCheckout")));
       }
     } catch {
       setError(t("errRetea"));

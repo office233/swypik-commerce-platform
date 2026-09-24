@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 import {
   Megaphone,
   Plus,
@@ -47,6 +48,7 @@ export default function AdsClient({
   sellerProducts: ProductOption[];
 }) {
   const t = useTranslations("sellerGrowthAds");
+  const locale = useLocale();
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -99,7 +101,7 @@ export default function AdsClient({
 
       const data = await res.json();
       if (!data.success) {
-        alert(data.error || t("errorCreate"));
+        alert(apiErrorMessage(data, locale, t("errorCreate")));
         return;
       }
 

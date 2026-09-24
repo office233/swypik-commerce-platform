@@ -7,6 +7,8 @@
     "dev:web": "next dev",
     "dev:social": "docker compose -f docker-compose.social.yml up",
     "dev:platform": "cd services/platform-api && go run ./cmd/api",
+    "postinstall": "node scripts/patch-next-notfound-ssr.mjs",
+    "prebuild": "node scripts/patch-next-notfound-ssr.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { X, Hourglass, Camera, Package, Check, Film, Store } from "lucide-react";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type Suggestion = { slug: string; confidence: number; label: string };
 type Variant = { sku: string; title: string; price: string; stock: string; color: string; size: string };
@@ -13,6 +14,7 @@ const STEP_KEYS = ["stepDetalii", "stepImagini", "stepPretStoc", "stepLivrare"] 
 
 export default function AddProductWizard({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const t = useTranslations("sellerAddProduct");
+  const locale = useLocale();
   const COURIERS = COURIER_VALUES.map((v) => ({ value: v, label: t(`courier_${v}` as const) }));
   const STEPS = STEP_KEYS.map((k) => t(k));
   const [step, setStep] = useState(0);
@@ -67,7 +69,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         body: JSON.stringify({ title, description: description || undefined }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) throw new Error(data.error || t("errClasificare"));
+      if (!res.ok || !data.success) throw new Error(apiErrorMessage(data, locale, t("errClasificare")));
       const list: Suggestion[] = data.suggestions || [];
       setSuggestions(list);
       if (list[0]) {
@@ -171,7 +173,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) throw new Error(data.error || t("errSalvare"));
+      if (!res.ok || !data.success) throw new Error(apiErrorMessage(data, locale, t("errSalvare")));
       onSaved();
     } catch (e: any) {
       setError(e.message);

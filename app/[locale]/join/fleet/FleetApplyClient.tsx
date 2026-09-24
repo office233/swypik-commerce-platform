@@ -9,7 +9,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 import PartnerLanding from "@/components/join/PartnerLanding";
 
 const VEHICLES: { value: string; labelKey: string }[] = [
@@ -22,6 +23,7 @@ const VEHICLES: { value: string; labelKey: string }[] = [
 
 export default function FleetApplyClient() {
     const t = useTranslations("join");
+    const locale = useLocale();
     const router = useRouter();
     const params = useSearchParams();
     const kind = params.get("kind") === "driver" ? "driver" : "courier";
@@ -63,7 +65,7 @@ export default function FleetApplyClient() {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok || data.error) {
-                setError(typeof data.error === "string" ? data.error : t("errGeneric"));
+                setError(typeof data.error === "string" ? apiErrorMessage(data, locale, t("errGeneric")) : t("errGeneric"));
                 return;
             }
             setDone(true);

@@ -44,6 +44,21 @@ const CONCURRENCY_DEFAULT = 3;
 const MAX_RETRIES = 3;
 const LS_PREFIX = "swypik:reel-upload:";
 
+/**
+ * Error thrown for a failed upload-session API call. `code` mirrors the
+ * server's `parseBody()` tag (e.g. "validation_error") when present, so
+ * callers can localize the message with `apiErrorMessage` instead of
+ * showing the (often Romanian) raw text to every locale.
+ */
+export class UploadApiError extends Error {
+  code?: string;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = "UploadApiError";
+    this.code = code;
+  }
+}
+
 function lsKey(sessionId: string): string {
   return `${LS_PREFIX}${sessionId}`;
 }
@@ -175,7 +190,10 @@ async function initSession(
 
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    throw new Error(String(data.error || "Eroare la crearea sesiunii de upload."));
+    throw new UploadApiError(
+      String(data.error || "Eroare la crearea sesiunii de upload."),
+      typeof data.code === "string" ? data.code : undefined
+    );
   }
   return data as unknown as InitMultipartResponse | SinglePutResponse;
 }
@@ -285,9 +303,9 @@ async function completeSession(
       body: JSON.stringify({ parts }),
     }
   );
-  const data = (await res.json().catch(() => ({}))) as { videoId?: string; error?: string };
+  const data = (await res.json().catch(() => ({}))) as { videoId?: string; error?: string; code?: string };
   if (!res.ok) {
-    throw new Error(data.error || "Eroare la finalizarea uploadului.");
+    throw new UploadApiError(data.error || "Eroare la finalizarea uploadului.", data.code);
   }
   return data;
 }

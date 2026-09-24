@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const rawBody = await req.json().catch(() => ({}));
     const parsed = parseBody(CartItemAddSchema, rawBody);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400, headers: NO_STORE });
+      return NextResponse.json({ error: parsed.error, code: parsed.code, issues: parsed.issues }, { status: 400, headers: NO_STORE });
     }
     const body = parsed.data;
     const productId = body.productId;

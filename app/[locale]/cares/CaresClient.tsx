@@ -13,6 +13,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { HeartHandshake, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 // Bug fix (i18n/UI audit 2026-09-24): loadStripe("") with a missing publishable
 // key created a promise that never resolved/rejected cleanly, leaving the page
@@ -138,7 +139,7 @@ function DonateModal({ campaign, onClose }: { campaign: Campaign; onClose: () =>
             });
             const json = await res.json();
             if (!res.ok || !json.success) {
-                setError(json.error || t("initError"));
+                setError(apiErrorMessage(json, locale, t("initError")));
                 return;
             }
             if (json.payment?.clientSecret) {

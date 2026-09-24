@@ -71,7 +71,7 @@ async function POST_impl(req: Request): Promise<Response> {
   const body: unknown = await req.json().catch(() => null);
   const parsed = parseBody(CampaignCreateSchema, body);
   if (!parsed.ok) {
-    return NextResponse.json({ success: false, error: parsed.error, issues: parsed.issues }, { status: 400 });
+    return NextResponse.json({ success: false, error: parsed.error, code: parsed.code, issues: parsed.issues }, { status: 400 });
   }
   const d = parsed.data;
 
@@ -123,7 +123,7 @@ async function PATCH_impl(req: Request): Promise<Response> {
   const body: unknown = await req.json().catch(() => null);
   const parsed = parseBody(CampaignUpdateSchema, body);
   if (!parsed.ok) {
-    return NextResponse.json({ success: false, error: parsed.error, issues: parsed.issues }, { status: 400 });
+    return NextResponse.json({ success: false, error: parsed.error, code: parsed.code, issues: parsed.issues }, { status: 400 });
   }
   const { campaign_id, ...fields } = parsed.data;
 

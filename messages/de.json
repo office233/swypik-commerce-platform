@@ -623,7 +623,10 @@
     "overlaySecondsLabel": "„Produkt ansehen“-Overlay bei Sekunde",
     "allowComments": "Kommentare erlauben",
     "allowDuet": "Duet erlauben",
-    "allowStitch": "Stitch erlauben"
+    "allowStitch": "Stitch erlauben",
+    "sessionError": "Fehler bei der Upload-Sitzung.",
+    "completeError": "Der Upload konnte nicht abgeschlossen werden.",
+    "uploadErrorGeneric": "Upload-Fehler."
   },
   "security": {
     "autentificareInDoiPasi": "Zwei-Faktor-Authentifizierung (2FA)",
@@ -677,7 +680,8 @@
     "confidentialitate": "Datenschutz",
     "descarcaDateleDescriere": "Lade eine Datei mit deinen personenbezogenen Daten bei Swypik herunter: Konto, Adressen, Bestellungen und Aktivität. Ohne Passwörter oder Kartendaten.",
     "descarcaDatele": "Meine Daten herunterladen (JSON)",
-    "stergereContNota": "Für die Löschung deines Kontos oder andere DSGVO-Rechte schreib uns an privacy@swypik.com. Wir antworten innerhalb von 30 Tagen."
+    "stergereContNota": "Für die Löschung deines Kontos oder andere DSGVO-Rechte schreib uns an privacy@swypik.com. Wir antworten innerhalb von 30 Tagen.",
+    "eroareLaRegenerare": "Fehler bei der Neugenerierung."
   },
   "orders": {
     "seIncarcaComanda": "Bestellung wird geladen...",
@@ -976,7 +980,8 @@
     "adaugaLink": "+ Link hinzufügen",
     "displayName": "Anzeigename",
     "linkLabelPlaceholder": "Bezeichnung (z. B. Meine Website)",
-    "removeLink": "Link entfernen"
+    "removeLink": "Link entfernen",
+    "eroareLaSalvare": "Fehler beim Speichern."
   },
   "returnForm": {
     "produsePentruRetur": "Rückgabeprodukte",
@@ -2634,7 +2639,9 @@
   "postVote": {
     "votes": "{count, plural, one {# Stimme} other {# Stimmen}}",
     "yourVote": "deine Stimme",
-    "tapToVote": "Tippe auf eine Option, um abzustimmen."
+    "tapToVote": "Tippe auf eine Option, um abzustimmen.",
+    "genericError": "Ein Fehler ist aufgetreten. Bitte versuche es erneut.",
+    "networkError": "Netzwerkfehler."
   },
   "stayDetail": {
     "confirmed": "Buchung bestätigt!",

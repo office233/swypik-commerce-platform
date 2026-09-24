@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Phone, Mail } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 import { formatMoneyCents } from "@/lib/i18n/currency";
 import type { Locale } from "@/lib/i18n/config";
 import {
@@ -158,7 +159,7 @@ export default function SellerListingsPage() {
             });
             const data = await res.json();
             if (!data.success) {
-                setError(data.error || t("publishError"));
+                setError(apiErrorMessage(data, locale, t("publishError")));
                 return;
             }
             setIsAdding(false);

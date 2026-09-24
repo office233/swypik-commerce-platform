@@ -758,7 +758,10 @@
     "overlaySecondsLabel": "Show \"view product\" overlay at second",
     "allowComments": "Allow comments",
     "allowDuet": "Allow Duet",
-    "allowStitch": "Allow Stitch"
+    "allowStitch": "Allow Stitch",
+    "sessionError": "Upload session error.",
+    "completeError": "Could not finish the upload.",
+    "uploadErrorGeneric": "Upload error."
   },
   "security": {
     "autentificareInDoiPasi": "Two-factor authentication (2FA)",
@@ -812,7 +815,8 @@
     "confidentialitate": "Privacy",
     "descarcaDateleDescriere": "Download a file with your personal data from Swypik: account, addresses, orders and activity. It contains no passwords or card details.",
     "descarcaDatele": "Download my data (JSON)",
-    "stergereContNota": "To delete your account or exercise other GDPR rights, email us at privacy@swypik.com. We reply within 30 days."
+    "stergereContNota": "To delete your account or exercise other GDPR rights, email us at privacy@swypik.com. We reply within 30 days.",
+    "eroareLaRegenerare": "Error while regenerating."
   },
   "orders": {
     "seIncarcaComanda": "Loading order...",
@@ -1111,7 +1115,8 @@
     "adaugaLink": "+ Add link",
     "displayName": "Display name",
     "linkLabelPlaceholder": "Label (e.g. My website)",
-    "removeLink": "Remove link"
+    "removeLink": "Remove link",
+    "eroareLaSalvare": "Error while saving."
   },
   "returnForm": {
     "produsePentruRetur": "Items to return",
@@ -2634,7 +2639,9 @@
   "postVote": {
     "votes": "{count, plural, one {# vote} other {# votes}}",
     "yourVote": "your vote",
-    "tapToVote": "Tap an option to vote."
+    "tapToVote": "Tap an option to vote.",
+    "genericError": "Something went wrong. Please try again.",
+    "networkError": "Network error."
   },
   "stayDetail": {
     "confirmed": "Booking confirmed!",

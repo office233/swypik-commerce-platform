@@ -30,7 +30,7 @@ async function PATCH_impl(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const rawBody = await req.json().catch(() => null);
   const parsed = parseBody(AddressPatchSchema, rawBody);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
   const body = parsed.data;
 
   // Ownership check

@@ -16,8 +16,9 @@ import { loadBlob, deleteBlob } from "@/lib/reels/blob-store";
 import { FILTER_PRESETS, getFilter, type FilterId } from "@/lib/reels/filters";
 import { createFilteredStream } from "@/lib/reels/canvas-pipeline";
 import AudioPicker, { type AudioTrackDTO } from "@/components/reels/AudioPicker";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { APP_URL } from "@/lib/app-url";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 const MAX_DURATION_MS = 60_000; // 60s pentru MVP
 const COUNTDOWN_OPTIONS = [0, 3, 10] as const;
@@ -34,6 +35,7 @@ function formatTime(ms: number): string {
 
 export default function Recorder() {
   const t = useTranslations("recorder");
+  const locale = useLocale();
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -173,11 +175,11 @@ export default function Recorder() {
       setPhase("done");
       setTimeout(() => router.push("/creator"), 800);
     } catch (e: unknown) {
-      const err = e as { message?: string };
-      setErrorMsg(err?.message || t("reluareaAEsuat"));
+      const err = e as { message?: string; code?: string };
+      setErrorMsg(apiErrorMessage({ error: err?.message, code: err?.code }, locale, t("reluareaAEsuat")));
       setPhase("capture");
     }
-  }, [router]);
+  }, [router, locale, t]);
 
   const handleCancelPending = useCallback(async (sessionId: string) => {
     await cancelReelUpload(sessionId);
@@ -270,7 +272,7 @@ export default function Recorder() {
       // mic delay ca utilizatorul să vadă 100%
       setTimeout(() => router.push("/creator"), 800);
     } catch (e: unknown) {
-      const err = e as { message?: string; name?: string };
+      const err = e as { message?: string; name?: string; code?: string };
       // Curăță sesiunea multipart pendentă pe R2 dacă a fost deja creată
       const sid = activeUploadSessionRef.current;
       if (sid && err?.name !== "AbortError") {
@@ -286,10 +288,10 @@ export default function Recorder() {
         }
       }
       activeUploadSessionRef.current = null;
-      setErrorMsg(err?.message || t("eroareLaIncarcare"));
+      setErrorMsg(apiErrorMessage({ error: err?.message, code: err?.code }, locale, t("eroareLaIncarcare")));
       setPhase("meta");
     }
-  }, [blob, description, productUrl, audioTrack, router]);
+  }, [blob, description, productUrl, audioTrack, router, locale, t]);
 
   // ─── DENIED / UNAVAILABLE ──────────────────────────────────
   if (camera.status === "denied" || camera.status === "unavailable") {

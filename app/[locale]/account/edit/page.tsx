@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Camera, Loader2, X } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type Me = {
   id: string;
@@ -18,6 +19,7 @@ type Me = {
 
 export default function EditProfilePage() {
   const t = useTranslations("accountEdit");
+  const locale = useLocale();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -169,14 +171,14 @@ export default function EditProfilePage() {
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Eroare la salvare");
+        if (!res.ok) throw new Error(apiErrorMessage(data, locale, t("eroareLaSalvare")));
         router.push("/account?updated=1");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Eroare la salvare");
+        setError(err instanceof Error ? err.message : t("eroareLaSalvare"));
         setSaving(false);
       }
     },
-    [bio, categoriesText, displayName, links, me, router, socialLoaded, username]
+    [bio, categoriesText, displayName, links, locale, me, router, socialLoaded, t, username]
   );
 
   const currentAvatar = avatarPreview || avatarUrl;

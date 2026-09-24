@@ -47,7 +47,7 @@ export async function PATCH(
 
   const body = await req.json().catch(() => null);
   const parsed = parseBody(RideStatusPatchSchema, body);
-  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
   const { status: to, reason, cancel_reason: cancelReason } = parsed.data;
 
   const ride = await loadRide(id);

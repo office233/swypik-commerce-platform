@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         const raw = await req.json().catch(() => null);
         const parsed = parseBody(CourierApplySchema, raw);
         if (!parsed.ok) {
-            return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+            return NextResponse.json({ success: false, error: parsed.error, code: parsed.code }, { status: 400 });
         }
         const d = parsed.data;
 
@@ -138,7 +138,7 @@ export async function PATCH(req: Request) {
         const raw = await req.json().catch(() => null);
         const parsed = parseBody(CourierUpdateSchema, raw);
         if (!parsed.ok) {
-            return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+            return NextResponse.json({ success: false, error: parsed.error, code: parsed.code }, { status: 400 });
         }
         const d = parsed.data;
 

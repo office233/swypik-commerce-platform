@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, AlertTriangle, Wallet, CalendarDays } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
+import { apiErrorMessage } from "@/lib/i18n/api-error";
 
 type Stay = {
     id: string;
@@ -89,7 +90,7 @@ export default function StayDetailClient({ stay }: { stay: Stay }) {
             if (!mountedRef.current) return;
             if (!r.ok || j.success === false) {
                 if (r.status === 401) { router.push(`/auth/login?next=/stays/${stay.id}`); return; }
-                setError(j.error ?? ts("bookingFailed"));
+                setError(apiErrorMessage(j, locale, ts("bookingFailed")));
                 return;
             }
             const bookingId = j.booking?.id ?? j.bookingId;

@@ -30,16 +30,16 @@ for (const [mode, list] of Object.entries(byMode)) {
 
 console.log("\n\n=== PANOURI DE ADMINISTRARE ===");
 const panels = [
-    ["seller — produse", "app/seller/products"],
-    ["seller — comenzi", "app/seller/orders"],
-    ["seller — anunțuri", "app/seller/listings"],
-    ["seller — restaurant/meniu", "app/seller/merchant"],
-    ["seller — cazări", "app/seller/stays"],
+    ["seller — produse", "app/(site)/seller/products"],
+    ["seller — comenzi", "app/(site)/seller/orders"],
+    ["seller — anunțuri", "app/(site)/seller/listings"],
+    ["seller — restaurant/meniu", "app/(site)/seller/merchant"],
+    ["seller — cazări", "app/(site)/seller/stays"],
     ["curier — PWA", "app/[locale]/courier"],
     ["cauză — campanii", "app/[locale]/cares/manage"],
-    ["admin — merchants", "app/admin/merchants"],
-    ["admin — curieri", "app/admin/couriers"],
-    ["admin — donații", "app/admin/donations"],
+    ["admin — merchants", "app/(site)/admin/merchants"],
+    ["admin — curieri", "app/(site)/admin/couriers"],
+    ["admin — donații", "app/(site)/admin/donations"],
 ];
 for (const [name, p] of panels) console.log(`  ${has(p) ? "✅" : "❌"} ${name}`);
 
