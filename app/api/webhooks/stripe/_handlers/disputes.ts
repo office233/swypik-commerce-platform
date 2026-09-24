@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { revokeCreatorUnlockForPayment } from "./creator-unlocks";
 
 export async function handleDisputeEvent(event: Stripe.Event) {
   const dispute = event.data.object as Stripe.Dispute;
@@ -8,6 +9,12 @@ export async function handleDisputeEvent(event: Stripe.Event) {
   const piId = typeof dispute.payment_intent === "string"
     ? dispute.payment_intent
     : dispute.payment_intent?.id;
+
+  // Dispută PIERDUTĂ pe o deblocare Movies/Music: banii s-au întors la client,
+  // deci accesul și cota creatorului se retrag (idempotent).
+  if (piId && dispute.status === "lost") {
+    await revokeCreatorUnlockForPayment(piId, "dispute_lost");
+  }
 
   let orderId: string | null = null;
   if (chargeId || piId) {

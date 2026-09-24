@@ -1,6 +1,6 @@
 import { dbQuery } from "@/lib/db";
 import { getStripe } from "@/lib/stripe/checkout";
-import { creditUser } from "@/lib/wallet/ledger";
+import { creditUser, debitUser } from "@/lib/wallet/ledger";
 import { logger } from "@/lib/logger";
 import { isFreeEpisode } from "./access";
 import { creatorShareCents, seasonPriceCents } from "./pricing";
@@ -65,7 +65,9 @@ async function createIntentForUnlock(args: {
                 ...args.kindMetadata,
             },
         },
-        { idempotencyKey: `movie_unlock_pi:${args.unlockId}` },
+        // Cheia include suma: dacă prețul se schimbă între două încercări, Stripe
+        // creează un intent nou în loc să respingă cererea (params diferiți, aceeași cheie).
+        { idempotencyKey: `movie_unlock_pi:${args.unlockId}:${args.amountCents}` },
     );
     await dbQuery(
         `UPDATE movie_unlocks SET payment_intent_id = $2, amount_cents = $3, status = 'pending' WHERE id = $1 AND status <> 'paid'`,
@@ -160,7 +162,19 @@ export async function createSeasonUnlockIntent(args: { userId: string; seriesId:
  * creatorului în cenți RON pe `lib/wallet/ledger.ts` (idempotent după
  * `refType`+`refId`=id-ul rândului de unlock).
  */
-export async function markMovieUnlockPaid(paymentIntentId: string): Promise<void> {
+export async function markMovieUnlockPaid(args: {
+    paymentIntentId: string;
+    /** `metadata.unlockId` setat de server la crearea intentului. */
+    unlockId: string | null;
+    /** Suma efectiv încasată de Stripe (cenți) — sursa de adevăr pentru cota creatorului. */
+    amountReceivedCents: number;
+    currency: string;
+}): Promise<void> {
+    const { paymentIntentId, unlockId, amountReceivedCents, currency } = args;
+    if (currency.toLowerCase() !== "ron" || !(amountReceivedCents > 0)) {
+        logger.error({ paymentIntentId, currency, amountReceivedCents }, "[movies/unlock] unexpected paid amount/currency — unlock not granted");
+        return;
+    }
     const { rows } = await dbQuery<{
         id: string;
         user_id: string;
@@ -172,16 +186,23 @@ export async function markMovieUnlockPaid(paymentIntentId: string): Promise<void
         `UPDATE movie_unlocks u
             SET status = 'paid'
            FROM movie_series s
-          WHERE u.series_id = s.id AND u.payment_intent_id = $1 AND u.status <> 'paid'
+          WHERE u.series_id = s.id AND u.status <> 'paid'
+            AND (u.payment_intent_id = $1 OR u.id::text = $2)
           RETURNING u.id, u.user_id, u.series_id, u.episode_id, u.amount_cents::text AS amount_cents, s.owner_user_id`,
-        [paymentIntentId],
+        [paymentIntentId, unlockId ?? ""],
     );
     const row = rows[0];
     if (!row) return; // deja procesat (retry Stripe) sau intent necunoscut
 
-    const amountCents = Number(row.amount_cents ?? 0);
+    if (Number(row.amount_cents ?? 0) !== amountReceivedCents) {
+        logger.warn({ unlockId: row.id, stored: row.amount_cents, received: amountReceivedCents }, "[movies/unlock] paid amount differs from stored price — using Stripe amount");
+    }
+    const amountCents = amountReceivedCents;
     const share = creatorShareCents(amountCents, row.owner_user_id, row.user_id);
-    await dbQuery(`UPDATE movie_unlocks SET units_paid = $2, creator_share_units = $3 WHERE id = $1`, [row.id, amountCents, share]);
+    await dbQuery(
+        `UPDATE movie_unlocks SET payment_intent_id = $4, amount_cents = $2, units_paid = $2, creator_share_units = $3 WHERE id = $1`,
+        [row.id, amountCents, share, paymentIntentId],
+    );
 
     if (share > 0) {
         await creditUser({
@@ -193,4 +214,40 @@ export async function markMovieUnlockPaid(paymentIntentId: string): Promise<void
             metadata: { seriesId: row.series_id, episodeId: row.episode_id },
         }).catch((err) => logger.error({ err, unlockId: row.id }, "[movies/unlock] creator share credit failed"));
     }
+}
+
+/**
+ * Refund total sau dispută pierdută pentru o deblocare plătită cu cardul:
+ * accesul se revocă (status `refunded`) și cota creatorului se retrage din
+ * portofelul RON (poate duce soldul pe minus; idempotent pe id-ul deblocării).
+ * Întoarce true dacă plata aparținea unei deblocări Movies.
+ */
+export async function revokeMovieUnlockForPayment(paymentIntentId: string, reason: string): Promise<boolean> {
+    const { rows } = await dbQuery<{ id: string; owner_id: string; share: string | null }>(
+        `UPDATE movie_unlocks u
+            SET status = 'refunded'
+           FROM movie_series s
+          WHERE u.series_id = s.id AND u.payment_intent_id = $1 AND u.status = 'paid'
+          RETURNING u.id, s.owner_user_id AS owner_id, u.creator_share_units::text AS share`,
+        [paymentIntentId],
+    );
+    const row = rows[0];
+    if (!row) {
+        const known = await dbQuery(`SELECT 1 FROM movie_unlocks WHERE payment_intent_id = $1 LIMIT 1`, [paymentIntentId]);
+        return known.rows.length > 0;
+    }
+    const share = Number(row.share ?? 0);
+    if (share > 0) {
+        await debitUser({
+            userId: row.owner_id,
+            amountCents: share,
+            refType: "movie_creator_share_reversal",
+            refId: row.id,
+            description: "Swypik Movies — cotă creator retrasă (refund/dispută)",
+            metadata: { paymentIntentId, reason },
+            allowNegative: true,
+        }).catch((err) => logger.error({ err, unlockId: row.id }, "[movies/unlock] share reversal failed"));
+    }
+    logger.info({ unlockId: row.id, paymentIntentId, reason }, "[movies/unlock] unlock revoked");
+    return true;
 }

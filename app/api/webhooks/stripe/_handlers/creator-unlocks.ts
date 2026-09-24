@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { logger } from "@/lib/logger";
-import { markMovieUnlockPaid } from "@/lib/movies/unlock";
-import { markMusicUnlockPaid } from "@/lib/music/unlock";
+import { markMovieUnlockPaid, revokeMovieUnlockForPayment } from "@/lib/movies/unlock";
+import { markMusicUnlockPaid, revokeMusicUnlockForPayment } from "@/lib/music/unlock";
 
 /** `metadata.kind` values that this handler owns (routed from `route.ts`). */
 export const CREATOR_UNLOCK_KINDS = new Set(["movie_unlock", "music_track_unlock", "music_album_unlock"]);
@@ -15,13 +15,30 @@ export async function handleCreatorUnlockPaymentSucceeded(event: Stripe.Event): 
     const intent = event.data.object as Stripe.PaymentIntent;
     const kind = intent.metadata?.kind;
     logger.info({ intentId: intent.id, kind }, "[Stripe Webhook] creator unlock payment succeeded");
+    const paid = {
+        paymentIntentId: intent.id,
+        unlockId: intent.metadata?.unlockId || null,
+        amountReceivedCents: intent.amount_received ?? intent.amount ?? 0,
+        currency: intent.currency ?? "",
+    };
     if (kind === "movie_unlock") {
-        await markMovieUnlockPaid(intent.id);
+        await markMovieUnlockPaid(paid);
         return;
     }
     if (kind === "music_track_unlock" || kind === "music_album_unlock") {
-        await markMusicUnlockPaid(intent.id);
+        await markMusicUnlockPaid(paid);
         return;
     }
     logger.warn({ intentId: intent.id, kind }, "[Stripe Webhook] creator unlock handler invoked with unknown kind");
+}
+
+/**
+ * Refund total / dispută pierdută: dacă plata aparține unei deblocări Movies
+ * sau Music, revocă accesul și retrage cota creatorului. Întoarce true dacă
+ * plata a fost a unei deblocări (restul handler-ului de comenzi nu mai e relevant).
+ */
+export async function revokeCreatorUnlockForPayment(paymentIntentId: string, reason: string): Promise<boolean> {
+    const movie = await revokeMovieUnlockForPayment(paymentIntentId, reason);
+    if (movie) return true;
+    return revokeMusicUnlockForPayment(paymentIntentId, reason);
 }

@@ -1,6 +1,6 @@
 import { dbQuery } from "@/lib/db";
 import { getStripe } from "@/lib/stripe/checkout";
-import { creditUser } from "@/lib/wallet/ledger";
+import { creditUser, debitUser } from "@/lib/wallet/ledger";
 import { logger } from "@/lib/logger";
 import { artistShareCents, albumPriceCents } from "./pricing";
 
@@ -63,7 +63,8 @@ async function createIntentForUnlock(args: {
                 unlockId: args.unlockId,
             },
         },
-        { idempotencyKey: `music_unlock_pi:${args.unlockId}` },
+        // Cheia include suma: un preț schimbat între încercări creează un intent nou.
+        { idempotencyKey: `music_unlock_pi:${args.unlockId}:${args.amountCents}` },
     );
     await dbQuery(
         `UPDATE music_unlocks SET payment_intent_id = $2, amount_cents = $3, status = 'pending' WHERE id = $1 AND status <> 'paid'`,
@@ -140,7 +141,19 @@ export async function createAlbumUnlockIntent(args: { userId: string; albumId: s
  * cota artistului în cenți RON pe `lib/wallet/ledger.ts` (idempotent după
  * `refType`+`refId`=id-ul rândului de unlock).
  */
-export async function markMusicUnlockPaid(paymentIntentId: string): Promise<void> {
+export async function markMusicUnlockPaid(args: {
+    paymentIntentId: string;
+    /** `metadata.unlockId` setat de server la crearea intentului. */
+    unlockId: string | null;
+    /** Suma efectiv încasată de Stripe (cenți) — sursa de adevăr pentru cota artistului. */
+    amountReceivedCents: number;
+    currency: string;
+}): Promise<void> {
+    const { paymentIntentId, unlockId, amountReceivedCents, currency } = args;
+    if (currency.toLowerCase() !== "ron" || !(amountReceivedCents > 0)) {
+        logger.error({ paymentIntentId, currency, amountReceivedCents }, "[music/unlock] unexpected paid amount/currency — unlock not granted");
+        return;
+    }
     const { rows } = await dbQuery<{
         id: string;
         user_id: string;
@@ -156,16 +169,23 @@ export async function markMusicUnlockPaid(paymentIntentId: string): Promise<void
                 UNION ALL
                 SELECT id, artist_user_id FROM music_albums
             ) owner(id, artist_user_id)
-          WHERE owner.id = COALESCE(u.track_id, u.album_id) AND u.payment_intent_id = $1 AND u.status <> 'paid'
+          WHERE owner.id = COALESCE(u.track_id, u.album_id) AND u.status <> 'paid'
+            AND (u.payment_intent_id = $1 OR u.id::text = $2)
           RETURNING u.id, u.user_id, u.track_id, u.album_id, u.amount_cents::text AS amount_cents, owner.artist_user_id`,
-        [paymentIntentId],
+        [paymentIntentId, unlockId ?? ""],
     );
     const row = rows[0];
     if (!row) return; // deja procesat (retry Stripe) sau intent necunoscut
 
-    const amountCents = Number(row.amount_cents ?? 0);
+    if (Number(row.amount_cents ?? 0) !== amountReceivedCents) {
+        logger.warn({ unlockId: row.id, stored: row.amount_cents, received: amountReceivedCents }, "[music/unlock] paid amount differs from stored price — using Stripe amount");
+    }
+    const amountCents = amountReceivedCents;
     const share = artistShareCents(amountCents, row.artist_user_id, row.user_id);
-    await dbQuery(`UPDATE music_unlocks SET units_paid = $2, artist_share_units = $3 WHERE id = $1`, [row.id, amountCents, share]);
+    await dbQuery(
+        `UPDATE music_unlocks SET payment_intent_id = $4, amount_cents = $2, units_paid = $2, artist_share_units = $3 WHERE id = $1`,
+        [row.id, amountCents, share, paymentIntentId],
+    );
 
     if (share > 0) {
         await creditUser({
@@ -177,4 +197,44 @@ export async function markMusicUnlockPaid(paymentIntentId: string): Promise<void
             metadata: { trackId: row.track_id, albumId: row.album_id },
         }).catch((err) => logger.error({ err, unlockId: row.id }, "[music/unlock] artist share credit failed"));
     }
+}
+
+/**
+ * Refund total sau dispută pierdută pentru o deblocare plătită cu cardul:
+ * accesul se revocă (status `refunded`) și cota artistului se retrage din
+ * portofelul RON (poate duce soldul pe minus; idempotent pe id-ul deblocării).
+ * Întoarce true dacă plata aparținea unei deblocări Music.
+ */
+export async function revokeMusicUnlockForPayment(paymentIntentId: string, reason: string): Promise<boolean> {
+    const { rows } = await dbQuery<{ id: string; owner_id: string; share: string | null }>(
+        `UPDATE music_unlocks u
+            SET status = 'refunded'
+           FROM (
+                SELECT id, artist_user_id FROM music_tracks
+                UNION ALL
+                SELECT id, artist_user_id FROM music_albums
+            ) owner(id, artist_user_id)
+          WHERE owner.id = COALESCE(u.track_id, u.album_id) AND u.payment_intent_id = $1 AND u.status = 'paid'
+          RETURNING u.id, owner.artist_user_id AS owner_id, u.artist_share_units::text AS share`,
+        [paymentIntentId],
+    );
+    const row = rows[0];
+    if (!row) {
+        const known = await dbQuery(`SELECT 1 FROM music_unlocks WHERE payment_intent_id = $1 LIMIT 1`, [paymentIntentId]);
+        return known.rows.length > 0;
+    }
+    const share = Number(row.share ?? 0);
+    if (share > 0) {
+        await debitUser({
+            userId: row.owner_id,
+            amountCents: share,
+            refType: "music_artist_share_reversal",
+            refId: row.id,
+            description: "Swypik Music — cotă artist retrasă (refund/dispută)",
+            metadata: { paymentIntentId, reason },
+            allowNegative: true,
+        }).catch((err) => logger.error({ err, unlockId: row.id }, "[music/unlock] share reversal failed"));
+    }
+    logger.info({ unlockId: row.id, paymentIntentId, reason }, "[music/unlock] unlock revoked");
+    return true;
 }

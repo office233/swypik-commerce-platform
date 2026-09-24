@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { dbQuery } from "@/lib/db";
 import { sendRefundEmail } from "@/lib/email/service";
 import { logger } from "@/lib/logger";
+import { revokeCreatorUnlockForPayment } from "./creator-unlocks";
 
 export async function handleChargeRefunded(event: Stripe.Event) {
   const charge = event.data.object as Stripe.Charge;
@@ -17,6 +18,12 @@ export async function handleChargeRefunded(event: Stripe.Event) {
         ? (charge.amount_refunded || 0) >= charge.amount
         : true; // fără sumă cunoscută, tratăm conservator ca refund total
     const orderStatus = isFullRefund ? "refunded" : "partially_refunded";
+
+    // Deblocări Movies/Music plătite cu cardul: un refund TOTAL revocă accesul
+    // și retrage cota creatorului; unul parțial păstrează accesul.
+    if (isFullRefund && (await revokeCreatorUnlockForPayment(pi, "refund"))) {
+      return;
+    }
 
     await dbQuery(
       `UPDATE commerce_orders

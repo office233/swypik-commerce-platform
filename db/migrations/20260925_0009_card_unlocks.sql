@@ -10,7 +10,7 @@ ALTER TABLE movie_unlocks
     ADD COLUMN IF NOT EXISTS payment_intent_id text UNIQUE,
     ADD COLUMN IF NOT EXISTS amount_cents bigint,
     ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'RON',
-    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'paid' CHECK (status IN ('pending', 'paid', 'failed'));
+    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'paid' CHECK (status IN ('pending', 'paid', 'failed', 'refunded'));
 
 ALTER TABLE music_tracks
     ADD COLUMN IF NOT EXISTS price_cents bigint CHECK (price_cents IS NULL OR price_cents > 0);
@@ -22,4 +22,4 @@ ALTER TABLE music_unlocks
     ADD COLUMN IF NOT EXISTS payment_intent_id text UNIQUE,
     ADD COLUMN IF NOT EXISTS amount_cents bigint,
     ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'RON',
-    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'paid' CHECK (status IN ('pending', 'paid', 'failed'));
+    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'paid' CHECK (status IN ('pending', 'paid', 'failed', 'refunded'));

@@ -4,6 +4,8 @@ let insertConflictStatus: string | null = null;
 let createdIntent: { id: string; client_secret: string | null } = { id: "pi_1", client_secret: "secret_1" };
 let stripeCreateCalls: Array<Record<string, unknown>> = [];
 let creditCalls: Array<Record<string, unknown>> = [];
+let debitCalls: Array<Record<string, unknown>> = [];
+let revokeMatches = true;
 
 const premiumTrack = { id: "t2", artist_user_id: "artist-1", status: "published", is_premium: true, price_cents: "300" };
 const freeTrack = { id: "t1", artist_user_id: "artist-1", status: "published", is_premium: false, price_cents: null };
@@ -25,6 +27,10 @@ vi.mock("@/lib/wallet/ledger", () => ({
     creditCalls.push(args);
     return { entry: { id: "ledger-1" }, alreadyApplied: false };
   }),
+  debitUser: vi.fn(async (args: Record<string, unknown>) => {
+    debitCalls.push(args);
+    return { entry: { id: "ledger-2" }, alreadyApplied: false };
+  }),
 }));
 
 async function query(sql: string, params: unknown[] = []) {
@@ -39,24 +45,31 @@ async function query(sql: string, params: unknown[] = []) {
     return { rows: [{ id: "unlock-1", status: insertConflictStatus ?? "pending" }], rowCount: 1 };
   }
   if (sql.includes("UPDATE music_unlocks u") && sql.includes("SET status = 'paid'")) {
-    if (params[0] !== "pi_1") return { rows: [], rowCount: 0 };
+    if (params[0] !== "pi_1" && params[1] !== "unlock-1") return { rows: [], rowCount: 0 };
     return {
       rows: [{ id: "unlock-1", user_id: "viewer-1", track_id: "t2", album_id: null, amount_cents: "300", artist_user_id: "artist-1" }],
       rowCount: 1,
     };
   }
   if (sql.startsWith("UPDATE music_unlocks SET payment_intent_id")) return { rows: [], rowCount: 1 };
+  if (sql.includes("UPDATE music_unlocks u") && sql.includes("SET status = 'refunded'")) {
+    if (!revokeMatches || params[0] !== "pi_1") return { rows: [], rowCount: 0 };
+    return { rows: [{ id: "unlock-1", owner_id: "artist-1", share: "210" }], rowCount: 1 };
+  }
+  if (sql.startsWith("SELECT 1 FROM music_unlocks")) return { rows: [], rowCount: 0 };
   if (sql.startsWith("UPDATE music_unlocks SET units_paid")) return { rows: [], rowCount: 1 };
   throw new Error("unexpected sql: " + sql.slice(0, 80));
 }
 
-import { createTrackUnlockIntent, createAlbumUnlockIntent, markMusicUnlockPaid, musicUnlockRefId } from "@/lib/music/unlock";
+import { createTrackUnlockIntent, createAlbumUnlockIntent, markMusicUnlockPaid, revokeMusicUnlockForPayment, musicUnlockRefId } from "@/lib/music/unlock";
 
 beforeEach(() => {
   insertConflictStatus = null;
   createdIntent = { id: "pi_1", client_secret: "secret_1" };
   stripeCreateCalls = [];
   creditCalls = [];
+  debitCalls = [];
+  revokeMatches = true;
   currentTrack = premiumTrack;
 });
 
@@ -94,13 +107,40 @@ describe("music/unlock — card (Stripe, RON)", () => {
   });
 
   it("webhook payment_intent.succeeded: marchează plătit + creditează cota artistului (70%)", async () => {
-    await markMusicUnlockPaid("pi_1");
+    await markMusicUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 300, currency: "ron" });
     expect(creditCalls).toHaveLength(1);
     expect(creditCalls[0]).toMatchObject({ userId: "artist-1", amountCents: 210, refType: "music_artist_share", refId: "unlock-1" });
   });
 
   it("webhook idempotent: payment_intent necunoscut/deja plătit → no-op", async () => {
-    await markMusicUnlockPaid("pi_unknown");
+    await markMusicUnlockPaid({ paymentIntentId: "pi_unknown", unlockId: null, amountReceivedCents: 300, currency: "ron" });
     expect(creditCalls).toHaveLength(0);
+  });
+  it("folosește suma încasată efectiv de Stripe pentru cotă (nu prețul salvat)", async () => {
+    await markMusicUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 600, currency: "ron" });
+    expect(creditCalls[0]).toMatchObject({ amountCents: 420, refType: "music_artist_share" });
+  });
+
+  it("găsește deblocarea după unlockId din metadata chiar dacă intentul a fost înlocuit", async () => {
+    await markMusicUnlockPaid({ paymentIntentId: "pi_old", unlockId: "unlock-1", amountReceivedCents: 300, currency: "ron" });
+    expect(creditCalls).toHaveLength(1);
+  });
+
+  it("monedă neașteptată sau sumă 0 → acces neacordat, fără cotă", async () => {
+    await markMusicUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 300, currency: "eur" });
+    await markMusicUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 0, currency: "ron" });
+    expect(creditCalls).toHaveLength(0);
+  });
+
+  it("refund total / dispută pierdută: revocă accesul și retrage cota (sold poate deveni negativ)", async () => {
+    await expect(revokeMusicUnlockForPayment("pi_1", "refund")).resolves.toBe(true);
+    expect(debitCalls).toHaveLength(1);
+    expect(debitCalls[0]).toMatchObject({ userId: "artist-1", amountCents: 210, refType: "music_artist_share_reversal", refId: "unlock-1", allowNegative: true });
+  });
+
+  it("revocare pentru o plată care nu e deblocare → false, nimic debitat", async () => {
+    revokeMatches = false;
+    await expect(revokeMusicUnlockForPayment("pi_other", "refund")).resolves.toBe(false);
+    expect(debitCalls).toHaveLength(0);
   });
 });
