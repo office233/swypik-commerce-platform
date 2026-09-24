@@ -9,6 +9,7 @@ import {
   listMessages,
   sendMessage,
   getPeerUserId,
+  isStatusError,
 } from "@/lib/dm/repository";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -22,7 +23,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isEnabled("dm")) return frozenResponse("dm");
+  if (!isEnabled("dm") && !isEnabled("messenger")) return frozenResponse("dm");
   try {
     const userId = await getOptionalSocialUserId();
     if (!userId) {
@@ -38,8 +39,8 @@ export async function GET(
       beforeCursor: before,
     });
     return NextResponse.json({ messages });
-  } catch (err: any) {
-    if (err?.status === 403) {
+  } catch (err: unknown) {
+    if (isStatusError(err) && err.status === 403) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     logger.error({ err: err }, "[DM] list messages:");
@@ -52,7 +53,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isEnabled("dm")) return frozenResponse("dm");
+  if (!isEnabled("dm") && !isEnabled("messenger")) return frozenResponse("dm");
   try {
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
@@ -91,18 +92,18 @@ export async function POST(
           },
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       logger.error({ err: e }, "[DM] notify peer failed");
     }
 
     const response = NextResponse.json({ message });
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
-  } catch (err: any) {
-    if (err?.status === 400) {
+  } catch (err: unknown) {
+    if (isStatusError(err) && err.status === 400) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
-    if (err?.status === 403) {
+    if (isStatusError(err) && err.status === 403) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     logger.error({ err: err }, "[DM] send message:");

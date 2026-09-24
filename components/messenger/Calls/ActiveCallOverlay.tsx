@@ -8,6 +8,7 @@ import {
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Maximize2, Minimize2, PhoneOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ActiveCallOverlayProps {
   serverUrl: string;
@@ -22,6 +23,7 @@ export default function ActiveCallOverlay({
   callType = "video",
   onDisconnect,
 }: ActiveCallOverlayProps) {
+  const t = useTranslations("messenger.activeCall");
   const [isPip, setIsPip] = useState(false);
 
   return (
@@ -37,14 +39,16 @@ export default function ActiveCallOverlay({
         <button
           onClick={() => setIsPip(!isPip)}
           className="rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 p-2.5 backdrop-blur-md border border-slate-700 transition"
-          title={isPip ? "Mărește Ecran Complet" : "Minimizează în Colț (PiP)"}
+          title={isPip ? t("expand") : t("minimize")}
+          aria-label={isPip ? t("expand") : t("minimize")}
         >
           {isPip ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
         </button>
         <button
           onClick={onDisconnect}
           className="rounded-full bg-rose-600 hover:bg-rose-500 text-white p-2.5 shadow-lg transition"
-          title="Închide Apelul"
+          title={t("end")}
+          aria-label={t("end")}
         >
           <PhoneOff size={18} />
         </button>

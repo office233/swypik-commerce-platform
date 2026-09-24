@@ -17,7 +17,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isEnabled("dm")) return frozenResponse("dm");
+  if (!isEnabled("dm") && !isEnabled("messenger")) return frozenResponse("dm");
   const userId = await getOptionalSocialUserId();
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
@@ -58,8 +58,8 @@ export async function GET(
 
       try {
         await subscriber.subscribe(channel);
-      } catch (err: any) {
-        logger.error({ err: err?.message || err }, "[dm/stream] subscribe failed:");
+      } catch (err: unknown) {
+        logger.error({ err: err instanceof Error ? err.message : err }, "[dm/stream] subscribe failed:");
         safeEnqueue(`event: error\ndata: ${JSON.stringify({ message: "subscribe failed" })}\n\n`);
         controller.close();
         return;

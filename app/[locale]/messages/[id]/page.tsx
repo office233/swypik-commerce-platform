@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { listMessages, assertParticipant } from "@/lib/dm/repository";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { isEnabled } from "@/lib/feature-flags";
 import ConversationView from "@/components/messages/ConversationView";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -10,6 +11,14 @@ export const dynamic = "force-dynamic";
 
 export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  // Single coherent messenger: when the WhatsApp-style UI is on, this legacy
+  // route just opens the conversation inside it (mobile-friendly deep link)
+  // instead of duplicating a second chat stack.
+  if (isEnabled("messenger")) {
+    redirect(`/messages?c=${id}`);
+  }
+
   const t = await getTranslations("conversation");
   const userId = await getOptionalSocialUserId();
   if (!userId) {
@@ -32,7 +41,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         <ConversationView
           conversationId={id}
           viewerId={userId}
-          initialMessages={messages as any}
+          initialMessages={messages}
         />
       </div>
     </main>

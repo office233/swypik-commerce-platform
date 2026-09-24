@@ -4,7 +4,7 @@ import {
   getOrCreateSocialUser,
   setAnonSessionCookie,
 } from "@/lib/social/session";
-import { markRead } from "@/lib/dm/repository";
+import { markRead, isStatusError } from "@/lib/dm/repository";
 import { rateLimit } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
@@ -15,7 +15,7 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isEnabled("dm")) return frozenResponse("dm");
+  if (!isEnabled("dm") && !isEnabled("messenger")) return frozenResponse("dm");
   try {
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
@@ -34,8 +34,8 @@ export async function POST(
     });
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
-  } catch (err: any) {
-    if (err?.status === 403) {
+  } catch (err: unknown) {
+    if (isStatusError(err) && err.status === 403) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     logger.error({ err: err }, "[DM] mark read:");

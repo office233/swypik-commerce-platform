@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Phone, PhoneOff, Video } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface IncomingCallDialogProps {
   callerName: string;
@@ -18,12 +19,15 @@ export default function IncomingCallDialog({
   onAccept,
   onReject,
 }: IncomingCallDialogProps) {
+  const t = useTranslations("messenger.incomingCall");
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Sintetizator ton de apel stil WhatsApp prin Web Audio API
   useEffect(() => {
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         const ctx = new AudioCtx();
         audioCtxRef.current = ctx;
@@ -62,8 +66,8 @@ export default function IncomingCallDialog({
           ctx.close().catch(() => null);
         };
       }
-    } catch (e) {
-      console.warn("AudioContext ring error", e);
+    } catch {
+      // Web Audio unavailable (e.g. autoplay policy) — dialog still works, just silent.
     }
   }, []);
 
@@ -75,6 +79,7 @@ export default function IncomingCallDialog({
           <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
           <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-emerald-500 shadow-xl bg-slate-800 flex items-center justify-center">
             {callerAvatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={callerAvatar} alt={callerName} className="w-full h-full object-cover" />
             ) : (
               <span className="text-3xl font-bold text-emerald-400">
@@ -87,7 +92,7 @@ export default function IncomingCallDialog({
         <h3 className="text-xl font-bold text-white mb-1">{callerName}</h3>
         <p className="text-slate-400 text-sm flex items-center gap-1.5 mb-8">
           {callType === "video" ? <Video size={16} className="text-violet-400" /> : <Phone size={16} className="text-violet-400" />}
-          Apel {callType === "video" ? "Video HD" : "Audio Clar"} Swypik...
+          {callType === "video" ? t("incomingVideo") : t("incomingAudio")}
         </p>
 
         {/* Action buttons */}
@@ -100,7 +105,7 @@ export default function IncomingCallDialog({
             >
               <PhoneOff size={26} />
             </button>
-            <span className="text-xs text-slate-400">Refuză</span>
+            <span className="text-xs text-slate-400">{t("decline")}</span>
           </div>
 
           {/* Accept */}
@@ -111,7 +116,7 @@ export default function IncomingCallDialog({
             >
               <Phone size={26} />
             </button>
-            <span className="text-xs text-violet-400 font-bold">Răspunde</span>
+            <span className="text-xs text-violet-400 font-bold">{t("accept")}</span>
           </div>
         </div>
       </div>
