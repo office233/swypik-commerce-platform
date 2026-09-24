@@ -61,6 +61,13 @@ export type MessageWithSender = MessageRow & {
   };
 };
 
+/** Error shape thrown by this module for 4xx conditions (e.g. `{ status: 403 }`). */
+export type StatusError = Error & { status?: number };
+
+export function isStatusError(err: unknown): err is StatusError {
+  return err instanceof Error && typeof (err as StatusError).status === "number";
+}
+
 export async function assertParticipant(
   conversationId: string,
   userId: string,
@@ -294,7 +301,7 @@ export async function sendMessage(
   try {
     const redis = getRedis();
     await redis.publish(`dm:conv:${conversationId}`, JSON.stringify(message));
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ err }, "[dm] redis publish failed");
   }
 

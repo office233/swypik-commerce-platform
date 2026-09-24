@@ -30,19 +30,19 @@ export default function BecomeCreatorButton() {
       const data = (await res.json().catch(() => ({}))) as ApplyResponse;
       if (res.ok && data.success) {
         setToast({
-          msg: "Felicitări! Acum ești creator. Te redirecționăm...",
+          msg: t("succes"),
           kind: "ok",
         });
         setTimeout(() => router.push("/upload"), 900);
       } else {
         setToast({
-          msg: data.error || "Nu am putut activa contul de creator. Încearcă din nou.",
+          msg: data.error || t("eroareActivare"),
           kind: "err",
         });
         setLoading(false);
       }
     } catch {
-      setToast({ msg: "Eroare de rețea. Încearcă din nou.", kind: "err" });
+      setToast({ msg: t("eroareRetea"), kind: "err" });
       setLoading(false);
     }
   }
@@ -61,7 +61,7 @@ export default function BecomeCreatorButton() {
           </>
         ) : (
           <>
-            Devino creator <ArrowRight size={18} />
+            {t("devinoCreator")} <ArrowRight size={18} />
           </>
         )}
       </button>

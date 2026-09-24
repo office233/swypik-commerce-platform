@@ -2,23 +2,12 @@
  * Admin Moderation — detail raport video
  */
 import { dbQuery } from "@/lib/db";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ModerationActions from "./ModerationActions";
 
 export const dynamic = "force-dynamic";
-
-const REASONS: Record<string, string> = {
-  spam: "Spam",
-  harassment: "Hărțuire",
-  hate: "Ură",
-  violence: "Violență",
-  sexual_content: "Conținut explicit",
-  scam: "Fraudă",
-  copyright: "Drepturi de autor",
-  other: "Altul",
-};
 
 async function getReportDetail(reportId: string) {
   const { rows } = await dbQuery(
@@ -41,7 +30,16 @@ async function getReportDetail(reportId: string) {
   return rows[0] || null;
 }
 
-async function getRelatedReports(videoId: string) {
+type RelatedReport = {
+  id: string;
+  reason: string;
+  status: string;
+  note: string | null;
+  created_at: string;
+  reporter_username: string | null;
+};
+
+async function getRelatedReports(videoId: string): Promise<RelatedReport[]> {
   const { rows } = await dbQuery(
     `
     SELECT mr.id, mr.reason, mr.status, mr.note, mr.created_at,
@@ -63,6 +61,17 @@ export default async function ModerationDetailPage({
   params: Promise<{ id: string }>;
 }) {
     const t = await getTranslations("adminModeration");
+  const locale = await getLocale();
+  const REASONS: Record<string, string> = {
+    spam: t("reasonSpam"),
+    harassment: t("reasonHarassment"),
+    hate: t("reasonHate"),
+    violence: t("reasonViolence"),
+    sexual_content: t("reasonSexualContent"),
+    scam: t("reasonScam"),
+    copyright: t("reasonCopyright"),
+    other: t("reasonOther"),
+  };
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return notFound();
   const r = await getReportDetail(id);
@@ -72,13 +81,13 @@ export default async function ModerationDetailPage({
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <Link href="/admin/moderation" className="text-sm text-[#FE2C55] hover:underline">
-        ← Înapoi la coadă
+        ← {t("backToQueue")}
       </Link>
-      <h1 className="text-2xl font-black mt-2 mb-4">Raport video</h1>
+      <h1 className="text-2xl font-black mt-2 mb-4">{t("videoReportTitle")}</h1>
 
       <div className="grid md:grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-black/10 p-4">
-          <h2 className="font-bold mb-3">Video raportat</h2>
+          <h2 className="font-bold mb-3">{t("reportedVideo")}</h2>
           <div className="flex gap-3">
             {r.thumbnail_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -91,9 +100,9 @@ export default async function ModerationDetailPage({
               <div className="w-32 h-44 bg-black/10 rounded-lg" />
             )}
             <div className="flex-1 text-sm">
-              <div className="font-bold">{r.title || "(fără titlu)"}</div>
+              <div className="font-bold">{r.title || t("untitled")}</div>
               <div className="text-black/60 mt-1">
-                Creator:{" "}
+                {t("creatorLabel")}:{" "}
                 {r.creator_username ? (
                   <Link href={`/u/${r.creator_username}`} className="text-[#FE2C55]">
                     @{r.creator_username}
@@ -102,16 +111,16 @@ export default async function ModerationDetailPage({
                   "—"
                 )}
               </div>
-              <div className="text-black/60">Status: {r.video_status}</div>
+              <div className="text-black/60">{t("statusLabel")}: {r.video_status}</div>
               {r.is_hidden && (
                 <span className="inline-block mt-1 text-xs font-bold text-orange-600">
-                  ASCUNS
+                  {t("hiddenBadge")}
                 </span>
               )}
               {r.suspended_until && (
                 <div className="mt-1 text-xs font-bold text-red-600">
-                  Creator suspendat până la{" "}
-                  {new Date(r.suspended_until).toLocaleDateString("ro-RO")}
+                  {t("suspendedUntil")}{" "}
+                  {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(r.suspended_until))}
                 </div>
               )}
               {r.playback_url && (
@@ -121,7 +130,7 @@ export default async function ModerationDetailPage({
                   rel="noreferrer"
                   className="inline-block mt-2 text-xs text-[#FE2C55] hover:underline"
                 >
-                  Deschide playback ↗
+                  {t("openPlayback")} ↗
                 </a>
               )}
             </div>
@@ -129,26 +138,26 @@ export default async function ModerationDetailPage({
         </div>
 
         <div className="bg-white rounded-2xl border border-black/10 p-4">
-          <h2 className="font-bold mb-3">Raport curent</h2>
+          <h2 className="font-bold mb-3">{t("currentReport")}</h2>
           <dl className="text-sm space-y-1">
             <div>
-              <dt className="inline font-bold">Categorie: </dt>
+              <dt className="inline font-bold">{t("categoryLabel")}: </dt>
               <dd className="inline">{REASONS[r.reason] || r.reason}</dd>
             </div>
             <div>
-              <dt className="inline font-bold">Status: </dt>
+              <dt className="inline font-bold">{t("statusLabel")}: </dt>
               <dd className="inline">{r.status}</dd>
             </div>
             <div>
-              <dt className="inline font-bold">Raportor: </dt>
+              <dt className="inline font-bold">{t("reporterLabel")}: </dt>
               <dd className="inline">
-                {r.reporter_username ? `@${r.reporter_username}` : "(anonim)"}
+                {r.reporter_username ? `@${r.reporter_username}` : t("anonymous")}
               </dd>
             </div>
             <div>
-              <dt className="inline font-bold">Data: </dt>
+              <dt className="inline font-bold">{t("dateLabel")}: </dt>
               <dd className="inline">
-                {new Date(r.created_at).toLocaleString("ro-RO")}
+                {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(r.created_at))}
               </dd>
             </div>
             {r.note && (
@@ -164,15 +173,15 @@ export default async function ModerationDetailPage({
       <ModerationActions reportId={r.id} videoId={r.target_video_id} creatorId={r.creator_id} />
 
       <div className="mt-6 bg-white rounded-2xl border border-black/10 p-4">
-        <h2 className="font-bold mb-3">Toate rapoartele pe acest video ({related.length})</h2>
+        <h2 className="font-bold mb-3">{t("allReportsOnVideo", { count: related.length })}</h2>
         <ul className="text-sm divide-y divide-black/5">
-          {related.map((rr: any) => (
+          {related.map((rr) => (
             <li key={rr.id} className="py-2">
               <span className="font-bold">{REASONS[rr.reason] || rr.reason}</span>
               <span className="text-black/60">
                 {" "}
-                · {rr.reporter_username ? `@${rr.reporter_username}` : "anonim"} ·{" "}
-                {new Date(rr.created_at).toLocaleString("ro-RO")} · {rr.status}
+                · {rr.reporter_username ? `@${rr.reporter_username}` : t("anonymous")} ·{" "}
+                {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(rr.created_at))} · {rr.status}
               </span>
               {rr.note && <div className="text-black/70 mt-1">{rr.note}</div>}
             </li>

@@ -44,10 +44,18 @@ async function cachedFetch(cacheKey: string, url: string): Promise<unknown | nul
     if (hit) return JSON.parse(hit);
   } catch { /* Redis indisponibil — continuăm */ }
 
-  const res = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT, "Accept-Language": "ro,en" },
-    signal: AbortSignal.timeout(8000),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, "Accept-Language": "ro,en" },
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (err) {
+    // Fără acest catch, un timeout ajungea la apelant ca un
+    // "[Error [TimeoutError]: ...]" fără nicio urmă că sursa era Nominatim.
+    log.warn({ err, url }, "nominatim fetch failed or timed out");
+    return null;
+  }
   if (!res.ok) {
     log.warn({ url, status: res.status }, "nominatim non-200");
     return null;

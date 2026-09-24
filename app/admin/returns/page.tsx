@@ -2,27 +2,42 @@
  * Admin Returns Queue — cereri de retur clienți
  */
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
+import ReturnActions from "./ReturnActions";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<string, string> = {
-  requested: "Solicitat",
-  approved: "Aprobat",
-  rejected: "Respins",
-  refunded: "Restituit",
-};
+const RETURN_STATUS_KEYS = ["requested", "approved", "rejected", "refunded"] as const;
+type ReturnStatus = (typeof RETURN_STATUS_KEYS)[number];
 
 type SearchParams = { status?: string };
 
-async function getReturns(params: SearchParams) {
+type ReturnRow = {
+  id: string;
+  status: string;
+  total_cents: number;
+  currency: string;
+  created_at: string;
+  metadata: {
+    return_status?: string;
+    return_reason?: string;
+    return_requested_at?: string;
+    customer_email?: string;
+  } | null;
+  buyer_email: string | null;
+  buyer_username: string | null;
+  item_count: number;
+};
+
+async function getReturns(params: SearchParams): Promise<ReturnRow[]> {
   const status = params.status || "all";
   const where: string[] = [
     "(co.metadata->>'return_status' IS NOT NULL OR co.status = 'return_requested')",
   ];
-  const args: any[] = [];
-  if (status !== "all" && STATUS_LABELS[status]) {
+  const args: string[] = [];
+  if (status !== "all" && (RETURN_STATUS_KEYS as readonly string[]).includes(status)) {
     args.push(status);
     where.push(`co.metadata->>'return_status' = $${args.length}`);
   }
@@ -45,10 +60,10 @@ async function getReturns(params: SearchParams) {
   `;
 
   try {
-    const { rows } = await dbQuery(sql, args);
+    const { rows } = await dbQuery<ReturnRow>(sql, args);
     return rows;
   } catch (err) {
-    console.error("[admin/returns] query error", err);
+    logger.error({ err }, "[admin/returns] query error");
     return [];
   }
 }
@@ -58,38 +73,46 @@ export default async function AdminReturnsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-    const t = await getTranslations("adminReturns");
+  const t = await getTranslations("adminReturns");
+  const locale = await getLocale();
   const sp = await searchParams;
   const activeStatus = sp.status || "all";
   const items = await getReturns(sp);
 
+  const statusLabels: Record<ReturnStatus, string> = {
+    requested: t("statusRequested"),
+    approved: t("statusApproved"),
+    rejected: t("statusRejected"),
+    refunded: t("statusRefunded"),
+  };
+
   const tabs: { value: string; label: string }[] = [
-    { value: "all", label: "Toate" },
-    { value: "requested", label: "Solicitate" },
-    { value: "approved", label: "Aprobate" },
-    { value: "rejected", label: "Respinse" },
-    { value: "refunded", label: "Restituite" },
+    { value: "all", label: t("tabAll") },
+    { value: "requested", label: t("tabRequested") },
+    { value: "approved", label: t("tabApproved") },
+    { value: "rejected", label: t("tabRejected") },
+    { value: "refunded", label: t("tabRefunded") },
   ];
+
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" });
 
   return (
     <div className="p-4 md:p-8">
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#0D0D0D]">Cereri de retur</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Returnări inițiate de clienți, în așteptarea unei decizii admin.
-          </p>
+          <h1 className="text-3xl font-black text-[#0D0D0D]">{t("pageTitle")}</h1>
+          <p className="text-sm text-gray-600 mt-1">{t("pageDesc")}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        {tabs.map((t) => {
+        {tabs.map((tab) => {
           const href =
-            t.value === "all" ? "/admin/returns" : `/admin/returns?status=${t.value}`;
-          const active = activeStatus === t.value;
+            tab.value === "all" ? "/admin/returns" : `/admin/returns?status=${tab.value}`;
+          const active = activeStatus === tab.value;
           return (
             <Link
-              key={t.value}
+              key={tab.value}
               href={href}
               className={`inline-flex items-center px-4 py-2.5 rounded-full text-xs font-bold border transition min-h-[40px] ${
                 active
@@ -97,7 +120,7 @@ export default async function AdminReturnsPage({
                   : "bg-white text-gray-700 border-[#E5E5E5] hover:border-[#0D0D0D]"
               }`}
             >
-              {t.label}
+              {tab.label}
             </Link>
           );
         })}
@@ -108,24 +131,24 @@ export default async function AdminReturnsPage({
           <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
             <tr>
               <th className="px-4 py-3">{t("thOrder")}</th>
-              <th className="px-4 py-3">Client</th>
-              <th className="px-4 py-3">Articole</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Motiv</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Solicitat</th>
+              <th className="px-4 py-3">{t("thClient")}</th>
+              <th className="px-4 py-3">{t("thItems")}</th>
+              <th className="px-4 py-3">{t("thTotal")}</th>
+              <th className="px-4 py-3">{t("thReason")}</th>
+              <th className="px-4 py-3">{t("thStatus")}</th>
+              <th className="px-4 py-3">{t("thRequested")}</th>
               <th className="px-4 py-3">{t("thActions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5] text-sm">
-            {items.map((row: any) => {
+            {items.map((row) => {
               const meta = row.metadata || {};
               const rs = meta.return_status || (row.status === "return_requested" ? "requested" : null);
               const reason = meta.return_reason || "—";
               const requestedAt = meta.return_requested_at || row.created_at;
               const buyer =
-                row.buyer_email || row.buyer_username || meta.customer_email || "Anonim";
-              const total = ((row.total_cents || 0) / 100).toFixed(2);
+                row.buyer_email || row.buyer_username || meta.customer_email || t("anonymous");
+              const total = (row.total_cents || 0) / 100;
               const currency = (row.currency || "RON").toUpperCase();
               return (
                 <tr key={row.id} className="hover:bg-[#F7F7F8]/50 transition align-top">
@@ -137,21 +160,21 @@ export default async function AdminReturnsPage({
                       {String(row.id).split("-")[0]}…
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{buyer}</td>
+                  <td className="px-4 py-3 text-gray-700 max-w-[180px] truncate">{buyer}</td>
                   <td className="px-4 py-3 text-gray-700">{row.item_count}</td>
                   <td className="px-4 py-3 font-medium text-[#0D0D0D]">
-                    {total} {currency}
+                    {new Intl.NumberFormat(locale, { style: "currency", currency }).format(total)}
                   </td>
                   <td className="px-4 py-3 text-gray-600 max-w-[260px]">
                     <span className="line-clamp-2">{reason}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-700">
-                      {rs ? STATUS_LABELS[rs] || rs : "—"}
+                      {rs ? statusLabels[rs as ReturnStatus] || rs : "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {requestedAt ? new Date(requestedAt).toLocaleString("ro-RO") : "—"}
+                  <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                    {requestedAt ? dateFmt.format(new Date(requestedAt)) : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <ReturnActions orderId={row.id} status={rs} />
@@ -162,7 +185,7 @@ export default async function AdminReturnsPage({
             {items.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-6 py-10 text-center text-gray-500">
-                  Nu sunt cereri de retur încă.
+                  {t("noReturns")}
                 </td>
               </tr>
             )}
@@ -170,66 +193,5 @@ export default async function AdminReturnsPage({
         </table>
       </div>
     </div>
-  );
-}
-
-function ReturnActions({ orderId, status }: { orderId: string; status: string | null }) {
-  const canAct = status === "requested" || status === null;
-  if (!canAct) {
-    return (
-      <Link
-        href={`/admin/orders/${orderId}`}
-        className="text-xs font-bold text-gray-600 hover:text-[#0D0D0D]"
-      >
-        Vezi
-      </Link>
-    );
-  }
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      <Link
-        href={`/admin/orders/${orderId}`}
-        className="px-2 py-1 rounded text-[11px] font-bold border border-[#E5E5E5] text-gray-700 hover:bg-[#F7F7F8]"
-      >
-        Vezi
-      </Link>
-      <ApproveButton orderId={orderId} />
-      <RejectButton orderId={orderId} />
-    </div>
-  );
-}
-
-function ApproveButton({ orderId }: { orderId: string }) {
-  return (
-    <form
-      action={`/api/admin/returns/${orderId}/approve`}
-      method="post"
-      className="inline"
-    >
-      <button
-        type="submit"
-        className="px-2 py-1 rounded text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-700"
-      >
-        Aprobă
-      </button>
-    </form>
-  );
-}
-
-function RejectButton({ orderId }: { orderId: string }) {
-  return (
-    <form
-      action={`/api/admin/returns/${orderId}/reject`}
-      method="post"
-      className="inline"
-    >
-      <input type="hidden" name="reason" value="Respinsă de admin" />
-      <button
-        type="submit"
-        className="px-2 py-1 rounded text-[11px] font-bold bg-rose-600 text-white hover:bg-rose-700"
-      >
-        Respinge
-      </button>
-    </form>
   );
 }

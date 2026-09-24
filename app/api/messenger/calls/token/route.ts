@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOptionalSocialUserId, getOrCreateSocialUser } from "@/lib/social/session";
-import { generateLiveKitToken } from "@/lib/messenger/livekit";
+import { z } from "zod";
+import { getOrCreateSocialUser } from "@/lib/social/session";
+import { generateLiveKitToken, getLiveKitServerUrl, CallsUnavailableError } from "@/lib/messenger/livekit";
 import { dbQuery } from "@/lib/db";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
+import { rateLimit } from "@/lib/security/rate-limit";
+import { parseBody } from "@/lib/validation/schemas";
+import { createCall, joinCall, CallAuthError, CallNotFoundError } from "@/lib/messenger/calls";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
+
+const TokenBodySchema = z.union([
+  // Join an existing call.
+  z.object({
+    callId: z.string().uuid("callId must be a valid UUID"),
+  }),
+  // Start a new call.
+  z.object({
+    conversationId: z.string().uuid("conversationId must be a valid UUID"),
+    callType: z.enum(["audio", "video"]).default("video"),
+  }),
+]);
 
 export async function POST(req: NextRequest) {
   if (!isEnabled("messenger")) return frozenResponse("messenger");
@@ -16,65 +33,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const { conversationId, callType = "video", callId } = body;
+    const rl = await rateLimit("messengerCallToken", userId, { limit: 20, window: 60 });
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    // Obținem numele utilizatorului din tabela users dacă există
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = parseBody(TokenBodySchema, rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400 });
+    }
+
     const userRes = await dbQuery<{ display_name: string | null; username: string | null }>(
       `SELECT display_name, username FROM users WHERE id = $1 LIMIT 1`,
-      [userId]
+      [userId],
     );
     const userName = userRes.rows[0]?.display_name || userRes.rows[0]?.username || `User_${userId.slice(0, 6)}`;
 
-    let targetCallId = callId;
-    let roomName = "";
+    let targetCallId: string;
+    let roomName: string;
 
-    if (targetCallId) {
-      // Participă la un apel existent
-      const callRes = await dbQuery<{ id: string; livekit_room_name: string; status: string }>(
-        `SELECT id, livekit_room_name, status FROM call_sessions WHERE id = $1 LIMIT 1`,
-        [targetCallId]
-      );
-      if (!callRes.rows.length) {
-        return NextResponse.json({ error: "Call not found" }, { status: 404 });
-      }
-      roomName = callRes.rows[0].livekit_room_name;
-
-      // Actualizăm statusul apelului ca accepted dacă era în ringing
-      await dbQuery(
-        `UPDATE call_sessions SET status = 'accepted', answered_at = COALESCE(answered_at, now()) WHERE id = $1`,
-        [targetCallId]
-      );
+    if ("callId" in parsed.data) {
+      const joined = await joinCall(userId, parsed.data.callId);
+      targetCallId = parsed.data.callId;
+      roomName = joined.roomName;
     } else {
-      // Inițiază un apel nou
-      roomName = `swypik_call_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-      const newCall = await dbQuery<{ id: string }>(
-        `INSERT INTO call_sessions (conversation_id, caller_id, call_type, status, livekit_room_name)
-         VALUES ($1, $2, $3, 'initiating', $4)
-         RETURNING id`,
-        [conversationId || null, userId, callType, roomName]
-      );
-      targetCallId = newCall.rows[0].id;
+      const created = await createCall(userId, parsed.data.conversationId, parsed.data.callType);
+      targetCallId = created.callId;
+      roomName = created.roomName;
     }
 
-    // Generăm token-ul LiveKit
     const token = await generateLiveKitToken({
       roomName,
       participantIdentity: userId,
       participantName: userName,
     });
+    const serverUrl = getLiveKitServerUrl();
 
-    const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://127.0.0.1:7880";
-
-    return NextResponse.json({
-      ok: true,
-      callId: targetCallId,
-      roomName,
-      token,
-      serverUrl,
-    });
-  } catch (err: any) {
-    console.error("[LiveKit Call Token Error]", err);
-    return NextResponse.json({ error: err.message || "Failed to generate call token" }, { status: 500 });
+    return NextResponse.json({ ok: true, callId: targetCallId, roomName, token, serverUrl });
+  } catch (err: unknown) {
+    if (err instanceof CallsUnavailableError) {
+      return NextResponse.json({ error: "calls_unavailable" }, { status: 503 });
+    }
+    if (err instanceof CallAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    if (err instanceof CallNotFoundError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    logger.error({ err }, "[messenger] call token error");
+    return NextResponse.json({ error: "Failed to generate call token" }, { status: 500 });
   }
 }

@@ -144,6 +144,18 @@ Toate gated prin `lib/feature-flags.ts` (server) + `feature-flags-client.ts` (cl
 | `FEATURE_MYSTERY_DROP` | ON | Cutia zilnica — SWYP prin `swyp_emission_rules.mystery_drop_daily` |
 | `FEATURE_MOVIES` | OFF | Swypik Movies (+ `NEXT_PUBLIC_FEATURE_MOVIES`); migrarea `20260921_0003_movies.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-movies-design.md` |
 | `FEATURE_MUSIC` | OFF | Swypik Music (+ `NEXT_PUBLIC_FEATURE_MUSIC`); migrarea `20260922_0001_music.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-music-design.md` |
+| `FEATURE_NEWS` | OFF | Swypik AI News (+ `NEXT_PUBLIC_FEATURE_NEWS`); necesita `GEMINI_API_KEY` |
+| `FEATURE_GAMING` | OFF | Swypik Arcade (+ `NEXT_PUBLIC_FEATURE_GAMING`) |
+| `FEATURE_CRYPTO` | OFF | Swypik Crypto (+ `NEXT_PUBLIC_FEATURE_CRYPTO`) |
+| `FEATURE_MESSENGER` | OFF | Swypik Messenger — mesaje & apeluri video (+ `NEXT_PUBLIC_FEATURE_MESSENGER`); apelurile video necesita `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET`/`LIVEKIT_URL`/`NEXT_PUBLIC_LIVEKIT_URL` |
+
+Toate flag-urile de mai sus sunt OFF implicit (opt-in explicit). Pentru module noi
+(`movies`/`music`/`news`/`gaming`/`crypto`/`messenger`), perechea `FEATURE_X` +
+`NEXT_PUBLIC_FEATURE_X` trebuie setata AMBELE la BUILD TIME (build arg in
+`infra/hetzner/docker-compose.prod.yml`, nu doar in `.env.production` la
+runtime) — altfel paginile index prerandate si bundle-ul de browser raman
+"ascunse" chiar daca flag-ul server e pornit (vezi comentariul din
+`lib/feature-flags-client.ts`).
 
 ## Containere Docker (prod)
 - `swypik-prod-web-next-1` — Next.js (port 3000 intern)

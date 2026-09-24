@@ -9,6 +9,30 @@ import { detectCategory } from "./category-detect";
 
 type ProductModel = any;
 
+/** Locale-uri suportate pentru mesajele de fallback. Default `"ro"` — păstrează
+ * comportamentul istoric pentru `/api/chat`, care încă nu trece locale-ul cererii. */
+export type ChatFallbackLocale = "ro" | "en" | "es" | "fr" | "de" | "pt" | "it";
+
+const NO_CATEGORY_RESULTS_FOUND_ELSEWHERE: Record<ChatFallbackLocale, (category: string) => string> = {
+  ro: (c) => `⚠️ Nu avem încă produse în categoria "${c}", dar îți arăt ce am găsit relevant:\n\n`,
+  en: (c) => `⚠️ We don't have products in the "${c}" category yet, but here's what else looks relevant:\n\n`,
+  es: (c) => `⚠️ Todavía no tenemos productos en la categoría "${c}", pero esto es lo que encontramos relevante:\n\n`,
+  fr: (c) => `⚠️ Nous n'avons pas encore de produits dans la catégorie « ${c} », mais voici ce que nous avons trouvé de pertinent :\n\n`,
+  de: (c) => `⚠️ Wir haben noch keine Produkte in der Kategorie „${c}", aber hier ist, was wir sonst Relevantes gefunden haben:\n\n`,
+  pt: (c) => `⚠️ Ainda não temos produtos na categoria "${c}", mas aqui está o que encontrámos relevante:\n\n`,
+  it: (c) => `⚠️ Non abbiamo ancora prodotti nella categoria "${c}", ma ecco cosa abbiamo trovato di rilevante:\n\n`,
+};
+
+const NO_CATEGORY_RESULTS_AT_ALL: Record<ChatFallbackLocale, (category: string) => string> = {
+  ro: (c) => `⚠️ Momentan nu avem produse în categoria „${c}". Adăugăm noi produse zilnic! Între timp, poți căuta în categoriile disponibile (rochii, haine femei, accesorii).\n\n`,
+  en: (c) => `⚠️ We don't currently have products in the "${c}" category. We add new products daily! Meanwhile, try one of the available categories (dresses, women's clothing, accessories).\n\n`,
+  es: (c) => `⚠️ Actualmente no tenemos productos en la categoría "${c}". ¡Añadimos productos nuevos cada día! Mientras tanto, prueba con alguna de las categorías disponibles (vestidos, ropa de mujer, accesorios).\n\n`,
+  fr: (c) => `⚠️ Nous n'avons actuellement pas de produits dans la catégorie « ${c} ». Nous ajoutons de nouveaux produits chaque jour ! En attendant, essayez l'une des catégories disponibles (robes, vêtements femme, accessoires).\n\n`,
+  de: (c) => `⚠️ Wir haben derzeit keine Produkte in der Kategorie „${c}". Wir fügen täglich neue Produkte hinzu! Probiere in der Zwischenzeit eine der verfügbaren Kategorien (Kleider, Damenbekleidung, Accessoires).\n\n`,
+  pt: (c) => `⚠️ Atualmente não temos produtos na categoria "${c}". Adicionamos produtos novos todos os dias! Entretanto, experimenta uma das categorias disponíveis (vestidos, roupa de senhora, acessórios).\n\n`,
+  it: (c) => `⚠️ Al momento non abbiamo prodotti nella categoria "${c}". Aggiungiamo nuovi prodotti ogni giorno! Nel frattempo, prova una delle categorie disponibili (abiti, abbigliamento donna, accessori).\n\n`,
+};
+
 export async function searchPG(
   query: string,
   limit = 16,
@@ -18,7 +42,7 @@ export async function searchPG(
     search: query || undefined,
     category: opts.category || detectCategory(query),
     maxPrice: opts.maxPrice,
-    sort: (opts.sort as any) || "popular",
+    sort: (opts.sort as ProductFilters["sort"]) || "popular",
     limit,
     offset: 0,
     excludeIds: opts.excludeIds,
@@ -50,6 +74,7 @@ export async function searchWithFallback(
     excludeIds?: string[];
     userMessage?: string;
   },
+  locale: ChatFallbackLocale = "ro",
 ): Promise<{ products: ProductModel[]; replyPrefix: string }> {
   const { maxPrice, category, sort, excludeIds } = opts;
   let replyPrefix = "";
@@ -68,12 +93,12 @@ export async function searchWithFallback(
   if (products.length === 0 && category) {
     products = await searchPG(query, 16, { maxPrice, sort });
     if (products.length > 0) {
-      replyPrefix = `⚠️ Nu avem încă produse în categoria "${category}", dar îți arăt ce am găsit relevant:\n\n`;
+      replyPrefix = NO_CATEGORY_RESULTS_FOUND_ELSEWHERE[locale](category);
     }
   }
   // Still nothing
   if (products.length === 0 && category) {
-    replyPrefix = `⚠️ Momentan nu avem produse în categoria „${category}". Adăugăm noi produse zilnic! Între timp, poți căuta în categoriile disponibile (rochii, haine femei, accesorii).\n\n`;
+    replyPrefix = NO_CATEGORY_RESULTS_AT_ALL[locale](category);
   }
 
   return { products, replyPrefix };

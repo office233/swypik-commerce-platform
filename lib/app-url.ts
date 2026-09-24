@@ -15,10 +15,20 @@ if (
     process.env.NODE_ENV === "production" &&
     typeof window === "undefined"
 ) {
-    // eslint-disable-next-line no-console
-    console.error(
-        "[app-url] NEXT_PUBLIC_APP_URL/APP_URL lipsesc în producție — se folosește fallback-ul https://swypik.com. Link-urile din email/OAuth pot fi greșite pe staging.",
-    );
+    // Dynamic import, not a top-level one: this module is also imported from
+    // client bundles (NEXT_PUBLIC_APP_URL must work in the browser), and
+    // lib/logger pulls in pino, which is server-only. A static import here
+    // would drag pino into the client bundle even though this branch never
+    // runs there.
+    import("@/lib/logger")
+        .then(({ logger }) =>
+            logger.error(
+                "[app-url] NEXT_PUBLIC_APP_URL/APP_URL lipsesc în producție — se folosește fallback-ul https://swypik.com. Link-urile din email/OAuth pot fi greșite pe staging.",
+            ),
+        )
+        .catch(() => {
+            /* logging is best-effort here */
+        });
 }
 
 export const APP_URL = (

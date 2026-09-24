@@ -8,11 +8,16 @@
  * customer_communication, shipping_documentation_str, service_documentation_str,
  * receipt, refund_policy_disclosure, uncategorized_text, etc). When submit=true
  * we POST to Stripe; otherwise we save as draft locally only.
+ *
+ * Client-facing `error` values are stable codes (never Romanian sentences) —
+ * the admin UI (DisputeEvidenceForm) translates them for display.
  */
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminRequest } from "@/lib/security/admin-auth";
 import { getStripe } from "@/lib/stripe/checkout";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { logger } from "@/lib/logger";
 import { scoreDispute } from "@/lib/stripe/dispute-win-score";
 
@@ -38,15 +43,23 @@ type DisputeRow = {
   order_total_cents: number | null;
 };
 
+const STATUS_FILTERS = ["needs_response", "under_review", "closed", "all"] as const;
+
+const PostSchema = z.object({
+  disputeId: z.string().regex(/^dp_[A-Za-z0-9]+$/),
+  evidence: z.record(z.string(), z.string()).optional().default({}),
+  submit: z.boolean().optional().default(false),
+});
+
 export async function GET(req: Request) {
   if (!(await hasAdminSession()) && !(await isAdminRequest(req))) {
-    return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
+    return NextResponse.json({ error: "unauthorized" }, { status: 403 });
   }
 
   const url = new URL(req.url);
-  const status = url.searchParams.get("status") || "all";
+  const statusParam = url.searchParams.get("status") || "all";
+  const status = (STATUS_FILTERS as readonly string[]).includes(statusParam) ? statusParam : "all";
 
-  const args: any[] = [];
   let where = "1=1";
   if (status === "needs_response") {
     where = "d.status IN ('needs_response','warning_needs_response')";
@@ -73,7 +86,7 @@ export async function GET(req: Request) {
         d.evidence_due_by NULLS LAST,
         d.created_at DESC
       LIMIT 200`,
-    args,
+    [],
   );
 
   const enriched = rows.map((d) => ({
@@ -90,23 +103,21 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   if (!(await hasAdminSession())) {
-    return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
+    return NextResponse.json({ error: "unauthorized" }, { status: 403 });
   }
 
-  let body: any;
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
-    return NextResponse.json({ error: "Body trebuie JSON" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_json_body" }, { status: 400 });
   }
 
-  const disputeId = typeof body?.disputeId === "string" ? body.disputeId.trim() : "";
-  const evidence = body?.evidence && typeof body.evidence === "object" ? body.evidence : {};
-  const submit = body?.submit === true;
-
-  if (!/^dp_[A-Za-z0-9]+$/.test(disputeId)) {
-    return NextResponse.json({ error: "disputeId invalid" }, { status: 400 });
+  const parsed = PostSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid_dispute_id" }, { status: 400 });
   }
+  const { disputeId, evidence, submit } = parsed.data;
 
   const { rows: existing } = await dbQuery<{
     id: string;
@@ -118,10 +129,10 @@ export async function POST(req: Request) {
     [disputeId],
   );
   if (existing.length === 0) {
-    return NextResponse.json({ error: "Dispute inexistent local" }, { status: 404 });
+    return NextResponse.json({ error: "dispute_not_found" }, { status: 404 });
   }
   if (existing[0].evidence_submitted && submit) {
-    return NextResponse.json({ error: "Evidence deja submitted" }, { status: 409 });
+    return NextResponse.json({ error: "evidence_already_submitted" }, { status: 409 });
   }
 
   if (submit) {
@@ -143,14 +154,19 @@ export async function POST(req: Request) {
         [disputeId, JSON.stringify(evidence), updated.status],
       );
 
+      await logAdminAction({
+        action: "dispute.submit_evidence",
+        targetType: "stripe_dispute",
+        targetId: disputeId,
+        details: { fields: Object.keys(evidence), newStatus: updated.status },
+        req,
+      });
+
       logger.info({ disputeId, newStatus: updated.status }, "[Admin] Dispute evidence submitted");
       return NextResponse.json({ success: true, status: updated.status, submitted: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error({ err, disputeId }, "[Admin] Stripe dispute.update failed");
-      return NextResponse.json(
-        { error: err?.message || "Stripe API error" },
-        { status: 502 },
-      );
+      return NextResponse.json({ error: "stripe_error" }, { status: 502 });
     }
   }
 
@@ -162,6 +178,14 @@ export async function POST(req: Request) {
       WHERE dispute_id = $1`,
     [disputeId, JSON.stringify(evidence)],
   );
+
+  await logAdminAction({
+    action: "dispute.save_draft",
+    targetType: "stripe_dispute",
+    targetId: disputeId,
+    details: { fields: Object.keys(evidence) },
+    req,
+  });
 
   return NextResponse.json({ success: true, submitted: false, draftSaved: true });
 }

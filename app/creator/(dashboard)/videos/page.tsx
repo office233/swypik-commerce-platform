@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Video,
   Upload,
@@ -72,9 +72,9 @@ function StatusBadge({ status, className }: { status: string; className?: string
   }
 }
 
-function formatDate(dateString: string) {
+function formatDate(dateString: string, locale: string) {
   const date = new Date(dateString);
-  return date.toLocaleDateString("ro-RO", {
+  return date.toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -83,6 +83,7 @@ function formatDate(dateString: string) {
 
 function VideoCard({ video }: { video: CreatorVideo }) {
   const t = useTranslations("creatorVideos");
+  const locale = useLocale();
   return (
     <div className="group relative bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
       {/* Thumbnail / Placeholder */}
@@ -142,7 +143,7 @@ function VideoCard({ video }: { video: CreatorVideo }) {
         <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-gray-500">
             <Calendar className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-semibold">{formatDate(video.created_at)}</span>
+            <span className="text-[11px] font-semibold">{formatDate(video.created_at, locale)}</span>
           </div>
           {video.status === "ready" && (
             <span className="text-[11px] font-bold text-[#0D0D0D]">{t("live")}</span>

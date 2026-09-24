@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type MessageSender = {
   id: string;
@@ -44,6 +45,7 @@ export default function ConversationView({
   viewerId,
   initialMessages,
 }: Props) {
+  const t = useTranslations("conversationView");
   const [messages, setMessages] = useState<ClientMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -150,13 +152,13 @@ export default function ConversationView({
         prev.map((m) => (m.id === tempId ? { ...data.message } : m)),
       );
     } catch (err: any) {
-      setError(err?.message || "Failed to send");
+      setError(err?.message || t("sendFailed"));
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setDraft(body);
     } finally {
       setSending(false);
     }
-  }, [conversationId, draft, scrollToBottom, sending, viewerId]);
+  }, [conversationId, draft, scrollToBottom, sending, viewerId, t]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -175,7 +177,7 @@ export default function ConversationView({
       >
         {grouped.length === 0 ? (
           <p className="text-center text-gray-500 mt-8 text-sm">
-            Say hello to start the conversation.
+            {t("emptyState")}
           </p>
         ) : (
           grouped.map((m) => {
@@ -218,16 +220,18 @@ export default function ConversationView({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Message"
+          placeholder={t("messagePlaceholder")}
+          aria-label={t("messagePlaceholder")}
           rows={1}
           className="flex-1 resize-none rounded-2xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0D0D0D] max-h-32"
         />
         <button
           type="submit"
           disabled={sending || !draft.trim()}
+          aria-label={t("send")}
           className="rounded-full bg-[#0D0D0D] hover:bg-[#0E8F6F] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2.5 transition"
         >
-          Send
+          {t("send")}
         </button>
       </form>
       {error && (

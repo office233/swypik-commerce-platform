@@ -22,10 +22,16 @@ export interface AudioItemDto {
     externalUrl?: string;
 }
 
+/** ID-uri stabile de secțiuni feed — clientul le traduce, serverul nu mai trimite text RO hardcodat. */
+export type AudioFeedSectionId =
+    | "section-radio-ro"
+    | "section-radio-global"
+    | "section-audius"
+    | "section-jamendo"
+    | "section-podcasts";
+
 export interface AudioFeedSection {
-    id: string;
-    title: string;
-    subtitle?: string;
+    id: AudioFeedSectionId;
     source: AudioSourceType;
     items: AudioItemDto[];
 }

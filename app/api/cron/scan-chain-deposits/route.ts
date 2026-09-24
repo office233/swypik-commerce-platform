@@ -13,6 +13,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { timingSafeEqual } from "node:crypto";
 import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 import { scanChainDeposits } from "@/lib/swyp/deposits";
+import { isChainTreasuryConfigured } from "@/lib/swyp/chain";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -35,6 +36,13 @@ function authorized(req: Request): boolean {
 async function handle(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!isChainTreasuryConfigured()) {
+    // Nu logăm cu `error`+stack pe fiecare rulare de cron într-un mediu unde
+    // bridge-ul on-chain încă nu e configurat (ex. staging fără chain) —
+    // doar un warn, o singură dată pe rulare, fără valori de env.
+    log.warn("scan-chain-deposits sărit — SWYP_TREASURY_REWARDS_PK nu e configurat");
+    return NextResponse.json({ success: true, skipped: "not_configured" });
   }
   const result = await runCron("scan-chain-deposits", async () => {
     const r = await scanChainDeposits();

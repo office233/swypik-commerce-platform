@@ -65,7 +65,7 @@ function TrackCard({ track, queue, index }: { track: TrackDto; queue: TrackDto[]
                 {track.isLive && (
                     <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-red-600/90 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow">
                         <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                        LIVE
+                        {t("audio.liveBadge")}
                     </span>
                 )}
 
@@ -127,7 +127,7 @@ function TopTenCard({ track, rank, queue, index }: { track: TrackDto; rank: numb
                 {track.isLive && (
                     <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[8px] font-black uppercase text-white shadow">
                         <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                        LIVE
+                        {t("audio.liveBadge")}
                     </span>
                 )}
 
@@ -165,19 +165,19 @@ export default function MusicHomeRows({ rows }: { rows: MusicHomeRow[] }) {
                 switch (row.kind) {
                     case "top10":
                         return (
-                            <Row key="top10" title="Top 10 — Cele mai ascultate">
+                            <Row key="top10" title={t("audio.rowTop10")}>
                                 {row.items.map((tr, i) => <TopTenCard key={tr.id} track={tr} rank={i + 1} queue={row.items} index={i} />)}
                             </Row>
                         );
                     case "originals":
                         return (
-                            <Row key="originals" title="Recomandate Live">
+                            <Row key="originals" title={t("audio.rowOriginals")}>
                                 {row.items.map((tr, i) => <TrackCard key={tr.id} track={tr} queue={row.items} index={i} />)}
                             </Row>
                         );
                     case "latest":
                         return (
-                            <Row key="latest" title="Muzică & Chill Nou">
+                            <Row key="latest" title={t("audio.rowLatest")}>
                                 {row.items.map((tr, i) => <TrackCard key={tr.id} track={tr} queue={row.items} index={i} />)}
                             </Row>
                         );

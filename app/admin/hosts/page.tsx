@@ -4,33 +4,21 @@
  * (pensiuni/hoteluri) și conformitatea fiscală înainte de publicare.
  */
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Check, X } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 import { decryptCnp, maskCnp } from "@/lib/identity/cnp";
+import { logger } from "@/lib/logger";
 import HostActions from "./HostActions";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABELS: Record<string, string> = {
-    pending: "În așteptare",
-    needs_info: "Așteaptă documente",
-    approved: "Aprobată",
-    rejected: "Respinsă",
-};
 
 const STATUS_COLOR: Record<string, string> = {
     pending: "bg-amber-100 text-amber-800",
     needs_info: "bg-sky-100 text-sky-800",
     approved: "bg-green-100 text-green-800",
     rejected: "bg-red-100 text-red-800",
-};
-
-const ENTITY_LABELS: Record<string, string> = {
-    persoana_fizica: "Persoană fizică",
-    pfa: "PFA / ÎI",
-    srl: "SRL",
 };
 
 type Row = {
@@ -57,21 +45,21 @@ type Row = {
 };
 
 /** CNP-ul se afișează DOAR mascat: prima + ultimele 4 cifre. */
-function maskedCnpOf(row: Row): string | null {
+function maskedCnpOf(row: Row, decryptErrorLabel: string): string | null {
     if (!row.cnp_encrypted) return null;
     try {
         return maskCnp(decryptCnp(row.cnp_encrypted));
     } catch {
-        return "eroare decriptare";
+        return decryptErrorLabel;
     }
 }
 
-function fmtDate(d: string | null): string {
+function fmtDate(d: string | null, locale: string): string {
     if (!d) return "-";
     try {
-        return new Date(d).toLocaleDateString("ro-RO", {
+        return new Intl.DateTimeFormat(locale, {
             day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-        });
+        }).format(new Date(d));
     } catch {
         return "-";
     }
@@ -85,14 +73,26 @@ export default async function AdminHostsPage({
     searchParams: Promise<{ status?: string }>;
 }) {
     const t = await getTranslations("adminHosts");
+    const locale = await getLocale();
     await requireAdminSession();
+    const STATUS_LABELS: Record<string, string> = {
+        pending: t("statusPending"),
+        needs_info: t("statusNeedsInfo"),
+        approved: t("statusApproved"),
+        rejected: t("statusRejected"),
+    };
+    const ENTITY_LABELS: Record<string, string> = {
+        persoana_fizica: t("entityIndividual"),
+        pfa: t("entityPfa"),
+        srl: t("entitySrl"),
+    };
     const sp = await searchParams;
     const status = (TABS as readonly string[]).includes(sp.status || "") ? sp.status! : "pending";
 
     let rows: Row[] = [];
     let loadError: string | null = null;
     try {
-        const params: any[] = [];
+        const params: string[] = [];
         let whereSql = "";
         if (status !== "all") {
             params.push(status);
@@ -108,29 +108,29 @@ export default async function AdminHostsPage({
             params,
         );
         rows = res.rows;
-    } catch (e: any) {
-        loadError = e?.message || "Eroare la încărcare";
+    } catch (e) {
+        logger.error({ err: e }, "[admin/hosts] failed to load host applications");
+        loadError = t("loadError");
     }
 
     return (
         <main className="mx-auto max-w-4xl px-4 py-8">
             <div className="mb-6">
-                <Link href="/admin" className="text-sm text-black/50 hover:underline">← Admin</Link>
-                <h1 className="mt-1 text-2xl font-black">Gazde Swypik Stays</h1>
+                <Link href="/admin" className="text-sm text-black/50 hover:underline">&larr; {t("adminHome")}</Link>
+                <h1 className="mt-1 text-2xl font-black">{t("pageTitle")}</h1>
                 <p className="text-sm text-black/60">
-                    Verifică dreptul de folosință, certificatul de clasificare și conformitatea fiscală
-                    înainte de aprobare.
+                    {t("pageSubtitle")}
                 </p>
             </div>
 
             <nav className="mb-5 flex flex-wrap gap-2">
-                {TABS.map((t) => (
+                {TABS.map((tab) => (
                     <Link
-                        key={t}
-                        href={`/admin/hosts?status=${t}`}
-                        className={`rounded-full px-3 py-1.5 text-xs font-bold ${status === t ? "bg-black text-white" : "bg-black/5 text-black/60"}`}
+                        key={tab}
+                        href={`/admin/hosts?status=${tab}`}
+                        className={`rounded-full px-3 py-1.5 text-xs font-bold ${status === tab ? "bg-black text-white" : "bg-black/5 text-black/60"}`}
                     >
-                        {t === "all" ? "Toate" : STATUS_LABELS[t]}
+                        {tab === "all" ? t("allTab") : STATUS_LABELS[tab]}
                     </Link>
                 ))}
             </nav>
@@ -141,7 +141,7 @@ export default async function AdminHostsPage({
 
             {!loadError && rows.length === 0 && (
                 <p className="rounded-xl bg-black/5 p-6 text-center text-sm text-black/50">
-                    Nicio aplicație în această categorie.
+                    {t("noApplicationsInCategory")}
                 </p>
             )}
 
@@ -154,7 +154,7 @@ export default async function AdminHostsPage({
                                 <div>
                                     <h2 className="font-bold">{r.property_name}</h2>
                                     <p className="text-sm text-black/60">
-                                        {r.property_type} · {r.city}, {r.county} · {r.rooms} camere · {r.max_guests} oaspeți
+                                        {r.property_type} &middot; {r.city}, {r.county} &middot; {t("roomsCount", { count: r.rooms })} &middot; {t("guestsCount", { count: r.max_guests })}
                                     </p>
                                     <p className="mt-0.5 text-xs text-black/50">{r.address}</p>
                                 </div>
@@ -166,11 +166,11 @@ export default async function AdminHostsPage({
                             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                                 <div><dt className="inline text-black/50">{t("host")}</dt><dd className="inline font-medium">{r.full_name}</dd></div>
                                 <div><dt className="inline text-black/50">{t("form")}</dt><dd className="inline font-medium">{ENTITY_LABELS[r.entity_type] ?? r.entity_type}</dd></div>
-                                <div><dt className="inline text-black/50">Telefon: </dt><dd className="inline font-medium">{r.phone}</dd></div>
-                                <div><dt className="inline text-black/50">Email: </dt><dd className="inline font-medium">{r.email}</dd></div>
+                                <div><dt className="inline text-black/50">{t("phoneLabel")}: </dt><dd className="inline font-medium">{r.phone}</dd></div>
+                                <div><dt className="inline text-black/50">{t("emailLabel")}: </dt><dd className="inline font-medium">{r.email}</dd></div>
                                 {r.company_name && <div><dt className="inline text-black/50">{t("company")}</dt><dd className="inline font-medium">{r.company_name}</dd></div>}
-                                {r.cui && <div><dt className="inline text-black/50">CUI: </dt><dd className="inline font-medium">{r.cui}</dd></div>}
-                                {maskedCnpOf(r) && <div><dt className="inline text-black/50">CNP: </dt><dd className="inline font-mono font-medium" title={t("cnpMaskedTitle")}>{maskedCnpOf(r)}</dd></div>}
+                                {r.cui && <div><dt className="inline text-black/50">{t("cuiLabel")}: </dt><dd className="inline font-medium">{r.cui}</dd></div>}
+                                {maskedCnpOf(r, t("cnpDecryptError")) && <div><dt className="inline text-black/50">{t("cnpLabel")}: </dt><dd className="inline font-mono font-medium" title={t("cnpMaskedTitle")}>{maskedCnpOf(r, t("cnpDecryptError"))}</dd></div>}
                             </dl>
 
                             <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -182,12 +182,12 @@ export default async function AdminHostsPage({
                                         {r.classification_cert ? <><Check size={12} /> {t("certLabel", { cert: r.classification_cert })}</> : <><X size={12} /> {t("noCert")}</>}
                                     </span>
                                 )}
-                                <span className="rounded-md bg-black/5 px-2 py-1 text-black/60">Trimisă: {fmtDate(r.created_at)}</span>
+                                <span className="rounded-md bg-black/5 px-2 py-1 text-black/60">{t("submittedLabel")}: {fmtDate(r.created_at, locale)}</span>
                             </div>
 
                             <div className="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
-                                <strong>De verificat manual:</strong> extras CF sau contract de închiriere/comodat,
-                                act de identitate al reprezentantului{needsCert ? ", valabilitatea certificatului de clasificare" : ""}.
+                                <strong>{t("manualCheckTitle")}</strong> {t("manualCheckBody")}
+                                {needsCert ? t("manualCheckCertSuffix") : ""}
                             </div>
 
                             {r.admin_notes && (

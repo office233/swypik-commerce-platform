@@ -14,17 +14,37 @@ export type LiveMarkerProps = {
   label?: string;
   heading?: number;
   eta?: string;
+  /**
+   * Texte afișate pe marker — parametrizabile prin props (nu prin
+   * useTranslations aici) fiindcă LiveMarker e o componentă hartă comună mai
+   * multor verticale (go/food/fly); apelantul, care are propriul namespace
+   * de traduceri, poate transmite textele localizate. Implicit rămân textele
+   * în română, ca să nu schimbe comportamentul apelanților existenți.
+   */
+  boardHereText?: string;
+  pickupFallbackLabel?: string;
+  destinationText?: string;
+  dropoffFallbackLabel?: string;
 };
 
-function renderMarkerHtml(kind: "pickup" | "dropoff" | "driver" | "nearby", label?: string, heading = 0, eta?: string): string {
+function renderMarkerHtml(
+  kind: "pickup" | "dropoff" | "driver" | "nearby",
+  label: string | undefined,
+  heading = 0,
+  eta: string | undefined,
+  boardHereText: string,
+  pickupFallbackLabel: string,
+  destinationText: string,
+  dropoffFallbackLabel: string,
+): string {
   if (kind === "pickup") {
-    const cleanLabel = label ? (label.length > 26 ? label.slice(0, 24) + "…" : label) : "Punct de preluare";
+    const cleanLabel = label ? (label.length > 26 ? label.slice(0, 24) + "…" : label) : pickupFallbackLabel;
     return `
       <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);pointer-events:none;user-select:none;transform-style:preserve-3d;">
         <!-- Floating 3D Hologram Pill -->
         <div style="margin-bottom:6px;background:rgba(10,10,12,0.96);backdrop-filter:blur(16px);color:white;padding:6px 14px;border-radius:16px;font-size:11.5px;font-weight:900;letter-spacing:-0.2px;box-shadow:0 12px 32px rgba(0,0,0,0.5), 0 0 1px 1px rgba(16,185,129,0.35);display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid rgba(255,255,255,0.2);">
           <span style="width:9px;height:9px;border-radius:50%;background:#10B981;box-shadow:0 0 12px #10B981;display:inline-block;animation:car-light-glow 2s infinite ease-in-out;"></span>
-          <span style="color:#FFFFFF;font-weight:900;letter-spacing:-0.3px;">Urcă aici</span>
+          <span style="color:#FFFFFF;font-weight:900;letter-spacing:-0.3px;">${boardHereText}</span>
           <span style="color:#94A3B8;font-weight:600;font-size:10px;">• ${cleanLabel}</span>
         </div>
         <!-- 3D Holographic Vertical Needle -->
@@ -42,13 +62,13 @@ function renderMarkerHtml(kind: "pickup" | "dropoff" | "driver" | "nearby", labe
   }
 
   if (kind === "dropoff") {
-    const cleanLabel = label ? (label.length > 26 ? label.slice(0, 24) + "…" : label) : "Destinație";
+    const cleanLabel = label ? (label.length > 26 ? label.slice(0, 24) + "…" : label) : dropoffFallbackLabel;
     return `
       <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);pointer-events:none;user-select:none;transform-style:preserve-3d;">
         <!-- Floating 3D Hologram Pill -->
         <div style="margin-bottom:6px;background:rgba(225,29,72,0.96);backdrop-filter:blur(16px);color:white;padding:6px 14px;border-radius:16px;font-size:11.5px;font-weight:900;letter-spacing:-0.2px;box-shadow:0 12px 32px rgba(225,29,72,0.5), 0 0 1px 1px rgba(255,255,255,0.4);display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid rgba(255,255,255,0.25);">
           <span>🏁</span>
-          <span style="font-weight:900;letter-spacing:-0.3px;">Destinație</span>
+          <span style="font-weight:900;letter-spacing:-0.3px;">${destinationText}</span>
           <span style="color:rgba(255,255,255,0.85);font-weight:600;font-size:10px;">• ${cleanLabel}</span>
         </div>
         <!-- 3D Holographic Vertical Needle -->
@@ -157,16 +177,20 @@ export default function LiveMarker({
   label,
   heading = 0,
   eta,
+  boardHereText = "Urcă aici",
+  pickupFallbackLabel = "Punct de preluare",
+  destinationText = "Destinație",
+  dropoffFallbackLabel = "Destinație",
 }: LiveMarkerProps) {
   const icon = useMemo(
     () =>
       L.divIcon({
-        html: renderMarkerHtml(kind, label, heading, eta),
+        html: renderMarkerHtml(kind, label, heading, eta, boardHereText, pickupFallbackLabel, destinationText, dropoffFallbackLabel),
         className: "custom-leaflet-marker",
         iconSize: [36, 36],
         iconAnchor: kind === "pickup" || kind === "dropoff" ? [18, 36] : [18, 18],
       }),
-    [kind, label, heading, eta],
+    [kind, label, heading, eta, boardHereText, pickupFallbackLabel, destinationText, dropoffFallbackLabel],
   );
 
   return (

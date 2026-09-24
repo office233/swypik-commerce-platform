@@ -117,11 +117,11 @@ export default function CourierPwaClient() {
             (pos) => {
                 coords.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             },
-            () => setError("Activează localizarea pentru a primi comenzi."),
+            () => setError(tc("enableLocationError")),
             { enableHighAccuracy: true, maximumAge: 5000 },
         );
         return () => navigator.geolocation.clearWatch(watchId);
-    }, [online]);
+    }, [online, tc]);
 
     // Heartbeat: trimite poziția + ia oferte la ~10s
     const heartbeat = useCallback(async (isOnline: boolean): Promise<void> => {
@@ -136,12 +136,12 @@ export default function CourierPwaClient() {
                 }),
             });
             if (res.status === 401) {
-                setError("Autentifică-te pentru a lucra ca și curier.");
+                setError(tc("loginRequiredError"));
                 setOnline(false);
                 return;
             }
             if (res.status === 403) {
-                setError("Contul de curier nu e aprobat încă.");
+                setError(tc("accountNotApprovedError"));
                 setOnline(false);
                 return;
             }
@@ -161,7 +161,7 @@ export default function CourierPwaClient() {
         } catch {
             // rețea — reîncercăm
         }
-    }, [offer, activeDelivery, activeRide]);
+    }, [offer, activeDelivery, activeRide, tc]);
 
     useEffect(() => {
         if (!online) return;
@@ -293,13 +293,13 @@ export default function CourierPwaClient() {
     return (
         <div className="mx-auto flex min-h-screen max-w-md flex-col gap-4 bg-gray-50 p-4">
             <header className="flex items-center justify-between">
-                <h1 className="text-lg font-bold">Swypik Curier</h1>
+                <h1 className="text-lg font-bold">{tc("title")}</h1>
                 <div className="flex items-center gap-2">
                     <a href="/courier/code" className="rounded-full border px-3 py-2 text-xs font-semibold">
-                        Codul meu
+                        {tc("myCode")}
                     </a>
                     <a href="/courier/earnings" className="rounded-full border px-3 py-2 text-xs font-semibold">
-                        Câștiguri
+                        {tc("earnings")}
                     </a>
                     <button
                         onClick={() => setSoundOn((s) => !s)}
@@ -331,13 +331,13 @@ export default function CourierPwaClient() {
                     onClick={() => setTab("jobs")}
                     className={`rounded-lg py-2 text-sm font-semibold ${tab === "jobs" ? "bg-black text-white" : "bg-white border"}`}
                 >
-                    Comenzi
+                    {tc("orders")}
                 </button>
                 <button
                     onClick={() => setTab("earnings")}
                     className={`rounded-lg py-2 text-sm font-semibold ${tab === "earnings" ? "bg-black text-white" : "bg-white border"}`}
                 >
-                    Câștiguri
+                    {tc("earnings")}
                 </button>
             </nav>
 
@@ -348,7 +348,7 @@ export default function CourierPwaClient() {
 
                 {!online && !activeDelivery && !activeRide && (
                     <div className="rounded-xl border border-dashed p-8 text-center text-gray-400">
-                        Treci online ca să primești comenzi.
+                        {tc("goOnlineNote")}
                     </div>
                 )}
 
@@ -380,9 +380,9 @@ export default function CourierPwaClient() {
                             {offer.order_number && (
                                 <div><dt className="inline font-medium">{tc("orderLabel")} </dt><dd className="inline font-mono">{offer.order_number}</dd></div>
                             )}
-                            <div><dt className="inline font-medium">Ridicare: </dt><dd className="inline">{offer.merchant_name}{offer.pickup_address ? ` — ${offer.pickup_address}` : ""}</dd></div>
-                            <div><dt className="inline font-medium">{offer.kind === "ride" ? "Destinație: " : "Livrare: "}</dt><dd className="inline">{offer.delivery_address}</dd></div>
-                            <div><dt className="inline font-medium">{offer.kind === "ride" ? "Tarif estimat: " : "Câștig: "}</dt><dd className="inline font-bold">{(offer.delivery_fee_cents / 100).toFixed(2)} {offer.currency}</dd></div>
+                            <div><dt className="inline font-medium">{tc("pickupLabel")} </dt><dd className="inline">{offer.merchant_name}{offer.pickup_address ? ` — ${offer.pickup_address}` : ""}</dd></div>
+                            <div><dt className="inline font-medium">{offer.kind === "ride" ? tc("destinationLabel") : tc("deliveryLabel")}</dt><dd className="inline">{offer.delivery_address}</dd></div>
+                            <div><dt className="inline font-medium">{offer.kind === "ride" ? tc("estimatedFareLabel") : tc("earningLabel")}</dt><dd className="inline font-bold">{(offer.delivery_fee_cents / 100).toFixed(2)} {offer.currency}</dd></div>
                         </dl>
                         <div className="mt-4 grid grid-cols-2 gap-3">
                             <button
@@ -390,14 +390,14 @@ export default function CourierPwaClient() {
                                 disabled={busy}
                                 className="rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 disabled:opacity-50"
                             >
-                                Refuz
+                                {tc("decline")}
                             </button>
                             <button
                                 onClick={() => void respond(true)}
                                 disabled={busy}
                                 className="rounded-lg bg-green-600 py-3 font-semibold text-white disabled:opacity-50"
                             >
-                                Accept
+                                {tc("accept")}
                             </button>
                         </div>
                     </div>
@@ -405,7 +405,7 @@ export default function CourierPwaClient() {
 
                 {activeDelivery && (
                     <div className="rounded-2xl border bg-white p-5 shadow-md">
-                        <h2 className="font-bold">Livrare în curs — {activeDelivery.order_number}</h2>
+                        <h2 className="font-bold">{tc("deliveryInProgress", { number: activeDelivery.order_number ?? "" })}</h2>
                         <div className="mt-3 space-y-2 text-sm">
                             <div className="flex items-center justify-between gap-2">
                                 <span className="flex items-center gap-1.5"><Store size={16} /> {activeDelivery.merchant_name}</span>
@@ -423,13 +423,13 @@ export default function CourierPwaClient() {
                                 onClick={() => void updateDelivery("picked_up")}
                                 className="rounded-lg bg-amber-500 py-3 text-sm font-semibold text-white"
                             >
-                                Am ridicat
+                                {tc("pickedUp")}
                             </button>
                             <button
                                 onClick={() => void updateDelivery("delivered")}
                                 className="rounded-lg bg-green-600 py-3 text-sm font-semibold text-white"
                             >
-                                Am livrat
+                                {tc("delivered")}
                             </button>
                         </div>
                     </div>
@@ -440,7 +440,7 @@ export default function CourierPwaClient() {
                         <h2 className="flex items-center gap-2 font-bold">{tc("rideInProgress")} <CarTaxiFront size={16} /></h2>
                         <div className="mt-3 space-y-2 text-sm">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-1.5"><Circle size={14} className="text-green-600" /> {activeRide.pickup_address ?? "Punct de ridicare"}</span>
+                                <span className="flex items-center gap-1.5"><Circle size={14} className="text-green-600" /> {activeRide.pickup_address ?? tc("pickupPoint")}</span>
                                 {activeRide.pickup_address && (
                                     <NavButtons address={activeRide.pickup_address} gmapsLabel={t("gmaps")} wazeLabel={t("waze")} />
                                 )}
@@ -456,7 +456,7 @@ export default function CourierPwaClient() {
                                     onClick={() => void updateRide("arriving")}
                                     className="rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white"
                                 >
-                                    Am pornit spre client
+                                    {tc("headingToClient")}
                                 </button>
                             )}
                             {rideStep === "arriving" && (
@@ -464,7 +464,7 @@ export default function CourierPwaClient() {
                                     onClick={() => void updateRide("in_progress")}
                                     className="rounded-lg bg-amber-500 py-3 text-sm font-semibold text-white"
                                 >
-                                    Clientul a urcat — pornește cursa
+                                    {tc("clientBoarded")}
                                 </button>
                             )}
                             {rideStep === "in_progress" && (
@@ -472,7 +472,7 @@ export default function CourierPwaClient() {
                                     onClick={() => void updateRide("completed")}
                                     className="rounded-lg bg-green-600 py-3 text-sm font-semibold text-white"
                                 >
-                                    Finalizează cursa
+                                    {tc("finishRide")}
                                 </button>
                             )}
                         </div>

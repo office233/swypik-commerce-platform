@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Zap, Target } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import DisputeEvidenceForm from "./DisputeEvidenceForm";
@@ -59,33 +59,36 @@ async function getDisputes(status: string): Promise<Row[]> {
   return rows;
 }
 
-function fmtMoney(cents: number | null | undefined, currency = "RON"): string {
+function fmtMoney(locale: string, cents: number | null | undefined, currency = "RON"): string {
   if (cents == null) return "—";
   try {
-    return new Intl.NumberFormat("ro-RO", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
+    return new Intl.NumberFormat(locale, { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
   } catch {
     return `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`;
   }
 }
 
-function fmtDate(iso: string | null): string {
+function fmtDate(locale: string, iso: string | null): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString("ro-RO", { dateStyle: "short", timeStyle: "short" });
+    return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(iso));
   } catch {
     return iso;
   }
 }
 
-function dueIndicator(iso: string | null): { label: string; tone: string } {
+function dueIndicator(
+  iso: string | null,
+  t: Awaited<ReturnType<typeof getTranslations>>,
+): { label: string; tone: string } {
   if (!iso) return { label: "—", tone: "text-gray-500" };
   const due = new Date(iso).getTime();
   const now = Date.now();
   const hours = Math.round((due - now) / 3_600_000);
-  if (hours < 0) return { label: `Expirat de ${Math.abs(hours)}h`, tone: "text-red-700 font-bold" };
-  if (hours < 24) return { label: `${hours}h rămase`, tone: "text-red-600 font-bold" };
-  if (hours < 72) return { label: `${Math.round(hours / 24)}z rămase`, tone: "text-orange-600 font-bold" };
-  return { label: `${Math.round(hours / 24)}z rămase`, tone: "text-gray-700" };
+  if (hours < 0) return { label: t("expiredSince", { h: Math.abs(hours) }), tone: "text-red-700 font-bold" };
+  if (hours < 24) return { label: t("hoursLeft", { h: hours }), tone: "text-red-600 font-bold" };
+  if (hours < 72) return { label: t("daysLeft", { d: Math.round(hours / 24) }), tone: "text-orange-600 font-bold" };
+  return { label: t("daysLeft", { d: Math.round(hours / 24) }), tone: "text-gray-700" };
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -105,51 +108,51 @@ export default async function AdminDisputesPage({
   searchParams: Promise<SearchParams>;
 }) {
   const t = await getTranslations("adminDisputes");
+  const tScore = await getTranslations("adminDisputeScore");
+  const locale = await getLocale();
   const sp = await searchParams;
   const active = sp.status || "needs_response";
   const disputes = await getDisputes(active);
 
   const tabs = [
-    { value: "needs_response", label: "Necesită răspuns" },
-    { value: "under_review", label: "În evaluare" },
-    { value: "closed", label: "Închise" },
-    { value: "all", label: "Toate" },
+    { value: "needs_response", label: t("tabNeedsResponse") },
+    { value: "under_review", label: t("tabUnderReview") },
+    { value: "closed", label: t("tabClosed") },
+    { value: "all", label: t("tabAll") },
   ];
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-black text-[#0D0D0D]">Stripe Disputes</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Chargeback-uri. Răspunde cu evidence înainte de deadline sau pierzi banii + fee €15.
-        </p>
+        <h1 className="text-3xl font-black text-[#0D0D0D]">{t("pageTitle")}</h1>
+        <p className="text-sm text-gray-600 mt-1">{t("pageDesc")}</p>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        {tabs.map((t) => (
+        {tabs.map((tab) => (
           <Link
-            key={t.value}
-            href={`/admin/disputes?status=${t.value}`}
+            key={tab.value}
+            href={`/admin/disputes?status=${tab.value}`}
             className={
               "px-3 py-1.5 rounded-lg text-sm font-semibold transition " +
-              (active === t.value
+              (active === tab.value
                 ? "bg-[#0D0D0D] text-white"
                 : "bg-white border border-[#E5E5E5] text-gray-700 hover:bg-gray-50")
             }
           >
-            {t.label}
+            {tab.label}
           </Link>
         ))}
       </div>
 
       {disputes.length === 0 ? (
         <div className="bg-white border border-[#E5E5E5] rounded-2xl p-8 text-center text-sm text-gray-500">
-          Niciun dispute în categoria selectată.
+          {t("noDisputes")}
         </div>
       ) : (
         <div className="space-y-3">
           {disputes.map((d) => {
-            const due = dueIndicator(d.evidence_due_by);
+            const due = dueIndicator(d.evidence_due_by, t);
             const badge = STATUS_BADGE[d.status] || "bg-gray-100 text-gray-700";
             const canRespond = (d.status === "needs_response" || d.status === "warning_needs_response") && !d.evidence_submitted;
             const score: WinScore = scoreDispute({
@@ -162,8 +165,8 @@ export default async function AdminDisputesPage({
                 <summary className="cursor-pointer list-none p-4 flex flex-wrap items-center gap-3 hover:bg-gray-50">
                   <span className={"px-2 py-0.5 rounded-full text-xs font-bold " + badge}>{d.status}</span>
                   <span className="font-mono text-xs text-gray-500">{d.dispute_id}</span>
-                  <span className="font-bold text-[#0D0D0D]">{fmtMoney(d.amount_cents, d.currency)}</span>
-                  {canRespond && <WinBadge score={score} />}
+                  <span className="font-bold text-[#0D0D0D]">{fmtMoney(locale, d.amount_cents, d.currency)}</span>
+                  {canRespond && <WinBadge score={score} t={t} tScore={tScore} />}
                   <span className="text-xs text-gray-600 truncate max-w-[160px]" title={d.buyer_email || ""}>
                     {d.buyer_email || "—"}
                   </span>
@@ -171,7 +174,7 @@ export default async function AdminDisputesPage({
                   <span className={"text-xs ml-auto " + due.tone}>{due.label}</span>
                   {d.evidence_submitted && (
                     <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-semibold">
-                      evidence submitted
+                      {t("evidenceSubmittedBadge")}
                     </span>
                   )}
                 </summary>
@@ -179,37 +182,37 @@ export default async function AdminDisputesPage({
                 <div className="p-4 border-t border-[#E5E5E5] bg-gray-50/50 space-y-3 text-sm">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                     <div>
-                      <span className="text-gray-500">Charge:</span>{" "}
+                      <span className="text-gray-500">{t("chargeLabel")}</span>{" "}
                       <span className="font-mono">{d.charge_id}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Order:</span>{" "}
+                      <span className="text-gray-500">{t("orderLabel")}</span>{" "}
                       {d.order_id ? (
                         <Link href={`/admin/orders/${d.order_id}`} className="font-mono text-violet-700 hover:underline">
                           {d.order_id.slice(0, 8)}…
                         </Link>
                       ) : (
-                        <span className="text-gray-400">(necunoscut)</span>
+                        <span className="text-gray-400">{t("unknownOrder")}</span>
                       )}
                     </div>
                     <div>
                       <span className="text-gray-500">{t("orderTotal")}</span>{" "}
-                      {fmtMoney(d.order_total_cents, d.currency)}
+                      {fmtMoney(locale, d.order_total_cents, d.currency)}
                     </div>
                     <div>
-                      <span className="text-gray-500">Deadline evidence:</span> {fmtDate(d.evidence_due_by)}
+                      <span className="text-gray-500">{t("deadlineLabel")}</span> {fmtDate(locale, d.evidence_due_by)}
                     </div>
                     {d.evidence_submitted_at && (
                       <div>
-                        <span className="text-gray-500">Submitted la:</span> {fmtDate(d.evidence_submitted_at)}
+                        <span className="text-gray-500">{t("submittedAtLabel")}</span> {fmtDate(locale, d.evidence_submitted_at)}
                       </div>
                     )}
                     <div>
-                      <span className="text-gray-500">Primul eveniment:</span> {fmtDate(d.created_at)}
+                      <span className="text-gray-500">{t("firstEventLabel")}</span> {fmtDate(locale, d.created_at)}
                     </div>
                   </div>
 
-                  {canRespond && <WinScorePanel score={score} />}
+                  {canRespond && <WinScorePanel score={score} t={t} tScore={tScore} />}
 
                   {canRespond ? (
                     <DisputeEvidenceForm
@@ -235,24 +238,27 @@ export default async function AdminDisputesPage({
   );
 }
 
-function WinBadge({ score }: { score: WinScore }) {
+type Translator = Awaited<ReturnType<typeof getTranslations>>;
+
+function WinBadge({ score, t, tScore }: { score: WinScore; t: Translator; tScore: Translator }) {
   const tone =
     score.label === "high"
       ? "bg-green-100 text-green-800"
       : score.label === "medium"
         ? "bg-amber-100 text-amber-900"
         : "bg-red-100 text-red-800";
+  const recommendation = tScore(score.recommendationKey);
   return (
     <span
-      title={`Win score: ${score.score}% — ${score.recommendation}`}
+      title={t("winScoreTitle", { score: score.score, recommendation })}
       className={`text-xs font-bold px-2 py-0.5 rounded ${tone}`}
     >
-      Win {score.score}%
+      {t("winBadge", { score: score.score })}
     </span>
   );
 }
 
-function WinScorePanel({ score }: { score: WinScore }) {
+function WinScorePanel({ score, t, tScore }: { score: WinScore; t: Translator; tScore: Translator }) {
   const barTone =
     score.label === "high"
       ? "bg-green-500"
@@ -265,9 +271,9 @@ function WinScorePanel({ score }: { score: WinScore }) {
     <div className="bg-white border border-[#E5E5E5] rounded p-3 space-y-2">
       <div className="flex items-center justify-between gap-3">
         <div className="font-semibold text-sm text-[#0D0D0D]">
-          Estimare șansă câștig
+          {t("winEstimateTitle")}
         </div>
-        <div className="text-xs text-gray-600">{score.recommendation}</div>
+        <div className="text-xs text-gray-600">{tScore(score.recommendationKey)}</div>
       </div>
       <div className="relative h-2 bg-gray-100 rounded overflow-hidden">
         <div className={`h-full ${barTone} transition-all`} style={{ width: `${score.score}%` }} />
@@ -279,14 +285,14 @@ function WinScorePanel({ score }: { score: WinScore }) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
         <div>
-          <div className="font-semibold text-green-700 mb-1">Avantaje ({positives.length})</div>
+          <div className="font-semibold text-green-700 mb-1">{t("advantages", { n: positives.length })}</div>
           {positives.length === 0 ? (
             <div className="text-gray-400">—</div>
           ) : (
             <ul className="space-y-0.5">
               {positives.map((f) => (
                 <li key={f.tag} className="flex justify-between gap-2">
-                  <span className="text-gray-700 truncate">{f.note}</span>
+                  <span className="text-gray-700 truncate">{tScore(f.noteKey, f.noteParams)}</span>
                   <span className="text-green-700 font-mono">+{f.delta}</span>
                 </li>
               ))}
@@ -294,14 +300,14 @@ function WinScorePanel({ score }: { score: WinScore }) {
           )}
         </div>
         <div>
-          <div className="font-semibold text-red-700 mb-1">Penalizări ({negatives.length})</div>
+          <div className="font-semibold text-red-700 mb-1">{t("penalties", { n: negatives.length })}</div>
           {negatives.length === 0 ? (
             <div className="text-gray-400">—</div>
           ) : (
             <ul className="space-y-0.5">
               {negatives.map((f) => (
                 <li key={f.tag} className="flex justify-between gap-2">
-                  <span className="text-gray-700 truncate">{f.note}</span>
+                  <span className="text-gray-700 truncate">{tScore(f.noteKey, f.noteParams)}</span>
                   <span className="text-red-700 font-mono">{f.delta}</span>
                 </li>
               ))}
@@ -313,7 +319,7 @@ function WinScorePanel({ score }: { score: WinScore }) {
       {score.missing.length > 0 && (
         <div className="border-t border-[#E5E5E5] pt-2 mt-1">
           <div className="font-semibold text-violet-800 text-xs mb-1 flex items-center gap-1">
-            <Zap size={14} /> Top {score.missing.length} câmpuri lipsă (sortate după impact)
+            <Zap size={14} /> {t("missingFieldsTitle", { n: score.missing.length })}
           </div>
           <ul className="space-y-1 text-xs">
             {score.missing.map((m) => (
@@ -322,7 +328,7 @@ function WinScorePanel({ score }: { score: WinScore }) {
                 className="flex items-center justify-between gap-2 bg-violet-50 px-2 py-1 rounded"
               >
                 <span className="text-gray-800 truncate" title={m.key}>
-                  {m.label}
+                  {tScore(m.labelKey)}
                 </span>
                 <span className="flex items-center gap-2 shrink-0">
                   <span className="text-violet-700 font-mono font-bold">+{m.potentialDelta}</span>
@@ -337,7 +343,7 @@ function WinScorePanel({ score }: { score: WinScore }) {
       {score.combos.length > 0 && (
         <div className="border-t border-[#E5E5E5] pt-2 mt-1">
           <div className="font-semibold text-emerald-800 text-xs mb-1 flex items-center gap-1">
-            <Target size={14} /> What-if combo (completare grupată)
+            <Target size={14} /> {t("comboTitle")}
           </div>
           <ul className="space-y-1 text-xs">
             {score.combos.map((c) => (
@@ -346,7 +352,7 @@ function WinScorePanel({ score }: { score: WinScore }) {
                 className="flex items-start justify-between gap-2 bg-emerald-50 px-2 py-1 rounded"
               >
                 <span className="text-gray-800 truncate">
-                  Top {c.size}: <span className="text-gray-600">{c.labels.join(" + ")}</span>
+                  {t("comboTop", { size: c.size, labels: c.labelKeys.map((k) => tScore(k)).join(" + ") })}
                 </span>
                 <span className="flex items-center gap-2 shrink-0">
                   <span className="text-emerald-700 font-mono font-bold">+{c.delta}</span>

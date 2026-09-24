@@ -1,4 +1,5 @@
 import { BarChart3, AlertTriangle, Info } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export type Metrics7d = {
   totalDecisions: number;
@@ -10,35 +11,36 @@ export type Metrics7d = {
   approveRate: number;
 };
 
-export function Metrics7dPanel({ metrics }: { metrics: Metrics7d }) {
+export async function Metrics7dPanel({ metrics }: { metrics: Metrics7d }) {
+  const t = await getTranslations("adminRisk");
   return (
     <div className="bg-white border border-[#E5E5E5] rounded p-3">
-      <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1"><BarChart3 size={14} /> Activitate ultimele 7 zile</div>
+      <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1"><BarChart3 size={14} /> {t("activityLast7Days")}</div>
       <div className="grid grid-cols-3 md:grid-cols-5 gap-3 text-center">
-        <Stat label="Comenzi flagged" value={metrics.flaggedOrders} />
+        <Stat label={t("flaggedOrders")} value={metrics.flaggedOrders} />
         <Stat
-          label="Aprobate"
+          label={t("approved")}
           value={metrics.approvals}
           pct={metrics.approveRate}
           tone="emerald"
         />
         <Stat
-          label="Blocate (manual)"
+          label={t("blockedManual")}
           value={metrics.blocks}
           pct={metrics.blockRate}
           tone="red"
         />
-        <Stat label="User auto-block" value={metrics.autoBlocks} tone="orange" />
-        <Stat label="Total decizii" value={metrics.totalDecisions} />
+        <Stat label={t("userAutoBlock")} value={metrics.autoBlocks} tone="orange" />
+        <Stat label={t("totalDecisions")} value={metrics.totalDecisions} />
       </div>
       {metrics.blockRate > 60 && metrics.totalDecisions >= 5 && (
         <div className="mt-2 text-[11px] bg-red-50 text-red-800 px-2 py-1 rounded flex items-center gap-1">
-          <AlertTriangle size={12} className="shrink-0" /> Rate de block ridicată ({metrics.blockRate}%) — verifică dacă weight-urile scoring nu produc false positives.
+          <AlertTriangle size={12} className="shrink-0" /> {t("highBlockRateWarning", { rate: metrics.blockRate })}
         </div>
       )}
       {metrics.approveRate > 80 && metrics.totalDecisions >= 5 && (
         <div className="mt-2 text-[11px] bg-amber-50 text-amber-800 px-2 py-1 rounded flex items-center gap-1">
-          <Info size={12} className="shrink-0" /> Rate de approve ridicată ({metrics.approveRate}%) — scoring poate fi prea agresiv, ridică pragul de review.
+          <Info size={12} className="shrink-0" /> {t("highApproveRateWarning", { rate: metrics.approveRate })}
         </div>
       )}
     </div>

@@ -5,6 +5,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { parseBody } from "@/lib/validation/schemas";
 import { dbQuery } from "@/lib/db";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { getArtistByUserId, listArtistsForAdmin, removeArtist, upsertArtist } from "@/lib/music/repository";
 import { slugifyMusic } from "@/lib/music/slug";
 
@@ -49,6 +50,7 @@ export const POST = withErrorHandling(async function POST(req: Request) {
         // Admin prin secret Bearer (fără sesiune) ⇒ approved_by rămâne NULL.
         approvedBy: auth.userId,
     });
+    await logAdminAction({ action: "music_artist.approve", targetType: "user", targetId: parsed.data.userId, details: { stageName: parsed.data.stageName }, req });
     return NextResponse.json({ artist }, { status: 201 });
 });
 
@@ -61,5 +63,6 @@ export const DELETE = withErrorHandling(async function DELETE(req: Request) {
     const parsed = parseBody(DeleteArtistSchema, await req.json().catch(() => null));
     if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
     await removeArtist(parsed.data.userId);
+    await logAdminAction({ action: "music_artist.remove", targetType: "user", targetId: parsed.data.userId, req });
     return new NextResponse(null, { status: 204 });
 });

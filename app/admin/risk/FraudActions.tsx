@@ -20,8 +20,8 @@ export function FraudActions({ orderId, blocked }: Props) {
     if (busy || pending) return;
     const reason = prompt(
       action === "approve"
-        ? "Motiv aprobare (ex: telefon confirmat, identitate verificată):"
-        : "Motiv blocare (ex: pattern fraudă suspectat):",
+        ? t("approveReasonPrompt")
+        : t("blockReasonPrompt"),
     );
     if (reason === null) return; // cancel
     setBusy(true);
@@ -33,12 +33,12 @@ export function FraudActions({ orderId, blocked }: Props) {
       });
       const data = await res.json();
       if (!res.ok || !data?.success) {
-        alert(`Eroare: ${data?.error || res.status}`);
+        alert(t("errorPrefix") + (data?.error || res.status));
         return;
       }
       startTransition(() => router.refresh());
-    } catch (e: any) {
-      alert(`Network error: ${e?.message}`);
+    } catch (e) {
+      alert(t("networkErrorPrefix") + (e instanceof Error ? e.message : ""));
     } finally {
       setBusy(false);
     }
@@ -54,7 +54,7 @@ export function FraudActions({ orderId, blocked }: Props) {
           disabled={disabled}
           className="text-xs px-2.5 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 font-semibold disabled:opacity-50"
         >
-          {disabled ? "..." : <span className="inline-flex items-center gap-1"><Check size={12} /> {t("approveUnblock")}</span>}
+          {disabled ? t("loading") : <span className="inline-flex items-center gap-1"><Check size={12} /> {t("approveUnblock")}</span>}
         </button>
       ) : (
         <button
@@ -63,7 +63,7 @@ export function FraudActions({ orderId, blocked }: Props) {
           disabled={disabled}
           className="text-xs px-2.5 py-1 rounded bg-red-600 text-white hover:bg-red-700 font-semibold disabled:opacity-50"
         >
-          {disabled ? "..." : <span className="inline-flex items-center gap-1"><Ban size={12} /> {t("blockManual")}</span>}
+          {disabled ? t("loading") : <span className="inline-flex items-center gap-1"><Ban size={12} /> {t("blockManual")}</span>}
         </button>
       )}
     </div>

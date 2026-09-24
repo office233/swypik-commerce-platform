@@ -28,22 +28,22 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
 
   // Opțiuni pe clip (proprietar): ștergere + comutare vizibilitate.
   const deleteVideo = useCallback(async (videoId: string) => {
-    if (!window.confirm("Ștergi definitiv acest clip?")) return;
+    if (!window.confirm(t("confirmDeleteVideo"))) return;
     setVideoBusy(videoId);
     try {
       const res = await fetch(`/api/creator/videos/${videoId}`, { method: "DELETE" });
       if (res.ok) {
         setVideos((prev) => prev.filter((v) => v.id !== videoId));
       } else {
-        window.alert("Nu am putut șterge clipul. Încearcă din nou.");
+        window.alert(t("deleteVideoFailed"));
       }
     } catch {
-      window.alert("Eroare de rețea. Încearcă din nou.");
+      window.alert(t("networkErrorRetry"));
     } finally {
       setVideoBusy(null);
       setVideoMenu(null);
     }
-  }, []);
+  }, [t]);
 
   const toggleVisibility = useCallback(async (videoId: string, current: string) => {
     const next = current === "public" ? "private" : "public";
@@ -57,15 +57,15 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       if (res.ok) {
         setVideos((prev) => prev.map((v) => (v.id === videoId ? { ...v, visibility: next } : v)));
       } else {
-        window.alert("Nu am putut schimba vizibilitatea.");
+        window.alert(t("visibilityChangeFailed"));
       }
     } catch {
-      window.alert("Eroare de rețea. Încearcă din nou.");
+      window.alert(t("networkErrorRetry"));
     } finally {
       setVideoBusy(null);
       setVideoMenu(null);
     }
-  }, []);
+  }, [t]);
 
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -215,7 +215,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               disabled={loginLoading || !email.trim()}
               className="w-full rounded-2xl bg-[#7C3AED] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50 transition active:scale-95"
             >
-              {loginLoading ? "Se încarcă..." : "Continuă"}
+              {loginLoading ? t("loadingEllipsis") : t("continue")}
             </button>
           </form>
         </div>
@@ -229,7 +229,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       <div className="min-h-screen bg-[#0D0D0D] text-white">
         <div className="max-w-sm mx-auto px-6 pt-24">
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-black mb-2">Verificare</h1>
+            <h1 className="text-4xl font-black mb-2">{t("verification")}</h1>
             <p className="text-white/60">{t("codulAFostTrimis")} <br /><b className="text-white">{email}</b></p>
           </div>
 
@@ -258,7 +258,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
               disabled={loginLoading || otp.length < 6}
               className="w-full rounded-2xl bg-[#7C3AED] hover:bg-[#E0264A] py-4 font-black text-white disabled:opacity-50 transition active:scale-95"
             >
-              {loginLoading ? "Verificăm..." : "Confirmă accesul"}
+              {loginLoading ? t("verifyingEllipsis") : t("confirmAccess")}
             </button>
           </form>
         </div>
@@ -272,7 +272,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
       {/* Top Navbar (NU mai e sticky — header se suprapunea peste avatar la scroll) */}
       <header className="relative z-10 bg-[#0D0D0D] border-b border-white/10 px-4 py-4 flex items-center justify-between">
         <div className="w-11" aria-hidden="true" />
-        <h1 className="text-lg font-black">{customer?.username || "Profil"}</h1>
+        <h1 className="text-lg font-black">{customer?.username || t("profileFallback")}</h1>
         <Link
           href="/account/settings"
           className="grid h-11 w-11 place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none"
@@ -289,13 +289,13 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
           <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#7C3AED] to-[#EC4899] p-1 mb-4">
             <div className="w-full h-full rounded-full bg-[#1A1A1A] flex items-center justify-center overflow-hidden border-2 border-[#0D0D0D]">
               {customer?.avatar_url ? (
-                <Image src={customer.avatar_url} alt="Avatar" width={96} height={96} className="w-full h-full object-cover" unoptimized />
+                <Image src={customer.avatar_url} alt={t("avatarAlt")} width={96} height={96} className="w-full h-full object-cover" unoptimized />
               ) : (
                 <User size={32} />
               )}
             </div>
           </div>
-          <h2 className="text-xl font-black">{customer?.display_name || "Creator Swypik"}</h2>
+          <h2 className="text-xl font-black">{customer?.display_name || t("defaultCreatorName")}</h2>
           <p className="text-sm text-white/60 mb-4">@{customer?.username || "user"}</p>
 
           <div className="flex items-center justify-center gap-8 w-full px-8 mb-6">
@@ -418,7 +418,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                   const inner = (
                     <>
                       {vid.thumbnail_url && (
-                        <Image src={vid.thumbnail_url} className={`w-full h-full object-cover ${!isReady ? "opacity-40" : ""}`} alt="Video" fill sizes="(max-width: 640px) 50vw, 33vw" unoptimized />
+                        <Image src={vid.thumbnail_url} className={`w-full h-full object-cover ${!isReady ? "opacity-40" : ""}`} alt={t("videoAlt")} fill sizes="(max-width: 640px) 50vw, 33vw" unoptimized />
                       )}
                       {!isReady && (
                         <span className={`absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${isFailed ? "bg-red-500/90 text-white" : "bg-amber-500/90 text-black"}`}>
@@ -437,7 +437,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                       </Link>
                       {/* Meniu opțiuni proprietar (ca pe TikTok/IG) */}
                       <button
-                        aria-label="Opțiuni clip"
+                        aria-label={t("videoOptions")}
                         onClick={(e) => { e.preventDefault(); setVideoMenu(videoMenu === vid.id ? null : vid.id); }}
                         className="absolute top-1 right-1 z-10 rounded-full bg-black/60 p-1.5 text-white opacity-80 hover:opacity-100"
                       >
@@ -451,7 +451,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                             className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
                           >
                             {vid.visibility === "public" ? <EyeOff size={13} /> : <Eye size={13} />}
-                            {vid.visibility === "public" ? "Fă privat" : "Fă public"}
+                            {vid.visibility === "public" ? t("makePrivate") : t("makePublic")}
                           </button>
                           <button
                             disabled={videoBusy === vid.id}
@@ -459,12 +459,12 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                             className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-40"
                           >
                             <Trash2 size={13} />
-                            Șterge clipul
+                            {t("deleteVideo")}
                           </button>
                         </div>
                       )}
                       {vid.visibility === "private" && (
-                        <span className="absolute bottom-1 right-1 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white/80">Privat</span>
+                        <span className="absolute bottom-1 right-1 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white/80">{t("private")}</span>
                       )}
                     </div>
                   ) : (
@@ -472,7 +472,7 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
                       {inner}
                       {/* Clipurile eșuate/în procesare pot fi șterse direct */}
                       <button
-                        aria-label="Șterge clipul"
+                        aria-label={t("deleteVideo")}
                         disabled={videoBusy === vid.id}
                         onClick={() => deleteVideo(vid.id)}
                         className="absolute top-1 right-1 z-10 rounded-full bg-black/60 p-1.5 text-red-400 opacity-80 hover:opacity-100 disabled:opacity-40"

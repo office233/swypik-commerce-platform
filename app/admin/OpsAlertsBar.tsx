@@ -4,6 +4,7 @@
  */
 import Link from "next/link";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 import { Shield, RotateCcw, Coins, AlertTriangle, ShieldAlert, Inbox, CheckCircle2 } from "lucide-react";
 
 type Counts = {
@@ -53,7 +54,7 @@ async function getCounts(): Promise<Counts> {
         + COALESCE((SELECT COUNT(*) FROM creator_applications WHERE status IN ('submitted','in_review')), 0)
       ) AS partner_apps_pending
   `);
-  const r = rows[0] || ({} as any);
+  const r = rows[0] || ({} as Partial<Record<keyof Counts, string>>);
   return {
     disputes_pending: Number(r.disputes_pending || 0),
     disputes_urgent: Number(r.disputes_urgent || 0),
@@ -81,6 +82,7 @@ function cardClasses(tone: Card["tone"]): string {
 }
 
 export default async function OpsAlertsBar() {
+  const t = await getTranslations("adminShell.opsAlerts");
   let counts: Counts;
   try {
     counts = await getCounts();
@@ -91,43 +93,43 @@ export default async function OpsAlertsBar() {
   const cards: Card[] = [
     {
       href: "/admin/aplicatii?f=pending",
-      label: "Aplicații",
+      label: t("applications"),
       count: counts.partner_apps_pending,
       Icon: Inbox,
       tone: counts.partner_apps_pending > 5 ? "danger" : counts.partner_apps_pending > 0 ? "warn" : "ok",
     },
     {
       href: "/admin/disputes?status=needs_response",
-      label: "Disputes",
+      label: t("disputes"),
       count: counts.disputes_pending,
       Icon: Shield,
-      badgeText: counts.disputes_urgent > 0 ? `${counts.disputes_urgent} <24h` : null,
+      badgeText: counts.disputes_urgent > 0 ? t("urgentBadge", { count: counts.disputes_urgent }) : null,
       tone: counts.disputes_urgent > 0 ? "danger" : counts.disputes_pending > 0 ? "warn" : "ok",
     },
     {
       href: "/admin/returns?status=requested",
-      label: "Returns",
+      label: t("returns"),
       count: counts.returns_pending,
       Icon: RotateCcw,
       tone: counts.returns_pending > 10 ? "danger" : counts.returns_pending > 0 ? "warn" : "ok",
     },
     {
       href: "/admin/refunds",
-      label: "Refunds",
+      label: t("refunds"),
       count: counts.refunds_pending,
       Icon: Coins,
       tone: counts.refunds_pending > 0 ? "warn" : "ok",
     },
     {
       href: "/admin/orders?status=pending_payment",
-      label: "Pending >24h",
+      label: t("pendingOver24h"),
       count: counts.stale_pending_orders,
       Icon: AlertTriangle,
       tone: counts.stale_pending_orders > 0 ? "warn" : "ok",
     },
     {
       href: "/admin/risk?status=paid&min=50",
-      label: "Risc fraudă",
+      label: t("fraudRisk"),
       count: counts.risky_orders_7d,
       Icon: ShieldAlert,
       tone: counts.risky_orders_7d > 3 ? "danger" : counts.risky_orders_7d > 0 ? "warn" : "ok",
@@ -138,7 +140,7 @@ export default async function OpsAlertsBar() {
   if (totalAlerts === 0) {
     return (
       <div className="mb-6 bg-green-50 border border-green-200 rounded-2xl p-3 text-sm text-green-800 flex items-center gap-1.5">
-        <CheckCircle2 size={16} /> Niciun alert operational. Toate cozile sunt curate.
+        <CheckCircle2 size={16} /> {t("allClear")}
       </div>
     );
   }
@@ -146,7 +148,7 @@ export default async function OpsAlertsBar() {
   return (
     <div className="mb-6">
       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-        Ops alerts
+        {t("title")}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         {cards.map((c) => (
@@ -156,13 +158,13 @@ export default async function OpsAlertsBar() {
             className={`block border rounded-2xl p-3 transition ${cardClasses(c.tone)}`}
           >
             <div className="flex items-center gap-2">
-              <c.Icon className="w-4 h-4" />
+              <c.Icon className="w-4 h-4 shrink-0" />
               <span className="text-xs font-semibold truncate">{c.label}</span>
             </div>
             <div className="mt-1 flex items-baseline justify-between gap-1">
               <span className="text-2xl font-black">{c.count}</span>
               {c.badgeText && (
-                <span className="text-[10px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded whitespace-nowrap">
                   {c.badgeText}
                 </span>
               )}

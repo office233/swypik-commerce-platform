@@ -1,5 +1,7 @@
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { generateAutonomousNewsArticle } from "./ai-journalist";
+import { countArticlesPublishedToday } from "./repository";
 
 export interface FeedTopic {
   title: string;
@@ -9,46 +11,29 @@ export interface FeedTopic {
   category: "tech-ai" | "crypto" | "gaming" | "business" | "science";
 }
 
-// Surse live RSS externe de calibru mondial
-const LIVE_RSS_SOURCES = [
-  {
-    category: "tech-ai" as const,
-    source: "TechCrunch",
-    feedUrl: "https://techcrunch.com/feed/",
-  },
-  {
-    category: "tech-ai" as const,
-    source: "Hacker News",
-    feedUrl: "https://news.ycombinator.com/rss",
-  },
-  {
-    category: "crypto" as const,
-    source: "CoinDesk",
-    feedUrl: "https://www.coindesk.com/arc/outboundfeeds/rss/",
-  },
-  {
-    category: "crypto" as const,
-    source: "CoinTelegraph",
-    feedUrl: "https://cointelegraph.com/rss",
-  },
-  {
-    category: "gaming" as const,
-    source: "IGN",
-    feedUrl: "https://feeds.feedburner.com/ign/all",
-  },
-  {
-    category: "business" as const,
-    source: "BBC Business",
-    feedUrl: "https://feeds.bbci.co.uk/news/business/rss.xml",
-  },
-  {
-    category: "science" as const,
-    source: "ScienceDaily",
-    feedUrl: "https://www.sciencedaily.com/rss/top/science.xml",
-  },
+const ALLOWED_CATEGORIES: FeedTopic["category"][] = ["tech-ai", "crypto", "gaming", "business", "science"];
+
+// Hard caps — LLM safety (env-configurable, sane defaults).
+const MAX_ARTICLES_PER_RUN = Number(process.env.NEWS_MAX_ARTICLES_PER_RUN) > 0
+  ? Math.trunc(Number(process.env.NEWS_MAX_ARTICLES_PER_RUN))
+  : 20;
+const MAX_ARTICLES_PER_DAY = Number(process.env.NEWS_MAX_ARTICLES_PER_DAY) > 0
+  ? Math.trunc(Number(process.env.NEWS_MAX_ARTICLES_PER_DAY))
+  : 60;
+
+// Fallback RSS list — only used when news_sources is empty (fresh install
+// before the seed data from the migration has been applied, or table wiped).
+const FALLBACK_RSS_SOURCES: { category: FeedTopic["category"]; source: string; feedUrl: string }[] = [
+  { category: "tech-ai", source: "TechCrunch", feedUrl: "https://techcrunch.com/feed/" },
+  { category: "tech-ai", source: "Hacker News", feedUrl: "https://news.ycombinator.com/rss" },
+  { category: "crypto", source: "CoinDesk", feedUrl: "https://www.coindesk.com/arc/outboundfeeds/rss/" },
+  { category: "crypto", source: "CoinTelegraph", feedUrl: "https://cointelegraph.com/rss" },
+  { category: "gaming", source: "IGN", feedUrl: "https://feeds.feedburner.com/ign/all" },
+  { category: "business", source: "BBC Business", feedUrl: "https://feeds.bbci.co.uk/news/business/rss.xml" },
+  { category: "science", source: "ScienceDaily", feedUrl: "https://www.sciencedaily.com/rss/top/science.xml" },
 ];
 
-// Subiecte verificate de înaltă rezoluție pentru fallback instant
+// Subiecte verificate de înaltă rezoluție pentru fallback instant (surse live indisponibile).
 const HIGH_IMPACT_TOPICS: FeedTopic[] = [
   {
     title: "Revoluție în AI: Noile modele multimodale autonome procesează video în timp real la 60 FPS",
@@ -116,7 +101,7 @@ const HIGH_IMPACT_TOPICS: FeedTopic[] = [
   {
     title: "Fuziunea nucleară controlată produce un surplus net de energie de 70% într-un reactor experimental european",
     source: "Nature Frontier",
-    summary: "Fizicienii au obținut o confinare magnetică stabilă timp de peste 10 minute, validândfezabilitatea comercială a centralelor cu plasmă.",
+    summary: "Fizicienii au obținut o confinare magnetică stabilă timp de peste 10 minute, validând fezabilitatea comercială a centralelor cu plasmă.",
     url: "https://nature.com/articles/fusion-net-energy-milestone",
     category: "science",
   },
@@ -183,19 +168,79 @@ function parseLiveRssItems(xmlText: string, category: FeedTopic["category"], sou
   return results;
 }
 
+interface ActiveSourceRow {
+  id: string;
+  name: string;
+  feed_url: string;
+  category_slug: string | null;
+}
+
+/** Reads enabled sources from news_sources; falls back to the hardcoded list only if the table is empty. */
+async function loadActiveSources(targetCategory?: string): Promise<{
+  id: string | null;
+  category: FeedTopic["category"];
+  source: string;
+  feedUrl: string;
+}[]> {
+  try {
+    const { rows } = await dbQuery<ActiveSourceRow>(
+      `SELECT s.id, s.name, s.feed_url, c.slug as category_slug
+       FROM news_sources s
+       LEFT JOIN news_categories c ON c.id = s.category_id
+       WHERE s.is_active = true
+       ORDER BY s.name ASC`
+    );
+
+    if (rows.length > 0) {
+      return rows
+        .map((r) => ({
+          id: r.id,
+          category: (ALLOWED_CATEGORIES.includes(r.category_slug as FeedTopic["category"])
+            ? (r.category_slug as FeedTopic["category"])
+            : "tech-ai") as FeedTopic["category"],
+          source: r.name,
+          feedUrl: r.feed_url,
+        }))
+        .filter((s) => !targetCategory || targetCategory === "all" || s.category === targetCategory);
+    }
+  } catch (err) {
+    logger.warn({ err }, "[news] failed to load news_sources, falling back to hardcoded list");
+  }
+
+  return FALLBACK_RSS_SOURCES
+    .filter((s) => !targetCategory || targetCategory === "all" || s.category === targetCategory)
+    .map((s) => ({ id: null, ...s }));
+}
+
+async function markSourceFetched(sourceId: string | null): Promise<void> {
+  if (!sourceId) return;
+  try {
+    await dbQuery(`UPDATE news_sources SET last_fetched_at = now() WHERE id = $1`, [sourceId]);
+  } catch (err) {
+    logger.warn({ err, sourceId }, "[news] failed to update news_sources.last_fetched_at");
+  }
+}
+
 export async function runNewsIngestionPipeline(
   targetCategory?: string
-): Promise<{ ingested: number; categoriesProcessed: string[] }> {
+): Promise<{ ingested: number; categoriesProcessed: string[]; capped: boolean }> {
   let count = 0;
   const processedCats = new Set<string>();
 
+  const alreadyToday = await countArticlesPublishedToday().catch(() => 0);
+  const remainingToday = Math.max(0, MAX_ARTICLES_PER_DAY - alreadyToday);
+  const runCap = Math.min(MAX_ARTICLES_PER_RUN, remainingToday);
+
+  if (runCap <= 0) {
+    logger.warn({ alreadyToday, MAX_ARTICLES_PER_DAY }, "[news] daily generation cap reached, skipping run");
+    return { ingested: 0, categoriesProcessed: [], capped: true };
+  }
+
+  const activeSources = await loadActiveSources(targetCategory);
+
   // Încercăm întâi să colectăm știri în timp real din feed-urile RSS live
   const liveTopics: FeedTopic[] = [];
-  const activeSources = targetCategory && targetCategory !== "all"
-    ? LIVE_RSS_SOURCES.filter((s) => s.category === targetCategory)
-    : LIVE_RSS_SOURCES;
-
-  for (const src of activeSources.slice(0, 4)) {
+  for (const src of activeSources.slice(0, 6)) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
@@ -209,9 +254,10 @@ export async function runNewsIngestionPipeline(
         const xml = await res.text();
         const parsed = parseLiveRssItems(xml, src.category, src.source);
         liveTopics.push(...parsed);
+        await markSourceFetched(src.id);
       }
-    } catch {
-      // Feed-ul live nu a răspuns rapid, fallback garantat
+    } catch (err) {
+      logger.debug({ err, feedUrl: src.feedUrl }, "[news] live feed unavailable, using curated fallback");
     }
   }
 
@@ -222,6 +268,8 @@ export async function runNewsIngestionPipeline(
     : pool;
 
   for (const topic of candidateTopics) {
+    if (count >= runCap) break;
+
     try {
       // 1. Verificăm dacă articolul există deja după URL
       const checkRes = await dbQuery(
@@ -232,9 +280,9 @@ export async function runNewsIngestionPipeline(
 
       // 2. Înregistrăm în news_raw_items
       await dbQuery(
-        `INSERT INTO news_raw_items (url, title, raw_content, author, published_at, is_processed)
-         VALUES ($1, $2, $3, $4, now(), true)`,
-        [topic.url, topic.title, topic.summary, topic.source]
+        `INSERT INTO news_raw_items (url, title, raw_content, author, published_at, is_processed, category_hint)
+         VALUES ($1, $2, $3, $4, now(), true, $5)`,
+        [topic.url, topic.title, topic.summary, topic.source, topic.category]
       );
 
       // 3. Jurnalistul AI de elită scrie articolul în limba română
@@ -296,13 +344,10 @@ export async function runNewsIngestionPipeline(
 
       processedCats.add(finalCategorySlug);
       count++;
-
-      // Limităm la max 5 articole per declanșare pentru viteză optimă
-      if (count >= 5) break;
     } catch (err) {
-      console.error("[News Ingest Error]", err);
+      logger.error({ err, topicUrl: topic.url }, "[news] ingestion error for topic");
     }
   }
 
-  return { ingested: count, categoriesProcessed: Array.from(processedCats) };
+  return { ingested: count, categoriesProcessed: Array.from(processedCats), capped: false };
 }

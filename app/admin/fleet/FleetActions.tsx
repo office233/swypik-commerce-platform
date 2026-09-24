@@ -26,11 +26,11 @@ export default function FleetActions({
 
     async function run(action: "approve" | "reject" | "suspend" | "reactivate" | "delete") {
         const labels: Record<string, string> = {
-            approve: "Aprobi această aplicație?",
-            reject: "Respingi această aplicație?",
-            suspend: "Suspenzi acest cont? Nu va mai primi curse.",
-            reactivate: "Reactivezi acest cont?",
-            delete: "ȘTERGI definitiv această înregistrare? Acțiunea nu poate fi anulată.",
+            approve: t("confirmApprove"),
+            reject: t("confirmReject"),
+            suspend: t("confirmSuspend"),
+            reactivate: t("confirmReactivate"),
+            delete: t("confirmDelete"),
         };
         if (!confirm(labels[action])) return;
         setLoading(action);
@@ -42,7 +42,7 @@ export default function FleetActions({
                 body: JSON.stringify({ action, fleet_partner_id: partnerId || undefined }),
             });
             if (res.ok) router.refresh();
-            else alert("Eroare la salvare.");
+            else alert(t("saveError"));
         } finally {
             setLoading(null);
         }
@@ -58,36 +58,36 @@ export default function FleetActions({
                             onChange={(e) => setPartnerId(e.target.value)}
                             className="rounded-lg border border-black/10 px-2 py-1.5 text-[12px] font-semibold"
                         >
-                            <option value="">Flota Swypik (direct)</option>
+                            <option value="">{t("directFleet")}</option>
                             {partners.map((p) => (
-                                <option key={p.id} value={p.id}>Franciza: {p.company_name}</option>
+                                <option key={p.id} value={p.id}>{t("franchisePrefix")} {p.company_name}</option>
                             ))}
                         </select>
                     )}
                     <button type="button" disabled={loading !== null} onClick={() => run("approve")} className={`${BTN} bg-green-600 text-white`}>
-                        {loading === "approve" ? "..." : "Aprobă"}
+                        {loading === "approve" ? "…" : t("approve")}
                     </button>
                     <button type="button" disabled={loading !== null} onClick={() => run("reject")} className={`${BTN} bg-red-500 text-white`}>
-                        {loading === "reject" ? "..." : "Respinge"}
+                        {loading === "reject" ? "…" : t("reject")}
                     </button>
                 </>
             )}
 
             {status === "approved" && active !== false && (
                 <button type="button" disabled={loading !== null} onClick={() => run("suspend")} className={`${BTN} bg-gray-200 text-gray-700`}>
-                    {loading === "suspend" ? "..." : "Suspendă"}
+                    {loading === "suspend" ? "…" : t("suspend")}
                 </button>
             )}
 
             {status === "approved" && active === false && (
                 <button type="button" disabled={loading !== null} onClick={() => run("reactivate")} className={`${BTN} bg-green-600 text-white`}>
-                    {loading === "reactivate" ? "..." : "Reactivează"}
+                    {loading === "reactivate" ? "…" : t("reactivate")}
                 </button>
             )}
 
             {status === "rejected" && (
                 <button type="button" disabled={loading !== null} onClick={() => run("approve")} className={`${BTN} bg-green-600 text-white`}>
-                    {loading === "approve" ? "..." : "Aprobă totuși"}
+                    {loading === "approve" ? "…" : t("approveAnyway")}
                 </button>
             )}
 
@@ -98,7 +98,7 @@ export default function FleetActions({
                 title={t("deleteForever")}
                 className={`${BTN} bg-white text-red-600 ring-1 ring-red-200 hover:bg-red-50`}
             >
-                {loading === "delete" ? "..." : "Șterge"}
+                {loading === "delete" ? "…" : t("delete")}
             </button>
         </div>
     );
@@ -106,16 +106,17 @@ export default function FleetActions({
 
 /** Acțiuni pe franciză: aprobă / respinge / suspendă / reactivează / șterge. */
 export function PartnerActions({ partnerId, status }: { partnerId: string; status: string }) {
+    const t = useTranslations("adminFleet");
     const router = useRouter();
     const [loading, setLoading] = useState<string | null>(null);
 
     async function run(action: "approve" | "reject" | "suspend" | "reactivate" | "delete") {
         const labels: Record<string, string> = {
-            approve: "Aprobi această franciză?",
-            reject: "Respingi această franciză?",
-            suspend: "Suspenzi această franciză?",
-            reactivate: "Reactivezi această franciză?",
-            delete: "ȘTERGI definitiv această franciză?",
+            approve: t("confirmApprovePartner"),
+            reject: t("confirmRejectPartner"),
+            suspend: t("confirmSuspendPartner"),
+            reactivate: t("confirmReactivatePartner"),
+            delete: t("confirmDeletePartner"),
         };
         if (!confirm(labels[action])) return;
         setLoading(action);
@@ -127,7 +128,7 @@ export function PartnerActions({ partnerId, status }: { partnerId: string; statu
                 body: JSON.stringify({ action }),
             });
             if (res.ok) router.refresh();
-            else alert("Eroare la salvare.");
+            else alert(t("saveError"));
         } finally {
             setLoading(null);
         }
@@ -138,25 +139,25 @@ export function PartnerActions({ partnerId, status }: { partnerId: string; statu
             {status === "pending" && (
                 <>
                     <button type="button" disabled={loading !== null} onClick={() => run("approve")} className={`${BTN} bg-green-600 text-white`}>
-                        {loading === "approve" ? "..." : "Aprobă"}
+                        {loading === "approve" ? "…" : t("approve")}
                     </button>
                     <button type="button" disabled={loading !== null} onClick={() => run("reject")} className={`${BTN} bg-red-500 text-white`}>
-                        {loading === "reject" ? "..." : "Respinge"}
+                        {loading === "reject" ? "…" : t("reject")}
                     </button>
                 </>
             )}
             {status === "active" && (
                 <button type="button" disabled={loading !== null} onClick={() => run("suspend")} className={`${BTN} bg-gray-200 text-gray-700`}>
-                    {loading === "suspend" ? "..." : "Suspendă"}
+                    {loading === "suspend" ? "…" : t("suspend")}
                 </button>
             )}
             {(status === "suspended" || status === "rejected") && (
                 <button type="button" disabled={loading !== null} onClick={() => run("reactivate")} className={`${BTN} bg-green-600 text-white`}>
-                    {loading === "reactivate" ? "..." : "Activează"}
+                    {loading === "reactivate" ? "…" : t("activate")}
                 </button>
             )}
             <button type="button" disabled={loading !== null} onClick={() => run("delete")} className={`${BTN} bg-white text-red-600 ring-1 ring-red-200 hover:bg-red-50`}>
-                {loading === "delete" ? "..." : "Șterge"}
+                {loading === "delete" ? "…" : t("delete")}
             </button>
         </div>
     );

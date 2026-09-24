@@ -9,13 +9,26 @@ type Params = { params: Promise<{ id: string; locale: string }> };
 
 const STATUS_KEYS = new Set(["pending", "paid", "ticketed", "failed", "cancelled"]);
 
+type FlightBookingRow = {
+    id: string;
+    status: string;
+    origin: string;
+    destination: string;
+    depart_date: string;
+    return_date: string | null;
+    booking_ref: string | null;
+    provider: string;
+    total_cents: number;
+    currency: string;
+};
+
 export default async function FlyBookingPage({ params }: Params) {
     const { id, locale } = await params;
     const t = await getTranslations("flyBooking");
     const user = await getAuthUser();
     if (!user.userId) redirect(`/account?redirect=/fly/bookings/${id}`);
 
-    const { rows } = await dbQuery<any>(
+    const { rows } = await dbQuery<FlightBookingRow>(
         `SELECT id::text, status, origin, destination, depart_date::text AS depart_date,
             return_date::text AS return_date, booking_ref, provider,
             total_cents::int8 AS total_cents, currency

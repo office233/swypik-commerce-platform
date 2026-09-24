@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Wallet, Clock, CheckCircle2, CalendarClock, ExternalLink, AlertTriangle } from "lucide-react";
 
 type SellerInfo = {
@@ -35,9 +35,9 @@ type TransferRow = {
   completed_at: string | null;
 };
 
-function fmt(cents: number, currency: string): string {
+function fmt(cents: number, currency: string, locale: string): string {
   try {
-    return new Intl.NumberFormat("ro-RO", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: (currency || "RON").toUpperCase(),
     }).format((cents || 0) / 100);
@@ -46,10 +46,10 @@ function fmt(cents: number, currency: string): string {
   }
 }
 
-function fmtDate(iso: string | null): string {
+function fmtDate(iso: string | null, locale: string): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", year: "numeric" });
+    return new Date(iso).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" });
   } catch {
     return "—";
   }
@@ -76,6 +76,7 @@ export default function PayoutsClient({
   nextPayoutIso: string;
 }) {
   const t = useTranslations("sellerPayouts");
+  const locale = useLocale();
   const STATUS_LABEL = useMemo<Record<string, string>>(() => ({
     pending: t("stPending"),
     submitted: t("stSubmitted"),
@@ -116,10 +117,10 @@ export default function PayoutsClient({
   }
 
   const kpis = [
-    { label: t("kpiSold"), value: fmt(summary.availableCents, summary.currency), icon: Wallet, accent: "text-green-700 bg-green-100" },
-    { label: t("kpiTranzit"), value: fmt(summary.pendingCents, summary.currency), icon: Clock, accent: "text-yellow-700 bg-yellow-100" },
-    { label: t("kpiPlatit90"), value: fmt(summary.paid90Cents, summary.currency), icon: CheckCircle2, accent: "text-blue-700 bg-blue-100" },
-    { label: t("kpiNextPayout"), value: fmtDate(nextPayoutIso), icon: CalendarClock, accent: "text-purple-700 bg-purple-100" },
+    { label: t("kpiSold"), value: fmt(summary.availableCents, summary.currency, locale), icon: Wallet, accent: "text-green-700 bg-green-100" },
+    { label: t("kpiTranzit"), value: fmt(summary.pendingCents, summary.currency, locale), icon: Clock, accent: "text-yellow-700 bg-yellow-100" },
+    { label: t("kpiPlatit90"), value: fmt(summary.paid90Cents, summary.currency, locale), icon: CheckCircle2, accent: "text-blue-700 bg-blue-100" },
+    { label: t("kpiNextPayout"), value: fmtDate(nextPayoutIso, locale), icon: CalendarClock, accent: "text-purple-700 bg-purple-100" },
   ];
 
   const onboardingIncomplete = !seller.payoutsEnabled || !seller.detailsSubmitted;
@@ -202,19 +203,19 @@ export default function PayoutsClient({
                 </tr>
               </thead>
               <tbody>
-                {transfers.map((t) => (
-                  <tr key={t.id} className="border-t border-[#E5E5E5]">
-                    <td className="px-4 py-3 text-[#0D0D0D]">{fmtDate(t.created_at)}</td>
+                {transfers.map((tr) => (
+                  <tr key={tr.id} className="border-t border-[#E5E5E5]">
+                    <td className="px-4 py-3 text-[#0D0D0D]">{fmtDate(tr.created_at, locale)}</td>
                     <td className="px-4 py-3 text-right font-bold text-[#0D0D0D]">
-                      {fmt(t.amount_cents, t.currency)}
+                      {fmt(tr.amount_cents, tr.currency, locale)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold ${STATUS_CLASS[t.status] || "bg-gray-100 text-gray-700"}`}>
-                        {STATUS_LABEL[t.status] || t.status}
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold ${STATUS_CLASS[tr.status] || "bg-gray-100 text-gray-700"}`}>
+                        {STATUS_LABEL[tr.status] || tr.status}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-[#6E6E80]">
-                      {t.provider_transfer_id || "—"}
+                      {tr.provider_transfer_id || "—"}
                     </td>
                   </tr>
                 ))}

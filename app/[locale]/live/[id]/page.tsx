@@ -1,8 +1,29 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { dbQuery } from "@/lib/db";
+import { getTranslations } from "next-intl/server";
 import LiveViewerClient from "./LiveViewerClient";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string; locale: string }>;
+}): Promise<Metadata> {
+  const { id, locale } = await params;
+  const t = await getTranslations({ locale, namespace: "liveViewer" });
+  try {
+    const { rows } = await dbQuery<{ title: string | null }>(
+      `SELECT title FROM live_streams WHERE id = $1 LIMIT 1`,
+      [id],
+    );
+    const title = rows[0]?.title;
+    return { title: title ? `${title} — Swypik Live` : t("metaTitleFallback") };
+  } catch {
+    return { title: t("metaTitleFallback") };
+  }
+}
 
 export default async function LiveViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

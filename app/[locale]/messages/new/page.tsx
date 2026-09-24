@@ -13,7 +13,7 @@ export default async function NewMessagePage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  if (!isEnabled("dm")) {
+  if (!isEnabled("dm") && !isEnabled("messenger")) {
     redirect("/inbox");
   }
 
@@ -37,7 +37,9 @@ export default async function NewMessagePage({
       session.userId,
       peerId,
     );
-    redirect(`/messages/${conversationId}`);
+    // Single messenger surface: [id] redirects into /messages with the
+    // conversation preselected instead of duplicating the chat UI.
+    redirect(isEnabled("messenger") ? `/messages?c=${conversationId}` : `/messages/${conversationId}`);
   } catch (err) {
     redirect("/inbox");
   }

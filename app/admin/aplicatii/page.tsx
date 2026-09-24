@@ -9,7 +9,7 @@
  *   - creatori (creator_applications)    → /admin/applications
  */
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Car, Bike, Building2, Store, Home, Clapperboard, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
@@ -27,14 +27,16 @@ type UnifiedApp = {
     created_at: string;
 };
 
-const SOURCE_META: Record<string, { label: string; Icon: LucideIcon; color: string; href: string }> = {
-    driver: { label: "Șofer Go", Icon: Car, color: "bg-amber-100 text-amber-700", href: "/admin/fleet" },
-    courier: { label: "Curier Food", Icon: Bike, color: "bg-green-100 text-green-700", href: "/admin/fleet" },
-    franchise: { label: "Franciză", Icon: Building2, color: "bg-purple-100 text-purple-700", href: "/admin/fleet" },
-    seller: { label: "Vânzător", Icon: Store, color: "bg-violet-100 text-violet-700", href: "/admin/sellers" },
-    host: { label: "Gazdă Stays", Icon: Home, color: "bg-teal-100 text-teal-700", href: "/admin/hosts" },
-    creator: { label: "Creator", Icon: Clapperboard, color: "bg-pink-100 text-pink-700", href: "/admin/applications" },
-    restaurant: { label: "Restaurant", Icon: UtensilsCrossed, color: "bg-orange-100 text-orange-700", href: "/admin/aplicatii" },
+type SourceMeta = { labelKey: string; Icon: LucideIcon; color: string; href: string };
+
+const SOURCE_META: Record<string, SourceMeta> = {
+    driver: { labelKey: "sourceDriver", Icon: Car, color: "bg-amber-100 text-amber-700", href: "/admin/fleet" },
+    courier: { labelKey: "sourceCourier", Icon: Bike, color: "bg-green-100 text-green-700", href: "/admin/fleet" },
+    franchise: { labelKey: "sourceFranchise", Icon: Building2, color: "bg-purple-100 text-purple-700", href: "/admin/fleet" },
+    seller: { labelKey: "sourceSeller", Icon: Store, color: "bg-violet-100 text-violet-700", href: "/admin/sellers" },
+    host: { labelKey: "sourceHost", Icon: Home, color: "bg-teal-100 text-teal-700", href: "/admin/hosts" },
+    creator: { labelKey: "sourceCreator", Icon: Clapperboard, color: "bg-pink-100 text-pink-700", href: "/admin/applications" },
+    restaurant: { labelKey: "sourceRestaurant", Icon: UtensilsCrossed, color: "bg-orange-100 text-orange-700", href: "/admin/aplicatii" },
 };
 
 const PENDING_STATUSES = new Set(["pending", "submitted", "in_review", "needs_info"]);
@@ -50,9 +52,9 @@ const STATUS_BADGE: Record<string, string> = {
     suspended: "bg-gray-200 text-gray-600",
 };
 
-function fmt(d: string): string {
+function fmt(d: string, locale: string): string {
     try {
-        return new Date(d).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+        return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(d));
     } catch { return "-"; }
 }
 
@@ -103,7 +105,18 @@ export default async function AdminAplicatiiPage({
     searchParams: Promise<{ f?: string }>;
 }) {
     const t = await getTranslations("adminApplications");
+    const locale = await getLocale();
     await requireAdminSession();
+    const STATUS_LABELS: Record<string, string> = {
+        pending: t("statusPending"),
+        submitted: t("statusSubmitted"),
+        in_review: t("statusInReview"),
+        needs_info: t("statusNeedsInfo"),
+        approved: t("statusApproved"),
+        active: t("statusActive"),
+        rejected: t("statusRejected"),
+        suspended: t("statusSuspended"),
+    };
     const { f } = await searchParams;
     const all = await loadAll();
     const pendingCount = all.filter((a) => PENDING_STATUSES.has(a.status)).length;
@@ -115,7 +128,7 @@ export default async function AdminAplicatiiPage({
                 <h1 className="text-2xl font-black text-[#0D0D0D]">{t("partnersTitle")}</h1>
                 {pendingCount > 0 && (
                     <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-700">
-                        {pendingCount} în așteptare
+                        {t("pendingCount", { count: pendingCount })}
                     </span>
                 )}
                 <div className="ml-auto flex gap-2">
@@ -123,13 +136,13 @@ export default async function AdminAplicatiiPage({
                         href="/admin/aplicatii"
                         className={`rounded-full px-4 py-1.5 text-[13px] font-bold ${!f ? "bg-black text-white" : "bg-gray-100 text-gray-600"}`}
                     >
-                        Toate ({all.length})
+                        {t("allCount", { count: all.length })}
                     </Link>
                     <Link
                         href="/admin/aplicatii?f=pending"
                         className={`rounded-full px-4 py-1.5 text-[13px] font-bold ${f === "pending" ? "bg-black text-white" : "bg-gray-100 text-gray-600"}`}
                     >
-                        În așteptare ({pendingCount})
+                        {t("pendingCount", { count: pendingCount })}
                     </Link>
                 </div>
             </div>
@@ -138,11 +151,11 @@ export default async function AdminAplicatiiPage({
                 <table className="w-full text-left text-[13px]">
                     <thead className="border-b border-black/10 text-[11px] uppercase tracking-wide text-[#6E6E80]">
                         <tr>
-                            <th className="px-4 py-3">Tip</th>
-                            <th className="px-4 py-3">Nume</th>
-                            <th className="px-4 py-3">Detalii</th>
+                            <th className="px-4 py-3">{t("thType")}</th>
+                            <th className="px-4 py-3">{t("thName")}</th>
+                            <th className="px-4 py-3">{t("thDetails")}</th>
                             <th className="px-4 py-3">{t("thCity")}</th>
-                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">{t("thStatus")}</th>
                             <th className="px-4 py-3">{t("thReceived")}</th>
                             <th className="px-4 py-3" />
                         </tr>
@@ -154,7 +167,7 @@ export default async function AdminAplicatiiPage({
                                 <tr key={`${a.source}-${a.id}`} className="border-b border-black/5 last:border-0 hover:bg-gray-50/50">
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${meta.color}`}>
-                                            <meta.Icon size={12} /> {meta.label}
+                                            <meta.Icon size={12} /> {t(meta.labelKey)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 font-bold">{a.name}</td>
@@ -162,16 +175,16 @@ export default async function AdminAplicatiiPage({
                                     <td className="px-4 py-3">{a.city ?? "—"}</td>
                                     <td className="px-4 py-3">
                                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_BADGE[a.status] ?? "bg-gray-100 text-gray-600"}`}>
-                                            {a.status}
+                                            {STATUS_LABELS[a.status] ?? a.status}
                                         </span>
                                     </td>
-                                    <td className="whitespace-nowrap px-4 py-3 text-[#6E6E80]">{fmt(a.created_at)}</td>
+                                    <td className="whitespace-nowrap px-4 py-3 text-[#6E6E80]">{fmt(a.created_at, locale)}</td>
                                     <td className="px-4 py-3">
                                         {a.source === "restaurant" ? (
                                             a.status === "pending" ? <MerchantActions merchantId={a.id} /> : <span className="text-[#A1A1AA]">—</span>
                                         ) : (
                                             <Link href={meta.href} className="font-bold text-violet-600 hover:underline">
-                                                Procesează →
+                                                {t("process")} &rarr;
                                             </Link>
                                         )}
                                     </td>
@@ -181,7 +194,7 @@ export default async function AdminAplicatiiPage({
                         {items.length === 0 && (
                             <tr>
                                 <td colSpan={7} className="px-4 py-10 text-center text-[#A1A1AA]">
-                                    Nicio aplicație {f === "pending" ? "în așteptare" : "încă"}. Cererile noi apar aici automat.
+                                    {f === "pending" ? t("noApplicationsPending") : t("noApplicationsYet")}
                                 </td>
                             </tr>
                         )}

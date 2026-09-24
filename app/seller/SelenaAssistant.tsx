@@ -1,33 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, X, Send, Bot, MessageSquare } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Sparkles, X, Send, Bot } from "lucide-react";
 
 type Task = "chat" | "product_description" | "price_suggestion" | "customer_reply";
-
-const TASKS: Array<{ id: Task; label: string; placeholder: string }> = [
-  { id: "chat", label: "Întrebare ERP", placeholder: "Întreabă-mă orice despre vânzări, produse sau clienți..." },
-  { id: "product_description", label: "Descriere virală", placeholder: "Ex: Suport auto MagSafe 15W, prindere automată, încărcare rapidă" },
-  { id: "price_suggestion", label: "Calcul preț & adaos", placeholder: "Ex: Cost achiziție 30 lei, doresc profit 40% și comision Swypik" },
-  { id: "customer_reply", label: "Răspuns client", placeholder: "Lipește aici mesajul primit de la client..." },
-];
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 export default function SelenaAssistant() {
+  const t = useTranslations("sellerGrowthSelena");
+  const TASKS: Array<{ id: Task; label: string; placeholder: string }> = [
+    { id: "chat", label: t("taskChatLabel"), placeholder: t("taskChatPlaceholder") },
+    { id: "product_description", label: t("taskDescriptionLabel"), placeholder: t("taskDescriptionPlaceholder") },
+    { id: "price_suggestion", label: t("taskPriceLabel"), placeholder: t("taskPricePlaceholder") },
+    { id: "customer_reply", label: t("taskReplyLabel"), placeholder: t("taskReplyPlaceholder") },
+  ];
   const [open, setOpen] = useState(false);
   const [task, setTask] = useState<Task>("chat");
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
-      content: "Bună! Sunt Ily (Intelligent Logistics & Yield), copilotul tău AI pentru afacerea ta. Cu ce te pot ajuta azi? (Descrieri virale, calcul de prețuri & marjă de profit, comenzi sau gestiune)",
+      content: t("welcomeMessage"),
     },
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const active = TASKS.find((t) => t.id === task) ?? TASKS[0];
+  const active = TASKS.find((tk) => tk.id === task) ?? TASKS[0];
 
   const handleSend = async () => {
     const text = input.trim();
@@ -46,20 +47,20 @@ export default function SelenaAssistant() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) {
         // Fallback friendly AI responses if the AI backend proxy is offline
-        let fallbackReply = "Am analizat solicitarea ta: ";
+        let fallbackReply: string;
         if (task === "product_description") {
-          fallbackReply = `✨ **Descriere Recomandată de Ily:**\n\n🔥 **${text}** — Calitate superioară la cel mai bun preț din România!\n\n✅ Beneficii principale:\n• Materiale durabile & finisaj premium\n• Testat și garantat 100%\n• Livrare ultra-rapidă în 24-48h prin Sameday Easybox\n\n📦 *Stoc limitat! Comandă acum direct din feed-ul Swypik!*`;
+          fallbackReply = t("fallbackDescription", { text });
         } else if (task === "price_suggestion") {
-          fallbackReply = `💡 **Calcul Recomandat de Ily:**\n• Pentru produsul tău, recomandăm un preț de vânzare de **59.90 - 79.90 lei**.\n• Cu comisionul Swypik de 7%, marja ta netă de profit rămâne optimă și atractivă pentru cumpărători.`;
+          fallbackReply = t("fallbackPrice");
         } else {
-          fallbackReply = `Ily AI a analizat: "${text}". Recomandăm verificarea comenzilor care necesită AWB și a stocului critic din magazin!`;
+          fallbackReply = t("fallbackChat", { text });
         }
         setMessages((prev) => [...prev, { role: "assistant", content: json.answer || fallbackReply }]);
         return;
       }
       setMessages((prev) => [...prev, { role: "assistant", content: String(json.answer || "") }]);
     } catch {
-      setError("Eroare de conexiune. Încearcă din nou.");
+      setError(t("connectionError"));
     } finally {
       setLoading(false);
     }
@@ -73,10 +74,11 @@ export default function SelenaAssistant() {
           type="button"
           onClick={() => setOpen(true)}
           className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-black text-xs shadow-2xl transition-all transform hover:scale-105 active:scale-95"
-          title="Deschide Ily AI (Intelligent Logistics & Yield)"
+          title={t("openTitle")}
+          aria-label={t("openTitle")}
         >
           <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-          <span>Ily AI Copilot</span>
+          <span>{t("copilotName")}</span>
         </button>
       )}
 
@@ -91,15 +93,16 @@ export default function SelenaAssistant() {
               </div>
               <div>
                 <h3 className="font-black text-sm leading-tight flex items-center gap-1.5">
-                  Ily AI <span className="text-[9px] px-1.5 py-0.2 bg-amber-400 text-black font-black rounded uppercase">Copilot</span>
+                  Ily AI <span className="text-[9px] px-1.5 py-0.2 bg-amber-400 text-black font-black rounded uppercase">{t("copilotTag")}</span>
                 </h3>
-                <p className="text-[10px] text-violet-200 font-medium">Intelligent Logistics & Yield</p>
+                <p className="text-[10px] text-violet-200 font-medium">{t("fullName")}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
+              aria-label={t("closeLabel")}
             >
               <X size={16} />
             </button>
@@ -135,7 +138,7 @@ export default function SelenaAssistant() {
                 }`}
               >
                 <div className="font-bold text-[10px] opacity-70 mb-1 flex items-center gap-1">
-                  {m.role === "user" ? "Tu" : "Ily AI"}
+                  {m.role === "user" ? t("youLabel") : "Ily AI"}
                 </div>
                 {m.content}
               </div>
@@ -144,7 +147,7 @@ export default function SelenaAssistant() {
             {loading && (
               <div className="p-3 bg-violet-50 rounded-2xl mr-6 border border-violet-100 text-xs text-violet-700 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 animate-spin" />
-                Ily gândește răspunsul...
+                {t("thinking")}
               </div>
             )}
             {error && <div className="text-xs text-red-600 px-2">{error}</div>}
@@ -170,12 +173,13 @@ export default function SelenaAssistant() {
                 type="button"
                 onClick={handleSend}
                 disabled={loading || !input.trim()}
+                aria-label={t("sendLabel")}
                 className="absolute right-2.5 bottom-2.5 w-7 h-7 rounded-lg bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition disabled:opacity-40"
               >
                 <Send size={13} />
               </button>
             </div>
-            <p className="text-[10px] text-neutral-400 text-center">Apasă Enter pentru a trimite</p>
+            <p className="text-[10px] text-neutral-400 text-center">{t("enterHint")}</p>
           </div>
         </div>
       )}

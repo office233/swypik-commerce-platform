@@ -8,8 +8,6 @@ import { MOVIES_CATALOG_PAGE_SIZE } from "@/lib/movies/config";
 import { listPublishedSeries, listContinueWatching } from "@/lib/movies/repository";
 import { toSeriesDto } from "@/lib/movies/dto";
 import { MOVIE_GENRES } from "@/lib/movies/genres";
-import { getTrendingMovies } from "@/lib/movies/tmdb";
-import type { SeriesDto } from "@/lib/movies/types";
 
 export const dynamic = "force-dynamic";
 
@@ -36,30 +34,7 @@ export const GET = withErrorHandling(async function GET(req: Request) {
     const series = await listPublishedSeries({ genre, sort, limit: MOVIES_CATALOG_PAGE_SIZE, offset: page * MOVIES_CATALOG_PAGE_SIZE, includeAdult });
     const continueWatching = user.userId ? await listContinueWatching(user.userId, CONTINUE_WATCHING_LIMIT) : [];
 
-    const dbItems = series.map((s) => toSeriesDto(s, s.episode_count, s.owner_name));
-
-    // TMDB movies
-    const tmdbMovies = await getTrendingMovies();
-    const tmdbSeries: SeriesDto[] = tmdbMovies.map((m) => ({
-        id: m.id,
-        slug: m.id,
-        title: m.title,
-        synopsis: m.overview,
-        genres: m.genres,
-        coverUrl: m.backdropUrl,
-        posterUrl: m.posterUrl,
-        trailerVideoId: m.trailerYoutubeKey || null,
-        freeEpisodes: 1,
-        episodePriceUnits: 0,
-        seasonPriceUnits: 0,
-        seasonDiscountPct: 0,
-        isAdult: false,
-        episodeCount: 1,
-        owner: { id: "swypik-cinema", name: "Cinema 4K", isOfficial: true },
-    }));
-
-    const matchingTmdb = genre ? tmdbSeries.filter((s) => s.genres.includes(genre)) : tmdbSeries;
-    const items = page === 0 ? [...dbItems, ...matchingTmdb] : dbItems;
+    const items = series.map((s) => toSeriesDto(s, s.episode_count, s.owner_name));
 
     return NextResponse.json({
         items,

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { formatMoneyCents } from "@/lib/i18n/currency";
+import type { Locale } from "@/lib/i18n/config";
+import { logger } from "@/lib/logger";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -114,7 +116,10 @@ function WalletIcon() {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const formatLei = (cents: number) => formatMoneyCents(cents, "RON");
+function useFormatLei() {
+  const locale = useLocale() as Locale;
+  return (cents: number) => formatMoneyCents(cents, "RON", locale);
+}
 
 // ─── Skeleton loader ────────────────────────────────────────────────────────
 
@@ -134,6 +139,7 @@ function MetricCardSkeleton() {
 
 export default function CreatorEarningsPage() {
   const t = useTranslations("creatorEarnings");
+  const formatLei = useFormatLei();
   const [data, setData] = useState<EarningsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +155,7 @@ export default function CreatorEarningsPage() {
         const json: EarningsData = await res.json();
         setData(json);
       } catch (err: any) {
-        console.error("Failed to load earnings:", err);
+        logger.error({ err }, "[CreatorEarningsPage] Failed to load earnings");
         setError(err.message || t("errIncarcare"));
       } finally {
         setLoading(false);

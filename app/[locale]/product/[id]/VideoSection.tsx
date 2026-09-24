@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { Clapperboard, Eye, Video as VideoIcon, X } from "lucide-react";
 
 /* ───── Types ───── */
@@ -34,8 +35,13 @@ function formatDuration(seconds: number): string {
 
 /* ───── Component ───── */
 export default function VideoSection({ productId }: { productId: string }) {
+  const t = useTranslations("product");
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
+  // Thumbnail URLs stored in the DB can go stale (expired signed URL, deleted
+  // asset) — without this, a broken <Image> renders nothing, leaving a plain
+  // black tile behind the play button (audit 2026-09-24 visual regression).
+  const [brokenThumbs, setBrokenThumbs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!productId) return;
@@ -76,7 +82,7 @@ export default function VideoSection({ productId }: { productId: string }) {
             paddingLeft: 16,
           }}
         >
-          <VideoIcon size={13} style={{ marginRight: 6, verticalAlign: "middle" }} /> Clipuri cu acest produs
+          <VideoIcon size={13} style={{ marginRight: 6, verticalAlign: "middle" }} /> {t("clipsWithThisProduct")}
         </h2>
 
         {/* Horizontal Scroll Container */}
@@ -130,13 +136,14 @@ export default function VideoSection({ productId }: { productId: string }) {
                   background: "#0D0D1A",
                 }}
               >
-                {video.thumbnailUrl ? (
+                {video.thumbnailUrl && !brokenThumbs[video.id] ? (
                   <Image
                     src={video.thumbnailUrl}
                     alt={video.title}
                     fill
                     sizes="135px"
                     className="object-cover"
+                    onError={() => setBrokenThumbs((prev) => ({ ...prev, [video.id]: true }))}
                   />
                 ) : (
                   <div

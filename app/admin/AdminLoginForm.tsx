@@ -1,12 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 type AdminLoginFormProps = {
   mode: "login" | "misconfigured";
 };
 
+const ERROR_MESSAGES: Record<string, string> = {
+  "Admin password is required.": "passwordRequired",
+  "Incorrect admin password.": "incorrectPassword",
+  "Too many login attempts. Please wait.": "tooManyAttempts",
+  "ADMIN_SECRET is not configured.": "misconfiguredTitle",
+  "Login failed.": "loginFailed",
+};
+
 export default function AdminLoginForm({ mode }: AdminLoginFormProps) {
+  const t = useTranslations("adminLogin");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,13 +39,14 @@ export default function AdminLoginForm({ mode }: AdminLoginFormProps) {
 
       const payload = await response.json();
       if (!response.ok || !payload.success) {
-        setError(payload.error || "Authentication failed.");
+        const key = ERROR_MESSAGES[payload.error as string];
+        setError(key ? t(key) : t("authFailed"));
         return;
       }
 
       window.location.reload();
     } catch {
-      setError("Could not reach the admin login endpoint.");
+      setError(t("unreachable"));
     } finally {
       setLoading(false);
     }
@@ -48,9 +59,7 @@ export default function AdminLoginForm({ mode }: AdminLoginFormProps) {
           <div className="mb-8">
             <h1 className="text-2xl font-black text-[#0D0D0D]">Swypik Admin</h1>
             <p className="text-sm text-[#6E6E80] mt-2">
-              {mode === "misconfigured"
-                ? "ADMIN_SECRET is missing. Configure it before using the admin surface."
-                : "Sign in with the admin password to manage orders, marketplace products, and sellers."}
+              {mode === "misconfigured" ? t("misconfiguredBody") : t("signInBody")}
             </p>
           </div>
 
@@ -58,14 +67,14 @@ export default function AdminLoginForm({ mode }: AdminLoginFormProps) {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label htmlFor="admin-password" className="block text-sm font-bold text-[#0D0D0D] mb-2">
-                  Admin password
+                  {t("passwordLabel")}
                 </label>
                 <input
                   id="admin-password"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Enter admin password"
+                  placeholder={t("passwordPlaceholder")}
                   autoFocus
                   className="w-full rounded-xl border border-[#E5E5E5] px-4 py-3.5 text-sm font-medium text-[#0D0D0D] outline-none focus:border-[#0D0D0D] focus:ring-1 focus:ring-[#0D0D0D] transition"
                 />
@@ -76,12 +85,12 @@ export default function AdminLoginForm({ mode }: AdminLoginFormProps) {
                 disabled={loading || !password.trim()}
                 className="w-full rounded-xl bg-[#0D0D0D] py-3.5 text-sm font-bold text-white disabled:opacity-50 transition-transform active:scale-[0.98]"
               >
-                {loading ? "Signing in..." : "Enter admin"}
+                {loading ? t("signingIn") : t("enterAdmin")}
               </button>
             </form>
           ) : (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Set `ADMIN_SECRET` in the environment and reload the page.
+              {t("misconfiguredHint")}
             </div>
           )}
         </div>

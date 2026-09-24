@@ -2,6 +2,7 @@
  * Admin Reviews — moderare recenzii produs
  */
 import { dbQuery } from "@/lib/db";
+import { getTranslations, getLocale } from "next-intl/server";
 import Link from "next/link";
 import { Star, ExternalLink, ShieldCheck } from "lucide-react";
 import ReviewActions from "./ReviewActions";
@@ -80,17 +81,17 @@ async function getReviews(params: SearchParams): Promise<{ rows: Row[]; total: n
   return { rows, total, page };
 }
 
-function fmtDate(s: string): string {
+function fmtDate(s: string, locale: string): string {
   try {
-    return new Date(s).toLocaleString("ro-RO", { dateStyle: "short", timeStyle: "short" });
+    return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(s));
   } catch {
     return s;
   }
 }
 
-function StarRow({ n }: { n: number }) {
+function StarRow({ n, starsLabel }: { n: number; starsLabel: string }) {
   return (
-    <div className="inline-flex items-center gap-0.5" aria-label={`${n} stele`}>
+    <div className="inline-flex items-center gap-0.5" aria-label={starsLabel}>
       {[1, 2, 3, 4, 5].map((i) => (
         <Star
           key={i}
@@ -107,6 +108,8 @@ export default async function AdminReviewsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const t = await getTranslations("adminReviews");
+  const locale = await getLocale();
   const sp = await searchParams;
   const { rows, total, page } = await getReviews(sp);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -122,46 +125,46 @@ export default async function AdminReviewsPage({
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-black mb-1">Recenzii produse</h1>
+      <h1 className="text-2xl font-black mb-1">{t("pageTitle")}</h1>
       <p className="text-sm text-gray-600 mb-4">
-        {total.toLocaleString("ro-RO")} recenzii. Pagina {page} din {totalPages}.
+        {t("summaryLine", { total: new Intl.NumberFormat(locale).format(total), page, totalPages })}
       </p>
 
       <form method="GET" className="flex flex-wrap gap-2 mb-6 items-end">
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Rating</label>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">{t("ratingLabel")}</label>
           <select
             name="rating"
             defaultValue={sp.rating || ""}
             className="border rounded px-2 py-1.5 text-sm"
           >
-            <option value="">Toate</option>
+            <option value="">{t("all")}</option>
             {[5, 4, 3, 2, 1].map((r) => (
               <option key={r} value={r}>
-                {r} stele
+                {t("starsCount", { count: r })}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Status</label>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">{t("statusLabel")}</label>
           <select
             name="status"
             defaultValue={sp.status || ""}
             className="border rounded px-2 py-1.5 text-sm"
           >
-            <option value="">Toate</option>
-            <option value="visible">Vizibile</option>
-            <option value="hidden">Ascunse</option>
+            <option value="">{t("all")}</option>
+            <option value="visible">{t("visible")}</option>
+            <option value="hidden">{t("hidden")}</option>
           </select>
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Cauta</label>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">{t("searchLabel")}</label>
           <input
             type="text"
             name="q"
             defaultValue={sp.q || ""}
-            placeholder="Continut recenzie..."
+            placeholder={t("searchPlaceholder")}
             className="w-full border rounded px-2 py-1.5 text-sm"
           />
         </div>
@@ -169,13 +172,13 @@ export default async function AdminReviewsPage({
           type="submit"
           className="px-4 py-1.5 bg-black text-white rounded text-sm font-semibold hover:bg-gray-800"
         >
-          Filtreaza
+          {t("filterBtn")}
         </button>
         <Link
           href="/admin/reviews"
           className="px-4 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50"
         >
-          Reset
+          {t("reset")}
         </Link>
       </form>
 
@@ -183,20 +186,20 @@ export default async function AdminReviewsPage({
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-600">
             <tr>
-              <th className="px-3 py-2">Rating</th>
-              <th className="px-3 py-2">Recenzie</th>
-              <th className="px-3 py-2">Autor</th>
-              <th className="px-3 py-2">Produs</th>
-              <th className="px-3 py-2">Helpful</th>
-              <th className="px-3 py-2">Data</th>
-              <th className="px-3 py-2">Actiuni</th>
+              <th className="px-3 py-2">{t("thRating")}</th>
+              <th className="px-3 py-2">{t("thReview")}</th>
+              <th className="px-3 py-2">{t("thAuthor")}</th>
+              <th className="px-3 py-2">{t("thProduct")}</th>
+              <th className="px-3 py-2">{t("thHelpful")}</th>
+              <th className="px-3 py-2">{t("thDate")}</th>
+              <th className="px-3 py-2">{t("thActions")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
-                  Nicio recenzie.
+                  {t("noReviews")}
                 </td>
               </tr>
             )}
@@ -206,21 +209,21 @@ export default async function AdminReviewsPage({
                 className={`border-t border-gray-100 ${r.is_hidden ? "bg-yellow-50" : ""}`}
               >
                 <td className="px-3 py-2 align-top">
-                  <StarRow n={r.rating} />
+                  <StarRow n={r.rating} starsLabel={t("starsCount", { count: r.rating })} />
                 </td>
                 <td className="px-3 py-2 align-top max-w-md">
                   {r.title && <div className="font-semibold text-xs mb-0.5">{r.title}</div>}
                   <div className="text-xs text-gray-700 line-clamp-3">
-                    {r.body || <span className="italic text-gray-400">(fara text)</span>}
+                    {r.body || <span className="italic text-gray-400">{t("noText")}</span>}
                   </div>
                   {r.is_verified_purchase && (
                     <div className="inline-flex items-center gap-1 mt-1 text-[10px] text-green-700">
-                      <ShieldCheck size={10} /> Achizitie verificata
+                      <ShieldCheck size={10} /> {t("verifiedPurchase")}
                     </div>
                   )}
                   {r.is_hidden && (
                     <div className="mt-1 text-[10px] font-bold text-yellow-700 uppercase">
-                      Ascuns
+                      {t("hidden")}
                     </div>
                   )}
                 </td>
@@ -256,7 +259,7 @@ export default async function AdminReviewsPage({
                 </td>
                 <td className="px-3 py-2 align-top text-xs">{r.helpful_count}</td>
                 <td className="px-3 py-2 align-top text-xs whitespace-nowrap">
-                  {fmtDate(r.created_at)}
+                  {fmtDate(r.created_at, locale)}
                 </td>
                 <td className="px-3 py-2 align-top">
                   <ReviewActions reviewId={r.id} isHidden={r.is_hidden} />
@@ -274,7 +277,7 @@ export default async function AdminReviewsPage({
               href={pageHref(page - 1)}
               className="px-3 py-1 border rounded text-sm hover:bg-gray-50"
             >
-              Anterior
+              {t("previous")}
             </Link>
           )}
           <span className="text-sm text-gray-600">
@@ -285,7 +288,7 @@ export default async function AdminReviewsPage({
               href={pageHref(page + 1)}
               className="px-3 py-1 border rounded text-sm hover:bg-gray-50"
             >
-              Urmator
+              {t("next")}
             </Link>
           )}
         </div>

@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/security/admin-auth";
 import ProductEditorForm from "../ProductEditorForm";
 import { createMarketplaceProduct } from "../actions";
 
@@ -8,6 +9,7 @@ type NewMarketplaceProductPageProps = {
 };
 
 export default async function NewMarketplaceProductPage({ searchParams }: NewMarketplaceProductPageProps) {
+  await requireAdminSession();
   const sp = searchParams ? await searchParams : undefined;
   const notice = sp?.error
     ? { type: "error" as const, message: decodeURIComponent(sp.error) }

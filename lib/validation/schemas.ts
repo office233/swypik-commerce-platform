@@ -570,15 +570,25 @@ export const BookingSlotCreateSchema = z.object({
 /**
  * Helper: parse a request body with a zod schema. Returns either the parsed
  * data or a NextResponse-friendly error payload (use it as { error, status: 400 }).
+ *
+ * `error` stays a human-readable zod message (kept for back-compat — some
+ * routes/clients already rely on its exact shape) but is often in Romanian
+ * (schema `.refine`/field messages are mostly written in Romanian, and default
+ * zod messages are English) — never render it directly to a non-`ro` viewer.
+ * `code` is additive (audit 2026-09-24, wave2-misc): always the stable string
+ * `"validation_error"`, safe to use as a client-side i18n lookup key, with
+ * `issues` (unchanged, already present) for anything that needs the raw
+ * per-field detail.
  */
 export function parseBody<T extends z.ZodTypeAny>(schema: T, body: unknown):
   | { ok: true; data: z.infer<T> }
-  | { ok: false; error: string; issues: z.ZodIssue[] } {
+  | { ok: false; error: string; code: "validation_error"; issues: z.ZodIssue[] } {
   const result = schema.safeParse(body);
   if (result.success) return { ok: true, data: result.data };
   return {
     ok: false,
     error: result.error.issues[0]?.message ?? "Invalid request body",
+    code: "validation_error",
     issues: result.error.issues,
   };
 }
@@ -651,6 +661,21 @@ export const SellerApplicationSchema = z.object({
   productType: z.string().trim().min(2, "productType is required").max(120),
 });
 export type SellerApplicationInput = z.infer<typeof SellerApplicationSchema>;
+
+// IBAN: 2 letter country code + 2 check digits + up to 30 alphanumeric (loose format check).
+const IbanSchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}[0-9]{2}[A-Z0-9]{4,30}$/, "iban must be a valid IBAN").max(34);
+
+export const SellerSettingsUpdateSchema = z.object({
+  name: z.string().trim().max(160).optional(),
+  username: z.string().trim().min(3, "username must be at least 3 characters").max(30),
+  bio: z.string().trim().max(500).optional(),
+  avatarUrl: z.string().trim().url("avatarUrl must be a valid URL").max(500).optional().or(z.literal("")),
+  cui: z.string().trim().max(64).optional(),
+  phone: z.string().trim().max(32).optional(),
+  iban: z.union([IbanSchema, z.literal("")]).optional(),
+  invoiceSeries: z.string().trim().max(20).optional(),
+});
+export type SellerSettingsUpdateInput = z.infer<typeof SellerSettingsUpdateSchema>;
 
 export const VideoProductVoteSchema = z.object({
   productId: z.string().uuid("productId must be a valid UUID"),

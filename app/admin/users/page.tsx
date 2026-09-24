@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { BadgeCheck } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
 import UserActions from "./UserActions";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +26,10 @@ type UserRow = {
 
 const PAGE_SIZE = 50;
 
-function fmtDate(d: string | null): string {
+function fmtDate(d: string | null, locale: string): string {
   if (!d) return "-";
   try {
-    return new Date(d).toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(d));
   } catch {
     return "-";
   }
@@ -40,6 +41,7 @@ export default async function AdminUsersPage({
   searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
   const t = await getTranslations("adminUsers");
+  const locale = await getLocale();
   await requireAdminSession();
   const sp = await searchParams;
   const q = (sp.q || "").trim() || null;
@@ -65,7 +67,7 @@ export default async function AdminUsersPage({
       ? "AND (username ILIKE '%'||$1||'%' OR email ILIKE '%'||$1||'%' OR display_name ILIKE '%'||$1||'%')"
       : "";
 
-    const params: any[] = q ? [q, PAGE_SIZE, offset] : [PAGE_SIZE, offset];
+    const params: (string | number)[] = q ? [q, PAGE_SIZE, offset] : [PAGE_SIZE, offset];
     const limitIdx = q ? "$2" : "$1";
     const offsetIdx = q ? "$3" : "$2";
 
@@ -87,17 +89,17 @@ export default async function AdminUsersPage({
     const countParams = q ? [q] : [];
     const cRes = await dbQuery(countSql, countParams);
     totalCount = cRes.rows[0]?.c || 0;
-  } catch (err: any) {
-    console.error("Error fetching users:", err);
-    loadError = err.message || "Eroare la incarcarea utilizatorilor.";
+  } catch (err) {
+    logger.error({ err }, "[admin/users] failed to load users");
+    loadError = t("loadError");
   }
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const statusTabs: { id: "all" | "active" | "suspended" | "admin"; label: string }[] = [
-    { id: "all", label: "Toți" },
-    { id: "active", label: "Activi" },
-    { id: "suspended", label: "Suspendați" },
-    { id: "admin", label: "Admini" },
+    { id: "all", label: t("tabAll") },
+    { id: "active", label: t("tabActive") },
+    { id: "suspended", label: t("tabSuspended") },
+    { id: "admin", label: t("tabAdmins") },
   ];
 
   function tabHref(s: string) {
@@ -117,7 +119,7 @@ export default async function AdminUsersPage({
 
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-3xl font-black text-[#0D0D0D] mb-6">Users</h1>
+      <h1 className="text-3xl font-black text-[#0D0D0D] mb-6">{t("pageTitle")}</h1>
 
       <form method="get" action="/admin/users" className="mb-4 flex gap-2 max-w-xl">
         <input
@@ -129,19 +131,19 @@ export default async function AdminUsersPage({
         />
         {status !== "all" && <input type="hidden" name="status" value={status} />}
         <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">
-          Caută
+          {t("searchBtn")}
         </button>
       </form>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {statusTabs.map((t) => (
+        {statusTabs.map((tab) => (
           <Link
-            key={t.id}
-            href={tabHref(t.id)}
-            className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-bold border min-h-[40px] ${status === t.id ? "bg-[#0D0D0D] text-white border-[#0D0D0D]" : "bg-white text-[#0D0D0D] border-black/15"
+            key={tab.id}
+            href={tabHref(tab.id)}
+            className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-bold border min-h-[40px] ${status === tab.id ? "bg-[#0D0D0D] text-white border-[#0D0D0D]" : "bg-white text-[#0D0D0D] border-black/15"
               }`}
           >
-            {t.label}
+            {tab.label}
           </Link>
         ))}
       </div>
@@ -153,21 +155,21 @@ export default async function AdminUsersPage({
       )}
 
       <div className="mb-3 text-sm text-gray-600">
-        {totalCount} utilizatori · pagina {page} din {totalPages}
+        {t("summaryLine", { total: totalCount, page, totalPages })}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-[#E5E5E5] overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] font-bold text-[#0D0D0D]">
             <tr>
-              <th className="px-4 py-3">User</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Rol</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Followers</th>
-              <th className="px-4 py-3 text-right">Videos</th>
-              <th className="px-4 py-3 text-right">Sesiuni</th>
-              <th className="px-4 py-3">Inregistrat</th>
+              <th className="px-4 py-3">{t("thUser")}</th>
+              <th className="px-4 py-3">{t("thEmail")}</th>
+              <th className="px-4 py-3">{t("thRole")}</th>
+              <th className="px-4 py-3">{t("thStatus")}</th>
+              <th className="px-4 py-3 text-right">{t("thFollowers")}</th>
+              <th className="px-4 py-3 text-right">{t("thVideos")}</th>
+              <th className="px-4 py-3 text-right">{t("thSessions")}</th>
+              <th className="px-4 py-3">{t("thRegistered")}</th>
               <th className="px-4 py-3">{t("thActions")}</th>
             </tr>
           </thead>
@@ -197,7 +199,7 @@ export default async function AdminUsersPage({
                         </Link>
                         {u.display_name && <div className="text-xs text-gray-500 truncate max-w-[160px]">{u.display_name}</div>}
                       </div>
-                      {u.is_verified && <span title="Verified"><BadgeCheck size={14} className="text-blue-500" /></span>}
+                      {u.is_verified && <span title={t("verified")}><BadgeCheck size={14} className="text-blue-500" /></span>}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{u.email || "-"}</td>
@@ -219,18 +221,18 @@ export default async function AdminUsersPage({
                         className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700"
                         title={u.suspension_reason || ""}
                       >
-                        Suspendat
+                        {t("suspended")}
                       </span>
                     ) : (
                       <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                        Activ
+                        {t("active")}
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">{u.followers_count}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{u.videos_count}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{u.active_sessions}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{fmtDate(u.created_at)}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{fmtDate(u.created_at, locale)}</td>
                   <td className="px-4 py-3">
                     <UserActions
                       userId={u.id}
@@ -245,7 +247,7 @@ export default async function AdminUsersPage({
             {users.length === 0 && !loadError && (
               <tr>
                 <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                  Niciun utilizator gasit.
+                  {t("noUsersFound")}
                 </td>
               </tr>
             )}
@@ -257,7 +259,7 @@ export default async function AdminUsersPage({
         <div className="mt-4 flex items-center gap-2">
           {page > 1 && (
             <Link href={pageHref(page - 1)} className="rounded-lg border border-black/15 px-3 py-1.5 text-sm font-bold">
-              ← Anterior
+              &larr; {t("previous")}
             </Link>
           )}
           <span className="text-sm text-gray-600 px-2">
@@ -265,7 +267,7 @@ export default async function AdminUsersPage({
           </span>
           {page < totalPages && (
             <Link href={pageHref(page + 1)} className="rounded-lg border border-black/15 px-3 py-1.5 text-sm font-bold">
-              Următor →
+              {t("next")} &rarr;
             </Link>
           )}
         </div>

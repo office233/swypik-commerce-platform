@@ -54,14 +54,29 @@ export const POST = withErrorHandling(async function POST(req: Request) {
 
   const parsed = parseBody(CreateClientSchema, await req.json().catch(() => null));
   if (!parsed.ok) {
-    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: "validation_error", issues: parsed.issues },
+      { status: 400 },
+    );
   }
   const c = parsed.data;
 
-  const { rows } = await dbQuery<{ id: string; name: string; created_at: string }>(
+  const { rows } = await dbQuery<{
+    id: string;
+    name: string;
+    cui: string | null;
+    reg_com: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    city: string | null;
+    county: string | null;
+    notes: string | null;
+    created_at: string;
+  }>(
     `INSERT INTO seller_clients (seller_id, name, cui, reg_com, phone, email, address, city, county, notes)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-     RETURNING id, name, created_at`,
+     RETURNING id, name, cui, reg_com, phone, email, address, city, county, notes, created_at`,
     [sellerId, c.name, c.cui, c.regCom, c.phone, c.email, c.address, c.city, c.county, c.notes],
   );
 

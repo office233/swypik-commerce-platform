@@ -2,20 +2,13 @@
  * Admin Applications — creator applications queue
  */
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
+import { logger } from "@/lib/logger";
 import ApplicationActions from "./ApplicationActions";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABELS: Record<string, string> = {
-  submitted: "Trimisă",
-  in_review: "În analiză",
-  approved: "Aprobată",
-  rejected: "Respinsă",
-  withdrawn: "Retrasă",
-};
 
 type Row = {
   id: string;
@@ -35,10 +28,10 @@ type Row = {
   user_role: string;
 };
 
-function fmtDate(d: string | null): string {
+function fmtDate(d: string | null, locale: string): string {
   if (!d) return "-";
   try {
-    return new Date(d).toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(d));
   } catch {
     return "-";
   }
@@ -50,6 +43,7 @@ export default async function AdminApplicationsPage({
   searchParams: Promise<{ status?: string }>;
 }) {
     const t = await getTranslations("adminApplications");
+  const locale = await getLocale();
   await requireAdminSession();
   const sp = await searchParams;
   const status = ["submitted", "in_review", "approved", "rejected", "withdrawn", "all"].includes(sp.status || "")
@@ -60,7 +54,7 @@ export default async function AdminApplicationsPage({
   let loadError: string | null = null;
 
   try {
-    const params: any[] = [];
+    const params: string[] = [];
     let whereSql = "";
     if (status !== "all") {
       params.push(status);
@@ -80,16 +74,25 @@ export default async function AdminApplicationsPage({
       params
     );
     rows = res.rows as Row[];
-  } catch (e: any) {
-    loadError = e?.message || "Eroare DB";
+  } catch (e) {
+    logger.error({ err: e }, "[admin/applications] failed to load applications");
+    loadError = t("loadError");
   }
 
+  const STATUS_LABELS: Record<string, string> = {
+    submitted: t("statusSubmitted"),
+    in_review: t("statusInReview"),
+    approved: t("statusApproved"),
+    rejected: t("statusRejected"),
+    withdrawn: t("statusWithdrawn"),
+  };
+
   const tabs: Array<{ value: string; label: string }> = [
-    { value: "submitted", label: "Trimise" },
-    { value: "in_review", label: "În analiză" },
-    { value: "approved", label: "Aprobate" },
-    { value: "rejected", label: "Respinse" },
-    { value: "all", label: "Toate" },
+    { value: "submitted", label: t("tabSubmitted") },
+    { value: "in_review", label: t("tabInReview") },
+    { value: "approved", label: t("tabApproved") },
+    { value: "rejected", label: t("tabRejected") },
+    { value: "all", label: t("tabAll") },
   ];
 
   return (
@@ -100,15 +103,15 @@ export default async function AdminApplicationsPage({
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {tabs.map((t) => (
+        {tabs.map((tab) => (
           <Link
-            key={t.value}
-            href={`/admin/applications?status=${t.value}`}
+            key={tab.value}
+            href={`/admin/applications?status=${tab.value}`}
             className={`inline-flex items-center rounded-md px-4 py-2.5 text-xs font-bold border min-h-[40px] ${
-              status === t.value ? "bg-black text-white border-black" : "border-black/15 text-black/70"
+              status === tab.value ? "bg-black text-white border-black" : "border-black/15 text-black/70"
             }`}
           >
-            {t.label}
+            {tab.label}
           </Link>
         ))}
       </div>
@@ -119,7 +122,7 @@ export default async function AdminApplicationsPage({
 
       {rows.length === 0 ? (
         <div className="bg-white rounded-2xl border border-black/10 px-6 py-16 text-center text-black/50">
-          Nicio aplicație găsită.
+          {t("noApplicationsFound")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -147,31 +150,31 @@ export default async function AdminApplicationsPage({
                         : "bg-yellow-100 text-yellow-800"
                       }`}>{STATUS_LABELS[r.status] || r.status}</span>
                       {r.user_role === "creator" && (
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-purple-100 text-purple-800">Deja creator</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-purple-100 text-purple-800">{t("alreadyCreator")}</span>
                       )}
                     </div>
-                    <div className="mt-1 text-xs text-black/50">{r.email || "fără email"} · {fmtDate(r.created_at)}</div>
+                    <div className="mt-1 text-xs text-black/50">{r.email || t("noEmail")} &middot; {fmtDate(r.created_at, locale)}</div>
 
                     <dl className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                       <div>
-                        <dt className="text-xs font-bold text-black/50 uppercase">Handle dorit</dt>
+                        <dt className="text-xs font-bold text-black/50 uppercase">{t("requestedHandle")}</dt>
                         <dd>@{r.requested_handle}</dd>
                       </div>
                       {r.category && (
                         <div>
-                          <dt className="text-xs font-bold text-black/50 uppercase">Categorie</dt>
+                          <dt className="text-xs font-bold text-black/50 uppercase">{t("category")}</dt>
                           <dd>{r.category}</dd>
                         </div>
                       )}
                       {r.website_url && (
                         <div className="md:col-span-2">
-                          <dt className="text-xs font-bold text-black/50 uppercase">Website</dt>
+                          <dt className="text-xs font-bold text-black/50 uppercase">{t("website")}</dt>
                           <dd><a href={r.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{r.website_url}</a></dd>
                         </div>
                       )}
                       {socialEntries.length > 0 && (
                         <div className="md:col-span-2">
-                          <dt className="text-xs font-bold text-black/50 uppercase">Social</dt>
+                          <dt className="text-xs font-bold text-black/50 uppercase">{t("social")}</dt>
                           <dd className="flex flex-wrap gap-2 mt-1">
                             {socialEntries.map(([k, v]) => (
                               <a key={k} href={String(v)} target="_blank" rel="noopener noreferrer" className="text-xs bg-black/5 px-2 py-1 rounded hover:bg-black/10">

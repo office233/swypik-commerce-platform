@@ -1,12 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Mail, KeyRound, Loader2, ArrowLeft, AlertCircle } from "lucide-react";
 
+/** Only allow same-site relative paths for the post-login redirect (avoid open redirect). */
+function safeNextPath(next: string | null): string {
+  if (!next) return "/seller";
+  // Only same-site paths: reject protocol-relative ("//x"), backslash tricks
+  // ("/\x" is normalized to "//x" by browsers) and anything with a scheme.
+  if (!next.startsWith("/") || next.includes("\\") || next.startsWith("//") || /^\/[a-z][\w+.-]*:/i.test(next)) {
+    return "/seller";
+  }
+  return next;
+}
+
 export default function SellerLogin() {
+  return (
+    <Suspense fallback={null}>
+      <SellerLoginForm />
+    </Suspense>
+  );
+}
+
+function SellerLoginForm() {
+  const t = useTranslations("sellerGrowthLogin");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -25,10 +47,10 @@ export default function SellerLogin() {
         body: JSON.stringify({ action: "login", email }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "A apărut o eroare. Te rugăm să încerci din nou.");
+        throw new Error(data.error || t("errorGeneric"));
       }
 
       // API răspunde generic (anti-enumeration) cu {success:true, message}
@@ -36,10 +58,10 @@ export default function SellerLogin() {
       if (data.success || data.requiresVerification) {
         setStep(2);
       } else {
-        setError(data.error || "Nu am putut trimite codul. Verifică emailul.");
+        setError(data.error || t("errorSendCode"));
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || t("errorGeneric"));
     } finally {
       setIsLoading(false);
     }
@@ -57,16 +79,16 @@ export default function SellerLogin() {
         body: JSON.stringify({ action: "verify_otp", email, token: otpCode }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "Cod OTP invalid sau expirat.");
+        throw new Error(data.error || t("errorInvalidOtp"));
       }
 
-      // Success redirect to dashboard
-      router.push("/seller");
+      // Success — redirect to the originally requested page, or the dashboard.
+      router.push(safeNextPath(searchParams.get("next")));
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || t("errorInvalidOtp"));
     } finally {
       setIsLoading(false);
     }
@@ -82,12 +104,12 @@ export default function SellerLogin() {
           <span className="text-2xl font-black tracking-tight text-gray-900">swypik</span>
         </Link>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
-          {step === 1 ? "Portal Comercianți" : "Verificare Securitate"}
+          {step === 1 ? t("portalTitle") : t("verificationTitle")}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          {step === 1 
-            ? "Introdu adresa ta de email pentru a continua" 
-            : "Am trimis un cod de 6 cifre pe adresa ta de email"}
+          {step === 1
+            ? t("emailStepHint")
+            : t("otpStepHint")}
         </p>
       </div>
 
@@ -111,7 +133,7 @@ export default function SellerLogin() {
             <form className="space-y-6 animate-in fade-in zoom-in-95 duration-300" onSubmit={handleEmailSubmit}>
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1">
-                  Adresă de email
+                  {t("emailLabel")}
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -138,10 +160,10 @@ export default function SellerLogin() {
                   className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" aria-label={t("loading")} />
                   ) : (
                     <>
-                      Continuă <ArrowRight className="ml-2 w-5 h-5" />
+                      {t("continueBtn")} <ArrowRight className="ml-2 w-5 h-5" />
                     </>
                   )}
                 </button>
@@ -151,7 +173,7 @@ export default function SellerLogin() {
             <form className="space-y-6 animate-in fade-in zoom-in-95 duration-300" onSubmit={handleOtpSubmit}>
               <div>
                 <label htmlFor="otp" className="block text-sm font-semibold text-gray-700 mb-1">
-                  Cod de verificare (6 cifre)
+                  {t("otpLabel")}
                 </label>
                 <div className="relative rounded-xl shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -180,13 +202,13 @@ export default function SellerLogin() {
                   className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" aria-label={t("loading")} />
                   ) : (
-                    "Autentificare"
+                    t("signIn")
                   )}
                 </button>
               </div>
-              
+
               <div className="text-center mt-6">
                 <button
                   type="button"
@@ -197,15 +219,15 @@ export default function SellerLogin() {
                   }}
                   className="text-sm font-medium text-gray-500 hover:text-black flex items-center justify-center w-full transition-colors"
                 >
-                  <ArrowLeft className="mr-1 w-4 h-4" /> Modifică adresa de email
+                  <ArrowLeft className="mr-1 w-4 h-4" /> {t("changeEmail")}
                 </button>
               </div>
             </form>
           )}
         </div>
-        
+
         <div className="mt-8 text-center text-xs text-gray-500">
-          &copy; {new Date().getFullYear()} Swypik Marketplace. Toate drepturile rezervate.
+          {t("copyright", { year: new Date().getFullYear() })}
         </div>
       </div>
     </div>

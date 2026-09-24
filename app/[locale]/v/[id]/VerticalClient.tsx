@@ -114,7 +114,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                         <button
                             type="button"
                             onClick={() => {
-                                const c = prompt("În ce oraș ești?", city ?? "");
+                                const c = prompt(tx("cityPrompt"), city ?? "");
                                 if (c) {
                                     localStorage.setItem("swypik_city", c);
                                     setCity(c);
@@ -123,7 +123,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                             className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/80 dark:bg-black/80 dark:text-white px-3 h-8 text-xs font-bold active:scale-95 transition"
                         >
                             <MapPin className="h-3.5 w-3.5" />
-                            {city ?? "Alege orașul"}
+                            {city ?? tx("chooseCity")}
                         </button>
                     )}
                 </div>
@@ -233,7 +233,7 @@ export default function VerticalClient({ vertical }: { vertical: Vertical }) {
                                         <span className="text-sm font-black dark:text-white">
                                             {it.entity?.price_cents != null
                                                 ? `${(it.entity.price_cents / 100).toLocaleString()} ${it.entity.currency}`
-                                                : "La cerere"}
+                                                : tx("onRequest")}
                                         </span>
                                     </div>
                                     <button

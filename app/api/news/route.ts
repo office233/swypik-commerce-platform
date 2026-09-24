@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbQuery } from "@/lib/db";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
+import { listArticles, getArticleBySlug, incrementViewCount } from "@/lib/news/repository";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -9,37 +10,25 @@ export async function GET(req: NextRequest) {
 
   try {
     const url = new URL(req.url);
+    const slug = url.searchParams.get("slug");
+
+    if (slug) {
+      const article = await getArticleBySlug(slug);
+      if (!article) {
+        return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+      }
+      // Best-effort, once per request — never blocks the response.
+      incrementViewCount(article.id).catch((err) => logger.warn({ err }, "[news] view count increment failed"));
+      return NextResponse.json({ ok: true, article });
+    }
+
     const category = url.searchParams.get("category");
     const breaking = url.searchParams.get("breaking") === "true";
+    const articles = await listArticles({ category, breaking, limit: 30 });
 
-    let query = `
-      SELECT a.id, a.slug, a.title, a.summary_tldr, a.cover_image_url,
-             a.is_breaking, a.reading_time_minutes, a.view_count, a.fact_check_score,
-             a.published_at, c.name as category_name, c.slug as category_slug
-      FROM news_articles a
-      JOIN news_categories c ON a.category_id = c.id
-      WHERE a.status = 'published'
-    `;
-    const params: any[] = [];
-
-    if (category && category !== "all") {
-      params.push(category);
-      query += ` AND c.slug = $${params.length}`;
-    }
-
-    if (breaking) {
-      query += ` AND a.is_breaking = true`;
-    }
-
-    query += ` ORDER BY a.published_at DESC LIMIT 30`;
-
-    const { rows } = await dbQuery(query, params);
-
-    return NextResponse.json({
-      ok: true,
-      articles: rows,
-    });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: true, articles });
+  } catch (err: unknown) {
+    logger.error({ err }, "[news] GET failed");
+    return NextResponse.json({ ok: false, error: "internal" }, { status: 500 });
   }
 }

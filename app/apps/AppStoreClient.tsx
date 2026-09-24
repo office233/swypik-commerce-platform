@@ -34,18 +34,18 @@ export default function AppStoreClient() {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => void load(q), 250);
-    return () => clearTimeout(t);
+    const debounce = setTimeout(() => void load(q), 250);
+    return () => clearTimeout(debounce);
   }, [q, load]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">App Store</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-sm text-gray-500">{t("subtitle")}</p>
         </div>
-        <Link href="/developers" className="rounded border px-3 py-1.5 text-sm">Sunt dezvoltator</Link>
+        <Link href="/developers" className="rounded border px-3 py-1.5 text-sm whitespace-nowrap">{t("iAmDeveloper")}</Link>
       </header>
 
       <input
@@ -70,13 +70,13 @@ export default function AppStoreClient() {
                   {app.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div>
-                <p className="font-semibold">{app.name}</p>
-                <p className="text-xs text-gray-500">{app.developer_company}</p>
+              <div className="min-w-0">
+                <p className="font-semibold truncate">{app.name}</p>
+                <p className="text-xs text-gray-500 truncate">{app.developer_company}</p>
               </div>
             </div>
             {app.description && <p className="mt-2 line-clamp-2 text-sm text-gray-600">{app.description}</p>}
-            <p className="mt-2 text-xs text-gray-400">{app.install_count} instalări</p>
+            <p className="mt-2 text-xs text-gray-400">{t("installCount", { count: Number(app.install_count) })}</p>
           </Link>
         ))}
       </div>

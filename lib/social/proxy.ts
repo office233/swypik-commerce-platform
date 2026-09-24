@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 export function getSocialApiBaseUrl() {
   const raw =
     process.env.SOCIAL_API_URL ||
@@ -37,18 +39,27 @@ export async function proxyToSocialApi(req: Request, path: string) {
   // 2026-08-24 (audit perf): fără plafon, o instanță platform-api lentă ținea
   // cererea (și conexiunea pg aferentă) ocupată până la timeout-ul implicit al
   // runtime-ului — o singură dependență degradată se propaga în tot serverul.
-  const upstream = await fetch(upstreamUrl, {
-    method,
-    headers,
-    body,
-    redirect: "manual",
-    cache: "no-store",
-    signal: AbortSignal.timeout(
-      Number(process.env.PLATFORM_API_TIMEOUT_MS) > 0
-        ? Math.trunc(Number(process.env.PLATFORM_API_TIMEOUT_MS))
-        : 10_000,
-    ),
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method,
+      headers,
+      body,
+      redirect: "manual",
+      cache: "no-store",
+      signal: AbortSignal.timeout(
+        Number(process.env.PLATFORM_API_TIMEOUT_MS) > 0
+          ? Math.trunc(Number(process.env.PLATFORM_API_TIMEOUT_MS))
+          : 10_000,
+      ),
+    });
+  } catch (err) {
+    // 2026-09-24: fără acest catch, un abort de timeout ajungea la handler-ul
+    // generic de erori ca "[Error [TimeoutError]: The operation was aborted
+    // due to timeout]" — fără nicio urmă a cui e upstream-ul care a picat.
+    logger.warn({ err, upstream: upstreamUrl.toString() }, "[social-proxy] platform-api fetch failed or timed out");
+    throw err;
+  }
 
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("content-encoding");

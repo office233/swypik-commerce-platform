@@ -1,17 +1,19 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
-export function RiskFilters({
+export async function RiskFilters({
   statusFilter,
   minScore,
 }: {
   statusFilter: string;
   minScore: number;
 }) {
+  const t = await getTranslations("adminRisk");
   const statuses = [
-    { k: "paid", label: "Paid (de fulfilla)" },
-    { k: "pending", label: "Pending" },
-    { k: "fulfilled", label: "Fulfilled" },
-    { k: "all", label: "Toate" },
+    { k: "paid", label: t("statusPaid") },
+    { k: "pending", label: t("statusPending") },
+    { k: "fulfilled", label: t("statusFulfilled") },
+    { k: "all", label: t("statusAll") },
   ];
   const mins = [0, 30, 50, 70];
   return (
@@ -32,7 +34,7 @@ export function RiskFilters({
         ))}
       </div>
       <div className="flex gap-1 items-center flex-wrap md:ml-auto">
-        <span className="text-gray-500 mr-1">Min score:</span>
+        <span className="text-gray-500 mr-1">{t("minScoreLabel")}:</span>
         {mins.map((m) => (
           <Link
             key={m}
@@ -41,7 +43,7 @@ export function RiskFilters({
               minScore === m ? "bg-violet-100 text-violet-800 font-semibold" : "text-gray-600 hover:bg-gray-100"
             }`}
           >
-            ≥{m}
+            &ge;{m}
           </Link>
         ))}
       </div>

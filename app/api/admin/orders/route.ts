@@ -10,6 +10,7 @@ import { dbQuery } from "@/lib/db";
 import { requireAuth } from "@/lib/auth/getAuthUser";
 
 import { logger } from "@/lib/logger";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { AdminOrderPatchSchema, parseBody } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
@@ -138,6 +139,14 @@ export async function PATCH(req: Request) {
     if (rows.length === 0) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
+
+    await logAdminAction({
+      action: "order.update",
+      targetType: "commerce_order",
+      targetId: orderId,
+      details: { status, fulfillmentStatus, trackingNumber: trackingNumber ? "[set]" : undefined },
+      req,
+    });
 
     return NextResponse.json({ success: true, order: rows[0] });
   } catch (error: unknown) {

@@ -1,6 +1,10 @@
+import { getTranslations } from "next-intl/server";
 import AppDetailClient from "./AppDetailClient";
 
-export const metadata = { title: "Aplicație — Swypik App Store" };
+export async function generateMetadata() {
+  const t = await getTranslations("appDetail");
+  return { title: `${t("metaTitle")} — Swypik App Store` };
+}
 
 export default async function AppDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

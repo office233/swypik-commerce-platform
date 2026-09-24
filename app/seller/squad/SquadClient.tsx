@@ -3,18 +3,16 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Users,
   Flame,
   Clock,
-  TrendingUp,
   CheckCircle2,
   AlertCircle,
   ExternalLink,
-  Sparkles,
   ShoppingBag,
   Coins,
-  Share2,
 } from "lucide-react";
 import type { SquadGroup } from "@/lib/squad/engine";
 
@@ -32,8 +30,12 @@ interface SquadClientProps {
 }
 
 export default function SquadClient({ initialSquads, initialStats }: SquadClientProps) {
-  const [squads, setSquads] = useState<SquadGroup[]>(initialSquads);
-  const [stats, setStats] = useState<SquadStats>(initialStats);
+  const t = useTranslations("sellerGrowthSquad");
+  const locale = useLocale();
+  // Squads/stats are seeded once from the server and don't change client-side yet
+  // (no live refresh wired up), so these are plain values rather than state.
+  const squads = initialSquads;
+  const stats = initialStats;
   const [filter, setFilter] = useState<"all" | "active" | "completed" | "expired">("all");
 
   const filteredSquads = squads.filter((s) => {
@@ -49,12 +51,12 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 p-6 rounded-3xl border border-violet-800/40 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/40 text-violet-300 text-xs font-black uppercase tracking-wider mb-2">
-            <Flame size={14} className="text-orange-400" /> Group Buying Viral • Pinduoduo Model
+            <Flame size={14} className="text-orange-400" /> {t("kicker")}
           </div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight">Campanii Swypik Squad Buy</h1>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight">{t("pageTitle")}</h1>
           <p className="text-neutral-300 text-sm mt-1 max-w-2xl">
-            Fiecare client care inițiază un Squad invită un prieten pe WhatsApp să cumpere produsul la -30% reducere.
-            Generezi <strong>vânzări duble cu 0 lei cost de publicitate</strong> (CAC = 0).
+            {t("pageSubtitle")}{" "}
+            <strong>{t("pageSubtitleBold")}</strong> (CAC = 0).
           </p>
         </div>
 
@@ -63,14 +65,14 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
             href="/seller/products"
             className="px-4 py-2.5 rounded-xl bg-white text-neutral-950 font-black text-xs hover:bg-neutral-100 transition shadow"
           >
-            Gestionează Produse
+            {t("manageProducts")}
           </Link>
           <Link
             href="/squad"
             target="_blank"
             className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs transition shadow flex items-center gap-1.5"
           >
-            Vezi Feed Public Squad <ExternalLink size={14} />
+            {t("viewPublicFeed")} <ExternalLink size={14} />
           </Link>
         </div>
       </div>
@@ -79,47 +81,47 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-[#6E6E80] text-xs font-bold uppercase tracking-wider mb-2">
-            <span>Squad-uri Totale</span>
+            <span>{t("kpiTotalSquads")}</span>
             <Users size={16} className="text-violet-600" />
           </div>
           <div className="text-2xl font-black text-[#0D0D0D]">{stats.totalSquads}</div>
-          <p className="text-[11px] text-[#6E6E80] mt-1">inițiate de clienți</p>
+          <p className="text-[11px] text-[#6E6E80] mt-1">{t("kpiTotalSquadsHint")}</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-[#6E6E80] text-xs font-bold uppercase tracking-wider mb-2">
-            <span>Active Acum</span>
+            <span>{t("kpiActiveNow")}</span>
             <Clock size={16} className="text-amber-500" />
           </div>
           <div className="text-2xl font-black text-amber-600">{stats.activeSquads}</div>
-          <p className="text-[11px] text-[#6E6E80] mt-1">așteaptă al 2-lea membru</p>
+          <p className="text-[11px] text-[#6E6E80] mt-1">{t("kpiActiveNowHint")}</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-[#6E6E80] text-xs font-bold uppercase tracking-wider mb-2">
-            <span>Finalizate (Succes)</span>
+            <span>{t("kpiCompleted")}</span>
             <CheckCircle2 size={16} className="text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-emerald-600">{stats.completedSquads}</div>
-          <p className="text-[11px] text-[#6E6E80] mt-1">echipe de 2 complete</p>
+          <p className="text-[11px] text-[#6E6E80] mt-1">{t("kpiCompletedHint")}</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-[#6E6E80] text-xs font-bold uppercase tracking-wider mb-2">
-            <span>Comenzi Virale</span>
+            <span>{t("kpiViralOrders")}</span>
             <ShoppingBag size={16} className="text-blue-600" />
           </div>
           <div className="text-2xl font-black text-blue-600">{stats.viralOrdersCount}</div>
-          <p className="text-[11px] text-[#6E6E80] mt-1">plasate prin recomandare</p>
+          <p className="text-[11px] text-[#6E6E80] mt-1">{t("kpiViralOrdersHint")}</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-sm col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between text-[#6E6E80] text-xs font-bold uppercase tracking-wider mb-2">
-            <span>Încasări Squad</span>
+            <span>{t("kpiRevenue")}</span>
             <Coins size={16} className="text-violet-600" />
           </div>
           <div className="text-2xl font-black text-violet-700">{formatRon(stats.extraRevenueCents)}</div>
-          <p className="text-[11px] text-emerald-600 font-bold mt-1">0 lei cheltuieli reclame</p>
+          <p className="text-[11px] text-emerald-600 font-bold mt-1">{t("kpiRevenueHint")}</p>
         </div>
       </div>
 
@@ -131,7 +133,7 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
             filter === "all" ? "bg-neutral-900 text-white" : "bg-white text-neutral-600 hover:bg-neutral-100"
           }`}
         >
-          Toate ({squads.length})
+          {t("filterAll")} ({squads.length})
         </button>
         <button
           onClick={() => setFilter("active")}
@@ -139,7 +141,7 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
             filter === "active" ? "bg-amber-500 text-white" : "bg-white text-neutral-600 hover:bg-neutral-100"
           }`}
         >
-          Active ({squads.filter((s) => s.status === "active").length})
+          {t("filterActive")} ({squads.filter((s) => s.status === "active").length})
         </button>
         <button
           onClick={() => setFilter("completed")}
@@ -147,7 +149,7 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
             filter === "completed" ? "bg-emerald-600 text-white" : "bg-white text-neutral-600 hover:bg-neutral-100"
           }`}
         >
-          Completate ({squads.filter((s) => s.status === "completed").length})
+          {t("filterCompleted")} ({squads.filter((s) => s.status === "completed").length})
         </button>
         <button
           onClick={() => setFilter("expired")}
@@ -155,7 +157,7 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
             filter === "expired" ? "bg-neutral-500 text-white" : "bg-white text-neutral-600 hover:bg-neutral-100"
           }`}
         >
-          Expirate ({squads.filter((s) => s.status === "expired").length})
+          {t("filterExpired")} ({squads.filter((s) => s.status === "expired").length})
         </button>
       </div>
 
@@ -166,9 +168,9 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
             <div className="w-16 h-16 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center mx-auto mb-4">
               <Users size={28} />
             </div>
-            <h3 className="text-base font-black text-[#0D0D0D]">Niciun Squad găsit</h3>
+            <h3 className="text-base font-black text-[#0D0D0D]">{t("emptyTitle")}</h3>
             <p className="text-xs text-[#6E6E80] mt-1 max-w-sm mx-auto">
-              Clienții vor putea iniția squad-uri direct din pagina produselor tale din Swypik Shop pentru a primi -30% reducere.
+              {t("emptySubtitle")}
             </p>
           </div>
         ) : (
@@ -176,13 +178,13 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
             <table className="w-full text-left text-xs">
               <thead className="bg-[#F7F7F8] text-[#6E6E80] uppercase tracking-wider font-bold border-b border-[#E5E5E5]">
                 <tr>
-                  <th className="py-3 px-4">Produs</th>
-                  <th className="py-3 px-4">Inițiator (Creator)</th>
-                  <th className="py-3 px-4">Membri Înscriși</th>
-                  <th className="py-3 px-4">Preț Squad vs Normal</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Data Inițierii</th>
-                  <th className="py-3 px-4 text-right">Acțiuni</th>
+                  <th className="py-3 px-4">{t("colProduct")}</th>
+                  <th className="py-3 px-4">{t("colInitiator")}</th>
+                  <th className="py-3 px-4">{t("colMembers")}</th>
+                  <th className="py-3 px-4">{t("colPrice")}</th>
+                  <th className="py-3 px-4">{t("colStatus")}</th>
+                  <th className="py-3 px-4">{t("colDate")}</th>
+                  <th className="py-3 px-4 text-right">{t("colActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5E5]">
@@ -200,7 +202,7 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
                           </div>
                         )}
                         <span className="font-bold text-[#0D0D0D] max-w-[200px] truncate block">
-                          {squad.product_title || "Produs"}
+                          {squad.product_title || t("productFallback")}
                         </span>
                       </div>
                     </td>
@@ -242,23 +244,23 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
                     <td className="py-3 px-4">
                       {squad.status === "completed" && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-black text-[10px] border border-emerald-200">
-                          <CheckCircle2 size={12} /> Completat (2/2)
+                          <CheckCircle2 size={12} /> {t("statusCompleted")}
                         </span>
                       )}
                       {squad.status === "active" && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-black text-[10px] border border-amber-200">
-                          <Clock size={12} /> Activ (În așteptare)
+                          <Clock size={12} /> {t("statusActive")}
                         </span>
                       )}
                       {squad.status === "expired" && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-600 font-bold text-[10px]">
-                          <AlertCircle size={12} /> Expirat (Fonduri returnate)
+                          <AlertCircle size={12} /> {t("statusExpired")}
                         </span>
                       )}
                     </td>
 
                     <td className="py-3 px-4 text-neutral-500">
-                      {new Date(squad.created_at).toLocaleDateString("ro-RO", {
+                      {new Date(squad.created_at).toLocaleDateString(locale, {
                         day: "numeric",
                         month: "short",
                         hour: "2-digit",
@@ -272,7 +274,7 @@ export default function SquadClient({ initialSquads, initialStats }: SquadClient
                         target="_blank"
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-violet-50 hover:text-violet-700 text-neutral-700 font-bold transition text-[11px]"
                       >
-                        Vezi Squad <ExternalLink size={12} />
+                        {t("viewSquad")} <ExternalLink size={12} />
                       </Link>
                     </td>
                   </tr>

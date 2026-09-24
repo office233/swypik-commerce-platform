@@ -3,7 +3,7 @@
  * Mirrors GET /api/admin/strikes.
  */
 import { dbQuery } from "@/lib/db";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import Link from "next/link";
 import { Shield, AlertCircle } from "lucide-react";
 import RevokeStrikeButton from "./RevokeStrikeButton";
@@ -94,22 +94,22 @@ async function getUserStrikes(
   }
 }
 
-function fmtDate(d: string | null) {
+function fmtDate(d: string | null, locale: string) {
   if (!d) return "—";
   try {
-    return new Date(d).toLocaleString("ro-RO", {
+    return new Intl.DateTimeFormat(locale, {
       day: "2-digit",
       month: "short",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    }).format(new Date(d));
   } catch {
     return d;
   }
 }
 
-function sevBadge(sev: number | null) {
+function sevBadge(sev: number | null, sevLabel: string) {
   const n = sev ?? 0;
   const color =
     n >= 3 ? "bg-red-500/20 text-red-300 border-red-500/40"
@@ -117,7 +117,7 @@ function sevBadge(sev: number | null) {
       : "bg-white/10 text-white/70 border-white/20";
   return (
     <span className={`inline-block text-[10px] font-black uppercase px-1.5 py-0.5 rounded border ${color}`}>
-      sev {n}
+      {sevLabel} {n}
     </span>
   );
 }
@@ -128,6 +128,7 @@ export default async function AdminStrikesPage({
   searchParams: Promise<{ userId?: string }>;
 }) {
     const t = await getTranslations("adminStrikes");
+  const locale = await getLocale();
   const params = await searchParams;
   const userId = params.userId?.trim() || null;
 
@@ -137,18 +138,18 @@ export default async function AdminStrikesPage({
       <div className="p-4 md:p-6 max-w-5xl mx-auto text-white">
         <div className="mb-6 flex items-center gap-2">
           <Shield className="w-6 h-6" />
-          <h1 className="text-2xl font-black">Strikes — user</h1>
+          <h1 className="text-2xl font-black">{t("userTitle")}</h1>
           <Link
             href="/admin/strikes"
             className="ml-auto text-xs font-bold text-white/60 hover:text-white underline"
           >
-            ← înapoi la lista
+            ← {t("backToList")}
           </Link>
         </div>
 
         {!summary ? (
           <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-            Utilizator inexistent.
+            {t("userNotFound")}
           </div>
         ) : (
           <>
@@ -158,31 +159,31 @@ export default async function AdminStrikesPage({
               </div>
               <div className="text-xs text-white/50 font-mono">{summary.user_id}</div>
               <div className="mt-3 grid grid-cols-2 md:grid-cols-6 gap-3 text-xs">
-                <Stat label="Score" value={summary.score} highlight={summary.score >= 50} />
-                <Stat label="Strikes" value={summary.strike_count} />
-                <Stat label="Blocked" value={summary.blocked_count} />
-                <Stat label="Adult" value={summary.adult_count} />
-                <Stat label="Sensitive" value={summary.sensitive_count} />
-                <Stat label="Status" value={summary.status ?? "—"} />
+                <Stat label={t("statScore")} value={summary.score} highlight={summary.score >= 50} />
+                <Stat label={t("statStrikes")} value={summary.strike_count} />
+                <Stat label={t("statBlocked")} value={summary.blocked_count} />
+                <Stat label={t("statAdult")} value={summary.adult_count} />
+                <Stat label={t("statSensitive")} value={summary.sensitive_count} />
+                <Stat label={t("statStatus")} value={summary.status ?? "—"} />
               </div>
               {summary.suspended_until && (
                 <div className="mt-2 text-xs text-amber-300">
-                  Suspendat până: {fmtDate(summary.suspended_until)}
+                  {t("suspendedUntilLabel")}: {fmtDate(summary.suspended_until, locale)}
                 </div>
               )}
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-white/5 overflow-hidden">
+            <div className="rounded-lg border border-white/10 bg-white/5 overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-white/5 text-white/60 uppercase tracking-wide">
                   <tr>
                     <th className="text-left p-2">{t("thWhen")}</th>
-                    <th className="text-left p-2">Sev</th>
-                    <th className="text-left p-2">Label</th>
-                    <th className="text-left p-2">Context</th>
-                    <th className="text-left p-2">Ref</th>
+                    <th className="text-left p-2">{t("thSeverity")}</th>
+                    <th className="text-left p-2">{t("thLabel")}</th>
+                    <th className="text-left p-2">{t("thContext")}</th>
+                    <th className="text-left p-2">{t("thRef")}</th>
                     <th className="text-left p-2">{t("thExpires")}</th>
-                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">{t("thStatus")}</th>
                     <th className="text-right p-2">{t("thActions")}</th>
                   </tr>
                 </thead>
@@ -190,23 +191,23 @@ export default async function AdminStrikesPage({
                   {strikes.length === 0 && (
                     <tr>
                       <td colSpan={8} className="p-4 text-center text-white/50">
-                        Niciun strike înregistrat.
+                        {t("noStrikes")}
                       </td>
                     </tr>
                   )}
                   {strikes.map((s) => (
                     <tr key={s.id} className="border-t border-white/5">
-                      <td className="p-2 whitespace-nowrap">{fmtDate(s.created_at)}</td>
-                      <td className="p-2">{sevBadge(s.severity)}</td>
+                      <td className="p-2 whitespace-nowrap">{fmtDate(s.created_at, locale)}</td>
+                      <td className="p-2">{sevBadge(s.severity, t("sevAbbrev"))}</td>
                       <td className="p-2 font-bold">{s.label ?? "—"}</td>
                       <td className="p-2 text-white/70">{s.context ?? s.reason ?? "—"}</td>
                       <td className="p-2 text-white/50 font-mono text-[10px]">
                         {s.ref_type ? `${s.ref_type}:${s.ref_id?.slice(0, 8) ?? ""}` : "—"}
                       </td>
-                      <td className="p-2 whitespace-nowrap">{fmtDate(s.expires_at)}</td>
+                      <td className="p-2 whitespace-nowrap">{fmtDate(s.expires_at, locale)}</td>
                       <td className="p-2">
                         {s.status === "active" ? (
-                          <span className="text-emerald-300 font-bold">active</span>
+                          <span className="text-emerald-300 font-bold">{t("statusActive")}</span>
                         ) : (
                           <span className="text-white/40">{s.status}</span>
                         )}
@@ -230,29 +231,29 @@ export default async function AdminStrikesPage({
     <div className="p-4 md:p-6 max-w-6xl mx-auto text-white">
       <div className="mb-6 flex items-center gap-2">
         <Shield className="w-6 h-6" />
-        <h1 className="text-2xl font-black">Strikes — top risc</h1>
+        <h1 className="text-2xl font-black">{t("topRiskTitle")}</h1>
         <span className="ml-auto text-xs text-white/40">
-          {users.length} utilizator{users.length === 1 ? "" : "i"}
+          {t("userCount", { count: users.length })}
         </span>
       </div>
 
       {users.length === 0 ? (
         <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center text-sm text-white/60 flex items-center justify-center gap-2">
-          <AlertCircle className="w-4 h-4" /> Niciun utilizator cu score &gt; 0.
+          <AlertCircle className="w-4 h-4" /> {t("noUsersWithScore")}
         </div>
       ) : (
-        <div className="rounded-lg border border-white/10 bg-white/5 overflow-hidden">
+        <div className="rounded-lg border border-white/10 bg-white/5 overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-white/5 text-white/60 uppercase tracking-wide">
               <tr>
-                <th className="text-left p-2">User</th>
-                <th className="text-right p-2">Score</th>
-                <th className="text-right p-2">Strikes</th>
-                <th className="text-right p-2">Blocked</th>
-                <th className="text-right p-2">Adult</th>
-                <th className="text-right p-2">Sensitive</th>
-                <th className="text-left p-2">Last strike</th>
-                <th className="text-left p-2">Status</th>
+                <th className="text-left p-2">{t("colUser")}</th>
+                <th className="text-right p-2">{t("statScore")}</th>
+                <th className="text-right p-2">{t("statStrikes")}</th>
+                <th className="text-right p-2">{t("statBlocked")}</th>
+                <th className="text-right p-2">{t("statAdult")}</th>
+                <th className="text-right p-2">{t("statSensitive")}</th>
+                <th className="text-left p-2">{t("colLastStrike")}</th>
+                <th className="text-left p-2">{t("statStatus")}</th>
               </tr>
             </thead>
             <tbody>
@@ -274,10 +275,10 @@ export default async function AdminStrikesPage({
                   <td className="p-2 text-right">{u.blocked_count}</td>
                   <td className="p-2 text-right">{u.adult_count}</td>
                   <td className="p-2 text-right">{u.sensitive_count}</td>
-                  <td className="p-2 whitespace-nowrap">{fmtDate(u.last_strike_at)}</td>
+                  <td className="p-2 whitespace-nowrap">{fmtDate(u.last_strike_at, locale)}</td>
                   <td className="p-2">
                     {u.status === "suspended" ? (
-                      <span className="text-red-300 font-bold">suspended</span>
+                      <span className="text-red-300 font-bold">{t("statusSuspended")}</span>
                     ) : (
                       <span className="text-white/50">{u.status ?? "—"}</span>
                     )}

@@ -264,7 +264,7 @@ export default async function SellerStorefrontPage({ params }: Props) {
               </div>
             </div>
           )}
-          <h2 className="mb-4 text-lg font-black md:text-xl">Produse</h2>
+          <h2 className="mb-4 text-lg font-black md:text-xl">{t("productsHeading")}</h2>
           {products.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#E5E5E5] bg-[#F7F7F8] p-10 text-center">
               <p className="text-sm text-[#6E6E80]">

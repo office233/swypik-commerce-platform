@@ -1,9 +1,15 @@
 /**
- * Estimează probabilitatea de a câștiga un dispute Stripe (chargeback)
- * pe baza completude evidence + reason code + context order.
+ * Estimates the probability of winning a Stripe dispute (chargeback) based on
+ * evidence completeness + reason code + order context.
  *
- * Scor 0-100 (heuristic, NU statistic — bazat pe ghiduri publice Stripe + bune practici).
- * Atenție: succesul real depinde de bancă emitentă + dovezile concrete, nu de scor.
+ * Score 0-100 (heuristic, NOT statistical — based on public Stripe guides + best
+ * practices). Note: actual outcome depends on the issuing bank + the concrete
+ * evidence, not on the score.
+ *
+ * IMPORTANT (i18n): this module must stay locale-free. It returns stable keys +
+ * params only; callers (e.g. app/admin/disputes/page.tsx) translate them via the
+ * `adminDisputeScore` i18n namespace. Do NOT add hardcoded human-readable strings
+ * here — add a new key + translations in the i18n fragment instead.
  */
 
 export type DisputeReason =
@@ -21,70 +27,78 @@ export type DisputeReason =
 
 export type EvidenceFields = Record<string, unknown> | null | undefined;
 
+/** Translation key + interpolation params, resolved client-side via t(labelKey, params). */
+export type I18nMessage = {
+  key: string;
+  params?: Record<string, string | number>;
+};
+
 export type WinScore = {
-  score: number;             // 0-100
+  score: number; // 0-100
   label: "low" | "medium" | "high";
-  factors: { tag: string; delta: number; note: string }[];
-  recommendation: string;
-  missing: MissingSuggestion[]; // top câmpuri lipsă sortate după impact
-  combos: ComboScenario[];   // top 2 + top 3 dacă există suficiente sugestii
+  factors: { tag: string; delta: number; noteKey: string; noteParams?: Record<string, string | number> }[];
+  recommendationKey: string;
+  missing: MissingSuggestion[]; // top missing fields sorted by impact
+  combos: ComboScenario[]; // top 2 + top 3 if there are enough suggestions
 };
 
 export type MissingSuggestion = {
   key: string;
-  label: string;
-  potentialDelta: number; // câte puncte ar urca scorul dacă l-ai completa
-  newScore: number;       // scor estimat după completare
+  labelKey: string; // translation key for the field label
+  potentialDelta: number; // score points gained if this field is completed
+  newScore: number; // estimated score after completion
 };
 
 export type ComboScenario = {
-  size: number;           // câte câmpuri în combo (2 sau 3)
-  keys: string[];         // cheile combo
-  labels: string[];       // labels pentru afișare
-  newScore: number;       // scor estimat dacă toate sunt completate împreună
-  delta: number;          // diferență vs baseline
+  size: number; // how many fields in the combo (2 or 3)
+  keys: string[]; // combo keys
+  labelKeys: string[]; // translation keys for display
+  newScore: number; // estimated score if all are completed together
+  delta: number; // difference vs baseline
 };
 
-const FIELD_LABELS: Record<string, string> = {
-  receipt: "Receipt/chitanță (PDF)",
-  shipping_documentation: "Document expediere AWB (PDF)",
-  service_documentation: "Document serviciu (PDF)",
-  customer_signature: "Semnătură client la livrare (PDF)",
-  customer_communication: "Screenshot conversație (PDF/PNG)",
-  refund_policy: "Politica de retur (PDF)",
-  shipping_tracking_number: "Tracking number",
-  shipping_carrier: "Curier",
-  shipping_address: "Adresă livrare",
-  shipping_date: "Data expediere",
-  customer_name: "Nume client",
-  customer_email_address: "Email client",
-  customer_communication_text: "Comunicare cu clientul (text)",
-  product_description: "Descriere produs",
-  refund_policy_disclosure: "Politica de retur (text)",
+// Translation key for each evidence field label — see `adminDisputeScore.field.*`
+// in the i18n fragment. Keep in sync with FIELD_LABEL_KEYS below.
+const FIELD_LABEL_KEYS: Record<string, string> = {
+  receipt: "field.receipt",
+  shipping_documentation: "field.shippingDocumentation",
+  service_documentation: "field.serviceDocumentation",
+  customer_signature: "field.customerSignature",
+  customer_communication: "field.customerCommunication",
+  refund_policy: "field.refundPolicy",
+  shipping_tracking_number: "field.shippingTrackingNumber",
+  shipping_carrier: "field.shippingCarrier",
+  shipping_address: "field.shippingAddress",
+  shipping_date: "field.shippingDate",
+  customer_name: "field.customerName",
+  customer_email_address: "field.customerEmailAddress",
+  customer_communication_text: "field.customerCommunicationText",
+  product_description: "field.productDescription",
+  refund_policy_disclosure: "field.refundPolicyDisclosure",
 };
 
-// câmpurile relevante de propus + alias pe field-name pentru "ce input să umpli în UI"
-const ALL_FIELDS = Object.keys(FIELD_LABELS);
+// Relevant fields to propose + alias per field-name for "what input to fill in the UI"
+const ALL_FIELDS = Object.keys(FIELD_LABEL_KEYS);
 
 const REASON_BASELINE: Record<string, number> = {
-  // baseline win-rate aproximativ după ghidul Stripe + experiență publică
-  fraudulent: 20,                   // greu de câștigat fără AVS+CVV match + 3DS
-  unrecognized: 25,                 // similar fraudulent
-  product_not_received: 55,         // dovedit cu tracking → mare șansă
-  product_unacceptable: 45,         // depinde de fotografii + politica retur
-  duplicate: 65,                    // ușor de demonstrat cu 2 charge IDs
-  credit_not_processed: 60,         // dovedit cu refund receipt
-  subscription_canceled: 50,        // dovedit cu logs
+  // Approximate baseline win-rate per Stripe guide + public experience
+  fraudulent: 20, // hard to win without AVS+CVV match + 3DS
+  unrecognized: 25, // similar to fraudulent
+  product_not_received: 55, // proven with tracking → good chance
+  product_unacceptable: 45, // depends on photos + return policy
+  duplicate: 65, // easy to prove with 2 charge IDs
+  credit_not_processed: 60, // proven with refund receipt
+  subscription_canceled: 50, // proven with logs
   incorrect_account_details: 40,
-  insufficient_funds: 70,           // de obicei câștigat (responsabilitate buyer)
+  insufficient_funds: 70, // usually won (buyer responsibility)
   general: 45,
 };
 
 function has(ev: EvidenceFields, key: string): boolean {
   if (!ev || typeof ev !== "object") return false;
-  // Acces prin index pe un tip cu chei cunoscute: `Record<string, unknown>` e
-  // exact ce trebuie, iar `unknown` ne obligă să verificăm tipul mai jos —
-  // spre deosebire de `as any`, care ar fi lăsat orice să treacă.
+  // Index access on a type with known keys: `Record<string, unknown>` is exactly
+  // what's needed, and `unknown` forces us to check the type below — unlike
+  // `as any`, which would let anything through.
   const v = (ev as Record<string, unknown>)[key];
   return typeof v === "string" && v.trim().length > 0;
 }
@@ -99,93 +113,94 @@ function computeRaw(
   factors.push({
     tag: `reason:${reason}`,
     delta: 0,
-    note: `Baseline pentru motiv "${reason}": ${score}%`,
+    noteKey: "factor.reasonBaseline",
+    noteParams: { reason, score },
   });
 
-  // Strong evidence files (Stripe weights file_ids cel mai mult)
+  // Strong evidence files (Stripe weights file_ids the most)
   if (has(ev, "receipt")) {
     score += 6;
-    factors.push({ tag: "receipt", delta: +6, note: "Receipt/chitanță atașat" });
+    factors.push({ tag: "receipt", delta: +6, noteKey: "factor.receipt" });
   }
   if (has(ev, "shipping_documentation")) {
     score += 10;
-    factors.push({ tag: "shipping_doc", delta: +10, note: "Document expediere (AWB)" });
+    factors.push({ tag: "shipping_doc", delta: +10, noteKey: "factor.shippingDoc" });
   }
   if (has(ev, "customer_signature")) {
     score += 8;
-    factors.push({ tag: "signature", delta: +8, note: "Semnătură client la livrare" });
+    factors.push({ tag: "signature", delta: +8, noteKey: "factor.signature" });
   }
   if (has(ev, "customer_communication")) {
     score += 5;
-    factors.push({ tag: "comm_file", delta: +5, note: "Screenshot conversație" });
+    factors.push({ tag: "comm_file", delta: +5, noteKey: "factor.commFile" });
   }
   if (has(ev, "service_documentation")) {
     score += 5;
-    factors.push({ tag: "service_doc", delta: +5, note: "Document serviciu" });
+    factors.push({ tag: "service_doc", delta: +5, noteKey: "factor.serviceDoc" });
   }
   if (has(ev, "refund_policy")) {
     score += 3;
-    factors.push({ tag: "refund_policy", delta: +3, note: "Politica de retur (PDF)" });
+    factors.push({ tag: "refund_policy", delta: +3, noteKey: "factor.refundPolicy" });
   }
 
   // Text evidence
   if (has(ev, "shipping_tracking_number")) {
     score += 10;
-    factors.push({ tag: "tracking", delta: +10, note: "Tracking number completat" });
+    factors.push({ tag: "tracking", delta: +10, noteKey: "factor.tracking" });
   }
   if (has(ev, "shipping_carrier")) {
     score += 3;
-    factors.push({ tag: "carrier", delta: +3, note: "Curier specificat" });
+    factors.push({ tag: "carrier", delta: +3, noteKey: "factor.carrier" });
   }
   if (has(ev, "shipping_address")) {
     score += 4;
-    factors.push({ tag: "shipping_addr", delta: +4, note: "Adresă livrare detaliată" });
+    factors.push({ tag: "shipping_addr", delta: +4, noteKey: "factor.shippingAddr" });
   }
   if (has(ev, "shipping_date")) {
     score += 3;
-    factors.push({ tag: "shipping_date", delta: +3, note: "Data expediere documentată" });
+    factors.push({ tag: "shipping_date", delta: +3, noteKey: "factor.shippingDate" });
   }
   if (has(ev, "customer_name") && has(ev, "customer_email_address")) {
     score += 3;
-    factors.push({ tag: "customer_id", delta: +3, note: "Client identificat (nume+email)" });
+    factors.push({ tag: "customer_id", delta: +3, noteKey: "factor.customerId" });
   }
   if (has(ev, "customer_communication_text")) {
     score += 4;
-    factors.push({ tag: "comm_text", delta: +4, note: "Comunicare cu clientul (text)" });
+    factors.push({ tag: "comm_text", delta: +4, noteKey: "factor.commText" });
   }
   if (has(ev, "product_description")) {
     score += 2;
-    factors.push({ tag: "product_desc", delta: +2, note: "Produs descris" });
+    factors.push({ tag: "product_desc", delta: +2, noteKey: "factor.productDesc" });
   }
   if (has(ev, "refund_policy_disclosure")) {
     score += 3;
-    factors.push({ tag: "refund_text", delta: +3, note: "Politica retur (text)" });
+    factors.push({ tag: "refund_text", delta: +3, noteKey: "factor.refundText" });
   }
 
-  // Penalty: dispute fără evidence deloc
+  // Penalty: dispute with no evidence at all
   const evKeys = ev && typeof ev === "object" ? Object.keys(ev).filter((k) => has(ev, k)) : [];
   if (evKeys.length === 0) {
     score -= 25;
-    factors.push({ tag: "no_evidence", delta: -25, note: "ZERO evidence completată" });
+    factors.push({ tag: "no_evidence", delta: -25, noteKey: "factor.noEvidence" });
   }
 
-  // Bonus dacă există order link (înseamnă putem dovedi vânzarea)
+  // Bonus if there's an order link (means we can prove the sale)
   if (hasOrderLink) {
     score += 4;
-    factors.push({ tag: "order_linked", delta: +4, note: "Comanda corelată în sistem" });
+    factors.push({ tag: "order_linked", delta: +4, noteKey: "factor.orderLinked" });
   } else {
     score -= 5;
-    factors.push({ tag: "no_order", delta: -5, note: "Fără comandă corelată" });
+    factors.push({ tag: "no_order", delta: -5, noteKey: "factor.noOrder" });
   }
 
-  // Sinergii puternice: shipping_documentation + tracking + signature pentru product_not_received
+  // Strong synergy: shipping_documentation + tracking + signature for product_not_received
   if (
     reason === "product_not_received" &&
     has(ev, "shipping_documentation") &&
     has(ev, "shipping_tracking_number")
   ) {
     score += 8;
-    factors.push({ tag: "synergy_pnr", delta: +8, note: "Combinație win-ready pentru PNR" });
+    factors.push({ tag: "synergy_pnr", delta: +8, noteKey: "factor.synergyPnr" });
   }
 
   return { score: Math.max(0, Math.min(100, Math.round(score))), factors };
@@ -201,13 +216,8 @@ export function scoreDispute(input: {
   const hasOrderLink = Boolean(input.hasOrderLink);
 
   const baseline = computeRaw(reason, ev, hasOrderLink);
-  baseline.factors.unshift({
-    tag: `reason:${reason}`,
-    delta: 0,
-    note: `Baseline pentru motiv "${reason}": ${REASON_BASELINE[reason] ?? 45}%`,
-  });
 
-  // Calculează ce câștigă fiecare câmp NEcompletat dacă l-am completa
+  // Compute what each unfilled field would gain if it were completed
   const missing: MissingSuggestion[] = [];
   for (const key of ALL_FIELDS) {
     if (has(ev, key)) continue;
@@ -217,7 +227,7 @@ export function scoreDispute(input: {
     if (delta > 0) {
       missing.push({
         key,
-        label: FIELD_LABELS[key] || key,
+        labelKey: FIELD_LABEL_KEYS[key] || key,
         potentialDelta: delta,
         newScore: sim.score,
       });
@@ -227,24 +237,24 @@ export function scoreDispute(input: {
 
   const score = baseline.score;
   let label: WinScore["label"];
-  let recommendation: string;
+  let recommendationKey: string;
   if (score >= 65) {
     label = "high";
-    recommendation = "Șansă bună — trimite evidence acum.";
+    recommendationKey = "recommendation.high";
   } else if (score >= 40) {
     label = "medium";
-    recommendation = "Mai adaugă dovezi (tracking, AWB, semnătură) înainte de submit.";
+    recommendationKey = "recommendation.medium";
   } else {
     label = "low";
-    recommendation =
+    recommendationKey =
       reason === "fraudulent" || reason === "unrecognized"
-        ? "Fraudă — de obicei pierdut. Accept dispute & cere bancii reverse doar dacă ai 3DS+AVS."
-        : "Șansă mică — completează evidence sau acceptă pierderea pentru a evita fee.";
+        ? "recommendation.lowFraud"
+        : "recommendation.low";
   }
 
   const topMissing = missing.slice(0, 5);
 
-  // Calcul combo: ce s-ar întâmpla dacă completezi top 2 sau top 3 împreună
+  // Combo calculation: what would happen if top 2 or top 3 are completed together
   const combos: ComboScenario[] = [];
   for (const size of [2, 3]) {
     if (topMissing.length < size) continue;
@@ -257,7 +267,7 @@ export function scoreDispute(input: {
       combos.push({
         size,
         keys,
-        labels: keys.map((k) => FIELD_LABELS[k] || k),
+        labelKeys: keys.map((k) => FIELD_LABEL_KEYS[k] || k),
         newScore: sim.score,
         delta,
       });
@@ -268,7 +278,7 @@ export function scoreDispute(input: {
     score,
     label,
     factors: baseline.factors,
-    recommendation,
+    recommendationKey,
     missing: topMissing,
     combos,
   };

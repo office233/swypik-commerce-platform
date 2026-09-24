@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import { labelProduct } from "@/lib/moderation/labelProduct";
 import { assertAdminSession } from "@/lib/security/admin-auth";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 type ProductFormValues = {
   title: string;
@@ -54,7 +56,8 @@ function encodeActionError(message: string): string {
   return encodeURIComponent(message);
 }
 
-function readProductFormValues(formData: FormData): ProductFormValues {
+async function readProductFormValues(formData: FormData): Promise<ProductFormValues> {
+  const t = await getTranslations("adminMarketplace.editor.errors");
   const title = normalizeText(formData.get("title"));
   const derivedSlug = slugify(normalizeText(formData.get("slug")) || title);
   const priceCents = normalizeOptionalNumber(formData.get("price_cents"));
@@ -62,23 +65,23 @@ function readProductFormValues(formData: FormData): ProductFormValues {
   const supplierCostCents = normalizeOptionalNumber(formData.get("supplier_cost_cents"));
 
   if (!title) {
-    throw new Error("Title is required.");
+    throw new Error(t("titleRequired"));
   }
 
   if (!derivedSlug) {
-    throw new Error("Slug is required.");
+    throw new Error(t("slugRequired"));
   }
 
   if (!Number.isFinite(priceCents) || priceCents === null || priceCents < 0) {
-    throw new Error("Price must be a non-negative integer amount in cents.");
+    throw new Error(t("priceInvalid"));
   }
 
   if (compareAtPriceCents !== null && (!Number.isFinite(compareAtPriceCents) || compareAtPriceCents < 0)) {
-    throw new Error("Compare-at price must be empty or a non-negative integer.");
+    throw new Error(t("compareAtPriceInvalid"));
   }
 
   if (supplierCostCents !== null && (!Number.isFinite(supplierCostCents) || supplierCostCents < 0)) {
-    throw new Error("Supplier cost must be empty or a non-negative integer.");
+    throw new Error(t("supplierCostInvalid"));
   }
 
   return {
@@ -116,7 +119,8 @@ async function ensureSlugAvailable(slug: string, currentId?: string): Promise<vo
     return;
   }
 
-  throw new Error("Slug is already in use.");
+  const t = await getTranslations("adminMarketplace.editor.errors");
+  throw new Error(t("slugInUse"));
 }
 
 async function writeMarketplaceProduct(values: ProductFormValues, currentId?: string): Promise<string> {
@@ -233,14 +237,17 @@ async function writeMarketplaceProduct(values: ProductFormValues, currentId?: st
 
 export async function createMarketplaceProduct(formData: FormData) {
   await assertAdminSession();
+  const t = await getTranslations("adminMarketplace.editor.errors");
 
   let productId = "";
   try {
-    const values = readProductFormValues(formData);
+    const values = await readProductFormValues(formData);
     productId = await writeMarketplaceProduct(values);
+    await logAdminAction({ action: "marketplace_product.create", targetType: "marketplace_product", targetId: productId, details: { title: values.title, slug: values.slug } });
     revalidatePath("/admin/marketplace");
-  } catch (error: any) {
-    redirect(`/admin/marketplace/new?error=${encodeActionError(error.message || "Could not create product.")}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : t("createFailed");
+    redirect(`/admin/marketplace/new?error=${encodeActionError(message)}`);
   }
 
   redirect(`/admin/marketplace/${productId}?created=1`);
@@ -248,15 +255,18 @@ export async function createMarketplaceProduct(formData: FormData) {
 
 export async function updateMarketplaceProduct(id: string, formData: FormData) {
   await assertAdminSession();
+  const t = await getTranslations("adminMarketplace.editor.errors");
 
   try {
-    const values = readProductFormValues(formData);
+    const values = await readProductFormValues(formData);
     await writeMarketplaceProduct(values, id);
+    await logAdminAction({ action: "marketplace_product.update", targetType: "marketplace_product", targetId: id, details: { title: values.title, slug: values.slug } });
 
     revalidatePath("/admin/marketplace");
     revalidatePath(`/admin/marketplace/${id}`);
-  } catch (error: any) {
-    redirect(`/admin/marketplace/${id}?error=${encodeActionError(error.message || "Could not save product.")}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : t("saveFailed");
+    redirect(`/admin/marketplace/${id}?error=${encodeActionError(message)}`);
   }
 
   redirect(`/admin/marketplace/${id}?saved=1`);

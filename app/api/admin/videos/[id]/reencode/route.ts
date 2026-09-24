@@ -8,6 +8,7 @@ import {
 } from "@/lib/video/pipeline";
 
 import { logger } from "@/lib/logger";
+import { logAdminAction } from "@/lib/security/admin-audit";
 export const dynamic = "force-dynamic";
 
 /**
@@ -36,10 +37,10 @@ export async function POST(
 
   const { id: videoId } = await params;
   if (!videoId) {
-    return NextResponse.json({ error: "Missing video id" }, { status: 400 });
+    return NextResponse.json({ error: "missing_video_id" }, { status: 400 });
   }
 
-  let body: any = {};
+  let body: { sourceUrl?: string; source_url?: string } = {};
   try {
     body = await req.json();
   } catch {
@@ -52,7 +53,7 @@ export async function POST(
       [videoId]
     );
     if (!rows[0]) {
-      return NextResponse.json({ error: "Video not found" }, { status: 404 });
+      return NextResponse.json({ error: "video_not_found" }, { status: 404 });
     }
 
     const sourceUrl: string | null =
@@ -62,10 +63,7 @@ export async function POST(
 
     if (!sourceUrl) {
       return NextResponse.json(
-        {
-          error:
-            "No external source URL found for this video. Pass {sourceUrl} in the body.",
-        },
+        { error: "no_source_url" },
         { status: 422 }
       );
     }
@@ -75,6 +73,14 @@ export async function POST(
       existingVideoId: videoId,
       title: rows[0].title || undefined,
       metadata: { reencode_requested_at: new Date().toISOString() },
+    });
+
+    await logAdminAction({
+      action: "video.reencode",
+      targetType: "video",
+      targetId: videoId,
+      details: { sourceUrl },
+      req,
     });
 
     return NextResponse.json(
@@ -92,10 +98,10 @@ export async function POST(
       },
       { status: 202 }
     );
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, `[Admin Videos] reencode ${videoId} error:`);
     return NextResponse.json(
-      { error: error?.message || "Re-encode failed" },
+      { error: "reencode_failed" },
       { status: 500 }
     );
   }

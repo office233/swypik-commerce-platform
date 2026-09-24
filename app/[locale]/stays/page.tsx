@@ -1,11 +1,21 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import StaysClient from "./StaysClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-    title: "Swypik Stays — cazări și hoteluri",
-    description: "Caută și rezervă cazări cu preț final afișat din start. În lei, fără taxe ascunse la plată.",
-};
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: "stays" });
+    return {
+        title: t("metaTitle"),
+        description: t("metaDescription"),
+    };
+}
 
 export default function StaysPage() {
     return <StaysClient />;

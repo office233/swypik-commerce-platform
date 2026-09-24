@@ -27,15 +27,16 @@ import { isEnabledClient } from "@/lib/feature-flags-client";
 // Heavy client-only components — lazy-load to keep initial bundle small.
 const CommentsSheet = dynamic(() => import("./social/CommentsSheet"), { ssr: false });
 const VirtualTryOnModal = dynamic(() => import("./video/VirtualTryOnModal"), { ssr: false });
-// Try-On e doar o previzualizare UI (fara AR real) - vizibil doar cu NEXT_PUBLIC_FEATURE_TRY_ON=1.
-const TRY_ON_ENABLED = isEnabledClient("tryOn");
+// Try-On e doar o previzualizare UI (fara AR real) - vizibil doar cu NEXT_PUBLIC_FEATURE_VIRTUAL_TRYON=1
+// (sau legacy NEXT_PUBLIC_FEATURE_TRY_ON=1).
+const TRY_ON_ENABLED = isEnabledClient("virtualTryOn");
 import {
   trackEvent as trackFeedEvent,
   trackWatchTime,
   flushWatchTime,
   resetWatchTime,
 } from "@/lib/feed/track";
-import type { FeedEventType } from "@/lib/feed/events";
+import type { FeedEventType } from "@/lib/feed/event-types";
 
 // Map legacy in-component event names → granular tracking taxonomy.
 // Anything not in the map is skipped for the new pipeline (legacy pipeline
@@ -149,12 +150,12 @@ function eventSubject(type: string, product: FeedProduct) {
   return videoId ? { subject_type: "video", subject_id: videoId } : { subject_type: "product", subject_id: productEventId(product) };
 }
 
-function aiOverlay(product: FeedProduct) {
+function aiOverlay(product: FeedProduct, t: (key: string) => string) {
   if (product.commerceBadge) return product.commerceBadge;
-  if (product.discountPercent >= 20) return "Deal bun";
-  if (product.rating >= 4.8) return "Top calitate";
-  if ((product.orders || 0) > 250) return "Popular";
-  return "AI Pick";
+  if (product.discountPercent >= 20) return t("badgeGoodDeal");
+  if (product.rating >= 4.8) return t("badgeTopQuality");
+  if ((product.orders || 0) > 250) return t("badgePopular");
+  return t("badgeAiPick");
 }
 
 function getRealLikes(product: FeedProduct) {
@@ -632,7 +633,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
     <div ref={scrollRef} className="feed-scroll">
       <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between px-4" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         {onClose ? (
-          <button type="button" onClick={onClose} className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm" style={tapAction} aria-label="Close feed">
+          <button type="button" onClick={onClose} className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm" style={tapAction} aria-label={t("closeFeed")}>
             <ArrowLeft size={20} />
           </button>
         ) : <span />}
@@ -642,7 +643,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
             onClick={() => setIsMuted((value) => !value)}
             className="rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm"
             style={tapAction}
-            aria-label={isMuted ? "Unmute feed" : "Mute feed"}
+            aria-label={isMuted ? t("unmuteFeed") : t("muteFeed")}
           >
             {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
@@ -717,7 +718,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 }}
                 style={tapAction}
                 className="absolute left-3 top-20 z-20 flex max-w-[70%] items-center gap-2 rounded-2xl bg-black/60 px-3 py-2 text-left backdrop-blur-md transition-transform active:scale-[0.97]"
-                aria-label={`Vezi produsul ${activeOverlay.title}`}
+                aria-label={t("viewProductNamed", { name: activeOverlay.title })}
               >
                 {activeOverlay.image_url && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -736,7 +737,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                       ? formatPrice(activeOverlay.price_cents, {
                         sourceCurrency: isCurrency(activeOverlay.currency) ? activeOverlay.currency : "RON",
                       })
-                      : "Vezi produsul"}
+                      : t("viewProduct")}
                   </span>
                 </span>
               </button>
@@ -744,24 +745,24 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
 
             <div className="absolute bottom-48 right-3 z-20 flex flex-col items-center gap-4">
               {UUID_RE.test(videoEventId(product)) && (
-                <button type="button" onClick={() => toggleLike(product)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label={likes[product.id] ? "Unlike" : "Like"}>
+                <button type="button" onClick={() => toggleLike(product)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label={likes[product.id] ? t("unlike") : t("like")}>
                   <div className={`rounded-full p-3 shadow-lg ${likes[product.id] ? "bg-[#EF4444] text-white" : "bg-black/30 backdrop-blur-sm text-white"}`}>
                     <Heart size={24} fill={likes[product.id] ? "currentColor" : "none"} />
                   </div>
                   <span className="text-[10px] font-bold text-white/90">{likeCounts[product.id] ?? (getRealLikes(product) + (likes[product.id] ? 1 : 0))}</span>
                 </button>
               )}
-              <button type="button" onClick={() => setShowComments(product.id)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label="Open comments">
+              <button type="button" onClick={() => setShowComments(product.id)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label={t("openComments")}>
                 <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
                   <MessageCircle size={24} />
                 </div>
                 <span className="text-[10px] font-bold text-white/90">{commentCounts[product.id] ?? getRealComments(product)}</span>
               </button>
-              <button type="button" onClick={() => openProduct(product)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label="Open product details">
+              <button type="button" onClick={() => openProduct(product)} className="flex flex-col items-center gap-0.5" style={tapAction} aria-label={t("openProductDetails")}>
                 <div className="rounded-full bg-black/30 backdrop-blur-sm p-3 text-white shadow-lg">
                   <ShoppingCart size={24} />
                 </div>
-                <span className="text-[10px] font-bold text-white/90">Detalii</span>
+                <span className="text-[10px] font-bold text-white/90">{t("details")}</span>
               </button>
 
               {TRY_ON_ENABLED && (
@@ -770,12 +771,12 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 onClick={() => setTryOnProduct(product)}
                 className="flex flex-col items-center gap-0.5"
                 style={tapAction}
-                aria-label="Virtual Try-On AR"
+                aria-label={t("virtualTryOnAr")}
               >
                 <div className="rounded-full bg-purple-600/80 backdrop-blur-sm p-3 text-white shadow-lg border border-purple-400/40">
                   <Sparkles size={24} />
                 </div>
-                <span className="text-[10px] font-black text-purple-200">Try-On</span>
+                <span className="text-[10px] font-black text-purple-200">{t("tryOnLabel")}</span>
               </button>
               )}
             </div>
@@ -783,14 +784,14 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
             <div className="absolute bottom-0 left-0 right-0 z-20 px-4" style={{ paddingBottom: "max(84px, calc(72px + env(safe-area-inset-bottom)))" }}>
               <div className="mb-3">
                 <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">{aiOverlay(product)}</span>
+                  <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">{aiOverlay(product, t)}</span>
                   {product.discountPercent > 0 && <span className="rounded-full bg-[#DC2626] px-2.5 py-0.5 text-[10px] font-black text-white">-{product.discountPercent}%</span>}
                   
                 </div>
                 <h2 className="line-clamp-2 text-[15px] font-black leading-snug text-white drop-shadow-lg">{product.title}</h2>
                 <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
                   {product.rating > 0 && <span><Star size={11} className="mr-0.5 inline text-[#B45309]" fill="currentColor" />{product.rating.toFixed(1)}</span>}
-                  <span>{product.isEstimatedSocial || product.orders === 0 ? "Popular" : `${product.orders.toLocaleString()}+ vândute`}</span>
+                  <span>{product.isEstimatedSocial || product.orders === 0 ? t("badgePopular") : t("ordersSoldCount", { count: product.orders.toLocaleString() })}</span>
                   <span><Truck size={11} className="mr-0.5 inline" />{product.deliveryDays}z</span>
                 </div>
               </div>

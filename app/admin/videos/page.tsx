@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useState, useEffect, useCallback } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { Clapperboard, Film, Check, X } from "lucide-react";
 
@@ -38,14 +38,6 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }
   queued: { bg: "rgba(13,13,13,0.15)", text: "#0D0D0D", border: "rgba(13,13,13,0.15)" },
 };
 
-const STATUS_FILTER_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "processing", label: "Processing" },
-  { value: "ready", label: "Ready" },
-  { value: "failed", label: "Failed" },
-];
-
 function getStatusStyle(status: string) {
   return STATUS_COLORS[status] || STATUS_COLORS.pending;
 }
@@ -68,6 +60,21 @@ const PAGE_SIZE = 50;
 
 export default function AdminVideosPage() {
   const t = useTranslations("adminVideos");
+  const locale = useLocale();
+  const STATUS_FILTER_OPTIONS = [
+    { value: "all", label: t("statusAll") },
+    { value: "pending", label: t("statusPending") },
+    { value: "processing", label: t("statusProcessing") },
+    { value: "ready", label: t("statusReady") },
+    { value: "failed", label: t("statusFailed") },
+  ];
+  const STATUS_LABEL_MAP: Record<string, string> = {
+    pending: t("statusPending"),
+    processing: t("statusProcessing"),
+    ready: t("statusReady"),
+    failed: t("statusFailed"),
+    queued: t("statusQueued"),
+  };
   const [videos, setVideos] = useState<VideoAsset[]>([]);
   const [counts, setCounts] = useState({ total: 0, ready: 0, processing: 0, failed: 0, pending: 0 });
   const [filteredTotal, setFilteredTotal] = useState(0);
@@ -90,19 +97,19 @@ export default function AdminVideosPage() {
         status: statusFilter,
       });
       const res = await fetch(`/api/admin/videos?${params.toString()}`, { credentials: "same-origin" });
-      if (!res.ok) throw new Error("Failed to load videos");
+      if (!res.ok) throw new Error(t("loadFailed"));
       const data = await res.json();
       setVideos(data.videos ?? []);
       setCounts(data.totals ?? { total: 0, ready: 0, processing: 0, failed: 0, pending: 0 });
       setFilteredTotal(Number(data.filteredTotal) || 0);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || "Failed to load videos");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("loadFailed"));
       setVideos([]);
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter]);
+  }, [page, statusFilter, t]);
 
   useEffect(() => {
     fetchVideos();
@@ -123,10 +130,10 @@ export default function AdminVideosPage() {
         credentials: "same-origin",
         body: JSON.stringify({ action, videoId, reason }),
       });
-      if (!res.ok) throw new Error("Action failed");
+      if (!res.ok) throw new Error(t("actionFailed"));
       await fetchVideos();
     } catch {
-      alert("Action failed. Please try again.");
+      alert(t("actionFailedRetry"));
     } finally {
       setActionLoading(null);
       setRejectId(null);
@@ -146,26 +153,26 @@ export default function AdminVideosPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-black flex items-center gap-3">
-              <Clapperboard size={28} /> Video Manager
+              <Clapperboard size={28} /> {t("pageTitle")}
             </h1>
             <p className="mt-1 text-sm text-[#6E6E80]">
-              Review, approve, and manage all creator video assets.
+              {t("pageSubtitle")}
             </p>
           </div>
           <Link
             href="/admin"
             className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#0D0D0D] border border-[#E5E5E7] hover:border-[#0D0D0D] transition-colors"
           >
-            ← Back to Dashboard
+            &larr; {t("backToDashboard")}
           </Link>
         </div>
 
         {/* ─── Summary badges ─── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatBadge label="Total" value={counts.total} color="#6E6E80" loading={loading} />
-          <StatBadge label="Processing" value={counts.processing} color="#3B82F6" loading={loading} />
-          <StatBadge label="Ready" value={counts.ready} color="#0D0D0D" loading={loading} />
-          <StatBadge label="Failed" value={counts.failed} color="#EF4444" loading={loading} />
+          <StatBadge label={t("statTotal")} value={counts.total} color="#6E6E80" loading={loading} />
+          <StatBadge label={t("statProcessing")} value={counts.processing} color="#3B82F6" loading={loading} />
+          <StatBadge label={t("statReady")} value={counts.ready} color="#0D0D0D" loading={loading} />
+          <StatBadge label={t("statFailed")} value={counts.failed} color="#EF4444" loading={loading} />
         </div>
 
         {/* ─── Filter bar ─── */}
@@ -174,7 +181,7 @@ export default function AdminVideosPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
-            Filtre
+            {t("filters")}
           </div>
           <select
             id="video-status-filter"
@@ -191,12 +198,12 @@ export default function AdminVideosPage() {
           >
             {STATUS_FILTER_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
-                Status: {o.label}
+                {t("statusColon")} {o.label}
               </option>
             ))}
           </select>
           <div className="ml-auto text-sm text-[#6E6E80] tabular-nums">
-            {filtered.length} video{filtered.length !== 1 ? "s" : ""} found
+            {t("videosFound", { count: filtered.length })}
           </div>
         </div>
 
@@ -213,13 +220,13 @@ export default function AdminVideosPage() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-[#E5E5E7] bg-[#F7F7F8] text-[10px] font-black uppercase tracking-widest text-[#6E6E80]">
-                  <th className="text-left px-5 py-4">Thumbnail</th>
-                  <th className="text-left px-5 py-4">Creator</th>
-                  <th className="text-left px-5 py-4">Produs</th>
-                  <th className="text-center px-5 py-4">Status</th>
+                  <th className="text-left px-5 py-4">{t("thThumbnail")}</th>
+                  <th className="text-left px-5 py-4">{t("thCreator")}</th>
+                  <th className="text-left px-5 py-4">{t("thProduct")}</th>
+                  <th className="text-center px-5 py-4">{t("thStatus")}</th>
                   <th className="text-center px-5 py-4">{t("thDuration")}</th>
-                  <th className="text-center px-5 py-4">Dimensiuni</th>
-                  <th className="text-left px-5 py-4">Data</th>
+                  <th className="text-center px-5 py-4">{t("thDimensions")}</th>
+                  <th className="text-left px-5 py-4">{t("thDate")}</th>
                   <th className="text-right px-5 py-4">{t("thActions")}</th>
                 </tr>
               </thead>
@@ -232,7 +239,7 @@ export default function AdminVideosPage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
-                        Loading video assets…
+                        {t("loadingVideos")}
                       </div>
                     </td>
                   </tr>
@@ -240,8 +247,8 @@ export default function AdminVideosPage() {
                   <tr>
                     <td colSpan={8} className="px-6 py-20 text-center text-[#6E6E80]">
                       {videos.length === 0
-                        ? "No video assets found yet."
-                        : "No videos match the selected filter."}
+                        ? t("noVideosYet")
+                        : t("noVideosMatchFilter")}
                     </td>
                   </tr>
                 ) : (
@@ -263,7 +270,7 @@ export default function AdminVideosPage() {
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={video.thumbnail_url}
-                                alt="thumb"
+                                alt={t("thumbnailAlt")}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).style.display = "none";
@@ -278,7 +285,7 @@ export default function AdminVideosPage() {
                         {/* Creator */}
                         <td className="px-5 py-3">
                           <p className="font-semibold text-[#0D0D0D] truncate max-w-[160px]">
-                            {video.creator_name || "Unknown"}
+                            {video.creator_name || t("unknown")}
                           </p>
                           <p className="text-[10px] text-[#6E6E80] truncate max-w-[160px]">
                             {video.creator_email || "—"}
@@ -295,7 +302,7 @@ export default function AdminVideosPage() {
                               {video.product_title}
                             </Link>
                           ) : (
-                            <span className="text-[#6E6E80]">No product</span>
+                            <span className="text-[#6E6E80]">{t("noProduct")}</span>
                           )}
                         </td>
 
@@ -313,11 +320,11 @@ export default function AdminVideosPage() {
                               className="w-1.5 h-1.5 rounded-full"
                               style={{ backgroundColor: statusStyle.text }}
                             />
-                            {video.status}
+                            {STATUS_LABEL_MAP[video.status] || video.status}
                           </span>
                           {video.job_status && video.job_status !== video.status && (
                             <p className="text-[9px] text-[#6E6E80] mt-1">
-                              Job: {video.job_status}
+                              {t("jobLabel")}: {video.job_status}
                               {video.job_attempts ? ` (×${video.job_attempts})` : ""}
                             </p>
                           )}
@@ -340,17 +347,17 @@ export default function AdminVideosPage() {
 
                         {/* Date */}
                         <td className="px-5 py-3 text-xs text-[#6E6E80]">
-                          {new Date(video.created_at).toLocaleDateString("ro-RO", {
+                          {new Intl.DateTimeFormat(locale, {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
-                          })}
+                          }).format(new Date(video.created_at))}
                           <br />
                           <span className="text-[10px]">
-                            {new Date(video.created_at).toLocaleTimeString("ro-RO", {
+                            {new Intl.DateTimeFormat(locale, {
                               hour: "2-digit",
                               minute: "2-digit",
-                            })}
+                            }).format(new Date(video.created_at))}
                           </span>
                         </td>
 
@@ -358,7 +365,7 @@ export default function AdminVideosPage() {
                         <td className="px-5 py-3">
                           <div className="flex items-center justify-end gap-2">
                             {isActionTarget ? (
-                              <span className="text-[#6E6E80] text-xs animate-pulse">Processing…</span>
+                              <span className="text-[#6E6E80] text-xs animate-pulse">{t("processingEllipsis")}</span>
                             ) : (
                               <>
                                 {/* Approve — only if NOT ready */}
@@ -376,7 +383,7 @@ export default function AdminVideosPage() {
                                   <div className="flex items-center gap-1">
                                     <input
                                       type="text"
-                                      placeholder="Motiv..."
+                                      placeholder={t("reasonPlaceholder")}
                                       value={rejectReason}
                                       onChange={(e) => setRejectReason(e.target.value)}
                                       className="w-28 rounded-lg bg-white border border-[#E5E5E7] px-2 py-1 text-[11px] text-[#0D0D0D] placeholder:text-[#9CA3AF] focus:outline-none focus:border-red-500"
@@ -394,7 +401,7 @@ export default function AdminVideosPage() {
                                       onClick={() => performAction("reject", video.id, rejectReason)}
                                       className="rounded-lg bg-red-50 px-2 py-1 text-[11px] font-bold text-red-600 border border-red-200 hover:bg-red-100 transition-all"
                                     >
-                                      OK
+                                      {t("ok")}
                                     </button>
                                     <button
                                       onClick={() => {
@@ -411,7 +418,7 @@ export default function AdminVideosPage() {
                                     onClick={() => setRejectId(video.id)}
                                     className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] font-bold text-red-600 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all"
                                   >
-                                    <span className="inline-flex items-center gap-1"><X size={12} /> Respinge</span>
+                                    <span className="inline-flex items-center gap-1"><X size={12} /> {t("reject")}</span>
                                   </button>
                                 )}
 
@@ -421,7 +428,7 @@ export default function AdminVideosPage() {
                                     onClick={() => performAction("reprocess", video.id)}
                                     className="rounded-lg bg-[#F59E0B]/10 px-3 py-1.5 text-[11px] font-bold text-[#F59E0B] border border-[#F59E0B]/20 hover:bg-[#F59E0B]/20 hover:border-[#F59E0B]/40 transition-all"
                                   >
-                                    ↻ Reprocesează
+                                    &#8635; {t("reprocess")}
                                   </button>
                                 )}
                               </>
@@ -438,9 +445,7 @@ export default function AdminVideosPage() {
           {filteredTotal > PAGE_SIZE && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-[#E5E5E7] bg-[#F7F7F8] px-5 py-4">
               <div className="text-sm text-[#6E6E80] tabular-nums">
-                Pagina <span className="font-bold text-[#0D0D0D]">{safePage}</span> din{" "}
-                <span className="font-bold text-[#0D0D0D]">{totalPages}</span> · {filteredTotal} video
-                {filteredTotal !== 1 ? "s" : ""}
+                {t("pageOf", { page: safePage, totalPages })} &middot; {t("videosFound", { count: filteredTotal })}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -448,14 +453,14 @@ export default function AdminVideosPage() {
                   disabled={safePage <= 1}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E7] bg-white px-4 py-2.5 text-sm font-bold text-[#0D0D0D] disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
                 >
-                  ← Anterior
+                  &larr; {t("previous")}
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage >= totalPages}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E7] bg-white px-4 py-2.5 text-sm font-bold text-[#0D0D0D] disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
                 >
-                  Următor →
+                  {t("next")} &rarr;
                 </button>
               </div>
             </div>

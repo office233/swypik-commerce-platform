@@ -3,22 +3,30 @@
  * Read-only: refund-urile sunt inițiate de seller sau via Stripe webhook.
  */
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "În procesare",
-  succeeded: "Reușit",
-  failed: "Eșuat",
-  cancelled: "Anulat",
-  refunded: "Restituit",
+type RefundRow = {
+  id: string;
+  order_id: string | null;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  provider_payment_id: string | null;
+  processed_at: string | null;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+  order_metadata: { customer_email?: string } | null;
+  buyer_email: string | null;
+  buyer_username: string | null;
 };
 
-async function getRefunds() {
+async function getRefunds(): Promise<RefundRow[]> {
   try {
-    const { rows } = await dbQuery(
+    const { rows } = await dbQuery<RefundRow>(
       `SELECT pt.id,
               pt.order_id,
               pt.amount_cents,
@@ -40,43 +48,52 @@ async function getRefunds() {
     );
     return rows;
   } catch (err) {
-    console.error("[admin/refunds] query error", err);
+    logger.error({ err }, "[admin/refunds] query error");
     return [];
   }
 }
 
 export default async function AdminRefundsPage() {
-    const t = await getTranslations("adminRefunds");
+  const t = await getTranslations("adminRefunds");
+  const locale = await getLocale();
   const items = await getRefunds();
+
+  const statusLabels: Record<string, string> = {
+    pending: t("statusPending"),
+    succeeded: t("statusSucceeded"),
+    failed: t("statusFailed"),
+    cancelled: t("statusCancelled"),
+    refunded: t("statusRefunded"),
+  };
+
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" });
 
   return (
     <div className="p-4 md:p-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-black text-[#0D0D0D]">Restituiri</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Refund-uri Stripe. Inițiere prin seller dashboard sau webhook.
-        </p>
+        <h1 className="text-3xl font-black text-[#0D0D0D]">{t("pageTitle")}</h1>
+        <p className="text-sm text-gray-600 mt-1">{t("pageDesc")}</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-[#E5E5E5] overflow-x-auto">
         <table className="w-full text-left min-w-[800px]">
           <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-sm font-bold text-[#0D0D0D]">
             <tr>
-              <th className="px-4 py-3">Refund ID</th>
+              <th className="px-4 py-3">{t("thRefundId")}</th>
               <th className="px-4 py-3">{t("thOrder")}</th>
-              <th className="px-4 py-3">Client</th>
+              <th className="px-4 py-3">{t("thClient")}</th>
               <th className="px-4 py-3">{t("thAmount")}</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Procesat</th>
-              <th className="px-4 py-3">Creat</th>
+              <th className="px-4 py-3">{t("thStatus")}</th>
+              <th className="px-4 py-3">{t("thProcessed")}</th>
+              <th className="px-4 py-3">{t("thCreated")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5] text-sm">
-            {items.map((row: any) => {
+            {items.map((row) => {
               const orderMeta = row.order_metadata || {};
               const buyer =
-                row.buyer_email || row.buyer_username || orderMeta.customer_email || "Anonim";
-              const amount = ((row.amount_cents || 0) / 100).toFixed(2);
+                row.buyer_email || row.buyer_username || orderMeta.customer_email || t("anonymous");
+              const amount = (row.amount_cents || 0) / 100;
               const currency = (row.currency || "RON").toUpperCase();
               const refundId = row.provider_payment_id || row.id;
               return (
@@ -96,22 +113,20 @@ export default async function AdminRefundsPage() {
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{buyer}</td>
+                  <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate">{buyer}</td>
                   <td className="px-4 py-3 font-medium text-[#0D0D0D]">
-                    {amount} {currency}
+                    {new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount)}
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-700">
-                      {STATUS_LABELS[row.status] || row.status}
+                      {statusLabels[row.status] || row.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {row.processed_at
-                      ? new Date(row.processed_at).toLocaleString("ro-RO")
-                      : "—"}
+                  <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                    {row.processed_at ? dateFmt.format(new Date(row.processed_at)) : "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {new Date(row.created_at).toLocaleString("ro-RO")}
+                  <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                    {dateFmt.format(new Date(row.created_at))}
                   </td>
                 </tr>
               );
@@ -119,7 +134,7 @@ export default async function AdminRefundsPage() {
             {items.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
-                  Nu există restituiri înregistrate încă.
+                  {t("noRefunds")}
                 </td>
               </tr>
             )}

@@ -4,6 +4,7 @@ import { dbQuery } from "@/lib/db";
 import { getOptionalSocialUserId } from "@/lib/social/session";
 import { loadFeedWeightsForViewer, type FeedWeights } from "@/lib/algo/scoring";
 import { TOPICS, topicSearchTerms } from "@/lib/topics";
+import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 
 import { logger } from "@/lib/logger";
 import { formatMoneyCents } from "@/lib/i18n/currency";
@@ -550,6 +551,19 @@ function computeSwypikScoreDetails(row: ExploreFeedRow): { score: number; reason
 
 export async function GET(request: NextRequest) {
   try {
+    // 2026-09-24 (audit): interogare grea (CTE-uri, LATERAL joins, mat view)
+    // fara nicio limita — un client putea bombarda /api/explore/feed si
+    // supraincarca Postgres. Cheia = user > session_id (din query) > IP,
+    // limita generoasa ca sa nu afecteze scroll-ul normal (infinite scroll).
+    const rlIdentity =
+      (await getOptionalSocialUserId().catch(() => null)) ||
+      request.nextUrl.searchParams.get("session_id")?.trim() ||
+      getClientIP(request);
+    const rl = await rateLimit("exploreFeed", rlIdentity, { limit: 120, window: 60 });
+    if (!rl.success) {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    }
+
     const { searchParams } = request.nextUrl;
 
     const sortParam = (searchParams.get("sort") || "recent") as SortMode;

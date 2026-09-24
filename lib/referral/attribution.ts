@@ -143,15 +143,22 @@ export async function attributeOnSignup({ inviteeUserId }: AttributeArgs): Promi
   const fraudSignals: Record<string, unknown> = {};
 
   if (ipHash) {
-    const recentSameIp = await dbQuery<{ c: string }>(
-      `SELECT COUNT(*)::text AS c FROM referral_attributions ra
+    const recentSameIp = await dbQuery<{ c: string; same_ua: string }>(
+      `SELECT COUNT(*)::text AS c,
+              COUNT(*) FILTER (WHERE $3::text IS NOT NULL AND s.ua_hash = $3)::text AS same_ua
+         FROM referral_attributions ra
          JOIN anon_sessions s ON s.became_user_id = ra.invitee_user_id
         WHERE ra.referrer_user_id = $1 AND s.ip_hash = $2
           AND ra.created_at > now() - interval '24 hours'`,
-      [referrerUserId, ipHash],
+      [referrerUserId, ipHash, uaHash],
     );
     const n = Number(recentSameIp.rows[0]?.c ?? "0");
-    if (n > 0) {
+    const sameUaN = Number(recentSameIp.rows[0]?.same_ua ?? "0");
+    if (sameUaN > 0) {
+      // Same IP AND same UA as a recent signup for this referrer — stronger signal.
+      score -= 0.7;
+      fraudSignals.same_ip_and_ua_recent = sameUaN;
+    } else if (n > 0) {
       score -= 0.5;
       fraudSignals.same_ip_recent = n;
     }

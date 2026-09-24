@@ -2,30 +2,32 @@
  * Admin Moderation Queue — listă rapoarte
  */
 import { dbQuery } from "@/lib/db";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-const REASONS: Record<string, string> = {
-  spam: "Spam",
-  harassment: "Hărțuire",
-  hate: "Ură",
-  violence: "Violență",
-  sexual_content: "Conținut explicit",
-  scam: "Fraudă",
-  copyright: "Drepturi de autor",
-  other: "Altul",
-};
-
 type SearchParams = { reason?: string; status?: string };
 
-async function getReports(params: SearchParams) {
+type ReportRow = {
+  video_id: string;
+  reason: string;
+  reports_count: number;
+  first_reported_at: string;
+  sample_report_id: string;
+  title: string | null;
+  thumbnail_url: string | null;
+  is_hidden: boolean;
+  creator_username: string | null;
+  creator_id: string | null;
+};
+
+async function getReports(params: SearchParams, validReasons: string[]): Promise<ReportRow[]> {
   const status = params.status || "open";
   const reason = params.reason || null;
   const where: string[] = ["mr.status = $1", "mr.target_video_id IS NOT NULL"];
-  const args: any[] = [status];
-  if (reason && REASONS[reason]) {
+  const args: string[] = [status];
+  if (reason && validReasons.includes(reason)) {
     args.push(reason);
     where.push(`mr.reason = $${args.length}`);
   }
@@ -71,8 +73,19 @@ export default async function ModerationPage({
   searchParams: Promise<SearchParams>;
 }) {
     const t = await getTranslations("adminModeration");
+  const locale = await getLocale();
+  const REASONS: Record<string, string> = {
+    spam: t("reasonSpam"),
+    harassment: t("reasonHarassment"),
+    hate: t("reasonHate"),
+    violence: t("reasonViolence"),
+    sexual_content: t("reasonSexualContent"),
+    scam: t("reasonScam"),
+    copyright: t("reasonCopyright"),
+    other: t("reasonOther"),
+  };
   const params = await searchParams;
-  const reports = await getReports(params);
+  const reports = await getReports(params, Object.keys(REASONS));
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
@@ -84,17 +97,17 @@ export default async function ModerationPage({
           defaultValue={params.status || "open"}
           className="rounded-lg border border-black/10 px-3 py-2 text-sm bg-white"
         >
-          <option value="open">Deschise</option>
+          <option value="open">{t("statusOpen")}</option>
           <option value="triaged">{t("statusTriaged")}</option>
-          <option value="actioned">Rezolvate</option>
-          <option value="dismissed">Respinse</option>
+          <option value="actioned">{t("statusActioned")}</option>
+          <option value="dismissed">{t("statusDismissed")}</option>
         </select>
         <select
           name="reason"
           defaultValue={params.reason || ""}
           className="rounded-lg border border-black/10 px-3 py-2 text-sm bg-white"
         >
-          <option value="">Toate categoriile</option>
+          <option value="">{t("allCategories")}</option>
           {Object.entries(REASONS).map(([k, v]) => (
             <option key={k} value={k}>
               {v}
@@ -102,27 +115,27 @@ export default async function ModerationPage({
           ))}
         </select>
         <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">
-          Filtrează
+          {t("filter")}
         </button>
       </form>
 
       {reports.length === 0 ? (
-        <p className="text-black/60">Niciun raport.</p>
+        <p className="text-black/60">{t("noReports")}</p>
       ) : (
-        <div className="bg-white rounded-2xl border border-black/10 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-black/10 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-black/5">
               <tr className="text-left">
-                <th className="px-3 py-2">Video</th>
-                <th className="px-3 py-2">Creator</th>
-                <th className="px-3 py-2">Categorie</th>
-                <th className="px-3 py-2">Rapoarte</th>
-                <th className="px-3 py-2">Primul</th>
+                <th className="px-3 py-2">{t("thVideo")}</th>
+                <th className="px-3 py-2">{t("thCreator")}</th>
+                <th className="px-3 py-2">{t("thCategory")}</th>
+                <th className="px-3 py-2">{t("thReports")}</th>
+                <th className="px-3 py-2">{t("thFirst")}</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody>
-              {reports.map((r: any) => (
+              {reports.map((r) => (
                 <tr key={`${r.video_id}-${r.reason}`} className="border-t border-black/5">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
@@ -137,9 +150,9 @@ export default async function ModerationPage({
                         <div className="w-16 h-20 bg-black/10 rounded-md" />
                       )}
                       <div className="max-w-[240px]">
-                        <div className="font-bold line-clamp-2">{r.title || "(fără titlu)"}</div>
+                        <div className="font-bold line-clamp-2">{r.title || t("untitled")}</div>
                         {r.is_hidden && (
-                          <span className="text-xs text-orange-600 font-bold">ASCUNS</span>
+                          <span className="text-xs text-orange-600 font-bold">{t("hiddenBadge")}</span>
                         )}
                       </div>
                     </div>
@@ -159,19 +172,19 @@ export default async function ModerationPage({
                   <td className="px-3 py-2">{REASONS[r.reason] || r.reason}</td>
                   <td className="px-3 py-2 font-bold">{r.reports_count}</td>
                   <td className="px-3 py-2 text-black/60">
-                    {new Date(r.first_reported_at).toLocaleDateString("ro-RO", {
+                    {new Intl.DateTimeFormat(locale, {
                       day: "2-digit",
                       month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
-                    })}
+                    }).format(new Date(r.first_reported_at))}
                   </td>
                   <td className="px-3 py-2">
                     <Link
                       href={`/admin/moderation/${r.sample_report_id}`}
                       className="rounded-lg bg-black text-white px-3 py-1.5 text-xs font-bold"
                     >
-                      Vezi
+                      {t("view")}
                     </Link>
                   </td>
                 </tr>

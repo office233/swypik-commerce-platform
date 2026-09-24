@@ -143,7 +143,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
   if (!data || !mounted) return null;
 
   const productImage = data.image || data.images?.[0] || data.image_url || null;
-  const productName = data.name || data.title || "Produs";
+  const productName = data.name || data.title || t("productFallback");
   const currencyCandidate = String(data.currency || "RON").trim().toUpperCase();
   const productCurrency: Currency = isCurrency(currencyCandidate) ? currencyCandidate : "RON";
   const numericPriceCents = Number(data.priceCents ?? data.price_cents);
@@ -324,7 +324,7 @@ export default function ProductDrawer({ product, initialProduct, onClose, onBuyN
                 <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Swypik Score</p>
                 <div className="inline-flex items-center gap-2 rounded-full bg-yellow-300 px-3 py-1 text-sm font-black text-black">
                   {score}
-                  <span className="text-[11px] font-bold text-black/70">{data.swypikScoreLabel || "Score"}</span>
+                  <span className="text-[11px] font-bold text-black/70">{data.swypikScoreLabel || t("scoreFallback")}</span>
                 </div>
               </div>
             )}

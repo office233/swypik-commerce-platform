@@ -176,9 +176,9 @@ export default async function Home() {
 
           {t("descoperaProdusePopulareOferte")}
         </p>
-        <h2>Produse populare</h2>
+        <h2>{t("popularProducts")}</h2>
         <h2>{t("calitatepretExcelent")}</h2>
-        <h2>Top apreciate</h2>
+        <h2>{t("topRated")}</h2>
       </header>
       <ChatInterface
         initialTrending={trending.products}

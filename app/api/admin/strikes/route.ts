@@ -10,6 +10,7 @@ import { withErrorHandling } from "@/lib/api-handler";
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { requireAuth } from "@/lib/auth/getAuthUser";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +36,8 @@ async function GET_impl(req: Request) {
       `SELECT r.score, r.strike_count, r.blocked_count, r.adult_count,
               r.sensitive_count, r.last_strike_at,
               u.status, u.suspended_until, u.suspension_reason
-         FROM user_risk_scores r
-         RIGHT JOIN users u ON u.id = $1
-         LEFT JOIN user_risk_scores r2 ON r2.user_id = u.id
+         FROM users u
+         LEFT JOIN user_risk_scores r ON r.user_id = u.id
         WHERE u.id = $1
         LIMIT 1`,
       [userId],
@@ -68,7 +68,7 @@ async function POST_impl(req: Request) {
     notes?: string;
   } | null;
   if (!body?.strikeId) {
-    return NextResponse.json({ error: "strikeId required" }, { status: 400 });
+    return NextResponse.json({ error: "strike_id_required" }, { status: 400 });
   }
 
   const { rows } = await dbQuery<{ user_id: string }>(
@@ -83,11 +83,19 @@ async function POST_impl(req: Request) {
     [body.strikeId, auth.userId, body.notes ?? null],
   );
   if (rows.length === 0) {
-    return NextResponse.json({ error: "strike not found or already revoked" }, { status: 404 });
+    return NextResponse.json({ error: "strike_not_found_or_revoked" }, { status: 404 });
   }
 
   // Trigger a recompute via the SQL helper.
   await dbQuery(`SELECT * FROM decay_user_strikes()`);
+
+  await logAdminAction({
+    action: "strike.revoke",
+    targetType: "user_strike",
+    targetId: body.strikeId,
+    details: { userId: rows[0].user_id },
+    req,
+  });
 
   return NextResponse.json({ ok: true, userId: rows[0].user_id });
 }

@@ -9,6 +9,29 @@ import { hasAdminSession } from "@/lib/security/admin-auth";
 
 export const dynamic = "force-dynamic";
 
+type ShippingAddress = {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  postal_code?: string;
+  state?: string;
+  country?: string;
+  phone?: string;
+};
+
+type OrderMetadata = {
+  shipping_address?: ShippingAddress;
+  shippingAddress?: ShippingAddress;
+  shipping_carrier?: string;
+  carrier?: string;
+  tracking_number?: string;
+  trackingNumber?: string;
+  shipped_at?: string;
+  shippedAt?: string;
+  [key: string]: unknown;
+};
+
 type OrderRow = {
   order_id: string;
   buyer_user_id: string | null;
@@ -16,17 +39,17 @@ type OrderRow = {
   buyer_username: string | null;
   total_cents: number;
   currency: string;
-  metadata: Record<string, any> | null;
+  metadata: OrderMetadata | null;
   placed_at: string | null;
 };
 
 type ItemRow = {
   title: string;
   quantity: number;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
 };
 
-function pickShipping(meta: Record<string, any> | null): {
+function pickShipping(meta: OrderMetadata | null): {
   formatted: string;
   carrier: string | null;
   tracking: string | null;
@@ -57,11 +80,11 @@ async function GET_impl(
   { params }: { params: Promise<{ disputeId: string }> },
 ) {
   if (!(await hasAdminSession())) {
-    return NextResponse.json({ error: "Neautorizat" }, { status: 403 });
+    return NextResponse.json({ error: "unauthorized" }, { status: 403 });
   }
   const { disputeId } = await params;
   if (!/^dp_[A-Za-z0-9]+$/.test(disputeId)) {
-    return NextResponse.json({ error: "disputeId invalid" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_dispute_id" }, { status: 400 });
   }
 
   const { rows: dRows } = await dbQuery<{ order_id: string | null }>(
@@ -69,7 +92,7 @@ async function GET_impl(
     [disputeId],
   );
   if (dRows.length === 0) {
-    return NextResponse.json({ error: "Dispute inexistent" }, { status: 404 });
+    return NextResponse.json({ error: "dispute_not_found" }, { status: 404 });
   }
   const orderId = dRows[0].order_id;
   if (!orderId) {
@@ -107,7 +130,7 @@ async function GET_impl(
   const ship = pickShipping(order.metadata);
 
   // Derive customer name preference: buyer username → shipping name → email local part
-  const sa = (order.metadata as any)?.shipping_address || (order.metadata as any)?.shippingAddress;
+  const sa = order.metadata?.shipping_address || order.metadata?.shippingAddress;
   const customerName =
     (sa && typeof sa === "object" && sa.name) ||
     order.buyer_username ||

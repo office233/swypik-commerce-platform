@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Clock, Users, Share2, CheckCircle2, ShieldCheck, Sparkles, Copy, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ArrowLeft, Clock, Users, Share2, CheckCircle2, Sparkles, Copy, Check } from "lucide-react";
 import { haptic } from "@/lib/haptic";
-import { playCashRegisterSound, playVictorySound, playPopSound } from "@/lib/audio/sfx";
+import { playCashRegisterSound, playVictorySound } from "@/lib/audio/sfx";
 import { triggerConfetti } from "@/lib/confetti";
+import { SQUAD_DISCOUNT_PCT } from "@/lib/squad/config";
+import { logger } from "@/lib/logger";
 
 interface SquadData {
     id: string;
@@ -31,6 +34,7 @@ interface Member {
 }
 
 export default function SquadDetailClient({ squadId }: { squadId: string }) {
+    const t = useTranslations("sellerGrowthPublicSquad");
     const router = useRouter();
     const [squad, setSquad] = useState<SquadData | null>(null);
     const [members, setMembers] = useState<Member[]>([]);
@@ -48,7 +52,7 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                     setMembers(d.members || []);
                 }
             })
-            .catch(() => {})
+            .catch((err) => logger.warn({ err, squadId }, "Squad detail: failed to load squad"))
             .finally(() => setLoading(false));
     }, [squadId]);
 
@@ -58,7 +62,7 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
         const tick = () => {
             const diff = new Date(squad.expires_at).getTime() - Date.now();
             if (diff <= 0) {
-                setTimeLeft("Expirat");
+                setTimeLeft(t("expired"));
                 return;
             }
             const hours = Math.floor(diff / 3600000);
@@ -69,6 +73,7 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
         tick();
         const timer = setInterval(tick, 1000);
         return () => clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is stable from useTranslations; only the expiry timestamp should restart the countdown.
     }, [squad?.expires_at]);
 
     const formatLei = (cents: number) => (cents / 100).toFixed(2) + " lei";
@@ -77,12 +82,10 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
         haptic("tap");
         if (!squad) return;
         const currentUrl = typeof window !== "undefined" ? window.location.href : "";
-        const title = squad.product_title || "acest produs";
+        const title = squad.product_title || t("thisProductFallback");
         const price = formatLei(squad.squad_price_cents);
         const oldPrice = formatLei(squad.regular_price_cents);
-        const msg = encodeURIComponent(
-            `🔥 Hai în Squad-ul meu pe Swypik! Luăm amândoi „${title}” la doar ${price} (în loc de ${oldPrice})! Reducere -30% garantată: ${currentUrl}`
-        );
+        const msg = encodeURIComponent(t("detailWhatsappMessage", { title, price, oldPrice, pct: SQUAD_DISCOUNT_PCT, url: currentUrl }));
         window.open(`https://wa.me/?text=${msg}`, "_blank");
     };
 
@@ -102,10 +105,12 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
             const res = await fetch(`/api/squad/${squadId}/join`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userName: "Membru Nou" }),
+                // No userName: the server derives the joiner's identity from the
+                // authenticated session instead of a hardcoded placeholder.
+                body: JSON.stringify({}),
             });
-            const data = await res.json();
-            if (data.success) {
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
                 setSquad(data.squad);
                 if (data.squad?.status === "completed") {
                     playCashRegisterSound();
@@ -114,11 +119,14 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                     playVictorySound();
                 }
                 // Refresh members
-                const r2 = await fetch(`/api/squad/${squadId}`).then((r) => r.json());
+                const r2 = await fetch(`/api/squad/${squadId}`).then((r) => r.json()).catch(() => ({}));
                 if (r2.success) setMembers(r2.members || []);
             } else {
-                alert(data.error || "Nu s-a putut alătura squad-ului.");
+                alert(data.error || t("errorJoinSquad"));
             }
+        } catch (err) {
+            logger.error({ err, squadId }, "Squad detail: failed to join squad");
+            alert(t("errorJoinSquad"));
         } finally {
             setJoining(false);
         }
@@ -135,16 +143,16 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
     if (!squad) {
         return (
             <div className="min-h-dvh bg-[#0A0A0C] text-white p-6 text-center">
-                <p>Squad-ul nu a fost găsit.</p>
+                <p>{t("notFound")}</p>
                 <button onClick={() => router.push("/squad")} className="mt-4 rounded-xl bg-white/10 px-4 py-2 text-sm">
-                    Înapoi la Squad-uri
+                    {t("backToSquads")}
                 </button>
             </div>
         );
     }
 
     const isCompleted = squad.status === "completed" || squad.current_members >= squad.required_members;
-    const isExpired = squad.status === "expired" || timeLeft === "Expirat";
+    const isExpired = squad.status === "expired" || timeLeft === t("expired");
 
     return (
         <div className="min-h-dvh bg-[#0A0A0C] text-white pb-32">
@@ -158,7 +166,7 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <span className="text-sm font-black tracking-tight">Detalii Squad</span>
+                    <span className="text-sm font-black tracking-tight">{t("detailTitle")}</span>
                     <button
                         type="button"
                         onClick={copyLink}
@@ -180,19 +188,19 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                                 <div className="grid h-full place-items-center"><Users size={28} /></div>
                             )}
                             <span className="absolute left-1.5 top-1.5 rounded-lg bg-fuchsia-600 px-2 py-0.5 text-[10px] font-black text-white">
-                                -30%
+                                {t("pctOff", { pct: SQUAD_DISCOUNT_PCT })}
                             </span>
                         </div>
                         <div className="flex-1 min-w-0">
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-fuchsia-400 mb-1">
-                                <Sparkles size={12} /> Reducere de Grup
+                                <Sparkles size={12} /> {t("groupDiscount")}
                             </span>
-                            <h2 className="line-clamp-2 text-sm font-bold text-white mb-2">{squad.product_title || "Produs Swypik"}</h2>
+                            <h2 className="line-clamp-2 text-sm font-bold text-white mb-2">{squad.product_title || t("productFallback")}</h2>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-xl font-black text-white">{formatLei(squad.squad_price_cents)}</span>
                                 <span className="text-xs text-white/40 line-through">{formatLei(squad.regular_price_cents)}</span>
                             </div>
-                            <p className="text-[11px] text-emerald-400 font-semibold mt-0.5">Economisiți {formatLei(squad.regular_price_cents - squad.squad_price_cents)} per persoană</p>
+                            <p className="text-[11px] text-emerald-400 font-semibold mt-0.5">{t("savePerPerson", { amount: formatLei(squad.regular_price_cents - squad.squad_price_cents) })}</p>
                         </div>
                     </div>
                 </div>
@@ -201,22 +209,22 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                 <div className="rounded-3xl border border-fuchsia-500/30 bg-gradient-to-b from-fuchsia-950/40 to-white/5 p-6 text-center mb-6">
                     {isCompleted ? (
                         <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-1.5 text-xs font-black text-emerald-400 border border-emerald-500/30 mb-4">
-                            <CheckCircle2 size={16} /> Squad Completat cu Succes!
+                            <CheckCircle2 size={16} /> {t("squadCompletedSuccess")}
                         </div>
                     ) : isExpired ? (
                         <div className="inline-flex items-center gap-2 rounded-full bg-red-500/20 px-4 py-1.5 text-xs font-black text-red-400 border border-red-500/30 mb-4">
-                            Timp Expirat
+                            {t("timeExpired")}
                         </div>
                     ) : (
                         <div className="inline-flex items-center gap-2 rounded-full bg-fuchsia-500/20 px-4 py-1.5 text-xs font-black text-fuchsia-300 border border-fuchsia-500/40 mb-4">
-                            <Clock size={14} className="text-amber-400" /> Expiră în: <span className="font-mono text-white text-sm">{timeLeft}</span>
+                            <Clock size={14} className="text-amber-400" /> {t("expiresIn")}: <span className="font-mono text-white text-sm">{timeLeft}</span>
                         </div>
                     )}
 
                     <h3 className="text-lg font-black text-white mb-6">
                         {isCompleted
-                            ? "Comenzile s-au confirmat la preț redus!"
-                            : `Mai e nevoie de 1 persoană pentru a debloca reducerea!`}
+                            ? t("ordersConfirmed")
+                            : t("needsOnePersonToUnlock")}
                     </h3>
 
                     {/* 2 Avatars Slots */}
@@ -226,7 +234,7 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                             <div className="relative h-16 w-16 rounded-full border-2 border-fuchsia-500 bg-gradient-to-br from-fuchsia-600 to-violet-600 grid place-items-center shadow-lg shadow-fuchsia-500/40">
                                 <span className="text-xl font-black text-white">{squad.creator_name.charAt(0).toUpperCase()}</span>
                                 <span className="absolute -bottom-1 -right-1 rounded-full bg-fuchsia-500 px-1.5 py-0.2 text-[9px] font-black text-white">
-                                    Lider
+                                    {t("leader")}
                                 </span>
                             </div>
                             <span className="mt-2 text-xs font-bold text-white truncate max-w-[90px]">{squad.creator_name}</span>
@@ -247,13 +255,13 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                                 </div>
                             )}
                             <span className="mt-2 text-xs font-bold text-white/70">
-                                {members.length > 1 ? members[1].user_name : "Loc liber"}
+                                {members.length > 1 ? members[1].user_name : t("emptySpot")}
                             </span>
                         </div>
                     </div>
 
                     <p className="text-xs text-white/60 max-w-xs mx-auto">
-                        Când ambele locuri sunt ocupate, plata de {formatLei(squad.squad_price_cents)} este procesată și coletul expediat!
+                        {t("bothSpotsHint", { price: formatLei(squad.squad_price_cents) })}
                     </p>
                 </div>
 
@@ -265,7 +273,7 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                             onClick={shareWhatsApp}
                             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 text-sm font-black text-white shadow-xl shadow-emerald-600/30 transition active:scale-[0.98]"
                         >
-                            <Share2 size={18} /> Invită un Prieten pe WhatsApp (-30%)
+                            <Share2 size={18} /> {t("inviteFriendWhatsapp", { pct: SQUAD_DISCOUNT_PCT })}
                         </button>
 
                         <button
@@ -274,7 +282,7 @@ export default function SquadDetailClient({ squadId }: { squadId: string }) {
                             onClick={joinSquad}
                             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-600 py-3.5 text-sm font-black text-white shadow-lg transition active:scale-[0.98] disabled:opacity-50"
                         >
-                            {joining ? "Se alătură..." : "Intră în Squad la preț redus"}
+                            {joining ? t("joining") : t("joinAtDiscountedPrice")}
                         </button>
                     </div>
                 )}

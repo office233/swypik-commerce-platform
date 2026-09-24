@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import {
   CURRENCY_BY_LOCALE,
@@ -19,26 +19,40 @@ const appUrl =
     ? rawAppUrl
     : APP_URL;
 
-export const metadata: Metadata = {
-  metadataBase: new URL(appUrl),
-  title: "Swypik - Descopera, Swipe, Cumpara",
-  description: "Platforma de social video commerce. Descopera produse prin clipuri scurte, urmareste creatori si cumpara instant.",
-  keywords: "swypik, social commerce, video shopping, romania, produse, oferte, creators, tiktok shopping",
-  openGraph: {
-    title: "Swypik - Descopera, Swipe, Cumpara",
-    description: "Platforma de social video commerce. Descopera produse prin clipuri scurte si cumpara instant.",
-    type: "website",
-    locale: "ro_RO",
-    siteName: "Swypik",
-    images: [{ url: "/og-preview.webp", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Swypik - Descopera, Swipe, Cumpara",
-    description: "Social video commerce. Swipe, discover, buy.",
-    images: ["/og-preview.webp"],
-  },
+const OG_LOCALE: Record<string, string> = {
+  ro: "ro_RO",
+  en: "en_US",
+  es: "es_ES",
+  fr: "fr_FR",
+  de: "de_DE",
+  pt: "pt_PT",
+  it: "it_IT",
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const t = await getTranslations({ locale, namespace: "rootMeta" });
+  return {
+    metadataBase: new URL(appUrl),
+    title: t("title"),
+    description: t("description"),
+    keywords: "swypik, social commerce, video shopping, romania, produse, oferte, creators, tiktok shopping",
+    openGraph: {
+      title: t("title"),
+      description: t("ogDescription"),
+      type: "website",
+      locale: OG_LOCALE[locale] ?? "ro_RO",
+      siteName: "Swypik",
+      images: [{ url: "/og-preview.webp", width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("title"),
+      description: t("twitterDescription"),
+      images: ["/og-preview.webp"],
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -61,6 +75,7 @@ import { APP_URL } from "@/lib/app-url";
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale;
   const messages = await getMessages();
+  const t = await getTranslations({ locale, namespace: "rootMeta" });
   const cookieStore = await cookies();
   const cookieCurrency = cookieStore.get(CURRENCY_COOKIE)?.value;
   const currency: Currency = isCurrency(cookieCurrency)
@@ -131,7 +146,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-[#0D0D0D] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
-          Sări la conținut
+          {t("skipToContent")}
         </a>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CurrencyProvider initial={currency}>

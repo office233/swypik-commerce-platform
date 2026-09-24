@@ -96,7 +96,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col lg:flex-row"><h1 className="sr-only">Live stream</h1>
+    <div className="min-h-screen bg-black text-white flex flex-col lg:flex-row"><h1 className="sr-only">{t("liveStream")}</h1>
       <div className="flex-1 relative">
         <video ref={videoRef} controls autoPlay playsInline className="w-full h-full object-contain" />
         <div className="absolute top-3 left-3 flex items-center gap-2">
@@ -104,7 +104,7 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
           <span className="inline-flex items-center gap-1 bg-black/60 text-xs px-2 py-1 rounded"><Eye size={12} /> {viewers}</span>
         </div>
         <div className="absolute top-3 right-3 bg-black/60 px-3 py-1 rounded text-sm">
-          {stream.display_name || stream.username || "Creator"}
+          {stream.display_name || stream.username || t("creatorFallback")}
         </div>
         {pinned && (
           <div className="absolute bottom-4 left-4 right-4 bg-white text-black rounded-xl p-3 flex items-center gap-3 shadow-lg">
@@ -135,24 +135,24 @@ export default function LiveViewerClient({ stream, items }: { stream: Stream; it
       </div>
 
       <aside className="lg:w-80 w-full lg:h-screen h-64 border-l border-white/10 flex flex-col">
-        <div className="p-3 border-b border-white/10 font-semibold text-sm">Chat</div>
+        <div className="p-3 border-b border-white/10 font-semibold text-sm">{t("chat")}</div>
         <div className="flex-1 overflow-y-auto p-3 space-y-1 text-sm">
           {messages.map((m) => (
             <div key={m.id}>
-              <span className="text-violet-400 mr-1">user</span>{m.message}
+              <span className="text-violet-400 mr-1">{t("user")}</span>{m.message}
             </div>
           ))}
         </div>
         <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="p-2 border-t border-white/10 flex gap-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Mesaj…" aria-label="Mesaj chat" className="flex-1 bg-white/10 px-3 py-2 min-h-[40px] rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none" />
-          <button type="submit" className="inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-4 min-h-[40px] rounded-lg text-sm font-semibold focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none">Trimite</button>
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={t("messagePlaceholder")} aria-label={t("chatMessageAria")} className="flex-1 bg-white/10 px-3 py-2 min-h-[40px] rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none" />
+          <button type="submit" className="inline-flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white px-4 min-h-[40px] rounded-lg text-sm font-semibold focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none">{t("send")}</button>
         </form>
       </aside>
 
       {showDrawer && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-end" onClick={() => setShowDrawer(false)}>
           <div className="bg-white text-black w-full rounded-t-2xl p-4 max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-semibold mb-3 text-base">Produse</h2>
+            <h2 className="font-semibold mb-3 text-base">{t("products")}</h2>
             <div className="space-y-2">
               {items.map((it) => (
                 <Link key={it.id} href={`/product/${it.product_id}`} className="flex items-center gap-3 border rounded p-2">

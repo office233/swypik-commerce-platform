@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import OrderTrackingClient from "./OrderTrackingClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Urmărește comanda | Swypik Food",
-  description: "Statusul live al comenzii tale: preparare, curier, livrare.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "food" });
+  return {
+    title: `${t("meta.trackingTitle")} | Swypik Food`,
+    description: t("meta.trackingDescription"),
+  };
+}
 
 export default async function OrderTrackingPage({
   params,

@@ -28,56 +28,7 @@ interface AudiusResponse {
     data: AudiusTrack[];
 }
 
-const AUDIUS_FALLBACK_TRACKS: AudioItemDto[] = [
-    {
-        id: "audius_D7P28",
-        slug: "midnight-city-remix",
-        title: "Midnight City (VIP Remix)",
-        artist: "Kavinsky Sound",
-        coverUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80",
-        streamUrl: "https://api.audius.co/v1/tracks/D7P28/stream?app_name=swypik",
-        durationMs: 234000,
-        genre: "Electronic / Synthwave",
-        source: "audius",
-        isLive: false,
-    },
-    {
-        id: "audius_eYp12",
-        slug: "tokyo-drift-trap",
-        title: "Tokyo Drift (Trap Bass Boost)",
-        artist: "Metro Beatmaker",
-        coverUrl: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&auto=format&fit=crop&q=80",
-        streamUrl: "https://api.audius.co/v1/tracks/eYp12/stream?app_name=swypik",
-        durationMs: 198000,
-        genre: "Trap / Urban",
-        source: "audius",
-        isLive: false,
-    },
-    {
-        id: "audius_qA987",
-        slug: "lofi-rain-coffee",
-        title: "Late Night Rain & Coffee",
-        artist: "ChilledCow Vibes",
-        coverUrl: "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop&q=80",
-        streamUrl: "https://api.audius.co/v1/tracks/qA987/stream?app_name=swypik",
-        durationMs: 165000,
-        genre: "Lo-Fi Beats",
-        source: "audius",
-        isLive: false,
-    },
-    {
-        id: "audius_bK441",
-        slug: "deep-house-sunset",
-        title: "Ibiza Sunset Deep House",
-        artist: "Oliver Club",
-        coverUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&auto=format&fit=crop&q=80",
-        streamUrl: "https://api.audius.co/v1/tracks/bK441/stream?app_name=swypik",
-        durationMs: 275000,
-        genre: "Deep House",
-        source: "audius",
-        isLive: false,
-    },
-];
+const FETCH_TIMEOUT_MS = 5_000;
 
 let cachedTrending: { data: AudioItemDto[]; expiresAt: number } | null = null;
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 ore
@@ -104,15 +55,16 @@ export async function getAudiusTrendingTracks(limit = 25): Promise<AudioItemDto[
         const res = await fetch(url, {
             headers: getHeaders(),
             next: { revalidate: 3600 },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
 
         if (!res.ok) {
-            return AUDIUS_FALLBACK_TRACKS;
+            return [];
         }
 
         const json = (await res.json()) as AudiusResponse;
         if (!json.data || !Array.isArray(json.data) || json.data.length === 0) {
-            return AUDIUS_FALLBACK_TRACKS;
+            return [];
         }
 
         const tracks: AudioItemDto[] = json.data.map((t) => {
@@ -137,7 +89,7 @@ export async function getAudiusTrendingTracks(limit = 25): Promise<AudioItemDto[
         cachedTrending = { data: tracks, expiresAt: Date.now() + CACHE_TTL_MS };
         return tracks;
     } catch {
-        return AUDIUS_FALLBACK_TRACKS;
+        return [];
     }
 }
 
@@ -150,7 +102,7 @@ export async function searchAudiusTracks(query: string, limit = 20): Promise<Aud
 
     try {
         const url = `https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(trimmed)}&app_name=swypik&limit=${limit}`;
-        const res = await fetch(url, { headers: getHeaders() });
+        const res = await fetch(url, { headers: getHeaders(), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
         if (!res.ok) return [];
 
         const json = (await res.json()) as AudiusResponse;

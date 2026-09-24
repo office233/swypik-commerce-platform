@@ -8,6 +8,14 @@ type Publisher = { user_id: string; display_name: string | null; username: strin
 const STATUSES: SeriesStatus[] = ["pending_review", "draft", "published", "archived"];
 const REQUEST_OPTS: RequestInit = { credentials: "same-origin", headers: { "Content-Type": "application/json" } };
 
+type StatusKey = "statusDraft" | "statusPendingReview" | "statusPublished" | "statusArchived";
+const STATUS_KEY: Record<SeriesStatus, StatusKey> = {
+  draft: "statusDraft",
+  pending_review: "statusPendingReview",
+  published: "statusPublished",
+  archived: "statusArchived",
+};
+
 export default function AdminMoviesPage() {
   const t = useTranslations("movies");
   const [status, setStatus] = useState<SeriesStatus>("pending_review");
@@ -48,17 +56,18 @@ export default function AdminMoviesPage() {
     <div className="space-y-6 p-6">
       <h1 className="text-xl font-black">{t("adminTitle")}</h1>
       {msg && <p className="text-sm font-semibold">{msg}</p>}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {STATUSES.map((s) => (
           <button key={s} type="button" onClick={() => setStatus(s)} className={`rounded-full px-3 py-1 text-xs font-bold ${status === s ? "bg-black text-white" : "bg-neutral-100"}`}>
-            {s}
+            {t(STATUS_KEY[s])}
           </button>
         ))}
       </div>
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[560px] text-sm">
         <thead>
           <tr className="text-left text-xs uppercase text-neutral-500">
-            <th>Serial</th><th>Owner</th><th>Ep.</th><th>Free</th><th>{t("episodePrice")}</th><th></th>
+            <th>{t("tableSeries")}</th><th>{t("tableOwner")}</th><th>{t("tableEpisodes")}</th><th>{t("tableFree")}</th><th>{t("episodePrice")}</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -66,13 +75,13 @@ export default function AdminMoviesPage() {
             <tr key={r.id} className="border-t">
               <td className="py-2 font-bold">
                 {r.title}
-                <div className="text-xs font-normal text-neutral-500">{r.slug}{r.license_note ? "" : " · fără licență"}</div>
+                <div className="text-xs font-normal text-neutral-500">{r.slug}{r.license_note ? "" : ` · ${t("noLicenseNote")}`}</div>
               </td>
               <td>{r.owner_name ?? r.owner_user_id.slice(0, 8)}</td>
               <td>{r.episode_count}</td>
               <td>{r.free_episodes}</td>
               <td>{r.episode_price_units}</td>
-              <td className="space-x-1 text-right">
+              <td className="space-x-1 text-right whitespace-nowrap">
                 {r.status !== "published" && (
                   <button type="button" onClick={() => patch(r.id, { status: "published" })} className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-bold text-white">{t("publish")}</button>
                 )}
@@ -87,6 +96,7 @@ export default function AdminMoviesPage() {
           ))}
         </tbody>
       </table>
+      </div>
       <section className="rounded-2xl border p-4">
         <h2 className="mb-2 font-black">{t("publishers")}</h2>
         <ul className="mb-3 space-y-1 text-sm">
@@ -94,9 +104,9 @@ export default function AdminMoviesPage() {
             <li key={p.user_id}>{p.display_name ?? p.username ?? p.email} <span className="text-xs text-neutral-500">{p.user_id}</span></li>
           ))}
         </ul>
-        <form onSubmit={approve} className="flex gap-2">
-          <input value={newPublisher} onChange={(e) => setNewPublisher(e.target.value)} placeholder={t("approvePublisher")} className="flex-1 rounded-xl border px-3 py-2 text-sm" />
-          <button type="submit" className="rounded-xl bg-black px-4 py-2 text-sm font-bold text-white">OK</button>
+        <form onSubmit={approve} className="flex flex-wrap gap-2">
+          <input value={newPublisher} onChange={(e) => setNewPublisher(e.target.value)} placeholder={t("approvePublisher")} className="flex-1 min-w-0 rounded-xl border px-3 py-2 text-sm" />
+          <button type="submit" className="rounded-xl bg-black px-4 py-2 text-sm font-bold text-white">{t("approveSubmit")}</button>
         </form>
       </section>
     </div>

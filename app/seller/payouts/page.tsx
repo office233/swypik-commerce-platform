@@ -14,7 +14,7 @@ type SellerRow = {
   stripe_payouts_enabled: boolean;
   stripe_charges_enabled: boolean;
   stripe_details_submitted: boolean;
-  stripe_requirements: any;
+  stripe_requirements: { currently_due?: string[]; disabled_reason?: string | null } | null;
 };
 
 type SummaryRow = {

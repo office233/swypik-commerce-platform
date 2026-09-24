@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Package } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { cookies } from "next/headers";
@@ -14,7 +15,16 @@ import {
 } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Shop — Swypik" };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "shop" });
+  return { title: t("metaTitle") };
+}
 
 type Row = {
   id: string;
@@ -69,19 +79,18 @@ export default async function ShopPage({
       : formatCurrency(cents, { locale, displayCurrency, sourceCurrency: srcCur as any });
 
   return (
-    <main className="min-h-screen bg-[#0D0D0D] text-white pb-24">
-      <header className="sticky top-0 z-10 bg-[#0D0D0D]/90 backdrop-blur border-b border-white/10 px-4 py-4">
-        <h1 className="text-2xl font-black">Shop</h1>
-        <p className="text-sm text-white/60 mt-1">
-          {cat ? `Categorie: ${cat}` : "Descoperă produse curate"}
+    <main className="min-h-screen bg-white text-[#0D0D0D] dark:bg-black dark:text-white pb-24">
+      <header className="sticky top-0 z-10 bg-white/90 dark:bg-black/90 backdrop-blur border-b border-[#E5E5E5] dark:border-white/10 px-4 py-4">
+        <h1 className="text-2xl font-black">{t("title")}</h1>
+        <p className="text-sm text-[#6E6E80] dark:text-white/60 mt-1">
+          {cat ? t("categoryLabel", { category: cat }) : t("subtitle")}
         </p>
       </header>
 
       <div className="mx-auto max-w-6xl px-4 py-6">
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center text-white/60">
-            
-            {t("nuAmGasitProduse")}{cat ? ` în ${cat}` : ""}.
+          <div className="rounded-2xl border border-[#E5E5E5] dark:border-white/10 bg-[#F7F7F8] dark:bg-white/[0.04] p-8 text-center text-[#6E6E80] dark:text-white/60">
+            {cat ? t("noProductsInCategory", { category: cat }) : t("nuAmGasitProduse")}
           </div>
         ) : (
           <>
@@ -90,9 +99,9 @@ export default async function ShopPage({
                 <li key={p.id}>
                   <Link
                     href={`/product/${p.id}`}
-                    className="group block rounded-2xl bg-white/[0.03] border border-white/5 overflow-hidden hover:border-[#7C3AED]/50 transition"
+                    className="group block rounded-2xl bg-[#F7F7F8] dark:bg-white/[0.03] border border-[#E5E5E5] dark:border-white/5 overflow-hidden hover:border-[#7C3AED]/50 transition"
                   >
-                    <div className="aspect-square bg-white/5 overflow-hidden">
+                    <div className="aspect-square bg-[#E5E5E5] dark:bg-white/5 overflow-hidden">
                       {p.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -102,18 +111,20 @@ export default async function ShopPage({
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/30"><Package size={28} /></div>
+                        <div className="w-full h-full flex items-center justify-center text-[#6E6E80] dark:text-white/30"><Package size={28} /></div>
                       )}
                     </div>
                     <div className="p-3">
-                      <div className="text-xs text-white/40 mb-1">{p.taxonomy_category || "—"}</div>
+                      {p.taxonomy_category && (
+                        <div className="text-xs text-[#6E6E80] dark:text-white/40 mb-1">{p.taxonomy_category}</div>
+                      )}
                       <div className="text-sm font-semibold line-clamp-2 min-h-[2.5rem]">{p.title}</div>
                       <div className="mt-2 flex items-baseline gap-2">
                         <span className="text-base font-black">
                           {fmt(p.price_cents, p.currency)}
                         </span>
                         {p.compare_at_price_cents && p.compare_at_price_cents > (p.price_cents || 0) ? (
-                          <span className="text-xs text-white/40 line-through">
+                          <span className="text-xs text-[#6E6E80] dark:text-white/40 line-through">
                             {fmt(p.compare_at_price_cents, p.currency)}
                           </span>
                         ) : null}
@@ -128,18 +139,17 @@ export default async function ShopPage({
               {page > 1 ? (
                 <Link
                   href={`/shop?${cat ? `cat=${encodeURIComponent(cat)}&` : ""}page=${page - 1}`}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-sm hover:bg-white/5"
+                  className="rounded-xl border border-[#E5E5E5] dark:border-white/10 px-4 py-2 text-sm hover:bg-[#F7F7F8] dark:hover:bg-white/5"
                 >
-                  ← Anterior
+                  {t("previous")}
                 </Link>
               ) : null}
-              <span className="text-sm text-white/50">Pagina {page}</span>
+              <span className="text-sm text-[#6E6E80] dark:text-white/50">{t("pageLabel", { page })}</span>
               {rows.length === PAGE_SIZE ? (
                 <Link
                   href={`/shop?${cat ? `cat=${encodeURIComponent(cat)}&` : ""}page=${page + 1}`}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-sm hover:bg-white/5"
+                  className="rounded-xl border border-[#E5E5E5] dark:border-white/10 px-4 py-2 text-sm hover:bg-[#F7F7F8] dark:hover:bg-white/5"
                 >
-                  
                   {t("urmator")}
                 </Link>
               ) : null}

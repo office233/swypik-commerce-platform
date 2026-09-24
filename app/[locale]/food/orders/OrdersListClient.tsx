@@ -66,18 +66,18 @@ export default function OrdersListClient() {
   const past = (orders ?? []).filter((o) => !ACTIVE.includes(o.status));
 
   return (
-    <div className="min-h-dvh bg-[#F7F7F8] pb-10">
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#E5E5E5] bg-white px-4 py-3">
-        <button type="button" onClick={() => router.push("/food")} aria-label={t("back")} className="grid h-9 w-9 place-items-center rounded-full bg-[#F7F7F8] active:scale-95">
+    <div className="min-h-dvh bg-[#F7F7F8] dark:bg-black pb-10">
+      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] px-4 py-3">
+        <button type="button" onClick={() => router.push("/food")} aria-label={t("back")} className="grid h-9 w-9 place-items-center rounded-full bg-[#F7F7F8] dark:bg-[#1F1F23] dark:text-white active:scale-95">
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-base font-black">{t("title")}</h1>
+        <h1 className="text-base font-black dark:text-white">{t("title")}</h1>
       </header>
 
       <main className="mx-auto max-w-lg space-y-6 px-4 pt-4">
         {needsAuth && (
-          <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 text-center">
-            <p className="text-sm font-bold">{t("signInPrompt")}</p>
+          <div className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-6 text-center">
+            <p className="text-sm font-bold dark:text-white">{t("signInPrompt")}</p>
             <button
               type="button"
               onClick={() => router.push("/auth/login?next=/food/orders")}
@@ -96,9 +96,9 @@ export default function OrdersListClient() {
         )}
 
         {orders != null && orders.length === 0 && (
-          <div className="rounded-2xl border border-[#E5E5E5] bg-white p-8 text-center">
-            <div className="flex justify-center" aria-hidden><UtensilsCrossed size={48} /></div>
-            <p className="mt-3 text-sm font-bold">{t("empty")}</p>
+          <div className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-8 text-center">
+            <div className="flex justify-center dark:text-white" aria-hidden><UtensilsCrossed size={48} /></div>
+            <p className="mt-3 text-sm font-bold dark:text-white">{t("empty")}</p>
             <button
               type="button"
               onClick={() => router.push("/food")}
@@ -112,19 +112,19 @@ export default function OrdersListClient() {
 
         {active.length > 0 && (
           <section>
-            <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-[#6E6E80]">{t("inProgress")}</h2>
+            <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-[#6E6E80] dark:text-[#A1A1AA]">{t("inProgress")}</h2>
             <div className="space-y-3">
               {active.map((o) => (
                 <button
                   key={o.id}
                   type="button"
                   onClick={() => { haptic("tap"); router.push(`/food/orders/${o.id}`); }}
-                  className="flex w-full items-center gap-3 rounded-2xl border-2 bg-white p-4 text-left active:scale-[0.98]"
+                  className="flex w-full items-center gap-3 rounded-2xl border-2 bg-white dark:bg-[#111113] p-4 text-left active:scale-[0.98]"
                   style={{ borderColor: ACCENT }}
                 >
                   <OrderThumb image={o.merchant_image} name={o.merchant_name} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black">{o.merchant_name}</p>
+                    <p className="truncate text-sm font-black dark:text-white">{o.merchant_name}</p>
                     <p className="text-xs font-bold" style={{ color: ACCENT }}>{statusLabel(o.status)} · {t("live")}</p>
                   </div>
                   <ChevronRight size={18} className="shrink-0 text-[#9C9CAB]" />
@@ -136,10 +136,10 @@ export default function OrdersListClient() {
 
         {past.length > 0 && (
           <section>
-            <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-[#6E6E80]">{t("history")}</h2>
+            <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-[#6E6E80] dark:text-[#A1A1AA]">{t("history")}</h2>
             <div className="space-y-3">
               {past.map((o) => (
-                <div key={o.id} className="rounded-2xl border border-[#E5E5E5] bg-white p-4">
+                <div key={o.id} className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
                   <button
                     type="button"
                     onClick={() => { haptic("tap"); router.push(`/food/orders/${o.id}`); }}
@@ -147,8 +147,8 @@ export default function OrdersListClient() {
                   >
                     <OrderThumb image={o.merchant_image} name={o.merchant_name} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-black">{o.merchant_name}</p>
-                      <p className="truncate text-xs text-[#6E6E80]">
+                      <p className="truncate text-sm font-black dark:text-white">{o.merchant_name}</p>
+                      <p className="truncate text-xs text-[#6E6E80] dark:text-[#A1A1AA]">
                         {(o.items ?? []).map((it) => `${it.qty}× ${it.name}`).join(", ")}
                       </p>
                       <p className="mt-0.5 text-xs text-[#9C9CAB]">
@@ -161,7 +161,7 @@ export default function OrdersListClient() {
                     <button
                       type="button"
                       onClick={() => reorder(o)}
-                      className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#F0FAF4] text-xs font-black active:scale-[0.98]"
+                      className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#F0FAF4] dark:bg-[#0F2A1B] text-xs font-black active:scale-[0.98]"
                       style={{ color: ACCENT }}
                     >
                       <RotateCcw size={14} /> {t("reorderBtn")}
@@ -181,6 +181,6 @@ function OrderThumb({ image, name }: { image: string | null; name: string }) {
   return image ? (
     <Image src={image} alt={name} width={48} height={48} className="h-12 w-12 shrink-0 rounded-xl object-cover" />
   ) : (
-    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#F7F7F8]" aria-hidden><UtensilsCrossed size={20} /></span>
+    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#F7F7F8] dark:bg-[#1F1F23] dark:text-white" aria-hidden><UtensilsCrossed size={20} /></span>
   );
 }

@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { dbQuery } from "@/lib/db";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,11 +14,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!(await hasAdminSession())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) {
-    return NextResponse.json({ error: "ID invalid" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   }
   const body = await req.json().catch(() => ({}));
   const note = typeof body?.note === "string" ? body.note.slice(0, 500) : null;
@@ -27,7 +28,7 @@ export async function POST(
     [id]
   );
   if (r.rows.length === 0) {
-    return NextResponse.json({ error: "Raport inexistent" }, { status: 404 });
+    return NextResponse.json({ error: "report_not_found" }, { status: 404 });
   }
   const rep = r.rows[0];
 
@@ -54,5 +55,12 @@ export async function POST(
     throw e;
   }
 
+  await logAdminAction({
+    action: "moderation.dismiss",
+    targetType: "moderation_report",
+    targetId: id,
+    details: { videoId: rep.target_video_id, userId: rep.target_user_id },
+    req,
+  });
   return NextResponse.json({ ok: true, action: "dismiss" });
 }

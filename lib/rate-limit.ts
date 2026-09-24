@@ -48,7 +48,7 @@ export async function idempotencyGet<T = any>(key: string): Promise<T | null> {
 
 export async function idempotencySet(
   key: string,
-  value: any,
+  value: unknown,
   ttlSec = 300
 ): Promise<void> {
   try {
@@ -85,7 +85,7 @@ export async function idempotencyRelease(key: string): Promise<void> {
 }
 
 export function clientIp(req: Request): string {
-  const h = (req as any).headers;
+  const h = req.headers;
   if (!h) return "unknown";
   // Preferăm X-Real-IP: ingress-ul îl suprascrie cu adresa reală a conexiunii,
   // deci nu e spoofabil. Garantul e `cloudflared` de la dezactivarea lui Caddy

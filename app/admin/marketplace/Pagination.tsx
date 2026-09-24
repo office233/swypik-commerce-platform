@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PAGE_SIZE } from "./types";
 
 interface Props {
@@ -12,24 +13,25 @@ interface Props {
 }
 
 export function Pagination({ currentPage, totalPages, totalFiltered, startIdx, onPageChange }: Props) {
+  const t = useTranslations("adminMarketplace");
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200 bg-slate-50/60 px-6 py-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200 bg-slate-50/60 px-4 sm:px-6 py-4">
       <div className="text-sm text-slate-500 tabular-nums">
-        Afișare{" "}
-        <span className="font-bold text-slate-700">
-          {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, totalFiltered)}
-        </span>{" "}
-        din <span className="font-bold text-slate-700">{totalFiltered}</span> produse
+        {t("showingRange", {
+          from: startIdx + 1,
+          to: Math.min(startIdx + PAGE_SIZE, totalFiltered),
+          total: totalFiltered,
+        })}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
           className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
         >
           <ChevronLeft className="w-4 h-4" />
-          Pagina anterioară
+          <span className="hidden sm:inline">{t("previousPage")}</span>
         </button>
 
         <div className="flex items-center gap-1">
@@ -59,7 +61,7 @@ export function Pagination({ currentPage, totalPages, totalFiltered, startIdx, o
           disabled={currentPage >= totalPages}
           className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
         >
-          Pagina următoare
+          <span className="hidden sm:inline">{t("nextPage")}</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>

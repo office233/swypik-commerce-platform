@@ -17,9 +17,10 @@ export default function ReviewActions({ reviewId, isHidden }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   async function run(action: "hide" | "unhide" | "delete") {
+    if (loading !== null) return;
     setError(null);
     if (action === "hide") {
-      const reason = prompt("Motiv (opțional):") || undefined;
+      const reason = prompt(t("hideReasonPrompt")) || undefined;
       setLoading(action);
       const res = await fetch(`/api/admin/reviews/${reviewId}/hide`, {
         method: "POST",
@@ -28,7 +29,7 @@ export default function ReviewActions({ reviewId, isHidden }: Props) {
       });
       setLoading(null);
       if (!res.ok) {
-        setError("Eroare ascundere");
+        setError(t("errorHide"));
         return;
       }
     } else if (action === "unhide") {
@@ -36,17 +37,17 @@ export default function ReviewActions({ reviewId, isHidden }: Props) {
       const res = await fetch(`/api/admin/reviews/${reviewId}/unhide`, { method: "POST" });
       setLoading(null);
       if (!res.ok) {
-        setError("Eroare reactivare");
+        setError(t("errorUnhide"));
         return;
       }
     } else {
-      if (!confirm("Ștergi definitiv recenzia?")) return;
-      if (!confirm("Ești sigur? Acțiunea este permanentă.")) return;
+      if (!confirm(t("confirmDelete"))) return;
+      if (!confirm(t("confirmDeleteIrreversible"))) return;
       setLoading(action);
       const res = await fetch(`/api/admin/reviews/${reviewId}`, { method: "DELETE" });
       setLoading(null);
       if (!res.ok) {
-        setError("Eroare ștergere");
+        setError(t("errorDelete"));
         return;
       }
     }
@@ -64,7 +65,7 @@ export default function ReviewActions({ reviewId, isHidden }: Props) {
           aria-label={t("reactivate")}
         >
           <Eye size={14} />
-          Reactivează
+          {t("reactivate")}
         </button>
       ) : (
         <button
@@ -72,10 +73,10 @@ export default function ReviewActions({ reviewId, isHidden }: Props) {
           onClick={() => run("hide")}
           disabled={loading !== null}
           className="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800 hover:bg-yellow-200 disabled:opacity-50 inline-flex items-center gap-1"
-          aria-label="Ascunde"
+          aria-label={t("hide")}
         >
           <EyeOff size={14} />
-          Ascunde
+          {t("hide")}
         </button>
       )}
       <button
@@ -86,7 +87,7 @@ export default function ReviewActions({ reviewId, isHidden }: Props) {
         aria-label={t("delete")}
       >
         <Trash2 size={14} />
-        Șterge
+        {t("delete")}
       </button>
       {error && <span className="text-xs text-red-600 ml-2">{error}</span>}
     </div>

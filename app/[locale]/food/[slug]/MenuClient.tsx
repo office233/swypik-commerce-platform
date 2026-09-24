@@ -13,7 +13,7 @@ import { ArrowLeft, Banknote, CheckCircle2, Clock, CreditCard, MapPin, Minus, Pl
 import { haptic } from "@/lib/haptic";
 import { isOpenNow, hasKnownHours } from "@/lib/merchants/hours";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import EatsPaymentModal from "@/components/payments/EatsPaymentModal";
 import AddressAutocomplete, { type AddressResult } from "@/components/map/AddressAutocomplete";
 
@@ -83,6 +83,8 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
   const router = useRouter();
   const fmt = useFormatPrice();
   const t = useTranslations("foodMenu");
+  const tf = useTranslations("food");
+  const locale = useLocale();
   const [menu, setMenu] = useState<MenuSection[]>([]);
   const [menuError, setMenuError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -277,9 +279,19 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           tip_cents: tipCents,
         }),
       });
-      const data = await res.json();
-      if (!data.success) {
-        setError(data.error || "Eroare la plasarea comenzii.");
+      if (!res.ok) {
+        setError(tf("menu.placeOrderFailed"));
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!data?.success) {
+        // `error` from parseBody() (lib/validation/schemas.ts) is mostly a
+        // Romanian zod message — safe to show as-is only for the `ro` locale.
+        // Everywhere else, fall back to the translated generic message
+        // (audit 2026-09-24, wave2-misc).
+        const raw = typeof data?.error === "string" ? data.error : null;
+        const showRaw = raw && (locale === "ro" || data?.code !== "validation_error");
+        setError((showRaw ? raw : null) || tf("menu.placeOrderFailed"));
         return;
       }
       // Best-effort: salvează adresa pentru comenzile viitoare.
@@ -288,8 +300,8 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            label: "Livrare",
-            recipient_name: name || "Client",
+            label: tf("menu.savedAddressLabel"),
+            recipient_name: name || tf("menu.savedAddressDefaultName"),
             phone: phone || null,
             line1: address.slice(0, 200),
             city: merchant.location_city || "—",
@@ -318,6 +330,8 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
       setPlaced(data.order);
       setCart([]);
       localStorage.removeItem(cartKey);
+    } catch {
+      setError(tf("menu.placeOrderFailed"));
     } finally {
       setPlacing(false);
     }
@@ -591,11 +605,11 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               setCheckout(true);
             }}
             style={{ backgroundColor: ACCENT }}
-            className="flex h-13 w-full items-center justify-between rounded-2xl px-5 py-3.5 text-white transition active:scale-[0.98] disabled:opacity-50"
+            className="flex h-[52px] w-full items-center justify-between rounded-2xl px-5 py-3.5 text-white transition active:scale-[0.98] disabled:opacity-50"
           >
             <span className="inline-flex items-center gap-2 text-sm font-black">
               <ShoppingBag size={18} />
-              {cart.reduce((s, l) => s + l.qty, 0)} produse
+              {tf("menu.itemsCount", { count: cart.reduce((s, l) => s + l.qty, 0) })}
             </span>
             <span className="text-sm font-black">{fmtLei(total)}</span>
           </button>
@@ -629,18 +643,18 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                 </div>
               ))}
               <div className="border-t border-[#E5E5E5] dark:border-[#1F1F1F] pt-2 text-sm">
-                <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>Subtotal</span><span>{fmtLei(subtotal)}</span></div>
-                <div className="mt-1 flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{t("delivery")}</span><span>{deliveryFee === 0 ? "Gratuită" : fmtLei(deliveryFee)}</span></div>
+                <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{tf("menu.subtotal")}</span><span>{fmtLei(subtotal)}</span></div>
+                <div className="mt-1 flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{t("delivery")}</span><span>{deliveryFee === 0 ? t("freeDelivery") : fmtLei(deliveryFee)}</span></div>
                 {tipCents > 0 && (
                   <div className="mt-1 flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{t("courierTip")}</span><span>{fmtLei(tipCents)}</span></div>
                 )}
-                <div className="mt-1 flex justify-between font-black dark:text-white"><span>Total</span><span>{fmtLei(total)}</span></div>
+                <div className="mt-1 flex justify-between font-black dark:text-white"><span>{tf("menu.total")}</span><span>{fmtLei(total)}</span></div>
               </div>
             </div>
 
             <div className="mt-4 space-y-3">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} className="h-12 w-full rounded-xl border border-[#E5E5E5] dark:border-[#1F1F1F] dark:bg-transparent dark:text-white px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon *" inputMode="tel" className="h-12 w-full rounded-xl border border-[#E5E5E5] dark:border-[#1F1F1F] dark:bg-transparent dark:text-white px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={tf("menu.phonePlaceholder")} inputMode="tel" className="h-12 w-full rounded-xl border border-[#E5E5E5] dark:border-[#1F1F1F] dark:bg-transparent dark:text-white px-4 text-sm font-medium outline-none focus:border-[#2DBE60]" />
 
               {savedAddresses.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
@@ -677,7 +691,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                     flyTo={addressCoords}
                     onMapClick={(p) => { haptic("tap"); setAddressCoords(p); }}
                   >
-                    <LiveMarker position={addressCoords} kind="dropoff" label="Livrare aici" />
+                    <LiveMarker position={addressCoords} kind="dropoff" label={tf("menu.deliverHereLabel")} />
                   </MapView>
                   <p className="flex items-center gap-1 bg-[#F7F7F8] dark:bg-[#1F1F23] px-3 py-1.5 text-[11px] text-[#6E6E80] dark:text-[#A1A1AA]">
                     <MapPin size={12} /> {t("adjustPin")}
@@ -715,7 +729,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                   <input
                     value={tipCustom}
                     onChange={(e) => setTipCustom(e.target.value.replace(/[^\d.,]/g, ""))}
-                    placeholder="Lei"
+                    placeholder={tf("menu.tipCustomPlaceholder")}
                     inputMode="decimal"
                     className={`h-10 w-16 rounded-xl border dark:bg-transparent dark:text-white px-2 text-center text-sm font-bold outline-none ${tipCustom ? "border-[#2DBE60]" : "border-[#E5E5E5] dark:border-[#1F1F1F]"}`}
                   />
@@ -738,7 +752,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
                 onClick={() => setPayMethod("card_online")}
                 className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold dark:text-white ${payMethod === "card_online" ? "border-[#2DBE60] bg-[#2DBE60]/10" : "border-[#E5E5E5] dark:border-[#1F1F1F]"}`}
               >
-                <CreditCard size={16} /> Card online
+                <CreditCard size={16} /> {tf("menu.cardOnline")}
               </button>
             </div>
 
@@ -747,7 +761,7 @@ export default function MenuClient({ merchant }: { merchant: Merchant }) {
               disabled={placing || outOfRange || name.trim().length < 2 || phone.trim().length < 5 || address.trim().length < 5}
               onClick={placeOrder}
               style={{ backgroundColor: ACCENT }}
-              className="mt-3 h-13 w-full rounded-2xl py-3.5 text-sm font-black text-white transition active:scale-[0.98] disabled:opacity-50"
+              className="mt-3 h-[52px] w-full rounded-2xl py-3.5 text-sm font-black text-white transition active:scale-[0.98] disabled:opacity-50"
             >
               {placing ? t("submitting") : t("submitOrder", { total: fmtLei(total) })}
             </button>

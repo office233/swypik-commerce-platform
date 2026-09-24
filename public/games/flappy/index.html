@@ -102,7 +102,7 @@
           score++;
           hud.innerText = "Scor: " + score;
           if(window.parent) {
-            window.parent.postMessage({ type: 'SWYPIK_SCORE_UPDATE', gameId: 'game_flappy', score }, '*');
+            window.parent.postMessage({ type: 'SWYPIK_SCORE_UPDATE', gameId: 'game_flappy', score }, window.location.origin);
           }
         }
 
@@ -134,7 +134,7 @@
       hud.innerText = "Joc Terminat! Scor: " + score + " (Record: " + highScore + ")";
       const durationMs = Date.now() - startTime;
       if(window.parent) {
-        window.parent.postMessage({ type: 'SWYPIK_GAME_OVER', gameId: 'game_flappy', score, durationMs }, '*');
+        window.parent.postMessage({ type: 'SWYPIK_GAME_OVER', gameId: 'game_flappy', score, durationMs }, window.location.origin);
       }
     }
 

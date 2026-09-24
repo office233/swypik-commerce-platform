@@ -6,6 +6,20 @@ import { logger } from "@/lib/logger";
 
 const log = logger.child({ service: "order-router" });
 
+export type OrderItemMetadata = {
+  seller_id?: string;
+  source?: string;
+  pgId?: string;
+  pg_id?: string;
+  product_id?: string;
+  skuId?: string;
+  sku_id?: string;
+  stripe_line_item_id?: string;
+  swypik_commission_cents?: number;
+  seller_payout_cents?: number;
+  [key: string]: unknown;
+};
+
 export type OrderItem = {
   productId: string;
   skuId?: string;
@@ -13,7 +27,9 @@ export type OrderItem = {
   quantity: number;
   price: number;
   image?: string;
-  metadata?: any;
+  metadata?: OrderItemMetadata;
+  /** Stripe line item id, when the item literally came off a Stripe line-item object. */
+  id?: string;
 };
 
 export type FulfillmentPlan = {
@@ -33,7 +49,7 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
     localSellers: {},
   };
 
-  const updates: Promise<any>[] = [];
+  const updates: Promise<{ rows: unknown[]; rowCount: number }>[] = [];
 
   /** Iteme plătite pentru care nu există cheie de corelare — vezi alerta de mai jos. */
   const orphanItems: OrderItem[] = [];
@@ -61,7 +77,7 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
       || item.productId;
     const sku = item.skuId || item.metadata?.skuId || item.metadata?.sku_id || "default";
     const externalLineItemId = pgId ? `${pgId}:${sku}` : null;
-    const stripeLineItemId = (item as any).id || item.metadata?.stripe_line_item_id || null;
+    const stripeLineItemId = item.id || item.metadata?.stripe_line_item_id || null;
 
     if (!externalLineItemId && !stripeLineItemId) {
       // 2026-08-15 (audit, ÎNALT): aici era `console.warn` + `continue`.
@@ -89,7 +105,7 @@ export async function routeOrder(orderId: string, items: OrderItem[]): Promise<F
     }
 
     let query: string;
-    let params: any[];
+    let params: Array<string | number | null>;
 
     if (source === "local" || sourceStatus === 'pending_seller_action') {
       const unit_amount_cents = Math.round(item.price * 100);

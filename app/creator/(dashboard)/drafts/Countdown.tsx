@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
 export default function Countdown({ target }: { target: string }) {
-  const t = new Date(target).getTime();
-  const fmt = new Date(target).toLocaleString("ro-RO");
+  const t = useTranslations("creatorCountdown");
+  const locale = useLocale();
+  const targetMs = new Date(target).getTime();
+  const fmt = new Date(target).toLocaleString(locale);
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
@@ -16,17 +19,17 @@ export default function Countdown({ target }: { target: string }) {
   if (now === null) {
     return (
       <span suppressHydrationWarning>
-        Se publică · {fmt}
+        {t("sePublica")} · {fmt}
       </span>
     );
   }
 
-  const diff = Math.max(0, t - now);
+  const diff = Math.max(0, targetMs - now);
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
   return (
     <span>
-      Se publică în <strong>{h}h {m}m</strong> · {fmt}
+      {t("sePublicaIn", { h, m })} · {fmt}
     </span>
   );
 }

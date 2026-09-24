@@ -7,6 +7,7 @@ import { notifyVideoApproved, notifyVideoRejected } from "@/lib/email/creator-no
 import { enqueueVideoPipeline } from "@/lib/video/pipeline";
 
 import { logger } from "@/lib/logger";
+import { logAdminAction } from "@/lib/security/admin-audit";
 export const dynamic = "force-dynamic";
 
 /**
@@ -34,7 +35,7 @@ export async function GET(req: Request) {
     // Filter expression compatible with the derived status returned to the client.
     // Status mapping: video_status='ready' OR va.status='available' → 'ready'; otherwise va.status.
     const where: string[] = [`va.asset_type = 'source'`];
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (statusFilter !== "all") {
       params.push(statusFilter);
@@ -136,7 +137,28 @@ export async function GET(req: Request) {
     `, params);
 
     // Derive product info from videos.product_refs JSONB array
-    const videos = rows.map((r: any) => {
+    type VideoAssetRow = {
+      id: string;
+      video_id: string;
+      object_key: string | null;
+      public_url: string | null;
+      status: string;
+      duration_ms: number | null;
+      width: number | null;
+      height: number | null;
+      asset_metadata: Record<string, unknown> | null;
+      created_at: string;
+      video_title: string | null;
+      video_description: string | null;
+      video_status: string | null;
+      product_refs: unknown;
+      creator_name: string | null;
+      creator_email: string | null;
+      job_status: string | null;
+      job_attempts: number | null;
+      job_error: string | null;
+    };
+    const videos = (rows as VideoAssetRow[]).map((r) => {
       let productId: string | null = null;
       try {
         const refs = typeof r.product_refs === "string"
@@ -150,7 +172,7 @@ export async function GET(req: Request) {
         }
       } catch { /* ignore */ }
 
-      const assetMetadata = r.asset_metadata || {};
+      const assetMetadata = (r.asset_metadata || {}) as Record<string, string | undefined>;
       const status = r.video_status === "ready" || r.status === "available" ? "ready" : r.status;
 
       return {
@@ -189,10 +211,10 @@ export async function GET(req: Request) {
       offset,
       hasMore: offset + videos.length < filteredTotal,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Admin Videos] GET error:");
     return NextResponse.json(
-      { error: "Failed to fetch video assets" },
+      { error: "fetch_failed" },
       { status: 500 }
     );
   }
@@ -207,12 +229,12 @@ export async function POST(req: Request) {
     const { action, videoId, reason } = body;
 
     if (!action) {
-      return NextResponse.json({ error: "Missing action" }, { status: 400 });
+      return NextResponse.json({ error: "missing_action" }, { status: 400 });
     }
     // import_ae / import_url don't operate on an existing videoId; everything else does.
     if (action !== "import_ae" && action !== "import_url" && !videoId) {
       return NextResponse.json(
-        { error: "Missing videoId" },
+        { error: "missing_video_id" },
         { status: 400 }
       );
     }
@@ -257,6 +279,14 @@ export async function POST(req: Request) {
             }
           })
           .catch(console.error);
+
+        await logAdminAction({
+          action: "video.approve",
+          targetType: "video_asset",
+          targetId: videoId,
+          details: { videoId: appRows[0]?.id },
+          req,
+        });
 
         return NextResponse.json({ success: true, message: "Video approved" });
       }
@@ -304,6 +334,14 @@ export async function POST(req: Request) {
           })
           .catch(console.error);
 
+        await logAdminAction({
+          action: "video.reject",
+          targetType: "video_asset",
+          targetId: videoId,
+          details: { reason: rejectReason },
+          req,
+        });
+
         return NextResponse.json({ success: true, message: "Video rejected" });
       }
 
@@ -314,6 +352,13 @@ export async function POST(req: Request) {
            VALUES ((SELECT video_id FROM video_assets WHERE id = $1), $1, 'transcode', 'queued', 100)`,
           [videoId]
         );
+        await logAdminAction({
+          action: "video.reprocess",
+          targetType: "video_asset",
+          targetId: videoId,
+          req,
+        });
+
         return NextResponse.json({ success: true, message: "Reprocessing queued" });
       }
 
@@ -323,7 +368,7 @@ export async function POST(req: Request) {
         const sourceUrl: string | undefined = body.sourceUrl || body.source_url || body.video_url;
         if (!sourceUrl) {
           return NextResponse.json(
-            { error: "import_url requires sourceUrl" },
+            { error: "source_url_required" },
             { status: 400 }
           );
         }
@@ -338,6 +383,14 @@ export async function POST(req: Request) {
           metadata: body.metadata && typeof body.metadata === "object" ? body.metadata : undefined,
         });
 
+        await logAdminAction({
+          action: "video.import_url",
+          targetType: "video",
+          targetId: result.videoId,
+          details: { sourceUrl },
+          req,
+        });
+
         return NextResponse.json(
           {
             success: true,
@@ -350,14 +403,14 @@ export async function POST(req: Request) {
 
       default:
         return NextResponse.json(
-          { error: `Unknown action: ${action}` },
+          { error: "unknown_action" },
           { status: 400 }
         );
     }
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Admin Videos] POST error:");
     return NextResponse.json(
-      { error: "Action failed" },
+      { error: "action_failed" },
       { status: 500 }
     );
   }

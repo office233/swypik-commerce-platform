@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type Bucket = { eats_cents: number; go_cents: number; tips_cents: number; net_cents: number };
 type Entry = {
@@ -38,26 +38,32 @@ type EarningsData = {
 };
 type ConnectStatus = { connected: boolean; payouts_enabled: boolean; details_submitted?: boolean };
 
-const fmt = (cents: number) =>
-    (cents / 100).toLocaleString("ro-RO", { style: "currency", currency: "RON" });
-
-const REF_LABEL: Record<string, string> = {
-    ride: "Cursă",
-    order: "Livrare",
-    payout: "Retragere",
-    payout_refund: "Retragere respinsă (recreditare)",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-    pending: "în așteptare",
-    processing: "în procesare",
-    paid: "plătit",
-    failed: "eșuat",
-    rejected: "respins",
-};
-
 export default function EarningsClient() {
     const t = useTranslations("courierEarnings");
+    const locale = useLocale();
+    const fmt = useCallback(
+        (cents: number, currency: string = "RON") => {
+            try {
+                return new Intl.NumberFormat(locale, { style: "currency", currency }).format(cents / 100);
+            } catch {
+                return `${(cents / 100).toLocaleString(locale)} ${currency}`;
+            }
+        },
+        [locale],
+    );
+    const REF_LABEL: Record<string, string> = {
+        ride: t("refRide"),
+        order: t("refOrder"),
+        payout: t("refPayout"),
+        payout_refund: t("refPayoutRefund"),
+    };
+    const STATUS_LABEL: Record<string, string> = {
+        pending: t("statusPending"),
+        processing: t("statusProcessing"),
+        paid: t("statusPaid"),
+        failed: t("statusFailed"),
+        rejected: t("statusRejected"),
+    };
     const [data, setData] = useState<EarningsData | null>(null);
     const [connect, setConnect] = useState<ConnectStatus | null>(null);
     const [error, setError] = useState("");
@@ -73,15 +79,15 @@ export default function EarningsClient() {
             ]);
             if (!eRes.ok) {
                 const j = await eRes.json().catch(() => null);
-                setError(j?.error ?? "Nu am putut încărca datele.");
+                setError(j?.error ?? t("loadDataError"));
                 return;
             }
             setData(await eRes.json());
             if (cRes.ok) setConnect(await cRes.json());
         } catch {
-            setError("Eroare de rețea.");
+            setError(t("networkError"));
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         void load();
@@ -92,7 +98,7 @@ export default function EarningsClient() {
         setError("");
         const cents = Math.round(Number(amount.replace(",", ".")) * 100);
         if (!Number.isFinite(cents) || cents <= 0) {
-            setError("Introdu o sumă validă.");
+            setError(t("invalidAmount"));
             return;
         }
         setBusy(true);
@@ -104,9 +110,9 @@ export default function EarningsClient() {
             });
             const j = await res.json().catch(() => null);
             if (!res.ok) {
-                setError(j?.error ?? "Cererea a eșuat.");
+                setError(j?.error ?? t("payoutRequestFailed"));
             } else {
-                setMsg("Cererea de retragere a fost înregistrată.");
+                setMsg(t("payoutRequestRegistered"));
                 setAmount("");
                 await load();
             }
@@ -122,7 +128,7 @@ export default function EarningsClient() {
             const res = await fetch("/api/couriers/connect", { method: "POST" });
             const j = await res.json().catch(() => null);
             if (res.ok && j?.url) window.location.href = j.url;
-            else setError(j?.error ?? "Onboarding indisponibil.");
+            else setError(j?.error ?? t("onboardingUnavailable"));
         } finally {
             setBusy(false);
         }
@@ -142,20 +148,19 @@ export default function EarningsClient() {
             <header className="flex items-center justify-between">
                 <h1 className="text-xl font-bold">{t("title")}</h1>
                 <a href="/courier" className="text-sm text-blue-600 underline">
-                    ← PWA curier
+                    ← {t("courierPwaLink")}
                 </a>
             </header>
 
             {/* Sold */}
             <section className="rounded-2xl bg-gray-900 p-5 text-white">
-                <p className="text-sm opacity-70">Sold disponibil</p>
+                <p className="text-sm opacity-70">{t("availableBalance")}</p>
                 <p className={`text-3xl font-bold ${negative ? "text-red-400" : ""}`}>
-                    {fmt(data.balance_cents)}
+                    {fmt(data.balance_cents, data.currency)}
                 </p>
                 {negative && (
                     <p className="mt-1 text-xs text-red-300">
-                        Sold negativ = comision datorat platformei din încasările cash. Se stinge
-                        automat din următoarele câștiguri card.
+                        {t("negativeBalanceNote")}
                     </p>
                 )}
             </section>
@@ -165,11 +170,11 @@ export default function EarningsClient() {
                 {(["today", "week", "month"] as const).map((p) => (
                     <div key={p} className="rounded-xl border p-3 text-center">
                         <p className="text-xs text-gray-500">
-                            {p === "today" ? "Azi" : p === "week" ? "Săptămâna" : "Luna"}
+                            {p === "today" ? t("periodToday") : p === "week" ? t("periodWeek") : t("periodMonth")}
                         </p>
-                        <p className="font-semibold">{fmt(data.periods[p]?.net_cents ?? 0)}</p>
+                        <p className="font-semibold">{fmt(data.periods[p]?.net_cents ?? 0, data.currency)}</p>
                         <p className="text-[10px] text-gray-400">
-                            Eats {fmt(data.periods[p]?.eats_cents ?? 0)} · Go {fmt(data.periods[p]?.go_cents ?? 0)}
+                            Eats {fmt(data.periods[p]?.eats_cents ?? 0, data.currency)} · Go {fmt(data.periods[p]?.go_cents ?? 0, data.currency)}
                         </p>
                     </div>
                 ))}
@@ -184,17 +189,16 @@ export default function EarningsClient() {
                     <div className="space-y-2">
                         <p className="text-sm text-amber-600">{t("stripeIncomplete")}</p>
                         <button onClick={startOnboarding} disabled={busy} className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50">
-                            Continuă verificarea
+                            {t("continueVerification")}
                         </button>
                     </div>
                 ) : (
                     <div className="space-y-2">
                         <p className="text-sm text-gray-500">
-                            Conectează un cont Stripe ca să primești banii automat. Fără el, retragerile se
-                            plătesc manual (durează mai mult).
+                            {t("connectStripeNote")}
                         </p>
                         <button onClick={startOnboarding} disabled={busy} className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50">
-                            Configurează plățile
+                            {t("configurePayments")}
                         </button>
                     </div>
                 )}
@@ -202,12 +206,12 @@ export default function EarningsClient() {
 
             {/* Retragere */}
             <section className="rounded-xl border p-4">
-                <h2 className="mb-2 font-semibold">Retragere</h2>
+                <h2 className="mb-2 font-semibold">{t("withdrawal")}</h2>
                 <div className="flex gap-2">
                     <input
                         type="text"
                         inputMode="decimal"
-                        placeholder="Suma (RON), min. 50"
+                        placeholder={t("amountMinPlaceholder")}
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         className="flex-1 rounded-lg border px-3 py-2 text-sm"
@@ -217,7 +221,7 @@ export default function EarningsClient() {
                         disabled={busy || data.balance_cents < 5000}
                         className="rounded-lg bg-green-600 px-4 py-2 text-sm text-white disabled:opacity-50"
                     >
-                        Retrage
+                        {t("withdrawBtn")}
                     </button>
                 </div>
                 {msg && <p className="mt-2 text-sm text-green-600">{msg}</p>}
@@ -226,8 +230,8 @@ export default function EarningsClient() {
                     <ul className="mt-3 space-y-1 text-sm">
                         {data.payouts.map((p) => (
                             <li key={p.id} className="flex justify-between border-t pt-1">
-                                <span>{new Date(p.requested_at).toLocaleDateString("ro-RO")}</span>
-                                <span>{fmt(p.amount_cents)}</span>
+                                <span>{new Date(p.requested_at).toLocaleDateString(locale)}</span>
+                                <span>{fmt(p.amount_cents, data.currency)}</span>
                                 <span className="text-gray-500">{STATUS_LABEL[p.status] ?? p.status}</span>
                             </li>
                         ))}
@@ -247,12 +251,12 @@ export default function EarningsClient() {
                                 <div>
                                     <p>{REF_LABEL[e.ref_type] ?? e.ref_type} <span className="text-gray-400">#{e.ref_id.slice(0, 8)}</span></p>
                                     <p className="text-[10px] text-gray-400">
-                                        {new Date(e.created_at).toLocaleString("ro-RO")}
-                                        {e.tip_cents ? ` · bacșiș ${fmt(Number(e.tip_cents))}` : ""}
+                                        {new Date(e.created_at).toLocaleString(locale)}
+                                        {e.tip_cents ? ` · ${t("tipLabel")} ${fmt(Number(e.tip_cents), data.currency)}` : ""}
                                     </p>
                                 </div>
                                 <span className={e.kind === "credit" ? "font-medium text-green-600" : "font-medium text-red-600"}>
-                                    {e.kind === "credit" ? "+" : "−"}{fmt(e.amount_cents)}
+                                    {e.kind === "credit" ? "+" : "−"}{fmt(e.amount_cents, data.currency)}
                                 </span>
                             </li>
                         ))}

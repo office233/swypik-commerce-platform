@@ -8,9 +8,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Plane, ArrowRight, Loader2, Users, CalendarDays, Wallet, CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
-import AirportInput from "./AirportInput";
+import AirportInput, { localizeCountryName } from "./AirportInput";
+import { localizedCityName } from "@/lib/fly/city-names";
 
 type Segment = { origin: string; destination: string; departAt: string; arriveAt: string; carrier: string; carrierName?: string; flightNumber?: string };
 type Slice = { origin: string; destination: string; durationMinutes?: number; segments: Segment[] };
@@ -27,11 +28,13 @@ type Offer = {
 
 type Passenger = { givenName: string; familyName: string; bornOn: string; type: "adult" };
 
-// Prețurile vin deja în RON de la server; formatăm în lei (ro-RO).
-const eur = (cents: number, currency = "RON") =>
-    new Intl.NumberFormat("ro-RO", { style: "currency", currency, maximumFractionDigits: 2 }).format(cents / 100);
+// Prețurile vin deja în RON de la server; formatăm cu moneda + locale-ul curent
+// al utilizatorului (nu hardcodat), ca sumele să apară corect în orice limbă.
+const formatMoney = (locale: string, cents: number, currency = "RON") =>
+    new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(cents / 100);
 
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" });
+const formatTime = (locale: string, iso: string) =>
+    new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
 const dur = (min?: number) => (min ? `${Math.floor(min / 60)}h ${min % 60}m` : "");
 
@@ -50,6 +53,10 @@ type Deal = {
 
 export default function FlyClient() {
     const t = useTranslations("flyPage");
+    const tFly = useTranslations("fly");
+    const locale = useLocale();
+    const eur = useCallback((cents: number, currency = "RON") => formatMoney(locale, cents, currency), [locale]);
+    const hhmm = useCallback((iso: string) => formatTime(locale, iso), [locale]);
     const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
     const [form, setForm] = useState({ origin: "OTP", destination: "", departDate: today, returnDate: "", adults: 1 });
     const [loading, setLoading] = useState(false);
@@ -72,10 +79,12 @@ export default function FlyClient() {
     useEffect(() => setMounted(true), []);
     const [deals, setDeals] = useState<Deal[] | null>(null);
     useEffect(() => {
+        let cancelled = false;
         fetch("/api/fly/deals?origin=OTP")
             .then((r) => (r.ok ? r.json() : null))
-            .then((j) => j && setDeals(j.deals))
+            .then((j) => { if (!cancelled && j) setDeals(j.deals); })
             .catch(() => { });
+        return () => { cancelled = true; };
     }, []);
 
     const search = useCallback(async (destOverride?: string, departOverride?: string) => {
@@ -99,15 +108,15 @@ export default function FlyClient() {
                     adults: form.adults,
                 }),
             });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error ?? t("searchFailed"));
-            setOffers(json.offers ?? []);
-        } catch (e: any) {
-            setError(e.message);
+            const json = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(json?.error ?? t("searchFailed"));
+            setOffers(json?.offers ?? []);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : t("searchFailed"));
         } finally {
             setLoading(false);
         }
-    }, [form]);
+    }, [form, t]);
 
     const startCheckout = (offer: Offer) => {
         setSelected(offer);
@@ -131,8 +140,8 @@ export default function FlyClient() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ token: selected.token }),
                 });
-                const pcJson = await pc.json();
-                if (!pc.ok || !pcJson.ok) throw new Error(pcJson.message ?? t("offerExpired"));
+                const pcJson = await pc.json().catch(() => null);
+                if (!pc.ok || !pcJson?.ok) throw new Error(pcJson?.message ?? t("offerExpired"));
                 if (pcJson.priceChanged) {
                     setSelected({ ...selected, totalCents: pcJson.totalCents });
                     setPriceNotice(
@@ -155,27 +164,27 @@ export default function FlyClient() {
                         paymentMethod: method,
                     }),
                 });
-                const json = await res.json();
-                if (res.status === 409 && json.code === "price_changed") {
+                const json = await res.json().catch(() => null);
+                if (res.status === 409 && json?.code === "price_changed") {
                     setSelected({ ...selected, totalCents: json.newTotalCents });
                     setPriceNotice(t("priceChanged", { total: eur(json.newTotalCents) }));
                     return;
                 }
                 if (res.status === 401) throw new Error(t("authRequired"));
-                if (!res.ok) throw new Error(json.error ?? t("bookingFailed"));
-                if (json.checkoutUrl) {
+                if (!res.ok) throw new Error(json?.error ?? t("bookingFailed"));
+                if (json?.checkoutUrl) {
                     window.location.href = json.checkoutUrl;
                     return;
                 }
-                setSuccess({ bookingRef: json.bookingRef ?? null });
+                setSuccess({ bookingRef: json?.bookingRef ?? null });
                 setSelected(null);
-            } catch (e: any) {
-                setError(e.message);
+            } catch (e) {
+                setError(e instanceof Error ? e.message : t("bookingFailed"));
             } finally {
                 setBooking(false);
             }
         },
-        [selected, passengers, contact],
+        [selected, passengers, contact, t, eur],
     );
 
     const passengersValid =
@@ -275,7 +284,7 @@ export default function FlyClient() {
             {mounted && !offers && !selected && !loading && (
                 <div className="mt-6">
                     <div className="mb-3 flex items-end justify-between">
-                        <h2 className="text-lg font-bold">{t("popularFrom", { city: "București" })}</h2>
+                        <h2 className="text-lg font-bold">{t("popularFrom", { city: localizedCityName("București", locale) })}</h2>
                         <span className="text-[10px] text-neutral-400">{t("livePrices")}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -289,14 +298,14 @@ export default function FlyClient() {
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={d.image}
-                                        alt={d.city}
+                                        alt={localizedCityName(d.city, locale)}
                                         className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
                                         loading={i < 4 ? "eager" : "lazy"}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
                                     <div className="absolute bottom-0 left-0 right-0 p-3">
-                                        <p className="text-sm font-bold text-white drop-shadow">{d.city}</p>
-                                        <p className="text-[10px] text-white/80">{d.country}</p>
+                                        <p className="text-sm font-bold text-white drop-shadow">{localizedCityName(d.city, locale)}</p>
+                                        <p className="text-[10px] text-white/80">{localizeCountryName(d.country, locale)}</p>
                                         {d.fromCents !== null && (
                                             <p className="mt-1 inline-block rounded-full bg-white/95 px-2 py-0.5 text-xs font-extrabold text-sky-700">
                                                 {t("fromPrice", { price: eur(d.fromCents, d.currency) })}
@@ -324,10 +333,10 @@ export default function FlyClient() {
                         return deal ? (
                             <div className="relative h-32 overflow-hidden rounded-2xl">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={deal.image} alt={deal.city} className="absolute inset-0 h-full w-full object-cover" />
+                                <img src={deal.image} alt={localizedCityName(deal.city, locale)} className="absolute inset-0 h-full w-full object-cover" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                                 <div className="absolute bottom-3 left-4">
-                                    <p className="text-xl font-extrabold text-white drop-shadow">{deal.city}</p>
+                                    <p className="text-xl font-extrabold text-white drop-shadow">{localizedCityName(deal.city, locale)}</p>
                                     <p className="text-xs text-white/85">{form.origin.toUpperCase()} → {deal.iata} · {form.departDate}</p>
                                 </div>
                             </div>
@@ -473,14 +482,14 @@ export default function FlyClient() {
                             disabled={booking || !passengersValid}
                             className="flex items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-3 font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-black"
                         >
-                            {booking ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />} Wallet
+                            {booking ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />} {tFly("walletButton")}
                         </button>
                         <button
                             onClick={() => pay("stripe")}
                             disabled={booking || !passengersValid}
                             className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-3 font-semibold text-white disabled:opacity-40"
                         >
-                            {booking ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />} Card
+                            {booking ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />} {tFly("cardButton")}
                         </button>
                     </div>
                     <p className="mt-2 text-center text-[10px] text-neutral-400">

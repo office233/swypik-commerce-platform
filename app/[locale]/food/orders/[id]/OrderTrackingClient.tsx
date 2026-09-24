@@ -72,15 +72,15 @@ type Order = {
     dispatch_job_id: string | null;
 };
 
-/** Pașii afișați în timeline, în ordine. */
-const STEPS: { key: string; label: string; matches: string[] }[] = [
-    { key: "placed", label: "Comandă plasată", matches: ["placed"] },
-    { key: "accepted", label: "Confirmată de restaurant", matches: ["accepted"] },
-    { key: "preparing", label: "În preparare", matches: ["preparing"] },
-    { key: "ready", label: "Gata de ridicare", matches: ["ready"] },
-    { key: "picked_up", label: "Curierul a preluat comanda", matches: ["picked_up"] },
-    { key: "delivering", label: "În livrare", matches: ["delivering"] },
-    { key: "delivered", label: "Livrată", matches: ["delivered"] },
+/** Pașii afișați în timeline, în ordine. Etichetele vin din food.tracking.step_<key>. */
+const STEPS: { key: string; matches: string[] }[] = [
+    { key: "placed", matches: ["placed"] },
+    { key: "accepted", matches: ["accepted"] },
+    { key: "preparing", matches: ["preparing"] },
+    { key: "ready", matches: ["ready"] },
+    { key: "picked_up", matches: ["picked_up"] },
+    { key: "delivering", matches: ["delivering"] },
+    { key: "delivered", matches: ["delivered"] },
 ];
 
 const STATUS_ORDER = ["placed", "accepted", "preparing", "ready", "picked_up", "delivering", "delivered"];
@@ -102,6 +102,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
     const router = useRouter();
     const tShell = useTranslations("shell");
     const t = useTranslations("foodTracking");
+    const tf = useTranslations("food");
     const [order, setOrder] = useState<Order | null>(null);
     const [courierPos, setCourierPos] = useState<{ lat: number; lng: number } | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -111,14 +112,14 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
         const res = await fetch(`/api/local-orders/${orderId}`, { cache: "no-store" });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.success) {
-            setError(res.status === 401 ? "Nu ai acces la această comandă." : "Comanda nu există.");
+            setError(res.status === 401 ? tf("tracking.noAccess") : tf("tracking.notFound"));
             return;
         }
         setOrder(data.order);
         if (data.order.courier?.lat != null) {
             setCourierPos({ lat: data.order.courier.lat, lng: data.order.courier.lng });
         }
-    }, [orderId]);
+    }, [orderId, tf]);
 
     useEffect(() => {
         void refresh();
@@ -145,11 +146,14 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
     }, [order?.dispatch_job_id, isFinal, refresh]);
 
     // Fallback polling 20s cât timp comanda e activă (acoperă și pre-dispatch).
+    // Dependența e `order != null`, nu `order` — obiectul se re-creează la fiecare
+    // refresh(), iar dacă am depinde de el intervalul s-ar reseta la fiecare 20s.
+    const hasOrder = order != null;
     useEffect(() => {
-        if (!order || isFinal) return;
-        const t = setInterval(() => void refresh(), 20_000);
-        return () => clearInterval(t);
-    }, [order, isFinal, refresh]);
+        if (!hasOrder || isFinal) return;
+        const intervalId = setInterval(() => void refresh(), 20_000);
+        return () => clearInterval(intervalId);
+    }, [hasOrder, isFinal, refresh]);
 
     const currentIdx = order ? STATUS_ORDER.indexOf(order.status) : -1;
 
@@ -179,9 +183,9 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
 
     if (error) {
         return (
-            <div className="grid min-h-dvh place-items-center bg-white px-6 text-center">
+            <div className="grid min-h-dvh place-items-center bg-white dark:bg-black px-6 text-center">
                 <div>
-                    <p className="text-lg font-black">{error}</p>
+                    <p className="text-lg font-black dark:text-white">{error}</p>
                     <button
                         type="button"
                         onClick={() => router.push("/food")}
@@ -197,7 +201,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
 
     if (!order) {
         return (
-            <div className="grid min-h-dvh place-items-center bg-white">
+            <div className="grid min-h-dvh place-items-center bg-white dark:bg-black">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2DBE60] border-t-transparent" aria-label={t("loading")} />
             </div>
         );
@@ -211,15 +215,15 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
     const mapCenter = courierPos ?? mapPoints[0] ?? null;
 
     return (
-        <div className="min-h-dvh bg-[#F7F7F8] pb-8">
+        <div className="min-h-dvh bg-[#F7F7F8] dark:bg-black pb-8">
             {/* Header */}
-            <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#E5E5E5] bg-white px-4 py-3">
-                <button type="button" onClick={() => router.push("/food/orders")} aria-label={t("back")} className="grid h-9 w-9 place-items-center rounded-full bg-[#F7F7F8] active:scale-95">
+            <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] px-4 py-3">
+                <button type="button" onClick={() => router.push("/food/orders")} aria-label={t("back")} className="grid h-9 w-9 place-items-center rounded-full bg-[#F7F7F8] dark:bg-[#1F1F23] dark:text-white active:scale-95">
                     <ArrowLeft size={18} />
                 </button>
                 <div className="min-w-0 flex-1">
-                    <h1 className="truncate text-sm font-black">{order.merchant.name}</h1>
-                    <p className="text-xs text-[#6E6E80]">#{order.order_number}</p>
+                    <h1 className="truncate text-sm font-black dark:text-white">{order.merchant.name}</h1>
+                    <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">#{order.order_number}</p>
                 </div>
                 {etaText && (
                     <span style={{ backgroundColor: ACCENT }} className="rounded-full px-3 py-1.5 text-xs font-black text-white">
@@ -236,9 +240,9 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                             <LiveMarker position={{ lat: order.merchant.lat, lng: order.merchant.lng }} kind="pickup" label={order.merchant.name} />
                         )}
                         {order.delivery_lat != null && order.delivery_lng != null && (
-                            <LiveMarker position={{ lat: order.delivery_lat, lng: order.delivery_lng }} kind="dropoff" label="Adresa ta" />
+                            <LiveMarker position={{ lat: order.delivery_lat, lng: order.delivery_lng }} kind="dropoff" label={tf("tracking.yourAddress")} />
                         )}
-                        {courierPos && <LiveMarker position={courierPos} kind="driver" label={order.courier?.name ?? "Curier"} />}
+                        {courierPos && <LiveMarker position={courierPos} kind="driver" label={order.courier?.name ?? tf("tracking.courierFallback")} />}
                         {courierPos && order.delivery_lat != null && order.delivery_lng != null && (
                             <RoutePolyline points={[courierPos, { lat: order.delivery_lat, lng: order.delivery_lng }]} color={ACCENT} />
                         )}
@@ -249,17 +253,17 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
             <main className="mx-auto max-w-lg space-y-4 px-4 pt-4">
                 {/* Anulată */}
                 {cancelled && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center">
-                        <p className="text-base font-black text-red-600">
-                            {order.status === "rejected" ? "Comanda a fost refuzată" : "Comanda a fost anulată"}
+                    <div className="rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-4 text-center">
+                        <p className="text-base font-black text-red-600 dark:text-red-400">
+                            {order.status === "rejected" ? tf("tracking.orderRejected") : tf("tracking.orderCancelled")}
                         </p>
-                        {order.cancel_reason && <p className="mt-1 text-sm text-red-500">{order.cancel_reason}</p>}
+                        {order.cancel_reason && <p className="mt-1 text-sm text-red-500 dark:text-red-400">{order.cancel_reason}</p>}
                     </div>
                 )}
 
                 {/* Timeline statusuri */}
                 {!cancelled && (
-                    <div className="rounded-2xl border border-[#E5E5E5] bg-white p-4">
+                    <div className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
                         <ol className="space-y-0">
                             {STEPS.map((step, i) => {
                                 const stepIdx = STATUS_ORDER.indexOf(step.matches[0]);
@@ -269,7 +273,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                                     <li key={step.key} className="flex gap-3">
                                         <div className="flex flex-col items-center">
                                             <span
-                                                className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-white ${done || active ? "" : "bg-[#E5E5E5]"}`}
+                                                className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-white ${done || active ? "" : "bg-[#E5E5E5] dark:bg-[#2A2A2E]"}`}
                                                 style={done || active ? { backgroundColor: ACCENT } : undefined}
                                             >
                                                 {done ? <Check size={14} /> : active ? (
@@ -281,15 +285,15 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                                                 )}
                                             </span>
                                             {i < STEPS.length - 1 && (
-                                                <span className={`w-0.5 flex-1 ${done ? "" : "bg-[#E5E5E5]"}`} style={done ? { backgroundColor: ACCENT } : undefined} />
+                                                <span className={`w-0.5 flex-1 ${done ? "" : "bg-[#E5E5E5] dark:bg-[#2A2A2E]"}`} style={done ? { backgroundColor: ACCENT } : undefined} />
                                             )}
                                         </div>
                                         <div className={`pb-4 ${i === STEPS.length - 1 ? "pb-0" : ""}`}>
-                                            <p className={`text-sm ${active ? "font-black" : done ? "font-semibold" : "font-medium text-[#9C9CAB]"}`}>
-                                                {step.label}
+                                            <p className={`text-sm ${active ? "font-black dark:text-white" : done ? "font-semibold dark:text-[#D4D4D8]" : "font-medium text-[#9C9CAB]"}`}>
+                                                {tf(`tracking.step_${step.key}` as never)}
                                             </p>
                                             {active && step.key === "placed" && (
-                                                <p className="text-xs text-[#6E6E80]">{t("waitingConfirmation")}</p>
+                                                <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{t("waitingConfirmation")}</p>
                                             )}
                                         </div>
                                     </li>
@@ -301,11 +305,11 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
 
                 {/* Curier */}
                 {order.courier && !cancelled && (
-                    <div className="flex items-center gap-3 rounded-2xl border border-[#E5E5E5] bg-white p-4">
-                        <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F0FAF4]" aria-hidden><Bike size={20} /></span>
+                    <div className="flex items-center gap-3 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
+                        <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F0FAF4] dark:bg-[#0F2A1B] dark:text-white" aria-hidden><Bike size={20} /></span>
                         <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-black">{order.courier.name}</p>
-                            <p className="text-xs text-[#6E6E80]">{t("yourCourier")}</p>
+                            <p className="truncate text-sm font-black dark:text-white">{order.courier.name}</p>
+                            <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{t("yourCourier")}</p>
                         </div>
                         {order.courier.phone && (
                             <a
@@ -322,11 +326,11 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                 )}
 
                 {/* Adresă */}
-                <div className="flex items-start gap-3 rounded-2xl border border-[#E5E5E5] bg-white p-4">
-                    <MapPin size={18} className="mt-0.5 shrink-0 text-[#6E6E80]" />
+                <div className="flex items-start gap-3 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
+                    <MapPin size={18} className="mt-0.5 shrink-0 text-[#6E6E80] dark:text-[#A1A1AA]" />
                     <div className="min-w-0">
-                        <p className="text-sm font-semibold">{order.delivery_address}</p>
-                        <p className="text-xs text-[#6E6E80]">{tx("adresaDeLivrare")}</p>
+                        <p className="text-sm font-semibold dark:text-white">{order.delivery_address}</p>
+                        <p className="text-xs text-[#6E6E80] dark:text-[#A1A1AA]">{tx("adresaDeLivrare")}</p>
                     </div>
                 </div>
 
@@ -338,37 +342,37 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                             : ""
                             }`}
                         onClick={() => haptic("tap")}
-                        className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] bg-white text-sm font-bold active:scale-[0.98]"
+                        className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] dark:text-white text-sm font-bold active:scale-[0.98]"
                     >
                         <Car size={16} />  {tx("aiNevoieDeO")}
                     </a>
                 )}
 
                 {/* Sumar comandă */}
-                <div className="rounded-2xl border border-[#E5E5E5] bg-white p-4">
-                    <h2 className="text-sm font-black">{tx("comandaTa")}</h2>
+                <div className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4">
+                    <h2 className="text-sm font-black dark:text-white">{tx("comandaTa")}</h2>
                     <div className="mt-2 space-y-1.5">
                         {(order.items ?? []).map((it, i) => (
                             <div key={i} className="flex justify-between gap-2 text-sm">
-                                <span className="text-[#3B3B4F]">
+                                <span className="text-[#3B3B4F] dark:text-[#D4D4D8]">
                                     {it.qty}× {it.name}
                                     {it.options?.length ? (
                                         <span className="block text-xs text-[#9C9CAB]">{it.options.map((o) => o.name).join(", ")}</span>
                                     ) : null}
                                 </span>
-                                <span className="shrink-0 font-semibold">{fmtLei(it.unit_price_cents * it.qty)}</span>
+                                <span className="shrink-0 font-semibold dark:text-white">{fmtLei(it.unit_price_cents * it.qty)}</span>
                             </div>
                         ))}
                     </div>
-                    <div className="mt-3 border-t border-[#E5E5E5] pt-2 text-sm">
-                        <div className="flex justify-between text-[#6E6E80]"><span>Produse</span><span>{fmtLei(order.subtotal_cents)}</span></div>
-                        <div className="flex justify-between text-[#6E6E80]"><span>Livrare</span><span>{order.delivery_fee_cents === 0 ? "Gratuită" : fmtLei(order.delivery_fee_cents)}</span></div>
+                    <div className="mt-3 border-t border-[#E5E5E5] dark:border-[#1F1F1F] pt-2 text-sm">
+                        <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{tf("tracking.products")}</span><span>{fmtLei(order.subtotal_cents)}</span></div>
+                        <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{tf("tracking.deliveryLabel")}</span><span>{order.delivery_fee_cents === 0 ? tf("tracking.freeDelivery") : fmtLei(order.delivery_fee_cents)}</span></div>
                         {order.tip_cents > 0 && (
-                            <div className="flex justify-between text-[#6E6E80]"><span>{t("courierTip")}</span><span>{fmtLei(order.tip_cents)}</span></div>
+                            <div className="flex justify-between text-[#6E6E80] dark:text-[#A1A1AA]"><span>{t("courierTip")}</span><span>{fmtLei(order.tip_cents)}</span></div>
                         )}
-                        <div className="mt-1 flex justify-between font-black"><span>Total</span><span>{fmtLei(order.total_cents)}</span></div>
+                        <div className="mt-1 flex justify-between font-black dark:text-white"><span>{tf("tracking.total")}</span><span>{fmtLei(order.total_cents)}</span></div>
                         <p className="mt-1 text-xs text-[#9C9CAB]">
-                            {order.payment_method === "cash" ? "Plată cash la livrare" : order.payment_status === "paid" ? "Plătită cu cardul" : "Plată cu cardul în curs"}
+                            {order.payment_method === "cash" ? tf("tracking.paymentCash") : order.payment_status === "paid" ? tf("tracking.paymentPaidCard") : tf("tracking.paymentPendingCard")}
                         </p>
                     </div>
                 </div>
@@ -378,7 +382,7 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                     <a
                         href={`tel:${order.merchant.phone}`}
                         onClick={() => haptic("tap")}
-                        className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] bg-white text-sm font-bold active:scale-[0.98]"
+                        className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] dark:text-white text-sm font-bold active:scale-[0.98]"
                     >
                         <Phone size={16} />  {tx("sunaRestaurantul")}
                     </a>
@@ -404,17 +408,17 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
                 {order.status === "delivered" && (
                     <section
                         aria-label={tShell("discoverFeed")}
-                        className="rounded-2xl border border-[#E5E5E5] bg-white p-4"
+                        className="rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] bg-white dark:bg-[#111113] p-4"
                     >
-                        <p className="text-sm font-black">{tShell("discoverAfterDelivery")}</p>
-                        <p className="mt-1 text-xs text-[#6B6B6B]">{tShell("discoverFeedSub")}</p>
+                        <p className="text-sm font-black dark:text-white">{tShell("discoverAfterDelivery")}</p>
+                        <p className="mt-1 text-xs text-[#6B6B6B] dark:text-[#A1A1AA]">{tShell("discoverFeedSub")}</p>
                         <button
                             type="button"
                             onClick={() => {
                                 haptic("tap");
                                 router.push(`/?utm_source=food&utm_medium=order_delivered&utm_campaign=cross_sell`);
                             }}
-                            className="mt-3 flex h-11 w-full items-center justify-center rounded-2xl border border-[#E5E5E5] text-sm font-bold active:scale-[0.98]"
+                            className="mt-3 flex h-11 w-full items-center justify-center rounded-2xl border border-[#E5E5E5] dark:border-[#1F1F1F] dark:text-white text-sm font-bold active:scale-[0.98]"
                         >
                             {tShell("openFeed")}
                         </button>

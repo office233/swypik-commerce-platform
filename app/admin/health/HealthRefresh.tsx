@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
   AlertTriangle,
@@ -39,23 +39,24 @@ interface Props {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const t = useTranslations("adminHealth");
   if (status === "ok") {
     return (
       <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-        <CheckCircle2 className="w-3.5 h-3.5" /> OK
+        <CheckCircle2 className="w-3.5 h-3.5" /> {t("statusOk")}
       </span>
     );
   }
   if (status === "degraded") {
     return (
       <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
-        <AlertTriangle className="w-3.5 h-3.5" /> Degraded
+        <AlertTriangle className="w-3.5 h-3.5" /> {t("statusDegraded")}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">
-      <XCircle className="w-3.5 h-3.5" /> Error
+      <XCircle className="w-3.5 h-3.5" /> {t("statusError")}
     </span>
   );
 }
@@ -69,7 +70,8 @@ function formatDetail(detail: Record<string, unknown>): string {
 }
 
 export default function HealthRefresh({ initial, checkedAt, meta }: Props) {
-    const t = useTranslations("adminHealth");
+  const t = useTranslations("adminHealth");
+  const locale = useLocale();
   const [results, setResults] = useState<Record<CardKey, HealthResult>>(initial);
   const [lastCheck, setLastCheck] = useState<string>(checkedAt);
   const [refreshing, setRefreshing] = useState(false);
@@ -110,11 +112,11 @@ export default function HealthRefresh({ initial, checkedAt, meta }: Props) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="text-xs text-[#0D0D0D]/60 inline-flex items-center gap-1.5" suppressHydrationWarning>
-          <Activity className="w-3.5 h-3.5" />
-          Ultim check: {mounted ? new Date(lastCheck).toLocaleTimeString("ro-RO") : "—"}
-          {refreshing && <span className="text-amber-700">· refresh…</span>}
+          <Activity className="w-3.5 h-3.5 shrink-0" />
+          {t("lastCheck")}: {mounted ? new Date(lastCheck).toLocaleTimeString(locale) : "—"}
+          {refreshing && <span className="text-amber-700">· {t("refreshing")}</span>}
         </div>
         <button
           type="button"
@@ -122,7 +124,7 @@ export default function HealthRefresh({ initial, checkedAt, meta }: Props) {
           disabled={refreshing}
           className="text-xs font-bold bg-[#0D0D0D] text-white px-3 py-1.5 rounded-md disabled:opacity-50"
         >
-          Refresh acum
+          {t("refreshNow")}
         </button>
       </div>
 
@@ -149,7 +151,7 @@ export default function HealthRefresh({ initial, checkedAt, meta }: Props) {
                   <dd className="font-bold text-[#0D0D0D]">{r.latency_ms} ms</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-[#0D0D0D]/60 shrink-0">Detalii</dt>
+                  <dt className="text-[#0D0D0D]/60 shrink-0">{t("details")}</dt>
                   <dd className="font-mono text-[10px] text-[#0D0D0D]/80 text-right break-all">
                     {formatDetail(r.detail)}
                   </dd>

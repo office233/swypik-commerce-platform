@@ -12,6 +12,9 @@ const RADIO_SERVERS = [
     "https://at1.api.radio-browser.info",
 ];
 
+/** Timeout per mirror — dacă un server Radio Browser e lent, trecem rapid la următorul. */
+const FETCH_TIMEOUT_MS = 5_000;
+
 // Fallback verificat cu stream-urile directe oficiale ale radiourilor din România
 export const CURATED_ROMANIAN_STATIONS: AudioItemDto[] = [
     {
@@ -183,6 +186,7 @@ export async function getLiveRadioStations(country = "romania", limit = 40): Pro
             const res = await fetch(url, {
                 headers: { "User-Agent": "SwypikAudio/1.0" },
                 next: { revalidate: 3600 },
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
             });
 
             if (!res.ok) continue;
@@ -246,6 +250,7 @@ export async function getTopGlobalRadios(limit = 12): Promise<AudioItemDto[]> {
             const res = await fetch(url, {
                 headers: { "User-Agent": "SwypikAudio/1.0" },
                 next: { revalidate: 3600 },
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
             });
             if (!res.ok) continue;
             const stations = (await res.json()) as RawRadioStation[];
@@ -281,6 +286,7 @@ export async function searchRadioStations(query: string, limit = 10): Promise<Au
             const url = `${server}/json/stations/byname/${encodeURIComponent(query.trim())}?limit=${limit}`;
             const res = await fetch(url, {
                 headers: { "User-Agent": "SwypikAudio/1.0" },
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
             });
             if (!res.ok) continue;
             const stations = (await res.json()) as RawRadioStation[];

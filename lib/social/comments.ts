@@ -1,8 +1,16 @@
 export type CommentStatus = "visible" | "hidden" | "deleted" | "flagged";
 
+/** Stable codes only — no human-readable text. Callers translate `code` for
+ * the user (see `app/api/videos/[id]/comments/route.ts`, which returns it
+ * verbatim as `{ error: code }`, and `components/social/CommentsSheet.tsx`,
+ * which maps the code to a localized string). Audit 2026-09-24 (wave2-misc):
+ * this used to return hardcoded English sentences shown raw to non-English
+ * users. */
+export type CommentValidationCode = "comment_text_required" | "comment_text_too_long";
+
 export type CommentValidationResult =
   | { ok: true; text: string }
-  | { ok: false; error: string };
+  | { ok: false; code: CommentValidationCode };
 
 export type CommentAuthor = {
   id: string | null;
@@ -59,16 +67,16 @@ function toIsoString(value: unknown): string {
 
 export function validateCommentText(input: unknown): CommentValidationResult {
   if (typeof input !== "string") {
-    return { ok: false, error: "Comment text is required" };
+    return { ok: false, code: "comment_text_required" };
   }
 
   const text = input.replace(/\s+/g, " ").trim();
   if (!text) {
-    return { ok: false, error: "Comment text is required" };
+    return { ok: false, code: "comment_text_required" };
   }
 
   if (text.length > MAX_COMMENT_LENGTH) {
-    return { ok: false, error: "Comment text must be 500 characters or less" };
+    return { ok: false, code: "comment_text_too_long" };
   }
 
   return { ok: true, text };
@@ -79,8 +87,38 @@ export function chooseCommentStatus(text: string): CommentStatus {
   return FLAGGED_TERMS.some((term) => normalized.includes(term)) ? "flagged" : "visible";
 }
 
-export function mapCommentRow(row: any): CommentView {
-  const displayName = String(row.display_name || row.username || "Comunitate");
+export type CommentRow = {
+  id: unknown;
+  video_id: unknown;
+  user_id?: unknown;
+  parent_comment_id?: unknown;
+  body?: unknown;
+  status?: unknown;
+  like_count?: unknown;
+  reply_count?: unknown;
+  created_at?: unknown;
+  viewer_liked?: unknown;
+  username?: unknown;
+  display_name?: unknown;
+  avatar_url?: unknown;
+};
+
+/** Locale-uri suportate pentru fallback-ul numelui de autor. Default `"ro"` —
+ * apelantul din `app/api/videos/[id]/comments` încă nu trece locale-ul cererii. */
+export type CommentLocale = "ro" | "en" | "es" | "fr" | "de" | "pt" | "it";
+
+const ANONYMOUS_AUTHOR_FALLBACK: Record<CommentLocale, string> = {
+  ro: "Comunitate",
+  en: "Community",
+  es: "Comunidad",
+  fr: "Communauté",
+  de: "Community",
+  pt: "Comunidade",
+  it: "Community",
+};
+
+export function mapCommentRow(row: CommentRow, locale: CommentLocale = "ro"): CommentView {
+  const displayName = String(row.display_name || row.username || ANONYMOUS_AUTHOR_FALLBACK[locale] || ANONYMOUS_AUTHOR_FALLBACK.ro);
 
   return {
     id: String(row.id),
@@ -103,12 +141,12 @@ export function mapCommentRow(row: any): CommentView {
   };
 }
 
-export function attachReplies(topLevelRows: any[], replyRows: any[]): CommentView[] {
-  const comments = topLevelRows.map(mapCommentRow);
+export function attachReplies(topLevelRows: CommentRow[], replyRows: CommentRow[], locale: CommentLocale = "ro"): CommentView[] {
+  const comments = topLevelRows.map((row) => mapCommentRow(row, locale));
   const byId = new Map(comments.map((comment) => [comment.id, comment]));
 
   for (const row of replyRows) {
-    const reply = mapCommentRow(row);
+    const reply = mapCommentRow(row, locale);
     const parent = reply.parentCommentId ? byId.get(reply.parentCommentId) : null;
     if (parent) parent.replies.push(reply);
   }

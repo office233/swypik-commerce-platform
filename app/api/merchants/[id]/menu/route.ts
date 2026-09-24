@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery, withTransaction } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { rateLimit } from "@/lib/security/rate-limit";
 import {
   MenuCategoryCreateSchema,
   MenuItemCreateSchema,
@@ -98,6 +99,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!(await ownsMerchant(id, sellerId))) {
       return NextResponse.json({ success: false, error: "Nu e comerciantul tău." }, { status: 403 });
     }
+    const rl = await rateLimit("sellerMenu", sellerId);
+    if (!rl.success) {
+      return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
+    }
 
     const raw = (await req.json().catch(() => null)) as Record<string, unknown> | null;
     const body = { ...(raw ?? {}), merchant_id: id };
@@ -171,6 +176,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!(await ownsMerchant(id, sellerId))) {
       return NextResponse.json({ success: false, error: "Nu e comerciantul tău." }, { status: 403 });
     }
+    const rl = await rateLimit("sellerMenu", sellerId);
+    if (!rl.success) {
+      return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
+    }
 
     const raw = await req.json().catch(() => null);
     const parsed = parseBody(MenuItemUpdateSchema, raw);
@@ -227,6 +236,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     }
     if (!(await ownsMerchant(id, sellerId))) {
       return NextResponse.json({ success: false, error: "Nu e comerciantul tău." }, { status: 403 });
+    }
+    const rl = await rateLimit("sellerMenu", sellerId);
+    if (!rl.success) {
+      return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
     }
 
     const url = new URL(req.url);

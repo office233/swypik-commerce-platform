@@ -13,7 +13,7 @@
  */
 import { dbQuery, withTransaction } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { swypTransfer, swypTransferInTx } from "./ledger";
+import { swypTransferInTx } from "./ledger";
 import { getSwypRate } from "./valuation";
 
 const log = logger.child({ mod: "swyp/staking" });

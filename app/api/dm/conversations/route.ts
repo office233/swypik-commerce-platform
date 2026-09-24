@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/dm/conversations — list current user's conversations. */
 export async function GET(request: Request) {
-  if (!isEnabled("dm")) return frozenResponse("dm");
+  if (!isEnabled("dm") && !isEnabled("messenger")) return frozenResponse("dm");
   try {
     const userId = await getOptionalSocialUserId();
     if (!userId) {
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
     const conversations = await listConversations(userId, { limit, cursor });
     return NextResponse.json({ conversations });
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ err: err }, "[DM] list conversations:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
 /** POST /api/dm/conversations { peer_user_id } — get-or-create DM. */
 export async function POST(request: Request) {
-  if (!isEnabled("dm")) return frozenResponse("dm");
+  if (!isEnabled("dm") && !isEnabled("messenger")) return frozenResponse("dm");
   try {
     const session = await getOrCreateSocialUser();
     const userId = session.userId;
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     });
     setAnonSessionCookie(response, session.anonSessionId);
     return response;
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ err: err }, "[DM] create conversation:");
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

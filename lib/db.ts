@@ -26,6 +26,17 @@ const STATEMENT_TIMEOUT_MS = Number(process.env.PG_STATEMENT_TIMEOUT_MS) > 0
   ? Math.trunc(Number(process.env.PG_STATEMENT_TIMEOUT_MS))
   : 30_000;
 
+/**
+ * Cât așteptăm o conexiune liberă din pool înainte de a arunca
+ * "Connection terminated due to connection timeout" (2026-09-24: la cold
+ * start — deploy proaspăt, pool gol — primele cereri concurente la
+ * /api/products, /api/cron/dispatch-tick, /api/health loveau exact acest
+ * plafon). Env-overridable pentru medii mai lente.
+ */
+const CONNECTION_TIMEOUT_MS = Number(process.env.PG_CONNECTION_TIMEOUT_MS) > 0
+  ? Math.trunc(Number(process.env.PG_CONNECTION_TIMEOUT_MS))
+  : 10_000;
+
 function getPool(): Pool {
   if (pool) return pool;
 
@@ -40,7 +51,7 @@ function getPool(): Pool {
     connectionString,
     max: isProd ? 15 : 5,
     idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 10_000,
+    connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
     statement_timeout: STATEMENT_TIMEOUT_MS,
     // O tranzacție uitată deschisă ține și conexiunea, și locks-urile.
     idle_in_transaction_session_timeout: 30_000,
@@ -54,9 +65,51 @@ function getPool(): Pool {
   return pool;
 }
 
+/**
+ * `true` doar pentru erori de ACHIZIȚIE a conexiunii (timeout la conectare /
+ * "Connection terminated"), NU pentru eșecul unei interogări deja trimise —
+ * la cold start (pool gol, prima conexiune la Postgres încă nu s-a stabilit)
+ * cererile concurente loveau acest timeout înainte ca vreo interogare să
+ * ajungă la server, deci reluarea e sigură (nu poate dubla o scriere).
+ */
+function isTransientConnectionError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    message.includes("Connection terminated due to connection timeout") ||
+    message.includes("timeout exceeded when trying to connect") ||
+    message.includes("Connection terminated unexpectedly")
+  );
+}
+
+function isSelectOnly(text: string): boolean {
+  // A WITH query can hide INSERT/UPDATE/DELETE inside its CTEs, and locking
+  // reads/sequence calls have side effects — only plain reads are safe to retry
+  // after a dropped connection.
+  if (!/^\s*(select|with)\b/i.test(text)) return false;
+  return !/\b(insert|update|delete|merge|truncate|nextval|setval|pg_advisory_\w+)\b|\bfor\s+(update|share|no\s+key\s+update|key\s+share)\b/i.test(
+    text,
+  );
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function dbQuery<T = any>(text: string, params: unknown[] = []) {
-  const result = await getPool().query(text, params);
-  return result as { rows: T[]; rowCount: number };
+  try {
+    const result = await getPool().query(text, params);
+    return result as { rows: T[]; rowCount: number };
+  } catch (err) {
+    // Un singur retry, doar pentru SELECT-uri și doar pe eroarea de conectare
+    // (vezi isTransientConnectionError) — de regulă cold start, unde pool-ul
+    // abia se umple. Nu reîncercăm INSERT/UPDATE/DELETE: dacă eroarea nu e
+    // strict de conectare, am putea dubla o scriere.
+    if (isSelectOnly(text) && isTransientConnectionError(err)) {
+      logger.warn({ err }, "[db] transient connection error on SELECT — retrying once");
+      await sleep(150);
+      const result = await getPool().query(text, params);
+      return result as { rows: T[]; rowCount: number };
+    }
+    throw err;
+  }
 }
 
 /**

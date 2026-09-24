@@ -12,8 +12,9 @@ redis:
   address: redis:6379
   db: 1
 
-keys:
-  devkey: swypik_livekit_dev_secret_32chars
+# API keys are provided via the LIVEKIT_KEYS env var (see docker-compose.social.yml),
+# never hardcoded here — a committed secret is a secret leak regardless of
+# whether it's labelled "dev".
 
 logging:
   json: true

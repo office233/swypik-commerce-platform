@@ -74,7 +74,7 @@ export async function loadCartItems(cartId: string) {
     quantity: number;
     currency: string;
     unit_amount_cents: number;
-    metadata: any;
+    metadata: { image?: string | null; mergeable?: boolean } | null;
     mp_title: string | null;
     mp_price_cents: number | null;
     mp_currency: string | null;
@@ -135,7 +135,16 @@ export async function mergeAnonCartToUser(anonToken: string, userId: string): Pr
   }
 
   // Move items; on unique conflict (same external_product+variant w/ mergeable=true), sum quantities.
-  const { rows: items } = await dbQuery<any>(
+  const { rows: items } = await dbQuery<{
+    id: string;
+    external_product_id: string;
+    external_variant_id: string | null;
+    title: string;
+    quantity: number;
+    currency: string;
+    unit_amount_cents: number;
+    metadata: { mergeable?: boolean } | null;
+  }>(
     `SELECT id, external_product_id, external_variant_id, title, quantity, currency, unit_amount_cents, metadata
      FROM cart_items WHERE cart_id = $1`,
     [anonCartId],

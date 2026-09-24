@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/security/admin-auth";
 import { getDb } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,31 +15,31 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!(await hasAdminSession())) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) {
-    return NextResponse.json({ error: "ID invalid" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
   }
 
   const body = await req.json().catch(() => ({}));
   const days = Number(body?.days);
   const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 500) : "";
   if (!Number.isFinite(days) || days < 1 || days > 36500) {
-    return NextResponse.json({ error: "Zile invalide" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_days" }, { status: 400 });
   }
   if (!reason) {
-    return NextResponse.json({ error: "Motiv obligatoriu" }, { status: 400 });
+    return NextResponse.json({ error: "reason_required" }, { status: 400 });
   }
 
   const client = await getDb().connect();
   try {
     const exists = await client.query(`SELECT id, role FROM users WHERE id = $1`, [id]);
     if (exists.rows.length === 0) {
-      return NextResponse.json({ error: "Utilizator inexistent" }, { status: 404 });
+      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
     }
     if (exists.rows[0].role === "admin") {
-      return NextResponse.json({ error: "Nu poti suspenda un alt admin. Retrogradeaza-l intai." }, { status: 400 });
+      return NextResponse.json({ error: "cannot_suspend_admin" }, { status: 400 });
     }
 
     await client.query("BEGIN");
@@ -81,12 +82,20 @@ export async function POST(
   } catch (e) {
     logger.error({ err: e, userId: id }, "[admin/users/suspend] suspendare eșuată — tranzacție anulată");
     return NextResponse.json(
-      { error: "Suspendarea nu a putut fi finalizată. Nicio modificare nu a fost aplicată." },
+      { error: "suspend_failed" },
       { status: 500 },
     );
   } finally {
     client.release();
   }
+
+  await logAdminAction({
+    action: "user.suspend",
+    targetType: "user",
+    targetId: id,
+    details: { days, reason },
+    req,
+  });
 
   return NextResponse.json({ ok: true, days, reason });
 }

@@ -6,10 +6,12 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { BedDouble, Plus, Loader2, Eye, EyeOff, Trash2, AlertTriangle, ImageIcon, CalendarDays } from "lucide-react";
 import AvailabilityCalendar from "./AvailabilityCalendar";
 import HostBookings from "./HostBookings";
+
+type ListingAction = { action: "publish" | "unpublish" } | null;
 
 type Listing = {
     id: string;
@@ -22,11 +24,11 @@ type Listing = {
     metadata: { max_guests?: number; property_type?: string } | null;
 };
 
-const lei = (c: number | null) =>
-    c === null ? "—" : new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 0 }).format(c / 100);
-
 export default function HostPanelClient() {
     const t = useTranslations("hostPanel");
+    const locale = useLocale();
+    const lei = (c: number | null) =>
+        c === null ? "—" : new Intl.NumberFormat(locale, { style: "currency", currency: "RON", maximumFractionDigits: 0 }).format(c / 100);
     const [loading, setLoading] = useState(true);
     const [approved, setApproved] = useState(false);
     const [listings, setListings] = useState<Listing[]>([]);
@@ -56,13 +58,16 @@ export default function HostPanelClient() {
         try {
             const r = await fetch("/api/host/listings", { credentials: "include" });
             if (r.status === 401) { setApproved(false); setListings([]); return; }
+            if (!r.ok) { setError(t("actionFailed")); setListings([]); return; }
             const j = await r.json();
             setApproved(Boolean(j.approved));
             setListings(j.listings ?? []);
+        } catch {
+            setError(t("actionFailed"));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -93,7 +98,7 @@ export default function HostPanelClient() {
         }
     }
 
-    async function act(id: string, body: any, label: string) {
+    async function act(id: string, body: ListingAction, label: string) {
         setError(null);
         setBusy(id + label);
         try {
@@ -177,7 +182,7 @@ export default function HostPanelClient() {
                         {form.imageUrl ? (
                             <div className="mt-1 flex items-center gap-2">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={form.imageUrl} alt={t("preview")} className="h-16 w-24 rounded-lg object-cover" />
+                                <img src={form.imageUrl} alt={t("preview")} width={96} height={64} className="h-16 w-24 rounded-lg object-cover" />
                                 <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })}
                                     className="text-xs font-semibold text-red-600">{t("change")}</button>
                             </div>
@@ -207,7 +212,7 @@ export default function HostPanelClient() {
                     <div key={l.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
                         {l.image_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={l.image_url} alt={l.title} className="h-36 w-full object-cover" loading="lazy" />
+                            <img src={l.image_url} alt={l.title} width={600} height={340} className="h-36 w-full object-cover" loading="lazy" />
                         ) : (
                             <div className="flex h-36 w-full items-center justify-center bg-neutral-100 text-neutral-400 dark:bg-neutral-800">
                                 <ImageIcon size={28} />

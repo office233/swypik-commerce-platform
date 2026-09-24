@@ -1,12 +1,17 @@
 import { notFound } from "next/navigation";
 import SquadDetailClient from "./SquadDetailClient";
 import { isEnabled } from "@/lib/feature-flags";
+import { SQUAD_DISCOUNT_PCT } from "@/lib/squad/config";
+import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-    title: "Alătură-te Squad-ului — Reducere 30% pe Swypik",
-    description: "Cumpără împreună cu un prieten și deblochează reducerea de grup pe Swypik.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const t = await getTranslations("sellerGrowthPublicSquad");
+    return {
+        title: t("detailMetaTitle", { pct: SQUAD_DISCOUNT_PCT }),
+        description: t("detailMetaDescription"),
+    };
+}
 
 export default async function SquadDetailPage({
     params,

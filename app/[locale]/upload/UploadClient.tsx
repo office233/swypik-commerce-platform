@@ -67,7 +67,6 @@ export default function UploadClient() {
   const [submitting, setSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragOverRef = useRef(false);
   const [dragActive, setDragActive] = useState(false);
 
   const hashtags = useMemo(() => extractHashtags(description), [description]);
@@ -302,7 +301,7 @@ export default function UploadClient() {
             {step === 1 ? t("incarcaClip") : step === 2 ? t("procesare") : t("detalii")}
           </h1>
         </div>
-        <div className="flex items-center gap-1.5" aria-label={`Pas ${step} din 3`}>
+        <div className="flex items-center gap-1.5" aria-label={t("stepOf3", { step })}>
           {[1, 2, 3].map((n) => (
             <span
               key={n}
@@ -545,13 +544,13 @@ function Step2(props: {
 
   const label =
     transcodeStatus === "uploading"
-      ? `Upload ${uploadProgress}%`
+      ? t("uploadPct", { pct: uploadProgress })
       : transcodeStatus === "processing"
-        ? "Procesare video..."
+        ? t("procesareVideo")
         : transcodeStatus === "ready"
-          ? "Gata!"
+          ? t("gataExclamatie")
           : transcodeStatus === "failed"
-            ? "Eroare la procesare"
+            ? t("eroareLaProcesare")
             : t("initializare");
 
   return (
@@ -701,13 +700,13 @@ function Step3(props: {
           <div className="w-20 aspect-[9/16] bg-black rounded-xl overflow-hidden flex-shrink-0">
             <video src={previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
           </div>
-          <div className="flex-1 text-xs text-white/60 self-center">Previzualizare</div>
+          <div className="flex-1 text-xs text-white/60 self-center">{t("previzualizare")}</div>
         </div>
       )}
 
       <div>
         <label className="text-sm font-bold text-white/70 mb-2 flex items-center justify-between">
-          Titlu <span className="text-xs font-normal text-white/40">{title.length}/100</span>
+          {t("titlu")} <span className="text-xs font-normal text-white/40">{title.length}/100</span>
         </label>
         <input
           value={title}
@@ -718,7 +717,7 @@ function Step3(props: {
       </div>
 
       <div>
-        <label className="text-sm font-bold text-white/70 mb-2 block">Descriere</label>
+        <label className="text-sm font-bold text-white/70 mb-2 block">{t("descriereLabel")}</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
@@ -789,7 +788,7 @@ function Step3(props: {
             </div>
             <div className="flex items-center gap-3">
               <label className="text-xs text-white/50 whitespace-nowrap" htmlFor="overlay-seconds">
-                Overlay &bdquo;vezi produsul&rdquo; la secunda
+                {t("overlaySecondsLabel")}
               </label>
               <input
                 id="overlay-seconds"
@@ -829,9 +828,9 @@ function Step3(props: {
       </div>
 
       <div className="bg-white/[0.03] border border-white/10 rounded-xl divide-y divide-white/5">
-        <Toggle label="Permite comentarii" value={allowComments} onChange={setAllowComments} />
-        <Toggle label="Permite Duet" value={allowDuet} onChange={setAllowDuet} />
-        <Toggle label="Permite Stitch" value={allowStitch} onChange={setAllowStitch} />
+        <Toggle label={t("allowComments")} value={allowComments} onChange={setAllowComments} />
+        <Toggle label={t("allowDuet")} value={allowDuet} onChange={setAllowDuet} />
+        <Toggle label={t("allowStitch")} value={allowStitch} onChange={setAllowStitch} />
       </div>
 
       {scheduleOpen && (

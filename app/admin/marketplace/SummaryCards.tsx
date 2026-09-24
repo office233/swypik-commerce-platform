@@ -1,13 +1,15 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ServerTotals } from "./types";
 
 export function SummaryCards({ totals, loading }: { totals: ServerTotals; loading: boolean }) {
+  const t = useTranslations("adminMarketplace");
   const cards = [
-    { label: "Total produse", value: totals.total },
-    { label: "Active", value: totals.active },
-    { label: "Cu imagine", value: totals.with_image },
-    { label: "Cu video", value: totals.with_video },
+    { label: t("summaryTotal"), value: totals.total },
+    { label: t("summaryActive"), value: totals.active },
+    { label: t("summaryWithImage"), value: totals.with_image },
+    { label: t("summaryWithVideo"), value: totals.with_video },
   ];
 
   return (

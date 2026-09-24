@@ -236,14 +236,14 @@
 
         // Notificare live către containerul părinte Swypik
         if(window.parent) {
-          window.parent.postMessage({ type: 'SWYPIK_SCORE_UPDATE', gameId: 'game_2048', score }, '*');
+          window.parent.postMessage({ type: 'SWYPIK_SCORE_UPDATE', gameId: 'game_2048', score }, window.location.origin);
         }
 
         if(checkGameOver()) {
           document.getElementById("overlay").style.display = "flex";
           const durationMs = Date.now() - startTime;
           if(window.parent) {
-            window.parent.postMessage({ type: 'SWYPIK_GAME_OVER', gameId: 'game_2048', score, durationMs }, '*');
+            window.parent.postMessage({ type: 'SWYPIK_GAME_OVER', gameId: 'game_2048', score, durationMs }, window.location.origin);
           }
         }
       }

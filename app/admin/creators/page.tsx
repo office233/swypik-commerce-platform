@@ -2,10 +2,11 @@
  * Admin Creators — top creators by followers + sales
  */
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { BadgeCheck } from "lucide-react";
 import { dbQuery } from "@/lib/db";
 import { requireAdminSession } from "@/lib/security/admin-auth";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +22,9 @@ type Row = {
   sales_cents: string;
 };
 
-function fmtMoney(cents: string | number): string {
+function fmtMoney(cents: string | number, locale: string): string {
   const n = Number(cents) || 0;
-  return (n / 100).toLocaleString("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 0 });
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "RON", maximumFractionDigits: 0 }).format(n / 100);
 }
 
 export default async function AdminCreatorsPage({
@@ -32,6 +33,7 @@ export default async function AdminCreatorsPage({
   searchParams: Promise<{ sort?: string; q?: string }>;
 }) {
   const t = await getTranslations("adminCreators");
+  const locale = await getLocale();
   await requireAdminSession();
   const sp = await searchParams;
   const sort = sp.sort === "sales" ? "sales" : sp.sort === "videos" ? "videos" : "followers";
@@ -48,7 +50,7 @@ export default async function AdminCreatorsPage({
   let loadError: string | null = null;
 
   try {
-    const params: any[] = [];
+    const params: string[] = [];
     let searchSql = "";
     if (q) {
       params.push(q);
@@ -70,15 +72,21 @@ export default async function AdminCreatorsPage({
       params
     );
     rows = res.rows as Row[];
-  } catch (e: any) {
-    loadError = e?.message || "Eroare DB";
+  } catch (e) {
+    logger.error({ err: e }, "[admin/creators] failed to load creators");
+    loadError = t("loadError");
   }
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-[#0D0D0D]">Creators</h1>
-        <p className="text-sm text-black/60 mt-1">Top {rows.length} creators după {sort === "sales" ? "vânzări" : sort === "videos" ? "videoclipuri" : "urmăritori"}.</p>
+        <h1 className="text-2xl font-black text-[#0D0D0D]">{t("pageTitle")}</h1>
+        <p className="text-sm text-black/60 mt-1">
+          {t("topByLine", {
+            count: rows.length,
+            metric: sort === "sales" ? t("metricSales") : sort === "videos" ? t("metricVideos") : t("metricFollowers"),
+          })}
+        </p>
       </div>
 
       <form className="mb-4 flex flex-wrap items-center gap-2" action="/admin/creators" method="GET">
@@ -99,7 +107,7 @@ export default async function AdminCreatorsPage({
               className={`inline-flex items-center rounded-md px-4 py-2.5 text-xs font-bold border min-h-[40px] ${sort === s ? "bg-black text-white border-black" : "border-black/15 text-black/70"
                 }`}
             >
-              {s === "followers" ? "Urmăritori" : s === "videos" ? "Videoclipuri" : "Vânzări"}
+              {s === "followers" ? t("metricFollowers") : s === "videos" ? t("metricVideos") : t("metricSales")}
             </Link>
           ))}
         </div>
@@ -113,9 +121,9 @@ export default async function AdminCreatorsPage({
         <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-black/5 text-left text-xs uppercase tracking-wide text-black/60">
             <tr>
-              <th className="px-4 py-3">Creator</th>
+              <th className="px-4 py-3">{t("thCreator")}</th>
               <th className="px-4 py-3 text-right">{t("thFollowers")}</th>
-              <th className="px-4 py-3 text-right">Videoclipuri</th>
+              <th className="px-4 py-3 text-right">{t("thVideos")}</th>
               <th className="px-4 py-3 text-right">{t("thSalesCount")}</th>
               <th className="px-4 py-3 text-right">{t("thSalesTotal")}</th>
               <th className="px-4 py-3 text-right">{t("thActions")}</th>
@@ -146,14 +154,14 @@ export default async function AdminCreatorsPage({
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums">{Number(r.followers).toLocaleString("ro-RO")}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{Number(r.videos).toLocaleString("ro-RO")}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{Number(r.sales_count).toLocaleString("ro-RO")}</td>
-                <td className="px-4 py-3 text-right tabular-nums font-bold">{fmtMoney(r.sales_cents)}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{new Intl.NumberFormat(locale).format(Number(r.followers))}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{new Intl.NumberFormat(locale).format(Number(r.videos))}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{new Intl.NumberFormat(locale).format(Number(r.sales_count))}</td>
+                <td className="px-4 py-3 text-right tabular-nums font-bold">{fmtMoney(r.sales_cents, locale)}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
-                    <Link href={`/u/${r.username}`} className="text-xs font-bold text-blue-600 hover:underline">Profil</Link>
-                    <Link href={`/admin/users?q=${encodeURIComponent(r.username)}`} className="text-xs font-bold text-black/60 hover:underline">User</Link>
+                    <Link href={`/u/${r.username}`} className="text-xs font-bold text-blue-600 hover:underline">{t("profileLink")}</Link>
+                    <Link href={`/admin/users?q=${encodeURIComponent(r.username)}`} className="text-xs font-bold text-black/60 hover:underline">{t("userLink")}</Link>
                   </div>
                 </td>
               </tr>

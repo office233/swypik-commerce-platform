@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Megaphone,
   Plus,
@@ -8,7 +9,6 @@ import {
   Pause,
   TrendingUp,
   Eye,
-  MousePointer,
   ShoppingBag,
   Sparkles,
   Zap,
@@ -46,6 +46,7 @@ export default function AdsClient({
   initialCampaigns: Campaign[];
   sellerProducts: ProductOption[];
 }) {
+  const t = useTranslations("sellerGrowthAds");
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -57,12 +58,12 @@ export default function AdsClient({
   const [dailyBudget, setDailyBudget] = useState("30");
   const [targetCity, setTargetCity] = useState("all_ro");
 
-  // Summary Metrics
+  // Summary Metrics (real data only — no placeholder/demo padding)
   const totalSpent = campaigns.reduce((acc, c) => acc + (Number(c.spent_budget_cents) || 0), 0) / 100;
   const totalRevenue = campaigns.reduce((acc, c) => acc + (Number(c.revenue_cents) || 0), 0) / 100;
   const totalImpressions = campaigns.reduce((acc, c) => acc + (Number(c.impressions_count) || 0), 0);
   const totalOrders = campaigns.reduce((acc, c) => acc + (Number(c.orders_count) || 0), 0);
-  const roas = totalSpent > 0 ? (totalRevenue / totalSpent).toFixed(2) : "4.80";
+  const roas = totalSpent > 0 ? (totalRevenue / totalSpent).toFixed(2) : "0.00";
 
   const handleToggle = async (id: string) => {
     try {
@@ -74,7 +75,7 @@ export default function AdsClient({
         );
       }
     } catch (e) {
-      alert("Eroare la modificarea statusului.");
+      alert(t("errorToggle"));
     }
   };
 
@@ -98,7 +99,7 @@ export default function AdsClient({
 
       const data = await res.json();
       if (!data.success) {
-        alert(data.error || "Eroare la creare");
+        alert(data.error || t("errorCreate"));
         return;
       }
 
@@ -125,7 +126,7 @@ export default function AdsClient({
       setCampaignName("");
       setDailyBudget("30");
     } catch {
-      alert("A apărut o eroare de rețea.");
+      alert(t("errorNetwork"));
     } finally {
       setSubmitting(false);
     }
@@ -137,13 +138,13 @@ export default function AdsClient({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-[#0D0D0D] tracking-tight">Swypik Ads Manager</h1>
+            <h1 className="text-2xl font-black text-[#0D0D0D] tracking-tight">{t("pageTitle")}</h1>
             <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider">
-              AI Powered
+              {t("aiPowered")}
             </span>
           </div>
           <p className="text-xs text-neutral-500 font-medium mt-0.5">
-            Crește vânzările magazinului: boost viral în feed, apariție în Mystery Box zilnic și oferte Flash Deal.
+            {t("pageSubtitle")}
           </p>
         </div>
 
@@ -152,7 +153,7 @@ export default function AdsClient({
           onClick={() => setIsModalOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-md transition active:scale-95"
         >
-          <Plus size={16} /> Creează Campanie
+          <Plus size={16} /> {t("createCampaign")}
         </button>
       </div>
 
@@ -160,46 +161,46 @@ export default function AdsClient({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white p-4 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-neutral-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">ROAS Mediu</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">{t("avgRoas")}</span>
             <TrendingUp size={16} className="text-emerald-600" />
           </div>
           <p className="text-2xl font-black text-emerald-600">{roas}x</p>
-          <p className="text-[10px] text-neutral-400 mt-1 font-medium">Return on Ad Spend estimat</p>
+          <p className="text-[10px] text-neutral-400 mt-1 font-medium">{t("roasHint")}</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-neutral-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Afișări Totale</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">{t("totalImpressions")}</span>
             <Eye size={16} className="text-violet-600" />
           </div>
-          <p className="text-2xl font-black text-[#0D0D0D]">{(totalImpressions + 1420).toLocaleString()}</p>
-          <p className="text-[10px] text-neutral-400 mt-1 font-medium">În feed-ul de clipuri 9:16</p>
+          <p className="text-2xl font-black text-[#0D0D0D]">{totalImpressions.toLocaleString()}</p>
+          <p className="text-[10px] text-neutral-400 mt-1 font-medium">{t("impressionsHint")}</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-neutral-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Comenzi Generate</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">{t("ordersGenerated")}</span>
             <ShoppingBag size={16} className="text-amber-500" />
           </div>
-          <p className="text-2xl font-black text-[#0D0D0D]">{totalOrders || 8}</p>
-          <p className="text-[10px] text-neutral-400 mt-1 font-medium">Conversii directe</p>
+          <p className="text-2xl font-black text-[#0D0D0D]">{totalOrders}</p>
+          <p className="text-[10px] text-neutral-400 mt-1 font-medium">{t("directConversions")}</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-neutral-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Buget Investit</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">{t("budgetSpent")}</span>
             <Sparkles size={16} className="text-neutral-600" />
           </div>
-          <p className="text-2xl font-black text-[#0D0D0D]">{(totalSpent || 60).toFixed(2)} lei</p>
-          <p className="text-[10px] text-emerald-600 font-bold mt-1">Venit adus: {((totalSpent || 60) * 4.8).toFixed(2)} lei</p>
+          <p className="text-2xl font-black text-[#0D0D0D]">{totalSpent.toFixed(2)} lei</p>
+          <p className="text-[10px] text-emerald-600 font-bold mt-1">{t("revenueGenerated")}: {totalRevenue.toFixed(2)} lei</p>
         </div>
       </div>
 
       {/* Campaigns Table */}
       <div className="bg-white rounded-2xl border border-[#E5E5E5] shadow-sm overflow-hidden">
         <div className="p-4 border-b border-[#E5E5E5] flex items-center justify-between">
-          <h2 className="text-sm font-black text-[#0D0D0D] uppercase tracking-wider">Campanii Active & Istoric</h2>
-          <span className="text-xs text-neutral-400 font-medium">{campaigns.length} campanii</span>
+          <h2 className="text-sm font-black text-[#0D0D0D] uppercase tracking-wider">{t("campaignsHistory")}</h2>
+          <span className="text-xs text-neutral-400 font-medium">{t("campaignCount", { count: campaigns.length })}</span>
         </div>
 
         {campaigns.length === 0 ? (
@@ -207,16 +208,16 @@ export default function AdsClient({
             <div className="w-12 h-12 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mx-auto">
               <Megaphone size={24} />
             </div>
-            <p className="text-sm font-bold text-neutral-800">Nicio campanie publicitară creată încă</p>
+            <p className="text-sm font-bold text-neutral-800">{t("emptyTitle")}</p>
             <p className="text-xs text-neutral-400 max-w-sm mx-auto">
-              Promovează produsele tale în feed-ul Swypik pentru a primi comenzi direct pe nodul tău local.
+              {t("emptySubtitle")}
             </p>
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2 rounded-xl bg-[#0D0D0D] text-white text-xs font-bold"
             >
-              Lansează Prima Campanie
+              {t("launchFirstCampaign")}
             </button>
           </div>
         ) : (
@@ -224,13 +225,13 @@ export default function AdsClient({
             <table className="w-full text-left text-xs">
               <thead className="bg-[#F7F7F8] text-neutral-500 font-bold uppercase border-b border-[#E5E5E5]">
                 <tr>
-                  <th className="p-3.5">Campanie</th>
-                  <th className="p-3.5">Tip Promovare</th>
-                  <th className="p-3.5">Buget Zilnic</th>
-                  <th className="p-3.5">Afișări</th>
-                  <th className="p-3.5">Comenzi</th>
-                  <th className="p-3.5">Status</th>
-                  <th className="p-3.5 text-right">Acțiuni</th>
+                  <th className="p-3.5">{t("colCampaign")}</th>
+                  <th className="p-3.5">{t("colType")}</th>
+                  <th className="p-3.5">{t("colDailyBudget")}</th>
+                  <th className="p-3.5">{t("colImpressions")}</th>
+                  <th className="p-3.5">{t("colOrders")}</th>
+                  <th className="p-3.5">{t("colStatus")}</th>
+                  <th className="p-3.5 text-right">{t("colActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5E5]">
@@ -245,16 +246,16 @@ export default function AdsClient({
                         {c.ad_type === "boost_reel" && <Zap size={13} className="text-amber-500" />}
                         {c.ad_type === "mystery_drop" && <Gift size={13} className="text-pink-500" />}
                         {c.ad_type === "flash_sale" && <Target size={13} className="text-rose-500" />}
-                        {c.ad_type === "boost_reel" && "Boost Reel"}
-                        {c.ad_type === "mystery_drop" && "Mystery Box"}
-                        {c.ad_type === "flash_sale" && "Flash Sale"}
+                        {c.ad_type === "boost_reel" && t("typeBoostReel")}
+                        {c.ad_type === "mystery_drop" && t("typeMysteryBox")}
+                        {c.ad_type === "flash_sale" && t("typeFlashSale")}
                       </span>
                     </td>
                     <td className="p-3.5 font-semibold text-neutral-800">
-                      {(c.daily_budget_cents / 100).toFixed(2)} lei/zi
+                      {t("perDay", { amount: (c.daily_budget_cents / 100).toFixed(2) })}
                     </td>
-                    <td className="p-3.5 font-semibold">{c.impressions_count || 1250}</td>
-                    <td className="p-3.5 font-semibold text-emerald-600">{c.orders_count || 6}</td>
+                    <td className="p-3.5 font-semibold">{c.impressions_count || 0}</td>
+                    <td className="p-3.5 font-semibold text-emerald-600">{c.orders_count || 0}</td>
                     <td className="p-3.5">
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
@@ -264,15 +265,16 @@ export default function AdsClient({
                         }`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${c.status === "active" ? "bg-emerald-500" : "bg-neutral-400"}`} />
-                        {c.status === "active" ? "Activă" : "În pauză"}
+                        {c.status === "active" ? t("statusActive") : t("statusPaused")}
                       </span>
                     </td>
                     <td className="p-3.5 text-right">
                       <button
                         type="button"
                         onClick={() => handleToggle(c.id)}
-                        className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition"
-                        title={c.status === "active" ? "Pune pe pauză" : "Reia campania"}
+                        className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition min-w-[36px] min-h-[36px]"
+                        title={c.status === "active" ? t("pauseAction") : t("resumeAction")}
+                        aria-label={c.status === "active" ? t("pauseAction") : t("resumeAction")}
                       >
                         {c.status === "active" ? <Pause size={14} /> : <Play size={14} />}
                       </button>
@@ -292,12 +294,13 @@ export default function AdsClient({
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
                 <Megaphone size={18} className="text-violet-600" />
-                <h3 className="text-base font-black text-[#0D0D0D]">Lansează Campanie Swypik Ads</h3>
+                <h3 className="text-base font-black text-[#0D0D0D]">{t("modalTitle")}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-neutral-400 hover:text-neutral-600 text-sm font-bold"
+                className="text-neutral-400 hover:text-neutral-600 text-sm font-bold w-8 h-8 flex items-center justify-center"
+                aria-label={t("close")}
               >
                 ✕
               </button>
@@ -306,21 +309,21 @@ export default function AdsClient({
             <form onSubmit={handleCreateCampaign} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                  Nume Campanie
+                  {t("campaignNameLabel")}
                 </label>
                 <input
                   type="text"
                   required
                   value={campaignName}
                   onChange={(e) => setCampaignName(e.target.value)}
-                  placeholder="ex: Boost Haine Toamnă / Flash Deal Pantofi"
+                  placeholder={t("campaignNamePlaceholder")}
                   className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                  Tip Promovare
+                  {t("promoTypeLabel")}
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
@@ -333,7 +336,7 @@ export default function AdsClient({
                     }`}
                   >
                     <Zap size={16} className="mx-auto mb-1 text-amber-500" />
-                    Boost Reel
+                    {t("typeBoostReel")}
                   </button>
 
                   <button
@@ -346,7 +349,7 @@ export default function AdsClient({
                     }`}
                   >
                     <Gift size={16} className="mx-auto mb-1 text-pink-500" />
-                    Mystery Box
+                    {t("typeMysteryBox")}
                   </button>
 
                   <button
@@ -359,7 +362,7 @@ export default function AdsClient({
                     }`}
                   >
                     <Target size={16} className="mx-auto mb-1 text-rose-500" />
-                    Flash Sale
+                    {t("typeFlashSale")}
                   </button>
                 </div>
               </div>
@@ -367,7 +370,7 @@ export default function AdsClient({
               {sellerProducts.length > 0 && (
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Produs Promovat
+                    {t("promotedProductLabel")}
                   </label>
                   <select
                     value={selectedProduct}
@@ -386,7 +389,7 @@ export default function AdsClient({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Buget Zilnic (RON)
+                    {t("dailyBudgetLabel")}
                   </label>
                   <input
                     type="number"
@@ -396,24 +399,24 @@ export default function AdsClient({
                     onChange={(e) => setDailyBudget(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
-                  <span className="text-[10px] text-neutral-400 mt-0.5 block">Minim 10 lei/zi</span>
+                  <span className="text-[10px] text-neutral-400 mt-0.5 block">{t("minPerDay")}</span>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Targetare Geografică
+                    {t("geoTargetLabel")}
                   </label>
                   <select
                     value={targetCity}
                     onChange={(e) => setTargetCity(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
                   >
-                    <option value="all_ro">Toată România</option>
-                    <option value="bucuresti">București & Ilfov</option>
-                    <option value="cluj">Cluj-Napoca</option>
-                    <option value="timisoara">Timișoara</option>
-                    <option value="iasi">Iași</option>
-                    <option value="brasov">Brașov</option>
+                    <option value="all_ro">{t("cityAllRo")}</option>
+                    <option value="bucuresti">{t("cityBucuresti")}</option>
+                    <option value="cluj">{t("cityCluj")}</option>
+                    <option value="timisoara">{t("cityTimisoara")}</option>
+                    <option value="iasi">{t("cityIasi")}</option>
+                    <option value="brasov">{t("cityBrasov")}</option>
                   </select>
                 </div>
               </div>
@@ -424,14 +427,14 @@ export default function AdsClient({
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2.5 rounded-xl border border-neutral-200 text-xs font-bold hover:bg-neutral-50"
                 >
-                  Anulează
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-md transition disabled:opacity-50"
                 >
-                  {submitting ? "Se lansează..." : "Activează Campania"}
+                  {submitting ? t("launching") : t("activateCampaign")}
                 </button>
               </div>
             </form>

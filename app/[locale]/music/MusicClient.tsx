@@ -31,17 +31,17 @@ type AudioTabId = "all" | "radio" | "audius" | "jamendo" | "podcast";
 
 interface AudioTab {
     id: AudioTabId;
-    label: string;
+    labelKey: string;
     icon: typeof Sparkles;
     badge?: string;
 }
 
 const TABS: AudioTab[] = [
-    { id: "all", label: "Toate", icon: Sparkles },
-    { id: "radio", label: "Radio Live", icon: Radio, badge: "45k+" },
-    { id: "audius", label: "Muzică & Beat-uri", icon: Disc3 },
-    { id: "jamendo", label: "Chill & Lounge", icon: Sparkles },
-    { id: "podcast", label: "Podcasturi", icon: Mic },
+    { id: "all", labelKey: "audio.tabs.all", icon: Sparkles },
+    { id: "radio", labelKey: "audio.tabs.radio", icon: Radio, badge: "45k+" },
+    { id: "audius", labelKey: "audio.tabs.audius", icon: Disc3 },
+    { id: "jamendo", labelKey: "audio.tabs.jamendo", icon: Sparkles },
+    { id: "podcast", labelKey: "audio.tabs.podcast", icon: Mic },
 ];
 
 async function getJson<T>(url: string): Promise<T> {
@@ -50,11 +50,11 @@ async function getJson<T>(url: string): Promise<T> {
     return res.json();
 }
 
-function getSpotifyGreeting(): string {
+function getGreetingKey(): "audio.greetingMorning" | "audio.greetingAfternoon" | "audio.greetingEvening" {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Bună dimineața";
-    if (hour >= 12 && hour < 18) return "Bună ziua";
-    return "Bună seara";
+    if (hour >= 5 && hour < 12) return "audio.greetingMorning";
+    if (hour >= 12 && hour < 18) return "audio.greetingAfternoon";
+    return "audio.greetingEvening";
 }
 
 export default function MusicClient() {
@@ -66,6 +66,11 @@ export default function MusicClient() {
     const [feedSections, setFeedSections] = useState<AudioFeedSection[] | null>(null);
     const [tabTracks, setTabTracks] = useState<TrackDto[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    // Sursele externe (Audius/Jamendo/Radio Browser/iTunes) nu mai au date fictive
+    // de fallback — dacă upstream-ul pică, arătăm un mesaj tradus + buton de reîncercare.
+    const [feedFailed, setFeedFailed] = useState(false);
+    const [retryTick, setRetryTick] = useState(0);
+    const retry = () => { haptic("tap"); setRetryTick((n) => n + 1); };
 
     const [playlistTarget, setPlaylistTarget] = useState<TrackDto | null>(null);
 
@@ -78,6 +83,7 @@ export default function MusicClient() {
     useEffect(() => {
         if (activeTab !== "all") return;
         setIsLoading(true);
+        setFeedFailed(false);
         getJson<AudioFeedResponse>("/api/audio/feed?tab=all")
             .then((data) => {
                 setFeedSections(data.sections || []);
@@ -85,15 +91,17 @@ export default function MusicClient() {
             })
             .catch(() => {
                 setFeedSections([]);
+                setFeedFailed(true);
                 setIsLoading(false);
             });
-    }, [activeTab]);
+    }, [activeTab, retryTick]);
 
     // Încărcare feed dedicat când un tab specific este selectat
     useEffect(() => {
         if (activeTab === "all") return;
         setTabTracks(null);
         setIsLoading(true);
+        setFeedFailed(false);
         getJson<AudioFeedResponse>(`/api/audio/feed?tab=${activeTab}`)
             .then((data) => {
                 const items: TrackDto[] = [];
@@ -101,13 +109,15 @@ export default function MusicClient() {
                     items.push(...s.items.map(audioItemToTrackDto));
                 });
                 setTabTracks(items);
+                if (items.length === 0) setFeedFailed(true);
                 setIsLoading(false);
             })
             .catch(() => {
                 setTabTracks([]);
+                setFeedFailed(true);
                 setIsLoading(false);
             });
-    }, [activeTab]);
+    }, [activeTab, retryTick]);
 
     // Căutare live
     useEffect(() => {
@@ -186,7 +196,7 @@ export default function MusicClient() {
                     <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/20 px-2.5 py-0.5 text-[10px] font-black text-red-400">
                             <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                            LIVE AUDIO
+                            {t("audio.liveAudio")}
                         </span>
                     </div>
                 </div>
@@ -199,7 +209,7 @@ export default function MusicClient() {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Caută radio, artiști, beat-uri, podcasturi..."
+                            placeholder={t("audio.searchPlaceholder")}
                             className="w-full rounded-full bg-white/10 py-2.5 pl-10 pr-9 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/10 focus:ring-[#7C3AED] focus:bg-white/15 transition-all"
                         />
                         {searchQuery && (
@@ -235,7 +245,7 @@ export default function MusicClient() {
                                     }`}
                                 >
                                     <Icon size={13} className={isActive ? "text-white" : "text-white/60"} />
-                                    <span>{tab.label}</span>
+                                    <span>{t(tab.labelKey)}</span>
                                     {tab.badge && (
                                         <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-black ${
                                             isActive ? "bg-white/25 text-white" : "bg-white/15 text-white/70"
@@ -253,10 +263,10 @@ export default function MusicClient() {
             {/* Rezultate Căutare */}
             {searchQuery ? (
                 <section className="px-4 pt-4">
-                    <h2 className="text-sm font-bold text-white/80 mb-3">Rezultate căutare</h2>
-                    {isSearching && <p className="text-xs text-white/50 py-4">Căutare în curs...</p>}
+                    <h2 className="text-sm font-bold text-white/80 mb-3">{t("audio.searchResults")}</h2>
+                    {isSearching && <p className="text-xs text-white/50 py-4">{t("audio.searching")}</p>}
                     {searchResults && searchResults.length === 0 && !isSearching && (
-                        <p className="text-sm text-white/60 py-8 text-center">Nu s-a găsit niciun rezultat.</p>
+                        <p className="text-sm text-white/60 py-8 text-center">{t("audio.noResults")}</p>
                     )}
                     {searchResults && (
                         <div className="space-y-1">
@@ -279,10 +289,10 @@ export default function MusicClient() {
                     {/* Greeting Header */}
                     <div className="px-4 flex items-baseline justify-between">
                         <h1 className="text-2xl font-black text-white tracking-tight">
-                            {getSpotifyGreeting()}
+                            {t(getGreetingKey())}
                         </h1>
                         <span className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">
-                            Swypik Audio
+                            {t("title")}
                         </span>
                     </div>
 
@@ -348,7 +358,7 @@ export default function MusicClient() {
                     {/* Spotify Horizontal Carousels */}
                     {isLoading ? (
                         <div className="px-4 py-16 text-center text-sm text-white/40">
-                            Se conectează la rețeaua audio...
+                            {t("audio.connectingAudio")}
                         </div>
                     ) : feedSections ? (
                         feedSections.map((section) => {
@@ -361,11 +371,11 @@ export default function MusicClient() {
                                                 {section.source === "radio" && (
                                                     <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                                                 )}
-                                                {section.title}
+                                                {t(`audio.feedSections.${section.id}.title`)}
                                             </h2>
-                                            {section.subtitle && (
-                                                <p className="text-xs text-white/50 line-clamp-1">{section.subtitle}</p>
-                                            )}
+                                            <p className="text-xs text-white/50 line-clamp-1">
+                                                {t(`audio.feedSections.${section.id}.subtitle`)}
+                                            </p>
                                         </div>
                                         <button
                                             type="button"
@@ -375,7 +385,7 @@ export default function MusicClient() {
                                             }}
                                             className="text-xs font-bold text-[#A78BFA] hover:text-white flex items-center gap-0.5 shrink-0"
                                         >
-                                            <span>Vezi toate</span>
+                                            <span>{t("audio.seeAll")}</span>
                                             <ChevronRight size={14} />
                                         </button>
                                     </div>
@@ -425,7 +435,7 @@ export default function MusicClient() {
                                                         {track.isLive && (
                                                             <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-red-600/90 px-1.5 py-0.5 text-[8px] font-black uppercase text-white shadow">
                                                                 <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
-                                                                LIVE
+                                                                {t("audio.liveBadge")}
                                                             </span>
                                                         )}
 
@@ -466,13 +476,24 @@ export default function MusicClient() {
                     <div className="pb-3">
                         <h1 className="text-lg font-bold text-white flex items-center gap-2">
                             <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-                            Posturi de Radio România Live
+                            {t("audio.radioStationsTitle")}
                         </h1>
-                        <p className="text-xs text-white/50">Fluxuri oficiale live fără reclame suplimentare</p>
+                        <p className="text-xs text-white/50">{t("audio.radioStationsSubtitle")}</p>
                     </div>
 
                     {isLoading ? (
-                        <div className="py-16 text-center text-sm text-white/50">Se conectează la rețeaua radio...</div>
+                        <div className="py-16 text-center text-sm text-white/50">{t("audio.connectingRadio")}</div>
+                    ) : feedFailed && tabTracks && tabTracks.length === 0 ? (
+                        <div className="flex flex-col items-center gap-3 py-16 text-center">
+                            <p className="text-sm text-white/60">{t("audio.sourceUnavailable")}</p>
+                            <button
+                                type="button"
+                                onClick={retry}
+                                className="rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 active:scale-95 transition-all"
+                            >
+                                {t("audio.retry")}
+                            </button>
+                        </div>
                     ) : tabTracks ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {tabTracks.map((station, i) => {
@@ -511,13 +532,13 @@ export default function MusicClient() {
                                             {station.title}
                                         </h3>
                                         <p className="text-[11px] text-white/50 line-clamp-1 mb-2.5 w-full">
-                                            {station.genre || "Hituri & Pop"}
+                                            {station.genre || t("audio.defaultGenre")}
                                         </p>
 
                                         <div className="flex items-center gap-2">
                                             <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-black uppercase text-red-400">
                                                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                                                LIVE
+                                                {t("audio.liveBadge")}
                                             </span>
                                             <div className={`h-7 w-7 rounded-full flex items-center justify-center shadow-md transition-colors ${
                                                 isCurrentPlaying ? "bg-[#7C3AED] text-white" : "bg-white text-black group-hover:bg-[#7C3AED] group-hover:text-white"
@@ -536,17 +557,28 @@ export default function MusicClient() {
                 <section className="px-4 pt-4">
                     <div className="pb-3">
                         <h1 className="text-lg font-bold text-white">
-                            {TABS.find((t) => t.id === activeTab)?.label}
+                            {t(TABS.find((tab) => tab.id === activeTab)?.labelKey ?? "audio.tabs.all")}
                         </h1>
                         <p className="text-xs text-white/50">
-                            {activeTab === "audius" && "Trap, electronic și beat-uri urbane licențiate"}
-                            {activeTab === "jamendo" && "Muzică relaxantă, ambientală și acustică Creative Commons"}
-                            {activeTab === "podcast" && "Episoade recente din podcasturile tale preferate"}
+                            {activeTab === "audius" && t("audio.subtitleAudius")}
+                            {activeTab === "jamendo" && t("audio.subtitleJamendo")}
+                            {activeTab === "podcast" && t("audio.subtitlePodcast")}
                         </p>
                     </div>
 
                     {isLoading ? (
-                        <div className="py-16 text-center text-sm text-white/50">Se încarcă conținutul...</div>
+                        <div className="py-16 text-center text-sm text-white/50">{t("audio.loadingContent")}</div>
+                    ) : feedFailed && tabTracks && tabTracks.length === 0 ? (
+                        <div className="flex flex-col items-center gap-3 py-16 text-center">
+                            <p className="text-sm text-white/60">{t("audio.sourceUnavailable")}</p>
+                            <button
+                                type="button"
+                                onClick={retry}
+                                className="rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 active:scale-95 transition-all"
+                            >
+                                {t("audio.retry")}
+                            </button>
+                        </div>
                     ) : tabTracks ? (
                         <div className="space-y-1">
                             {tabTracks.map((tr, i) => (

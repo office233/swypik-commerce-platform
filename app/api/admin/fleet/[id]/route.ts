@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { isAdminRequest } from "@/lib/security/admin-auth";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email/service";
@@ -109,6 +110,14 @@ export async function PATCH(
                         : `<h2>Salut, ${courier.full_name}</h2><p>Din păcate aplicația ta nu a fost aprobată momentan. Ne poți contacta pentru detalii.</p>`,
             }).catch((err) => logger.warn({ err }, "[admin/fleet] applicant email failed"));
         }
+
+        await logAdminAction({
+            action: `fleet_courier.${action}`,
+            targetType: "courier",
+            targetId: id,
+            details: { fleet_partner_id: fleetPartnerId, tier },
+            req,
+        });
 
         return NextResponse.json({ success: true, courier, tier, referral_code: referralCode });
     } catch (error) {

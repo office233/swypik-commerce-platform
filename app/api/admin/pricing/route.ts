@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminToken } from "@/lib/security/admin-auth";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -108,6 +109,13 @@ export async function POST(req: Request) {
             z_.platform_commission_pct, z_.courier_share_pct, z_.currency,
           ],
         );
+        await logAdminAction({
+          action: "pricing.upsert_zone",
+          targetType: "pricing_zone",
+          targetId: rows[0].id,
+          details: { city: z_.city, kind: z_.kind, vehicle_class: z_.vehicle_class },
+          req,
+        });
         return NextResponse.json({ ok: true, id: rows[0].id });
       }
       case "update_zone": {
@@ -119,6 +127,13 @@ export async function POST(req: Request) {
           `UPDATE pricing_zones SET ${sets} WHERE id = $1`,
           [data.id, ...keys.map((k) => allowed[k])],
         );
+        await logAdminAction({
+          action: "pricing.update_zone",
+          targetType: "pricing_zone",
+          targetId: data.id,
+          details: { fields: keys },
+          req,
+        });
         return NextResponse.json({ ok: true });
       }
       case "toggle_zone": {
@@ -126,6 +141,13 @@ export async function POST(req: Request) {
           data.id,
           data.active,
         ]);
+        await logAdminAction({
+          action: "pricing.toggle_zone",
+          targetType: "pricing_zone",
+          targetId: data.id,
+          details: { active: data.active },
+          req,
+        });
         return NextResponse.json({ ok: true });
       }
       case "add_surge": {
@@ -134,10 +156,23 @@ export async function POST(req: Request) {
            VALUES ($1, $2, $3, false) RETURNING id`,
           [data.zone_id, data.multiplier, data.ends_at ?? null],
         );
+        await logAdminAction({
+          action: "pricing.add_surge",
+          targetType: "surge_rule",
+          targetId: rows[0].id,
+          details: { zoneId: data.zone_id, multiplier: data.multiplier, endsAt: data.ends_at ?? null },
+          req,
+        });
         return NextResponse.json({ ok: true, id: rows[0].id });
       }
       case "end_surge": {
         await dbQuery(`UPDATE surge_rules SET ends_at = now() WHERE id = $1`, [data.id]);
+        await logAdminAction({
+          action: "pricing.end_surge",
+          targetType: "surge_rule",
+          targetId: data.id,
+          req,
+        });
         return NextResponse.json({ ok: true });
       }
     }

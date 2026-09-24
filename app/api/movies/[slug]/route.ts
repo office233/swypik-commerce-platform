@@ -14,45 +14,6 @@ export const GET = withErrorHandling(async function GET(_req: Request, { params 
     if (!isEnabled("movies")) return frozenResponse("movies");
     const { slug } = await params;
 
-    if (slug.startsWith("tmdb-")) {
-        const { CURATED_TMDB_MOVIES } = await import("@/lib/movies/tmdb");
-        const movie = CURATED_TMDB_MOVIES.find((m) => m.id === slug) || CURATED_TMDB_MOVIES[0];
-        const series = {
-            id: movie.id,
-            slug: movie.id,
-            title: movie.title,
-            synopsis: movie.overview,
-            genres: movie.genres,
-            coverUrl: movie.backdropUrl,
-            posterUrl: movie.posterUrl,
-            trailerVideoId: movie.trailerYoutubeKey || null,
-            freeEpisodes: 1,
-            episodePriceUnits: 0,
-            seasonPriceUnits: 0,
-            seasonDiscountPct: 0,
-            isAdult: false,
-            episodeCount: 1,
-            owner: { id: "swypik-cinema", name: "Cinema 4K", isOfficial: true },
-        };
-        const episodes = [
-            {
-                id: `${movie.id}-ep1`,
-                number: 1,
-                title: "Trailer Oficial 4K & Sinopsis",
-                durationMs: (movie.durationMinutes || 120) * 60 * 1000,
-                thumbnailUrl: movie.posterUrl,
-                locked: false,
-                priceUnits: 0,
-                progress: null,
-            },
-        ];
-        return NextResponse.json({
-            series,
-            episodes,
-            viewer: { balanceUnits: 0, hasSeasonUnlock: true, isOwner: false, inWatchlist: false },
-        });
-    }
-
     const series = await getSeriesBySlug(slug);
     const user = await getAuthUser();
     const isOwner = Boolean(user.userId && series && series.owner_user_id === user.userId);

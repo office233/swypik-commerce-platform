@@ -47,11 +47,16 @@ async function getCreatorData(id: string) {
           FROM videos
          WHERE creator_id = u.id
            AND status     = 'ready'
-           AND visibility = 'public') AS video_count,
+           AND visibility = 'public'
+           AND COALESCE(is_hidden, false) = false
+           AND effective_label = 'safe') AS video_count,
        (SELECT COALESCE(SUM(view_count), 0)
           FROM videos
          WHERE creator_id = u.id
-           AND status     = 'ready') AS total_views
+           AND status     = 'ready'
+           AND visibility = 'public'
+           AND COALESCE(is_hidden, false) = false
+           AND effective_label = 'safe') AS total_views
      FROM users u
      LEFT JOIN creator_profiles cp ON cp.user_id = u.id
      WHERE u.id = $1`,
@@ -76,6 +81,8 @@ async function getCreatorData(id: string) {
      WHERE creator_id = $1
        AND status     = 'ready'
        AND visibility = 'public'
+       AND COALESCE(is_hidden, false) = false
+       AND effective_label = 'safe'
      ORDER BY published_at DESC
      LIMIT 30`,
     [id],
@@ -152,18 +159,19 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  const tx = await getTranslations("creatorProfile");
   const data = await getCreatorData(id);
   if (!data) {
-    return { title: "Creator — Swypik" };
+    return { title: tx("metaTitleFallback") };
   }
   return {
-    title: `${data.creator.display_name} — Creator Swypik`,
+    title: tx("metaTitleFor", { name: data.creator.display_name }),
     description: data.creator.bio
       ? data.creator.bio.slice(0, 160)
-      : `Descoperă clipurile lui ${data.creator.display_name} pe Swypik.`,
+      : tx("metaDescFallback", { name: data.creator.display_name }),
     openGraph: {
-      title: `${data.creator.display_name} — Creator Swypik`,
-      description: data.creator.bio || `Profil creator Swypik`,
+      title: tx("metaTitleFor", { name: data.creator.display_name }),
+      description: data.creator.bio || tx("ogDescFallback"),
       type: "profile",
       images: data.creator.avatar_url ? [data.creator.avatar_url] : [],
     },
@@ -265,7 +273,7 @@ export default async function CreatorPublicPage({
               <div
                 className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center shadow-lg"
                 style={{ background: "#0D0D0D" }}
-                title="Creator verificat"
+                title={tx("creatorVerified")}
               >
                 <svg
                   className="w-5 h-5 text-white"
@@ -351,10 +359,10 @@ export default async function CreatorPublicPage({
             </div>
             <div className="text-center">
               <p className="text-lg font-black text-white mb-1">
-                Niciun clip publicat
+                {tx("noVideosPublished")}
               </p>
               <p className="text-sm" style={{ color: "#6E6E80" }}>
-                
+
                 {t("acestCreatorNuAre")}
               </p>
             </div>
@@ -364,17 +372,17 @@ export default async function CreatorPublicPage({
             {/* Section header */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-black text-white tracking-tight">
-                Clipuri
+                {tx("clipsHeading")}
               </h2>
               <span className="text-xs font-bold" style={{ color: "#6E6E80" }}>
-                {creator.video_count} {creator.video_count === 1 ? "clip" : "clipuri"}
+                {creator.video_count} {creator.video_count === 1 ? tx("clipSingular") : tx("clipPlural")}
               </span>
             </div>
 
             {/* Responsive grid: 2 col mobile, 3 tablet, 4 desktop */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {videos.map((video) => (
-                <VideoCard key={video.id} video={video} />
+                <VideoCard key={video.id} video={video} videoAltFallback={tx("videoAltFallback")} />
               ))}
             </div>
           </>
@@ -396,7 +404,7 @@ export default async function CreatorPublicPage({
           Swypik
         </Link>
         <p className="text-xs mt-1" style={{ color: "#3A3A3A" }}>
-          Social Video Commerce
+          {tx("footerTagline")}
         </p>
       </footer>
     </div>
@@ -417,7 +425,7 @@ function StatPill({ label, value }: { label: string; value: string }) {
   );
 }
 
-function VideoCard({ video }: { video: CreatorVideo }) {
+function VideoCard({ video, videoAltFallback }: { video: CreatorVideo; videoAltFallback: string }) {
   const duration = formatDuration(video.duration_ms);
 
   return (
@@ -433,7 +441,7 @@ function VideoCard({ video }: { video: CreatorVideo }) {
         {video.thumbnail_url ? (
           <Image
             src={video.thumbnail_url}
-            alt={video.title ?? "Video"}
+            alt={video.title ?? videoAltFallback}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"

@@ -28,10 +28,10 @@ function formatPrize(amount: number, currency: string): string {
   return `${(amount / 100).toFixed(2)} ${currency}`;
 }
 
-function formatRemaining(endsAt: string | null): string {
-  if (!endsAt) return "Fără termen";
+function formatRemaining(endsAt: string | null, tx: (key: string) => string): string {
+  if (!endsAt) return tx("noDeadline");
   const milliseconds = new Date(endsAt).getTime() - Date.now();
-  if (milliseconds <= 0) return "Expirat";
+  if (milliseconds <= 0) return tx("expired");
   const days = Math.floor(milliseconds / 86_400_000);
   const hours = Math.floor((milliseconds % 86_400_000) / 3_600_000);
   if (days > 0) return `${days}z ${hours}h`;
@@ -88,7 +88,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
             <ArrowLeft size={20} />
           </Link>
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-black">Mission</h1>
+            <h1 className="truncate text-lg font-black">{tx("missionHeading")}</h1>
             <p className="text-xs text-white/50">{t("briefPentruCreatori")}</p>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
               </span>
             ) : null}
             <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1.5 text-white/70">
-              <Clock className="h-3.5 w-3.5" /> {formatRemaining(mission.ends_at)}
+              <Clock className="h-3.5 w-3.5" /> {formatRemaining(mission.ends_at, tx)}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1.5 text-white/70">
               <Users className="h-3.5 w-3.5" /> {mission.submissions_count}  {t("inscrieri")}
@@ -139,7 +139,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
 
           {mission.brief ? (
             <section className="mt-6">
-              <h3 className="text-sm font-black uppercase tracking-wider text-white/50">Brief</h3>
+              <h3 className="text-sm font-black uppercase tracking-wider text-white/50">{tx("briefHeading")}</h3>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white/80">{mission.brief}</p>
             </section>
           ) : null}
@@ -147,7 +147,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
           {mission.format_hint ? (
             <section className="mt-6 rounded-xl border border-white/10 bg-black/20 p-4">
               <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-white/50">
-                <Video className="h-4 w-4" /> Format
+                <Video className="h-4 w-4" /> {tx("formatHeading")}
               </h3>
               <p className="mt-2 text-sm leading-6 text-white/75">{mission.format_hint}</p>
             </section>
@@ -166,7 +166,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
                 href={`/product/${mission.product_id}`}
                 className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition"
               >
-                Vezi produsul
+                {tx("viewProduct")}
               </Link>
             ) : null}
           </div>

@@ -150,7 +150,7 @@ export async function translateProductToLocales(args: {
                seo_description = EXCLUDED.seo_description,
                source = CASE WHEN product_translations.source = 'seller' THEN 'seller' ELSE 'llm' END,
                model_tag = EXCLUDED.model_tag`,
-        [args.productId, loc, r.title, r.description, r.slug, r.seo_title, r.seo_description, MODEL],
+        [args.productId, loc, r.title, r.description, r.slug, r.seo_title, r.seo_description, MODEL_TAG],
       );
       written.push(loc);
     } catch (e: any) {

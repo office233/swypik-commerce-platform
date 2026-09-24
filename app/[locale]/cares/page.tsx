@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import CaresClient from "./CaresClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-    title: "Swypik Cares — donații transparente pentru cauze verificate",
-    description:
-        "Susține cauze locale verificate: ONG-uri, familii, comunități. Fiecare leu donat e urmărit transparent, cu plăți și dovezi publice.",
-};
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: "cares" });
+    return {
+        title: t("metaTitle"),
+        description: t("metaDescription"),
+    };
+}
 
 export default function CaresPage() {
     return <CaresClient />;

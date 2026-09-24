@@ -12,10 +12,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "verticals" });
+  const tf = await getTranslations({ locale, namespace: "food" });
   return {
-    title: `Swypik Food — ${t("eats.label")} | Livrare rapidă`,
-    description:
-      "Comandă mâncare de la restaurantele din orașul tău. Vezi preparatele în video, comandă într-un tap.",
+    title: `Swypik Food — ${t("eats.label")} | ${tf("meta.tagline")}`,
+    description: tf("meta.homeDescription"),
   };
 }
 

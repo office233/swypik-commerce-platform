@@ -1,16 +1,48 @@
 /**
- * Admin Dashboard â€” Orders, Revenue, Stats
+ * Admin Dashboard — Orders, Revenue, Stats
  */
 
 import { dbQuery } from "@/lib/db";
 import { hasAdminSession, isAdminConfigured } from "@/lib/security/admin-auth";
 import Link from "next/link";
 import { Clapperboard } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
+import { logger } from "@/lib/logger";
 import OpsAlertsBar from "./OpsAlertsBar";
 
 export const dynamic = "force-dynamic";
 
-async function getStats() {
+type OrderStatusRow = { status: string; count: string | number };
+type FulfillmentRow = { fulfillment_status: string | null; count: string | number };
+type CountryRow = { country: string; count: string | number; revenue: string | number };
+type RecentOrderRow = {
+  id: string | number;
+  stripe_session_id: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  total_ron: string | number;
+  status: string;
+  fulfillment_status: string | null;
+  items: unknown;
+  shipping_address: unknown;
+  created_at: string;
+};
+type DailyRevenueRow = { day: string; orders: string | number; revenue: string | number };
+
+type Stats = {
+  totals: { total_orders: string | number; total_revenue: string | number; avg_order_value: string | number; unique_customers: string | number };
+  today: { count: string | number; revenue: string | number };
+  week: { count: string | number; revenue: string | number };
+  month: { count: string | number; revenue: string | number };
+  byStatus: OrderStatusRow[];
+  byFulfillment: FulfillmentRow[];
+  countries: CountryRow[];
+  recent: RecentOrderRow[];
+  dailyRevenue: DailyRevenueRow[];
+  catalog: { total_products: string | number; with_images: string | number; with_video: string | number; avg_price: string | number };
+};
+
+async function getStats(): Promise<Stats | null> {
   try {
     const orderView = `
       SELECT
@@ -52,17 +84,17 @@ async function getStats() {
       FROM (${orderView}) orders WHERE created_at >= CURRENT_DATE - INTERVAL '30 days' AND status != 'cancelled'
     `);
 
-    const { rows: byStatus } = await dbQuery(`
+    const { rows: byStatus } = await dbQuery<OrderStatusRow>(`
       SELECT status, COUNT(*) as count
       FROM (${orderView}) orders GROUP BY status ORDER BY count DESC
     `);
 
-    const { rows: byFulfillment } = await dbQuery(`
+    const { rows: byFulfillment } = await dbQuery<FulfillmentRow>(`
       SELECT fulfillment_status, COUNT(*) as count
       FROM (${orderView}) orders GROUP BY fulfillment_status ORDER BY count DESC
     `);
 
-    const { rows: countries } = await dbQuery(`
+    const { rows: countries } = await dbQuery<CountryRow>(`
       SELECT
         shipping_address->>'country' as country,
         COUNT(*) as count,
@@ -74,7 +106,7 @@ async function getStats() {
       LIMIT 10
     `);
 
-    const { rows: recent } = await dbQuery(`
+    const { rows: recent } = await dbQuery<RecentOrderRow>(`
       SELECT id, stripe_session_id, customer_email, customer_phone,
              total_ron, status, fulfillment_status, items,
              shipping_address, created_at
@@ -83,7 +115,7 @@ async function getStats() {
       LIMIT 25
     `);
 
-    const { rows: dailyRevenue } = await dbQuery(`
+    const { rows: dailyRevenue } = await dbQuery<DailyRevenueRow>(`
       SELECT
         DATE(created_at) as day,
         COUNT(*) as orders,
@@ -118,8 +150,8 @@ async function getStats() {
       dailyRevenue,
       catalog: catalog[0],
     };
-  } catch (error: any) {
-    console.error("[Admin] Stats error:", error);
+  } catch (error) {
+    logger.error({ err: error }, "[Admin] Stats error");
     return null;
   }
 }
@@ -152,37 +184,43 @@ export default async function AdminDashboard() {
   if (!isAdminConfigured() || !(await hasAdminSession())) {
     return null;
   }
+  const t = await getTranslations("adminDashboard");
+  const locale = await getLocale();
   const stats = await getStats();
 
   if (!stats) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-[#0D0D0D]">Error loading stats</p>
+        <p className="text-[#0D0D0D]">{t("errorLoading")}</p>
       </div>
     );
   }
 
-  const maxRevenue = Math.max(...stats.dailyRevenue.map((day: any) => Number(day.revenue)), 1);
+  const maxRevenue = Math.max(...stats.dailyRevenue.map((day) => Number(day.revenue)), 1);
+  const fmtInt = new Intl.NumberFormat(locale);
+  const fmtWeekdayDay = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric" });
+  const fmtShortDate = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const lei = t("currencyLei");
 
   return (
     <div className="min-h-screen bg-white text-[#0D0D0D]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <header className="border-b border-[#E5E5E7] px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0D0D0D] text-sm font-black text-white">AI</span>
-            <div>
-              <h1 className="text-lg font-black">Swypik Admin</h1>
-              <p className="text-xs text-[#6E6E80]">Dashboard • Live Data</p>
+      <header className="border-b border-[#E5E5E7] px-4 sm:px-6 py-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#0D0D0D] text-sm font-black text-white">AI</span>
+            <div className="min-w-0">
+              <h1 className="text-lg font-black truncate">Swypik Admin</h1>
+              <p className="text-xs text-[#6E6E80] truncate">{t("dashboardLiveData")}</p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <a
               href="https://dashboard.stripe.com"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-xl bg-[#635BFF] px-4 py-2 text-xs font-bold text-white hover:bg-[#7A73FF] transition-colors"
             >
-              Stripe Dashboard
+              {t("stripeDashboard")}
             </a>
             <a
               href="/api/health"
@@ -190,44 +228,44 @@ export default async function AdminDashboard() {
               rel="noopener noreferrer"
               className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-[#0D0D0D] border border-[#E5E5E7] hover:border-[#0D0D0D] transition-colors"
             >
-              Server Health
+              {t("serverHealth")}
             </a>
             <Link
               href="/"
               className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-[#0D0D0D] border border-[#E5E5E7] hover:border-[#0D0D0D] transition-colors"
             >
-              Storefront
+              {t("storefront")}
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         <OpsAlertsBar />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KPICard label="Total orders" value={stats.totals.total_orders} icon="ORD" />
-          <KPICard label="Revenue" value={`${Number(stats.totals.total_revenue).toLocaleString()} lei`} icon="REV" />
-          <KPICard label="Average order" value={`${Number(stats.totals.avg_order_value).toFixed(0)} lei`} icon="AOV" />
-          <KPICard label="Unique customers" value={stats.totals.unique_customers} icon="CUS" />
+          <KPICard label={t("kpiTotalOrders")} value={fmtInt.format(Number(stats.totals.total_orders))} icon="ORD" />
+          <KPICard label={t("kpiRevenue")} value={`${fmtInt.format(Number(stats.totals.total_revenue))} ${lei}`} icon="REV" />
+          <KPICard label={t("kpiAverageOrder")} value={`${Number(stats.totals.avg_order_value).toFixed(0)} ${lei}`} icon="AOV" />
+          <KPICard label={t("kpiUniqueCustomers")} value={fmtInt.format(Number(stats.totals.unique_customers))} icon="CUS" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <PeriodCard label="Today" orders={stats.today.count} revenue={stats.today.revenue} color="#0D0D0D" />
-          <PeriodCard label="Last 7 days" orders={stats.week.count} revenue={stats.week.revenue} color="#F59E0B" />
-          <PeriodCard label="Last 30 days" orders={stats.month.count} revenue={stats.month.revenue} color="#635BFF" />
+          <PeriodCard label={t("periodToday")} ordersLabel={t("orders")} revenueLabel={t("revenue")} orders={stats.today.count} revenue={stats.today.revenue} lei={lei} color="#0D0D0D" />
+          <PeriodCard label={t("periodLast7Days")} ordersLabel={t("orders")} revenueLabel={t("revenue")} orders={stats.week.count} revenue={stats.week.revenue} lei={lei} color="#F59E0B" />
+          <PeriodCard label={t("periodLast30Days")} ordersLabel={t("orders")} revenueLabel={t("revenue")} orders={stats.month.count} revenue={stats.month.revenue} lei={lei} color="#635BFF" />
         </div>
 
-        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
-          <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Revenue • Last 14 days</h2>
-          <div className="flex items-end gap-1 h-40">
-            {stats.dailyRevenue.map((day: any, index: number) => {
+        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-4 sm:p-6 shadow-sm">
+          <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">{t("revenueLast14Days")}</h2>
+          <div className="flex items-end gap-1 h-40 overflow-x-auto">
+            {stats.dailyRevenue.map((day, index) => {
               const height = maxRevenue > 0 ? (Number(day.revenue) / maxRevenue) * 100 : 0;
-              const label = new Date(day.day).toLocaleDateString("ro-RO", { weekday: "short", day: "numeric" });
+              const label = fmtWeekdayDay.format(new Date(day.day));
               return (
                 <div
                   key={index}
-                  className="flex-1 flex flex-col items-center gap-1"
-                  title={`${label}: ${Number(day.revenue).toFixed(0)} lei (${day.orders} orders)`}
+                  className="flex-1 flex flex-col items-center gap-1 min-w-[18px]"
+                  title={t("revenueBarTitle", { label, revenue: Number(day.revenue).toFixed(0), orders: Number(day.orders) })}
                 >
                   <span className="text-[9px] text-[#6E6E80]">
                     {Number(day.revenue) > 0 ? `${Number(day.revenue).toFixed(0)}` : ""}
@@ -241,118 +279,122 @@ export default async function AdminDashboard() {
               );
             })}
             {stats.dailyRevenue.length === 0 ? (
-              <p className="text-sm text-[#6E6E80] w-full text-center py-10">No orders in the last 14 days.</p>
+              <p className="text-sm text-[#6E6E80] w-full text-center py-10">{t("noOrdersLast14Days")}</p>
             ) : null}
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
-            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Order status</h2>
+          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-4 sm:p-6 shadow-sm">
+            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">{t("orderStatus")}</h2>
             <div className="space-y-2">
-              {stats.byStatus.map((status: any) => (
-                <div key={status.status} className="flex justify-between items-center">
-                  <span className="flex items-center gap-2 text-sm">
+              {stats.byStatus.map((status) => (
+                <div key={status.status} className="flex justify-between items-center gap-2">
+                  <span className="flex items-center gap-2 text-sm min-w-0">
                     <StatusBadge status={status.status} />
-                    {status.status}
+                    <span className="truncate">{status.status}</span>
                   </span>
-                  <span className="text-sm font-bold">{status.count}</span>
+                  <span className="text-sm font-bold shrink-0">{status.count}</span>
                 </div>
               ))}
-              {stats.byStatus.length === 0 ? <p className="text-sm text-[#6E6E80]">No orders</p> : null}
+              {stats.byStatus.length === 0 ? <p className="text-sm text-[#6E6E80]">{t("noOrders")}</p> : null}
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
-            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Fulfillment</h2>
+          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-4 sm:p-6 shadow-sm">
+            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">{t("fulfillment")}</h2>
             <div className="space-y-2">
-              {stats.byFulfillment.map((fulfillment: any) => (
-                <div key={fulfillment.fulfillment_status} className="flex justify-between items-center">
-                  <span className="text-sm">{fulfillment.fulfillment_status || "N/A"}</span>
-                  <span className="text-sm font-bold">{fulfillment.count}</span>
+              {stats.byFulfillment.map((fulfillment) => (
+                <div key={fulfillment.fulfillment_status ?? "none"} className="flex justify-between items-center gap-2">
+                  <span className="text-sm truncate">{fulfillment.fulfillment_status || t("notAvailable")}</span>
+                  <span className="text-sm font-bold shrink-0">{fulfillment.count}</span>
                 </div>
               ))}
-              {stats.byFulfillment.length === 0 ? <p className="text-sm text-[#6E6E80]">N/A</p> : null}
+              {stats.byFulfillment.length === 0 ? <p className="text-sm text-[#6E6E80]">{t("notAvailable")}</p> : null}
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
-            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Customer locations</h2>
+          <div className="rounded-2xl bg-white border border-[#E5E5E7] p-4 sm:p-6 shadow-sm">
+            <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">{t("customerLocations")}</h2>
             <div className="space-y-2">
-              {stats.countries.map((country: any) => (
-                <div key={country.country} className="flex justify-between items-center">
-                  <span className="text-sm">
+              {stats.countries.map((country) => (
+                <div key={country.country} className="flex justify-between items-center gap-2">
+                  <span className="text-sm truncate">
                     {COUNTRY_FLAGS[country.country] || "?"} {country.country}
                   </span>
-                  <span className="text-sm">
+                  <span className="text-sm shrink-0">
                     <span className="font-bold">{country.count}</span>
-                    <span className="text-[#6E6E80] ml-2">{Number(country.revenue).toFixed(0)} lei</span>
+                    <span className="text-[#6E6E80] ml-2">{Number(country.revenue).toFixed(0)} {lei}</span>
                   </span>
                 </div>
               ))}
-              {stats.countries.length === 0 ? <p className="text-sm text-[#6E6E80]">No customer locations yet</p> : null}
+              {stats.countries.length === 0 ? <p className="text-sm text-[#6E6E80]">{t("noCustomerLocations")}</p> : null}
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 shadow-sm">
-          <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Catalog snapshot</h2>
+        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-4 sm:p-6 shadow-sm">
+          <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">{t("catalogSnapshot")}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <MiniStat label="Total products" value={Number(stats.catalog.total_products).toLocaleString()} />
-            <MiniStat label="With images" value={Number(stats.catalog.with_images).toLocaleString()} />
-            <MiniStat label="With video" value={Number(stats.catalog.with_video).toLocaleString()} />
-            <MiniStat label="Average price" value={`${stats.catalog.avg_price} lei`} />
+            <MiniStat label={t("totalProducts")} value={fmtInt.format(Number(stats.catalog.total_products))} />
+            <MiniStat label={t("withImages")} value={fmtInt.format(Number(stats.catalog.with_images))} />
+            <MiniStat label={t("withVideo")} value={fmtInt.format(Number(stats.catalog.with_video))} />
+            <MiniStat label={t("averagePrice")} value={`${stats.catalog.avg_price} ${lei}`} />
           </div>
         </div>
 
         {/* ─── Quick nav: Video Manager ─── */}
         <Link
           href="/admin/videos"
-          className="block rounded-2xl bg-white border border-[#E5E5E7] p-6 hover:border-[#0D0D0D] hover:shadow-md transition-all group shadow-sm"
+          className="block rounded-2xl bg-white border border-[#E5E5E7] p-4 sm:p-6 hover:border-[#0D0D0D] hover:shadow-md transition-all group shadow-sm"
         >
           <div className="flex items-center gap-4">
-            <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#0D0D0D]/10 text-xl group-hover:bg-[#0D0D0D]/20 transition-colors">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#0D0D0D]/10 text-xl group-hover:bg-[#0D0D0D]/20 transition-colors">
               <Clapperboard size={24} />
             </span>
-            <div>
-              <h3 className="text-base font-black group-hover:text-[#0D0D0D] transition-colors">
-                Video Manager
+            <div className="min-w-0">
+              <h3 className="text-base font-black group-hover:text-[#0D0D0D] transition-colors truncate">
+                {t("videoManagerTitle")}
               </h3>
               <p className="text-xs text-[#6E6E80] mt-0.5">
-                Review, approve, and manage creator video assets
+                {t("videoManagerBody")}
               </p>
             </div>
-            <span className="ml-auto text-[#6E6E80] group-hover:text-[#0D0D0D] transition-colors text-lg">
+            <span className="ml-auto shrink-0 text-[#6E6E80] group-hover:text-[#0D0D0D] transition-colors text-lg">
               →
             </span>
           </div>
         </Link>
 
-        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-6 overflow-hidden shadow-sm">
-          <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">Recent orders</h2>
+        <div className="rounded-2xl bg-white border border-[#E5E5E7] p-4 sm:p-6 overflow-hidden shadow-sm">
+          <h2 className="text-sm font-black uppercase tracking-widest text-[#6E6E80] mb-4">{t("recentOrders")}</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#E5E5E7] text-[#6E6E80] text-xs uppercase">
-                  <th className="text-left py-3 pr-3">Order</th>
-                  <th className="text-left py-3 pr-3">Customer</th>
-                  <th className="text-left py-3 pr-3">Items</th>
-                  <th className="text-right py-3 pr-3">Total</th>
-                  <th className="text-center py-3 pr-3">Status</th>
-                  <th className="text-center py-3 pr-3">Fulfillment</th>
-                  <th className="text-left py-3 pr-3">Location</th>
-                  <th className="text-left py-3">Date</th>
+                  <th className="text-left py-3 pr-3">{t("thOrder")}</th>
+                  <th className="text-left py-3 pr-3">{t("thCustomer")}</th>
+                  <th className="text-left py-3 pr-3">{t("thItems")}</th>
+                  <th className="text-right py-3 pr-3">{t("thTotal")}</th>
+                  <th className="text-center py-3 pr-3">{t("thStatus")}</th>
+                  <th className="text-center py-3 pr-3">{t("thFulfillment")}</th>
+                  <th className="text-left py-3 pr-3">{t("thLocation")}</th>
+                  <th className="text-left py-3">{t("thDate")}</th>
                 </tr>
               </thead>
               <tbody>
-                {stats.recent.map((order: any) => {
+                {stats.recent.map((order) => {
                   const items = typeof order.items === "string" ? JSON.parse(order.items) : order.items;
                   const shipping = order.shipping_address
                     ? typeof order.shipping_address === "string"
                       ? JSON.parse(order.shipping_address)
                       : order.shipping_address
                     : null;
-                  const itemCount = items?.reduce?.((sum: number, item: any) => sum + (item.quantity || 1), 0) || 0;
+                  const itemCount =
+                    (Array.isArray(items) ? items : []).reduce(
+                      (sum: number, item: { quantity?: number }) => sum + (item.quantity || 1),
+                      0,
+                    ) || 0;
 
                   return (
                     <tr key={order.id} className="border-b border-[#F0F0F2] hover:bg-[#F7F7F8] transition-colors">
@@ -362,10 +404,10 @@ export default async function AdminDashboard() {
                         {order.customer_phone ? <p className="text-[10px] text-[#6E6E80]">{order.customer_phone}</p> : null}
                       </td>
                       <td className="py-3 pr-3">
-                        <span className="text-[#6E6E80]">{itemCount} items</span>
+                        <span className="text-[#6E6E80]">{t("itemsCount", { count: itemCount })}</span>
                       </td>
                       <td className="py-3 pr-3 text-right font-black text-[#0D0D0D]">
-                        {Number(order.total_ron).toFixed(0)} lei
+                        {Number(order.total_ron).toFixed(0)} {lei}
                       </td>
                       <td className="py-3 pr-3 text-center">
                         <StatusBadge status={order.status} />
@@ -379,19 +421,14 @@ export default async function AdminDashboard() {
                                 : "bg-[#F0F0F2] text-[#6E6E80]"
                             }`}
                         >
-                          {order.fulfillment_status || "pending"}
+                          {order.fulfillment_status || t("statusPending")}
                         </span>
                       </td>
                       <td className="py-3 pr-3 text-xs text-[#6E6E80]">
                         {shipping ? `${COUNTRY_FLAGS[shipping.country] || ""} ${shipping.city || shipping.country || "-"}` : "-"}
                       </td>
                       <td className="py-3 text-xs text-[#6E6E80]">
-                        {new Date(order.created_at).toLocaleDateString("ro-RO", {
-                          day: "numeric",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {fmtShortDate.format(new Date(order.created_at))}
                       </td>
                     </tr>
                   );
@@ -399,7 +436,7 @@ export default async function AdminDashboard() {
                 {stats.recent.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-10 text-center text-[#6E6E80]">
-                      No orders yet. The first order will appear here.
+                      {t("noOrdersYet")}
                     </td>
                   </tr>
                 ) : null}
@@ -410,40 +447,56 @@ export default async function AdminDashboard() {
       </main>
 
       <footer className="border-t border-[#E5E5E7] px-6 py-4 text-center text-xs text-[#6E6E80]">
-        Swypik Admin • Powered by PostgreSQL + Stripe + Hetzner
+        {t("footer")}
       </footer>
     </div>
   );
 }
 
-function KPICard({ label, value, icon }: { label: string; value: any; icon: string }) {
+function KPICard({ label, value, icon }: { label: string; value: string | number; icon: string }) {
   return (
-    <div className="rounded-2xl bg-white border border-[#E5E5E7] p-5 hover:border-[#0D0D0D] hover:shadow-md transition-all shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-widest text-[#6E6E80] mb-1">
+    <div className="rounded-2xl bg-white border border-[#E5E5E7] p-5 hover:border-[#0D0D0D] hover:shadow-md transition-all shadow-sm min-w-0">
+      <p className="text-xs font-bold uppercase tracking-widest text-[#6E6E80] mb-1 truncate">
         {icon} {label}
       </p>
-      <p className="text-2xl font-black">{value}</p>
+      <p className="text-2xl font-black truncate">{value}</p>
     </div>
   );
 }
 
-function PeriodCard({ label, orders, revenue, color }: { label: string; orders: any; revenue: any; color: string }) {
+function PeriodCard({
+  label,
+  ordersLabel,
+  revenueLabel,
+  orders,
+  revenue,
+  lei,
+  color,
+}: {
+  label: string;
+  ordersLabel: string;
+  revenueLabel: string;
+  orders: string | number;
+  revenue: string | number;
+  lei: string;
+  color: string;
+}) {
   return (
     <div
       className="rounded-2xl bg-white border border-[#E5E5E7] p-5 shadow-sm"
       style={{ borderLeftColor: color, borderLeftWidth: "3px" }}
     >
       <p className="text-xs font-bold uppercase tracking-widest text-[#6E6E80] mb-2">{label}</p>
-      <div className="flex justify-between items-end">
+      <div className="flex justify-between items-end gap-2">
         <div>
           <p className="text-2xl font-black">{orders}</p>
-          <p className="text-xs text-[#6E6E80]">orders</p>
+          <p className="text-xs text-[#6E6E80]">{ordersLabel}</p>
         </div>
         <div className="text-right">
           <p className="text-lg font-black" style={{ color }}>
-            {Number(revenue).toFixed(0)} lei
+            {Number(revenue).toFixed(0)} {lei}
           </p>
-          <p className="text-xs text-[#6E6E80]">revenue</p>
+          <p className="text-xs text-[#6E6E80]">{revenueLabel}</p>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { parseBody } from "@/lib/validation/schemas";
 import { dbQuery } from "@/lib/db";
+import { logAdminAction } from "@/lib/security/admin-audit";
 import { getSeriesById, listEpisodes, updateSeries } from "@/lib/movies/repository";
 import { clampEpisodePrice } from "@/lib/movies/pricing";
 import { MOVIES_MAX_FREE_EPISODES } from "@/lib/movies/config";
@@ -57,5 +58,6 @@ export const PATCH = withErrorHandling(async function PATCH(req: Request, { para
     };
     const series = await updateSeries(id, null, patch);
     if (!series) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    await logAdminAction({ action: "movie_series.update", targetType: "movie_series", targetId: id, details: patch, req });
     return NextResponse.json({ series });
 });

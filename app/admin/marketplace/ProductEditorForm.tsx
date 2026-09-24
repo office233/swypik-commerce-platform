@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertCircle, ArrowLeft, CheckCircle2, ExternalLink, ImageIcon, Package, Save, Video } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type ProductRecord = {
   id?: string;
@@ -20,7 +21,7 @@ type ProductRecord = {
   supplier_product_id?: string | null;
   supplier_url?: string | null;
   supplier_cost_cents?: number | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 type ProductEditorFormProps = {
@@ -34,23 +35,47 @@ const statusOptions = ["draft", "active", "out_of_stock", "archived", "disabled"
 const inventoryOptions = ["unknown", "in_stock", "low_stock", "out_of_stock", "preorder"];
 const sourceOptions = ["manual", "seller", "affiliate", "multi_erp", "other"];
 
-export default function ProductEditorForm({ mode, action, product, notice }: ProductEditorFormProps) {
+export default async function ProductEditorForm({ mode, action, product, notice }: ProductEditorFormProps) {
+  const t = await getTranslations("adminMarketplace.editor");
   const isEdit = mode === "edit";
-  const pageTitle = isEdit ? "Edit product" : "Create product";
-  const submitLabel = isEdit ? "Save changes" : "Create product";
+  const pageTitle = isEdit ? t("editTitle") : t("createTitle");
+  const submitLabel = isEdit ? t("saveChanges") : t("createProduct");
   const metadata = product?.metadata ?? {};
   const hasVideo = Boolean(metadata.has_video);
-  const ordersCount = Number(metadata.orders_count || 0);
+  const ordersCount = Number((metadata.orders_count as number | string | undefined) || 0);
+  const videoUrl = typeof metadata.video_url === "string" ? metadata.video_url : null;
+
+  const statusLabels: Record<string, string> = {
+    draft: t("status.draft"),
+    active: t("status.active"),
+    out_of_stock: t("status.outOfStock"),
+    archived: t("status.archived"),
+    disabled: t("status.disabled"),
+  };
+  const inventoryLabels: Record<string, string> = {
+    unknown: t("inventory.unknown"),
+    in_stock: t("inventory.inStock"),
+    low_stock: t("inventory.lowStock"),
+    out_of_stock: t("inventory.outOfStock"),
+    preorder: t("inventory.preorder"),
+  };
+  const sourceLabels: Record<string, string> = {
+    manual: t("source.manual"),
+    seller: t("source.seller"),
+    affiliate: t("source.affiliate"),
+    multi_erp: t("source.multiErp"),
+    other: t("source.other"),
+  };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <Link
           href="/admin/marketplace"
           className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
-          Back to marketplace
+          {t("backToMarketplace")}
         </Link>
         {product?.product_url ? (
           <a
@@ -59,7 +84,7 @@ export default function ProductEditorForm({ mode, action, product, notice }: Pro
             rel="noreferrer"
             className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-900"
           >
-            Open source link
+            {t("openSourceLink")}
             <ExternalLink className="w-4 h-4" />
           </a>
         ) : null}
@@ -67,14 +92,12 @@ export default function ProductEditorForm({ mode, action, product, notice }: Pro
 
       <form action={action} className="space-y-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-3xl font-black text-slate-900">{pageTitle}</h1>
             <p className="mt-2 text-sm text-slate-500">
-              {isEdit
-                ? "Update the listing data that powers pricing, merchandising, and source references."
-                : "Create a complete marketplace record with pricing, merchandising, and sourcing details."}
+              {isEdit ? t("editSubtitle") : t("createSubtitle")}
             </p>
-            {product?.id ? <p className="mt-2 font-mono text-xs text-slate-500">{product.id}</p> : null}
+            {product?.id ? <p className="mt-2 font-mono text-xs text-slate-500 break-all">{product.id}</p> : null}
           </div>
           <button
             type="submit"
@@ -104,53 +127,54 @@ export default function ProductEditorForm({ mode, action, product, notice }: Pro
         ) : null}
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
                 <Package className="w-5 h-5 text-slate-400" />
-                Product details
+                {t("productDetails")}
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Title" name="title" defaultValue={product?.title} required />
-                <Field label="Slug" name="slug" defaultValue={product?.slug} hint="Auto-normalized on save." />
-                <Field label="Brand" name="brand" defaultValue={product?.brand} />
-                <Field label="Category" name="category" defaultValue={product?.category} />
-                <Field label="Source link" name="product_url" defaultValue={product?.product_url} className="md:col-span-2" />
-                <TextArea label="Description" name="description" defaultValue={product?.description} className="md:col-span-2" />
+                <Field label={t("field.title")} name="title" defaultValue={product?.title} required />
+                <Field label={t("field.slug")} name="slug" defaultValue={product?.slug} hint={t("field.slugHint")} />
+                <Field label={t("field.brand")} name="brand" defaultValue={product?.brand} />
+                <Field label={t("field.category")} name="category" defaultValue={product?.category} />
+                <Field label={t("field.sourceLink")} name="product_url" defaultValue={product?.product_url} className="md:col-span-2" />
+                <TextArea label={t("field.description")} name="description" defaultValue={product?.description} className="md:col-span-2" />
               </div>
             </section>
 
             <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">Pricing and availability</h2>
+              <h2 className="text-lg font-bold text-slate-900 mb-4">{t("pricingAvailability")}</h2>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Price (cents)" name="price_cents" type="number" defaultValue={asInputValue(product?.price_cents)} required />
+                <Field label={t("field.priceCents")} name="price_cents" type="number" defaultValue={asInputValue(product?.price_cents)} required />
                 <Field
-                  label="Compare-at price (cents)"
+                  label={t("field.compareAtPriceCents")}
                   name="compare_at_price_cents"
                   type="number"
                   defaultValue={asInputValue(product?.compare_at_price_cents)}
                 />
-                <Field label="Currency" name="currency" defaultValue={product?.currency || "USD"} maxLength={3} />
-                <SelectField label="Status" name="status" defaultValue={product?.status || "draft"} options={statusOptions} />
+                <Field label={t("field.currency")} name="currency" defaultValue={product?.currency || "USD"} maxLength={3} />
+                <SelectField label={t("field.status")} name="status" defaultValue={product?.status || "draft"} options={statusOptions} labels={statusLabels} />
                 <SelectField
-                  label="Inventory status"
+                  label={t("field.inventoryStatus")}
                   name="inventory_status"
                   defaultValue={product?.inventory_status || "unknown"}
                   options={inventoryOptions}
+                  labels={inventoryLabels}
                 />
-                <SelectField label="Source type" name="source_type" defaultValue={product?.source_type || "manual"} options={sourceOptions} />
+                <SelectField label={t("field.sourceType")} name="source_type" defaultValue={product?.source_type || "manual"} options={sourceOptions} labels={sourceLabels} />
               </div>
             </section>
 
             <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">Media and sourcing</h2>
+              <h2 className="text-lg font-bold text-slate-900 mb-4">{t("mediaSourcing")}</h2>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Image URL" name="image_url" defaultValue={product?.image_url} className="md:col-span-2" />
-                <Field label="Supplier" name="supplier" defaultValue={product?.supplier} />
-                <Field label="Supplier product ID" name="supplier_product_id" defaultValue={product?.supplier_product_id} />
-                <Field label="Supplier URL" name="supplier_url" defaultValue={product?.supplier_url} className="md:col-span-2" />
+                <Field label={t("field.imageUrl")} name="image_url" defaultValue={product?.image_url} className="md:col-span-2" />
+                <Field label={t("field.supplier")} name="supplier" defaultValue={product?.supplier} />
+                <Field label={t("field.supplierProductId")} name="supplier_product_id" defaultValue={product?.supplier_product_id} />
+                <Field label={t("field.supplierUrl")} name="supplier_url" defaultValue={product?.supplier_url} className="md:col-span-2" />
                 <Field
-                  label="Supplier cost (cents)"
+                  label={t("field.supplierCostCents")}
                   name="supplier_cost_cents"
                   type="number"
                   defaultValue={asInputValue(product?.supplier_cost_cents)}
@@ -159,45 +183,43 @@ export default function ProductEditorForm({ mode, action, product, notice }: Pro
             </section>
           </div>
 
-          <aside className="space-y-6">
+          <aside className="space-y-6 min-w-0">
             <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <h2 className="text-sm font-black uppercase tracking-[0.12em] text-slate-500 mb-4">Listing snapshot</h2>
+              <h2 className="text-sm font-black uppercase tracking-[0.12em] text-slate-500 mb-4">{t("listingSnapshot")}</h2>
               <div className="space-y-4">
                 <div className="aspect-square rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
                   {product?.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={product.image_url} alt={product.title || "Product image"} className="h-full w-full object-cover" />
+                    // eslint-disable-next-line @next/next/no-img-element -- external/arbitrary product image hosts, not a fixed known set
+                    <img src={product.image_url} alt={product.title || t("productImageAlt")} className="h-full w-full object-cover" />
                   ) : (
                     <div className="text-center text-slate-400 px-6">
                       <ImageIcon className="w-8 h-8 mx-auto mb-2" />
-                      <p className="text-sm font-semibold">No image assigned</p>
-                      <p className="text-xs mt-1">Add a direct image URL to show the product preview here.</p>
+                      <p className="text-sm font-semibold">{t("noImageAssigned")}</p>
+                      <p className="text-xs mt-1">{t("noImageHint")}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <StatCard label="Orders" value={String(ordersCount)} />
-                  <StatCard label="Video" value={hasVideo ? "Attached" : "Unavailable"} />
+                  <StatCard label={t("stat.orders")} value={String(ordersCount)} />
+                  <StatCard label={t("stat.video")} value={hasVideo ? t("stat.attached") : t("stat.unavailable")} />
                 </div>
               </div>
             </section>
 
             <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <h2 className="text-sm font-black uppercase tracking-[0.12em] text-slate-500 mb-4">Media controls</h2>
+              <h2 className="text-sm font-black uppercase tracking-[0.12em] text-slate-500 mb-4">{t("mediaControls")}</h2>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200 text-slate-700">
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-700">
                     <Video className="w-4 h-4" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <p className="text-sm font-bold text-slate-900">
-                      {hasVideo ? "Video asset is attached." : "Video upload is disabled in this pass."}
+                      {hasVideo ? t("videoAttached") : t("videoUploadDisabled")}
                     </p>
-                    <p className="text-xs text-slate-500">
-                      {hasVideo
-                        ? metadata.video_url || "The existing video metadata is preserved."
-                        : "The prior upload button depended on a separate flow outside the admin contract. It is hidden until that path is verified end to end."}
+                    <p className="text-xs text-slate-500 break-words">
+                      {hasVideo ? videoUrl || t("videoMetadataPreserved") : t("videoUploadHint")}
                     </p>
                   </div>
                 </div>
@@ -278,11 +300,13 @@ function SelectField({
   name,
   defaultValue,
   options,
+  labels,
 }: {
   label: string;
   name: string;
   defaultValue: string;
   options: string[];
+  labels: Record<string, string>;
 }) {
   return (
     <div>
@@ -294,7 +318,7 @@ function SelectField({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {option.replace(/_/g, " ")}
+            {labels[option] ?? option.replace(/_/g, " ")}
           </option>
         ))}
       </select>

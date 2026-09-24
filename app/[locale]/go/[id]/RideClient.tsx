@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { AlertTriangle, Car, CircleUserRound, Phone, Share, Star } from "lucide-react";
 import { haptic } from "@/lib/haptic";
 
@@ -75,7 +75,7 @@ function waveForElapsed(sec: number): 1 | 2 | 3 {
 export default function RideClient({ rideId }: { rideId: string }) {
     const router = useRouter();
     const t = useTranslations("go");
-    const tShell = useTranslations("shell");
+    const locale = useLocale();
     const [ride, setRide] = useState<Ride | null>(null);
     const [driver, setDriver] = useState<Driver | null>(null);
     const [driverPos, setDriverPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -90,6 +90,15 @@ export default function RideClient({ rideId }: { rideId: string }) {
     const [copied, setCopied] = useState(false);
     const [shared, setShared] = useState(false);
     const searchStartRef = useRef<number | null>(null);
+    const sharedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (sharedTimeoutRef.current) clearTimeout(sharedTimeoutRef.current);
+            if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+        };
+    }, []);
 
     const refresh = useCallback(async () => {
         const res = await fetch(`/api/rides/${rideId}`, { cache: "no-store" });
@@ -195,7 +204,8 @@ export default function RideClient({ rideId }: { rideId: string }) {
             } else {
                 await navigator.clipboard.writeText(url);
                 setShared(true);
-                setTimeout(() => setShared(false), 2000);
+                if (sharedTimeoutRef.current) clearTimeout(sharedTimeoutRef.current);
+                sharedTimeoutRef.current = setTimeout(() => setShared(false), 2000);
             }
         } catch {
             // user a închis share sheet-ul
@@ -208,7 +218,8 @@ export default function RideClient({ rideId }: { rideId: string }) {
         try {
             await navigator.clipboard.writeText(driver.vehicle_plate);
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+            copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
         } catch {
             // clipboard indisponibil
         }
@@ -216,8 +227,14 @@ export default function RideClient({ rideId }: { rideId: string }) {
 
     const active = !!ride && ["accepted", "arriving", "in_progress"].includes(ride.status);
     const done = ride?.status === "completed";
-    const fmt = (c: number | null | undefined) =>
-        c != null && ride ? `${(c / 100).toFixed(2)} ${ride.currency}` : "—";
+    const fmt = (c: number | null | undefined) => {
+        if (c == null || !ride) return "—";
+        try {
+            return new Intl.NumberFormat(locale, { style: "currency", currency: ride.currency }).format(c / 100);
+        } catch {
+            return `${(c / 100).toFixed(2)} ${ride.currency}`;
+        }
+    };
 
     // Taxa de anulare care s-ar aplica ACUM (aceeași regulă ca serverul:
     // gratuit înainte de accept sau în primele 2 min după).
@@ -384,8 +401,12 @@ export default function RideClient({ rideId }: { rideId: string }) {
                             <p className="text-[13px] text-neutral-500">{t("receipt.total")}</p>
                             <p className="text-3xl font-extrabold">{fmt(ride.final_fare_cents ?? ride.estimated_fare_cents)}</p>
                             <p className="mt-1 text-[12px] text-neutral-500">
-                                {ride.distance_km ? `${Number(ride.distance_km).toFixed(1)} km` : ""}
-                                {ride.duration_min ? ` • ${ride.duration_min} min` : ""}
+                                {[
+                                    ride.distance_km ? t("distanceKm", { km: Number(ride.distance_km).toFixed(1) }) : null,
+                                    ride.duration_min ? t("durationMin", { min: ride.duration_min }) : null,
+                                ]
+                                    .filter(Boolean)
+                                    .join(" • ")}
                             </p>
                         </div>
                         {!rated ? (
@@ -393,7 +414,13 @@ export default function RideClient({ rideId }: { rideId: string }) {
                                 <p className="text-[14px] font-semibold">{t("receipt.ratePrompt")}</p>
                                 <div className="mt-1 flex justify-center gap-1">
                                     {[1, 2, 3, 4, 5].map((s) => (
-                                        <button key={s} onClick={() => setStars(s)} aria-label={`${s} stele`}>
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => setStars(s)}
+                                            aria-label={t("starsAria", { count: s })}
+                                            className="p-1.5"
+                                        >
                                             <Star size={28} className={s <= stars ? "fill-yellow-400 text-yellow-400" : "text-neutral-300"} />
                                         </button>
                                     ))}
@@ -440,7 +467,7 @@ export default function RideClient({ rideId }: { rideId: string }) {
             {/* Dialog anulare cu motiv */}
             {cancelOpen ? (
                 <div className="fixed inset-0 z-[600] flex items-end bg-black/40" onClick={() => setCancelOpen(false)}>
-                    <div className="w-full rounded-t-3xl bg-white p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-white p-5 pb-8" onClick={(e) => e.stopPropagation()}>
                         <h2 className="text-[16px] font-extrabold">{t("cancel.title")}</h2>
                         <div className="mt-3 space-y-2">
                             {CANCEL_REASONS.map((r) => (

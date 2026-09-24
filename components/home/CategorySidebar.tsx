@@ -129,7 +129,7 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         Icon: Users,
         href: "/squad",
     }] : []),
-    {
+    ...(isEnabledClient("movies") ? [{
         id: "movies",
         brand: "Swypik Movies",
         label: "Seriale scurte verticale",
@@ -138,8 +138,8 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         accent: "#DC2626",
         Icon: Clapperboard,
         href: "/movies",
-    },
-    {
+    }] : []),
+    ...(isEnabledClient("music") ? [{
         id: "music",
         brand: "Swypik Music",
         label: "Artiști independenți • tips în SWYP",
@@ -148,7 +148,17 @@ const SUPERAPP_MODULES: SuperAppModule[] = [
         accent: "#7C3AED",
         Icon: Music,
         href: "/music",
-    },
+    }] : []),
+    ...(isEnabledClient("messenger") ? [{
+        id: "messenger",
+        brand: "Swypik Messenger",
+        label: "Mesaje & apeluri video",
+        badge: "Chat",
+        badgeColor: "bg-blue-600 text-white",
+        accent: "#2563EB",
+        Icon: MessageSquareText,
+        href: "/messages",
+    }] : []),
     {
         id: "mystery",
         brand: "Mystery Drop",
