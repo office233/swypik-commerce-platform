@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getFreeGames, getTopGameDeals } from "@/lib/gaming/deals";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   if (!isEnabled("gaming")) return frozenResponse("gaming");
 
   try {
@@ -18,7 +19,8 @@ export async function GET(req: NextRequest) {
       freeGames,
       deals,
     });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    logger.error({ err }, "[gaming.deals] failed");
+    return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
