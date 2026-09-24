@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clapperboard, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Sparkles, Star, Truck, Users, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clapperboard, Heart, Home, Minus, Package, Plus, Share2, ShoppingCart, Star, Truck, Users, X } from "lucide-react";
 import { mergeIntoCart } from "@/types/cart";
 import type { Product } from "@/types/product";
 
@@ -178,6 +178,14 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
 
   const images = product.images || [];
   const title = product.titleRo || product.title;
+  // Header category must match the breadcrumb below it — both derive from the
+  // same taxonomyPath when present, instead of the separate (and often stale)
+  // product.category field, which caused the two to disagree (audit 2026-09-24).
+  const lastTaxonomyNode = Array.isArray(product.taxonomyPath) && product.taxonomyPath.length > 0
+    ? product.taxonomyPath[product.taxonomyPath.length - 1]
+    : null;
+  const headerCategoryLabel = lastTaxonomyNode?.label || product.category || t("produsFallback");
+  const heroPosterImage = images[0] || product.images?.[0] || undefined;
   const selectedColorSizes = selectedColor ? dedupeSizes(colorMap[selectedColor]?.sizes || []) : [];
   const selectedSizeData = selectedColorSizes.find(s => s.size === selectedSize) || null;
   // Variant prices are raw cost (no markup); product.price has markup applied.
@@ -269,7 +277,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
           <ArrowLeft size={16} />
         </button>
         <span className="flex-1 text-sm font-semibold text-[#6E6E80] dark:text-[#A1A1AA] truncate">
-          {product.category || t("produsFallback")}
+          {headerCategoryLabel}
         </span>
         <button onClick={toggleSave} disabled={savePending} className={`grid h-11 w-11 place-items-center rounded-xl border transition-all active:scale-90 disabled:opacity-60 ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#F7F7F8] dark:bg-[#1F1F23] border-[#E5E5E5] dark:border-[#1F1F1F] text-[#6E6E80] dark:text-[#A1A1AA]'}`} aria-label={t("salveaza")} aria-pressed={liked}>
           <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
@@ -284,6 +292,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         {productVideos.length > 0 || (product.hasVideo && product.video) ? (
           <video
             src={productVideos.length > 0 ? productVideos[0].playbackUrl : product.video}
+            poster={heroPosterImage}
             autoPlay
             loop
             muted
@@ -325,7 +334,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             {displayImages.length > 1 && (
               <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
                 {displayImages.slice(0, 8).map((_: string, i: number) => (
-                  <button key={i} type="button" onClick={() => setSelectedImage(i)} aria-label={`Imaginea ${i + 1}`} className="hit-target-44 -m-2.5"><span className={`rounded-full transition-all block ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D] dark:bg-white' : 'w-2 h-2 bg-[#0D0D0D]/30 dark:bg-white/40'}`} /></button>
+                  <button key={i} type="button" onClick={() => setSelectedImage(i)} aria-label={t("imageNumber", { index: i + 1 })} className="hit-target-44 -m-2.5"><span className={`rounded-full transition-all block ${i === selectedImage ? 'w-6 h-2 bg-[#0D0D0D] dark:bg-white' : 'w-2 h-2 bg-[#0D0D0D]/30 dark:bg-white/40'}`} /></button>
                 ))}
               </div>
             )}
@@ -355,14 +364,14 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             </div>
             <div>
               <p className="text-xs font-black text-[#0D0D0D] dark:text-white flex items-center gap-1.5">
-                Cumpără în Squad de {SQUAD_REQUIRED_MEMBERS} <span className="bg-gradient-to-r from-violet-600 to-pink-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">-{SQUAD_DISCOUNT_PCT}% REDUCERE</span>
+                {t("squadBuyTeaser", { members: SQUAD_REQUIRED_MEMBERS })} <span className="bg-gradient-to-r from-violet-600 to-pink-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{t("squadBuyDiscountBadge", { percent: SQUAD_DISCOUNT_PCT })}</span>
               </p>
               <p className="text-[11px] text-[#6E6E80] dark:text-[#A1A1AA]">
-                Doar {(squadPriceCents(Math.round(currentPrice * 100)) / 100).toFixed(2)} lei când cumperi împreună cu un prieten
+                {t("squadBuyPriceHint", { price: (squadPriceCents(Math.round(currentPrice * 100)) / 100).toFixed(2) })}
               </p>
             </div>
           </div>
-          <span className="text-xs font-black text-violet-600 dark:text-violet-400 shrink-0">Vezi &rarr;</span>
+          <span className="text-xs font-black text-violet-600 dark:text-violet-400 shrink-0">{t("squadBuySeeMore")}</span>
         </div>
         )}
 
@@ -372,13 +381,13 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
         </h1>
 
         {Array.isArray(product.taxonomyPath) && product.taxonomyPath.length > 0 && (
-          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 mb-3 text-[12px] text-[#6E6E80] dark:text-[#A1A1AA]">
-            <Link href="/categories" className="hover:underline">Categorii</Link>
+          <nav aria-label="Breadcrumb" className="flex flex-nowrap items-center gap-1 mb-3 overflow-x-auto no-scrollbar text-[12px] text-[#6E6E80] dark:text-[#A1A1AA]">
+            <Link href="/categories" className="shrink-0 whitespace-nowrap hover:underline">{t("categoriesBreadcrumb")}</Link>
             {product.taxonomyPath.map((node: { slug: string; label: string }, idx: number) => (
-              <span key={node.slug} className="flex items-center gap-1">
+              <span key={node.slug} className="flex shrink-0 items-center gap-1 whitespace-nowrap">
                 <span className="text-[#C7C7CD] dark:text-[#52525B]">/</span>
                 {idx === product.taxonomyPath.length - 1 ? (
-                  <span className="text-[#0D0D0D] dark:text-white font-medium">{node.label}</span>
+                  <span className="max-w-[40vw] truncate text-[#0D0D0D] dark:text-white font-medium">{node.label}</span>
                 ) : (
                   <Link href={`/categories/${node.slug}`} className="hover:underline">{node.label}</Link>
                 )}
@@ -393,25 +402,29 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             <Star size={14} className="text-[#B45309]" fill="currentColor" />
             {(product.rating ?? 0).toFixed(1)}
             {product.ratingCount && product.ratingCount > 0
-              ? ` (${product.ratingCount} recenzii)`
+              ? ` (${t("reviewsCount", { count: product.ratingCount })})`
               : ""}
           </span>
-          <span className="flex items-center gap-1">
-            <ShoppingCart size={14} />
-            {product.ordersCount}  {t("vandute")}
-          </span>
+          {/* Hide the "sold" chip instead of showing it with a blank count
+              when ordersCount is 0/unknown (audit 2026-09-24). */}
+          {product.ordersCount > 0 && (
+            <span className="flex items-center gap-1">
+              <ShoppingCart size={14} />
+              {t("soldCount", { count: product.ordersCount })}
+            </span>
+          )}
         </div>
 
         {/* Tabs */}
         <div className="flex items-center gap-2 border-b border-[#E5E5E5] dark:border-[#1F1F1F] mb-5 sticky top-[calc(68px+env(safe-area-inset-top))] bg-white dark:bg-black z-40 pb-2">
           <button onClick={() => setActiveTab("clips")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "clips" ? "border-[#0D0D0D] dark:border-white text-[#0D0D0D] dark:text-white" : "border-transparent text-[#6E6E80] dark:text-[#A1A1AA]"}`}>
-            Videoclipuri ({productVideos.length})
+            {t("videosTabCount", { count: productVideos.length })}
           </button>
           <button onClick={() => setActiveTab("details")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "details" ? "border-[#0D0D0D] dark:border-white text-[#0D0D0D] dark:text-white" : "border-transparent text-[#6E6E80] dark:text-[#A1A1AA]"}`}>
-            Detalii
+            {t("detailsTab")}
           </button>
           <button onClick={() => setActiveTab("reviews")} className={`inline-flex items-center px-3 py-3 min-h-[44px] text-sm font-black border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "reviews" ? "border-[#0D0D0D] dark:border-white text-[#0D0D0D] dark:text-white" : "border-transparent text-[#6E6E80] dark:text-[#A1A1AA]"}`}>
-            Recenzii
+            {t("reviewsTab")}
           </button>
         </div>
 
@@ -687,24 +700,26 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
       {/* Fixed Bottom Bar — Cumpără singur (+ Squad Buy când e activ) */}
       <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5E5E5] dark:border-[#1F1F1F] bg-white/95 dark:bg-black/95 backdrop-blur-xl px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="mx-auto max-w-lg flex items-center gap-2">
-          {process.env.NEXT_PUBLIC_FEATURE_TRY_ON === "1" && (
-            <Link
-              href={`/try-on/${product.id}`}
-              aria-label={t("probeazaVirtual")}
-              className="hidden sm:flex items-center justify-center rounded-2xl bg-[#7C3AED] p-3 text-white shadow-xl active:scale-95 transition-transform shrink-0"
-            >
-              <Sparkles size={18} />
-            </Link>
-          )}
+          {/* NOTE (audit 2026-09-24, wave2-misc): this used to link to `/try-on/${product.id}`,
+              a route that was never built (always 404'd when the flag was on). The working
+              Virtual Try-On entry point lives in components/ProductFeed.tsx (opens
+              VirtualTryOnModal in place); removed this dead link rather than shipping a
+              second, broken one. Re-add here only once a real /try-on/[id] page exists. */}
 
-          {/* CTA 1: Cumpără Singur */}
+          {/* CTA 1: Adaugă în coș (sau "Singur" alături de Squad Buy, când e activ) */}
           <button
             type="button"
             onClick={handleAddToCart}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 py-3.5 px-3 text-xs font-black text-neutral-900 dark:text-white transition active:scale-95"
           >
             <ShoppingCart size={15} />
-            <span>{addedToCart ? t("adaugatInCos") : `Singur • ${currentPrice} lei`}</span>
+            <span>
+              {addedToCart
+                ? t("adaugatInCos")
+                : SQUAD_ENABLED
+                  ? t("buyAloneWithPrice", { price: currentPrice })
+                  : t("addToCartWithPrice", { price: currentPrice })}
+            </span>
           </button>
 
           {SQUAD_ENABLED && (
@@ -714,7 +729,7 @@ export default function ProductClient({ initialData, initialVideos }: Props) {
             className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 py-3.5 px-3 text-xs sm:text-sm font-black text-white shadow-lg shadow-violet-600/30 transition active:scale-95"
           >
             <Users size={16} />
-            <span>Squad • {(squadPriceCents(Math.round(currentPrice * 100)) / 100).toFixed(0)} lei (-{SQUAD_DISCOUNT_PCT}%)</span>
+            <span>{t("squadCtaLabel", { price: (squadPriceCents(Math.round(currentPrice * 100)) / 100).toFixed(0), percent: SQUAD_DISCOUNT_PCT })}</span>
           </button>
           )}
         </div>

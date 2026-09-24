@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { dbQuery } from "@/lib/db";
 import { formatCurrency } from "@/lib/i18n/currency";
-import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, type Currency } from "@/lib/i18n/config";
+import { CURRENCY_COOKIE, isCurrency, DEFAULT_CURRENCY, isLocale, DEFAULT_LOCALE, type Currency } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,14 @@ type Row = {
   created_at: string;
 };
 
-export default async function SavedProductsPage() {
+export default async function SavedProductsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale: rawLocale } = await params;
+  const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
+  const t = await getTranslations({ locale, namespace: "accountSaved" });
   const user = await getAuthUser();
   if (!user.userId) redirect("/account?redirect=/account/saved");
 
@@ -45,12 +53,12 @@ export default async function SavedProductsPage() {
         <Link href="/account" className="p-1 -ml-1">
           <ArrowLeft size={22} />
         </Link>
-        <h1 className="text-lg font-black">Produse salvate</h1>
+        <h1 className="text-lg font-black">{t("title")}</h1>
       </header>
       <div className="px-3 md:px-6 pt-4 max-w-5xl mx-auto">
         {rows.length === 0 ? (
           <p className="text-white/50 text-sm mt-8 text-center">
-            Nu ai produse salvate. Salvează produse din feed sau /explore.
+            {t("empty")}
           </p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
@@ -61,7 +69,7 @@ export default async function SavedProductsPage() {
                   ? formatCurrency(r.price_cents, {
                       sourceCurrency: (r.currency?.trim() as Currency) || "RON",
                       displayCurrency,
-                      locale: "ro",
+                      locale,
                     })
                   : null;
               return (

@@ -3,58 +3,59 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isHTTPAccessFallbackError } from "next/dist/client/components/http-access-fallback/http-access-fallback";
+import { getTranslations } from "next-intl/server";
 import {
   ArrowLeft,
   BadgeCheck,
   Eye,
   Film,
-  Heart,
   MessageCircle,
-  Play,
   Share2,
   UserRound,
 } from "lucide-react";
 import {
   getPublicUserProfile,
   type PublicUserProfile,
-  type PublicUserVideo,
 } from "@/lib/social/user-profile";
 import { getOptionalSocialUserId } from "@/lib/social/session";
+import { logger } from "@/lib/logger";
 import ProfileStatsAndActions from "./ProfileStatsAndActions";
 import VideoGridClient from "./VideoGridClient";
 
 type Props = {
-  params: Promise<{ username: string }>;
+  params: Promise<{ locale: string; username: string }>;
 };
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { username } = await params;
+  const { locale, username } = await params;
+  const t = await getTranslations({ locale, namespace: "userProfile" });
 
   try {
     const data = await getPublicUserProfile(username, { limit: 1 });
-    if (!data) return { title: "Profil negasit - Swypik", robots: { index: false, follow: false } };
+    if (!data) return { title: t("metaNotFoundTitle"), robots: { index: false, follow: false } };
 
     return {
       title: `${data.profile.displayName} (${data.profile.handle}) - Swypik`,
       description:
         data.profile.bio ||
-        `Vezi profilul, clipurile si activitatea lui ${data.profile.displayName} pe Swypik.`,
+        t("metaDescriptionFallback", { name: data.profile.displayName }),
       openGraph: {
         title: `${data.profile.displayName} - Swypik`,
-        description: data.profile.bio || "Profil public Swypik",
+        description: data.profile.bio || t("metaOgDescriptionFallback"),
         type: "profile",
         images: data.profile.avatarUrl ? [data.profile.avatarUrl] : [],
       },
     };
   } catch {
-    return { title: "Profil Swypik" };
+    return { title: t("metaFallbackTitle") };
   }
 }
 
 export default async function UserProfilePage({ params }: Props) {
-  const { username } = await params;
+  const { locale, username } = await params;
+  const t = await getTranslations({ locale, namespace: "userProfile" });
 
   let data: PublicUserProfile | null = null;
   try {
@@ -64,8 +65,8 @@ export default async function UserProfilePage({ params }: Props) {
     // notFound() aruncă intern un NEXT_NOT_FOUND — nu îl înghiți în catch,
     // altfel pagina cade pe ProfileLoadError cu status HTTP 200 (bug SEO).
     if (isHTTPAccessFallbackError(error)) throw error;
-    console.error("[User Profile Page] Load Error:", error);
-    return <ProfileLoadError />;
+    logger.error({ err: error }, "[User Profile Page] Load Error");
+    return <ProfileLoadError t={t} />;
   }
 
   if (!data) notFound();
@@ -75,7 +76,7 @@ export default async function UserProfilePage({ params }: Props) {
   return (
     <main className="min-h-screen bg-[#0D0D0D] text-white mobile-page-bottom">
       <header className="sticky top-0 z-30 bg-[#0D0D0D]/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
-        <Link href="/explore" className="text-white/70 hover:text-white" aria-label="Inapoi"><ArrowLeft size={22} /></Link>
+        <Link href="/explore" className="text-white/70 hover:text-white" aria-label={t("back")}><ArrowLeft size={22} /></Link>
         <h1 className="text-lg font-black truncate max-w-[60%]">{profile.handle.replace(/^@/, '')}</h1>
         <div className="w-6" />
       </header>
@@ -94,11 +95,11 @@ export default async function UserProfilePage({ params }: Props) {
 
           <div className="flex items-center justify-center gap-1.5">
             <h2 className="text-xl font-black">{profile.displayName}</h2>
-            {profile.isVerified && <BadgeCheck className="text-[#EC4899]" size={18} aria-label="Profil verificat" />}
+            {profile.isVerified && <BadgeCheck className="text-[#EC4899]" size={18} aria-label={t("verifiedProfile")} />}
           </div>
           <p className="text-sm text-white/60 mb-4">{profile.handle}</p>
 
-          <CreatorBadgesRow badges={badges} />
+          <CreatorBadgesRow badges={badges} t={t} />
 
           {profile.bio && (
             <p className="max-w-sm text-sm leading-5 text-white/70 mb-4">{profile.bio}</p>
@@ -145,7 +146,7 @@ export default async function UserProfilePage({ params }: Props) {
 
       {promotedProducts.length > 0 && (
         <section className="mx-auto max-w-md px-4 pb-2">
-          <h2 className="mb-3 text-lg font-black text-white">Produse promovate</h2>
+          <h2 className="mb-3 text-lg font-black text-white">{t("promotedProducts")}</h2>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {promotedProducts.map((product) => (
               <a
@@ -179,9 +180,9 @@ export default async function UserProfilePage({ params }: Props) {
       <section className="mx-auto max-w-md pb-10">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-black text-white">Clipuri</h2>
+            <h2 className="text-xl font-black text-white">{t("clips")}</h2>
             <p className="mt-1 text-sm text-white/45">
-              {stats.videos === 1 ? "1 clip public" : `${stats.videos} clipuri publice`}
+              {stats.videos === 1 ? t("oneClipPublic") : t("nClipsPublic", { count: stats.videos })}
             </p>
           </div>
           <div className="hidden items-center gap-4 text-sm font-bold text-white/45 sm:flex">
@@ -214,7 +215,7 @@ export default async function UserProfilePage({ params }: Props) {
             }))}
             initialHasMore={videos.length >= 24}
           />
-        ) : <EmptyVideosState profileName={profile.displayName} />}
+        ) : <EmptyVideosState profileName={profile.displayName} t={t} />}
       </section>
     </main>
   );
@@ -224,22 +225,22 @@ async function getCurrentViewerUserId() {
   return getOptionalSocialUserId();
 }
 
-function CreatorBadgesRow({ badges }: { badges: PublicUserProfile["badges"] }) {
+function CreatorBadgesRow({ badges, t }: { badges: PublicUserProfile["badges"]; t: Awaited<ReturnType<typeof getTranslations>> }) {
   const items: { key: string; label: string; className: string }[] = [];
   if (badges.verified) {
-    items.push({ key: "verified", label: "Verificat", className: "border-[#EC4899]/40 bg-[#EC4899]/10 text-[#EC4899]" });
+    items.push({ key: "verified", label: t("badgeVerified"), className: "border-[#EC4899]/40 bg-[#EC4899]/10 text-[#EC4899]" });
   }
   if (badges.topSeller) {
-    items.push({ key: "top_seller", label: "Top Seller", className: "border-amber-400/40 bg-amber-400/10 text-amber-300" });
+    items.push({ key: "top_seller", label: t("badgeTopSeller"), className: "border-amber-400/40 bg-amber-400/10 text-amber-300" });
   }
   if (badges.level !== "none") {
     const levelStyles: Record<string, { label: string; className: string }> = {
-      bronze: { label: "Bronze", className: "border-orange-700/50 bg-orange-700/15 text-orange-300" },
-      silver: { label: "Silver", className: "border-slate-300/40 bg-slate-300/10 text-slate-200" },
-      gold: { label: "Gold", className: "border-yellow-400/50 bg-yellow-400/10 text-yellow-300" },
+      bronze: { label: t("badgeLevelBronze"), className: "border-orange-700/50 bg-orange-700/15 text-orange-300" },
+      silver: { label: t("badgeLevelSilver"), className: "border-slate-300/40 bg-slate-300/10 text-slate-200" },
+      gold: { label: t("badgeLevelGold"), className: "border-yellow-400/50 bg-yellow-400/10 text-yellow-300" },
     };
     const style = levelStyles[badges.level];
-    if (style) items.push({ key: `level_${badges.level}`, label: `Creator ${style.label}`, className: style.className });
+    if (style) items.push({ key: `level_${badges.level}`, label: t("badgeCreatorLevel", { level: style.label }), className: style.className });
   }
   if (items.length === 0) return null;
   return (
@@ -257,94 +258,36 @@ function CreatorBadgesRow({ badges }: { badges: PublicUserProfile["badges"] }) {
   );
 }
 
-function Avatar({ profile }: { profile: PublicUserProfile["profile"] }) {
-  if (profile.avatarUrl) {
-    return (
-      <div className="h-28 w-28 overflow-hidden rounded-full border border-white/15 bg-white/10 shadow-2xl shadow-black/40 sm:h-32 sm:w-32">
-        <img
-          src={profile.avatarUrl}
-          alt={profile.displayName}
-          className="h-full w-full object-cover"
-          loading="eager"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid h-28 w-28 place-items-center rounded-full border border-white/15 bg-[#0D0D0D] shadow-2xl shadow-black/40 sm:h-32 sm:w-32">
-      <span className="text-4xl font-black text-white sm:text-5xl">{initials(profile.displayName)}</span>
-    </div>
-  );
-}
-
-function VideoGrid({ videos }: { videos: PublicUserVideo[] }) {
-  return (
-    <div className="grid grid-cols-3 gap-0.5">
-      {videos.map((video) => (
-        <VideoCard key={video.id} video={video} />
-      ))}
-    </div>
-  );
-}
-
-function VideoCard({ video }: { video: PublicUserVideo }) {
-  const title = video.title || video.description || "Clip Swypik";
-  return (
-    <Link href={`/explore?v=${encodeURIComponent(video.id)}`} className="group block">
-      <div className="relative aspect-[9/16] overflow-hidden bg-[#1A1A1A]">
-        {video.thumbnailUrl ? (
-          <img
-            src={video.thumbnailUrl}
-            alt={title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="grid h-full w-full place-items-center text-white/25">
-            <Film size={28} strokeWidth={1.5} />
-          </div>
-        )}
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-        <div className="absolute bottom-1 left-1.5 flex items-center gap-1 text-[10px] font-bold text-white/95">
-          <Play size={11} fill="currentColor" />
-          {formatCount(video.viewCount)}
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function EmptyVideosState({ profileName }: { profileName: string }) {
+function EmptyVideosState({ profileName, t }: { profileName: string; t: Awaited<ReturnType<typeof getTranslations>> }) {
   return (
     <div className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-white/15 bg-white/[0.03] px-6 py-14 text-center">
       <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#0D0D0D]/10 text-[#0D0D0D]">
         <Film size={32} strokeWidth={1.5} />
       </div>
-      <h2 className="mt-5 text-lg font-black text-white">Nu exista clipuri publice</h2>
+      <h2 className="mt-5 text-lg font-black text-white">{t("noPublicClips")}</h2>
       <p className="mt-2 max-w-sm text-sm leading-6 text-white/50">
-        {profileName} nu a publicat inca clipuri vizibile pentru comunitate.
+        {t("noPublicClipsBody", { name: profileName })}
       </p>
       <Link href="/explore" className="mt-6 rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#0D0D0D]">
-        Exploreaza alte clipuri
+        {t("exploreOtherClips")}
       </Link>
     </div>
   );
 }
 
-function ProfileLoadError() {
+function ProfileLoadError({ t }: { t: Awaited<ReturnType<typeof getTranslations>> }) {
   return (
     <main className="grid min-h-screen place-items-center bg-[#0D0D0D] px-4 text-white">
       <div className="max-w-md text-center">
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-red-500/10 text-red-300">
           <UserRound size={32} strokeWidth={1.5} />
         </div>
-        <h1 className="mt-5 text-2xl font-black">Profil indisponibil</h1>
+        <h1 className="mt-5 text-2xl font-black">{t("profileUnavailable")}</h1>
         <p className="mt-2 text-sm leading-6 text-white/55">
-          Nu am putut incarca profilul acum. Incearca din nou sau revino la feed.
+          {t("profileUnavailableBody")}
         </p>
         <Link href="/explore" className="mt-6 inline-flex rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#0D0D0D]">
-          Inapoi la feed
+          {t("backToFeed")}
         </Link>
       </div>
     </main>
@@ -368,10 +311,3 @@ function formatCount(value: number) {
   return String(value);
 }
 
-function formatDuration(value: number | null) {
-  if (!value) return "";
-  const totalSeconds = Math.round(value / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}

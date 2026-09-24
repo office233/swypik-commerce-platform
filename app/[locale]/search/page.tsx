@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Star } from "lucide-react";
 import { searchAll } from "@/lib/search/query";
@@ -21,6 +22,16 @@ type SearchParams = { q?: string; tab?: string };
 
 const ACCENT = "#7C3AED";
 const BG = "#0D0D0D";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "searchPage" });
+  return { title: t("title") };
+}
 
 export default async function SearchPage({
   searchParams,
@@ -64,7 +75,7 @@ export default async function SearchPage({
     { key: "videos", label: t("tabVideos"), count: results.videos.length },
     { key: "creators", label: t("tabCreators"), count: results.creators.length },
     { key: "products", label: t("tabProducts"), count: results.products.length },
-    { key: "hashtags", label: "#Hashtags", count: results.hashtags.length },
+    { key: "hashtags", label: t("tabHashtags"), count: results.hashtags.length },
   ];
 
   return (
@@ -106,7 +117,7 @@ export default async function SearchPage({
             {tab === "videos" && (
               <section>
                 {results.videos.length === 0 ? (
-                  <EmptyState label={`Nu am găsit videoclipuri pentru „${q}"`} />
+                  <EmptyState label={t("noVideosFor", { query: q })} />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {results.videos.map((v) => (
@@ -122,9 +133,9 @@ export default async function SearchPage({
                           ) : null}
                         </div>
                         <div className="p-2">
-                          <div className="text-sm font-medium truncate">{v.title ?? "Fără titlu"}</div>
+                          <div className="text-sm font-medium truncate">{v.title ?? t("untitled")}</div>
                           <div className="text-xs text-neutral-400 truncate">
-                            {v.creator_name ?? "—"} · {Intl.NumberFormat().format(v.like_count)} likes
+                            {v.creator_name ?? "—"} · {t("likesCount", { count: Intl.NumberFormat().format(v.like_count) })}
                           </div>
                         </div>
                       </Link>
@@ -137,7 +148,7 @@ export default async function SearchPage({
             {tab === "creators" && (
               <section>
                 {results.creators.length === 0 ? (
-                  <EmptyState label={`Nu am găsit creatori pentru „${q}"`} />
+                  <EmptyState label={t("noCreatorsFor", { query: q })} />
                 ) : (
                   <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 bg-neutral-900/40">
                     {results.creators.map((c) => (
@@ -150,9 +161,9 @@ export default async function SearchPage({
                             ) : null}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium truncate">{c.display_name || c.username || "Creator"}</div>
+                            <div className="font-medium truncate">{c.display_name || c.username || t("creatorFallback")}</div>
                             <div className="text-xs text-neutral-400 truncate">
-                              @{c.username ?? "unknown"} · {Intl.NumberFormat().format(c.follower_count)} followers
+                              @{c.username ?? t("unknownHandle")} · {t("followersCount", { count: Intl.NumberFormat().format(c.follower_count) })}
                             </div>
                             {c.bio ? <div className="text-xs text-neutral-500 truncate mt-1">{c.bio}</div> : null}
                           </div>
@@ -167,7 +178,7 @@ export default async function SearchPage({
             {tab === "products" && (
               <section>
                 {results.products.length === 0 ? (
-                  <EmptyState label={`Nu am găsit produse pentru „${q}"`} />
+                  <EmptyState label={t("noProductsFor", { query: q })} />
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {results.products.map((p) => {
@@ -186,8 +197,8 @@ export default async function SearchPage({
                             {agg && agg.reviewCount > 0 && (
                               <span
                                 className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm"
-                                aria-label={`Rating ${agg.avgRating.toFixed(1)} din 5 (${agg.reviewCount} recenzii)`}
-                                title={`${agg.avgRating.toFixed(1)} (${agg.reviewCount} recenzii)`}
+                                aria-label={t("ratingAriaLabel", { rating: agg.avgRating.toFixed(1), count: agg.reviewCount })}
+                                title={t("ratingTitle", { rating: agg.avgRating.toFixed(1), count: agg.reviewCount })}
                               >
                                 <Star size={10} className="text-[#F59E0B]" fill="currentColor" />
                                 {agg.avgRating.toFixed(1)}
@@ -196,7 +207,7 @@ export default async function SearchPage({
                             )}
                           </div>
                           <div className="p-2">
-                            <div className="text-sm font-medium truncate">{p.title ?? "Product"}</div>
+                            <div className="text-sm font-medium truncate">{p.title ?? t("productFallback")}</div>
                             <div className="text-sm font-semibold mt-1" style={{ color: ACCENT }}>
                               {fmt(p.price_cents)}
                             </div>
@@ -212,7 +223,7 @@ export default async function SearchPage({
             {tab === "hashtags" && (
               <section>
                 {results.hashtags.length === 0 ? (
-                  <EmptyState label={`Nu am găsit hashtag-uri pentru „${q}"`} />
+                  <EmptyState label={t("noHashtagsFor", { query: q })} />
                 ) : (
                   <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 bg-neutral-900/40">
                     {results.hashtags.map((h) => (
@@ -221,7 +232,7 @@ export default async function SearchPage({
                           <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-xl font-bold flex-shrink-0">#</div>
                           <div className="min-w-0 flex-1">
                             <div className="font-medium truncate">#{h.tag}</div>
-                            <div className="text-xs text-neutral-400">{Intl.NumberFormat().format(h.video_count)} videos</div>
+                            <div className="text-xs text-neutral-400">{t("videosCount", { count: Intl.NumberFormat().format(h.video_count) })}</div>
                           </div>
                         </Link>
                       </li>

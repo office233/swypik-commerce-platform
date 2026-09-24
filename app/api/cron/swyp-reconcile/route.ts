@@ -17,7 +17,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { withErrorHandling } from "@/lib/api-handler";
 import { dbQuery } from "@/lib/db";
-import { publicClient, treasuryAddress } from "@/lib/swyp/chain";
+import { publicClient, treasuryAddress, isChainTreasuryConfigured } from "@/lib/swyp/chain";
 import { notifyOps } from "@/lib/ops/alerts";
 import { logger } from "@/lib/logger";
 
@@ -58,6 +58,10 @@ async function saveCursor(block: bigint): Promise<void> {
 async function handle(req: Request) {
     if (!authorized(req)) {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    if (!isChainTreasuryConfigured()) {
+        log.warn("swyp-reconcile sărit — SWYP_TREASURY_REWARDS_PK nu e configurat");
+        return NextResponse.json({ ok: true, skipped: "not_configured" });
     }
 
     const pub = publicClient();

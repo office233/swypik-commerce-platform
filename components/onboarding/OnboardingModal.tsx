@@ -183,7 +183,7 @@ export default function OnboardingModal({ initialCreators }: Props) {
                 </div>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-black/5">
                   <ShoppingBag className="w-7 h-7" />
-                  <span className="text-xs font-medium">Produse</span>
+                  <span className="text-xs font-medium">{t("productsLabel")}</span>
                 </div>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-black/5">
                   <Sparkles className="w-7 h-7" />

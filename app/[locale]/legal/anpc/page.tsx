@@ -10,45 +10,51 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 
-export const metadata: Metadata = {
-    title: "Protecția consumatorului — Swypik",
-    description:
-        "Drepturile tale ca și consumator, cum ne poți reclama și autoritățile la care te poți adresa: ANPC, SAL și platforma europeană SOL.",
-};
-
-const CHANNELS = [
-    {
-        name: "Suport Swypik",
-        detail: "Primul pas — rezolvăm majoritatea problemelor direct.",
-        action: SUPPORT_EMAIL,
-        href: `mailto:${SUPPORT_EMAIL}`,
-        note: "Răspundem în maximum 30 de zile.",
-    },
-    {
-        name: "ANPC",
-        detail: "Autoritatea Națională pentru Protecția Consumatorilor",
-        action: "anpc.ro",
-        href: "https://anpc.ro",
-        note: "Poți depune o reclamație online dacă nu ești mulțumit de răspunsul nostru.",
-    },
-    {
-        name: "SAL",
-        detail: "Soluționarea Alternativă a Litigiilor (prin ANPC)",
-        action: "anpc.ro/ce-este-sal",
-        href: "https://anpc.ro/ce-este-sal/",
-        note: "Procedură gratuită, fără instanță.",
-    },
-    {
-        name: "SOL",
-        detail: "Platforma europeană de soluționare online a litigiilor",
-        action: "ec.europa.eu/consumers/odr",
-        href: "https://ec.europa.eu/consumers/odr",
-        note: "Pentru cumpărături online din Uniunea Europeană.",
-    },
-];
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: "legalAnpc" });
+    return {
+        title: t("metaTitle"),
+        description: t("metaDescription"),
+    };
+}
 
 export default async function AnpcPage() {
     const t = await getTranslations("legalAnpc");
+    const CHANNELS = [
+        {
+            name: t("channelSupportName"),
+            detail: t("channelSupportDetail"),
+            action: SUPPORT_EMAIL,
+            href: `mailto:${SUPPORT_EMAIL}`,
+            note: t("channelSupportNote"),
+        },
+        {
+            name: t("channelAnpcName"),
+            detail: t("channelAnpcDetail"),
+            action: "anpc.ro",
+            href: "https://anpc.ro",
+            note: t("channelAnpcNote"),
+        },
+        {
+            name: t("channelSalName"),
+            detail: t("channelSalDetail"),
+            action: "anpc.ro/ce-este-sal",
+            href: "https://anpc.ro/ce-este-sal/",
+            note: t("channelSalNote"),
+        },
+        {
+            name: t("channelSolName"),
+            detail: t("channelSolDetail"),
+            action: "ec.europa.eu/consumers/odr",
+            href: "https://ec.europa.eu/consumers/odr",
+            note: t("channelSolNote"),
+        },
+    ];
     return (
         <main className="mx-auto max-w-2xl px-4 pb-24 pt-8">
             <h1 className="text-2xl font-black">{t("title")}</h1>

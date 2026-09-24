@@ -126,7 +126,7 @@ export default function TopBar() {
           </Link>
           <Link
             href="/inbox"
-            aria-label="Inbox"
+            aria-label={t("inbox")}
             className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
           >
             <Inbox className="h-5 w-5" />
