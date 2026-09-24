@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { logger } from "@/lib/logger";
 
 export type RecorderState =
   | "idle"
@@ -174,7 +175,7 @@ export function useRecorder(
       setElapsedMs(finalElapsed);
       if (blob.size === 0) {
         // Niciun chunk capturat — resetăm și marcăm idle ca să nu rămână UI blocat
-        console.error('[recorder] blob gol; chunks=', chunksRef.current.length);
+        logger.error({ chunks: chunksRef.current.length }, "[recorder] blob gol");
         setState("idle");
         return;
       }

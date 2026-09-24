@@ -1,5 +1,5 @@
 import { dbQuery } from "@/lib/db";
-import { buildScopedTagId, parseScopedTagFilter } from "@/lib/db/category-filter-utils";
+import { parseScopedTagFilter } from "@/lib/db/category-filter-utils";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { logger } from "@/lib/logger";
 
@@ -254,13 +254,6 @@ export async function resolveTaxonomyLabels(slugs: string[], locale = "ro"): Pro
     map.set(row.leaf_slug, entry);
   }
   return map;
-}
-
-function cleanCategoryId(value: unknown, fallback = "") {
-  const id = String(value ?? "").trim();
-  if (!id) return fallback;
-  if (/^AE-\d+$/i.test(id)) return fallback;
-  return id;
 }
 
 function firstNonEmpty(...values: unknown[]) {

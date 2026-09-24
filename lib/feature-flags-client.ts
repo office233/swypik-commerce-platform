@@ -23,7 +23,16 @@ export const CLIENT_FEATURES = {
   stripeConnect: flag(process.env.NEXT_PUBLIC_FEATURE_STRIPE_CONNECT, false),
   returns: flag(process.env.NEXT_PUBLIC_FEATURE_RETURNS, false),
   // Virtual Try-On: componenta e doar UI de previzualizare (fără AR real) — OFF.
+  // Deprecated alias, kept for back-compat — prefer `virtualTryOn` below.
   tryOn: flag(process.env.NEXT_PUBLIC_FEATURE_TRY_ON, false),
+  // Virtual Try-On (components/video/VirtualTryOnModal.tsx): a color/finish
+  // preview only — no real camera/AR/face-detection. Audit 2026-09-24
+  // (wave2-misc): entry point hidden unless this OR the legacy TRY_ON flag is on.
+  virtualTryOn:
+    flag(process.env.NEXT_PUBLIC_FEATURE_VIRTUAL_TRYON, false) ||
+    flag(process.env.NEXT_PUBLIC_FEATURE_TRY_ON, false),
+  // Catalog demo „viral" pentru selleri — trebuie setat împreună cu FEATURE_VIRAL_CATALOG (server).
+  viralCatalog: flag(process.env.NEXT_PUBLIC_FEATURE_VIRAL_CATALOG, false),
   // Trebuie setat ÎMPREUNĂ cu FEATURE_SQUAD_BUY (server) — vezi lib/feature-flags.ts.
   squadBuy: flag(process.env.NEXT_PUBLIC_FEATURE_SQUAD_BUY, false),
   // OFF by default — explicit opt-in via NEXT_PUBLIC_FEATURE_X=1 at build time,

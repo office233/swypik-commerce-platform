@@ -41,16 +41,25 @@ async function rhFetch<T>(
     if (!isRateHawkConfigured()) {
         return { ok: false, status: 401, error: "RATEHAWK_KEY_ID / RATEHAWK_API_KEY lipsă" };
     }
-    const r = await fetch(`${BASE}${path}`, {
-        method: "POST",
-        headers: {
-            Authorization: authHeader(),
-            "Content-Type": "application/json",
-            Accept: "application/json",
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(25000),
-    });
+    let r: Response;
+    try {
+        r = await fetch(`${BASE}${path}`, {
+            method: "POST",
+            headers: {
+                Authorization: authHeader(),
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(25000),
+        });
+    } catch (err) {
+        // Fără acest catch, un abort de timeout urca necontextualizat până la
+        // handler-ul de erori — "[Error [TimeoutError]: ...]" fără nicio urmă
+        // că sursa era RateHawk.
+        logger.warn({ err, path }, "[ratehawk] fetch failed or timed out");
+        return { ok: false, status: 599, error: "ratehawk_unreachable" };
+    }
     const json = (await r.json().catch(() => ({}))) as any;
     // RateHawk răspunde mereu 200 cu {status:"ok"|"error"} — verificăm ambele.
     const ok = r.ok && json?.status === "ok";

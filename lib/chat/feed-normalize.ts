@@ -7,7 +7,7 @@ import { APP_URL } from "@/lib/app-url";
 
 type ChatProduct = Product;
 
-export function firstString(...values: any[]) {
+export function firstString(...values: unknown[]) {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value;
   }
@@ -28,7 +28,7 @@ export function isSafeDirectVideoUrl(value?: string) {
   }
 }
 
-export function firstNumber(...values: any[]) {
+export function firstNumber(...values: unknown[]) {
   for (const value of values) {
     const number = Number(value);
     if (Number.isFinite(number) && number > 0) return number;

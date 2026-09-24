@@ -35,6 +35,17 @@ export function treasuryAddress(): `0x${string}` {
 }
 
 /**
+ * `true` doar dacă cheia trezoreriei e setată — folosit de crons (
+ * scan-chain-deposits, swyp-reconcile) ca să detecteze devreme un mediu unde
+ * bridge-ul on-chain nu e configurat (ex. staging fără chain rulat) și să
+ * iasă curat (200 skipped), în loc să arunce pe fiecare rulare de cron un
+ * "SWYP_TREASURY_REWARDS_PK lipsește" ca eroare 500 nehandled-ată.
+ */
+export function isChainTreasuryConfigured(): boolean {
+    return Boolean(process.env.SWYP_TREASURY_REWARDS_PK);
+}
+
+/**
  * Subunități interne (1 SWYP = 100) → wei on-chain (1 SWYP = 1e18).
  * Aritmetică exclusiv pe bigint: `Number(units)` ar pierde precizie peste
  * 2^53, iar supply-ul total (10^12 subunități) e în acea zonă.

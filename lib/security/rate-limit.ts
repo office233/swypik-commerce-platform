@@ -208,11 +208,15 @@ export const RATE_LIMITS = {
   // era referit fără să existe aici.
   sellerAwb: { limit: 20, window: 60 } as RateLimitConfig,
   sellerInvoices: { limit: 20, window: 60 } as RateLimitConfig,
+  sellerMenu: { limit: 30, window: 60 } as RateLimitConfig,           // merchant menu create/update/delete
   sellerClients: { limit: 20, window: 60 } as RateLimitConfig,
   sellerAds: { limit: 10, window: 60 } as RateLimitConfig,
   sellerPos: { limit: 60, window: 60 } as RateLimitConfig,
   sellerNode: { limit: 12, window: 60 } as RateLimitConfig,   // heartbeat la 15s → 4/min + marjă
   mysteryDrop: { limit: 5, window: 60 } as RateLimitConfig,
+  // 2026-09-24 (audit): /api/explore/feed e o interogare grea (CTE-uri +
+  // LATERAL joins pe fiecare candidat) fara nicio limita anterior.
+  exploreFeed: { limit: 120, window: 60 } as RateLimitConfig,
   // Swypik Movies
   moviesCatalog: { limit: 60, window: 60 } as RateLimitConfig,
   moviesUnlock: { limit: 10, window: 60 } as RateLimitConfig,

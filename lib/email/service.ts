@@ -58,8 +58,6 @@ async function isUnsubscribed(email: string): Promise<boolean> {
   }
 }
 
-const FROM_EMAIL = process.env.EMAIL_FROM || "Swypik <onboarding@resend.dev>";
-
 function emailReady(): boolean {
   return activeProvider() !== "none";
 }

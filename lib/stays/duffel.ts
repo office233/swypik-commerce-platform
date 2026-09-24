@@ -34,17 +34,26 @@ async function duffelFetch<T>(
     const key = process.env.DUFFEL_API_KEY;
     if (!key) return { ok: false, status: 401, errors: [{ message: "DUFFEL_API_KEY lipsă" }] };
 
-    const r = await fetch(`${BASE()}${path}`, {
-        method: init?.method ?? "GET",
-        headers: {
-            Authorization: `Bearer ${key}`,
-            "Duffel-Version": "v2",
-            "Content-Type": "application/json",
-            Accept: "application/json",
-        },
-        body: init?.body ? JSON.stringify({ data: init.body }) : undefined,
-        signal: AbortSignal.timeout(25000),
-    });
+    let r: Response;
+    try {
+        r = await fetch(`${BASE()}${path}`, {
+            method: init?.method ?? "GET",
+            headers: {
+                Authorization: `Bearer ${key}`,
+                "Duffel-Version": "v2",
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: init?.body ? JSON.stringify({ data: init.body }) : undefined,
+            signal: AbortSignal.timeout(25000),
+        });
+    } catch (err) {
+        // Fără acest catch, un abort de timeout urca necontextualizat până la
+        // handler-ul de erori — "[Error [TimeoutError]: ...]" fără nicio urmă
+        // că sursa era Duffel.
+        logger.warn({ err, path }, "[duffel] fetch failed or timed out");
+        return { ok: false, status: 599, errors: [{ message: "duffel_unreachable" }] };
+    }
 
     if (r.status === 403) throw new StaysAccessError();
 
