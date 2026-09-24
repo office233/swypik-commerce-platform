@@ -5,10 +5,12 @@ import type { OfferPost } from "@/lib/types/feed";
 import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import { languagesForMetadata } from "@/lib/seo/hreflang";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { APP_URL } from "@/lib/app-url";
 
-export const dynamic = "force-dynamic";
+// ISR: datele vin din unstable_cache (revalidate 120), pagina nu citește
+// cookies/headers → HTML pre-randat, regenerat în fundal la 120s.
+export const revalidate = 120;
 export const preferredRegion = "fra1";
 
 export async function generateMetadata({
@@ -129,7 +131,15 @@ const getHomeProductSections = unstable_cache(
   { revalidate: 120 },
 );
 
-export default async function Home() {
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  // Layout-ul și pagina se randează în paralel: fără apelul ăsta aici,
+  // getTranslations() poate citi header-ul middleware-ului → pagină dinamică.
+  setRequestLocale(locale);
   const t = await getTranslations("page");
   const { trending, bestValue, topRated, offers } = await getHomeProductSections();
 

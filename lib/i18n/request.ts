@@ -42,11 +42,18 @@ async function resolveUserLocale(): Promise<Locale | null> {
   }
 }
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  // 1) URL-prefix locale (`/en/...` etc.) — next-intl-aware
-  let locale: Locale | null = null;
-  const fromUrl = await requestLocale;
-  if (isLocale(fromUrl)) locale = fromUrl;
+export default getRequestConfig(async ({ locale: explicitLocale, requestLocale }) => {
+  // 0) Locale explicit (`getTranslations({ locale })`, ex. în generateMetadata,
+  //    care rulează ÎNAINTE de setRequestLocale din layout). Fără el,
+  //    `requestLocale` ar citi header-ul middleware-ului → pagină dinamică.
+  let locale: Locale | null = isLocale(explicitLocale) ? explicitLocale : null;
+
+  // 1) URL-prefix locale (`/en/...` etc.) — din setRequestLocale([locale]);
+  //    abia fără el next-intl cade pe header-ul setat de middleware.
+  if (!locale) {
+    const fromUrl = await requestLocale;
+    if (isLocale(fromUrl)) locale = fromUrl;
+  }
 
   // 2) Cookie fallback (utilizatori pe `/` fără prefix)
   if (!locale) {
