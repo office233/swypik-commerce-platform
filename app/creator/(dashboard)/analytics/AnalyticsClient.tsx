@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useLocale, useTranslations } from "next-intl";
 import { formatCurrency } from "@/lib/i18n/currency";
-import type { Currency } from "@/lib/i18n/config";
+import type { Currency, Locale } from "@/lib/i18n/config";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
 
 // recharts (~107 kB gz) se incarca doar cand graficul chiar se randeaza.
@@ -36,18 +37,7 @@ interface AnalyticsData {
   audienceAgeBuckets: Array<{ bucket: string; percentage: number }>;
 }
 
-const RANGES: { value: Range; label: string }[] = [
-  { value: "7d", label: "7 zile" },
-  { value: "30d", label: "30 zile" },
-  { value: "90d", label: "90 zile" },
-  { value: "all", label: "Toata perioada" },
-];
-
 type SortKey = "views" | "likes" | "earnings";
-
-function formatNumber(n: number): string {
-  return new Intl.NumberFormat("ro-RO").format(n);
-}
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
@@ -63,6 +53,15 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 export default function AnalyticsClient() {
+  const t = useTranslations("creatorAnalytics");
+  const locale = useLocale() as Locale;
+  const formatNumber = (n: number): string => new Intl.NumberFormat(locale).format(n);
+  const RANGES: { value: Range; label: string }[] = [
+    { value: "7d", label: t("range7d") },
+    { value: "30d", label: t("range30d") },
+    { value: "90d", label: t("range90d") },
+    { value: "all", label: t("rangeAll") },
+  ];
   const [range, setRange] = useState<Range>("30d");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,8 +99,8 @@ export default function AnalyticsClient() {
     <div className="space-y-6 max-w-6xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#0D0D0D]">Analytics</h1>
-          <p className="text-sm text-[#6E6E80] mt-1">Performanta clipurilor tale si castigurile pe perioada.</p>
+          <h1 className="text-3xl font-black text-[#0D0D0D]">{t("pageTitle")}</h1>
+          <p className="text-sm text-[#6E6E80] mt-1">{t("pageSubtitle")}</p>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 snap-x">
           {RANGES.map((r) => (
@@ -119,7 +118,7 @@ export default function AnalyticsClient() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
-          Eroare la incarcare: {error}
+          {t("errorLoading")}: {error}
         </div>
       )}
 
@@ -129,37 +128,37 @@ export default function AnalyticsClient() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <MetricCard label="Vizionari" value={formatNumber(data.summary.totalViews)} />
-          <MetricCard label="Aprecieri" value={formatNumber(data.summary.totalLikes)} />
-          <MetricCard label="Comentarii" value={formatNumber(data.summary.totalComments)} />
-          <MetricCard label="Distribuiri" value={formatNumber(data.summary.totalShares)} />
+          <MetricCard label={t("metricViews")} value={formatNumber(data.summary.totalViews)} />
+          <MetricCard label={t("metricLikes")} value={formatNumber(data.summary.totalLikes)} />
+          <MetricCard label={t("metricComments")} value={formatNumber(data.summary.totalComments)} />
+          <MetricCard label={t("metricShares")} value={formatNumber(data.summary.totalShares)} />
           <MetricCard
-            label="Castiguri"
+            label={t("metricEarnings")}
             value={fmt(data.summary.totalEarningsCents, { sourceCurrency: data.summary.earningsCurrency as Currency })}
           />
-          <MetricCard label="Urmaritori noi" value={formatNumber(data.summary.followersGained)} />
+          <MetricCard label={t("metricNewFollowers")} value={formatNumber(data.summary.followersGained)} />
         </div>
       )}
 
       {data && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard label="Clipuri publicate" value={formatNumber(data.summary.videosPublished)} />
-          <MetricCard label="Rata finalizare" value={`${(data.summary.avgCompletionRate * 100).toFixed(1)}%`} />
-          <MetricCard label="Rata conversie" value={`${(data.summary.conversionRate * 100).toFixed(2)}%`} />
-          <MetricCard label="Salvari" value={formatNumber(data.summary.totalSaves)} />
+          <MetricCard label={t("metricVideosPublished")} value={formatNumber(data.summary.videosPublished)} />
+          <MetricCard label={t("metricCompletionRate")} value={`${(data.summary.avgCompletionRate * 100).toFixed(1)}%`} />
+          <MetricCard label={t("metricConversionRate")} value={`${(data.summary.conversionRate * 100).toFixed(2)}%`} />
+          <MetricCard label={t("metricSaves")} value={formatNumber(data.summary.totalSaves)} />
         </div>
       )}
 
       {data && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard label="CTR produse" value={`${((data.summary.productCtr ?? 0) * 100).toFixed(2)}%`} />
-          <MetricCard label="Click-uri produse" value={formatNumber(data.summary.productClicks ?? 0)} />
+          <MetricCard label={t("metricProductCtr")} value={`${((data.summary.productCtr ?? 0) * 100).toFixed(2)}%`} />
+          <MetricCard label={t("metricProductClicks")} value={formatNumber(data.summary.productClicks ?? 0)} />
           <MetricCard
-            label="Vanzari atribuite"
+            label={t("metricAttributedSales")}
             value={fmt(data.summary.attributedSalesCents ?? 0, { sourceCurrency: data.summary.earningsCurrency as Currency })}
           />
           <MetricCard
-            label="Fond creatori"
+            label={t("metricCreatorFund")}
             value={fmt(data.summary.creatorFundCents ?? 0, { sourceCurrency: data.summary.earningsCurrency as Currency })}
           />
         </div>
@@ -167,12 +166,12 @@ export default function AnalyticsClient() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white border border-[#E5E5E5] rounded-2xl p-5">
-          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Vizionari in timp</h3>
+          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">{t("chartViewsOverTime")}</h3>
           {loading || !data ? (
             <Skeleton className="h-64" />
           ) : data.viewsOverTime.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-sm text-[#6E6E80]">
-              Niciun eveniment inregistrat.
+              {t("noViewEvents")}
             </div>
           ) : (
             <TrendChart data={data.viewsOverTime} dataKey="views" stroke="#0D0D0D" />
@@ -180,12 +179,12 @@ export default function AnalyticsClient() {
         </div>
 
         <div className="bg-white border border-[#E5E5E5] rounded-2xl p-5">
-          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Castiguri in timp</h3>
+          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">{t("chartEarningsOverTime")}</h3>
           {loading || !data ? (
             <Skeleton className="h-64" />
           ) : data.earningsOverTime.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-sm text-[#6E6E80]">
-              Nicio comisie aprobata.
+              {t("noApprovedCommission")}
             </div>
           ) : (
             <TrendChart
@@ -201,20 +200,20 @@ export default function AnalyticsClient() {
       </div>
 
       <div className="bg-white border border-[#E5E5E5] rounded-2xl p-5">
-        <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Top 10 videoclipuri</h3>
+        <h3 className="text-sm font-black text-[#0D0D0D] mb-4">{t("topVideosTitle")}</h3>
         {loading || !data ? (
           <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-14" />))}</div>
         ) : sortedTop.length === 0 ? (
-          <p className="text-sm text-[#6E6E80] py-8 text-center">Niciun clip publicat in aceasta perioada.</p>
+          <p className="text-sm text-[#6E6E80] py-8 text-center">{t("noVideosThisPeriod")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-[#E5E5E5]">
-                  <th className="py-2 pr-2 font-bold text-[#6E6E80]">Clip</th>
-                  <th className={`py-2 px-2 font-bold cursor-pointer ${sortKey === "views" ? "text-[#0D0D0D]" : "text-[#6E6E80]"}`} onClick={() => setSortKey("views")}>Vizionari</th>
-                  <th className={`py-2 px-2 font-bold cursor-pointer ${sortKey === "likes" ? "text-[#0D0D0D]" : "text-[#6E6E80]"}`} onClick={() => setSortKey("likes")}>Aprecieri</th>
-                  <th className={`py-2 px-2 font-bold cursor-pointer text-right ${sortKey === "earnings" ? "text-[#0D0D0D]" : "text-[#6E6E80]"}`} onClick={() => setSortKey("earnings")}>Castiguri</th>
+                  <th className="py-2 pr-2 font-bold text-[#6E6E80]">{t("colClip")}</th>
+                  <th className={`py-2 px-2 font-bold cursor-pointer ${sortKey === "views" ? "text-[#0D0D0D]" : "text-[#6E6E80]"}`} onClick={() => setSortKey("views")}>{t("colViews")}</th>
+                  <th className={`py-2 px-2 font-bold cursor-pointer ${sortKey === "likes" ? "text-[#0D0D0D]" : "text-[#6E6E80]"}`} onClick={() => setSortKey("likes")}>{t("colLikes")}</th>
+                  <th className={`py-2 px-2 font-bold cursor-pointer text-right ${sortKey === "earnings" ? "text-[#0D0D0D]" : "text-[#6E6E80]"}`} onClick={() => setSortKey("earnings")}>{t("colEarnings")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,7 +227,7 @@ export default function AnalyticsClient() {
                         ) : (
                           <div className="w-12 h-16 rounded-md bg-[#E5E5E5]" />
                         )}
-                        <span className="font-bold text-[#0D0D0D] line-clamp-2">{v.title || "(fara titlu)"}</span>
+                        <span className="font-bold text-[#0D0D0D] line-clamp-2">{v.title || t("noTitle")}</span>
                       </Link>
                     </td>
                     <td className="py-2 px-2 tabular-nums">{formatNumber(v.views)}</td>
@@ -246,10 +245,10 @@ export default function AnalyticsClient() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white border border-[#E5E5E5] rounded-2xl p-5">
-          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Top țări</h3>
+          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">{t("topCountriesTitle")}</h3>
           {!data || data.audienceTopCountries.length === 0 ? (
             <p className="text-sm text-[#6E6E80] py-8 text-center">
-              Datele despre țările audienței apar aici după primele vizualizări.
+              {t("noCountryData")}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -263,10 +262,10 @@ export default function AnalyticsClient() {
           )}
         </div>
         <div className="bg-white border border-[#E5E5E5] rounded-2xl p-5">
-          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">Vârstă</h3>
+          <h3 className="text-sm font-black text-[#0D0D0D] mb-4">{t("ageTitle")}</h3>
           {!data || data.audienceAgeBuckets.length === 0 ? (
             <p className="text-sm text-[#6E6E80] py-8 text-center">
-              Distribuția pe vârste apare aici când avem suficiente date despre audiență.
+              {t("noAgeData")}
             </p>
           ) : (
             <ul className="space-y-2">

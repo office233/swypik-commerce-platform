@@ -1,18 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { dbQuery } from "@/lib/db";
 import { getCreatorUserId } from "@/lib/creator/session";
 import StripeConnectCard from "@/components/stripe/StripeConnectCard";
 
 export const dynamic = "force-dynamic";
 
-const fmtRON = new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 0 });
-const fmtNum = new Intl.NumberFormat("ro-RO");
-
-function formatCents(cents: number) {
-  return fmtRON.format((cents || 0) / 100);
+function formatCents(cents: number, locale: string) {
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "RON", maximumFractionDigits: 0 }).format((cents || 0) / 100);
 }
 
 type DailyPoint = { day: string; cents: number };
@@ -189,7 +186,7 @@ async function loadFunnel(creatorId: string) {
   }
 }
 
-function Sparkline({ data, ariaLabel }: { data: DailyPoint[]; ariaLabel: string }) {
+function Sparkline({ data, ariaLabel, locale }: { data: DailyPoint[]; ariaLabel: string; locale: string }) {
   const W = 600, H = 120, pad = 4;
   const max = Math.max(1, ...data.map((d) => d.cents));
   const bw = (W - pad * 2) / Math.max(1, data.length);
@@ -215,7 +212,7 @@ function Sparkline({ data, ariaLabel }: { data: DailyPoint[]; ariaLabel: string 
             rx={2}
             fill="url(#barGrad)"
           >
-            <title>{`${d.day}: ${formatCents(d.cents)}`}</title>
+            <title>{`${d.day}: ${formatCents(d.cents, locale)}`}</title>
           </rect>
         );
       })}
@@ -237,6 +234,8 @@ export default async function CreatorDashboard() {
   const creatorId = await getCreatorUserId();
   if (!creatorId) redirect("/");
   const t = await getTranslations("creatorDashboard");
+  const locale = await getLocale();
+  const fmtNum = new Intl.NumberFormat(locale);
 
   const [kpis, series, topProducts, topVideos, payout, funnel] = await Promise.all([
     loadKpis(creatorId).catch(() => ({ salesCents: 0, orders: 0, commissionCents: 0, views: 0, newFollowers: 0 })),
@@ -258,8 +257,8 @@ export default async function CreatorDashboard() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard label={t("kpiVanzari")} value={formatCents(kpis.salesCents)} hint={t("kpiComenzi", { n: fmtNum.format(kpis.orders) })} />
-        <KpiCard label={t("kpiComision")} value={formatCents(kpis.commissionCents)} hint={t("kpiUltimele30")} />
+        <KpiCard label={t("kpiVanzari")} value={formatCents(kpis.salesCents, locale)} hint={t("kpiComenzi", { n: fmtNum.format(kpis.orders) })} />
+        <KpiCard label={t("kpiComision")} value={formatCents(kpis.commissionCents, locale)} hint={t("kpiUltimele30")} />
         <KpiCard label={t("kpiVizualizari")} value={fmtNum.format(kpis.views)} hint={t("kpiClipuriPublicate")} />
         <KpiCard label={t("kpiFolloweri")} value={fmtNum.format(kpis.newFollowers)} />
       </div>
@@ -268,10 +267,10 @@ export default async function CreatorDashboard() {
       <section className="bg-white rounded-2xl border border-[#E5E5E5] p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-[#0D0D0D]">{t("sectVanzari30z")}</h2>
-          <span className="text-xs text-[#6E6E80]">{t("total")}: {formatCents(kpis.salesCents)}</span>
+          <span className="text-xs text-[#6E6E80]">{t("total")}: {formatCents(kpis.salesCents, locale)}</span>
         </div>
         {series.length > 0 ? (
-          <Sparkline data={series} ariaLabel={t("sectVanzari30z")} />
+          <Sparkline data={series} ariaLabel={t("sectVanzari30z")} locale={locale} />
         ) : (
           <p className="text-sm text-[#6E6E80]">{t("nuExistaDate")}</p>
         )}
@@ -339,11 +338,11 @@ export default async function CreatorDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <p className="text-xs text-[#6E6E80] uppercase font-bold tracking-wider">{t("comision30z")}</p>
-            <p className="text-xl font-black text-[#0D0D0D] mt-1">{formatCents(kpis.commissionCents)}</p>
+            <p className="text-xl font-black text-[#0D0D0D] mt-1">{formatCents(kpis.commissionCents, locale)}</p>
           </div>
           <div>
             <p className="text-xs text-[#6E6E80] uppercase font-bold tracking-wider">{t("plataAsteptare")}</p>
-            <p className="text-xl font-black text-[#0D0D0D] mt-1">{formatCents(payout.pendingCents)}</p>
+            <p className="text-xl font-black text-[#0D0D0D] mt-1">{formatCents(payout.pendingCents, locale)}</p>
           </div>
           <div>
             <p className="text-xs text-[#6E6E80] uppercase font-bold tracking-wider">Stripe Connect</p>

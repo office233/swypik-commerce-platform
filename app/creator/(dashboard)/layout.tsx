@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Coins,
   Banknote,
-  CircleDot,
   UserRound,
 } from "lucide-react";
 
@@ -84,7 +83,15 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
           <Link href="/" className="text-lg font-black text-[#0D0D0D]">
             Swypik <span className="text-[#0D0D0D]">Creators</span>
           </Link>
-          <MobileDashboardNav title="Swypik" section="Creators" accentClassName="text-[#0D0D0D]" items={creatorNavItems} />
+          <MobileDashboardNav
+            title="Swypik"
+            section="Creators"
+            accentClassName="text-[#0D0D0D]"
+            items={creatorNavItems}
+            openMenuLabel={t("deschideMeniul")}
+            closeMenuLabel={t("inchideMeniul")}
+            menuLabel={t("meniu")}
+          />
         </header>
 
         {/* Content Area */}

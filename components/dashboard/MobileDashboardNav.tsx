@@ -62,16 +62,28 @@ type Props = {
   section: string;
   accentClassName: string;
   items: MobileDashboardNavItem[];
+  /** Traduceri opționale; implicit RO pentru apelanții care încă nu le transmit. */
+  openMenuLabel?: string;
+  closeMenuLabel?: string;
+  menuLabel?: string;
 };
 
-export default function MobileDashboardNav({ title, section, accentClassName, items }: Props) {
+export default function MobileDashboardNav({
+  title,
+  section,
+  accentClassName,
+  items,
+  openMenuLabel = "Deschide meniul",
+  closeMenuLabel = "Inchide meniul",
+  menuLabel = "Meniu",
+}: Props) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <button
         type="button"
-        aria-label="Deschide meniul"
+        aria-label={openMenuLabel}
         aria-expanded={open}
         onClick={() => setOpen(true)}
         className="grid h-11 w-11 place-items-center rounded-xl border border-[#E5E5E5] bg-white text-2xl text-[#0D0D0D] active:scale-95"
@@ -83,14 +95,14 @@ export default function MobileDashboardNav({ title, section, accentClassName, it
         <div className="fixed inset-0 z-[80] md:hidden" role="dialog" aria-modal="true">
           <button
             type="button"
-            aria-label="Inchide meniul"
+            aria-label={closeMenuLabel}
             className="absolute inset-0 bg-black/40"
             onClick={() => setOpen(false)}
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-[2rem] bg-white p-5 shadow-2xl safe-pb">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-[#6E6E80]">Meniu</p>
+                <p className="text-xs font-black uppercase tracking-widest text-[#6E6E80]">{menuLabel}</p>
                 <h2 className="text-xl font-black text-[#0D0D0D]">
                   {title} <span className={accentClassName}>{section}</span>
                 </h2>
