@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Users, ArrowLeft, Flame, Clock, Sparkles, Share2, ShieldCheck, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Users, ArrowLeft, Flame, Clock, Sparkles, ShieldCheck, ChevronRight } from "lucide-react";
 import { haptic } from "@/lib/haptic";
+import { SQUAD_DISCOUNT_PCT } from "@/lib/squad/config";
+import { logger } from "@/lib/logger";
 
 interface SquadItem {
     id: string;
@@ -23,6 +26,7 @@ interface SquadItem {
 }
 
 export default function SquadClient() {
+    const t = useTranslations("sellerGrowthPublicSquad");
     const router = useRouter();
     const [squads, setSquads] = useState<SquadItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -33,7 +37,7 @@ export default function SquadClient() {
             .then((d) => {
                 if (d.success) setSquads(d.squads || []);
             })
-            .catch(() => {})
+            .catch((err) => logger.warn({ err }, "Public squad feed: failed to load squads"))
             .finally(() => setLoading(false));
     }, []);
 
@@ -55,10 +59,10 @@ export default function SquadClient() {
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-600 to-violet-600 shadow-lg shadow-fuchsia-500/30">
                             <Users size={18} className="text-white" />
                         </div>
-                        <h1 className="text-lg font-black tracking-tight">Swypik Squad</h1>
+                        <h1 className="text-lg font-black tracking-tight">{t("headerTitle")}</h1>
                     </div>
                     <span className="rounded-full bg-fuchsia-500/20 px-2.5 py-1 text-xs font-black text-fuchsia-400 border border-fuchsia-500/30">
-                        -30% OFF
+                        {t("offBadge", { pct: SQUAD_DISCOUNT_PCT })}
                     </span>
                 </div>
             </header>
@@ -68,17 +72,17 @@ export default function SquadClient() {
                 <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-fuchsia-900/60 via-violet-950/60 to-black p-6 border border-fuchsia-500/30 shadow-2xl mb-6">
                     <div className="relative z-10">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-fuchsia-500/20 px-3 py-1 text-xs font-black text-fuchsia-300 border border-fuchsia-500/40 mb-3">
-                            <Sparkles size={13} /> Cumperi în 2, economisiți amândoi
+                            <Sparkles size={13} /> {t("heroKicker")}
                         </span>
                         <h2 className="text-2xl font-black leading-tight text-white mb-2">
-                            Nu plăti prețul întreg niciodată.
+                            {t("heroTitle")}
                         </h2>
                         <p className="text-xs text-white/70 leading-relaxed max-w-xs mb-4">
-                            Intră într-un Squad deschis sau creează-ți propriul grup de cumpărături. Trimite linkul unui prieten și comanda se confirmă la preț redus!
+                            {t("heroSubtitle")}
                         </p>
-                        <div className="flex items-center gap-4 text-[11px] font-semibold text-white/60">
-                            <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-400" /> Banii reținuți în siguranță</span>
-                            <span className="flex items-center gap-1"><Clock size={14} className="text-amber-400" /> Fereastră 24h</span>
+                        <div className="flex items-center gap-4 text-[11px] font-semibold text-white/60 flex-wrap">
+                            <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-400" /> {t("heroFundsSafe")}</span>
+                            <span className="flex items-center gap-1"><Clock size={14} className="text-amber-400" /> {t("heroWindow")}</span>
                         </div>
                     </div>
                     <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-fuchsia-600/20 rounded-full blur-3xl pointer-events-none" />
@@ -87,9 +91,9 @@ export default function SquadClient() {
                 {/* Squad List */}
                 <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-black uppercase tracking-wider text-white/90 flex items-center gap-2">
-                        <Flame size={16} className="text-fuchsia-400" /> Squad-uri Live (Locuri Libere)
+                        <Flame size={16} className="text-fuchsia-400" /> {t("liveSquadsTitle")}
                     </h3>
-                    <span className="text-xs text-white/50">{squads.length} active</span>
+                    <span className="text-xs text-white/50">{t("activeCount", { count: squads.length })}</span>
                 </div>
 
                 {loading ? (
@@ -101,16 +105,16 @@ export default function SquadClient() {
                 ) : squads.length === 0 ? (
                     <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center my-6">
                         <Users size={40} className="mx-auto mb-3 text-fuchsia-400 opacity-60" />
-                        <h4 className="text-base font-bold text-white mb-1">Nu există Squad-uri active chiar acum</h4>
+                        <h4 className="text-base font-bold text-white mb-1">{t("emptyTitle")}</h4>
                         <p className="text-xs text-white/60 mb-5">
-                            Fii primul care pornește un Squad! Alege un produs din Shop și dă click pe „Cumpără în Squad”.
+                            {t("emptySubtitle")}
                         </p>
                         <button
                             type="button"
                             onClick={() => router.push("/")}
                             className="h-11 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 px-6 text-xs font-black text-white shadow-lg active:scale-95 transition-transform"
                         >
-                            Explorează Produse
+                            {t("exploreProducts")}
                         </button>
                     </div>
                 ) : (
@@ -131,7 +135,7 @@ export default function SquadClient() {
                                         <div className="grid h-full place-items-center text-white/30"><Users size={24} /></div>
                                     )}
                                     <span className="absolute left-1 top-1 rounded-md bg-fuchsia-600 px-1.5 py-0.5 text-[9px] font-black text-white">
-                                        -30%
+                                        {t("pctOff", { pct: SQUAD_DISCOUNT_PCT })}
                                     </span>
                                 </div>
 
@@ -139,9 +143,9 @@ export default function SquadClient() {
                                     <div>
                                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-fuchsia-400 mb-0.5">
                                             <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400 animate-pulse" />
-                                            Inițiat de {s.creator_name}
+                                            {t("startedBy", { name: s.creator_name })}
                                         </div>
-                                        <h4 className="line-clamp-1 text-sm font-bold text-white">{s.product_title || "Produs Swypik"}</h4>
+                                        <h4 className="line-clamp-1 text-sm font-bold text-white">{s.product_title || t("productFallback")}</h4>
                                     </div>
 
                                     <div className="flex items-end justify-between gap-2 mt-2">
@@ -150,14 +154,14 @@ export default function SquadClient() {
                                                 <span className="text-base font-black text-white">{formatLei(s.squad_price_cents)}</span>
                                                 <span className="text-[11px] text-white/40 line-through">{formatLei(s.regular_price_cents)}</span>
                                             </div>
-                                            <p className="text-[10px] text-emerald-400 font-semibold">Mai e nevoie de 1 prieten</p>
+                                            <p className="text-[10px] text-emerald-400 font-semibold">{t("needsOneMoreFriend")}</p>
                                         </div>
 
                                         <button
                                             type="button"
                                             className="inline-flex h-9 items-center gap-1 rounded-xl bg-fuchsia-600 px-3.5 text-xs font-black text-white shadow active:scale-95 transition-transform"
                                         >
-                                            Intră <ChevronRight size={14} />
+                                            {t("enter")} <ChevronRight size={14} />
                                         </button>
                                     </div>
                                 </div>

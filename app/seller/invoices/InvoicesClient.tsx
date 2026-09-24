@@ -1,20 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import {
   FileText,
   Plus,
   Search,
-  Download,
-  Send,
   CheckCircle2,
   Clock,
   Printer,
   X,
-  Building,
-  User,
   FileCode,
 } from "lucide-react";
+import { logger } from "@/lib/logger";
+import { escapeXml } from "@/lib/seller/invoicing";
 
 export type InvoiceRow = {
   id: string;
@@ -37,6 +36,8 @@ type Props = {
 };
 
 export default function InvoicesClient({ initialInvoices, defaultSeries }: Props) {
+  const t = useTranslations("sellerBilling.invoices");
+  const locale = useLocale();
   const [invoices, setInvoices] = useState<InvoiceRow[]>(initialInvoices);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,7 +57,7 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
     setItems((prev) => [...prev, { title: "", quantity: 1, price: "" }]);
   };
 
-  const updateItem = (index: number, field: string, val: any) => {
+  const updateItem = (index: number, field: keyof (typeof items)[number], val: string | number) => {
     setItems((prev) =>
       prev.map((it, i) => (i === index ? { ...it, [field]: val } : it))
     );
@@ -66,13 +67,30 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Calculations for new invoice (Standard Romanian VAT 21%)
+  // Calculations for the new-invoice preview only. The authoritative totals
+  // (integer cents) are computed server-side by computeInvoiceTotals(); this
+  // is display-only rounding for the modal summary, never sent as truth.
   const totalAmount = items.reduce(
     (acc, it) => acc + (parseFloat(it.price) || 0) * (it.quantity || 1),
     0
   );
   const subtotalAmount = vatRate > 0 ? totalAmount / (1 + vatRate / 100) : totalAmount;
   const vatAmount = totalAmount - subtotalAmount;
+
+  const errorMessage = (code: string | undefined): string => {
+    switch (code) {
+      case "unauthorized":
+        return t("errUnauthorized");
+      case "rate_limited":
+        return t("errRateLimited");
+      case "validation_error":
+        return t("errValidation");
+      case "invalid_client":
+        return t("errInvalidClient");
+      default:
+        return t("errUnknown");
+    }
+  };
 
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,34 +111,23 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
         }),
       });
 
-      const data = await res.json();
-      if (!data.success) {
-        alert(data.error || "Eroare la emitere");
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        alert(errorMessage(data?.error));
         return;
       }
 
-      // Prepend to local list
-      const newInv: InvoiceRow = {
-        id: data.invoice.id,
-        series,
-        number: 1,
-        invoice_number: data.invoice.invoice_number,
-        client_name: clientName,
-        client_cui: clientCui || null,
-        subtotal_cents: Math.round(subtotalAmount * 100),
-        vat_cents: Math.round(vatAmount * 100),
-        total_cents: Math.round(totalAmount * 100),
-        status: "paid",
-        efactura_status: "pending",
-        created_at: data.invoice.created_at || new Date().toISOString(),
-      };
+      // Use the server-computed row verbatim (integer cents, real status,
+      // real series/number) instead of re-deriving totals client-side —
+      // avoids float-rounding drift between the modal preview and the DB row.
+      const newInv: InvoiceRow = data.invoice;
 
       setInvoices((prev) => [newInv, ...prev]);
       setIsModalOpen(false);
       resetForm();
     } catch (err) {
-      console.error("Error creating invoice:", err);
-      alert("A apărut o eroare de rețea.");
+      logger.error({ err }, "[SellerInvoices] create invoice failed");
+      alert(t("errNetwork"));
     } finally {
       setSubmitting(false);
     }
@@ -141,6 +148,29 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
       (inv.client_cui && inv.client_cui.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const fmtMoney = (cents: number) => {
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: "RON",
+      }).format((cents || 0) / 100);
+    } catch {
+      return `${((cents || 0) / 100).toFixed(2)} RON`;
+    }
+  };
+
+  const fmtDate = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch {
+      return "—";
+    }
+  };
+
   const downloadEFacturaXml = (inv: InvoiceRow) => {
     const issueDate = new Date(inv.created_at).toISOString().split("T")[0];
     const totalRon = (inv.total_cents / 100).toFixed(2);
@@ -151,13 +181,16 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
         ? Math.round((inv.vat_cents / inv.subtotal_cents) * 100)
         : 21;
     const taxCategoryCode = effectiveVatPercent === 0 ? "E" : "S";
+    const safeClientName = escapeXml(inv.client_name);
+    const safeInvoiceNumber = escapeXml(inv.invoice_number);
+    const safeClientCui = inv.client_cui ? escapeXml(inv.client_cui) : null;
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
   <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:efactura.mfinante.ro:CIUS-RO:1.0.1</cbc:CustomizationID>
-  <cbc:ID>${inv.invoice_number}</cbc:ID>
+  <cbc:ID>${safeInvoiceNumber}</cbc:ID>
   <cbc:IssueDate>${issueDate}</cbc:IssueDate>
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>RON</cbc:DocumentCurrencyCode>
@@ -172,8 +205,8 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
   </cac:AccountingSupplierParty>
   <cac:AccountingCustomerParty>
     <cac:Party>
-      <cac:PartyName><cbc:Name>${inv.client_name}</cbc:Name></cac:PartyName>
-      ${inv.client_cui ? `<cac:PartyTaxScheme><cbc:CompanyID>${inv.client_cui}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}
+      <cac:PartyName><cbc:Name>${safeClientName}</cbc:Name></cac:PartyName>
+      ${safeClientCui ? `<cac:PartyTaxScheme><cbc:CompanyID>${safeClientCui}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}
     </cac:Party>
   </cac:AccountingCustomerParty>
   <cac:TaxTotal>
@@ -215,7 +248,8 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Caută după serie, client sau CUI..."
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchPlaceholder")}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#E5E5E5] rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
@@ -223,9 +257,9 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 bg-[#0D0D0D] hover:bg-neutral-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition"
+          className="inline-flex items-center justify-center gap-2 bg-[#0D0D0D] hover:bg-neutral-800 text-white px-5 py-2.5 min-h-[44px] rounded-xl font-bold text-sm shadow-sm transition"
         >
-          <Plus size={16} /> Emite Factură Nouă
+          <Plus size={16} /> {t("newInvoice")}
         </button>
       </div>
 
@@ -235,81 +269,74 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
           <table className="w-full text-left text-sm">
             <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] text-xs font-bold text-neutral-500 uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-4">Serie / Număr</th>
-                <th className="px-6 py-4">Client</th>
-                <th className="px-6 py-4">Data Emiterii</th>
-                <th className="px-6 py-4">Total (TVA inclus)</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">e-Factura ANAF</th>
-                <th className="px-6 py-4 text-right">Acțiuni</th>
+                <th className="px-6 py-4">{t("thSeriesNumber")}</th>
+                <th className="px-6 py-4">{t("thClient")}</th>
+                <th className="px-6 py-4">{t("thIssueDate")}</th>
+                <th className="px-6 py-4">{t("thTotal")}</th>
+                <th className="px-6 py-4">{t("thStatus")}</th>
+                <th className="px-6 py-4">{t("thEfactura")}</th>
+                <th className="px-6 py-4 text-right">{t("thActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {filteredInvoices.map((inv) => {
-                const totalRon = (inv.total_cents / 100).toFixed(2);
-                const dateStr = new Date(inv.created_at).toLocaleDateString("ro-RO", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                });
-
-                return (
-                  <tr key={inv.id} className="hover:bg-[#F7F7F8]/60 transition">
-                    <td className="px-6 py-4 font-black text-violet-700 font-mono">
-                      {inv.invoice_number}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-[#0D0D0D]">{inv.client_name}</div>
-                      {inv.client_cui && (
-                        <div className="text-[11px] text-neutral-400 font-mono">
-                          CUI: {inv.client_cui}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-neutral-600 text-xs font-medium">
-                      {dateStr}
-                    </td>
-                    <td className="px-6 py-4 font-black text-[#0D0D0D]">
-                      {totalRon} lei
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <CheckCircle2 size={12} /> Încasată
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                        <Clock size={12} /> SPV Pregătit
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => downloadEFacturaXml(inv)}
-                          className="px-2.5 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition text-xs font-bold flex items-center gap-1"
-                          title="Descarcă XML UBL 2.1 pentru SPV ANAF"
-                        >
-                          <FileCode size={13} /> XML ANAF
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => window.print()}
-                          className="p-2 text-neutral-500 hover:text-[#0D0D0D] rounded-lg hover:bg-neutral-100 transition"
-                          title="Tipărește / Descarcă PDF"
-                        >
-                          <Printer size={16} />
-                        </button>
+              {filteredInvoices.map((inv) => (
+                <tr key={inv.id} className="hover:bg-[#F7F7F8]/60 transition">
+                  <td className="px-6 py-4 font-black text-violet-700 font-mono whitespace-nowrap">
+                    {inv.invoice_number}
+                  </td>
+                  <td className="px-6 py-4 max-w-[220px]">
+                    <div className="font-bold text-[#0D0D0D] break-words">{inv.client_name}</div>
+                    {inv.client_cui && (
+                      <div className="text-[11px] text-neutral-400 font-mono break-words">
+                        {t("cui")}: {inv.client_cui}
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-neutral-600 text-xs font-medium whitespace-nowrap">
+                    {fmtDate(inv.created_at)}
+                  </td>
+                  <td className="px-6 py-4 font-black text-[#0D0D0D] whitespace-nowrap">
+                    {fmtMoney(inv.total_cents)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                      <CheckCircle2 size={12} /> {t("statusPaid")}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+                      <Clock size={12} /> {t("efacturaReady")}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => downloadEFacturaXml(inv)}
+                        className="px-2.5 py-1.5 min-h-[40px] rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition text-xs font-bold flex items-center gap-1"
+                        title={t("downloadXmlTitle")}
+                        aria-label={t("downloadXmlTitle")}
+                      >
+                        <FileCode size={13} /> {t("downloadXml")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-neutral-500 hover:text-[#0D0D0D] rounded-lg hover:bg-neutral-100 transition"
+                        title={t("printTitle")}
+                        aria-label={t("printTitle")}
+                      >
+                        <Printer size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
 
               {filteredInvoices.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-16 text-center text-neutral-400 text-sm">
-                    Nicio factură găsită. Apasă pe &ldquo;Emite Factură Nouă&rdquo; pentru a emite prima factură!
+                    {t("emptyState")}
                   </td>
                 </tr>
               )}
@@ -321,16 +348,17 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
       {/* Modal Emite Factură */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-5 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
               <div className="flex items-center gap-2 text-lg font-black text-[#0D0D0D]">
                 <FileText className="w-5 h-5 text-violet-600" />
-                Emite Factură Nouă (ERP)
+                {t("modalTitle")}
               </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700"
+                className="p-1 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700"
+                aria-label={t("closeModal")}
               >
                 <X size={20} />
               </button>
@@ -340,21 +368,21 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Client (Nume / Firmă) *
+                    {t("clientNameLabel")}
                   </label>
                   <input
                     type="text"
                     required
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    placeholder="ex: SC Alfa SRL sau Popescu Ion"
+                    placeholder={t("clientNamePlaceholder")}
                     className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Serie Factură
+                    {t("seriesLabel")}
                   </label>
                   <input
                     type="text"
@@ -368,42 +396,42 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    CUI / CIF (Opțional)
+                    {t("cuiLabel")}
                   </label>
                   <input
                     type="text"
                     value={clientCui}
                     onChange={(e) => setClientCui(e.target.value)}
-                    placeholder="RO12345678"
+                    placeholder={t("cuiPlaceholder")}
                     className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Adresă / Oraș
+                    {t("addressLabel")}
                   </label>
                   <input
                     type="text"
                     value={clientAddress}
                     onChange={(e) => setClientAddress(e.target.value)}
-                    placeholder="București, Str..."
+                    placeholder={t("addressPlaceholder")}
                     className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Cotă TVA (România)
+                    {t("vatRateLabel")}
                   </label>
                   <select
                     value={vatRate}
                     onChange={(e) => setVatRate(Number(e.target.value))}
                     className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
                   >
-                    <option value={21}>21% (Cota Standard)</option>
-                    <option value={11}>11% (Cota Redusă)</option>
-                    <option value={0}>0% (Scutit de TVA)</option>
+                    <option value={21}>{t("vatStandard")}</option>
+                    <option value={11}>{t("vatReduced")}</option>
+                    <option value={0}>{t("vatExempt")}</option>
                   </select>
                 </div>
               </div>
@@ -412,14 +440,14 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
               <div className="pt-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-neutral-700 uppercase tracking-wider">
-                    Produse / Servicii facturate
+                    {t("itemsLabel")}
                   </span>
                   <button
                     type="button"
                     onClick={addItemRow}
-                    className="text-xs font-bold text-violet-600 hover:text-violet-700"
+                    className="text-xs font-bold text-violet-600 hover:text-violet-700 min-h-[40px] px-2"
                   >
-                    + Adaugă Linie
+                    {t("addLine")}
                   </button>
                 </div>
 
@@ -431,16 +459,17 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
                         required
                         value={it.title}
                         onChange={(e) => updateItem(idx, "title", e.target.value)}
-                        placeholder="Denumire produs/serviciu..."
-                        className="flex-1 px-3 py-2 border border-[#E5E5E5] rounded-lg text-xs font-medium"
+                        placeholder={t("itemTitlePlaceholder")}
+                        className="flex-1 min-w-0 px-3 py-2 border border-[#E5E5E5] rounded-lg text-xs font-medium"
                       />
                       <input
                         type="number"
                         min="1"
                         value={it.quantity}
                         onChange={(e) => updateItem(idx, "quantity", parseInt(e.target.value) || 1)}
-                        placeholder="Cant."
-                        className="w-16 px-2 py-2 border border-[#E5E5E5] rounded-lg text-xs font-medium text-center"
+                        placeholder={t("itemQtyPlaceholder")}
+                        aria-label={t("itemQtyPlaceholder")}
+                        className="w-16 shrink-0 px-2 py-2 border border-[#E5E5E5] rounded-lg text-xs font-medium text-center"
                       />
                       <input
                         type="number"
@@ -448,14 +477,16 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
                         required
                         value={it.price}
                         onChange={(e) => updateItem(idx, "price", e.target.value)}
-                        placeholder="Preț RON"
-                        className="w-24 px-2 py-2 border border-[#E5E5E5] rounded-lg text-xs font-medium text-right"
+                        placeholder={t("itemPricePlaceholder")}
+                        aria-label={t("itemPricePlaceholder")}
+                        className="w-24 shrink-0 px-2 py-2 border border-[#E5E5E5] rounded-lg text-xs font-medium text-right"
                       />
                       {items.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeItem(idx)}
-                          className="text-neutral-400 hover:text-red-600 p-1"
+                          className="text-neutral-400 hover:text-red-600 p-1 min-h-[40px] min-w-[40px] flex items-center justify-center shrink-0"
+                          aria-label={t("removeLine")}
                         >
                           <X size={16} />
                         </button>
@@ -468,16 +499,16 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
               {/* Totals Summary */}
               <div className="bg-[#F7F7F8] p-4 rounded-xl text-xs space-y-1 text-neutral-600">
                 <div className="flex justify-between">
-                  <span>Subtotal fără TVA:</span>
-                  <span className="font-semibold">{subtotalAmount.toFixed(2)} lei</span>
+                  <span>{t("subtotalNoVat")}</span>
+                  <span className="font-semibold">{fmtMoney(Math.round(subtotalAmount * 100))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>TVA ({vatRate}%):</span>
-                  <span className="font-semibold">{vatAmount.toFixed(2)} lei</span>
+                  <span>{t("vatLabel", { rate: vatRate })}</span>
+                  <span className="font-semibold">{fmtMoney(Math.round(vatAmount * 100))}</span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-[#0D0D0D] pt-1 border-t border-neutral-200">
-                  <span>TOTAL FACTURĂ:</span>
-                  <span className="text-violet-700">{totalAmount.toFixed(2)} lei</span>
+                  <span>{t("totalInvoice")}</span>
+                  <span className="text-violet-700">{fmtMoney(Math.round(totalAmount * 100))}</span>
                 </div>
               </div>
 
@@ -485,16 +516,16 @@ export default function InvoicesClient({ initialInvoices, defaultSeries }: Props
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-neutral-200 text-xs font-bold hover:bg-neutral-50"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-neutral-200 text-xs font-bold hover:bg-neutral-50"
                 >
-                  Anulează
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-sm disabled:opacity-50"
+                  className="px-6 py-2.5 min-h-[44px] rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-sm disabled:opacity-50"
                 >
-                  {submitting ? "Se emite..." : "Emite Factura"}
+                  {submitting ? t("submitting") : t("submit")}
                 </button>
               </div>
             </form>

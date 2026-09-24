@@ -19,6 +19,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 
 type Props = {
   order: SellerOrder | null;
@@ -37,12 +38,14 @@ export default function OrderDetailsModal({
   onPrintAwb,
   onRefund,
 }: Props) {
+  const t = useTranslations("sellerOrders");
+  const locale = useLocale();
   const [copied, setCopied] = useState(false);
 
   if (!isOpen || !order) return null;
 
   const shortId = order.order_id.slice(0, 8).toUpperCase();
-  const customerName = order.order_metadata.customer_name || order.order_metadata.shipping_address?.name || "Client Swypik";
+  const customerName = order.order_metadata.customer_name || order.order_metadata.shipping_address?.name || t("table.defaultCustomer");
   const customerPhone = order.order_metadata.customer_phone || order.order_metadata.shipping_address?.phone || "-";
   const customerEmail = order.order_metadata.customer_email || "-";
   const shippingAddress = order.order_metadata.shipping_address;
@@ -61,7 +64,7 @@ export default function OrderDetailsModal({
     order.order_metadata.awb_details?.carrier ||
     order.order_metadata.tracking_carrier ||
     order.order_metadata.shipping_method ||
-    "Livrare Standard";
+    t("courier.standard");
 
   const easyboxLocker =
     order.order_metadata.awb_details?.locker_name ||
@@ -79,23 +82,24 @@ export default function OrderDetailsModal({
     }
   };
 
-  const formattedDate = new Date(order.created_at).toLocaleDateString("ro-RO", {
+  const currency = new Intl.NumberFormat(locale, { style: "currency", currency: "RON" });
+  const formattedDate = new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  }).format(new Date(order.created_at));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90dvh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-neutral-50/70 shrink-0">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-neutral-900">
-                Comanda #SWY-{shortId}
+                {t("detailsModal.title", { id: shortId })}
               </h2>
               <span
                 className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
@@ -109,22 +113,23 @@ export default function OrderDetailsModal({
                 }`}
               >
                 {order.status === "fulfilled"
-                  ? "Expediat"
+                  ? t("status.fulfilled")
                   : isReturnRequested
-                  ? "Retur solicitat"
+                  ? t("status.returnRequested")
                   : isRefunded
-                  ? "Restituit"
-                  : "În procesare"}
+                  ? t("status.refunded")
+                  : t("status.pending")}
               </span>
             </div>
             <p className="text-xs text-neutral-500 mt-0.5 flex items-center gap-1.5">
               <Calendar size={13} />
-              Plasată pe {formattedDate}
+              {t("detailsModal.placedOn", { date: formattedDate })}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("actions.close")}
             className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition"
           >
             <X size={18} />
@@ -139,7 +144,7 @@ export default function OrderDetailsModal({
             <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-2.5">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-500 pb-1 border-b border-neutral-200/60">
                 <User size={14} className="text-neutral-700" />
-                Date Cumpărător
+                {t("detailsModal.buyerData")}
               </div>
               <p className="font-bold text-neutral-900 text-sm">{customerName}</p>
               <div className="space-y-1.5 text-xs text-neutral-600">
@@ -150,7 +155,7 @@ export default function OrderDetailsModal({
                       {customerPhone}
                     </a>
                   ) : (
-                    <span>Fără telefon</span>
+                    <span>{t("detailsModal.noPhone")}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -160,7 +165,7 @@ export default function OrderDetailsModal({
                       {customerEmail}
                     </a>
                   ) : (
-                    <span>Fără email</span>
+                    <span>{t("detailsModal.noEmail")}</span>
                   )}
                 </div>
               </div>
@@ -170,7 +175,7 @@ export default function OrderDetailsModal({
             <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-2.5">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-500 pb-1 border-b border-neutral-200/60">
                 <MapPin size={14} className="text-neutral-700" />
-                Adresă Livrare & Curier
+                {t("detailsModal.shippingAddress")}
               </div>
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800 mb-1.5">
@@ -185,7 +190,7 @@ export default function OrderDetailsModal({
                 </span>
                 {easyboxLocker && (
                   <p className="text-xs font-bold text-violet-900">
-                    Locker: {easyboxLocker}
+                    {t("detailsModal.locker", { locker: easyboxLocker })}
                   </p>
                 )}
                 {shippingAddress ? (
@@ -195,12 +200,12 @@ export default function OrderDetailsModal({
                     <p>
                       {shippingAddress.city}
                       {shippingAddress.state ? `, ${shippingAddress.state}` : ""}
-                      {shippingAddress.postal_code ? ` - CP ${shippingAddress.postal_code}` : ""}
+                      {shippingAddress.postal_code ? ` - ${t("detailsModal.postalCode")} ${shippingAddress.postal_code}` : ""}
                     </p>
-                    <p className="text-neutral-500">{shippingAddress.country || "România"}</p>
+                    <p className="text-neutral-500">{shippingAddress.country || t("detailsModal.defaultCountry")}</p>
                   </div>
                 ) : (
-                  <p className="text-xs text-neutral-500 italic mt-1">Nu există adresă înregistrată.</p>
+                  <p className="text-xs text-neutral-500 italic mt-1">{t("detailsModal.noAddress")}</p>
                 )}
               </div>
             </div>
@@ -212,12 +217,12 @@ export default function OrderDetailsModal({
               <div className="flex items-center gap-2">
                 <Package className="text-violet-600" size={17} />
                 <span className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                  Status Expediere & AWB
+                  {t("detailsModal.shippingStatus")}
                 </span>
               </div>
               {awbNumber && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  AWB Generat
+                  {t("detailsModal.awbGenerated")}
                 </span>
               )}
             </div>
@@ -225,7 +230,7 @@ export default function OrderDetailsModal({
             {awbNumber ? (
               <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-50 p-3.5 rounded-xl border border-neutral-200/70">
                 <div>
-                  <div className="text-xs text-neutral-500">Cod AWB ({deliveryMethod}):</div>
+                  <div className="text-xs text-neutral-500">{t("detailsModal.awbCode", { carrier: deliveryMethod })}</div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="font-mono text-base font-black text-neutral-900">
                       {awbNumber}
@@ -233,8 +238,9 @@ export default function OrderDetailsModal({
                     <button
                       type="button"
                       onClick={handleCopyAwb}
+                      aria-label={t("detailsModal.copyAwb")}
                       className="p-1 text-neutral-400 hover:text-neutral-700 rounded transition"
-                      title="Copiază AWB"
+                      title={t("detailsModal.copyAwb")}
                     >
                       {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                     </button>
@@ -248,7 +254,7 @@ export default function OrderDetailsModal({
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-[#0D0D0D] hover:bg-black rounded-xl shadow-sm transition"
                   >
                     <Printer size={14} />
-                    Tipărește AWB
+                    {t("actions.printAwb")}
                   </button>
                   {trackingUrl && (
                     <a
@@ -258,7 +264,7 @@ export default function OrderDetailsModal({
                       className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-neutral-700 bg-white border border-neutral-300 hover:bg-neutral-50 rounded-xl transition"
                     >
                       <ExternalLink size={13} />
-                      Urmărește
+                      {t("actions.trackParcel")}
                     </a>
                   )}
                 </div>
@@ -266,9 +272,9 @@ export default function OrderDetailsModal({
             ) : (
               <div className="mt-3 p-4 bg-amber-50/60 rounded-xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <p className="font-bold text-xs text-amber-900">Comanda necesită generare AWB</p>
+                  <p className="font-bold text-xs text-amber-900">{t("detailsModal.needsAwbTitle")}</p>
                   <p className="text-xs text-amber-700 mt-0.5">
-                    Generează eticheta de transport pentru a expedia coletul către cumpărător.
+                    {t("detailsModal.needsAwbHint")}
                   </p>
                 </div>
                 {!isReturnRequested && !isRefunded && (
@@ -278,7 +284,7 @@ export default function OrderDetailsModal({
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl shadow transition shrink-0"
                   >
                     <Package size={14} />
-                    Generează AWB
+                    {t("actions.generateAwb")}
                   </button>
                 )}
               </div>
@@ -290,7 +296,7 @@ export default function OrderDetailsModal({
             <div className="p-4 rounded-xl bg-orange-50 border border-orange-200">
               <p className="text-xs font-bold text-orange-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 <RotateCcw size={14} />
-                Motiv solicitare retur
+                {t("detailsModal.returnReasonTitle")}
               </p>
               <p className="text-xs text-orange-800 italic">
                 &ldquo;{order.order_metadata.return_reason}&rdquo;
@@ -301,7 +307,7 @@ export default function OrderDetailsModal({
                   onClick={() => onRefund(order.order_id)}
                   className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-orange-500 to-red-500 rounded-xl hover:from-orange-600 hover:to-red-600 shadow transition"
                 >
-                  Aprobă Retur & Restituie Banii
+                  {t("actions.approveReturn")}
                 </button>
               )}
             </div>
@@ -310,16 +316,16 @@ export default function OrderDetailsModal({
           {/* Ordered products table */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-600 mb-2.5">
-              Produse Comandate ({order.items.length})
+              {t("detailsModal.orderedItems", { count: order.items.length })}
             </h3>
-            <div className="border border-neutral-200 rounded-xl overflow-hidden">
+            <div className="border border-neutral-200 rounded-xl overflow-hidden overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-semibold">
                   <tr>
-                    <th className="px-4 py-2.5">Produs</th>
-                    <th className="px-4 py-2.5 text-center">Cantitate</th>
-                    <th className="px-4 py-2.5 text-right">Preț unitar</th>
-                    <th className="px-4 py-2.5 text-right">Total</th>
+                    <th className="px-4 py-2.5">{t("detailsModal.colProduct")}</th>
+                    <th className="px-4 py-2.5 text-center">{t("detailsModal.colQuantity")}</th>
+                    <th className="px-4 py-2.5 text-right">{t("detailsModal.colUnitPrice")}</th>
+                    <th className="px-4 py-2.5 text-right">{t("table.colTotal")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
@@ -332,10 +338,10 @@ export default function OrderDetailsModal({
                         {item.quantity}x
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-neutral-600">
-                        {(item.unit_amount_cents / 100).toFixed(2)} RON
+                        {currency.format(item.unit_amount_cents / 100)}
                       </td>
                       <td className="px-4 py-3 text-right font-mono font-bold text-neutral-900">
-                        {((item.quantity * item.unit_amount_cents) / 100).toFixed(2)} RON
+                        {currency.format((item.quantity * item.unit_amount_cents) / 100)}
                       </td>
                     </tr>
                   ))}
@@ -348,12 +354,12 @@ export default function OrderDetailsModal({
           <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs text-neutral-600">
               <CreditCard size={16} className="text-neutral-500" />
-              <span>Plată online card (Stripe) — Confirmată</span>
+              <span>{t("detailsModal.paymentConfirmed")}</span>
             </div>
             <div className="text-right">
-              <span className="text-xs text-neutral-500 mr-2 font-medium">Total Încasat:</span>
+              <span className="text-xs text-neutral-500 mr-2 font-medium">{t("detailsModal.totalCollected")}</span>
               <span className="text-lg font-black text-neutral-900 font-mono">
-                {(order.total_cents / 100).toFixed(2)} RON
+                {currency.format(order.total_cents / 100)}
               </span>
             </div>
           </div>
@@ -369,7 +375,7 @@ export default function OrderDetailsModal({
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-neutral-800 bg-white border border-neutral-300 hover:bg-neutral-100 rounded-xl transition"
               >
                 <Printer size={14} />
-                Tipărește AWB
+                {t("actions.printAwb")}
               </button>
             ) : (
               !isReturnRequested && !isRefunded && (
@@ -379,7 +385,7 @@ export default function OrderDetailsModal({
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition shadow-sm"
                 >
                   <Package size={14} />
-                  Generează AWB
+                  {t("actions.generateAwb")}
                 </button>
               )
             )}
@@ -389,7 +395,7 @@ export default function OrderDetailsModal({
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 rounded-xl transition"
           >
-            Închide
+            {t("actions.close")}
           </button>
         </div>
       </div>

@@ -68,22 +68,53 @@ export const POST = withErrorHandling(async function POST(req: Request) {
 
   const parsed = parseBody(CreateInvoiceSchema, await req.json().catch(() => null));
   if (!parsed.ok) {
-    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: "validation_error", issues: parsed.issues },
+      { status: 400 },
+    );
   }
   const input = parsed.data;
+
+  // IDOR guard: `clientId` is client-supplied — verify it actually belongs to this
+  // seller's own client book before trusting it (audit 2026-09-24, wave2-misc).
+  if (input.clientId) {
+    const { rows: clientRows } = await dbQuery(
+      `SELECT 1 FROM seller_clients WHERE id = $1 AND seller_id = $2`,
+      [input.clientId, sellerId],
+    );
+    if (clientRows.length === 0) {
+      return NextResponse.json({ success: false, error: "invalid_client" }, { status: 400 });
+    }
+  }
+
   const totals = computeInvoiceTotals(input.items, input.vatRate);
 
   // Numărul se consumă în aceeași tranzacție cu inserarea: fără goluri la eroare,
   // fără duplicate sub concurență (contor atomic, UNIQUE pe seller+serie+număr).
+  type InsertedInvoice = {
+    id: string;
+    series: string;
+    number: number;
+    invoice_number: string;
+    client_name: string;
+    client_cui: string | null;
+    subtotal_cents: number;
+    vat_cents: number;
+    total_cents: number;
+    status: string;
+    efactura_status: string;
+    created_at: string;
+  };
   const invoice = await withTransaction(async (q) => {
     const number = await nextSellerSequence(q, sellerId, "invoice", input.series);
-    const { rows } = await q<{ id: string; invoice_number: string; created_at: string }>(
+    const { rows } = await q<InsertedInvoice>(
       `INSERT INTO seller_invoices (
          seller_id, client_id, series, number, invoice_number,
          client_name, client_cui, client_address,
          items, vat_rate_pct, subtotal_cents, vat_cents, total_cents, status
        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $14)
-       RETURNING id, invoice_number, created_at`,
+       RETURNING id, series, number, invoice_number, client_name, client_cui,
+                 subtotal_cents, vat_cents, total_cents, status, efactura_status, created_at`,
       [
         sellerId,
         input.clientId ?? null,

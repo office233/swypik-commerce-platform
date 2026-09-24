@@ -1,11 +1,14 @@
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 import AdsClient from "./AdsClient";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 export default async function SellerAdsPage() {
+  const t = await getTranslations("sellerGrowthAds");
   const sellerId = await getSellerSessionId();
 
   let initialCampaigns: any[] = [];
@@ -46,12 +49,12 @@ export default async function SellerAdsPage() {
       );
       sellerProducts = prods;
     } catch (e) {
-      console.error("Error loading seller ads:", e);
+      logger.error({ err: e, sellerId }, "Error loading seller ads");
     }
   }
 
   return (
-    <Suspense fallback={<div className="p-8 text-neutral-500 font-bold">Se încarcă Swypik Ads...</div>}>
+    <Suspense fallback={<div className="p-8 text-neutral-500 font-bold">{t("loadingPage")}</div>}>
       <AdsClient initialCampaigns={initialCampaigns} sellerProducts={sellerProducts} />
     </Suspense>
   );

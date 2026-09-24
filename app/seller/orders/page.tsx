@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import useSWR from "swr";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Package,
   RefreshCw,
@@ -16,93 +16,126 @@ import {
   ExternalLink,
   Eye,
   CheckCircle2,
-  Filter,
-  ArrowUpDown,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { SellerOrder } from "./types";
 import GenerateAwbModal from "./GenerateAwbModal";
 import PrintAwbModal from "./PrintAwbModal";
 import OrderDetailsModal from "./OrderDetailsModal";
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.success === false) {
-    throw new Error(json.error || "Nu am putut încărca comenzile.");
-  }
-  return json;
-};
+const KNOWN_ERROR_CODES = new Set([
+  "unauthorized",
+  "not_found",
+  "rate_limited",
+  "invalid_status",
+  "already_refunded",
+  "order_not_owned",
+  "multi_seller_requires_admin",
+  "missing_payment_intent",
+  "stripe_refund_failed",
+  "awb_number_required",
+  "validation_error",
+  "server_error",
+  "feature_frozen",
+]);
 
-/* ───────────────────────────── Status Badge ───────────────────────────── */
-function StatusBadge({ status, label }: { status: string; label?: string }) {
-  switch (status) {
-    case "fulfilled":
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-          <CheckCircle2 size={13} />
-          {label || "Expediat"}
-        </span>
-      );
-    case "return_requested":
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 ring-2 ring-orange-300">
-          <RotateCcw size={13} />
-          {label || "Retur solicitat"}
-        </span>
-      );
-    case "refunded":
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
-          <Banknote size={13} />
-          {label || "Restituit"}
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-          <Hourglass size={13} />
-          {label || "În procesare"}
-        </span>
-      );
-  }
-}
-
-/* ───────────────────────────── Courier Badge ───────────────────────────── */
-function CourierBadge({ method, awbNumber }: { method?: string | null; awbNumber?: string | null }) {
-  const m = (method || "").toLowerCase();
-  let badgeStyle = "bg-neutral-100 text-neutral-800 border-neutral-200";
-  let icon = <Package size={13} />;
-  let label = method || "Livrare Standard";
-
-  if (m.includes("easybox") || m.includes("sameday")) {
-    badgeStyle = "bg-violet-100 text-violet-800 border-violet-200";
-    icon = <Box size={13} />;
-    label = m.includes("easybox") ? "Sameday Easybox" : "Sameday Curier";
-  } else if (m.includes("fan")) {
-    badgeStyle = "bg-blue-100 text-blue-800 border-blue-200";
-    icon = <Truck size={13} />;
-    label = "Fan Courier";
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeStyle} w-fit`}>
-        {icon}
-        <span>{label}</span>
-      </span>
-      {awbNumber && (
-        <span className="font-mono text-[11px] text-neutral-600 font-medium">
-          AWB: <span className="font-bold text-neutral-900">{awbNumber}</span>
-        </span>
-      )}
-    </div>
-  );
+/** Traduce un cod de eroare stabil venit din API; dacă e text brut (ex.
+ * mesajul Stripe deja sigur pentru afișare), îl arată direct. */
+function translateError(code: string | undefined | null, t: (key: string) => string): string {
+  if (code && KNOWN_ERROR_CODES.has(code)) return t(`errors.${code}`);
+  return code || t("errors.server_error");
 }
 
 export default function SellerOrdersPage() {
   const t = useTranslations("sellerOrders");
+  const locale = useLocale();
+
+  const fetcher = async (url: string) => {
+    const res = await fetch(url);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.success === false) {
+      throw new Error(translateError(json.error, t));
+    }
+    return json;
+  };
+
   const { data, error, mutate, isValidating } = useSWR("/api/seller/orders", fetcher);
+
+  const currency = useMemo(
+    () => new Intl.NumberFormat(locale, { style: "currency", currency: "RON" }),
+    [locale]
+  );
+  const dateTimeFormat = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+    [locale]
+  );
+
+  /* ───────────────────────────── Status Badge ───────────────────────────── */
+  function StatusBadge({ status, label }: { status: string; label?: string }) {
+    switch (status) {
+      case "fulfilled":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+            <CheckCircle2 size={13} />
+            {label || t("status.fulfilled")}
+          </span>
+        );
+      case "return_requested":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 ring-2 ring-orange-300">
+            <RotateCcw size={13} />
+            {label || t("status.returnRequested")}
+          </span>
+        );
+      case "refunded":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+            <Banknote size={13} />
+            {label || t("status.refunded")}
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+            <Hourglass size={13} />
+            {label || t("status.pending")}
+          </span>
+        );
+    }
+  }
+
+  /* ───────────────────────────── Courier Badge ───────────────────────────── */
+  function CourierBadge({ method, awbNumber }: { method?: string | null; awbNumber?: string | null }) {
+    const m = (method || "").toLowerCase();
+    let badgeStyle = "bg-neutral-100 text-neutral-800 border-neutral-200";
+    let icon = <Package size={13} />;
+    let label = method || t("courier.standard");
+
+    if (m.includes("easybox") || m.includes("sameday")) {
+      badgeStyle = "bg-violet-100 text-violet-800 border-violet-200";
+      icon = <Box size={13} />;
+      label = m.includes("easybox") ? t("courier.easybox") : t("courier.samedayCourier");
+    } else if (m.includes("fan")) {
+      badgeStyle = "bg-blue-100 text-blue-800 border-blue-200";
+      icon = <Truck size={13} />;
+      label = t("courier.fan");
+    }
+
+    return (
+      <div className="flex flex-col gap-1">
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeStyle} w-fit`}>
+          {icon}
+          <span>{label}</span>
+        </span>
+        {awbNumber && (
+          <span className="font-mono text-[11px] text-neutral-600 font-medium">
+            {t("table.awbShort")}: <span className="font-bold text-neutral-900">{awbNumber}</span>
+          </span>
+        )}
+      </div>
+    );
+  }
 
   // Modals state
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<SellerOrder | null>(null);
@@ -116,7 +149,7 @@ export default function SellerOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "fulfilled" | "returns">("all");
   const [courierFilter, setCourierFilter] = useState<string>("all");
 
-  const rawOrders: SellerOrder[] = data?.orders || [];
+  const rawOrders: SellerOrder[] = useMemo(() => data?.orders || [], [data]);
   const isLoading = !data && !error;
 
   /* ────── Stats calculation ────── */
@@ -145,7 +178,7 @@ export default function SellerOrdersPage() {
       pendingAwbCount,
       fulfilledCount,
       returnsCount,
-      totalRon: (totalCents / 100).toFixed(2),
+      totalCents,
     };
   }, [rawOrders]);
 
@@ -197,16 +230,14 @@ export default function SellerOrdersPage() {
 
   /* ────── AWB Success handler ────── */
   const handleAwbSuccess = (awbNumber: string) => {
-    setSuccessToast(`AWB ${awbNumber} a fost generat cu succes!`);
+    setSuccessToast(t("toast.awbSuccess", { awb: awbNumber }));
     mutate();
     setTimeout(() => setSuccessToast(null), 5000);
   };
 
   /* ────── Refund handler ────── */
   const handleRefund = async (orderId: string) => {
-    const confirmed = confirm(
-      "Ești sigur că vrei să aprobi returul și să restituiești banii clientului?\n\nAceastă acțiune este ireversibilă."
-    );
+    const confirmed = confirm(t("actions.confirmRefund"));
     if (!confirmed) return;
 
     setLoadingRefund(orderId);
@@ -215,15 +246,15 @@ export default function SellerOrdersPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (json.success) {
-        alert("Restituirea a fost procesată cu succes! Banii vor fi returnați pe cardul clientului.");
+        alert(t("actions.refundSuccess"));
         mutate();
       } else {
-        alert("Eroare la restituire: " + json.error);
+        alert(t("actions.refundError", { msg: translateError(json.error, t) }));
       }
     } catch (err) {
-      alert("A apărut o eroare la procesarea restituirii.");
+      alert(t("actions.refundGenericError"));
     } finally {
       setLoadingRefund(null);
     }
@@ -239,9 +270,10 @@ export default function SellerOrdersPage() {
           <button
             type="button"
             onClick={() => setSuccessToast(null)}
+            aria-label={t("actions.closeToast")}
             className="ml-2 text-emerald-300 hover:text-white"
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       )}
@@ -250,14 +282,12 @@ export default function SellerOrdersPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-[#0D0D0D]">Comenzi Swypik Shop</h1>
+            <h1 className="text-2xl font-black text-[#0D0D0D]">{t("header.title")}</h1>
             <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-800">
-              ERP Gestiune
+              {t("header.badgeErp")}
             </span>
           </div>
-          <p className="text-sm text-[#6E6E80] mt-1">
-            Gestionează comenzile primite, generează AWB-uri de transport (Sameday / Fan Courier) și tipărește etichetele.
-          </p>
+          <p className="text-sm text-[#6E6E80] mt-1">{t("header.subtitle")}</p>
         </div>
 
         <button
@@ -267,7 +297,7 @@ export default function SellerOrdersPage() {
           className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-neutral-700 bg-white border border-neutral-300 hover:bg-neutral-50 rounded-xl transition shadow-sm w-fit"
         >
           <RefreshCw size={14} className={isValidating ? "animate-spin text-violet-600" : ""} />
-          Actualizează
+          {t("header.refresh")}
         </button>
       </div>
 
@@ -276,51 +306,51 @@ export default function SellerOrdersPage() {
         {/* Total Orders */}
         <div className="bg-white p-4 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-[#6E6E80] mb-2">
-            <span className="text-xs font-semibold">Total Comenzi</span>
+            <span className="text-xs font-semibold">{t("kpi.totalOrders")}</span>
             <ShoppingBag size={18} className="text-neutral-500" />
           </div>
           <div className="text-2xl font-black text-[#0D0D0D] font-mono">
             {stats.totalOrders}
           </div>
-          <div className="text-[11px] text-[#6E6E80] mt-1">Canalul Swypik Social Shop</div>
+          <div className="text-[11px] text-[#6E6E80] mt-1">{t("kpi.totalOrdersHint")}</div>
         </div>
 
         {/* Pending AWB */}
         <div className="bg-white p-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-white to-amber-50/40 shadow-sm">
           <div className="flex items-center justify-between text-amber-700 mb-2">
-            <span className="text-xs font-bold">Necesită AWB</span>
+            <span className="text-xs font-bold">{t("kpi.pendingAwb")}</span>
             <Package size={18} className="text-amber-600" />
           </div>
           <div className="text-2xl font-black text-amber-900 font-mono">
             {stats.pendingAwbCount}
           </div>
           <div className="text-[11px] text-amber-700 mt-1 font-medium">
-            Gata de pregătire & expediere
+            {t("kpi.pendingAwbHint")}
           </div>
         </div>
 
         {/* Shipped */}
         <div className="bg-white p-4 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-emerald-700 mb-2">
-            <span className="text-xs font-semibold">Expediate cu AWB</span>
+            <span className="text-xs font-semibold">{t("kpi.shipped")}</span>
             <Truck size={18} className="text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-neutral-900 font-mono">
             {stats.fulfilledCount}
           </div>
-          <div className="text-[11px] text-[#6E6E80] mt-1">În tranzit sau livrate</div>
+          <div className="text-[11px] text-[#6E6E80] mt-1">{t("kpi.shippedHint")}</div>
         </div>
 
         {/* Total Revenue */}
         <div className="bg-white p-4 rounded-2xl border border-[#E5E5E5] shadow-sm">
           <div className="flex items-center justify-between text-[#6E6E80] mb-2">
-            <span className="text-xs font-semibold">Venit Încasat</span>
+            <span className="text-xs font-semibold">{t("kpi.revenue")}</span>
             <Banknote size={18} className="text-neutral-500" />
           </div>
           <div className="text-2xl font-black text-[#0D0D0D] font-mono">
-            {stats.totalRon} <span className="text-xs font-bold">RON</span>
+            {currency.format(stats.totalCents / 100)}
           </div>
-          <div className="text-[11px] text-[#6E6E80] mt-1">Plăți procesate securizat</div>
+          <div className="text-[11px] text-[#6E6E80] mt-1">{t("kpi.revenueHint")}</div>
         </div>
       </div>
 
@@ -334,23 +364,28 @@ export default function SellerOrdersPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Caută după ID comandă, cumpărător, telefon, AWB sau produs..."
+              placeholder={t("toolbar.searchPlaceholder")}
+              aria-label={t("toolbar.searchPlaceholder")}
               className="w-full pl-10 pr-4 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:outline-none transition"
             />
           </div>
 
           {/* Courier filter dropdown */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-medium text-neutral-500 hidden sm:inline">Curier:</span>
+            <span className="text-xs font-medium text-neutral-500 hidden sm:inline">{t("toolbar.courierLabel")}</span>
+            <label className="sr-only" htmlFor="seller-orders-courier-filter">
+              {t("toolbar.courierLabel")}
+            </label>
             <select
+              id="seller-orders-courier-filter"
               value={courierFilter}
               onChange={(e) => setCourierFilter(e.target.value)}
               className="px-3 py-2 text-xs font-semibold bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none cursor-pointer"
             >
-              <option value="all">Toate Metodele</option>
-              <option value="easybox">Sameday Easybox</option>
-              <option value="fan">Fan Courier</option>
-              <option value="standard">Livrare Standard</option>
+              <option value="all">{t("toolbar.courierAll")}</option>
+              <option value="easybox">{t("courier.easybox")}</option>
+              <option value="fan">{t("courier.fan")}</option>
+              <option value="standard">{t("courier.standard")}</option>
             </select>
           </div>
         </div>
@@ -366,7 +401,7 @@ export default function SellerOrdersPage() {
                 : "text-neutral-600 hover:bg-neutral-100"
             }`}
           >
-            Toate ({rawOrders.length})
+            {t("toolbar.tabAll", { count: rawOrders.length })}
           </button>
           <button
             type="button"
@@ -377,7 +412,7 @@ export default function SellerOrdersPage() {
                 : "text-amber-700 hover:bg-amber-50"
             }`}
           >
-            Necesită AWB ({stats.pendingAwbCount})
+            {t("toolbar.tabPending", { count: stats.pendingAwbCount })}
           </button>
           <button
             type="button"
@@ -388,7 +423,7 @@ export default function SellerOrdersPage() {
                 : "text-emerald-700 hover:bg-emerald-50"
             }`}
           >
-            Expediate ({stats.fulfilledCount})
+            {t("toolbar.tabFulfilled", { count: stats.fulfilledCount })}
           </button>
           <button
             type="button"
@@ -399,7 +434,7 @@ export default function SellerOrdersPage() {
                 : "text-orange-700 hover:bg-orange-50"
             }`}
           >
-            Retururi ({stats.returnsCount})
+            {t("toolbar.tabReturns", { count: stats.returnsCount })}
           </button>
         </div>
       </div>
@@ -411,25 +446,25 @@ export default function SellerOrdersPage() {
             <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5]">
               <tr>
                 <th className="px-5 py-3.5 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">
-                  ID Comandă & Dată
+                  {t("table.colOrder")}
                 </th>
                 <th className="px-5 py-3.5 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">
-                  Cumpărător
+                  {t("table.colBuyer")}
                 </th>
                 <th className="px-5 py-3.5 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">
-                  Produse Comandate
+                  {t("table.colProducts")}
                 </th>
                 <th className="px-5 py-3.5 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">
-                  Metodă Livrare / AWB
+                  {t("table.colShipping")}
                 </th>
                 <th className="px-5 py-3.5 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">
-                  Status
+                  {t("table.colStatus")}
                 </th>
                 <th className="px-5 py-3.5 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">
-                  Total
+                  {t("table.colTotal")}
                 </th>
                 <th className="px-5 py-3.5 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">
-                  Acțiuni
+                  {t("table.colActions")}
                 </th>
               </tr>
             </thead>
@@ -439,21 +474,21 @@ export default function SellerOrdersPage() {
                   <td colSpan={7} className="px-6 py-16 text-center text-[#6E6E80]">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw size={24} className="animate-spin text-violet-600" />
-                      <span className="text-xs font-semibold">Se încarcă comenzile comerciantului...</span>
+                      <span className="text-xs font-semibold">{t("table.loading")}</span>
                     </div>
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
-                    <p className="font-bold text-red-700">Nu am putut încărca comenzile.</p>
-                    <p className="text-sm text-[#6E6E80] mt-1">{error.message || "Eroare necunoscută"}</p>
+                    <p className="font-bold text-red-700">{t("table.errorTitle")}</p>
+                    <p className="text-sm text-[#6E6E80] mt-1">{error.message || t("errors.server_error")}</p>
                     <button
                       type="button"
                       onClick={() => mutate()}
                       className="mt-4 inline-flex items-center px-4 py-2 text-xs font-bold text-white bg-[#0D0D0D] rounded-xl hover:bg-black"
                     >
-                      Reîncearcă
+                      {t("table.retry")}
                     </button>
                   </td>
                 </tr>
@@ -465,14 +500,10 @@ export default function SellerOrdersPage() {
                         <ShoppingBag size={24} />
                       </div>
                       <p className="font-bold text-[#0D0D0D] text-sm">
-                        {rawOrders.length === 0
-                          ? "Nicio comandă deocamdată"
-                          : "Nicio comandă conform filtrelor selectate"}
+                        {rawOrders.length === 0 ? t("table.emptyTitleNone") : t("table.emptyTitleFiltered")}
                       </p>
                       <p className="text-xs text-[#6E6E80] mt-1">
-                        {rawOrders.length === 0
-                          ? "Comenzile plasate de clienți în Swypik Shop vor apărea aici pentru procesare și generare AWB."
-                          : "Încearcă să resetezi termenii de căutare sau filtrele de curier."}
+                        {rawOrders.length === 0 ? t("table.emptyHintNone") : t("table.emptyHintFiltered")}
                       </p>
                     </div>
                   </td>
@@ -483,7 +514,7 @@ export default function SellerOrdersPage() {
                   const customerName =
                     order.order_metadata?.customer_name ||
                     order.order_metadata?.shipping_address?.name ||
-                    "Client Swypik";
+                    t("table.defaultCustomer");
                   const customerPhone =
                     order.order_metadata?.customer_phone ||
                     order.order_metadata?.shipping_address?.phone ||
@@ -505,12 +536,7 @@ export default function SellerOrdersPage() {
                   const isRefunded = order.status === "refunded";
                   const isFulfilled = order.status === "fulfilled" || Boolean(awbNumber);
 
-                  const formattedOrderDate = new Date(order.created_at).toLocaleDateString("ro-RO", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
+                  const formattedOrderDate = dateTimeFormat.format(new Date(order.created_at));
 
                   return (
                     <tr
@@ -573,7 +599,7 @@ export default function SellerOrdersPage() {
 
                       {/* Total */}
                       <td className="px-5 py-4 text-right font-mono font-bold text-neutral-900 text-xs">
-                        {(order.total_cents / 100).toFixed(2)} RON
+                        {currency.format(order.total_cents / 100)}
                       </td>
 
                       {/* Acțiuni */}
@@ -583,7 +609,8 @@ export default function SellerOrdersPage() {
                           <button
                             type="button"
                             onClick={() => setSelectedOrderDetails(order)}
-                            title="Vezi detalii comandă"
+                            aria-label={t("actions.viewDetails")}
+                            title={t("actions.viewDetails")}
                             className="p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition"
                           >
                             <Eye size={15} />
@@ -597,7 +624,7 @@ export default function SellerOrdersPage() {
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg shadow-sm transition"
                             >
                               <Package size={13} />
-                              Generează AWB
+                              {t("actions.generateAwb")}
                             </button>
                           )}
 
@@ -607,10 +634,10 @@ export default function SellerOrdersPage() {
                               type="button"
                               onClick={() => setSelectedOrderForPrint(order)}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition"
-                              title="Tipărește document transport"
+                              title={t("actions.printAwb")}
                             >
                               <Printer size={13} />
-                              Tipărește AWB
+                              {t("actions.printAwb")}
                             </button>
                           )}
 
@@ -621,7 +648,8 @@ export default function SellerOrdersPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-2 text-neutral-400 hover:text-neutral-800 rounded-lg transition"
-                              title="Urmărește expedierea pe site-ul curierului"
+                              aria-label={t("actions.trackParcel")}
+                              title={t("actions.trackParcel")}
                             >
                               <ExternalLink size={14} />
                             </a>
@@ -635,7 +663,7 @@ export default function SellerOrdersPage() {
                               disabled={loadingRefund === order.order_id}
                               className="px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-orange-500 to-red-500 rounded-lg hover:from-orange-600 hover:to-red-600 shadow-sm transition disabled:opacity-50"
                             >
-                              {loadingRefund === order.order_id ? "Se procesează..." : "Aprobă Retur"}
+                              {loadingRefund === order.order_id ? t("actions.approveReturnLoading") : t("actions.approveReturn")}
                             </button>
                           )}
                         </div>

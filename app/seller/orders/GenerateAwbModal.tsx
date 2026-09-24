@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { SellerOrder } from "./types";
 import { X, Package, Truck, Box, Check, AlertCircle, Loader2 } from "lucide-react";
 
@@ -11,7 +12,24 @@ type Props = {
   onSuccess: (awbNumber: string) => void;
 };
 
+const KNOWN_ERROR_CODES = new Set([
+  "unauthorized",
+  "not_found",
+  "rate_limited",
+  "invalid_status",
+  "awb_number_required",
+  "validation_error",
+  "server_error",
+  "feature_frozen",
+]);
+
+function translateError(code: string | undefined | null, t: (key: string) => string): string {
+  if (code && KNOWN_ERROR_CODES.has(code)) return t(`errors.${code}`);
+  return code || t("errors.server_error");
+}
+
 export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: Props) {
+  const t = useTranslations("sellerOrders");
   const [courier, setCourier] = useState<"sameday_easybox" | "sameday" | "fancourier" | "standard">("sameday_easybox");
   const [parcelsCount, setParcelsCount] = useState<number>(1);
   const [weightKg, setWeightKg] = useState<string>("1.0");
@@ -47,12 +65,12 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
   if (!isOpen || !order) return null;
 
   const orderShortId = order.order_id.slice(0, 8).toUpperCase();
-  const customerName = order.order_metadata.customer_name || order.order_metadata.shipping_address?.name || "Client Swypik";
+  const customerName = order.order_metadata.customer_name || order.order_metadata.shipping_address?.name || t("table.defaultCustomer");
   const customerPhone = order.order_metadata.customer_phone || order.order_metadata.shipping_address?.phone || "-";
   const shippingAddress = order.order_metadata.shipping_address;
   const addressFormatted = shippingAddress
     ? [shippingAddress.line1, shippingAddress.city, shippingAddress.state].filter(Boolean).join(", ")
-    : "Adresă indisponibilă";
+    : t("awbModal.addressUnavailable");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,15 +93,15 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
         }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) {
-        throw new Error(json.error || "Eroare la generarea AWB-ului.");
+        throw new Error(translateError(json.error, t));
       }
 
-      onSuccess(json.awb?.awbNumber || "AWB generat");
+      onSuccess(json.awb?.awbNumber || t("awbModal.awbGeneratedFallback"));
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "A apărut o problemă la înregistrarea AWB-ului.");
+      setError(err instanceof Error ? err.message : t("awbModal.saveError"));
     } finally {
       setLoading(false);
     }
@@ -91,29 +109,30 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden my-8 max-h-[90dvh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-neutral-50/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-neutral-50/50 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
               <Package className="text-violet-600" size={20} />
-              Generare AWB Comandă #{orderShortId}
+              {t("awbModal.title", { id: orderShortId })}
             </h2>
             <p className="text-xs text-neutral-500 mt-0.5">
-              Selectează curierul și datele coletului pentru expediere
+              {t("awbModal.subtitle")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
+            aria-label={t("actions.close")}
             className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition"
           >
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
           {/* Customer brief */}
           <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-200/80 text-xs">
             <div className="flex justify-between items-start">
@@ -122,7 +141,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
                 <span className="text-neutral-500 ml-2 font-mono">{customerPhone}</span>
               </div>
               <span className="px-2 py-0.5 rounded-full bg-neutral-200/80 text-neutral-700 font-semibold text-[10px]">
-                {order.items.length} {order.items.length === 1 ? "produs" : "produse"}
+                {t("awbModal.itemsCount", { count: order.items.length })}
               </span>
             </div>
             <p className="text-neutral-600 mt-1 truncate">{addressFormatted}</p>
@@ -131,7 +150,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
           {/* Courier selection */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-2">
-              Alege Metoda de Livrare / Curier
+              {t("awbModal.courierLabel")}
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {/* Sameday Easybox */}
@@ -149,8 +168,8 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
                   {courier === "sameday_easybox" && <Check className="text-violet-600" size={16} />}
                 </div>
                 <div>
-                  <p className="font-bold text-xs text-neutral-900">Sameday Easybox</p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">Locker 24/7</p>
+                  <p className="font-bold text-xs text-neutral-900">{t("courier.easybox")}</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">{t("awbModal.easyboxHint")}</p>
                 </div>
               </button>
 
@@ -169,8 +188,8 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
                   {courier === "fancourier" && <Check className="text-blue-600" size={16} />}
                 </div>
                 <div>
-                  <p className="font-bold text-xs text-neutral-900">Fan Courier</p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">La adresă (Door)</p>
+                  <p className="font-bold text-xs text-neutral-900">{t("courier.fan")}</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">{t("awbModal.fanHint")}</p>
                 </div>
               </button>
 
@@ -189,8 +208,8 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
                   {courier === "standard" && <Check className="text-neutral-900" size={16} />}
                 </div>
                 <div>
-                  <p className="font-bold text-xs text-neutral-900">Livrare Standard</p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">Expres național</p>
+                  <p className="font-bold text-xs text-neutral-900">{t("courier.standard")}</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">{t("awbModal.standardHint")}</p>
                 </div>
               </button>
             </div>
@@ -200,13 +219,13 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
           {courier === "sameday_easybox" && (
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                Locker Easybox Destinație
+                {t("awbModal.lockerLabel")}
               </label>
               <input
                 type="text"
                 value={lockerName}
                 onChange={(e) => setLockerName(e.target.value)}
-                placeholder="Ex: Easybox Victoriei, București (sau lăsați adresa clientului)"
+                placeholder={t("awbModal.lockerPlaceholder")}
                 className="w-full px-3.5 py-2.5 text-xs bg-white border border-neutral-300 rounded-xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:outline-none transition"
               />
             </div>
@@ -216,7 +235,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                Număr Colete
+                {t("awbModal.parcelsLabel")}
               </label>
               <input
                 type="number"
@@ -229,7 +248,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
             </div>
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                Greutate Totală (kg)
+                {t("awbModal.weightLabel")}
               </label>
               <input
                 type="text"
@@ -244,13 +263,13 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
           {/* Delivery Notes */}
           <div>
             <label className="block text-xs font-semibold text-neutral-700 mb-1">
-              Observații / Notă Curier (Opțional)
+              {t("awbModal.notesLabel")}
             </label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ex: Fragil, sună înainte de livrare"
+              placeholder={t("awbModal.notesPlaceholder")}
               className="w-full px-3.5 py-2.5 text-xs bg-white border border-neutral-300 rounded-xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:outline-none transition"
             />
           </div>
@@ -258,7 +277,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
           {/* Numărul AWB emis de curier — obligatoriu. Swypik nu generează AWB-uri. */}
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Număr AWB (din contul tău de curier) <span className="text-red-500">*</span>
+              {t("awbModal.awbNumberLabel")} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -266,11 +285,11 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
               minLength={3}
               value={trackingNumber}
               onChange={(e) => setTrackingNumber(e.target.value)}
-              placeholder="Ex: 1SMEB12345678"
+              placeholder={t("awbModal.awbNumberPlaceholder")}
               className="w-full px-3.5 py-2.5 text-xs font-mono bg-white border border-neutral-300 rounded-xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:outline-none transition"
             />
             <p className="mt-1 text-[11px] text-neutral-500">
-              Emite AWB-ul în platforma curierului, apoi introdu numărul aici pentru a notifica clientul.
+              {t("awbModal.awbNumberHint")}
             </p>
           </div>
 
@@ -290,7 +309,7 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
               disabled={loading}
               className="px-4 py-2.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 rounded-xl transition"
             >
-              Anulează
+              {t("actions.cancel")}
             </button>
             <button
               type="submit"
@@ -300,12 +319,12 @@ export default function GenerateAwbModal({ order, isOpen, onClose, onSuccess }: 
               {loading ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Se generează AWB...
+                  {t("awbModal.generating")}
                 </>
               ) : (
                 <>
                   <Package size={14} />
-                  Generează AWB
+                  {t("actions.generateAwb")}
                 </>
               )}
             </button>

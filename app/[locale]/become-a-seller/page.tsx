@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import PartnerLanding from "@/components/join/PartnerLanding";
+import { logger } from "@/lib/logger";
 
 export default function BecomeASellerPage() {
   const t = useTranslations("becomeaseller");
@@ -12,7 +12,7 @@ export default function BecomeASellerPage() {
   return (
     <PartnerLanding
       accent="#7C3AED"
-      portalLabel="Swypik · Vânzători"
+      portalLabel={t("portalLabel")}
       headline={t("zeroBataiDeCap")}
       headlineMuted={t("expuiProduseleLaMii")}
       subheadline={tj("sellerHeroSub")}
@@ -77,6 +77,7 @@ function SellerForm() {
         setStatus("error");
       }
     } catch (err) {
+      logger.error({ err }, "Failed to submit seller application");
       setStatus("error");
     }
   }
@@ -104,7 +105,7 @@ function SellerForm() {
 
       <div className="space-y-1.5">
         <label htmlFor="companyName" className="text-sm font-medium text-black block">
-          Nume Companie
+          {t("companyNameLabel")}
         </label>
         <input
           type="text"
@@ -119,7 +120,7 @@ function SellerForm() {
 
       <div className="space-y-1.5">
         <label htmlFor="cui" className="text-sm font-medium text-black block">
-          CUI
+          {t("cuiLabel")}
         </label>
         <input
           type="text"
@@ -134,7 +135,7 @@ function SellerForm() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="space-y-1.5">
           <label htmlFor="email" className="text-sm font-medium text-black block">
-            Email
+            {t("emailLabel")}
           </label>
           <input
             type="email"
@@ -149,7 +150,7 @@ function SellerForm() {
         </div>
         <div className="space-y-1.5">
           <label htmlFor="phone" className="text-sm font-medium text-black block">
-            Telefon
+            {t("phoneLabel")}
           </label>
           <input
             type="tel"
@@ -184,7 +185,7 @@ function SellerForm() {
         disabled={status === "loading"}
         className="w-full py-3.5 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
       >
-        {status === "loading" ? "Se trimite..." : "Trimite Aplicația"}
+        {status === "loading" ? t("submitting") : t("submitApplication")}
       </button>
     </form>
   );

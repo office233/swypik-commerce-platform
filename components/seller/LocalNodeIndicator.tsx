@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Wifi, WifiOff, HardDrive, AlertTriangle } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 export function LocalNodeIndicator() {
+  const t = useTranslations("sellerGrowthLocalNode");
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [nodeId, setNodeId] = useState<string | null>(null);
   /** Latenta masurata (dus-intors) a ultimului heartbeat; null pana la prima masuratoare. */
   const [pingMs, setPingMs] = useState<number | null>(null);
+  // Ref mirror so the heartbeat effect doesn't need pingMs as a dependency
+  // (avoids tearing down + recreating the 15s interval on every heartbeat tick).
+  const pingMsRef = useRef<number | null>(null);
   const [showWarningModal, setShowWarningModal] = useState<boolean>(false);
 
   useEffect(() => {
@@ -33,7 +39,7 @@ export function LocalNodeIndicator() {
           if (data.node?.nodeId) setNodeId(data.node.nodeId);
         }
       } catch (e) {
-        // network issue
+        logger.warn({ err: e }, "LocalNodeIndicator: failed to fetch node status");
       }
     };
 
@@ -53,9 +59,11 @@ export function LocalNodeIndicator() {
         const res = await fetch("/api/seller/node/heartbeat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nodeId, isOnline: true, pingMs: pingMs ?? 0 }),
+          body: JSON.stringify({ nodeId, isOnline: true, pingMs: pingMsRef.current ?? 0 }),
         });
-        setPingMs(Math.round(performance.now() - startedAt));
+        const nextPingMs = Math.round(performance.now() - startedAt);
+        pingMsRef.current = nextPingMs;
+        setPingMs(nextPingMs);
         if (res.ok) {
           setIsOnline(true);
           setShowWarningModal(false);
@@ -63,7 +71,8 @@ export function LocalNodeIndicator() {
           setIsOnline(false);
           setShowWarningModal(true);
         }
-      } catch {
+      } catch (err) {
+        logger.warn({ err }, "LocalNodeIndicator: heartbeat failed");
         setIsOnline(false);
         setShowWarningModal(true);
       }
@@ -74,7 +83,7 @@ export function LocalNodeIndicator() {
       window.removeEventListener("offline", handleOffline);
       clearInterval(interval);
     };
-  }, [nodeId, pingMs]);
+  }, [nodeId]);
 
   return (
     <>
@@ -97,7 +106,7 @@ export function LocalNodeIndicator() {
             <WifiOff className="w-3.5 h-3.5 text-rose-600" />
           )}
           <span className={isOnline ? "text-neutral-800 font-bold" : "text-rose-600 font-bold"}>
-            {isOnline ? "Nod Online" : "Nod Deconectat"}
+            {isOnline ? t("nodeOnline") : t("nodeOffline")}
           </span>
         </div>
 
@@ -118,14 +127,14 @@ export function LocalNodeIndicator() {
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-lg font-black text-[#0D0D0D]">Nodul Local este Deconectat!</h3>
+              <h3 className="text-lg font-black text-[#0D0D0D]">{t("modalTitle")}</h3>
               <p className="text-xs text-rose-600 font-bold">
-                Conexiunea la internet este obligatorie pentru funcționarea ERP-ului.
+                {t("modalRequired")}
               </p>
             </div>
 
             <p className="text-xs text-neutral-600 text-left bg-rose-50 p-3.5 rounded-xl border border-rose-100 leading-relaxed">
-              Fără conexiune la internet, panoul nu poate primi comenzi noi și nu poate înregistra vânzări POS.
+              {t("modalHint")}
             </p>
 
             <button
@@ -135,12 +144,12 @@ export function LocalNodeIndicator() {
                   setIsOnline(true);
                   setShowWarningModal(false);
                 } else {
-                  alert("Conexiunea la internet este în continuare inactivă. Verificați cablul sau semnalul Wi-Fi.");
+                  alert(t("stillOffline"));
                 }
               }}
               className="w-full py-3 bg-[#0D0D0D] hover:bg-neutral-800 text-white rounded-xl font-bold text-xs shadow-md transition"
             >
-              Reîncearcă Conectarea la Rețeaua Swypik
+              {t("retryConnection")}
             </button>
           </div>
         </div>

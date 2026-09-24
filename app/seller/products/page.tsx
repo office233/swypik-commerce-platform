@@ -5,6 +5,8 @@ import AddProductWizard from "./AddProductWizard";
 import ViralCatalogModal from "./ViralCatalogModal";
 import { useTranslations } from "next-intl";
 import { Tag, Sparkles, Plus } from "lucide-react";
+import { logger } from "@/lib/logger";
+import { isEnabledClient } from "@/lib/feature-flags-client";
 
 export default function SellerProductsPage() {
   const t = useTranslations("sellerProducts");
@@ -21,16 +23,27 @@ export default function SellerProductsPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/seller/products");
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         setProducts(data.products);
+      } else {
+        logger.error({ status: res.status, error: data?.error }, "Failed to load seller products");
       }
     } catch (err) {
-      console.error(err);
+      logger.error({ err }, "Failed to load seller products");
     } finally {
       setLoading(false);
     }
   }
+
+  const STATUS_LABELS: Record<string, string> = {
+    active: t("statusActive"),
+    draft: t("statusDraft"),
+    out_of_stock: t("statusOutOfStock"),
+    archived: t("statusArchived"),
+    disabled: t("statusDisabled"),
+  };
+  const statusLabel = (status: string) => STATUS_LABELS[status] || status;
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-6 pb-[max(24px,env(safe-area-inset-bottom))]">
@@ -40,20 +53,22 @@ export default function SellerProductsPage() {
           <p className="text-sm text-[#6E6E80] mt-1">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsViralModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:from-violet-700 hover:to-indigo-700 shadow-sm transition active:scale-95"
-          >
-            <Sparkles size={16} /> Produse Virale (0 Lei)
-          </button>
+          {isEnabledClient("viralCatalog") && (
+            <button
+              type="button"
+              onClick={() => setIsViralModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:from-violet-700 hover:to-indigo-700 shadow-sm transition active:scale-95"
+            >
+              <Sparkles size={16} /> {t("viralProductsCta")}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setIsAdding(true)}
             aria-label={t("addAria")}
             className="inline-flex items-center justify-center gap-1 bg-[#0D0D0D] text-white px-5 py-2.5 min-h-[44px] rounded-xl font-bold text-sm hover:bg-[#0D0D0D]/80 transition active:scale-95 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            <Plus size={16} /> Adaugă Produs
+            <Plus size={16} /> {t("addProductCta")}
           </button>
         </div>
       </div>
@@ -69,10 +84,10 @@ export default function SellerProductsPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5]">
               <tr>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Produs</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Categorie</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Status</th>
-                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">Stoc</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thProduct")}</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thCategory")}</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thStatus")}</th>
+                <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px]">{t("thStock")}</th>
                 <th className="px-6 py-4 font-bold text-[#6E6E80] uppercase tracking-widest text-[10px] text-right">{t("thPrice")}</th>
               </tr>
             </thead>
@@ -96,15 +111,15 @@ export default function SellerProductsPage() {
                       <div className="flex items-center gap-3">
                         {p.image_url && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-[#E5E5E5]" />
+                          <img src={p.image_url} alt="" width={40} height={40} className="w-10 h-10 rounded-lg object-cover border border-[#E5E5E5] shrink-0" />
                         )}
-                        <span className="line-clamp-2">{p.title}</span>
+                        <span className="line-clamp-2 break-words">{p.title}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-[#6E6E80]">{p.category || "General"}</td>
+                    <td className="px-6 py-4 text-[#6E6E80]">{p.category || t("categoryGeneric")}</td>
                     <td className="px-6 py-4">
                       <span className="inline-block px-2.5 py-1 bg-neutral-100 text-neutral-900 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                        {p.status}
+                        {statusLabel(p.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-medium text-[#0D0D0D]">{p.metadata?.available_stock ?? 0}</td>

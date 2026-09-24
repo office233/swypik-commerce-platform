@@ -1,30 +1,30 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { rateLimit } from "@/lib/security/rate-limit";
+import { parseBody, SellerSettingsUpdateSchema } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 
 export async function POST(req: Request) {
   try {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
-      return NextResponse.json({ error: "Neautorizat. Te rugăm să te autentifici." }, { status: 401 });
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const {
-      name,
-      username,
-      bio,
-      avatarUrl,
-      cui,
-      phone,
-      iban,
-      invoiceSeries
-    } = body;
+    const rl = await rateLimit("sellerSettings", sellerId);
+    if (!rl.success) {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    }
+
+    const parsed = parseBody(SellerSettingsUpdateSchema, await req.json().catch(() => null));
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const { name, bio, avatarUrl, cui, phone, iban, invoiceSeries } = parsed.data;
 
     // Validate username format (only lowercase letters, numbers, underscores, dashes)
-    const cleanUsername = String(username || "")
-      .trim()
+    const cleanUsername = parsed.data.username
       .toLowerCase()
       .replace(/[^a-z0-9_-]/g, "");
 

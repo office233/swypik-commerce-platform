@@ -47,7 +47,10 @@ export async function POST(req: Request) {
         const raw = await req.json().catch(() => null);
         const parsed = parseBody(LocalOrderCreateSchema, raw);
         if (!parsed.ok) {
-            return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+            // `error` stays the raw (mostly Romanian) zod message for back-compat;
+            // `code` is additive so non-ro clients can show a translated generic
+            // message instead (audit 2026-09-24, wave2-misc — see MenuClient.tsx).
+            return NextResponse.json({ success: false, error: parsed.error, code: parsed.code }, { status: 400 });
         }
         const d = parsed.data;
 
@@ -67,28 +70,37 @@ export async function POST(req: Request) {
         }
 
         // Prețuri DIN DB, nu din client.
+        interface MenuItemRow {
+            id: string;
+            name: string;
+            price_cents: number;
+            currency: string;
+            options: MenuOption[] | null;
+            is_available: boolean;
+        }
+
         const itemIds = d.items.map((i) => i.menu_item_id);
-        const { rows: menuItems } = await dbQuery(
+        const { rows: menuItems } = await dbQuery<MenuItemRow>(
             `SELECT id, name, price_cents, currency, options, is_available
          FROM menu_items WHERE merchant_id = $1 AND id = ANY($2::uuid[])`,
             [d.merchant_id, itemIds],
         );
-        const byId = new Map(menuItems.map((m: any) => [m.id, m]));
+        const byId = new Map(menuItems.map((m) => [m.id, m]));
 
         let subtotal = 0;
         const orderItems: unknown[] = [];
         for (const item of d.items) {
-            const mi = byId.get(item.menu_item_id) as any;
+            const mi = byId.get(item.menu_item_id);
             if (!mi || !mi.is_available) {
                 return NextResponse.json(
                     { success: false, error: `Un produs din coș nu mai e disponibil.` },
                     { status: 409 },
                 );
             }
-            let unit = mi.price_cents as number;
+            let unit = mi.price_cents;
             const chosenOptions: { name: string; price_cents: number }[] = [];
             if (item.option_ids?.length) {
-                const opts = (mi.options ?? []) as MenuOption[];
+                const opts = mi.options ?? [];
                 const allChoices = opts.flatMap((o) =>
                     (o.choices ?? []).map((c) => ({ ...c, _id: c.id ?? `${o.name}:${c.name}` })),
                 );

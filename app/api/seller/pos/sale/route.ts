@@ -19,13 +19,20 @@ const SaleLineSchema = z.object({
 });
 
 const PosSaleSchema = z.object({
-  items: z.array(SaleLineSchema).min(1, "Cosul POS este gol."),
+  items: z.array(SaleLineSchema).min(1),
   paymentMethod: z.enum(["cash", "card"]),
 });
 
 class ProductNotOwnedError extends Error {
   constructor(public readonly productId: string) {
     super("product_not_owned");
+  }
+}
+
+/** Stocul disponibil e insuficient pentru cantitatea cerută la vânzare. */
+class InsufficientStockError extends Error {
+  constructor(public readonly productId: string) {
+    super("insufficient_stock");
   }
 }
 
@@ -46,7 +53,9 @@ export const POST = withErrorHandling(async function POST(req: Request) {
 
   const parsed = parseBody(PosSaleSchema, await req.json().catch(() => null));
   if (!parsed.ok) {
-    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+    // Codul e stabil (nu textul brut de la zod, care e mereu în română) —
+    // clientul îl traduce prin sellerPos.errorValidation.
+    return NextResponse.json({ success: false, error: "validation_error" }, { status: 400 });
   }
   const { items, paymentMethod } = parsed.data;
   const totalCents = items.reduce((sum, i) => sum + toCents(i.price) * i.quantity, 0);
@@ -55,19 +64,33 @@ export const POST = withErrorHandling(async function POST(req: Request) {
   try {
     sale = await withTransaction(async (q) => {
       for (const item of items) {
+        // Update atomic: decrementul are loc DOAR dacă stocul curent acoperă
+        // cantitatea cerută (WHERE ... >= $1). Fără garda asta, două bonuri
+        // concurente puteau amândouă "reuși" și vinde peste stocul real —
+        // GREATEST(0, ...) doar ascundea suprarezervarea, nu o preveni.
         const { rowCount } = await q(
           `UPDATE marketplace_products
               SET metadata = jsonb_set(
-                    metadata, '{available_stock}',
-                    to_jsonb(GREATEST(0, COALESCE((metadata->>'available_stock')::numeric, 0) - $1))),
+                    COALESCE(metadata, '{}'::jsonb), '{available_stock}',
+                    to_jsonb(COALESCE((metadata->>'available_stock')::numeric, 0) - $1)),
                   inventory_status = CASE
-                    WHEN GREATEST(0, COALESCE((metadata->>'available_stock')::numeric, 0) - $1) <= 0
+                    WHEN COALESCE((metadata->>'available_stock')::numeric, 0) - $1 <= 0
                     THEN 'out_of_stock' ELSE 'in_stock' END,
                   updated_at = now()
-            WHERE id = $2 AND seller_id = $3`,
+            WHERE id = $2 AND seller_id = $3
+              AND COALESCE((metadata->>'available_stock')::numeric, 0) >= $1`,
           [item.quantity, item.id, sellerId],
         );
-        if (rowCount === 0) throw new ProductNotOwnedError(item.id);
+        if (rowCount === 0) {
+          // Distingem "nu există / nu-i aparține" de "stoc insuficient" ca să
+          // afișăm mesajul corect vânzătorului.
+          const { rows } = await q<{ id: string }>(
+            `SELECT id FROM marketplace_products WHERE id = $1 AND seller_id = $2`,
+            [item.id, sellerId],
+          );
+          if (rows.length === 0) throw new ProductNotOwnedError(item.id);
+          throw new InsufficientStockError(item.id);
+        }
       }
 
       const now = new Date();
@@ -83,6 +106,9 @@ export const POST = withErrorHandling(async function POST(req: Request) {
   } catch (err) {
     if (err instanceof ProductNotOwnedError) {
       return NextResponse.json({ success: false, error: "product_not_found", productId: err.productId }, { status: 404 });
+    }
+    if (err instanceof InsufficientStockError) {
+      return NextResponse.json({ success: false, error: "insufficient_stock", productId: err.productId }, { status: 409 });
     }
     throw err;
   }

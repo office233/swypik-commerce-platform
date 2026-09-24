@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { X, Hourglass, Camera, Package, Check, Film, Sparkles, Barcode, Store } from "lucide-react";
+import { X, Hourglass, Camera, Package, Check, Film, Store } from "lucide-react";
 
 type Suggestion = { slug: string; confidence: number; label: string };
 type Variant = { sku: string; title: string; price: string; stock: string; color: string; size: string };
@@ -14,7 +14,7 @@ const STEP_KEYS = ["stepDetalii", "stepImagini", "stepPretStoc", "stepLivrare"] 
 export default function AddProductWizard({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const t = useTranslations("sellerAddProduct");
   const COURIERS = COURIER_VALUES.map((v) => ({ value: v, label: t(`courier_${v}` as const) }));
-  const STEPS = ["Detalii & Cod bare", "Foto & Video (Dual Feed)", "Preț, Stoc & Swypik Shop", "Livrare & Publicare"];
+  const STEPS = STEP_KEYS.map((k) => t(k));
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +66,8 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, description: description || undefined }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || t("errClasificare"));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || t("errClasificare"));
       const list: Suggestion[] = data.suggestions || [];
       setSuggestions(list);
       if (list[0]) {
@@ -93,8 +93,8 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         fd.append("file", f);
         fd.append("filename", f.name);
         const res = await fetch("/api/seller/products/upload-image", { method: "POST", body: fd });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || t("errUpload"));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.error || t("errUpload"));
         setImages((arr) => [...arr, { url: data.url, key: data.key }]);
       } catch (e: any) {
         setError(`${f.name}: ${e.message}`);
@@ -170,8 +170,8 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || t("errSalvare"));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || t("errSalvare"));
       onSaved();
     } catch (e: any) {
       setError(e.message);
@@ -226,7 +226,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                   <input value={sku} onChange={(e) => setSku(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none" placeholder="ex: TRC-BLK-M-001" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">Cod Bare (EAN)</label>
+                  <label className="block text-xs font-bold text-[#6E6E80] uppercase tracking-widest mb-1.5">{t("barcodeLabel")}</label>
                   <input value={barcode} onChange={(e) => setBarcode(e.target.value)} type="text" className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-[#0D0D0D] outline-none font-mono" placeholder="5941234567890" />
                 </div>
               </div>
@@ -263,12 +263,12 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Camera className="w-4 h-4 text-violet-600" />
-                    <span className="font-bold text-sm text-[#0D0D0D]">Galeria Foto de Produs (Feed Foto & Oferte)</span>
+                    <span className="font-bold text-sm text-[#0D0D0D]">{t("photoGalleryTitle")}</span>
                   </div>
-                  <span className="text-xs text-neutral-500 font-medium">{images.length} / 8 poze</span>
+                  <span className="text-xs text-neutral-500 font-medium">{t("photoCount", { n: images.length })}</span>
                 </div>
                 <p className="text-xs text-[#6E6E80]">
-                  Încarcă poze clare din unghiuri diferite. Acestea vor fi afișate în caruselul de oferte și pe pagina de produs.
+                  {t("photoGalleryHint")}
                 </p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -301,11 +301,11 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
               <div className="border-t border-[#E5E5E5] pt-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <Film className="w-4 h-4 text-violet-600" />
-                  <span className="font-bold text-sm text-[#0D0D0D]">Clip Video Vertical 9:16 (Feed Video Swypik)</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700">Recomandat</span>
+                  <span className="font-bold text-sm text-[#0D0D0D]">{t("videoSectionTitle")}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700">{t("recommended")}</span>
                 </div>
                 <p className="text-xs text-[#6E6E80]">
-                  Fiecare produs listat pe Swypik ajunge în feed-ul video. Introdu link-ul direct către clipul video vertical (10-30 secunde).
+                  {t("videoSectionHint")}
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -314,7 +314,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                       type="url"
                       value={videoUrl}
                       onChange={(e) => setVideoUrl(e.target.value)}
-                      placeholder="https://cdn.swypik.com/videos/... sau link MP4/WebM"
+                      placeholder={t("videoUrlPlaceholder")}
                       className="w-full border border-[#E5E5E5] rounded-xl px-4 py-3 text-sm focus:border-violet-600 outline-none"
                     />
                   </div>
@@ -325,9 +325,9 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                     <div className="w-16 h-28 bg-black rounded-lg overflow-hidden shrink-0 border border-neutral-300 relative">
                       <video src={videoUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />
                     </div>
-                    <div>
-                      <p className="font-bold text-xs text-[#0D0D0D]">Previzualizare Clip Video 9:16</p>
-                      <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">✓ Video conectat la feed-ul Swypik</p>
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs text-[#0D0D0D]">{t("videoPreviewTitle")}</p>
+                      <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">{t("videoConnected")}</p>
                       <p className="text-[10px] text-neutral-400 mt-1 truncate max-w-xs">{videoUrl}</p>
                     </div>
                   </div>
@@ -374,7 +374,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Store className="w-4 h-4 text-violet-700" />
-                    <span className="font-black text-sm text-violet-950">Canal de Vânzare: Swypik Shop</span>
+                    <span className="font-black text-sm text-violet-950">{t("swypikShopChannel")}</span>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -383,7 +383,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                       onChange={(e) => setIsSwypikListed(e.target.checked)}
                       className="w-4 h-4 accent-violet-600 rounded"
                     />
-                    <span className="text-xs font-bold text-violet-900">Vinde pe Swypik Shop</span>
+                    <span className="text-xs font-bold text-violet-900">{t("sellOnSwypikShop")}</span>
                   </label>
                 </div>
 
@@ -392,7 +392,7 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                       <div>
                         <label className="block text-[11px] font-bold text-violet-900 uppercase tracking-wider mb-1">
-                          Preț Vânzare Swypik Online ({currency})
+                          {t("swypikOnlinePrice", { currency })}
                         </label>
                         <input
                           type="number"
@@ -405,13 +405,13 @@ export default function AddProductWizard({ onClose, onSaved }: { onClose: () => 
                       </div>
                       <div className="bg-white/80 p-2.5 rounded-xl border border-violet-200 text-xs space-y-1">
                         <div className="flex justify-between text-neutral-600">
-                          <span>Comision Swypik (7%):</span>
+                          <span>{t("swypikCommission")}:</span>
                           <span className="font-bold text-neutral-800">
                             {((parseFloat(swypikPrice || price) || 0) * 0.07).toFixed(2)} {currency}
                           </span>
                         </div>
                         <div className="flex justify-between font-black text-emerald-700 pt-1 border-t border-violet-100">
-                          <span>Vei încasa net:</span>
+                          <span>{t("netEarnings")}:</span>
                           <span>
                             {((parseFloat(swypikPrice || price) || 0) * 0.93).toFixed(2)} {currency}
                           </span>

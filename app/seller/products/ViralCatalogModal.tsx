@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { logger } from "@/lib/logger";
 import {
   Sparkles,
   X,
@@ -33,6 +35,7 @@ type Props = {
 };
 
 export default function ViralCatalogModal({ isOpen, onClose, onProductImported }: Props) {
+  const t = useTranslations("sellerGrowthViralCatalog");
   const [products, setProducts] = useState<ViralProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [importingId, setImportingId] = useState<string | null>(null);
@@ -49,10 +52,14 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
           setUnavailable(true);
           return;
         }
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (data.success && Array.isArray(data.products)) setProducts(data.products);
+        else setUnavailable(true);
       })
-      .catch(() => setUnavailable(true))
+      .catch((err) => {
+        logger.error({ err }, "Failed to load viral catalog");
+        setUnavailable(true);
+      })
       .finally(() => setLoading(false));
   }, [isOpen]);
 
@@ -64,15 +71,16 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ viralId: product.id }),
       });
-      const data = await res.json();
-      if (!data.success) {
-        alert(data.error || "Eroare la adăugarea produsului");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        alert(data.error || t("errorImport"));
         return;
       }
       setImportedIds((prev) => new Set([...prev, product.id]));
       onProductImported();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Eroare de rețea");
+      logger.error({ err }, "Failed to import viral product");
+      alert(t("errorNetwork"));
     } finally {
       setImportingId(null);
     }
@@ -89,20 +97,20 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-violet-600" />
               <h2 className="text-xl font-black text-[#0D0D0D]">
-                Catalog Produse Virale (0 Lei Investiție)
+                {t("headerTitle")}
               </h2>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-violet-600 text-white uppercase tracking-wider">
-                Dropshipping On-Demand
+                {t("headerBadge")}
               </span>
             </div>
             <p className="text-xs text-neutral-600 mt-1 max-w-2xl">
-              Fiecare produs include <strong>Clip Video 9:16</strong>, poze HD și descriere comercială gata scrisă.
-              Adaugă-le în magazinul tău cu 1 clic — nu cumperi stoc în avans, comanda se expediază din depozitul partener după ce clientul plătește!
+              {t.rich("headerSubtitle", { strong: (chunks) => <strong>{chunks}</strong> })}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("close")}
             className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 hover:bg-white/80 transition"
           >
             <X size={22} />
@@ -112,13 +120,13 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
         {/* Benefits banner */}
         <div className="bg-[#F7F7F8] px-6 py-2.5 border-b border-[#E5E5E5] flex flex-wrap items-center justify-between gap-4 text-xs font-semibold text-neutral-600">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" /> Stoc asigurat în România
+            <ShieldCheck className="w-4 h-4 text-emerald-600" /> {t("benefitStock")}
           </div>
           <div className="flex items-center gap-1.5">
-            <Film className="w-4 h-4 text-violet-600" /> Video 9:16 atașat automat în feed
+            <Film className="w-4 h-4 text-violet-600" /> {t("benefitVideo")}
           </div>
           <div className="flex items-center gap-1.5">
-            <Truck className="w-4 h-4 text-blue-600" /> Livrare rapidă 24-48h prin Sameday Easybox
+            <Truck className="w-4 h-4 text-blue-600" /> {t("benefitShipping")}
           </div>
         </div>
 
@@ -126,11 +134,11 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
         <div className="flex-1 p-5 sm:p-6 overflow-y-auto">
           {loading ? (
             <div className="py-20 text-center text-neutral-400 text-sm font-medium">
-              Se încarcă catalogul viral...
+              {t("loadingCatalog")}
             </div>
           ) : unavailable ? (
             <div className="py-20 text-center text-neutral-500 text-sm font-medium">
-              Catalogul viral nu este disponibil în acest moment.
+              {t("catalogUnavailable")}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -152,10 +160,10 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
                         className="w-full h-full object-cover"
                       />
                       <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 text-white text-[10px] font-bold flex items-center gap-1">
-                        <Film size={11} className="text-violet-400" /> Video 9:16 inclus
+                        <Film size={11} className="text-violet-400" /> {t("videoIncluded")}
                       </span>
                       <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-black">
-                        +{profitRon} lei profit
+                        {t("profitBadge", { amount: profitRon })}
                       </span>
                     </div>
 
@@ -174,11 +182,11 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
                     {/* Price and Profit stats */}
                     <div className="pt-2 border-t border-neutral-100 grid grid-cols-2 gap-2 text-xs">
                       <div className="bg-[#F7F7F8] p-2 rounded-xl">
-                        <span className="text-neutral-500 text-[10px] block font-bold">Cost En-gros</span>
+                        <span className="text-neutral-500 text-[10px] block font-bold">{t("wholesaleCost")}</span>
                         <span className="font-bold text-[#0D0D0D]">{product.wholesaleCostRon.toFixed(2)} lei</span>
                       </div>
                       <div className="bg-emerald-50 p-2 rounded-xl text-emerald-800">
-                        <span className="text-emerald-700 text-[10px] block font-bold">Preț Recomandat</span>
+                        <span className="text-emerald-700 text-[10px] block font-bold">{t("recommendedPrice")}</span>
                         <span className="font-black">{product.recommendedPriceRon.toFixed(2)} lei</span>
                       </div>
                     </div>
@@ -196,13 +204,13 @@ export default function ViralCatalogModal({ isOpen, onClose, onProductImported }
                     >
                       {isImported ? (
                         <>
-                          <CheckCircle2 size={15} /> Adăugat în Magazin!
+                          <CheckCircle2 size={15} /> {t("addedToStore")}
                         </>
                       ) : isImporting ? (
-                        "Se adaugă..."
+                        t("adding")
                       ) : (
                         <>
-                          <Plus size={15} /> Adaugă în Magazinul Meu
+                          <Plus size={15} /> {t("addToMyStore")}
                         </>
                       )}
                     </button>

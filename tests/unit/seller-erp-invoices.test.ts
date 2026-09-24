@@ -6,6 +6,7 @@ import {
   formatInvoiceNumber,
   formatReceiptNumber,
   toCents,
+  escapeXml,
 } from "@/lib/seller/invoicing";
 
 /**
@@ -57,5 +58,13 @@ describe("Seller ERP — facturare", () => {
 
   it("formatează numărul de bon POS cu data zilei", () => {
     expect(formatReceiptNumber(new Date("2026-09-21T10:00:00Z"), 7)).toBe("POS-20260921-0007");
+  });
+
+  it("escapeXml scapă caracterele speciale din numele/CUI-ul clientului înainte de UBL XML", () => {
+    expect(escapeXml(`SC "Alfa" & <Beta> S.R.L.`)).toBe(
+      "SC &quot;Alfa&quot; &amp; &lt;Beta&gt; S.R.L.",
+    );
+    expect(escapeXml("O'Brien")).toBe("O&apos;Brien");
+    expect(escapeXml("Client normal SRL")).toBe("Client normal SRL");
   });
 });

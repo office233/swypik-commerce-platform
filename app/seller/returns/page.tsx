@@ -7,9 +7,10 @@
  * /api/seller/orders/[id]/refund) and reject buttons.
  */
 
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
+import { isEnabled } from "@/lib/feature-flags";
 import SellerReturnsClient from "./SellerReturnsClient";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,12 @@ type ReturnRow = {
 };
 
 export default async function SellerReturnsPage() {
+  // Modulul de retururi e OFF by default (FEATURE_RETURNS) — API-urile de
+  // accept/refund/reject întorc deja 410 în acest caz; pagina trebuie să
+  // reflecte același gate, altfel sellerul vede o listă ale cărei butoane
+  // eșuează silențios.
+  if (!isEnabled("returns")) notFound();
+
   const sellerId = await getSellerSessionId();
   if (!sellerId) redirect("/seller/login?next=/seller/returns");
 

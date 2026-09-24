@@ -17,7 +17,7 @@ export async function GET(_req: Request) {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
       return NextResponse.json(
-        { success: false, error: "Neautorizat." },
+        { success: false, error: "unauthorized" },
         { status: 401 }
       );
     }
@@ -69,10 +69,10 @@ export async function GET(_req: Request) {
       summary: summaryRows[0],
       transfers,
     });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "[Seller Payouts] GET error");
     return NextResponse.json(
-      { success: false, error: "Eroare interna." },
+      { success: false, error: "internal_error" },
       { status: 500 }
     );
   }

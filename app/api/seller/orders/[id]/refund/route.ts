@@ -42,7 +42,7 @@ export async function POST(
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
       return NextResponse.json(
-        { success: false, error: "Neautorizat. Conecteaza-te ca seller." },
+        { success: false, error: "unauthorized" },
         { status: 401 }
       );
     }
@@ -68,7 +68,7 @@ export async function POST(
 
     if (orderRows.length === 0 || Number(orderRows[0].seller_items || 0) < 1) {
       return NextResponse.json(
-        { success: false, error: "Comanda nu a fost gasita sau nu iti apartine." },
+        { success: false, error: "not_found" },
         { status: 404 }
       );
     }
@@ -90,7 +90,7 @@ export async function POST(
       }
 
       return NextResponse.json(
-        { success: false, error: policy.message, code: policy.code },
+        { success: false, error: policy.code, message: policy.message },
         { status: statusForPolicyCode(policy.code) }
       );
     }
@@ -120,17 +120,22 @@ export async function POST(
       refundStatus = refund.status || "pending";
       refundAmountCents = refund.amount || 0;
       refundCurrency = String(refund.currency || "ron").toUpperCase();
-    } catch (stripeError: any) {
+    } catch (stripeError) {
       logger.error({ err: stripeError }, "[Seller Refund] Stripe refund error:");
       // 2026-08-11 (audit P1): nu expunem mesajul brut Stripe la client —
       // poate conține detalii interne (ID-uri, chei, structura contului).
       // Trimitem doar un cod sigur; detaliile complete rămân în loguri.
       const safeCode =
-        typeof stripeError?.code === "string" ? stripeError.code : "stripe_error";
+        typeof stripeError === "object" &&
+        stripeError !== null &&
+        "code" in stripeError &&
+        typeof (stripeError as { code?: unknown }).code === "string"
+          ? (stripeError as { code: string }).code
+          : "stripe_error";
       return NextResponse.json(
         {
           success: false,
-          error: "Restituirea nu a putut fi procesată. Încearcă din nou sau contactează suportul.",
+          error: "stripe_refund_failed",
           code: safeCode,
         },
         { status: 502 }
@@ -299,10 +304,10 @@ export async function POST(
     logger.info({ order_id: orderId, seller_id: sellerId }, "[Seller Refund] order marked as refunded");
 
     return NextResponse.json({ success: true, refundId, refundStatus });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller Refund] Unexpected error:");
     return NextResponse.json(
-      { success: false, error: "Eroare interna. Incearca din nou." },
+      { success: false, error: "server_error" },
       { status: 500 }
     );
   }

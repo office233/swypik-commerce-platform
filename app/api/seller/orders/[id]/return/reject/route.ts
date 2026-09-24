@@ -28,7 +28,7 @@ export async function POST(
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
       return NextResponse.json(
-        { success: false, error: "Neautorizat. Conectează-te ca seller." },
+        { success: false, error: "unauthorized" },
         { status: 401 }
       );
     }
@@ -36,7 +36,7 @@ export async function POST(
     const rl = await rateLimit("sellerReturns", sellerId);
     if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
-    let body: any = {};
+    let body: Record<string, unknown> = {};
     try {
       body = await req.json();
     } catch {
@@ -63,7 +63,7 @@ export async function POST(
 
     if (rows.length === 0 || Number(rows[0].seller_items || 0) < 1) {
       return NextResponse.json(
-        { success: false, error: "Comanda nu a fost găsită sau nu îți aparține." },
+        { success: false, error: "not_found" },
         { status: 404 }
       );
     }
@@ -71,7 +71,7 @@ export async function POST(
     const order = rows[0];
     if (order.status !== "return_requested" && order.metadata?.return_status !== "requested") {
       return NextResponse.json(
-        { success: false, error: "Nu există o cerere de retur activă pentru această comandă." },
+        { success: false, error: "invalid_status" },
         { status: 422 }
       );
     }
@@ -103,10 +103,10 @@ export async function POST(
     );
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "[Seller Return Reject] failed");
     return NextResponse.json(
-      { success: false, error: "Eroare internă. Încearcă din nou." },
+      { success: false, error: "server_error" },
       { status: 500 }
     );
   }

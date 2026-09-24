@@ -83,7 +83,7 @@ export async function GET(
   try {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Neautorizat." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
     }
 
     const { id: orderId } = await params;
@@ -124,7 +124,7 @@ export async function GET(
     );
 
     if (orderRows.length === 0) {
-      return NextResponse.json({ success: false, error: "Comanda nu a fost găsită." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "not_found" }, { status: 404 });
     }
 
     const order = orderRows[0];
@@ -220,7 +220,7 @@ export async function GET(
     });
   } catch (error) {
     logger.error({ err: error }, "[Seller AWB API] GET Error:");
-    return NextResponse.json({ success: false, error: "Eroare la încărcarea datelor AWB." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
   }
 }
 
@@ -231,19 +231,20 @@ export async function POST(
   try {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Neautorizat." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
     }
 
     const rl = await rateLimit("sellerAwb", sellerId);
     if (!rl.success) {
-      return NextResponse.json({ success: false, error: "Prea multe solicitări. Încearcă din nou în curând." }, { status: 429 });
+      return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
     }
 
     const { id: orderId } = await params;
     const rawBody = await req.json().catch(() => ({}));
     const parsed = parseBody(SellerGenerateAwbSchema, rawBody);
     if (!parsed.ok) {
-      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+      logger.warn({ issues: parsed.issues }, "[Seller AWB API] validation_error");
+      return NextResponse.json({ success: false, error: "validation_error" }, { status: 400 });
     }
 
     const { courier, parcels_count, weight_kg, manual_tracking_number, notes, locker_name } = parsed.data;
@@ -259,13 +260,13 @@ export async function POST(
     );
 
     if (checkOrder.rows.length === 0) {
-      return NextResponse.json({ success: false, error: "Comanda nu există sau nu îți aparține." }, { status: 403 });
+      return NextResponse.json({ success: false, error: "not_found" }, { status: 403 });
     }
 
     const currentStatus = checkOrder.rows[0].status;
     if (["cancelled", "refunded", "failed"].includes(currentStatus)) {
       return NextResponse.json(
-        { success: false, error: "Comanda se află într-un status final și nu mai poate fi expediată." },
+        { success: false, error: "invalid_status" },
         { status: 409 }
       );
     }
@@ -273,7 +274,7 @@ export async function POST(
     const resolved = resolveAwb(courier, manual_tracking_number);
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: "awb_number_required", message: "Introdu numărul AWB emis de curier. Swypik nu generează AWB-uri." },
+        { success: false, error: "awb_number_required" },
         { status: 422 },
       );
     }
@@ -421,6 +422,6 @@ export async function POST(
     });
   } catch (error) {
     logger.error({ err: error }, "[Seller AWB API] POST Error:");
-    return NextResponse.json({ success: false, error: "Eroare la generarea AWB-ului." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
   }
 }

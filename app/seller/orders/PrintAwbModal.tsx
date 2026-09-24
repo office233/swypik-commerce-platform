@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { SellerOrder } from "./types";
 import { X, Printer, Loader2 } from "lucide-react";
 
@@ -53,6 +54,19 @@ type AwbFullData = {
   };
 };
 
+const KNOWN_ERROR_CODES = new Set([
+  "unauthorized",
+  "not_found",
+  "rate_limited",
+  "server_error",
+  "feature_frozen",
+]);
+
+function translateError(code: string | undefined | null, t: (key: string) => string): string {
+  if (code && KNOWN_ERROR_CODES.has(code)) return t(`errors.${code}`);
+  return code || t("errors.server_error");
+}
+
 /**
  * Deterministic pseudo-barcode generator SVG
  */
@@ -104,30 +118,46 @@ function AwbBarcode({ code }: { code: string }) {
 }
 
 export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
+  const t = useTranslations("sellerOrders");
+  const locale = useLocale();
   const [data, setData] = useState<AwbFullData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Gardă anti-stale: dacă modalul se închide/redeschide rapid pe altă
+    // comandă înainte ca fetch-ul anterior să răspundă, nu-i mai aplicăm
+    // rezultatul (ar afișa datele AWB ale comenzii greșite).
+    let cancelled = false;
+
     if (isOpen && order) {
       setLoading(true);
       setError(null);
       fetch(`/api/seller/orders/${order.order_id}/awb`)
-        .then((res) => res.json())
-        .then((json) => {
-          if (json.success) {
+        .then((res) => res.json().catch(() => ({})).then((json) => ({ res, json })))
+        .then(({ res, json }) => {
+          if (cancelled) return;
+          if (res.ok && json.success) {
             setData(json);
           } else {
-            setError(json.error || "Nu am putut încărca datele AWB.");
+            setError(translateError(json.error, t));
           }
         })
-        .catch(() => setError("Eroare de conexiune la preluarea AWB-ului."))
-        .finally(() => setLoading(false));
+        .catch(() => {
+          if (!cancelled) setError(t("printModal.connectionError"));
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
     } else {
       setData(null);
     }
-  }, [isOpen, order]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, order, t]);
 
   if (!isOpen || !order) return null;
 
@@ -139,19 +169,20 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
     data?.awb.trackingNumber ||
     order.order_metadata.awb_details?.awb_number ||
     order.order_metadata.tracking_number ||
-    "AWB-PENDING";
+    t("printModal.awbPending");
 
   const carrierName =
     data?.awb.carrierName ||
     order.order_metadata.awb_details?.carrier ||
     order.order_metadata.shipping_method ||
-    "Sameday Easybox";
+    t("courier.easybox");
 
-  const formattedDate = new Date().toLocaleDateString("ro-RO", {
+  const currency = new Intl.NumberFormat(locale, { style: "currency", currency: "RON" });
+  const formattedDate = new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
+  }).format(new Date());
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto">
@@ -184,29 +215,30 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
         }
       `}</style>
 
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden my-6 flex flex-col max-h-[90vh]">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden my-6 flex flex-col max-h-[90dvh]">
         {/* Modal Toolbar (Screen only) */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-neutral-50 no-print shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-violet-100 text-violet-800">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-violet-100 text-violet-800 shrink-0">
               {carrierName}
             </span>
-            <h2 className="text-base font-bold text-neutral-900">
-              Etichetă AWB #{trackingNumber}
+            <h2 className="text-base font-bold text-neutral-900 truncate">
+              {t("printModal.labelTitle", { awb: trackingNumber })}
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handlePrint}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-[#0D0D0D] hover:bg-black rounded-xl shadow transition"
             >
               <Printer size={15} />
-              Tipărește AWB
+              {t("actions.printAwb")}
             </button>
             <button
               type="button"
               onClick={onClose}
+              aria-label={t("actions.close")}
               className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition"
             >
               <X size={18} />
@@ -219,7 +251,7 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-neutral-500 gap-3">
               <Loader2 size={32} className="animate-spin text-violet-600" />
-              <p className="text-xs font-semibold">Se generează documentul de transport...</p>
+              <p className="text-xs font-semibold">{t("printModal.loading")}</p>
             </div>
           ) : error ? (
             <div className="py-12 text-center text-red-600">
@@ -229,7 +261,7 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                 onClick={onClose}
                 className="mt-4 px-4 py-2 text-xs font-semibold bg-neutral-200 rounded-lg text-neutral-800"
               >
-                Închide
+                {t("actions.close")}
               </button>
             </div>
           ) : (
@@ -249,25 +281,25 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                     </span>
                   </div>
                   <p className="text-[10px] text-neutral-600 uppercase tracking-widest font-semibold mt-0.5">
-                    Serviciu Curierat & Logistică ERP
+                    {t("printModal.docSubtitle")}
                   </p>
                 </div>
                 <div className="text-right">
                   <span className="inline-block border-2 border-black px-3 py-1 font-black text-xs uppercase tracking-wider rounded">
                     {carrierName}
                   </span>
-                  <p className="text-[10px] text-neutral-600 mt-1">Data: {formattedDate}</p>
+                  <p className="text-[10px] text-neutral-600 mt-1">{t("printModal.date", { date: formattedDate })}</p>
                 </div>
               </div>
 
               {/* Barcode and Tracking code */}
               <div className="border-2 border-neutral-900 rounded-lg p-3 mb-4 bg-neutral-50/50 flex flex-col items-center justify-center">
                 <p className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider mb-1">
-                  COD DE BARE TRANSPORT / TRACKING
+                  {t("printModal.barcodeLabel")}
                 </p>
                 <AwbBarcode code={trackingNumber} />
                 <p className="text-[10px] text-neutral-500 mt-1">
-                  Comanda #{data?.order.orderNumber || order.order_id.slice(0, 8).toUpperCase()}
+                  {t("printModal.orderNumber", { id: data?.order.orderNumber || order.order_id.slice(0, 8).toUpperCase() })}
                 </p>
               </div>
 
@@ -277,13 +309,13 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                 <div className="border border-neutral-900 p-3 rounded-lg flex flex-col justify-between">
                   <div>
                     <div className="border-b border-neutral-300 pb-1 mb-2 font-black uppercase text-[11px] tracking-wider text-neutral-700">
-                      1. EXPEDITOR
+                      {t("printModal.senderTitle")}
                     </div>
                     <p className="font-bold text-neutral-900 text-xs">
                       {data?.sender.name || "—"}
                     </p>
                     {data?.sender.cui && (
-                      <p className="text-[11px] text-neutral-600">CUI: {data.sender.cui}</p>
+                      <p className="text-[11px] text-neutral-600">{t("printModal.cui", { cui: data.sender.cui })}</p>
                     )}
                     <p className="text-[11px] text-neutral-700 mt-1">
                       {data?.sender.address || "—"}
@@ -293,7 +325,7 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                     </p>
                   </div>
                   <div className="mt-2 pt-1 border-t border-neutral-200 text-[10px] text-neutral-600">
-                    Tel: {data?.sender.phone || "—"}
+                    {t("printModal.phone", { phone: data?.sender.phone || "—" })}
                   </div>
                 </div>
 
@@ -301,16 +333,16 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                 <div className="border-2 border-neutral-900 p-3 rounded-lg bg-neutral-50/30 flex flex-col justify-between">
                   <div>
                     <div className="border-b border-neutral-300 pb-1 mb-2 font-black uppercase text-[11px] tracking-wider text-neutral-900 flex items-center justify-between">
-                      <span>2. DESTINATAR</span>
+                      <span>{t("printModal.recipientTitle")}</span>
                       <span className="text-[9px] bg-black text-white px-1.5 py-0.2 rounded font-mono">
-                        PRIORITAR
+                        {t("printModal.priority")}
                       </span>
                     </div>
                     <p className="font-black text-neutral-900 text-sm">
                       {data?.recipient.name || order.order_metadata.customer_name || "—"}
                     </p>
                     <p className="text-xs font-black text-neutral-900 mt-0.5">
-                      Tel: {data?.recipient.phone || order.order_metadata.customer_phone || "-"}
+                      {t("printModal.phone", { phone: data?.recipient.phone || order.order_metadata.customer_phone || "-" })}
                     </p>
                     <p className="text-[11px] text-neutral-800 mt-1 font-medium">
                       {data?.recipient.line1 || order.order_metadata.shipping_address?.line1 || "—"}
@@ -321,13 +353,13 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                     <p className="text-[11px] font-bold text-neutral-900">
                       {data?.recipient.city || order.order_metadata.shipping_address?.city || ""}{" "}
                       {data?.recipient.county ? `(${data.recipient.county})` : ""}
-                      {data?.recipient.postalCode ? ` - CP ${data.recipient.postalCode}` : ""}
+                      {data?.recipient.postalCode ? ` - ${t("detailsModal.postalCode")} ${data.recipient.postalCode}` : ""}
                     </p>
 
                     {/* Locker badge if applicable */}
                     {(data?.recipient.lockerName || order.order_metadata.easybox_locker) && (
                       <div className="mt-2 p-1.5 bg-violet-100 border border-violet-300 rounded text-violet-900 font-bold text-[10px]">
-                        Locker: {data?.recipient.lockerName || order.order_metadata.easybox_locker}
+                        {t("detailsModal.locker", { locker: data?.recipient.lockerName || order.order_metadata.easybox_locker || "" })}
                       </div>
                     )}
                   </div>
@@ -339,25 +371,25 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
                 <table className="w-full text-left border-collapse text-[11px]">
                   <thead className="bg-neutral-100 border-b border-neutral-900 font-bold text-neutral-700">
                     <tr>
-                      <th className="p-2 border-r border-neutral-900">Nr. Colete</th>
-                      <th className="p-2 border-r border-neutral-900">Greutate</th>
-                      <th className="p-2 border-r border-neutral-900">Ramburs</th>
-                      <th className="p-2">Valoare Asigurată</th>
+                      <th className="p-2 border-r border-neutral-900">{t("printModal.colParcels")}</th>
+                      <th className="p-2 border-r border-neutral-900">{t("printModal.colWeight")}</th>
+                      <th className="p-2 border-r border-neutral-900">{t("printModal.colCod")}</th>
+                      <th className="p-2">{t("printModal.colInsuredValue")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td className="p-2 border-r border-neutral-900 font-bold">
-                        {data?.awb.parcelsCount || 1} colet
+                        {t("printModal.parcelCount", { count: data?.awb.parcelsCount || 1 })}
                       </td>
                       <td className="p-2 border-r border-neutral-900 font-bold">
-                        {data?.awb.weightKg || 1.0} kg
+                        {t("printModal.weightValue", { kg: data?.awb.weightKg || 1.0 })}
                       </td>
                       <td className="p-2 border-r border-neutral-900 font-black text-neutral-900">
-                        0.00 RON (Achitat Online Card)
+                        {t("printModal.codPaidOnline")}
                       </td>
                       <td className="p-2 font-bold">
-                        {data?.order.totalRon || (order.total_cents / 100).toFixed(2)} RON
+                        {currency.format(Number(data?.order.totalRon ?? (order.total_cents / 100).toFixed(2)))}
                       </td>
                     </tr>
                   </tbody>
@@ -367,16 +399,16 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
               {/* Products list summary */}
               <div className="border border-neutral-300 rounded-lg p-2.5 mb-4 bg-neutral-50/50">
                 <p className="text-[10px] uppercase font-bold text-neutral-500 mb-1">
-                  Conținut Colet:
+                  {t("printModal.contentsLabel")}
                 </p>
                 <div className="space-y-1">
-                  {order.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-[11px]">
+                  {order.items.map((item) => (
+                    <div key={item.item_id} className="flex justify-between text-[11px]">
                       <span className="font-medium text-neutral-800">
                         {item.quantity}x {item.title}
                       </span>
                       <span className="font-mono text-neutral-600 font-semibold">
-                        {((item.quantity * item.unit_amount_cents) / 100).toFixed(2)} RON
+                        {currency.format((item.quantity * item.unit_amount_cents) / 100)}
                       </span>
                     </div>
                   ))}
@@ -386,17 +418,17 @@ export default function PrintAwbModal({ order, isOpen, onClose }: Props) {
               {/* Notes & Signatures */}
               <div className="grid grid-cols-2 gap-3 pt-2 border-t-2 border-neutral-900 text-[10px]">
                 <div>
-                  <p className="font-bold text-neutral-700 uppercase">Instrucțiuni Livrare:</p>
+                  <p className="font-bold text-neutral-700 uppercase">{t("printModal.instructionsLabel")}</p>
                   <p className="text-neutral-600 mt-0.5 italic">
-                    {data?.awb.notes || "Manevrați cu atenție. Verificare colet la livrare."}
+                    {data?.awb.notes || t("printModal.defaultInstructions")}
                   </p>
                 </div>
                 <div className="flex justify-between items-end text-neutral-500">
                   <div>
-                    <p className="border-t border-dotted border-neutral-400 pt-1">Semnătură Predare</p>
+                    <p className="border-t border-dotted border-neutral-400 pt-1">{t("printModal.signatureSender")}</p>
                   </div>
                   <div>
-                    <p className="border-t border-dotted border-neutral-400 pt-1">Semnătură Primire</p>
+                    <p className="border-t border-dotted border-neutral-400 pt-1">{t("printModal.signatureRecipient")}</p>
                   </div>
                 </div>
               </div>

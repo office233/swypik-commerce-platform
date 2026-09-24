@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { logger } from "@/lib/logger";
 
 type Merchant = {
   id: string;
@@ -39,26 +40,6 @@ type MenuItem = {
   category_id: string | null;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  placed: "Nouă",
-  accepted: "Acceptată",
-  preparing: "Se prepară",
-  ready: "Gata",
-  picked_up: "Ridicată",
-  delivered: "Livrată",
-  cancelled: "Anulată",
-  rejected: "Respinsă",
-};
-
-const NEXT_STATUS: Record<string, { to: string; label: string }[]> = {
-  placed: [
-    { to: "accepted", label: "Acceptă" },
-    { to: "rejected", label: "Respinge" },
-  ],
-  accepted: [{ to: "preparing", label: "Începe prepararea" }],
-  preparing: [{ to: "ready", label: "Gata de ridicare" }],
-};
-
 function lei(cents: number): string {
   return (cents / 100).toFixed(2);
 }
@@ -84,6 +65,24 @@ function playDing(): void {
 
 export default function MerchantPanelClient() {
   const t = useTranslations("sellerMerchant");
+  const STATUS_LABELS: Record<string, string> = {
+    placed: t("statusPlaced"),
+    accepted: t("statusAccepted"),
+    preparing: t("statusPreparing"),
+    ready: t("statusReady"),
+    picked_up: t("statusPickedUp"),
+    delivered: t("statusDelivered"),
+    cancelled: t("statusCancelled"),
+    rejected: t("statusRejected"),
+  };
+  const NEXT_STATUS: Record<string, { to: string; label: string }[]> = {
+    placed: [
+      { to: "accepted", label: t("actionAccept") },
+      { to: "rejected", label: t("actionReject") },
+    ],
+    accepted: [{ to: "preparing", label: t("actionStartPreparing") }],
+    preparing: [{ to: "ready", label: t("actionReadyForPickup") }],
+  };
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [orders, setOrders] = useState<LocalOrder[]>([]);
@@ -103,7 +102,11 @@ export default function MerchantPanelClient() {
       try {
         const res = await fetch("/api/merchants/mine");
         if (res.status === 401) {
-          if (!cancelled) setError("Autentifică-te ca seller pentru a accesa panoul.");
+          if (!cancelled) setError(t("errorUnauthorized"));
+          return;
+        }
+        if (!res.ok) {
+          if (!cancelled) setError(t("errorNetwork"));
           return;
         }
         const data = (await res.json()) as { merchants?: Merchant[] };
@@ -111,10 +114,11 @@ export default function MerchantPanelClient() {
           const list = data.merchants ?? [];
           setMerchants(list);
           if (list.length > 0) setMerchantId(list[0].id);
-          if (list.length === 0) setError("Nu ai niciun comerciant înregistrat. Creează unul din /api/merchants.");
+          if (list.length === 0) setError(t("errorNoMerchant"));
         }
-      } catch {
-        if (!cancelled) setError("Eroare de rețea.");
+      } catch (err) {
+        logger.error({ err }, "Failed to load seller merchants");
+        if (!cancelled) setError(t("errorNetwork"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -122,6 +126,7 @@ export default function MerchantPanelClient() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is stable from useTranslations; adding it would just re-run this fetch-once effect on every render.
   }, []);
 
   const pollOrders = useCallback(async () => {
@@ -136,8 +141,8 @@ export default function MerchantPanelClient() {
       list.forEach((o) => knownIds.current.add(o.id));
       firstPoll.current = false;
       setOrders(list);
-    } catch {
-      // polling — reîncercăm la următorul tick
+    } catch (err) {
+      logger.warn({ err, merchantId }, "Merchant order poll failed, will retry next tick");
     }
   }, [merchantId]);
 
@@ -210,7 +215,7 @@ export default function MerchantPanelClient() {
   }
 
   async function editItemPrice(item: MenuItem): Promise<void> {
-    const input = window.prompt(`Preț nou pentru „${item.name}" (lei):`, (item.price_cents / 100).toFixed(2));
+    const input = window.prompt(t("promptNewPrice", { name: item.name }), (item.price_cents / 100).toFixed(2));
     if (input === null) return;
     const price = Number(input.replace(",", "."));
     if (!Number.isFinite(price) || price <= 0) return;
@@ -223,7 +228,7 @@ export default function MerchantPanelClient() {
   }
 
   async function deleteItem(item: MenuItem): Promise<void> {
-    if (!window.confirm(`Ștergi „${item.name}" din meniu?`)) return;
+    if (!window.confirm(t("confirmDelete", { name: item.name }))) return;
     const res = await fetch(`/api/merchants/${merchantId}/menu?item_id=${item.id}`, {
       method: "DELETE",
     });
@@ -232,7 +237,7 @@ export default function MerchantPanelClient() {
 
   if (loading) return <div className="p-8 text-center text-gray-500">{t("loading")}</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
-  if (!merchant) return <div className="p-8 text-center text-gray-500">Niciun comerciant.</div>;
+  if (!merchant) return <div className="p-8 text-center text-gray-500">{t("noMerchant")}</div>;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4">
@@ -258,22 +263,22 @@ export default function MerchantPanelClient() {
             className={`rounded-full px-4 py-2 text-sm font-semibold text-white ${isClosed ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
               }`}
           >
-            {isClosed ? "Redeschide" : "Închid acum"}
+            {isClosed ? t("reopen") : t("closeNow")}
           </button>
         </div>
       </header>
 
       {isClosed && (
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-          Ești marcat ca ÎNCHIS — clienții nu pot plasa comenzi noi.
+          {t("closedNotice")}
         </div>
       )}
 
       <section>
-        <h2 className="mb-2 text-lg font-semibold">Comenzi active ({orders.length})</h2>
+        <h2 className="mb-2 text-lg font-semibold">{t("activeOrders", { count: orders.length })}</h2>
         {orders.length === 0 ? (
           <p className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-400">
-            Nicio comandă activă. Sunetul te anunță când vine una nouă.
+            {t("noActiveOrders")}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -291,10 +296,10 @@ export default function MerchantPanelClient() {
                 <p className="mt-1 text-sm text-gray-600">
                   {o.customer_name} · {o.customer_phone} · {o.delivery_address}
                 </p>
-                {o.delivery_notes && <p className="text-xs italic text-gray-500">„{o.delivery_notes}&rdquo;</p>}
+                {o.delivery_notes && <p className="text-xs italic text-gray-500 break-words">&bdquo;{o.delivery_notes}&rdquo;</p>}
                 <ul className="mt-2 text-sm">
                   {(o.items ?? []).map((it, i) => (
-                    <li key={i}>{it.qty}× {it.name} — {lei(it.unit_price_cents * it.qty)} lei</li>
+                    <li key={i} className="break-words">{it.qty}× {it.name} — {lei(it.unit_price_cents * it.qty)} lei</li>
                   ))}
                 </ul>
                 <div className="mt-3 flex gap-2">
@@ -316,11 +321,11 @@ export default function MerchantPanelClient() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-lg font-semibold">Meniu ({menu.length} articole)</h2>
+        <h2 className="mb-2 text-lg font-semibold">{t("menuTitle", { count: menu.length })}</h2>
         <form onSubmit={(e) => void addMenuItem(e)} className="mb-3 flex flex-wrap gap-2">
           <input
-            className="flex-1 rounded border px-3 py-2 text-sm"
-            placeholder="Nume articol (ex: Pizza Margherita)"
+            className="flex-1 rounded border px-3 py-2 text-sm min-w-0"
+            placeholder={t("itemNamePlaceholder")}
             value={newItem.name}
             onChange={(e) => setNewItem((p) => ({ ...p, name: e.target.value }))}
           />
@@ -332,34 +337,34 @@ export default function MerchantPanelClient() {
             onChange={(e) => setNewItem((p) => ({ ...p, price: e.target.value }))}
           />
           <button type="submit" className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-            Adaugă
+            {t("add")}
           </button>
         </form>
         <ul className="divide-y rounded-lg border bg-white">
           {menu.map((it) => (
-            <li key={it.id} className="flex items-center justify-between p-3 text-sm">
-              <span className={it.is_available ? "" : "text-gray-400 line-through"}>
+            <li key={it.id} className="flex items-center justify-between gap-2 p-3 text-sm">
+              <span className={`min-w-0 break-words ${it.is_available ? "" : "text-gray-400 line-through"}`}>
                 {it.name} — {lei(it.price_cents)} lei
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={() => void editItemPrice(it)}
                   className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
                 >
-                  Preț
+                  {t("price")}
                 </button>
                 <button
                   onClick={() => void toggleItemAvailable(it)}
                   className={`rounded px-2 py-1 text-xs font-medium ${it.is_available ? "bg-gray-200 text-gray-700" : "bg-green-100 text-green-700"
                     }`}
                 >
-                  {it.is_available ? "Dezactivează" : "Activează"}
+                  {it.is_available ? t("deactivate") : t("activate")}
                 </button>
                 <button
                   onClick={() => void deleteItem(it)}
                   className="rounded bg-red-50 px-2 py-1 text-xs font-medium text-red-600"
                 >
-                  Șterge
+                  {t("delete")}
                 </button>
               </span>
             </li>

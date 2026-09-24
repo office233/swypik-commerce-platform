@@ -9,11 +9,11 @@ import { logger } from "@/lib/logger";
 import { SellerOrderTrackingSchema, parseBody } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   try {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
     }
 
     // Multi-seller safe: include only this seller's items in total/items
@@ -171,9 +171,9 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ success: true, orders });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller Orders API] GET Error:");
-    return NextResponse.json({ success: false, error: "Eroare la preluarea comenzilor." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
   }
 }
 
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
   try {
     const sellerId = await getSellerSessionId();
     if (!sellerId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
     }
 
     const rl = await rateLimit("sellerOrders", sellerId);
@@ -327,7 +327,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, order: rows[0], trackingNumber, trackingUrl });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ err: error }, "[Seller Orders API] POST Error:");
     return NextResponse.json({ success: false, error: "Eroare la actualizarea comenzii." }, { status: 500 });
   }

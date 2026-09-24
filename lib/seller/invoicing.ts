@@ -53,3 +53,18 @@ export function formatReceiptNumber(date: Date, nextNumber: number): string {
     const day = date.toISOString().slice(0, 10).replace(/-/g, "");
     return `POS-${day}-${String(nextNumber).padStart(INVOICE_NUMBER_PAD, "0")}`;
 }
+
+/**
+ * Escapes XML special characters in seller/client-supplied text (nume client,
+ * CUI, adresă etc.) before it's interpolated into the e-Factura UBL 2.1 XML
+ * generat client-side. Fără asta, un nume de client cu `&`, `<` sau `"` rupe
+ * structura XML (sau, în teorie, permite XML injection în documentul descărcat).
+ */
+export function escapeXml(value: string): string {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}

@@ -1,11 +1,13 @@
 import { dbQuery } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
 import PosClient, { PosProduct } from "./PosClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function SellerPosPage() {
+  const t = await getTranslations("sellerPos");
   const sellerId = await getSellerSessionId();
   if (!sellerId) {
     redirect("/seller/login");
@@ -18,7 +20,7 @@ export default async function SellerPosPage() {
     price_cents: number;
     category: string | null;
     image_url: string | null;
-    metadata: Record<string, any> | null;
+    metadata: Record<string, unknown> | null;
   }>(
     `SELECT
        id,
@@ -34,7 +36,7 @@ export default async function SellerPosPage() {
   );
 
   const initialProducts: PosProduct[] = rows.map((r) => {
-    const meta = r.metadata || {};
+    const meta = (r.metadata || {}) as { available_stock?: unknown; stock?: unknown; sku?: unknown };
     const stock = Number(meta.available_stock ?? (meta.stock ?? 10));
     return {
       id: r.id,
@@ -42,7 +44,7 @@ export default async function SellerPosPage() {
       priceCents: r.price_cents,
       stock: Number.isFinite(stock) ? stock : 0,
       imageUrl: r.image_url,
-      sku: meta.sku || null,
+      sku: (typeof meta.sku === "string" ? meta.sku : null),
       category: r.category,
     };
   });
@@ -51,9 +53,9 @@ export default async function SellerPosPage() {
     <div className="space-y-4 max-w-7xl mx-auto pb-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-[#0D0D0D]">POS / Casă de Marcat & Vânzare Rapidă</h1>
+          <h1 className="text-xl font-black text-[#0D0D0D]">{t("title")}</h1>
           <p className="text-xs text-neutral-500 mt-0.5">
-            Vinde la tejghea pe telefon, tabletă sau PC. Stocul se actualizează automat în ERP și pe Swypik.
+            {t("subtitle")}
           </p>
         </div>
       </div>
