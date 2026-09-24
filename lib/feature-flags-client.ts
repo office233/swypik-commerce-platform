@@ -26,12 +26,14 @@ export const CLIENT_FEATURES = {
   tryOn: flag(process.env.NEXT_PUBLIC_FEATURE_TRY_ON, false),
   // Trebuie setat ÎMPREUNĂ cu FEATURE_SQUAD_BUY (server) — vezi lib/feature-flags.ts.
   squadBuy: flag(process.env.NEXT_PUBLIC_FEATURE_SQUAD_BUY, false),
-  movies: flag(process.env.NEXT_PUBLIC_FEATURE_MOVIES, true),
-  music: flag(process.env.NEXT_PUBLIC_FEATURE_MUSIC, true),
-  news: flag(process.env.NEXT_PUBLIC_FEATURE_NEWS, true),
-  gaming: flag(process.env.NEXT_PUBLIC_FEATURE_GAMING, true),
-  crypto: flag(process.env.NEXT_PUBLIC_FEATURE_CRYPTO, true),
-  messenger: flag(process.env.NEXT_PUBLIC_FEATURE_MESSENGER, true),
+  // OFF by default — explicit opt-in via NEXT_PUBLIC_FEATURE_X=1 at build time,
+  // mirroring the server-side default in lib/feature-flags.ts.
+  movies: flag(process.env.NEXT_PUBLIC_FEATURE_MOVIES, false),
+  music: flag(process.env.NEXT_PUBLIC_FEATURE_MUSIC, false),
+  news: flag(process.env.NEXT_PUBLIC_FEATURE_NEWS, false),
+  gaming: flag(process.env.NEXT_PUBLIC_FEATURE_GAMING, false),
+  crypto: flag(process.env.NEXT_PUBLIC_FEATURE_CRYPTO, false),
+  messenger: flag(process.env.NEXT_PUBLIC_FEATURE_MESSENGER, false),
 } as const;
 
 export type ClientFeatureName = keyof typeof CLIENT_FEATURES;

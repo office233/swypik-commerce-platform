@@ -29,13 +29,14 @@ export const FEATURES = {
   // Squad Buy: grupurile se formează, dar NIMIC nu aplică prețul redus la
   // checkout și nu se reține niciun ban — OFF până există integrarea cu plata.
   squadBuy: flag('FEATURE_SQUAD_BUY', false),
-  // Swypik Movies — OFF până există primul serial publicat.
-  movies: flag('FEATURE_MOVIES', true),
-  music: flag('FEATURE_MUSIC', true),
-  news: flag('FEATURE_NEWS', true),
-  gaming: flag('FEATURE_GAMING', true),
-  crypto: flag('FEATURE_CRYPTO', true),
-  messenger: flag('FEATURE_MESSENGER', true),
+  // Swypik Movies/Music/News/Gaming/Crypto/Messenger — OFF by default, explicit
+  // opt-in via env (FEATURE_X=1) once the module is verified ready for prod.
+  movies: flag('FEATURE_MOVIES', false),
+  music: flag('FEATURE_MUSIC', false),
+  news: flag('FEATURE_NEWS', false),
+  gaming: flag('FEATURE_GAMING', false),
+  crypto: flag('FEATURE_CRYPTO', false),
+  messenger: flag('FEATURE_MESSENGER', false),
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

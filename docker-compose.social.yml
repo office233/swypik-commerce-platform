@@ -190,7 +190,9 @@ services:
     volumes:
       - ./infra/livekit/livekit.yaml:/etc/livekit.yaml:ro
     environment:
-      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-swypik_livekit_dev_secret_32chars}"
+      # No fallback secrets: an unset key must fail the compose run, not
+      # silently stand up an SFU with a publicly-known dev credential.
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?LIVEKIT_API_KEY required}: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET required}"
     depends_on:
       redis:
         condition: service_healthy

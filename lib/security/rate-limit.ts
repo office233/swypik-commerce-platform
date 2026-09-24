@@ -227,6 +227,11 @@ export const RATE_LIMITS = {
   musicPlaylist: { limit: 60, window: 60 } as RateLimitConfig,
   musicPublish: { limit: 10, window: 3600 } as RateLimitConfig,
   musicStream: { limit: 300, window: 60 } as RateLimitConfig,
+  // Swypik News — pipeline run is expensive (Gemini calls), reactions/comments are cheap CRUD.
+  newsPipeline: { limit: 3, window: 60 } as RateLimitConfig,
+  newsReaction: { limit: 30, window: 60 } as RateLimitConfig,
+  newsComment: { limit: 10, window: 60 } as RateLimitConfig,
+  newsCommentDelete: { limit: 20, window: 60 } as RateLimitConfig,
 } as const;
 
 /**

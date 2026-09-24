@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import MobileDashboardNav from "@/components/dashboard/MobileDashboardNav";
 import { useTranslations } from "next-intl";
+import { isEnabled } from "@/lib/feature-flags";
 import {
   BarChart3,
   Upload,
@@ -21,8 +22,8 @@ export default function CreatorLayout({ children }: { children: ReactNode }) {
     { href: "/creator", icon: "barChart3", label: t("dashboard") },
     { href: "/upload", icon: "upload", label: t("incarcaVideo") },
     { href: "/creator/videos", icon: "clapperboard", label: t("clipurileMele") },
-    { href: "/creator/movies", icon: "clapperboard", label: t("movies") },
-    { href: "/creator/music", icon: "music", label: t("music") },
+    ...(isEnabled("movies") ? [{ href: "/creator/movies", icon: "clapperboard", label: t("movies") }] : []),
+    ...(isEnabled("music") ? [{ href: "/creator/music", icon: "music", label: t("music") }] : []),
     { href: "/creator/drafts", icon: "fileText", label: t("schite") },
     { href: "/creator/analytics", icon: "trendingUp", label: t("analytics") },
     { href: "/creator/earnings", icon: "coins", label: t("castiguri") },

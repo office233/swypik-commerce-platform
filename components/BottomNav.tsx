@@ -8,13 +8,13 @@ import { isEnabledClient } from "@/lib/feature-flags-client";
 import { haptic } from "@/lib/haptic";
 
 type NavKey = "home" | "explore" | "upload" | "inbox" | "account" | "messages";
-type Item = { href: string; icon: typeof Home; key: NavKey; center?: boolean; flag?: "dm" | "pushNotifications" | "stripeConnect" | "returns" };
+type Item = { href: string; icon: typeof Home; key: NavKey; center?: boolean; flag?: "dm" | "pushNotifications" | "stripeConnect" | "returns" | "messenger" };
 
 const NAV_ITEMS: Item[] = [
   { href: "/", icon: Home, key: "home" },
   { href: "/explore", icon: Compass, key: "explore" },
   { href: "/reels/record", icon: Plus, key: "upload", center: true },
-  { href: "/messages", icon: MessageSquareText, key: "messages" },
+  { href: "/messages", icon: MessageSquareText, key: "messages", flag: "messenger" },
   { href: "/account", icon: User, key: "account" },
 ];
 

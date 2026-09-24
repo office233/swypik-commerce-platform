@@ -34,11 +34,25 @@ services:
         SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
         # Flag-urile verticalelor: NEXT_PUBLIC_* se coc în bundle-ul de browser
         # (meniul hamburger, provider-ul de player), iar FEATURE_* trebuie să
-        # existe și la build pentru paginile index prerandate (/movies, /music).
+        # existe și la build pentru paginile index prerandate (/movies, /music,
+        # /news, /gaming, /crypto, /messages).
         FEATURE_MOVIES: ${FEATURE_MOVIES:-}
         NEXT_PUBLIC_FEATURE_MOVIES: ${NEXT_PUBLIC_FEATURE_MOVIES:-}
         FEATURE_MUSIC: ${FEATURE_MUSIC:-}
         NEXT_PUBLIC_FEATURE_MUSIC: ${NEXT_PUBLIC_FEATURE_MUSIC:-}
+        FEATURE_NEWS: ${FEATURE_NEWS:-}
+        NEXT_PUBLIC_FEATURE_NEWS: ${NEXT_PUBLIC_FEATURE_NEWS:-}
+        FEATURE_GAMING: ${FEATURE_GAMING:-}
+        NEXT_PUBLIC_FEATURE_GAMING: ${NEXT_PUBLIC_FEATURE_GAMING:-}
+        FEATURE_CRYPTO: ${FEATURE_CRYPTO:-}
+        NEXT_PUBLIC_FEATURE_CRYPTO: ${NEXT_PUBLIC_FEATURE_CRYPTO:-}
+        FEATURE_MESSENGER: ${FEATURE_MESSENGER:-}
+        NEXT_PUBLIC_FEATURE_MESSENGER: ${NEXT_PUBLIC_FEATURE_MESSENGER:-}
+        FEATURE_DM: ${FEATURE_DM:-}
+        NEXT_PUBLIC_FEATURE_DM: ${NEXT_PUBLIC_FEATURE_DM:-}
+        # NEXT_PUBLIC_LIVEKIT_URL alimentează atât CSP-ul (next.config.mjs
+        # connect-src, calculat la build) cât și clientul de apeluri video.
+        NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL:-}
       dockerfile_inline: |
         # ── Build stage ──
         FROM node:20.19.0-alpine AS builder
@@ -72,6 +86,28 @@ services:
         ENV FEATURE_MUSIC=$FEATURE_MUSIC
         ARG NEXT_PUBLIC_FEATURE_MUSIC
         ENV NEXT_PUBLIC_FEATURE_MUSIC=$NEXT_PUBLIC_FEATURE_MUSIC
+        ARG FEATURE_NEWS
+        ENV FEATURE_NEWS=$FEATURE_NEWS
+        ARG NEXT_PUBLIC_FEATURE_NEWS
+        ENV NEXT_PUBLIC_FEATURE_NEWS=$NEXT_PUBLIC_FEATURE_NEWS
+        ARG FEATURE_GAMING
+        ENV FEATURE_GAMING=$FEATURE_GAMING
+        ARG NEXT_PUBLIC_FEATURE_GAMING
+        ENV NEXT_PUBLIC_FEATURE_GAMING=$NEXT_PUBLIC_FEATURE_GAMING
+        ARG FEATURE_CRYPTO
+        ENV FEATURE_CRYPTO=$FEATURE_CRYPTO
+        ARG NEXT_PUBLIC_FEATURE_CRYPTO
+        ENV NEXT_PUBLIC_FEATURE_CRYPTO=$NEXT_PUBLIC_FEATURE_CRYPTO
+        ARG FEATURE_MESSENGER
+        ENV FEATURE_MESSENGER=$FEATURE_MESSENGER
+        ARG NEXT_PUBLIC_FEATURE_MESSENGER
+        ENV NEXT_PUBLIC_FEATURE_MESSENGER=$NEXT_PUBLIC_FEATURE_MESSENGER
+        ARG FEATURE_DM
+        ENV FEATURE_DM=$FEATURE_DM
+        ARG NEXT_PUBLIC_FEATURE_DM
+        ENV NEXT_PUBLIC_FEATURE_DM=$NEXT_PUBLIC_FEATURE_DM
+        ARG NEXT_PUBLIC_LIVEKIT_URL
+        ENV NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL
         RUN npm run build
 
         # ── Runtime stage ──
@@ -107,6 +143,12 @@ services:
 
         CMD ["node", "server.js"]
     env_file:
+      # Server-only runtime secrets pass through as-is from .env.production —
+      # no defaults here, missing values fail loudly in the code that reads
+      # them (lib/messenger/livekit.ts, lib/movies/tmdb.ts, lib/music/youtube.ts,
+      # lib/audio/jamendo.ts, lib/news/ai-journalist.ts): LIVEKIT_API_KEY,
+      # LIVEKIT_API_SECRET, LIVEKIT_URL, TMDB_API_KEY, GEMINI_API_KEY,
+      # YOUTUBE_API_KEY, JAMENDO_CLIENT_ID.
       - .env.production
     depends_on:
       postgres:

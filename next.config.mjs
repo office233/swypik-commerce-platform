@@ -9,13 +9,38 @@ const isDev = process.env.NODE_ENV === "development";
 // Ținut într-o constantă fiindcă CSP-ul e definit în TREI locuri (aici de două
 // ori + `middleware.ts`); a fost deja o sursă de divergență.
 const SENTRY_CONNECT_SRC = "https://*.ingest.sentry.io";
+// LiveKit (Swypik Messenger calls) needs its own websocket host in connect-src
+// when configured. Built from NEXT_PUBLIC_LIVEKIT_URL (e.g. wss://foo.livekit.cloud)
+// so it stays in sync with the value the client SDK actually connects to.
+const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
+let LIVEKIT_CONNECT_SRC = "";
+try {
+  if (LIVEKIT_URL) {
+    const u = new URL(LIVEKIT_URL.replace(/^ws/, "http"));
+    LIVEKIT_CONNECT_SRC = `wss://${u.host} https://${u.host}`;
+  }
+} catch {
+  LIVEKIT_CONNECT_SRC = "";
+}
+// Explicit allowlist — do NOT widen back to `https:` (open connect-src let any
+// page/script exfiltrate to arbitrary hosts). New modules (Movies, Music, News,
+// Gaming, Crypto, Messenger) call third-party APIs (TMDB, YouTube, Audius,
+// Jamendo, Radio-Browser, CheapShark, OpenTDB, CoinGecko, Gemini) ONLY from
+// server code (lib/**), never from the browser — see app/api/* proxies — so
+// none of those hosts need to be here.
+const CONNECT_SRC = `'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC}${LIVEKIT_CONNECT_SRC ? ` ${LIVEKIT_CONNECT_SRC}` : ""}`;
+// media-src stays broad (`https:`) on purpose: Swypik Music plays internet
+// radio streams (lib/audio/radio-browser.ts) whose stream URLs come from
+// arbitrary stations' own hosts picked at request time — there is no fixed
+// allowlist possible. img-src also stays `https:` for the same class of
+// arbitrary-host cover art / thumbnails.
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://www.youtube.com https://s.ytimg.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: data: https:;
-  connect-src 'self' https: data: blob: ${SENTRY_CONNECT_SRC};
+    connect-src ${CONNECT_SRC};
   frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
   font-src 'self' data:;
   object-src 'none';
@@ -30,7 +55,7 @@ const cspReportOnly = `
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   media-src 'self' blob: data: https:;
-  connect-src 'self' https: data: blob: ${SENTRY_CONNECT_SRC};
+  connect-src ${CONNECT_SRC};
   frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
   font-src 'self' data:;
   object-src 'none';
@@ -55,9 +80,20 @@ const nextConfig = {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
   },
   images: {
+    // Explicit allowlist — `hostname: '**'` for http AND https was an open
+    // image proxy (any URL could be requested through /_next/image). Arbitrary-
+    // host images from the new modules (radio station favicons, Audius/Jamendo
+    // cover art, podcast artwork, gaming deal thumbnails) are rendered with
+    // plain <img> in those components (not next/image), so they don't need an
+    // entry here — see components/music/*, app/[locale]/gaming/page.tsx.
     remotePatterns: [
-      { protocol: 'https', hostname: '**' },
-      { protocol: 'http', hostname: '**' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'commons.wikimedia.org' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
+      { protocol: 'https', hostname: 'cdn.swypik.com' },
+      { protocol: 'https', hostname: 'media.swypik.com' },
+      // Swypik Movies posters/thumbnails (lib/movies/tmdb.ts), rendered via next/image.
+      { protocol: 'https', hostname: 'image.tmdb.org' },
     ],
   },
   // ─── Cloudflare + Performance Headers ───

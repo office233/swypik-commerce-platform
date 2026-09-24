@@ -86,8 +86,8 @@ export default function IncomingCallDialog({
 
         <h3 className="text-xl font-bold text-white mb-1">{callerName}</h3>
         <p className="text-slate-400 text-sm flex items-center gap-1.5 mb-8">
-          {callType === "video" ? <Video size={16} className="text-emerald-400" /> : <Phone size={16} className="text-emerald-400" />}
-          Apel {callType === "video" ? "Video" : "Audio"} WhatsApp...
+          {callType === "video" ? <Video size={16} className="text-violet-400" /> : <Phone size={16} className="text-violet-400" />}
+          Apel {callType === "video" ? "Video HD" : "Audio Clar"} Swypik...
         </p>
 
         {/* Action buttons */}
@@ -107,11 +107,11 @@ export default function IncomingCallDialog({
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={onAccept}
-              className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center shadow-lg transition active:scale-95 animate-bounce"
+              className="w-16 h-16 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white flex items-center justify-center shadow-xl shadow-violet-500/25 transition active:scale-95 animate-pulse"
             >
               <Phone size={26} />
             </button>
-            <span className="text-xs text-emerald-400 font-bold">Răspunde</span>
+            <span className="text-xs text-violet-400 font-bold">Răspunde</span>
           </div>
         </div>
       </div>

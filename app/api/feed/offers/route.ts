@@ -132,6 +132,6 @@ export async function GET(request: Request) {
         return NextResponse.json(body);
     } catch (error) {
         logger.error({ error: String(error) }, "offers feed failed");
-        return NextResponse.json({ items: [], nextOffset: 0, hasMore: false });
+        return NextResponse.json({ error: "internal_error" }, { status: 500 });
     }
 }

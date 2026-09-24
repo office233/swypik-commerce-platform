@@ -8,7 +8,7 @@ function run(cmd) {
 try {
     const wslCommands = [
         "cd /opt/swypik/app",
-        "docker rm -f swypik-prod-web-next-1 4087527dd60ff9c7f35c5442933ca2daeeff919ef68d9515bb7fb29463819332 2>/dev/null || true",
+        "docker rm -f swypik-prod-web-next-1 2>/dev/null || true",
         "docker compose -f infra/hetzner/docker-compose.prod.yml -f infra/hetzner/docker-compose.vps.yml -f infra/hetzner/docker-compose.minio.yml --env-file infra/hetzner/.env.production up -d --no-deps web-next",
         "docker ps --filter 'name=web-next'"
     ].join(" && ");
