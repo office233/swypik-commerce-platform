@@ -43,6 +43,11 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
+      # Design system: blochează culori hex noi și text sub 12px în app/ + components/
+      # (baseline în .design-baseline.json — doar scăderea e permisă).
+      - name: Design debt guard
+        run: npm run lint:design
+
       - name: Typecheck
         run: npm run typecheck --if-present
 

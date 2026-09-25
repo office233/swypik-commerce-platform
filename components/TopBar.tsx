@@ -1,141 +1,54 @@
 "use client";
 
-import { Link } from "@/lib/i18n/navigation";
-import { useEffect, useState } from "react";
-import { Inbox, LayoutGrid, ShoppingBag } from "lucide-react";
-import Logo from "@/components/Logo";
-import LocaleQuickPicker from "@/components/i18n/LocaleQuickPicker";
+import { Inbox, Search, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
+import Logo from "@/components/Logo";
+import AppMenuButton from "@/components/nav/AppMenuButton";
+import { IconBadge, IconButton } from "@/components/ui/IconButton";
+import { formatBadgeCount, useCartCount, useUnreadCount } from "@/lib/nav/useShellCounts";
+import { cn } from "@/lib/ui/cn";
 
 /**
- * TopBar — thin sticky chrome for user-facing pages.
- * Holds: logo (left), single Inbox icon (right) — combines DM unread + Notif unread.
+ * TopBar — header-ul principal al paginilor de nivel întâi: ☰ meniu, logo,
+ * căutare, coș, inbox (notificări + mesaje necitite). Tokenuri → light/dark
+ * automat; în <ImmersiveSurface> devine întunecat.
  *
- * NOT mounted globally. Only mount on pages that need it (do NOT add
- * to app/layout.tsx — would break feed/explore immersion).
- *
- * Polls every 60s:
- *   - /api/notifications?limit=1 → unreadCount
- *   - /api/dm/conversations → unread conversations count
+ * Pentru pagini interne folosește <PageHeader back title="…" /> din components/ui.
  */
-export default function TopBar() {
+export default function TopBar({ className }: { className?: string }) {
   const t = useTranslations("topBar");
-  const [unread, setUnread] = useState(0);
-  const [cartCount, setCartCount] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const [notifRes, dmRes] = await Promise.all([
-          fetch("/api/notifications?limit=1", {
-            credentials: "include",
-            cache: "no-store",
-          }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-          fetch("/api/dm/conversations", {
-            credentials: "include",
-            cache: "no-store",
-          }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        ]);
-
-        let total = Number(notifRes?.unreadCount) || 0;
-        const items: Array<{ unread_count?: number }> = Array.isArray(
-          dmRes?.conversations,
-        )
-          ? dmRes.conversations
-          : Array.isArray(dmRes?.items)
-            ? dmRes.items
-            : Array.isArray(dmRes)
-              ? dmRes
-              : [];
-        total += items.reduce(
-          (sum, c) => sum + (Number(c?.unread_count) > 0 ? 1 : 0),
-          0,
-        );
-
-        if (!cancelled) setUnread(total);
-      } catch {
-        /* silent */
-      }
-    }
-
-    load();
-    const t = setInterval(load, 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(t);
-    };
-  }, []);
-
-  // Cart count — server-side cart (DB). Poll every 30s + refresh on focus.
-  useEffect(() => {
-    let cancelled = false;
-    const readCart = async () => {
-      try {
-        const r = await fetch("/api/cart", { credentials: "include", cache: "no-store" });
-        if (!r.ok) return;
-        const data = await r.json();
-        if (cancelled) return;
-        const items: Array<{ quantity?: number }> = Array.isArray(data?.items) ? data.items : [];
-        const total = items.reduce((sum, it) => sum + (Number(it?.quantity) || 0), 0);
-        setCartCount(total);
-      } catch {
-        if (!cancelled) setCartCount(0);
-      }
-    };
-    readCart();
-    const onFocus = () => { void readCart(); };
-    window.addEventListener("focus", onFocus);
-    const t = setInterval(readCart, 30_000);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("focus", onFocus);
-      clearInterval(t);
-    };
-  }, []);
+  const cartBadge = formatBadgeCount(useCartCount());
+  const unreadBadge = formatBadgeCount(useUnreadCount());
 
   return (
     <header
-      className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/10 text-white"
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      className={cn(
+        "sticky top-0 z-header border-b border-subtle bg-surface/90 pt-safe-t text-fg backdrop-blur-xl",
+        className,
+      )}
     >
-      <div className="mx-auto max-w-lg flex items-center justify-between px-4 h-12">
+      <div className="mx-auto flex h-header max-w-5xl items-center gap-1 px-gutter">
+        <AppMenuButton className="-ml-2" />
         <Logo href="/" />
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/categories"
-            aria-label={t("categories")}
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
-          >
-            <LayoutGrid className="h-5 w-5" />
-          </Link>
-          <LocaleQuickPicker />
-          <Link
-            href="/cart"
-            aria-label={t("cart")}
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
-          >
-            <ShoppingBag className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#7C3AED] px-1 text-[11px] font-semibold text-white">
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            )}
-          </Link>
-          <Link
-            href="/inbox"
-            aria-label={t("inbox")}
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
-          >
-            <Inbox className="h-5 w-5" />
-            {unread > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#7C3AED] px-1 text-[11px] font-semibold text-white">
-                {unread > 99 ? "99+" : unread}
-              </span>
-            )}
-          </Link>
+        <div className="-mr-2 ml-auto flex items-center gap-0.5">
+          <IconButton asChild label={t("search")}>
+            <Link href="/search">
+              <Search aria-hidden />
+            </Link>
+          </IconButton>
+          <IconButton asChild label={cartBadge ? t("cartWithCount", { count: cartBadge }) : t("cart")}>
+            <Link href="/cart">
+              <ShoppingBag aria-hidden />
+              {cartBadge ? <IconBadge>{cartBadge}</IconBadge> : null}
+            </Link>
+          </IconButton>
+          <IconButton asChild label={unreadBadge ? t("inboxWithCount", { count: unreadBadge }) : t("inbox")}>
+            <Link href="/inbox">
+              <Inbox aria-hidden />
+              {unreadBadge ? <IconBadge>{unreadBadge}</IconBadge> : null}
+            </Link>
+          </IconButton>
         </div>
       </div>
     </header>

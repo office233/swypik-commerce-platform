@@ -1,101 +1,73 @@
 "use client";
 
-import { useEffect } from "react";
 import { Link, usePathname } from "@/lib/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Home, Compass, Plus, MessageSquareText, User } from "lucide-react";
-import { isEnabledClient } from "@/lib/feature-flags-client";
+import { BOTTOM_NAV } from "@/lib/nav/modules";
+import { activeBottomNavKey, isBottomNavHidden, isImmersiveRoute } from "@/lib/nav/visibility";
 import { haptic } from "@/lib/haptic";
+import { cn } from "@/lib/ui/cn";
 
-type NavKey = "home" | "explore" | "upload" | "inbox" | "account" | "messages";
-type Item = { href: string; icon: typeof Home; key: NavKey; center?: boolean; flag?: "dm" | "pushNotifications" | "stripeConnect" | "returns" | "messenger" };
-
-const NAV_ITEMS: Item[] = [
-  { href: "/", icon: Home, key: "home" },
-  { href: "/explore", icon: Compass, key: "explore" },
-  { href: "/reels/record", icon: Plus, key: "upload", center: true },
-  { href: "/messages", icon: MessageSquareText, key: "messages", flag: "messenger" },
-  { href: "/account", icon: User, key: "account" },
-];
-
+/**
+ * Navigarea de jos: Acasă (feed video) · Descoperă · Creează · Inbox · Profil.
+ * Înălțimea e tokenul `--nav-h`; spațiul pentru conținut îl rezervă CSS-ul
+ * (`html:has([data-bottom-nav])` în globals.css) — fără efecte JS, fără layout shift.
+ * Pe rutele imersive (feed) trece pe varianta întunecată.
+ */
 export default function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  // Ascuns pe zonele „pro" (curier/șofer, seller, admin, developers) și pe
-  // fluxurile full-screen (movies, music, go/mobilitate, checkout, înregistrare video, produs).
-  const hiddenPaths = ["/movies", "/music", "/go", "/checkout", "/reels/record", "/seller", "/sellers", "/creator", "/admin", "/auth", "/upload", "/product", "/courier", "/developers"];
-  // Bara internă din ChatInterface a fost eliminată (2026-07-29) —
-  // BottomNav e acum SINGURA navigare, inclusiv pe homepage.
-  const isHidden = hiddenPaths.some((p) => pathname.startsWith(p));
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    document.body.style.paddingBottom = isHidden
-      ? ""
-      : "calc(56px + env(safe-area-inset-bottom, 0px))";
-    return () => { document.body.style.paddingBottom = ""; };
-  }, [isHidden]);
-  if (isHidden) return null;
+  if (isBottomNavHidden(pathname)) return null;
+  const activeKey = activeBottomNavKey(pathname);
+  const immersive = isImmersiveRoute(pathname);
 
   return (
     <nav
-      data-testid="bottom-nav" className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-[#E5E5E5] dark:border-[#1F1F1F] shadow-[0_-2px_20px_rgba(0,0,0,0.05)]"
-      style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
+      data-bottom-nav=""
+      data-testid="bottom-nav"
+      aria-label={t("mainNavigation")}
+      {...(immersive ? { "data-theme": "dark" } : {})}
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-nav pb-safe-b text-fg",
+        immersive ? "bg-black" : "border-t border-subtle bg-surface/95 backdrop-blur-xl",
+      )}
     >
-      <div className="mx-auto max-w-lg grid grid-cols-5 items-center px-2 pt-1.5 pb-1">
-        {NAV_ITEMS.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+      <ul className="mx-auto grid h-nav max-w-lg grid-cols-5 items-center px-1">
+        {BOTTOM_NAV.map((item) => {
           const Icon = item.icon;
-          const disabled = item.flag ? !isEnabledClient(item.flag) : false;
           const label = t(item.key);
-
+          const active = activeKey === item.key;
           if (item.center) {
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => haptic("tap")}
-                aria-label={label}
-                className="flex items-center justify-center mx-auto -mt-3 w-12 h-12 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#A855F7] shadow-lg ring-4 ring-white dark:ring-black active:scale-95 transition-transform"
-              >
-                <Icon size={26} strokeWidth={2.6} className="text-white" />
-              </Link>
+              <li key={item.key} className="flex justify-center">
+                <Link
+                  href={item.route}
+                  onClick={() => haptic("tap")}
+                  aria-label={label}
+                  className="flex h-11 w-14 items-center justify-center rounded-control bg-brand-gradient text-white shadow-elev-2 transition-transform duration-fast active:scale-95"
+                >
+                  <Icon className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+                </Link>
+              </li>
             );
           }
-
-          if (disabled) {
-            return (
-              <span
-                key={item.href}
-                aria-disabled="true"
-                className="relative mx-auto flex flex-col items-center justify-center gap-0.5 w-full h-12 rounded-xl text-[#D4D4D8] dark:text-[#3F3F46] cursor-not-allowed"
-              >
-                <Icon size={22} strokeWidth={1.8} />
-                <span className="text-[10px] leading-tight font-medium">{label}</span>
-              </span>
-            );
-          }
-
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => haptic("tap")}
-              className={`relative mx-auto flex flex-col items-center justify-center gap-0.5 w-full h-12 rounded-xl transition-all ${isActive
-                ? "text-[#0D0D0D] dark:text-white"
-                : "text-[#52525B] hover:text-[#0D0D0D] dark:text-[#A1A1AA] dark:hover:text-white"
-                }`}
-            >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className={`text-[10px] leading-tight ${isActive ? "font-bold" : "font-medium"}`}>
-                {label}
-              </span>
-              {isActive && (
-                <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-[#0D0D0D] dark:bg-white" />
-              )}
-            </Link>
+            <li key={item.key}>
+              <Link
+                href={item.route}
+                onClick={() => haptic("tap")}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-nav w-full flex-col items-center justify-center gap-0.5 transition-colors duration-fast",
+                  active ? "text-fg" : "text-muted hover:text-fg",
+                )}
+              >
+                <Icon className="h-6 w-6" strokeWidth={active ? 2.4 : 1.8} aria-hidden />
+                <span className={cn("text-xs leading-none", active ? "font-semibold" : "font-medium")}>{label}</span>
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </nav>
   );
 }

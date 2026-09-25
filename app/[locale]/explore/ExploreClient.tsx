@@ -18,6 +18,8 @@ import { logger } from "@/lib/logger";
 import type { ProductData } from "@/components/ProductDrawer";
 import type { Locale } from "@/lib/i18n/config";
 import { formatMoneyCents } from "@/lib/i18n/currency";
+import { fetchFeedPage } from "@/lib/feed/client/feed-source";
+import AppMenuButton from "@/components/nav/AppMenuButton";
 
 const ProductDrawer = dynamic(() => import("@/components/ProductDrawer"), { ssr: false });
 const CommentsSheet = dynamic(() => import("@/components/social/CommentsSheet"), { ssr: false });
@@ -229,17 +231,16 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: F
 
     async function fetchVideos() {
       try {
-        const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
-        const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
-        const pinQs = initialVideoId ? `&v=${encodeURIComponent(initialVideoId)}` : "";
-        const creatorQs = creatorContextId ? `&creator_id=${encodeURIComponent(creatorContextId)}` : "";
-        const url = feedSource === "following"
-          ? `/api/explore/feed?limit=30&page=1&source=following${catQs}${sessionQs}${pinQs}${creatorQs}`
-          : `/api/explore/feed?limit=30&page=1${catQs}${sessionQs}${pinQs}${creatorQs}`;
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          const nextVideos = (data.videos || []) as FeedVideo[];
+        const data = await fetchFeedPage<FeedVideo>({
+          page: 1,
+          source: feedSource,
+          category: initialCategory || undefined,
+          sessionId: sessionIdRef.current || undefined,
+          pinnedVideoId: initialVideoId || undefined,
+          creatorId: creatorContextId || undefined,
+        });
+        if (data) {
+          const nextVideos = data.videos;
           for (const v of nextVideos) seenIdsRef.current.add(v.id);
           hasMoreRef.current = Boolean(data.hasMore);
           pageRef.current = 1;
@@ -276,15 +277,15 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: F
     loadingMoreRef.current = true;
     try {
       const nextPage = pageRef.current + 1;
-      const catQs = initialCategory ? `&taxonomy_node_slug=${encodeURIComponent(initialCategory)}` : "";
-      const sessionQs = sessionIdRef.current ? `&session_id=${encodeURIComponent(sessionIdRef.current)}` : "";
-      const sourceQs = feedSource === "following" ? "&source=following" : "";
-      const creatorQs = creatorContextId ? `&creator_id=${encodeURIComponent(creatorContextId)}` : "";
-      const url = `/api/explore/feed?limit=30&page=${nextPage}${sourceQs}${catQs}${sessionQs}${creatorQs}`;
-      const res = await fetch(url);
-      if (!res.ok) return;
-      const data = await res.json();
-      const incoming: FeedVideo[] = data.videos || [];
+      const data = await fetchFeedPage<FeedVideo>({
+        page: nextPage,
+        source: feedSource,
+        category: initialCategory || undefined,
+        sessionId: sessionIdRef.current || undefined,
+        creatorId: creatorContextId || undefined,
+      });
+      if (!data) return;
+      const incoming = data.videos;
       // Dedup against previously seen ids (server uses OFFSET so dups are rare,
       // but ranking jitter can return same video on adjacent pages).
       const fresh = incoming.filter((v) => v?.id && !seenIdsRef.current.has(v.id));
@@ -702,7 +703,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: F
       <h1 className="sr-only">{t("descoperaVideoclipuriSwypik")}</h1>
       <style dangerouslySetInnerHTML={{
         __html: `
-        :root { --feed-bottom-nav: 64px; --feed-safe-bottom: env(safe-area-inset-bottom, 0px); --feed-action-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 16px); --feed-content-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 12px); }
+        .explore-root { --feed-bottom-nav: var(--nav-h, 56px); --feed-safe-bottom: env(safe-area-inset-bottom, 0px); --feed-action-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 16px); --feed-content-bottom: calc(var(--feed-bottom-nav) + var(--feed-safe-bottom) + 12px); }
         .explore-root { position: fixed; inset: env(safe-area-inset-top, 0px) 0 0 0; background: #000; color: #fff; overflow: hidden; min-height: 100dvh; }
         .explore-root * { box-sizing: border-box; }
         .feed-scroll { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -713,7 +714,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: F
         .video-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 55%; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, transparent 100%); }
         .video-gradient-top { position: absolute; top: 0; left: 0; right: 0; height: 120px; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%); }
         .feed-topbar { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(12px, calc(12px + env(safe-area-inset-left, 0px))); right: max(64px, calc(64px + env(safe-area-inset-right, 0px))); z-index: 30; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
-        .ai-search { height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.16); background: rgba(12,12,14,0.58); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 12px 34px rgba(0,0,0,0.25); }
+        .feed-topbar-row { display: flex; align-items: center; gap: 8px; }
+        .ai-search { flex: 1; min-width: 0; height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.16); background: rgba(12,12,14,0.58); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 12px 34px rgba(0,0,0,0.25); }
         .ai-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font-size: 14px; font-weight: 650; }
         .ai-search input::placeholder { color: rgba(255,255,255,0.72); }
         .format-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
@@ -766,6 +768,8 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: F
       `}} />
 
       <div className="feed-topbar">
+        <div className="feed-topbar-row">
+        <AppMenuButton variant="overlay" />
         <form className="ai-search" onSubmit={(event) => { event.preventDefault(); submitAiPrompt(); }}>
           <Search size={16} color="rgba(255,255,255,0.78)" />
           <input
@@ -776,6 +780,7 @@ function ExplorePageInner({ initialVideos, initialCategory }: { initialVideos: F
           />
           <Sparkles size={15} color="#FDE047" />
         </form>
+        </div>
         <div className="format-tabs" role="tablist" aria-label={t("formateDeShoppingShow")}>
           {FEED_FORMATS.map((format) => (
             <button

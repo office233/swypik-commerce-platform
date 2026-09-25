@@ -1,14 +1,5 @@
-/* Fonts loaded via next/font in layout.tsx — no render-blocking @import */
-
-:root {
-  --brand-primary: #7C3AED;
-  --brand-accent: #EC4899;
-  --brand-gradient: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%);
-  --font-inter: "Inter";
-  --brand-primary: #7C3AED;
-  --brand-accent: #EC4899;
-  --brand-gradient: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%);
-}
+/* Fontul Inter e încărcat prin next/font în components/layout/AppShell.tsx (variabila --font-sans). */
+@import "./styles/tokens.css";
 
 @tailwind base;
 @tailwind components;
@@ -16,45 +7,52 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* ─── Global keyboard focus indicators (a11y WCAG 2.4.7) ─── */
+/* ─── Focus vizibil la tastatură (WCAG 2.4.7) ─── */
 :focus-visible {
-  outline: 2px solid #7C3AED;
-  outline-offset: 2px;
-  border-radius: 6px;
-}
-button:focus-visible,
-a:focus-visible,
-[role="button"]:focus-visible,
-[tabindex]:not([tabindex="-1"]):focus-visible {
-  outline: 2px solid #7C3AED;
+  outline: 2px solid rgb(var(--focus-ring));
   outline-offset: 2px;
 }
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid #7C3AED;
-  outline-offset: 1px;
-}
-/* Mouse clicks shouldn't show ring (focus-visible default does this) */
 :focus:not(:focus-visible) { outline: none; }
 
+html {
+  background: rgb(var(--canvas));
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #FFFFFF;
-  color: #0D0D0D;
+  font-family: var(--font-sans), var(--font-sans-fallback);
+  background: rgb(var(--canvas));
+  color: rgb(var(--fg));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
+/* ─── Spațiul BottomNav: CSS pur, fără efecte JS (fără layout shift) ───
+   BottomNav randează [data-bottom-nav]; când lipsește, --bottom-inset = safe-area. */
+html:has([data-bottom-nav]) {
+  --bottom-inset: calc(var(--nav-h) + var(--safe-bottom));
+}
+#main-content {
+  min-height: 100dvh;
+  padding-bottom: var(--bottom-inset);
+}
+/* Suprafețele imersive (feed full-screen) își gestionează singure spațiul. */
+#main-content:has(> [data-immersive-fullscreen]) { padding-bottom: 0; }
+
+button, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* ─── Scrollbar — ChatGPT style ─── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #D1D1D6; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #A1A1AA; }
+::-webkit-scrollbar-thumb { background: rgb(var(--border-strong)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--fg-subtle)); }
 
 /* ─── Selection ─── */
-::selection { background: rgba(13, 13, 13, 0.12); color: #0D0D0D; }
+::selection { background: rgb(var(--brand) / 0.18); color: inherit; }
 
 /* ─── Animations ─── */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -72,26 +70,6 @@ body {
   animation: shimmer 1.5s infinite;
 }
 
-/* ─── Disable selection on interactive + minimum touch targets ─── */
-button, nav, a { 
-  -webkit-user-select: none; 
-  user-select: none; 
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* ─── Mobile touch: minimum 44px tap targets for accessibility ─── */
-@media (pointer: coarse) {
-  button, a, [role="button"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  .inline-btn, .qty-btn, .chip-btn {
-    min-height: auto;
-    min-width: auto;
-  }
-}
-
 /* ─── No scrollbar ─── */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -107,7 +85,7 @@ button, nav, a {
   overflow-y: scroll; overflow-x: hidden;
   scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
-  background: #0D0D0D;
+  background: rgb(0 0 0);
   scrollbar-width: none;
 }
 .feed-scroll::-webkit-scrollbar { display: none; }
@@ -116,7 +94,7 @@ button, nav, a {
   position: relative; width: 100%; height: 100vh; height: 100dvh;
   scroll-snap-align: start; scroll-snap-stop: always;
   overflow: hidden; flex-shrink: 0;
-  background: #0D0D0D;
+  background: rgb(0 0 0);
   transform: translateZ(0);
   will-change: transform;
 }
@@ -139,17 +117,14 @@ button, nav, a {
 .safe-pr { padding-right: max(0px, env(safe-area-inset-right, 0px)); }
 
 /* ─── Bottom nav — respect safe area on iPhones with notch ─── */
-.bottom-nav {
-  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
-}
-
+/* Legacy: #main-content rezervă deja spațiul BottomNav; păstrăm doar un mic spațiu de respiro. */
 .mobile-page-bottom {
-  padding-bottom: max(6rem, calc(4rem + env(safe-area-inset-bottom, 0px)));
+  padding-bottom: 1.5rem;
 }
 
 /* ─── Chat input bar — sits above bottom nav ─── */
 .chat-input-bar {
-  bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  bottom: var(--bottom-inset);
 }
 
 /* ─── Heart burst ─── */
@@ -174,36 +149,11 @@ button, nav, a {
 .eq-bar-2 { animation: eq-bar 0.8s ease-in-out infinite 0.2s; }
 .eq-bar-3 { animation: eq-bar 0.8s ease-in-out infinite 0.4s; }
 
-/* ─── Category accordion ─── */
-.subcategory-panel {
-  overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.3s ease;
-}
-.subcategory-panel.closed { max-height: 0; opacity: 0; }
-.subcategory-panel.open { max-height: 600px; opacity: 1; }
-
-/* ─── Category chips ─── */
-.cat-chip {
-  background: #F7F7F8;
-  border: 1px solid #E5E5E5;
-  transition: all 0.15s ease;
-}
-.cat-chip:hover { background: #ECECF1; border-color: #D1D1D6; }
-.cat-chip.active { background: #0D0D0D; color: white; border-color: #0D0D0D; }
-
-.sub-chip {
-  background: white;
-  border: 1px solid #E5E5E5;
-  transition: all 0.15s ease;
-}
-.sub-chip:hover { background: #F7F7F8; border-color: #0D0D0D; color: #0D0D0D; }
-.sub-chip.active { background: #0D0D0D; color: white; border-color: #0D0D0D; }
-
 /* ─── Responsive Product Cards — smaller on tiny phones ─── */
 @media (max-width: 374px) {
   .product-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; }
   .product-card-image { height: 9rem !important; }
-  .product-card-title { font-size: 11px !important; }
+  .product-card-title { font-size: 12px !important; }
   .product-card-price { font-size: 14px !important; }
 }
 
@@ -227,17 +177,8 @@ button, nav, a {
 
 /* ─── Toast position — above bottom nav on all phones ─── */
 .toast-position {
-  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--bottom-inset) + 1.5rem);
 }
-
-/* ─── Slide-in menu animation ─── */
-@keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-/* a11y: cockpit-btn primary background — fix color-contrast pe video gradient */
-.cockpit-btn.primary { background-color: rgba(0,0,0,0.75) !important; }
 
 /* Swypik Movies — fontul de afișare (Bebas Neue prin next/font, vezi components/movies/fonts.ts) */
 .movies-display {

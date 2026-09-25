@@ -27,12 +27,17 @@
     "reels": "Reels",
     "cart": "Coș",
     "upload": "Încarcă",
-    "inbox": "Mesaje",
+    "inbox": "Inbox",
     "account": "Profil",
     "collections": "Colecții",
     "orders": "Comenzi",
     "messages": "Mesaje",
-    "notifications": "Notificări"
+    "notifications": "Notificări",
+    "discover": "Descoperă",
+    "create": "Creează",
+    "profile": "Profil",
+    "openMenu": "Deschide meniul",
+    "mainNavigation": "Navigare principală"
   },
   "go": {
     "title": "Swypik Go",
@@ -2766,7 +2771,10 @@
   "topBar": {
     "categories": "Categorii",
     "cart": "Coș",
-    "inbox": "Inbox"
+    "inbox": "Inbox",
+    "search": "Caută",
+    "cartWithCount": "Coș, {count} produse",
+    "inboxWithCount": "Inbox, {count} necitite"
   },
   "causesPanel": {
     "verifPending": "În așteptare",
@@ -5855,5 +5863,98 @@
     "selectShadeLabel": "Alege nuanța",
     "applyShadeToOrder": "Aplică {shade} la comandă",
     "previewDisclaimer": "Previzualizare de culoare/finisaj, generată din datele produsului — nu o simulare video/AR reală și nu garantează rezultatul pe pielea ta."
+  },
+  "ui": {
+    "close": "Închide",
+    "back": "Înapoi",
+    "retry": "Reîncearcă",
+    "dismiss": "Închide notificarea",
+    "loading": "Se încarcă…",
+    "errorTitle": "Ceva nu a mers bine",
+    "errorBody": "Nu am putut încărca acest conținut. Încearcă din nou."
+  },
+  "appMenu": {
+    "title": "Meniu",
+    "account": "Contul meu",
+    "signIn": "Conectează-te",
+    "signInHint": "Comenzi, colecții și mesaje într-un loc",
+    "viewProfile": "Vezi profilul",
+    "searchPlaceholder": "Caută produse, creatori, locuri…",
+    "searchAria": "Caută pe Swypik",
+    "modules": "Modulele Swypik",
+    "allModules": "Toate modulele",
+    "language": "Limba",
+    "copyright": "© {year} Swypik Technology",
+    "groups": {
+      "shopping": "Cumpărături",
+      "mobility": "Mobilitate și livrare",
+      "travel": "Călătorii",
+      "entertainment": "Divertisment",
+      "community": "Comunitate",
+      "business": "Business și roluri",
+      "settings": "Setări și ajutor"
+    },
+    "items": {
+      "shop": "Magazin",
+      "categories": "Categorii",
+      "live": "Live shopping",
+      "orders": "Comenzile mele",
+      "cart": "Coș",
+      "collections": "Colecții salvate",
+      "go": "Swypik Go",
+      "food": "Swypik Food",
+      "stays": "Swypik Stays",
+      "fly": "Swypik Fly",
+      "movies": "Movies",
+      "music": "Music",
+      "gaming": "Arcade",
+      "news": "Știri",
+      "messages": "Mesaje",
+      "notifications": "Notificări",
+      "missions": "Misiuni",
+      "seller": "Portal vânzători",
+      "creator": "Creator Studio",
+      "courier": "Curier și șofer",
+      "fleet": "Partener de flotă",
+      "admin": "Administrare",
+      "account": "Contul meu",
+      "help": "Ajutor"
+    },
+    "become": {
+      "becomeSeller": "Devino vânzător",
+      "becomeCreator": "Devino creator",
+      "becomeCourier": "Devino curier sau șofer",
+      "becomeFleet": "Devino partener de flotă"
+    },
+    "theme": {
+      "label": "Temă",
+      "light": "Luminoasă",
+      "dark": "Întunecată",
+      "system": "Sistem"
+    },
+    "legal": {
+      "terms": "Termeni",
+      "privacy": "Confidențialitate",
+      "cookies": "Cookie-uri",
+      "anpc": "ANPC",
+      "sal": "SAL — litigii",
+      "sol": "SOL — platforma UE"
+    }
+  },
+  "errorPage": {
+    "title": "Ceva nu a mers bine",
+    "body": "Reîncearcă acum. Dacă problema continuă, revino puțin mai târziu.",
+    "code": "Cod eroare: {code}",
+    "retry": "Reîncearcă",
+    "home": "Mergi la pagina principală",
+    "notFoundTitle": "Pagina nu a fost găsită",
+    "notFoundBody": "Linkul poate fi expirat sau conținutul a fost mutat.",
+    "backToFeed": "Înapoi la feed",
+    "searchProducts": "Caută produse"
+  },
+  "discover": {
+    "title": "Descoperă Swypik",
+    "metaTitle": "Descoperă — produse, oferte și module | Swypik",
+    "metaDescription": "Caută produse, vezi ofertele zilei și explorează toate modulele Swypik: magazin, mâncare, curse, cazări și divertisment."
   }
 }

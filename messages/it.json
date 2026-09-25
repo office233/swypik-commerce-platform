@@ -32,7 +32,12 @@
     "collections": "Collezioni",
     "orders": "Ordini",
     "messages": "Messaggi",
-    "notifications": "Notifiche"
+    "notifications": "Notifiche",
+    "discover": "Scopri",
+    "create": "Crea",
+    "profile": "Profilo",
+    "openMenu": "Apri il menu",
+    "mainNavigation": "Navigazione principale"
   },
   "auth": {
     "login": "Accedi",
@@ -2766,7 +2771,10 @@
   "topBar": {
     "categories": "Categorie",
     "cart": "Carrello",
-    "inbox": "Posta in arrivo"
+    "inbox": "Posta in arrivo",
+    "search": "Cerca",
+    "cartWithCount": "Carrello, {count} articoli",
+    "inboxWithCount": "Posta in arrivo, {count} non letti"
   },
   "causesPanel": {
     "verifPending": "In attesa",
@@ -5855,5 +5863,98 @@
     "selectShadeLabel": "Scegli una tonalità",
     "applyShadeToOrder": "Applica {shade} all'ordine",
     "previewDisclaimer": "Un'anteprima di colore/finitura generata dai dati del prodotto — non una simulazione video/AR reale e non garantisce il risultato sulla tua pelle."
+  },
+  "ui": {
+    "close": "Chiudi",
+    "back": "Indietro",
+    "retry": "Riprova",
+    "dismiss": "Chiudi la notifica",
+    "loading": "Caricamento…",
+    "errorTitle": "Qualcosa è andato storto",
+    "errorBody": "Impossibile caricare questo contenuto. Riprova."
+  },
+  "appMenu": {
+    "title": "Menu",
+    "account": "Il mio account",
+    "signIn": "Accedi",
+    "signInHint": "Ordini, raccolte e messaggi in un unico posto",
+    "viewProfile": "Vedi profilo",
+    "searchPlaceholder": "Cerca prodotti, creator, luoghi…",
+    "searchAria": "Cerca su Swypik",
+    "modules": "Moduli Swypik",
+    "allModules": "Tutti i moduli",
+    "language": "Lingua",
+    "copyright": "© {year} Swypik Technology",
+    "groups": {
+      "shopping": "Shopping",
+      "mobility": "Mobilità e consegne",
+      "travel": "Viaggi",
+      "entertainment": "Intrattenimento",
+      "community": "Community",
+      "business": "Business e ruoli",
+      "settings": "Impostazioni e aiuto"
+    },
+    "items": {
+      "shop": "Negozio",
+      "categories": "Categorie",
+      "live": "Shopping dal vivo",
+      "orders": "I miei ordini",
+      "cart": "Carrello",
+      "collections": "Raccolte salvate",
+      "go": "Swypik Go",
+      "food": "Swypik Food",
+      "stays": "Swypik Stays",
+      "fly": "Swypik Fly",
+      "movies": "Movies",
+      "music": "Music",
+      "gaming": "Arcade",
+      "news": "Notizie",
+      "messages": "Messaggi",
+      "notifications": "Notifiche",
+      "missions": "Missioni",
+      "seller": "Portale venditori",
+      "creator": "Creator Studio",
+      "courier": "Corriere e autista",
+      "fleet": "Partner di flotta",
+      "admin": "Amministrazione",
+      "account": "Il mio account",
+      "help": "Aiuto"
+    },
+    "become": {
+      "becomeSeller": "Diventa venditore",
+      "becomeCreator": "Diventa creator",
+      "becomeCourier": "Diventa corriere o autista",
+      "becomeFleet": "Diventa partner di flotta"
+    },
+    "theme": {
+      "label": "Tema",
+      "light": "Chiaro",
+      "dark": "Scuro",
+      "system": "Sistema"
+    },
+    "legal": {
+      "terms": "Termini",
+      "privacy": "Privacy",
+      "cookies": "Cookie",
+      "anpc": "ANPC",
+      "sal": "ADR — controversie",
+      "sol": "ODR — piattaforma UE"
+    }
+  },
+  "errorPage": {
+    "title": "Qualcosa è andato storto",
+    "body": "Riprova ora. Se il problema persiste, torna un po' più tardi.",
+    "code": "Codice errore: {code}",
+    "retry": "Riprova",
+    "home": "Vai alla home",
+    "notFoundTitle": "Pagina non trovata",
+    "notFoundBody": "Il link potrebbe essere scaduto o il contenuto è stato spostato.",
+    "backToFeed": "Torna al feed",
+    "searchProducts": "Cerca prodotti"
+  },
+  "discover": {
+    "title": "Scopri Swypik",
+    "metaTitle": "Scopri — prodotti, offerte e moduli | Swypik",
+    "metaDescription": "Cerca prodotti, guarda le offerte del giorno ed esplora tutti i moduli Swypik: negozio, cibo, corse, alloggi e intrattenimento."
   }
 }

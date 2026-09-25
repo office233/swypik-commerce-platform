@@ -1,68 +1,89 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { Smartphone, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { usePathname } from "@/lib/i18n/navigation";
+import { Button } from "@/components/ui/Button";
+import { IconButton } from "@/components/ui/IconButton";
+import { matchesRoute } from "@/lib/nav/visibility";
+import {
+  STORAGE,
+  countPageView,
+  countVisit,
+  readDismissedAt,
+  shouldOfferInstall,
+} from "@/lib/pwa/install-gate";
 
-const DISMISS_KEY = "swypik_pwa_dismissed";
-const DISMISS_AT_KEY = "swypik_pwa_dismissed_at";
-const REPROMPT_MS = 14 * 24 * 60 * 60 * 1000;
-const HIDE_PREFIXES = ["/auth", "/admin", "/onboarding", "/seller/login"];
+const HIDE_ROUTES = ["/auth", "/admin", "/onboarding", "/seller/login", "/checkout"];
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
+function safe<T>(fn: () => T, fallback: T): T {
+  try {
+    return fn();
+  } catch {
+    return fallback;
+  }
+}
+
 /**
- * PWA install banner — sticky bottom-LEFT (PushPrompt occupies bottom-right).
- * Listens for beforeinstallprompt, surfaces banner, hides after dismissal
- * for 14 days. Hidden on auth/admin/onboarding routes.
+ * Banner „Instalează aplicația” — apare DOAR după ce utilizatorul a ales la
+ * bannerul de cookie și după implicare (a 2-a vizită sau 3 pagini), deci nu
+ * se mai suprapune niciodată cu CookieBanner. Regula: lib/pwa/install-gate.ts.
  */
 export default function InstallPrompt() {
   const t = useTranslations("installPrompt");
-  const pathname = usePathname() || "/";
+  const pathname = usePathname();
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [eligible, setEligible] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [hidden, setHidden] = useState(false);
+
+  // Contoare de implicare + reevaluare la fiecare navigare și la alegerea cookie.
+  useEffect(() => {
+    const evaluate = () =>
+      safe(
+        () =>
+          shouldOfferInstall({
+            consentDecided: Boolean(localStorage.getItem(STORAGE.cookieConsent)),
+            visits: countVisit(localStorage, sessionStorage),
+            sessionPageViews: Number(sessionStorage.getItem(STORAGE.pageViews) || "0"),
+            dismissedAt: readDismissedAt(localStorage),
+            now: Date.now(),
+          }),
+        false,
+      );
+    safe(() => countPageView(sessionStorage), 0);
+    setEligible(evaluate());
+    const onConsent = () => setEligible(evaluate());
+    window.addEventListener("swypik:consent", onConsent);
+    return () => window.removeEventListener("swypik:consent", onConsent);
+  }, [pathname]);
 
   useEffect(() => {
-    if (HIDE_PREFIXES.some((p) => pathname.startsWith(p))) return;
-    try {
-      if (window.localStorage.getItem(DISMISS_KEY) === "1") {
-        const at = Number(window.localStorage.getItem(DISMISS_AT_KEY) || "0");
-        if (at && Date.now() - at < REPROMPT_MS) return;
-      }
-    } catch {
-      /* no-op */
-    }
-
     const onBefore = (e: Event) => {
       e.preventDefault();
       setEvt(e as BeforeInstallPromptEvent);
-      setVisible(true);
     };
-    const onInstalled = () => {
-      setVisible(false);
-      setEvt(null);
-    };
+    const onInstalled = () => setEvt(null);
     window.addEventListener("beforeinstallprompt", onBefore);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
       window.removeEventListener("beforeinstallprompt", onBefore);
       window.removeEventListener("appinstalled", onInstalled);
     };
-  }, [pathname]);
+  }, []);
 
   const dismiss = useCallback(() => {
-    try {
-      window.localStorage.setItem(DISMISS_KEY, "1");
-      window.localStorage.setItem(DISMISS_AT_KEY, String(Date.now()));
-    } catch {
-      /* no-op */
-    }
-    setVisible(false);
+    safe(() => {
+      localStorage.setItem(STORAGE.dismissed, "1");
+      localStorage.setItem(STORAGE.dismissedAt, String(Date.now()));
+    }, undefined);
+    setHidden(true);
   }, []);
 
   const install = useCallback(async () => {
@@ -71,18 +92,16 @@ export default function InstallPrompt() {
     try {
       await evt.prompt();
       const choice = await evt.userChoice;
-      if (choice.outcome === "accepted") {
-        setVisible(false);
-        setEvt(null);
-      } else {
-        dismiss();
-      }
+      if (choice.outcome === "accepted") setEvt(null);
+      else dismiss();
     } catch {
-      /* no-op */
+      /* promptul nu mai e valid — ignorăm */
     } finally {
       setBusy(false);
     }
   }, [evt, dismiss]);
+
+  const visible = Boolean(evt) && eligible && !hidden && !HIDE_ROUTES.some((r) => matchesRoute(pathname, r));
 
   useEffect(() => {
     if (!visible) return;
@@ -93,54 +112,37 @@ export default function InstallPrompt() {
     return () => window.removeEventListener("keydown", onKey);
   }, [visible, dismiss]);
 
-  if (!visible || !evt) return null;
+  if (!visible) return null;
 
   return (
     <div
       role="dialog"
       aria-modal="false"
       aria-labelledby="pwa-install-title"
-      className="fixed left-3 right-3 z-[60] sm:left-4 sm:right-auto sm:max-w-sm"
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+      className="fixed inset-x-3 z-overlay mx-auto max-w-sm animate-scale-in sm:left-4 sm:right-auto"
+      style={{ bottom: "calc(var(--bottom-inset) + 12px)" }}
     >
-      <div className="relative flex items-start gap-3 rounded-2xl border border-[#7C3AED]/40 bg-gradient-to-br from-[#1a0b2e] to-[#0a0a0a] p-4 shadow-2xl shadow-[#7C3AED]/20 backdrop-blur">
-        <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#7C3AED]/30 text-white">
-          <Smartphone size={16} />
+      <div className="relative flex items-start gap-3 rounded-card border border-subtle bg-elevated p-4 text-fg shadow-elev-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-soft-fg">
+          <Smartphone className="h-5 w-5" aria-hidden />
         </span>
-        <div className="min-w-0 flex-1">
-          <p id="pwa-install-title" className="text-sm font-black text-white">
+        <div className="min-w-0 flex-1 pr-6">
+          <p id="pwa-install-title" className="text-sm font-semibold">
             {t("title")}
           </p>
-          <p className="mt-0.5 text-xs text-white/70">
-            {t("subtitle")}
-          </p>
+          <p className="mt-0.5 text-xs text-muted">{t("subtitle")}</p>
           <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={install}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#7C3AED] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#6d28d9] disabled:opacity-60"
-            >
-              <Smartphone size={12} />
+            <Button size="sm" onClick={install} loading={busy}>
               {busy ? t("installing") : t("install")}
-            </button>
-            <button
-              type="button"
-              onClick={dismiss}
-              className="rounded-lg px-3 py-1.5 text-xs font-bold text-white/70 hover:bg-white/5 hover:text-white"
-            >
+            </Button>
+            <Button size="sm" variant="ghost" onClick={dismiss}>
               {t("later")}
-            </button>
+            </Button>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label={t("close")}
-          className="absolute right-2 top-2 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
-        >
-          <X size={14} />
-        </button>
+        <IconButton label={t("close")} size="sm" className="absolute right-1 top-1" onClick={dismiss}>
+          <X aria-hidden />
+        </IconButton>
       </div>
     </div>
   );
