@@ -55,7 +55,7 @@ export const GET = withErrorHandling(async function GET() {
          SELECT unnest(ARRAY['today','week','month']) AS period
        ) p
       WHERE e.user_id = $1
-        AND e.ref_type IN ('ride', 'order')
+        AND e.ref_type IN ('ride', 'order', 'ride_cancel_fee')
         AND e.created_at >= CASE p.period
               WHEN 'today' THEN date_trunc('day', now())
               WHEN 'week'  THEN date_trunc('week', now())
@@ -75,7 +75,7 @@ export const GET = withErrorHandling(async function GET() {
     if (!b) continue;
     const signed = (r.kind === "credit" ? 1 : -1) * Number(r.total);
     if (r.ref_type === "order") b.eats_cents += signed;
-    else if (r.ref_type === "ride") b.go_cents += signed;
+    else if (r.ref_type === "ride" || r.ref_type === "ride_cancel_fee") b.go_cents += signed;
     b.net_cents += signed;
     if (r.kind === "credit") b.tips_cents += Number(r.tips);
   }
@@ -89,7 +89,7 @@ export const GET = withErrorHandling(async function GET() {
             (e.metadata -> 'split' ->> 'tip_cents')::bigint AS tip_cents
        FROM wallet_ledger_entries e
       WHERE e.user_id = $1
-        AND e.ref_type IN ('ride', 'order', 'payout', 'payout_refund')
+        AND e.ref_type IN ('ride', 'order', 'ride_cancel_fee', 'payout', 'payout_refund')
       ORDER BY e.created_at DESC
       LIMIT 50`,
     [session.userId],

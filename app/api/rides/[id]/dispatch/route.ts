@@ -1,67 +1,70 @@
 /**
  * PATCH /api/rides/[id]/dispatch — șoferul acceptă/refuză oferta cursei.
- * Body: { accept: boolean }. Atribuire atomică prin dispatch engine (R2);
+ * Body: { accept: boolean }. Atribuire atomică prin dispatch engine;
  * acceptOffer setează rides.driver_id + status='accepted' în tranzacție.
+ * Răspunde cu jobul activ (același format ca /api/couriers/active-job).
  */
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
+import { rateLimit } from "@/lib/security/rate-limit";
+import { isUuidParam, invalidIdResponse } from "@/lib/validation/params";
+import { parseBody } from "@/lib/validation/schemas";
 import { acceptOffer, declineOffer, getJobForRide } from "@/lib/dispatch/engine";
+import { getCourierForUser, getDriverActiveJob } from "@/lib/rides/driver-job";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+const BodySchema = z.object({ accept: z.boolean() });
+
+/** Codurile de eroare ale engine-ului → coduri stabile pentru UI. */
+function errorCode(status: number): string {
+  if (status === 410) return "offer_expired";
+  if (status === 403) return "courier_suspended";
+  if (status === 404) return "job_not_found";
+  return "job_taken";
+}
+
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    if (!isUuidParam(id)) return invalidIdResponse();
     const session = await getAuthSession();
-    if (!session?.userId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+    if (!session?.userId) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+    const rl = await rateLimit("rideAction", session.userId);
+    if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
-    const body = await req.json().catch(() => null);
-    const accept = body?.accept === true;
+    const parsed = parseBody(BodySchema, await req.json().catch(() => null));
+    if (!parsed.ok) return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
 
-    const { rows: cRows } = await dbQuery<{ id: string }>(
-      `SELECT id FROM couriers
-        WHERE user_id = $1 AND kind = 'driver' AND verification_status = 'approved'`,
-      [session.userId],
-    );
-    const driverId = cRows[0]?.id;
-    if (!driverId) {
-      return NextResponse.json({ success: false, error: "Not an approved driver." }, { status: 403 });
+    const courier = await getCourierForUser(session.userId);
+    if (!courier || courier.kind !== "driver" || courier.verification_status !== "approved") {
+      return NextResponse.json({ success: false, error: "not_approved_driver" }, { status: 403 });
     }
 
     const job = await getJobForRide(id);
-    if (!job) {
-      return NextResponse.json({ success: false, error: "Ride is no longer searching for a driver." }, { status: 404 });
+    if (!job || job.status !== "searching") {
+      return NextResponse.json({ success: false, error: "job_not_found" }, { status: 404 });
     }
 
-    if (!accept) {
-      await declineOffer(job.id, driverId);
+    if (!parsed.data.accept) {
+      await declineOffer(job.id, courier.id);
       return NextResponse.json({ success: true, accepted: false });
     }
 
-    const result = await acceptOffer(job.id, driverId);
+    const result = await acceptOffer(job.id, courier.id);
     if (!result.ok) {
-      return NextResponse.json({ success: false, error: result.error }, { status: result.code });
+      return NextResponse.json({ success: false, error: errorCode(result.code) }, { status: result.code });
     }
+    await dbQuery(`UPDATE rides SET accepted_at = COALESCE(accepted_at, now()), updated_at = now() WHERE id = $1`, [id]);
 
-    await dbQuery(`UPDATE rides SET accepted_at = now(), updated_at = now() WHERE id = $1`, [id]);
-
-    const { rows } = await dbQuery(
-      `SELECT pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat,
-              dropoff_lng, estimated_fare_cents, currency, vehicle_class, payment_method
-         FROM rides WHERE id = $1`,
-      [id],
-    );
-    return NextResponse.json({ success: true, accepted: true, ride: rows[0] });
+    const active = await getDriverActiveJob(courier);
+    return NextResponse.json({ success: true, accepted: true, job: active });
   } catch (error: unknown) {
     logger.error({ err: error }, "[rides/dispatch] PATCH error");
-    return NextResponse.json({ success: false, error: "Eroare." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
   }
 }

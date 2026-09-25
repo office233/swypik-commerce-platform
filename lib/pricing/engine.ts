@@ -33,6 +33,7 @@ export type PricingZone = {
   platform_commission_pct: string; // numeric din pg vine ca string
   courier_share_pct: string;
   currency: string;
+  max_passengers?: number | null;
 };
 
 export type EstimateInput = {
@@ -62,6 +63,20 @@ export type EstimateResult = {
   currency: string;
 };
 
+const ZONE_COLUMNS = `id, city, country, kind, vehicle_class, base_cents, per_km_cents,
+            per_min_cents, min_fare_cents, booking_fee_cents, cancel_fee_cents,
+            platform_commission_pct, courier_share_pct, currency, max_passengers`;
+
+/**
+ * Orașul canonic al zonei: aliasurile (suburbii: Otopeni → București) din
+ * `pricing_city_aliases`, comparate fără diacritice. Același unaccent ca
+ * dispatch-ul și surge-ul („Bucuresti" == „București").
+ */
+const CANONICAL_CITY_SQL = `COALESCE(
+      (SELECT a.city FROM pricing_city_aliases a
+        WHERE unaccent(lower(a.alias)) = unaccent(lower($1)) AND a.country = $2 LIMIT 1),
+      $1)`;
+
 /** Zona activă pentru (oraș, țară, tip, clasă). null = fără zonă → caller face fallback. */
 export async function findZone(
   city: string,
@@ -70,16 +85,28 @@ export async function findZone(
   country = "RO",
 ): Promise<PricingZone | null> {
   const { rows } = await dbQuery<PricingZone>(
-    `SELECT id, city, country, kind, vehicle_class, base_cents, per_km_cents,
-            per_min_cents, min_fare_cents, booking_fee_cents, cancel_fee_cents,
-            platform_commission_pct, courier_share_pct, currency
+    `SELECT ${ZONE_COLUMNS}
        FROM pricing_zones
-      WHERE lower(city) = lower($1) AND country = $2 AND kind = $3
+      WHERE unaccent(lower(city)) = unaccent(lower(${CANONICAL_CITY_SQL}))
+        AND country = $2 AND kind = $3
         AND vehicle_class = $4 AND active
       LIMIT 1`,
     [city, country, kind, vehicleClass],
   );
   return rows[0] ?? null;
+}
+
+/** Toate zonele active de un tip într-un oraș (clasele disponibile pentru pasager). */
+export async function listZones(city: string, kind: string, country = "RO"): Promise<PricingZone[]> {
+  const { rows } = await dbQuery<PricingZone>(
+    `SELECT ${ZONE_COLUMNS}
+       FROM pricing_zones
+      WHERE unaccent(lower(city)) = unaccent(lower(${CANONICAL_CITY_SQL}))
+        AND country = $2 AND kind = $3 AND active
+      ORDER BY base_cents ASC, vehicle_class`,
+    [city, country, kind],
+  );
+  return rows;
 }
 
 /** Surge manual activ (fereastra starts_at/ends_at conține `at`). 1.0 dacă nu există. */

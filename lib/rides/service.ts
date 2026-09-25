@@ -13,7 +13,8 @@
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { publishJobEvent } from "@/lib/dispatch/engine";
-import { findZone, computeFare, type PricingZone } from "@/lib/pricing/engine";
+import { findZone, computeFare } from "@/lib/pricing/engine";
+import { capFinalFare } from "./policy";
 import { haversineKm } from "@/lib/pricing/distance";
 import type { RideStatus } from "@/lib/validation/rides";
 
@@ -45,6 +46,12 @@ export type RideRow = {
   cancel_reason: string | null;
   cancelled_by: string | null;
   cancel_fee_cents: number | null;
+  cancel_fee_status: string;
+  pricing_zone_id: string | null;
+  payment_intent_id: string | null;
+  authorized_amount_cents: number | null;
+  tip_cents: number;
+  share_token: string | null;
   requested_at: string;
   accepted_at: string | null;
   arrived_at: string | null;
@@ -110,14 +117,6 @@ export function canTransition(
   return { ok: true };
 }
 
-/** Anulare gratuită: înainte de 'accepted' SAU în primele 2 minute după accept. */
-export function cancelFeeCents(ride: RideRow, zone: PricingZone | null): number {
-  if (!ride.accepted_at) return 0;
-  const graceMs = 2 * 60 * 1000;
-  if (Date.now() - new Date(ride.accepted_at).getTime() <= graceMs) return 0;
-  return zone?.cancel_fee_cents ?? 0;
-}
-
 // ─── Recalculare tarif final pe distanța reală ─────────────────────────────
 /**
  * Distanța reală parcursă = suma segmentelor haversine consecutive din
@@ -155,8 +154,10 @@ export type FinalFare = {
  * estimare (surge-ul e ÎNGHEȚAT la cel de la request — corect față de client),
  * dar pe distanța reală GPS și durata reală started_at → now.
  * Fallback: dacă GPS-ul nu are destule puncte, rămâne tariful estimat.
+ * Plafon: estimarea + capBps (go_settings.fare_overrun_cap_bps) — pasagerul
+ * nu plătește niciodată peste plafonul autorizat pe card.
  */
-export async function computeFinalFare(ride: RideRow): Promise<FinalFare> {
+export async function computeFinalFare(ride: RideRow, capBps: number): Promise<FinalFare> {
   const startedAt = ride.started_at ? new Date(ride.started_at) : new Date();
   const durationMin = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 60000));
   const gpsKm = await actualDistanceKm(ride);
@@ -179,11 +180,12 @@ export async function computeFinalFare(ride: RideRow): Promise<FinalFare> {
   }
 
   const fare = computeFare(zone, gpsKm, durationMin, surge);
+  const capped = capFinalFare(fare.total_cents, ride.estimated_fare_cents, capBps);
   return {
-    final_fare_cents: fare.total_cents,
+    final_fare_cents: capped.final_cents,
     distance_km: Math.round(gpsKm * 1000) / 1000,
     duration_min: durationMin,
-    breakdown: { ...fare, distance_source: "gps" },
+    breakdown: { ...fare, distance_source: "gps", capped: capped.capped, uncapped_total_cents: fare.total_cents },
     distance_source: "gps",
   };
 }

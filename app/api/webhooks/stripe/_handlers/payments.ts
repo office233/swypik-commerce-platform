@@ -40,8 +40,13 @@ export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
         WHERE id = $1 AND payment_status IN ('unpaid', 'authorized')`,
       [intent.metadata.ride_id],
     );
-    // Referral: prima cursă plătită validează atribuirea pasagerului.
-    await onRidePaid(intent.metadata.ride_id, intent.id);
+    // Referral: prima cursă plătită validează atribuirea pasagerului — doar o
+    // cursă finalizată (o taxă de anulare capturată nu e o cursă plătită).
+    const { rows: rideRows } = await dbQuery<{ status: string }>(
+      `SELECT status FROM rides WHERE id = $1`,
+      [intent.metadata.ride_id],
+    );
+    if (rideRows[0]?.status === "completed") await onRidePaid(intent.metadata.ride_id, intent.id);
     // Dacă șoferul a finalizat cursa înainte ca captura să ajungă, decontarea a
     // fost refuzată (payment_status nu era încă 'captured') și `settled_at` a
     // rămas NULL. Acum banii au intrat — reluăm. Idempotent pe (ref_type, ref_id);

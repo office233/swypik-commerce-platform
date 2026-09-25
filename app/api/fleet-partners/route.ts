@@ -99,12 +99,12 @@ export async function GET() {
         try {
             const { rows: statRows } = await dbQuery<{ rides: string; revenue: string }>(
                 `SELECT COUNT(*)::int AS rides,
-                        COALESCE(SUM(r.total_cents), 0)::bigint AS revenue
+                        COALESCE(SUM(COALESCE(r.final_fare_cents, r.estimated_fare_cents)), 0)::bigint AS revenue
                    FROM rides r
-                   JOIN couriers c ON c.user_id = r.driver_id
+                   JOIN couriers c ON c.id = r.driver_id
                   WHERE c.fleet_partner_id = $1
                     AND r.status = 'completed'
-                    AND r.created_at > now() - interval '30 days'`,
+                    AND r.requested_at > now() - interval '30 days'`,
                 [partner.id]
             );
             const revenue = Number(statRows[0]?.revenue ?? 0);
@@ -113,7 +113,9 @@ export async function GET() {
                 revenue_30d_cents: revenue,
                 commission_30d_cents: Math.round((revenue * (partner.commission_bps ?? 0)) / 10000),
             };
-        } catch { /* rides table may not exist yet */ }
+        } catch (err) {
+            logger.warn({ err }, "[fleet-partners] stats query failed");
+        }
 
         return NextResponse.json({ partner, drivers, stats });
     } catch (error) {

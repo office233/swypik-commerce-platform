@@ -44,7 +44,8 @@ export const RideCreateSchema = RideEstimateSchema.extend({
   // `rideCustody` blochează acum decontarea (fail-closed), dar o cursă "wallet"
   // ar rămâne pur și simplu nedecontabilă — deci nu o mai acceptăm deloc.
   // Se readaugă odată cu implementarea debitului din wallet.
-  payment_method: z.enum(["cash", "card"]).default("cash"),
+  // Metodele permise efectiv vin din go_settings (policy.allowedPaymentMethods).
+  payment_method: z.enum(["cash", "card"]).default("card"),
   notes: z.string().trim().max(500).optional(),
 });
 
@@ -54,6 +55,16 @@ export const RideStatusPatchSchema = z.object({
   cancel_reason: z
     .enum(["wait_too_long", "wrong_address", "driver_not_coming", "changed_mind", "other"])
     .optional(),
+});
+
+export const RidePayActionSchema = z.object({
+  action: z.enum(["authorize", "confirm", "collect_cash"]),
+});
+
+export const RideQuoteSchema = z.object({
+  pickup: PointSchema,
+  dropoff: PointSchema,
+  country: z.string().trim().length(2).default("RO"),
 });
 
 export const RideRatingSchema = z.object({

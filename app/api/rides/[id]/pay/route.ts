@@ -1,11 +1,12 @@
 /**
- * FRONT R5 — Plata unei curse.
+ * Plata unei curse.
  *
  * POST /api/rides/[id]/pay
- *   { action: "authorize" }        — rider, card: creează pre-autorizarea Stripe
- *                                    → { client_secret } pentru confirmare în UI.
- *   { action: "collect_cash" }     — driver, cash: marchează banii încasați
- *                                    (doar pe cursă 'completed').
+ *   { action: "authorize" }    — rider, card: creează/refolosește hold-ul Stripe
+ *                                → { client_secret, amount_cents } pentru Payment Element.
+ *   { action: "confirm" }      — rider, după confirmPayment: verificare la Stripe
+ *                                (requires_capture) → 'authorized' → pornește dispatch-ul.
+ *   { action: "collect_cash" } — driver, cash: confirmă încasarea pe cursa 'completed'.
  *
  * GET — starea plății (rider/driver/admin).
  */
@@ -13,102 +14,89 @@ import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
-import { loadRide, resolveRole } from "@/lib/rides/service";
-import { authorizeRidePayment } from "@/lib/payments/mobility-stripe";
-import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/security/rate-limit";
+import { isUuidParam, invalidIdResponse } from "@/lib/validation/params";
+import { RidePayActionSchema } from "@/lib/validation/rides";
+import { parseBody } from "@/lib/validation/schemas";
+import { loadRide, resolveRole, type RideRole } from "@/lib/rides/service";
+import { getGoSettings } from "@/lib/rides/settings";
+import { confirmCardAndDispatch } from "@/lib/rides/dispatch-start";
+import { authorizeRidePayment, RidePaymentError } from "@/lib/payments/mobility-stripe";
 import { onRidePaid } from "@/lib/referral/validation";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const log = logger.child({ route: "rides/pay" });
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
+async function access(id: string): Promise<{ role: RideRole } | NextResponse> {
+  if (!isUuidParam(id)) return invalidIdResponse();
   const session = await getAuthSession();
-  if (!session?.userId) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
+  if (!session?.userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const ride = await loadRide(id);
-  if (!ride) return NextResponse.json({ error: "Ride not found." }, { status: 404 });
+  if (!ride) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const user = await getAuthUser().catch(() => null);
+  const role = await resolveRole(ride, session.userId, Boolean(user?.isAdmin));
+  if (!role) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const rl = await rateLimit("rideAction", session.userId);
+  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  return { role };
+}
 
-  const user = await getAuthUser();
-  const role = await resolveRole(ride, session.userId, user?.role === "admin");
-  if (!role) return NextResponse.json({ error: "You do not have access to this ride." }, { status: 403 });
-
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const a = await access(id);
+  if (a instanceof NextResponse) return a;
   const { rows } = await dbQuery(
-    `SELECT payment_method, payment_status, tip_cents, final_fare_cents, estimated_fare_cents, settled_at
+    `SELECT payment_method, payment_status, tip_cents, final_fare_cents, estimated_fare_cents,
+            authorized_amount_cents, cancel_fee_status, settled_at
        FROM rides WHERE id = $1`,
     [id],
   );
   return NextResponse.json({ payment: rows[0] ?? null });
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+async function collectCash(id: string): Promise<NextResponse> {
+  const { rows } = await dbQuery<{ id: string }>(
+    `UPDATE rides SET payment_status = 'collected_cash', updated_at = now()
+      WHERE id = $1 AND payment_method = 'cash' AND status = 'completed'
+        AND payment_status IN ('unpaid', 'collected_cash')
+      RETURNING id`,
+    [id],
+  );
+  if (!rows.length) return NextResponse.json({ error: "bad_state" }, { status: 409 });
+  // Referral: cash-ul e o plată reală — validează atribuirea pasagerului.
+  await onRidePaid(id, `cash_ride_${id}`);
+  return NextResponse.json({ payment_status: "collected_cash" });
+}
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await getAuthSession();
-  if (!session?.userId) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
+  const a = await access(id);
+  if (a instanceof NextResponse) return a;
 
-  const body = await req.json().catch(() => null);
-  const action = body?.action;
-  if (action !== "authorize" && action !== "collect_cash") {
-    return NextResponse.json({ error: "action invalid (authorize | collect_cash)." }, { status: 400 });
-  }
-
-  const ride = await loadRide(id);
-  if (!ride) return NextResponse.json({ error: "Ride not found." }, { status: 404 });
-
-  const user = await getAuthUser();
-  const role = await resolveRole(ride, session.userId, user?.role === "admin");
-  if (!role) return NextResponse.json({ error: "You do not have access to this ride." }, { status: 403 });
+  const parsed = parseBody(RidePayActionSchema, await req.json().catch(() => null));
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
+  const { action } = parsed.data;
 
   try {
+    if (action === "collect_cash") {
+      if (a.role !== "driver" && a.role !== "admin") return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return await collectCash(id);
+    }
+    if (a.role !== "rider") return NextResponse.json({ error: "forbidden" }, { status: 403 });
     if (action === "authorize") {
-      if (role !== "rider" && role !== "admin") {
-        return NextResponse.json({ error: "Doar pasagerul poate autoriza plata." }, { status: 403 });
-      }
-      const result = await authorizeRidePayment(id);
-      if (!result) return NextResponse.json({ error: "Pre-authorization failed." }, { status: 409 });
-      return NextResponse.json({
-        payment_intent_id: result.payment_intent_id,
-        client_secret: result.client_secret,
-        amount_cents: result.amount_cents,
-      });
+      const settings = await getGoSettings();
+      const r = await authorizeRidePayment(id, settings.fare_overrun_cap_bps);
+      return NextResponse.json({ client_secret: r.client_secret, amount_cents: r.amount_cents });
     }
-
-    // collect_cash — șoferul confirmă încasarea cash pe cursa finalizată.
-    if (role !== "driver" && role !== "admin") {
-      return NextResponse.json({ error: "Only the driver can mark cash collected." }, { status: 403 });
-    }
-    const { rows } = await dbQuery<{ status: string; payment_method: string; payment_status: string }>(
-      `SELECT status, payment_method, payment_status FROM rides WHERE id = $1`,
-      [id],
-    );
-    const r = rows[0];
-    if (r.payment_method !== "cash") {
-      return NextResponse.json({ error: "Cursa nu e cu plata cash." }, { status: 409 });
-    }
-    if (r.status !== "completed") {
-      return NextResponse.json({ error: "Ride is not completed." }, { status: 409 });
-    }
-    await dbQuery(
-      `UPDATE rides SET payment_status = 'collected_cash', updated_at = now()
-        WHERE id = $1 AND payment_status IN ('unpaid', 'collected_cash')`,
-      [id],
-    );
-    // Referral: cash-ul e o plată reală — validează atribuirea pasagerului.
-    await onRidePaid(id, `cash_ride_${id}`);
-    return NextResponse.json({ payment_status: "collected_cash" });
+    return NextResponse.json(await confirmCardAndDispatch(id));
   } catch (err) {
+    if (err instanceof RidePaymentError) {
+      return NextResponse.json({ error: err.code }, { status: err.status });
+    }
     log.error({ err, rideId: id, action }, "ride pay failed");
-    return NextResponse.json({ error: "Payment operation failed." }, { status: 500 });
+    return NextResponse.json({ error: "payment_failed" }, { status: 500 });
   }
 }

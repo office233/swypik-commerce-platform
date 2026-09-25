@@ -4,12 +4,12 @@
  * GET  /api/admin/pricing            → zone + reguli surge active
  * POST /api/admin/pricing            → { action: 'upsert_zone' | 'update_zone' | 'toggle_zone' | 'add_surge' | 'end_surge', ... }
  *
- * Protejat: sesiune admin (cookie) sau Bearer ADMIN_SECRET.
+ * Protejat: requireAdmin(req, "mobility") — sesiune admin cu rol ops/owner sau Bearer ADMIN_SECRET.
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
-import { hasAdminSession, isAdminToken } from "@/lib/security/admin-auth";
+import { requireAdmin } from "@/lib/admin/guard";
 import { logAdminAction } from "@/lib/security/admin-audit";
 import { logger } from "@/lib/logger";
 
@@ -18,11 +18,6 @@ export const dynamic = "force-dynamic";
 
 const log = logger.child({ route: "/api/admin/pricing" });
 
-async function isAuthorized(req: Request): Promise<boolean> {
-  const bearer = req.headers.get("authorization");
-  if (bearer?.startsWith("Bearer ") && isAdminToken(bearer.slice(7))) return true;
-  return hasAdminSession();
-}
 
 const ZoneSchema = z.object({
   city: z.string().trim().min(2).max(120),
@@ -38,6 +33,7 @@ const ZoneSchema = z.object({
   platform_commission_pct: z.number().min(0).max(100).default(20),
   courier_share_pct: z.number().min(0).max(100).default(80),
   currency: z.string().trim().length(3).toUpperCase().default("RON"),
+  max_passengers: z.number().int().min(1).max(20).nullable().optional(),
 });
 
 const ActionSchema = z.discriminatedUnion("action", [
@@ -54,9 +50,8 @@ const ActionSchema = z.discriminatedUnion("action", [
 ]);
 
 export async function GET(req: Request) {
-  if (!(await isAuthorized(req))) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const actor = await requireAdmin(req, "mobility");
+  if (actor instanceof NextResponse) return actor;
   const [zones, surges] = await Promise.all([
     dbQuery(
       `SELECT * FROM pricing_zones ORDER BY country, lower(city), kind, vehicle_class`,
@@ -72,9 +67,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!(await isAuthorized(req))) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const actor = await requireAdmin(req, "mobility");
+  if (actor instanceof NextResponse) return actor;
 
   let body: unknown;
   try {
@@ -99,17 +93,18 @@ export async function POST(req: Request) {
           `INSERT INTO pricing_zones
              (city, country, kind, vehicle_class, base_cents, per_km_cents, per_min_cents,
               min_fare_cents, booking_fee_cents, cancel_fee_cents,
-              platform_commission_pct, courier_share_pct, currency, active)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,true)
+              platform_commission_pct, courier_share_pct, currency, max_passengers, active)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true)
            RETURNING id`,
           [
             z_.city, z_.country, z_.kind, z_.vehicle_class, z_.base_cents,
             z_.per_km_cents, z_.per_min_cents, z_.min_fare_cents,
             z_.booking_fee_cents, z_.cancel_fee_cents,
-            z_.platform_commission_pct, z_.courier_share_pct, z_.currency,
+            z_.platform_commission_pct, z_.courier_share_pct, z_.currency, z_.max_passengers ?? null,
           ],
         );
         await logAdminAction({
+          actor,
           action: "pricing.upsert_zone",
           targetType: "pricing_zone",
           targetId: rows[0].id,
@@ -128,10 +123,11 @@ export async function POST(req: Request) {
           [data.id, ...keys.map((k) => allowed[k])],
         );
         await logAdminAction({
+          actor,
           action: "pricing.update_zone",
           targetType: "pricing_zone",
           targetId: data.id,
-          details: { fields: keys },
+          details: { fields: keys, values: allowed },
           req,
         });
         return NextResponse.json({ ok: true });
@@ -142,6 +138,7 @@ export async function POST(req: Request) {
           data.active,
         ]);
         await logAdminAction({
+          actor,
           action: "pricing.toggle_zone",
           targetType: "pricing_zone",
           targetId: data.id,
@@ -157,6 +154,7 @@ export async function POST(req: Request) {
           [data.zone_id, data.multiplier, data.ends_at ?? null],
         );
         await logAdminAction({
+          actor,
           action: "pricing.add_surge",
           targetType: "surge_rule",
           targetId: rows[0].id,
@@ -168,6 +166,7 @@ export async function POST(req: Request) {
       case "end_surge": {
         await dbQuery(`UPDATE surge_rules SET ends_at = now() WHERE id = $1`, [data.id]);
         await logAdminAction({
+          actor,
           action: "pricing.end_surge",
           targetType: "surge_rule",
           targetId: data.id,
