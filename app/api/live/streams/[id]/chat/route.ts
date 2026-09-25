@@ -8,6 +8,10 @@ import { LiveChatMessageSchema, parseBody } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// Numele autorului (înainte chatul afișa literal „user” — audit live §2.8).
+type ChatRow = { id: number; user_id: string; message: string; created_at: string; username: string | null; display_name: string | null };
+const CHAT_COLUMNS = "m.id, m.user_id, m.message, m.created_at, u.username, u.display_name";
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!isUuid(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
@@ -57,9 +61,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const tick = async () => {
           if (closed) return;
           try {
-            const { rows } = await dbQuery<{ id: number; user_id: string; message: string; created_at: string }>(
-              `SELECT id, user_id, message, created_at FROM live_chat_messages
-                WHERE stream_id = $1 AND id > $2 ORDER BY id ASC LIMIT 100`,
+            const { rows } = await dbQuery<ChatRow>(
+              `SELECT ${CHAT_COLUMNS} FROM live_chat_messages m
+                 LEFT JOIN users u ON u.id::text = m.user_id
+                WHERE m.stream_id = $1 AND m.id > $2 ORDER BY m.id ASC LIMIT 100`,
               [streamId, lastId],
             );
             for (const r of rows) {
@@ -91,9 +96,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
   // Plain JSON list (recent)
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 200);
-  const { rows } = await dbQuery(
-    `SELECT id, user_id, message, created_at FROM live_chat_messages
-       WHERE stream_id = $1 ORDER BY id DESC LIMIT $2`,
+  const { rows } = await dbQuery<ChatRow>(
+    `SELECT ${CHAT_COLUMNS} FROM live_chat_messages m
+       LEFT JOIN users u ON u.id::text = m.user_id
+      WHERE m.stream_id = $1 ORDER BY m.id DESC LIMIT $2`,
     [id, limit],
   );
   return NextResponse.json({ items: rows.reverse() });

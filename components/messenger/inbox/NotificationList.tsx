@@ -7,14 +7,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListItem } from "@/components/ui/ListItem";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { UseNotifications } from "@/lib/notifications/use-notifications";
+import { notificationHref } from "@/lib/dm/links";
 import { cn } from "@/lib/ui/cn";
-
-/** Link intern sigur pentru o notificare (`/dm/<id>` vechi → conversația). */
-export function notificationHref(actionUrl: string | null): string | undefined {
-  if (!actionUrl || !actionUrl.startsWith("/") || actionUrl.startsWith("//")) return undefined;
-  const legacyDm = actionUrl.match(/^\/dm\/([0-9a-f-]{36})$/i);
-  return legacyDm ? `/messages/${legacyDm[1]}` : actionUrl;
-}
 
 /** Tab-ul Notificări din Inbox (starea vine din useNotifications, partajat cu /notifications). */
 export function NotificationList({ state }: { state: UseNotifications }) {

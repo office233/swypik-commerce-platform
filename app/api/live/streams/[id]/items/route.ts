@@ -34,11 +34,14 @@ async function POST_impl(req: NextRequest, { params }: { params: Promise<{ id: s
   const flash_price_cents = body.flash_price_cents != null ? Number(body.flash_price_cents) : null;
   const flash_until = body.flash_until ? new Date(body.flash_until).toISOString() : null;
 
-  // Validate product exists + ownership (seller/merchant === user OR stream creator)
-  const { rows: prodRows } = await dbQuery<{ price_cents: number | null; seller_id: string | null; merchant_id: string | null }>(
-    `SELECT price_cents, seller_id, merchant_id
-       FROM marketplace_products
-      WHERE id::text = $1
+  // Produsul trebuie să fie al gazdei (vânzătorul/comerciantul din spatele lui) —
+  // înainte, orice proprietar de stream putea atașa ORICE produs cu preț flash (audit live §4).
+  const { rows: prodRows } = await dbQuery<{ price_cents: number | null; seller_user_id: string | null; merchant_user_id: string | null }>(
+    `SELECT p.price_cents, s.user_id::text AS seller_user_id, mm.owner_user_id::text AS merchant_user_id
+       FROM marketplace_products p
+       LEFT JOIN sellers s ON s.id = p.seller_id
+       LEFT JOIN marketplace_merchants mm ON mm.id = p.merchant_id
+      WHERE p.id::text = $1
       LIMIT 1`,
     [product_id],
   );
@@ -47,10 +50,7 @@ async function POST_impl(req: NextRequest, { params }: { params: Promise<{ id: s
   }
   const prod = prodRows[0];
   const isAuthorized =
-    session.role === "admin" ||
-    prod.seller_id === session.userId ||
-    prod.merchant_id === session.userId ||
-    (await isOwner(id, session.userId));
+    session.role === "admin" || prod.seller_user_id === session.userId || prod.merchant_user_id === session.userId;
   if (!isAuthorized) {
     logger.warn(
       { userId: session.userId, streamId: id, product_id },

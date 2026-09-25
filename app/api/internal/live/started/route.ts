@@ -1,88 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbQuery } from "@/lib/db";
-import { sendPushToUser } from "@/lib/push/web-push";
-import { timingSafeEqual } from "crypto";
-import { logger } from "@/lib/logger";
+import { readStreamKey, verifyInternal } from "@/lib/live/internal-hook";
+import { markStreamLive } from "@/lib/live/lifecycle";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-function verifyInternal(req: NextRequest): boolean {
-  const secret = process.env.INTERNAL_SECRET;
-  if (!secret) return false;
-  const got = req.headers.get("x-internal");
-  if (!got || got.length !== secret.length) return false;
-  try {
-    return timingSafeEqual(Buffer.from(got), Buffer.from(secret));
-  } catch {
-    return false;
-  }
-}
-
-function extractKey(path: string): string | null {
-  // expected forms: "live/<key>" or "live/<key>/..."
-  const m = path.match(/^live\/([A-Za-z0-9_-]+)/);
-  return m ? m[1] : null;
-}
-
+/** MediaMTX runOnReady (streamuri RTMP moștenite) → live + notificarea followerilor. */
 export async function POST(req: NextRequest) {
   if (!verifyInternal(req)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  const form = await req.formData().catch(() => null);
-  const json = form ? null : await req.json().catch(() => ({}));
-  const path = String(form?.get("path") ?? (json as any)?.path ?? "");
-  const streamKey = extractKey(path);
+  const streamKey = await readStreamKey(req);
   if (!streamKey) return NextResponse.json({ error: "invalid_path" }, { status: 400 });
 
-  const { rows } = await dbQuery<{ id: string; creator_id: string; title: string; prev_status: string }>(
-    // Doar un stream programat/în curs poate (re)deveni live — nu și unul încheiat.
-    `WITH prev AS (
-       SELECT id, status AS prev_status FROM live_streams
-        WHERE stream_key = $1 AND status IN ('scheduled', 'live')
-        FOR UPDATE
-     )
-     UPDATE live_streams ls SET status = 'live', started_at = COALESCE(ls.started_at, now())
-       FROM prev WHERE ls.id = prev.id
-     RETURNING ls.id, ls.creator_id, ls.title, prev.prev_status`,
-    [streamKey],
-  );
-  if (!rows[0]) return NextResponse.json({ error: "stream_not_found" }, { status: 404 });
-  const stream = rows[0];
-  // Reconectare encoder (deja live): fără notificări duplicate către followeri.
-  if (stream.prev_status === "live") return NextResponse.json({ ok: true, stream_id: stream.id });
-
-  // Notify followers
-  try {
-    const { rows: followers } = await dbQuery<{ follower_user_id: string }>(
-      `SELECT follower_user_id FROM follows WHERE following_user_id::text = $1
-         AND notification_level <> 'none'`,
-      [stream.creator_id],
-    );
-    for (const f of followers) {
-      try {
-        await dbQuery(
-          `INSERT INTO notifications (user_id, actor_user_id, notification_type, title, body, action_url, metadata)
-             VALUES ($1::uuid, $2::uuid, 'creator_live', $3, $4, $5, $6::jsonb)`,
-          [
-            f.follower_user_id,
-            stream.creator_id,
-            `A început un LIVE`,
-            stream.title,
-            `/live/${stream.id}`,
-            JSON.stringify({ stream_id: stream.id }),
-          ],
-        );
-        try {
-          await sendPushToUser(f.follower_user_id, {
-            title: "LIVE pe Swypik",
-            body: stream.title,
-            url: `/live/${stream.id}`,
-          });
-        } catch {}
-      } catch {}
-    }
-  } catch (e) {
-    logger.warn({ err: e }, "[live/started] notify failed");
-  }
-
+  // Doar un stream programat/în curs poate (re)deveni live — nu și unul încheiat.
+  const stream = await markStreamLive({ streamKey });
+  if (!stream) return NextResponse.json({ error: "stream_not_found" }, { status: 404 });
   return NextResponse.json({ ok: true, stream_id: stream.id });
 }

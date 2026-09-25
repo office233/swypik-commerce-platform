@@ -4,7 +4,8 @@ import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
-import { logger } from "@/lib/logger";
+import { isLiveKitConfigured } from "@/lib/livekit/server";
+import { parseBody } from "@/lib/validation/schemas";
 import { paginationSchema, queryObject } from "@/lib/validation/params";
 import { z } from "zod";
 
@@ -16,19 +17,17 @@ const LiveListQuerySchema = paginationSchema(20, 50).extend({
   status: z.enum(LIVE_LIST_STATUSES).default("live"),
 });
 
-function buildUrls(streamKey: string) {
-  const isProd = process.env.NODE_ENV === "production";
-  const host = process.env.LIVE_RTMP_HOST || (isProd ? "" : "swypik.com");
-  const publicHost = process.env.LIVE_HLS_HOST || (isProd ? "" : "swypik.com");
-  if (!host || !publicHost) {
-    logger.error("[live/streams] LIVE_RTMP_HOST/LIVE_HLS_HOST lipsesc în producție — URL-urile de stream vor fi invalide");
-  }
-  return {
-    rtmp_url: `rtmp://${host}:1935/live/${streamKey}`,
-    hls_url: `https://${publicHost}/hls/live/${streamKey}/index.m3u8`,
-  };
-}
+const CreateStreamSchema = z.object({
+  title: z.string().trim().min(1).max(140),
+  description: z.string().trim().max(2000).optional().nullable(),
+  scheduled_at: z.string().datetime({ offset: true }).optional().nullable(),
+});
 
+/**
+ * POST /api/live/streams — creează un stream LiveKit, mereu 'scheduled'. Devine
+ * 'live' DOAR când LiveKit confirmă că gazda publică (webhook semnat,
+ * /api/live/webhook). Fără RTMP/HLS: URL-urile /hls/... dădeau 404 prin tunel.
+ */
 async function POST_impl(req: NextRequest) {
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -39,32 +38,20 @@ async function POST_impl(req: NextRequest) {
   const rl = await rateLimit("liveStreams", session.userId);
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-  const body = await req.json().catch(() => ({}));
-  const title = String(body.title || "").trim();
-  if (!title) return NextResponse.json({ error: "title_required" }, { status: 400 });
-  const description = body.description ? String(body.description) : null;
-  const scheduled_at = body.scheduled_at ? new Date(body.scheduled_at).toISOString() : null;
+  const parsed = parseBody(CreateStreamSchema, await req.json().catch(() => ({})));
+  if (!parsed.ok) return NextResponse.json({ error: "title_required", issues: parsed.issues }, { status: 400 });
+  const { title, description, scheduled_at } = parsed.data;
 
+  // Cheia rămâne (coloană NOT NULL UNIQUE), dar nu mai e un secret de ingest.
   const streamKey = crypto.randomBytes(16).toString("hex");
-  const urls = buildUrls(streamKey);
-
   const { rows } = await dbQuery<{ id: string }>(
-    `INSERT INTO live_streams (creator_id, title, description, stream_key, rtmp_url, hls_url, scheduled_at, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    `INSERT INTO live_streams (creator_id, title, description, stream_key, provider, scheduled_at, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
      RETURNING id`,
-    // Mereu 'scheduled': devine 'live' DOAR când media serverul confirmă publicarea
-    // (POST /api/internal/live/started, runOnReady în mediamtx). Înainte, un stream
-    // apărea „LIVE" pe /live fără niciun cadru video (audit live #5).
-    [session.userId, title, description, streamKey, urls.rtmp_url, urls.hls_url, scheduled_at, "scheduled"],
+    [session.userId, title, description ?? null, streamKey, "livekit", scheduled_at ?? null, "scheduled"],
   );
 
-  return NextResponse.json({
-    id: rows[0].id,
-    stream_key: streamKey,
-    rtmp_url: urls.rtmp_url,
-    hls_url: urls.hls_url,
-    status: "scheduled",
-  });
+  return NextResponse.json({ id: rows[0].id, status: "scheduled", live_configured: isLiveKitConfigured() });
 }
 
 async function GET_impl(req: NextRequest) {
@@ -77,7 +64,7 @@ async function GET_impl(req: NextRequest) {
 
   const { rows } = await dbQuery(
     `SELECT ls.id, ls.creator_id, ls.title, ls.description, ls.status, ls.viewer_count,
-            ls.peak_viewers, ls.scheduled_at, ls.started_at, ls.ended_at, ls.hls_url,
+            ls.peak_viewers, ls.scheduled_at, ls.started_at, ls.ended_at,
             u.username, u.display_name, u.avatar_url
        FROM live_streams ls
        LEFT JOIN users u ON u.id::text = ls.creator_id

@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
-import LiveStudioClient from "./LiveStudioClient";
+import { isLiveKitConfigured } from "@/lib/livekit/server";
+import LiveStudioClient, { type StudioStream } from "./LiveStudioClient";
 
 export const dynamic = "force-dynamic";
 
-type LiveStream = Parameters<typeof LiveStudioClient>[0]["streams"][number];
+const STUDIO_LIST_LIMIT = 50;
 
 export default async function CreatorLivePage() {
   const session = await getAuthSession();
@@ -13,12 +14,11 @@ export default async function CreatorLivePage() {
   if (session.role !== "creator" && session.role !== "admin" && session.role !== "seller") {
     redirect("/become-a-creator");
   }
-  const { rows } = await dbQuery<LiveStream>(
-    `SELECT id, title, status, stream_key, rtmp_url, hls_url, viewer_count, peak_viewers,
-            scheduled_at, started_at, ended_at, created_at
+  const { rows } = await dbQuery<StudioStream>(
+    `SELECT id, title, status, viewer_count, peak_viewers, scheduled_at, started_at, created_at
        FROM live_streams WHERE creator_id = $1
-       ORDER BY created_at DESC LIMIT 50`,
-    [session.userId],
+      ORDER BY created_at DESC LIMIT $2`,
+    [session.userId, STUDIO_LIST_LIMIT],
   );
-  return <LiveStudioClient streams={rows} />;
+  return <LiveStudioClient streams={rows} configured={isLiveKitConfigured()} />;
 }

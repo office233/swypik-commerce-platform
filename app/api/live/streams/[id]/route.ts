@@ -1,76 +1,69 @@
 import { withErrorHandling } from "@/lib/api-handler";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
-import { UUID_RE } from "@/lib/validation/uuid";
+import { deleteRoom, isLiveKitConfigured } from "@/lib/livekit/server";
+import { liveRoomName } from "@/lib/live/config";
+import { markStreamEnded } from "@/lib/live/lifecycle";
+import { getLiveItems, getLiveStream } from "@/lib/live/queries";
+import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/security/rate-limit";
+import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
+import { parseBody } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
-async function GET_impl(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+type Ctx = { params: Promise<{ id: string }> };
+
+/** GET — streamul public (fără cheie/URL-uri de ingest) + produsele prezentate. */
+async function GET_impl(_req: NextRequest, { params }: Ctx) {
   const { id } = await params;
-  if (!UUID_RE.test(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
-  const { rows } = await dbQuery(
-    `SELECT ls.*, u.username, u.display_name, u.avatar_url
-       FROM live_streams ls
-       LEFT JOIN users u ON u.id::text = ls.creator_id
-      WHERE ls.id = $1 LIMIT 1`,
-    [id],
-  );
-  if (!rows[0]) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  const stream = rows[0] as any;
-
-  // Hide stream_key unless owner
-  const session = await getAuthSession();
-  if (!session || session.userId !== stream.creator_id) {
-    delete stream.stream_key;
-    delete stream.rtmp_url;
-  }
-
-  const { rows: items } = await dbQuery(
-    `SELECT lsi.id, lsi.product_id, lsi.display_order, lsi.is_pinned,
-            lsi.flash_price_cents, lsi.flash_until,
-            p.title, p.image_url, p.price_cents, p.currency
-       FROM live_shop_items lsi
-       LEFT JOIN marketplace_products p ON p.id::text = lsi.product_id
-      WHERE lsi.stream_id = $1
-      ORDER BY lsi.is_pinned DESC, lsi.display_order ASC, lsi.created_at ASC`,
-    [id],
-  );
-
+  if (!isUuidParam(id)) return invalidIdResponse();
+  const stream = await getLiveStream(id);
+  if (!stream) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const items = await getLiveItems(id);
   return NextResponse.json({ stream, items });
 }
 
-async function PATCH_impl(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+const PatchSchema = z.object({
+  title: z.string().trim().min(1).max(140).optional(),
+  description: z.string().trim().max(2000).optional(),
+  status: z.literal("ended").optional(),
+});
+
+/** PATCH { title?, description?, status?: "ended" } — doar creatorul (sau admin). */
+async function PATCH_impl(req: NextRequest, { params }: Ctx) {
   const { id } = await params;
-  if (!UUID_RE.test(id)) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+  if (!isUuidParam(id)) return invalidIdResponse();
   const session = await getAuthSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const rl = await rateLimit("liveStreamEdit", session.userId);
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-  const { rows: ownRows } = await dbQuery<{ creator_id: string }>(
-    `SELECT creator_id FROM live_streams WHERE id = $1`,
-    [id],
-  );
+  const { rows: ownRows } = await dbQuery<{ creator_id: string }>(`SELECT creator_id FROM live_streams WHERE id = $1`, [id]);
   if (!ownRows[0]) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (ownRows[0].creator_id !== session.userId && session.role !== "admin") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const fields: string[] = [];
-  const values: any[] = [];
-  let idx = 1;
-  if (typeof body.title === "string") { fields.push(`title = $${idx++}`); values.push(body.title); }
-  if (typeof body.description === "string") { fields.push(`description = $${idx++}`); values.push(body.description); }
-  if (body.status === "ended") {
-    fields.push(`status = $${idx++}`); values.push("ended");
-    fields.push(`ended_at = now()`);
+  const parsed = parseBody(PatchSchema, await req.json().catch(() => ({})));
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  const { title, description, status } = parsed.data;
+
+  if (title !== undefined || description !== undefined) {
+    await dbQuery(
+      `UPDATE live_streams SET title = COALESCE($2, title), description = COALESCE($3, description) WHERE id = $1`,
+      [id, title ?? null, description ?? null],
+    );
   }
-  if (!fields.length) return NextResponse.json({ ok: true });
-  values.push(id);
-  await dbQuery(`UPDATE live_streams SET ${fields.join(", ")} WHERE id = $${idx}`, values);
+  if (status === "ended") {
+    await markStreamEnded({ streamId: id }, { includeScheduled: true });
+    // Închide camera LiveKit pentru toți spectatorii (best-effort).
+    if (isLiveKitConfigured()) {
+      await deleteRoom(liveRoomName(id)).catch((err) => logger.info({ err, streamId: id }, "[live] deleteRoom skipped"));
+    }
+  }
   return NextResponse.json({ ok: true });
 }
 

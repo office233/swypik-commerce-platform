@@ -14,3 +14,13 @@ export function conversationPath(conversationId: string): string {
 }
 
 export const INBOX_PATH = "/inbox";
+
+/**
+ * Link intern sigur pentru o notificare: doar căi relative; vechiul `/dm/<id>`
+ * (404) devine conversația.
+ */
+export function notificationHref(actionUrl: string | null): string | undefined {
+  if (!actionUrl || !actionUrl.startsWith("/") || actionUrl.startsWith("//")) return undefined;
+  const legacyDm = actionUrl.match(/^\/dm\/([0-9a-f-]{36})$/i);
+  return legacyDm ? conversationPath(legacyDm[1]) : actionUrl;
+}

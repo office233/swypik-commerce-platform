@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getAccountUserId } from "@/lib/social/session";
-import { generateLiveKitToken, getLiveKitServerUrl, CallsUnavailableError } from "@/lib/messenger/livekit";
+import { generateLiveKitToken, getLiveKitServerUrl, CallsUnavailableError, isLiveKitConfigured } from "@/lib/messenger/livekit";
 import { dbQuery } from "@/lib/db";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -31,6 +31,11 @@ export async function POST(req: NextRequest) {
     const userId = await getAccountUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Fără chei LiveKit nu creăm rândul „ringing” (rămânea orfan 45 s — audit messenger §2).
+    if (!isLiveKitConfigured()) {
+      return NextResponse.json({ error: "calls_unavailable" }, { status: 503 });
     }
 
     const rl = await rateLimit("messengerCallToken", userId, { limit: 20, window: 60 });
