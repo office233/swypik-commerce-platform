@@ -99,7 +99,9 @@ describe("detectorul însuși", () => {
 });
 
 describe("porțile de autorizare async sunt întotdeauna await-uite", () => {
+  // Citite o singură dată: 7 porți × ~2000 fișiere recitite depășeau timeout-ul de 5s sub încărcare.
   const files = walk(APP_DIR);
+  const sources = new Map(files.map((file) => [file, readFileSync(file, "utf8")]));
 
   it("găsește fișiere de scanat (testul nu trece degeaba)", () => {
     expect(files.length).toBeGreaterThan(100);
@@ -110,7 +112,7 @@ describe("porțile de autorizare async sunt întotdeauna await-uite", () => {
       const offenders: string[] = [];
 
       for (const file of files) {
-        const source = readFileSync(file, "utf8");
+        const source = sources.get(file) ?? "";
         if (!source.includes(gate)) continue;
         const hits = findUnawaitedGates(source, gate);
         if (hits.length) {
