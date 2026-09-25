@@ -363,7 +363,8 @@
     "promptMaiIeftin": "quero mais barato",
     "topCalitate": "⭐ Top qualidade",
     "maiNoi": "🆕 Mais novos",
-    "finalizeazaComandaSuma": "Finalizar pedido — {amount}"
+    "finalizeazaComandaSuma": "Finalizar pedido — {amount}",
+    "adaugareInCosEsuata": "Não foi possível adicionar o produto ao carrinho. Tente novamente."
   },
   "security": {
     "autentificareInDoiPasi": "Autenticação em dois passos (2FA)",

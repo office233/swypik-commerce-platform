@@ -363,7 +363,8 @@
     "promptMaiIeftin": "ich möchte es günstiger",
     "topCalitate": "⭐ Top-Qualität",
     "maiNoi": "🆕 Neuer",
-    "finalizeazaComandaSuma": "Zur Kasse — {amount}"
+    "finalizeazaComandaSuma": "Zur Kasse — {amount}",
+    "adaugareInCosEsuata": "Das Produkt konnte nicht in den Warenkorb gelegt werden. Bitte versuche es erneut."
   },
   "security": {
     "autentificareInDoiPasi": "Zwei-Faktor-Authentifizierung (2FA)",

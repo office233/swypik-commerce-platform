@@ -482,7 +482,8 @@
     "promptMaiIeftin": "vreau mai ieftin",
     "topCalitate": "⭐ Top calitate",
     "maiNoi": "🆕 Mai noi",
-    "finalizeazaComandaSuma": "Finalizează comanda — {amount}"
+    "finalizeazaComandaSuma": "Finalizează comanda — {amount}",
+    "adaugareInCosEsuata": "Nu am putut adăuga produsul în coș. Încearcă din nou."
   },
   "security": {
     "autentificareInDoiPasi": "Autentificare în doi pași (2FA)",

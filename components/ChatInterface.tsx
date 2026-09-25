@@ -17,6 +17,7 @@ import Image from "next/image";
 import type { Product } from "@/types/product";
 import type { CartItem } from "@/types/cart";
 import { mergeIntoCart, cartItemKey } from "@/types/cart";
+import { isUuid } from "@/lib/validation/uuid";
 import { useTranslations, useLocale } from "next-intl";
 import type { Locale } from "@/lib/i18n/config";
 import { formatPriceLegacy } from "@/lib/i18n/currency";
@@ -189,19 +190,34 @@ export default function ChatInterface({
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.product.price * item.qty, 0);
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
-  function addToCart(product: ChatProduct, quantity: number = 1) {
-    setCartItems((prev) => mergeIntoCart(prev, product, quantity));
-    // Persist to server cart (fire-and-forget; UI already reflects optimistic state)
+  // Coșul de pe server e sursa de adevăr (checkout-ul îl citește): adăugăm local
+  // doar după confirmare. SKU-ul furnizorului nu e o variantă Swypik — trimitem
+  // variantId doar când e un id de variantă; produsele cu variante obligatorii
+  // se deschid pe pagina produsului ca să se aleagă varianta.
+  async function addToCart(product: ChatProduct, quantity: number = 1) {
+    const productId = product.pgId || product.id;
+    const variantId = isUuid(product.skuId) ? product.skuId : null;
+    let code: string | null = null;
     try {
-      const productId = product.pgId || product.id;
-      const priceCents = Math.round((product.price || 0) * 100);
-      fetch("/api/cart/items", {
+      const res = await fetch("/api/cart/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ productId, quantity, variantId: product.skuId || null, title: product.title, image: product.images?.[0] || null, priceCents, currency: "RON" }),
-      }).catch(() => { });
-    } catch { }
+        body: JSON.stringify({ productId, quantity, variantId }),
+      });
+      if (!res.ok) code = ((await res.json().catch(() => ({}))) as { code?: string }).code ?? "error";
+    } catch {
+      code = "error";
+    }
+    if (code === "variant_required" || code === "variant_unavailable") {
+      window.location.href = `/product/${productId}`;
+      return;
+    }
+    if (code) {
+      setToastMessage(t("adaugareInCosEsuata"));
+      return;
+    }
+    setCartItems((prev) => mergeIntoCart(prev, product, quantity));
     setSelectedProduct(null); setToastMessage(t("produsAdaugatInCos", { title: `${quantity > 1 ? quantity + "x " : ""}${product.title.slice(0, 24)}` })); setFunnelStage("upsell");
     const newKey = `${product.pgId || product.id}:${product.skuId || "base"}`;
     const candidate = lastShownProducts.find((p) => `${p.pgId || p.id}:${p.skuId || "base"}` !== newKey && !cartItems.some((item) => cartItemKey(item) === `${p.pgId || p.id}:${p.skuId || "base"}`));

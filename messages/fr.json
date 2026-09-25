@@ -363,7 +363,8 @@
     "promptMaiIeftin": "je le veux moins cher",
     "topCalitate": "⭐ Top qualité",
     "maiNoi": "🆕 Plus récents",
-    "finalizeazaComandaSuma": "Passer la commande — {amount}"
+    "finalizeazaComandaSuma": "Passer la commande — {amount}",
+    "adaugareInCosEsuata": "Impossible d'ajouter ce produit au panier. Réessayez."
   },
   "security": {
     "autentificareInDoiPasi": "Authentification à deux facteurs (2FA)",

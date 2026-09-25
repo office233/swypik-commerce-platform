@@ -482,7 +482,8 @@
     "promptMaiIeftin": "I want it cheaper",
     "topCalitate": "⭐ Top quality",
     "maiNoi": "🆕 Newer",
-    "finalizeazaComandaSuma": "Checkout — {amount}"
+    "finalizeazaComandaSuma": "Checkout — {amount}",
+    "adaugareInCosEsuata": "We couldn't add this product to your cart. Please try again."
   },
   "security": {
     "autentificareInDoiPasi": "Two-factor authentication (2FA)",
