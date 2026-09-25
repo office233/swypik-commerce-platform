@@ -2553,7 +2553,8 @@
         "commissions": "Comisioane",
         "merchantClaims": "Revendicări restaurante",
         "missions": "Misiuni creatori",
-        "creatorPayouts": "Retrageri creatori"
+        "creatorPayouts": "Retrageri creatori",
+        "news": "Știri"
       }
     },
     "storefront": "Vezi site-ul",
@@ -4138,40 +4139,79 @@
     "paymentPendingSlow": "Plata e încă în procesare. Încearcă din nou peste un minut."
   },
   "gaming": {
-    "metaTitle": "Gaming & Recompense | Swypik",
-    "badge": "Swypik Arcade & Hub",
-    "titlePrefix": "Gaming &",
-    "titleHighlight": "Recompense",
-    "levelLabel": "Nivel Gamer",
-    "levelValue": "Lv. {level}",
-    "signInPrompt": "Conectează-te pentru a juca și a primi recompense",
-    "tabArcade": "Mini-Jocuri Arcade",
-    "tabTrivia": "Daily Trivia Arena",
-    "tabDeals": "Jocuri Gratuite & Promoții",
-    "arcadeHeading": "Jocuri Jucabile Instant (Fără Instalare)",
-    "arcadeEmpty": "Niciun joc disponibil momentan.",
-    "arcadeError": "Nu am putut încărca jocurile.",
-    "retry": "Reîncearcă",
-    "play": "Joacă",
-    "trophyLabel": "Scor",
-    "questionOf": "Întrebarea {current} din {total}",
-    "triviaError": "Nu am putut încărca trivia.",
-    "triviaCompleteTitle": "Quiz Completat cu Succes!",
-    "triviaCompleteBody": "Ai răspuns corect la {correct} din {total} întrebări și ai obținut {score} puncte!",
-    "playAgain": "Joacă din nou",
-    "freeGamesHeading": "Jocuri Gratuite (FreeToGame API)",
-    "free100": "100% GRATUIT",
-    "dealsHeading": "Reduceri Masive (CheapShark API)",
-    "dealsEmpty": "Nicio ofertă disponibilă momentan.",
-    "dealsError": "Nu am putut încărca ofertele.",
-    "modalRestart": "Restart Joc",
-    "modalFullscreen": "Ecran Complet",
-    "modalExitFullscreen": "Ieși din Fullscreen",
-    "modalClose": "Închide",
-    "modalScoreSaved": "Scor salvat: {score}! +{xp} XP",
-    "metaDescriptionV2": "Joacă mini-jocuri HTML5, participă la Trivia zilnică și câștigă XP și avansează în nivel pe Swypik.",
-    "subtitleV2": "Joacă instant mini-jocuri HTML5, participă la Trivia zilnică, descoperă jocuri PC gratuite și câștigă XP.",
-    "arcadeRewardHintV2": "Câștigă XP"
+    "meta": {
+      "title": "Gaming — Swypik",
+      "description": "Mini-jocuri, trivia zilnică și XP pentru ce faci pe Swypik. Crește în nivel și arată-l pe profil."
+    },
+    "hub": {
+      "title": "Gaming",
+      "subtitle": "Joacă, răspunde la trivia zilnică și strânge XP și din ce faci pe Swypik."
+    },
+    "level": {
+      "short": "Nv. {level}",
+      "title": "Nivelul {level}",
+      "xp": "{xp} XP",
+      "toNext": "Încă {remaining} XP până la nivelul {next}",
+      "max": "Nivel maxim",
+      "progressLabel": "Progres spre nivelul următor",
+      "streak": "{days, plural, one {# zi la rând} few {# zile la rând} other {# de zile la rând}}"
+    },
+    "signIn": {
+      "body": "Poți juca și fără cont, dar XP-ul și nivelul se salvează doar când ești conectat.",
+      "cta": "Conectează-te",
+      "triviaTitle": "Trivia zilnică e pentru membri"
+    },
+    "tabs": {
+      "arcade": "Jocuri",
+      "trivia": "Trivia zilnică"
+    },
+    "arcade": {
+      "empty": "Niciun joc disponibil momentan.",
+      "xpHint": "Fiecare rundă aduce XP",
+      "play": "Joacă",
+      "playNamed": "Joacă {title}"
+    },
+    "trivia": {
+      "empty": "Nu există întrebări momentan. Încearcă mai târziu.",
+      "questionOf": "Întrebarea {current} din {total}",
+      "xpAvailable": "Prima rundă de azi: XP",
+      "practice": "Antrenament",
+      "completeTitle": "Rundă încheiată",
+      "completeBody": "{correct} din {total} răspunsuri corecte",
+      "earned": "+{xp} XP",
+      "noXp": "XP-ul de azi pentru trivia a fost deja primit",
+      "practiceAgain": "Încă o rundă de antrenament",
+      "correct": "Corect",
+      "wrong": "Greșit",
+      "yourAnswer": "Răspunsul tău: {answer}",
+      "correctAnswer": "Răspuns corect: {answer}"
+    },
+    "earn": {
+      "title": "Cum câștigi XP",
+      "trivia": "Trivia zilnică (prima rundă din zi)",
+      "arcade": "O rundă de joc",
+      "watch": "Urmărești {minViews} videoclipuri într-o zi",
+      "upload": "Primul tău videoclip publicat",
+      "purchase": "Prima ta comandă plătită",
+      "xp": "până la {xp} XP",
+      "dailyCap": "Jocurile, trivia și vizionările aduc cel mult {cap} XP pe zi."
+    },
+    "modal": {
+      "restart": "Repornește jocul",
+      "close": "Închide",
+      "scoreSaved": "Scor {score} · +{xp} XP",
+      "guest": "Conectează-te ca scorul să-ți aducă XP."
+    },
+    "game": {
+      "score": "Scor",
+      "best": "Record",
+      "gameOver": "Joc terminat",
+      "playAgain": "Joacă din nou",
+      "restart": "Restart",
+      "tapToStart": "Atinge pentru a începe",
+      "tapToRestart": "Atinge pentru a reîncepe",
+      "controls": "Glisează sau folosește săgețile"
+    }
   },
   "messenger": {
     "title": "Swypik Chat",
@@ -4224,43 +4264,20 @@
   },
   "news": {
     "meta": {
-      "title": "Știri Globale & Jurnalist AI — Swypik Wire",
-      "description": "Știri rezumate de AI din surse de presă publice, cu link către articolul original."
+      "title": "Știri — Swypik",
+      "description": "Știri din surse de presă publice, rezumate de AI, mereu cu link către articolul original."
     },
-    "liveWire": "LIVE WIRE",
-    "readFlash": "Citește Flash",
-    "badge": "Swypik Global AI Wire • 24/7 Live",
-    "titleLine1": "Știri Globale &",
-    "titleLine2": "Jurnalist AI",
-    "subtitle": "Știri rezumate de AI din surse de presă publice (TechCrunch, BBC, IGN, ScienceDaily), mereu cu link către sursa originală.",
-    "generating": "AI analizează sursele...",
-    "refreshFeedAdmin": "Actualizează Fluxul Global AI",
-    "refreshOnly": "Doar {category}",
     "categories": {
-      "all": "Toate Știrile",
+      "all": "Toate",
       "tech-ai": "Tehnologie & AI",
-      "gaming": "Gaming & WebGL",
-      "business": "Piețe & Startups",
-      "science": "Știință & Spațiu"
+      "gaming": "Gaming",
+      "business": "Business",
+      "science": "Știință"
     },
-    "syncing": "Se sincronizează articolele Swypik AI Wire...",
-    "emptyTitle": "Fluxul este pregătit pentru generare",
-    "emptyBodyAdmin": "Apasă butonul de mai jos pentru ca Jurnalistul AI de elită să monitorizeze feed-urile live și să redacteze articole de impact.",
-    "emptyBody": "Articolele sunt generate automat, la interval regulat, de Jurnalistul AI Swypik. Revino în curând.",
-    "launchAi": "Lansează Jurnalistul AI",
-    "firstToReport": "Primul la Știri",
     "readMinutes": "{minutes} min lectură",
-    "readInvestigation": "Citește Articolul de Investigație",
-    "recentFeeds": "Fluxuri Recente & Analize de Piață",
-    "read": "Citește",
-    "backToFeed": "Înapoi la Fluxul Global",
-    "share": "Partajează",
-    "tldrBadge": "Raport Executiv TL;DR • Esența în 30 de Secunde",
     "source": {
-      "label": "Sursă originală",
-      "link": "Vezi sursa originală"
+      "label": "Sursa originală"
     },
-    "yourReaction": "Reacția ta la acest raport:",
     "comments": {
       "title": "{count} comentarii",
       "placeholder": "Scrie un comentariu...",
@@ -4272,11 +4289,34 @@
       "error": "Comentariul nu a putut fi trimis. Încearcă din nou.",
       "you": "Tu",
       "loadMore": "Mai multe comentarii",
-      "loadingMore": "Se încarcă...",
       "loadMoreError": "Nu am putut încărca mai multe comentarii."
     },
-    "aiDisclaimer": "Acest articol a fost rezumat automat de un model AI pe baza sursei originale indicate mai jos și poate conține erori. Pentru detalii complete, citește sursa originală.",
-    "articlesCount": "{count, plural, one {# articol} few {# articole} other {# de articole}}"
+    "aiDisclaimer": "Acest rezumat a fost generat automat de un model AI pe baza sursei originale de mai sus și poate conține erori. Pentru detalii complete, citește sursa originală.",
+    "list": {
+      "title": "Știri",
+      "adminReview": "Revizuire știri",
+      "disclaimer": "Rezumate automat de AI din surse publice. Fiecare știre are link către sursa originală.",
+      "emptyTitle": "Încă nu sunt știri",
+      "emptyBody": "Știrile noi apar automat de câteva ori pe zi. Revino curând.",
+      "loadMore": "Mai multe știri"
+    },
+    "card": {
+      "via": "via {source}"
+    },
+    "article": {
+      "tldr": "Pe scurt",
+      "reactions": "Reacția ta"
+    },
+    "sharing": {
+      "label": "Distribuie",
+      "copied": "Link copiat",
+      "failed": "Nu am putut copia linkul"
+    },
+    "reactions": {
+      "fire": "Tare",
+      "insightful": "Util",
+      "rocket": "Impresionant"
+    }
   },
   "adminLogin": {
     "passwordRequired": "Parola de admin este obligatorie.",
@@ -6734,6 +6774,29 @@
       "video_in_other_mission": "Clipul e deja înscris la altă misiune.",
       "own_mission": "Nu te poți înscrie la propria misiune.",
       "invalid_mission_id": "Misiune invalidă. Alege din nou."
+    }
+  },
+  "adminNews": {
+    "title": "Știri",
+    "runNow": "Rulează acum",
+    "runDone": "Rulare terminată: {count} articole noi",
+    "runFailed": "Rularea a eșuat ({error})",
+    "saved": "Salvat",
+    "error": "A apărut o eroare",
+    "modeAuto": "Publicare automată: rezumatele validate apar direct. Pentru revizie manuală setează NEWS_PUBLISH_MODE=review.",
+    "modeReview": "Revizie manuală: articolele noi rămân ciorne până le publici aici.",
+    "aiMissing": "Lipsește GEMINI_API_KEY sau NEWS_GEMINI_MODEL — nu se generează știri.",
+    "status": {
+      "draft": "De revizuit",
+      "published": "Publicate",
+      "archived": "Arhivate"
+    },
+    "empty": "Niciun articol aici.",
+    "noSource": "Fără sursă originală — nu poate fi publicat.",
+    "action": {
+      "published": "Publică",
+      "archived": "Arhivează",
+      "draft": "Înapoi la ciornă"
     }
   }
 }

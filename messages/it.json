@@ -2553,7 +2553,8 @@
         "commissions": "Commissioni",
         "merchantClaims": "Rivendicazioni ristoranti",
         "missions": "Missioni creator",
-        "creatorPayouts": "Prelievi creator"
+        "creatorPayouts": "Prelievi creator",
+        "news": "Notizie"
       }
     },
     "storefront": "Vedi il negozio",
@@ -4138,40 +4139,79 @@
     "paymentPendingSlow": "Il pagamento è ancora in elaborazione. Riprova tra un minuto."
   },
   "gaming": {
-    "metaTitle": "Gaming e Ricompense | Swypik",
-    "badge": "Swypik Arcade & Hub",
-    "titlePrefix": "Gaming e",
-    "titleHighlight": "Ricompense",
-    "levelLabel": "Livello Giocatore",
-    "levelValue": "Lv. {level}",
-    "signInPrompt": "Accedi per giocare e guadagnare ricompense",
-    "tabArcade": "Mini-Giochi Istantanei",
-    "tabTrivia": "Daily Trivia Arena",
-    "tabDeals": "Giochi Gratuiti & Offerte",
-    "arcadeHeading": "Gioca Istantaneamente (Senza Installazione)",
-    "arcadeEmpty": "Nessun gioco disponibile al momento.",
-    "arcadeError": "Impossibile caricare i giochi.",
-    "retry": "Riprova",
-    "play": "Gioca",
-    "trophyLabel": "Punteggio",
-    "questionOf": "Domanda {current} di {total}",
-    "triviaError": "Impossibile caricare il trivia.",
-    "triviaCompleteTitle": "Quiz Completato!",
-    "triviaCompleteBody": "Hai risposto correttamente a {correct} domande su {total} e ottenuto {score} punti!",
-    "playAgain": "Gioca di nuovo",
-    "freeGamesHeading": "Giochi Gratuiti (FreeToGame API)",
-    "free100": "100% GRATIS",
-    "dealsHeading": "Grandi Offerte (CheapShark API)",
-    "dealsEmpty": "Nessuna offerta disponibile al momento.",
-    "dealsError": "Impossibile caricare le offerte.",
-    "modalRestart": "Riavvia Gioco",
-    "modalFullscreen": "Schermo Intero",
-    "modalExitFullscreen": "Esci da Schermo Intero",
-    "modalClose": "Chiudi",
-    "modalScoreSaved": "Punteggio salvato: {score}! +{xp} XP",
-    "metaDescriptionV2": "Gioca a mini-giochi HTML5, partecipa al Trivia Quotidiano e guadagna XP per salire di livello su Swypik.",
-    "subtitleV2": "Gioca subito a mini-giochi HTML5, partecipa al Trivia Quotidiano, scopri giochi PC gratuiti e guadagna XP.",
-    "arcadeRewardHintV2": "Guadagna XP"
+    "meta": {
+      "title": "Giochi — Swypik",
+      "description": "Minigiochi, quiz quotidiano e XP per ciò che fai su Swypik. Sali di livello e mostralo sul profilo."
+    },
+    "hub": {
+      "title": "Giochi",
+      "subtitle": "Gioca, rispondi al quiz del giorno e raccogli XP con ciò che fai su Swypik."
+    },
+    "level": {
+      "short": "Liv. {level}",
+      "title": "Livello {level}",
+      "xp": "{xp} XP",
+      "toNext": "{remaining} XP al livello {next}",
+      "max": "Livello massimo",
+      "progressLabel": "Avanzamento al livello successivo",
+      "streak": "{days, plural, one {# giorno di fila} other {# giorni di fila}}"
+    },
+    "signIn": {
+      "body": "Puoi giocare senza account, ma XP e livello vengono salvati solo se hai effettuato l'accesso.",
+      "cta": "Accedi",
+      "triviaTitle": "Il quiz del giorno è per i membri"
+    },
+    "tabs": {
+      "arcade": "Giochi",
+      "trivia": "Quiz del giorno"
+    },
+    "arcade": {
+      "empty": "Nessun gioco disponibile al momento.",
+      "xpHint": "Ogni partita fa guadagnare XP",
+      "play": "Gioca",
+      "playNamed": "Gioca a {title}"
+    },
+    "trivia": {
+      "empty": "Nessuna domanda al momento. Riprova più tardi.",
+      "questionOf": "Domanda {current} di {total}",
+      "xpAvailable": "Primo round di oggi: XP",
+      "practice": "Allenamento",
+      "completeTitle": "Round completato",
+      "completeBody": "{correct} risposte corrette su {total}",
+      "earned": "+{xp} XP",
+      "noXp": "Gli XP del quiz di oggi sono già stati ottenuti",
+      "practiceAgain": "Un altro round di allenamento",
+      "correct": "Corretto",
+      "wrong": "Sbagliato",
+      "yourAnswer": "La tua risposta: {answer}",
+      "correctAnswer": "Risposta corretta: {answer}"
+    },
+    "earn": {
+      "title": "Come guadagnare XP",
+      "trivia": "Quiz del giorno (primo round della giornata)",
+      "arcade": "Una partita",
+      "watch": "Guardare {minViews} video in un giorno",
+      "upload": "Il tuo primo video pubblicato",
+      "purchase": "Il tuo primo ordine pagato",
+      "xp": "fino a {xp} XP",
+      "dailyCap": "Giochi, quiz e visualizzazioni fanno guadagnare al massimo {cap} XP al giorno."
+    },
+    "modal": {
+      "restart": "Ricomincia il gioco",
+      "close": "Chiudi",
+      "scoreSaved": "Punteggio {score} · +{xp} XP",
+      "guest": "Accedi perché il punteggio ti faccia guadagnare XP."
+    },
+    "game": {
+      "score": "Punti",
+      "best": "Record",
+      "gameOver": "Partita finita",
+      "playAgain": "Gioca ancora",
+      "restart": "Ricomincia",
+      "tapToStart": "Tocca per iniziare",
+      "tapToRestart": "Tocca per ricominciare",
+      "controls": "Scorri o usa le frecce"
+    }
   },
   "messenger": {
     "title": "Swypik Chat",
@@ -4224,43 +4264,20 @@
   },
   "news": {
     "meta": {
-      "title": "Notizie Globali e Giornalista IA — Swypik Wire",
-      "description": "Notizie riassunte dall’IA da fonti di stampa pubbliche, sempre con link all’articolo originale."
+      "title": "Notizie — Swypik",
+      "description": "Notizie da fonti di stampa pubbliche, riassunte dall'IA, sempre con il link all'articolo originale."
     },
-    "liveWire": "IN DIRETTA",
-    "readFlash": "Leggi il Flash",
-    "badge": "Swypik Global AI Wire • 24/7 In Diretta",
-    "titleLine1": "Notizie Globali e",
-    "titleLine2": "Giornalista IA",
-    "subtitle": "Notizie riassunte dall’IA da fonti di stampa pubbliche (TechCrunch, BBC, IGN, ScienceDaily), sempre con link alla fonte originale.",
-    "generating": "L'IA sta analizzando le fonti...",
-    "refreshFeedAdmin": "Aggiorna il Flusso Globale IA",
-    "refreshOnly": "Solo {category}",
     "categories": {
-      "all": "Tutte le Notizie",
+      "all": "Tutte",
       "tech-ai": "Tecnologia e IA",
-      "gaming": "Gaming e WebGL",
-      "business": "Mercati e Startup",
-      "science": "Scienza e Spazio"
+      "gaming": "Videogiochi",
+      "business": "Economia",
+      "science": "Scienza"
     },
-    "syncing": "Sincronizzazione articoli Swypik AI Wire...",
-    "emptyTitle": "Il flusso è pronto per essere generato",
-    "emptyBodyAdmin": "Premi il pulsante qui sotto per far sì che il Giornalista IA d'élite monitori i flussi in diretta e redigi articoli di grande impatto.",
-    "emptyBody": "Gli articoli vengono generati automaticamente, a intervalli regolari, dal Giornalista IA di Swypik. Torna presto.",
-    "launchAi": "Avvia Giornalista IA",
-    "firstToReport": "Primo a Riportare",
     "readMinutes": "{minutes} min di lettura",
-    "readInvestigation": "Leggi l'Articolo d'Inchiesta",
-    "recentFeeds": "Flussi Recenti e Analisi di Mercato",
-    "read": "Leggi",
-    "backToFeed": "Torna al Flusso Globale",
-    "share": "Condividi",
-    "tldrBadge": "Sintesi Esecutiva • L'Essenziale in 30 Secondi",
     "source": {
-      "label": "Fonte originale",
-      "link": "Vedi fonte originale"
+      "label": "Fonte originale"
     },
-    "yourReaction": "La tua reazione a questo rapporto:",
     "comments": {
       "title": "{count} commenti",
       "placeholder": "Scrivi un commento...",
@@ -4272,11 +4289,34 @@
       "error": "Non è stato possibile inviare il tuo commento. Riprova.",
       "you": "Tu",
       "loadMore": "Altri commenti",
-      "loadingMore": "Caricamento...",
       "loadMoreError": "Impossibile caricare altri commenti."
     },
-    "aiDisclaimer": "Questo articolo è stato riassunto automaticamente da un modello di IA a partire dalla fonte originale indicata sotto e può contenere errori. Leggi la fonte originale per tutti i dettagli.",
-    "articlesCount": "{count, plural, one {# articolo} other {# articoli}}"
+    "aiDisclaimer": "Questo riassunto è stato generato automaticamente da un modello di IA sulla base della fonte originale indicata sopra e può contenere errori. Per tutti i dettagli, leggi la fonte originale.",
+    "list": {
+      "title": "Notizie",
+      "adminReview": "Revisiona notizie",
+      "disclaimer": "Riassunte automaticamente dall'IA da fonti pubbliche. Ogni notizia rimanda alla fonte originale.",
+      "emptyTitle": "Ancora nessuna notizia",
+      "emptyBody": "Le nuove notizie compaiono automaticamente più volte al giorno. Torna presto.",
+      "loadMore": "Altre notizie"
+    },
+    "card": {
+      "via": "via {source}"
+    },
+    "article": {
+      "tldr": "In breve",
+      "reactions": "La tua reazione"
+    },
+    "sharing": {
+      "label": "Condividi",
+      "copied": "Link copiato",
+      "failed": "Impossibile copiare il link"
+    },
+    "reactions": {
+      "fire": "Forte",
+      "insightful": "Interessante",
+      "rocket": "Impressionante"
+    }
   },
   "adminLogin": {
     "passwordRequired": "La password admin è obbligatoria.",
@@ -6734,6 +6774,29 @@
       "video_in_other_mission": "Questo clip è già iscritto a un'altra missione.",
       "own_mission": "Non puoi partecipare alla tua missione.",
       "invalid_mission_id": "Missione non valida. Scegli di nuovo."
+    }
+  },
+  "adminNews": {
+    "title": "Notizie",
+    "runNow": "Esegui ora",
+    "runDone": "Esecuzione completata: {count} nuovi articoli",
+    "runFailed": "Esecuzione non riuscita ({error})",
+    "saved": "Salvato",
+    "error": "Si è verificato un errore",
+    "modeAuto": "Pubblicazione automatica: i riassunti convalidati vanno online subito. Per la revisione manuale imposta NEWS_PUBLISH_MODE=review.",
+    "modeReview": "Revisione manuale: i nuovi articoli restano bozze finché non li pubblichi qui.",
+    "aiMissing": "Manca GEMINI_API_KEY o NEWS_GEMINI_MODEL: non vengono generate notizie.",
+    "status": {
+      "draft": "Da revisionare",
+      "published": "Pubblicate",
+      "archived": "Archiviate"
+    },
+    "empty": "Nessun articolo qui.",
+    "noSource": "Nessuna fonte originale: non può essere pubblicato.",
+    "action": {
+      "published": "Pubblica",
+      "archived": "Archivia",
+      "draft": "Riporta in bozza"
     }
   }
 }

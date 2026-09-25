@@ -2553,7 +2553,8 @@
         "commissions": "Commissions",
         "merchantClaims": "Restaurant claims",
         "missions": "Creator missions",
-        "creatorPayouts": "Creator withdrawals"
+        "creatorPayouts": "Creator withdrawals",
+        "news": "News"
       }
     },
     "storefront": "View storefront",
@@ -4138,40 +4139,79 @@
     "paymentPendingSlow": "Your payment is still processing. Try again in a minute."
   },
   "gaming": {
-    "metaTitle": "Gaming & Rewards | Swypik",
-    "badge": "Swypik Arcade & Hub",
-    "titlePrefix": "Gaming &",
-    "titleHighlight": "Rewards",
-    "levelLabel": "Gamer Level",
-    "levelValue": "Lv. {level}",
-    "signInPrompt": "Sign in to play and earn rewards",
-    "tabArcade": "Instant Mini-Games",
-    "tabTrivia": "Daily Trivia Arena",
-    "tabDeals": "Free Games & Deals",
-    "arcadeHeading": "Play Instantly (No Install)",
-    "arcadeEmpty": "No games available right now.",
-    "arcadeError": "We couldn't load the games.",
-    "retry": "Retry",
-    "play": "Play",
-    "trophyLabel": "Score",
-    "questionOf": "Question {current} of {total}",
-    "triviaError": "We couldn't load trivia.",
-    "triviaCompleteTitle": "Quiz Complete!",
-    "triviaCompleteBody": "You got {correct} of {total} questions right and scored {score} points!",
-    "playAgain": "Play again",
-    "freeGamesHeading": "Free Games (FreeToGame API)",
-    "free100": "100% FREE",
-    "dealsHeading": "Big Deals (CheapShark API)",
-    "dealsEmpty": "No deals available right now.",
-    "dealsError": "We couldn't load deals.",
-    "modalRestart": "Restart Game",
-    "modalFullscreen": "Fullscreen",
-    "modalExitFullscreen": "Exit Fullscreen",
-    "modalClose": "Close",
-    "modalScoreSaved": "Score saved: {score}! +{xp} XP",
-    "metaDescriptionV2": "Play HTML5 mini-games, join Daily Trivia, and earn XP and level up on Swypik.",
-    "subtitleV2": "Play HTML5 mini-games instantly, join Daily Trivia, discover free PC games, and earn XP.",
-    "arcadeRewardHintV2": "Earn XP"
+    "meta": {
+      "title": "Gaming — Swypik",
+      "description": "Mini-games, daily trivia and XP for what you do on Swypik. Level up and show it on your profile."
+    },
+    "hub": {
+      "title": "Gaming",
+      "subtitle": "Play, answer the daily trivia and collect XP from what you do on Swypik."
+    },
+    "level": {
+      "short": "Lv. {level}",
+      "title": "Level {level}",
+      "xp": "{xp} XP",
+      "toNext": "{remaining} XP to level {next}",
+      "max": "Max level",
+      "progressLabel": "Progress to the next level",
+      "streak": "{days, plural, one {# day streak} other {# day streak}}"
+    },
+    "signIn": {
+      "body": "You can play without an account, but XP and levels are only saved when you're signed in.",
+      "cta": "Sign in",
+      "triviaTitle": "Daily trivia is for members"
+    },
+    "tabs": {
+      "arcade": "Games",
+      "trivia": "Daily trivia"
+    },
+    "arcade": {
+      "empty": "No games available right now.",
+      "xpHint": "Every round earns XP",
+      "play": "Play",
+      "playNamed": "Play {title}"
+    },
+    "trivia": {
+      "empty": "No questions right now. Try again later.",
+      "questionOf": "Question {current} of {total}",
+      "xpAvailable": "Today's first round: XP",
+      "practice": "Practice",
+      "completeTitle": "Round complete",
+      "completeBody": "{correct} of {total} answers correct",
+      "earned": "+{xp} XP",
+      "noXp": "Today's trivia XP was already earned",
+      "practiceAgain": "Another practice round",
+      "correct": "Correct",
+      "wrong": "Wrong",
+      "yourAnswer": "Your answer: {answer}",
+      "correctAnswer": "Correct answer: {answer}"
+    },
+    "earn": {
+      "title": "How to earn XP",
+      "trivia": "Daily trivia (first round of the day)",
+      "arcade": "A game round",
+      "watch": "Watch {minViews} videos in a day",
+      "upload": "Your first published video",
+      "purchase": "Your first paid order",
+      "xp": "up to {xp} XP",
+      "dailyCap": "Games, trivia and watching earn at most {cap} XP a day."
+    },
+    "modal": {
+      "restart": "Restart game",
+      "close": "Close",
+      "scoreSaved": "Score {score} · +{xp} XP",
+      "guest": "Sign in so your score earns XP."
+    },
+    "game": {
+      "score": "Score",
+      "best": "Best",
+      "gameOver": "Game over",
+      "playAgain": "Play again",
+      "restart": "Restart",
+      "tapToStart": "Tap to start",
+      "tapToRestart": "Tap to restart",
+      "controls": "Swipe or use the arrow keys"
+    }
   },
   "messenger": {
     "title": "Swypik Chat",
@@ -4224,43 +4264,20 @@
   },
   "news": {
     "meta": {
-      "title": "Global News & AI Journalist — Swypik Wire",
-      "description": "AI-summarised news from public press sources, always linking to the original article."
+      "title": "News — Swypik",
+      "description": "News from public press sources, summarized by AI, always linking to the original article."
     },
-    "liveWire": "LIVE WIRE",
-    "readFlash": "Read Flash",
-    "badge": "Swypik Global AI Wire • 24/7 Live",
-    "titleLine1": "Global News &",
-    "titleLine2": "AI Journalist",
-    "subtitle": "AI-summarised news from public press sources (TechCrunch, BBC, IGN, ScienceDaily), always linking to the original source.",
-    "generating": "AI is analyzing sources...",
-    "refreshFeedAdmin": "Refresh Global AI Feed",
-    "refreshOnly": "Only {category}",
     "categories": {
-      "all": "All News",
+      "all": "All",
       "tech-ai": "Tech & AI",
-      "gaming": "Gaming & WebGL",
-      "business": "Markets & Startups",
-      "science": "Science & Space"
+      "gaming": "Gaming",
+      "business": "Business",
+      "science": "Science"
     },
-    "syncing": "Syncing Swypik AI Wire articles...",
-    "emptyTitle": "Feed is ready to generate",
-    "emptyBodyAdmin": "Press the button below to have the elite AI Journalist monitor live feeds and draft high-impact articles.",
-    "emptyBody": "Articles are generated automatically on a regular schedule by the Swypik AI Journalist. Check back soon.",
-    "launchAi": "Launch AI Journalist",
-    "firstToReport": "First to Report",
     "readMinutes": "{minutes} min read",
-    "readInvestigation": "Read the Full Investigation",
-    "recentFeeds": "Recent Feeds & Market Analysis",
-    "read": "Read",
-    "backToFeed": "Back to Global Feed",
-    "share": "Share",
-    "tldrBadge": "Executive TL;DR • The Essentials in 30 Seconds",
     "source": {
-      "label": "Original source",
-      "link": "View original source"
+      "label": "Original source"
     },
-    "yourReaction": "Your reaction to this report:",
     "comments": {
       "title": "{count} comments",
       "placeholder": "Write a comment...",
@@ -4272,11 +4289,34 @@
       "error": "Your comment could not be sent. Please try again.",
       "you": "You",
       "loadMore": "More comments",
-      "loadingMore": "Loading...",
       "loadMoreError": "Could not load more comments."
     },
-    "aiDisclaimer": "This article was summarised automatically by an AI model from the original source linked below and may contain errors. Read the original source for full details.",
-    "articlesCount": "{count, plural, one {# article} other {# articles}}"
+    "aiDisclaimer": "This summary was generated automatically by an AI model from the original source above and may contain errors. For full details, read the original source.",
+    "list": {
+      "title": "News",
+      "adminReview": "Review news",
+      "disclaimer": "Automatically summarized by AI from public sources. Every story links to its original source.",
+      "emptyTitle": "No news yet",
+      "emptyBody": "New stories appear automatically a few times a day. Check back soon.",
+      "loadMore": "More news"
+    },
+    "card": {
+      "via": "via {source}"
+    },
+    "article": {
+      "tldr": "In short",
+      "reactions": "Your reaction"
+    },
+    "sharing": {
+      "label": "Share",
+      "copied": "Link copied",
+      "failed": "Couldn't copy the link"
+    },
+    "reactions": {
+      "fire": "Hot",
+      "insightful": "Insightful",
+      "rocket": "Impressive"
+    }
   },
   "adminLogin": {
     "passwordRequired": "Admin password is required.",
@@ -6734,6 +6774,29 @@
       "video_in_other_mission": "This clip is already entered in another mission.",
       "own_mission": "You can't enter your own mission.",
       "invalid_mission_id": "Invalid mission. Please choose again."
+    }
+  },
+  "adminNews": {
+    "title": "News",
+    "runNow": "Run now",
+    "runDone": "Run finished: {count} new articles",
+    "runFailed": "Run failed ({error})",
+    "saved": "Saved",
+    "error": "Something went wrong",
+    "modeAuto": "Auto-publish: validated summaries go live directly. For manual review set NEWS_PUBLISH_MODE=review.",
+    "modeReview": "Manual review: new articles stay drafts until you publish them here.",
+    "aiMissing": "GEMINI_API_KEY or NEWS_GEMINI_MODEL is missing — no news is generated.",
+    "status": {
+      "draft": "To review",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "empty": "No articles here.",
+    "noSource": "No original source — can't be published.",
+    "action": {
+      "published": "Publish",
+      "archived": "Archive",
+      "draft": "Back to draft"
     }
   }
 }
