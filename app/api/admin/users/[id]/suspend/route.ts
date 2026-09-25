@@ -1,101 +1,76 @@
 /**
- * POST /api/admin/users/[id]/suspend — body {days, reason}
+ * POST /api/admin/users/[id]/suspend — body { days, reason }. Permisiune: users.manage.
+ * Suspendare + revocarea tuturor sesiunilor (cumpărător, seller) într-o tranzacție.
  */
 import { NextResponse } from "next/server";
-import { hasAdminSession } from "@/lib/security/admin-auth";
-import { getDb } from "@/lib/db";
+import { z } from "zod";
+import { withTransaction } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { requireAdmin } from "@/lib/admin/guard";
 import { logAdminAction } from "@/lib/security/admin-audit";
+import { notifyLocalized } from "@/lib/notifications/localized";
+import { isUuidParam, invalidIdResponse } from "@/lib/validation/params";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  if (!(await hasAdminSession())) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+/** 36500 zile = „permanent” în UI (ban_user). */
+const PERMANENT_DAYS = 36500;
+
+const Body = z.object({
+  days: z.coerce.number().int().min(1).max(PERMANENT_DAYS),
+  reason: z.string().trim().min(1).max(500),
+});
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const actor = await requireAdmin(req, "users.manage");
+  if (actor instanceof NextResponse) return actor;
+
   const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(id)) {
-    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
-  }
+  if (!isUuidParam(id)) return invalidIdResponse();
 
-  const body = await req.json().catch(() => ({}));
-  const days = Number(body?.days);
-  const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 500) : "";
-  if (!Number.isFinite(days) || days < 1 || days > 36500) {
-    return NextResponse.json({ error: "invalid_days" }, { status: 400 });
+  const parsed = Body.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    return NextResponse.json({ error: field === "reason" ? "reason_required" : "invalid_days" }, { status: 400 });
   }
-  if (!reason) {
-    return NextResponse.json({ error: "reason_required" }, { status: 400 });
-  }
+  const { days, reason } = parsed.data;
 
-  const client = await getDb().connect();
+  let outcome: "ok" | "user_not_found" | "cannot_suspend_admin";
   try {
-    const exists = await client.query(`SELECT id, role FROM users WHERE id = $1`, [id]);
-    if (exists.rows.length === 0) {
-      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
-    }
-    if (exists.rows[0].role === "admin") {
-      return NextResponse.json({ error: "cannot_suspend_admin" }, { status: 400 });
-    }
+    outcome = await withTransaction(async (q) => {
+      const { rows } = await q<{ role: string }>(`SELECT role FROM users WHERE id = $1 FOR UPDATE`, [id]);
+      if (!rows[0]) return "user_not_found" as const;
+      if (rows[0].role === "admin") return "cannot_suspend_admin" as const;
 
-    await client.query("BEGIN");
-    try {
-      await client.query(
-        `UPDATE users
-         SET suspended_until = NOW() + ($2::int || ' days')::interval,
-             suspension_reason = $3,
-             updated_at = NOW()
-         WHERE id = $1`,
-        [id, days, reason]
+      await q(
+        `UPDATE users SET suspended_until = now() + ($2::int * interval '1 day'), suspension_reason = $3, updated_at = now()
+          WHERE id = $1`,
+        [id, days, reason],
       );
-      await client.query(
+      await q(
         `INSERT INTO moderation_actions (actor_user_id, target_user_id, action_type, reason, ends_at, metadata)
-         VALUES (NULL, $1, $2, $3, NOW() + ($4::int || ' days')::interval, $5::jsonb)`,
-        [
-          id,
-          days >= 36500 ? "ban_user" : "suspend_user",
-          reason,
-          days,
-          JSON.stringify({ source: "admin_users_page", days }),
-        ]
+         VALUES ($1, $2, $3, $4, now() + ($5::int * interval '1 day'), $6::jsonb)`,
+        [actor.userId, id, days >= PERMANENT_DAYS ? "ban_user" : "suspend_user", reason, days, JSON.stringify({ source: "admin_users_page", days })],
       );
-      await client.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [id]);
-      // 2026-08-15 (audit, CRITIC): aici era `.catch(()=>{})`. Dacă ștergerea
-      // sesiunilor de vânzător eșua, eroarea era înghițită — dar Postgres
-      // marchează tranzacția ca „aborted", deci COMMIT-ul următor eșua oricum.
-      // Rezultatul era o suspendare parțială raportată ca succes: utilizator
-      // „suspendat" în UI, dar cu sesiunea de vânzător încă activă.
-      // Revocarea sesiunilor face parte din actul de suspendare — dacă pică,
-      // întreaga operație trebuie anulată.
-      await client.query(`DELETE FROM seller_sessions WHERE seller_id IN (SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`, [id]);
-      await client.query("COMMIT");
-    } catch (e) {
-      // ROLLBACK-ul e best-effort: dacă și el eșuează (conexiune pierdută),
-      // nu vrem să mascăm eroarea originală, care e cea relevantă.
-      try { await client.query("ROLLBACK"); } catch { /* eroarea originală se propagă mai jos */ }
-      throw e;
-    }
-  } catch (e) {
-    logger.error({ err: e, userId: id }, "[admin/users/suspend] suspendare eșuată — tranzacție anulată");
-    return NextResponse.json(
-      { error: "suspend_failed" },
-      { status: 500 },
-    );
-  } finally {
-    client.release();
+      // Revocarea sesiunilor face parte din suspendare: dacă pică, se anulează tot.
+      await q(`UPDATE user_sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`, [id]);
+      await q(
+        `DELETE FROM seller_sessions WHERE seller_id IN (
+           SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`,
+        [id],
+      );
+      return "ok" as const;
+    });
+  } catch (err) {
+    logger.error({ err, userId: id }, "[admin/users/suspend] suspendare eșuată — tranzacție anulată");
+    return NextResponse.json({ error: "suspend_failed" }, { status: 500 });
   }
 
-  await logAdminAction({
-    action: "user.suspend",
-    targetType: "user",
-    targetId: id,
-    details: { days, reason },
-    req,
-  });
+  if (outcome === "user_not_found") return NextResponse.json({ error: outcome }, { status: 404 });
+  if (outcome === "cannot_suspend_admin") return NextResponse.json({ error: outcome }, { status: 400 });
 
+  await logAdminAction({ action: "user.suspend", targetType: "user", targetId: id, details: { days, reason }, actor, req });
+  await notifyLocalized(id, "accountSuspended", { url: "/account", values: { days } });
   return NextResponse.json({ ok: true, days, reason });
 }

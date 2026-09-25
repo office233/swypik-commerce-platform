@@ -188,7 +188,7 @@ runtime) — altfel paginile index prerandate si bundle-ul de browser raman
 1. **Discovery:** `/` → `/explore` (video feed cu seen_video_ids LRU) → swipe → tap product → `/checkout` Stripe
 2. **Creator:** apply → upload video via `app/api/creator/upload-session` (→ platform-api Go) → comision la vanzari
 3. **Seller:** dashboard → import AliExpress → catalog → orders
-4. **Admin:** `/admin` → moderation cases / users / products / orders
+4. **Admin:** `/admin` → login cu contul propriu (`users.role=admin`, OTP) → sesiune de admin personală 12h, roluri `users.admin_role` (owner/ops/finance/moderator/support, `lib/admin/permissions.ts`), meniu din `lib/admin/nav.ts`, audit în `admin_audit_log` (`/admin/audit`). `ADMIN_SECRET` = doar Bearer pentru scripturi/cron (+ acces de urgență cu `ADMIN_BREAK_GLASS_ENABLED=1` și emailul unui admin)
 5. **AI chat:** `/chat` → GitHub Models → moderation output filter
 
 ## TODO restant (per plan Faza 0-6, 2026-05-14)

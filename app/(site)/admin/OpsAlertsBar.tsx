@@ -1,11 +1,11 @@
 /**
- * Server component: bandă cu 5 metrici operationale actionable în topul dashboard-ului.
- * Un singur query SQL agregat → 5 carduri cu link direct către pagina relevantă.
+ * Server component: „De rezolvat” — cozile operaționale cu link direct.
+ * Un singur query agregat; eroarea ascunde secțiunea (dashboard-ul rămâne).
  */
-import Link from "next/link";
-import { dbQuery } from "@/lib/db";
 import { getTranslations } from "next-intl/server";
-import { Shield, RotateCcw, Coins, AlertTriangle, ShieldAlert, Inbox, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Coins, Inbox, RotateCcw, Shield, ShieldAlert } from "lucide-react";
+import { dbQuery } from "@/lib/db";
+import { KpiCard, type KpiTone } from "@/components/admin/KpiCard";
 
 type Counts = {
   disputes_pending: number;
@@ -16,6 +16,9 @@ type Counts = {
   risky_orders_7d: number;
   partner_apps_pending: number;
 };
+
+/** Praguri peste care o coadă devine roșie (în rest: galben dacă > 0). */
+const DANGER_AT = { applications: 5, returns: 10, risk: 3 } as const;
 
 async function getCounts(): Promise<Counts> {
   const { rows } = await dbQuery<Record<keyof Counts, string>>(`
@@ -52,126 +55,76 @@ async function getCounts(): Promise<Counts> {
         + COALESCE((SELECT COUNT(*) FROM sellers WHERE status = 'pending'), 0)
         + COALESCE((SELECT COUNT(*) FROM host_applications WHERE status IN ('pending','needs_info')), 0)
         + COALESCE((SELECT COUNT(*) FROM creator_applications WHERE status IN ('submitted','in_review')), 0)
+        + COALESCE((SELECT COUNT(*) FROM local_merchants
+                     WHERE status = 'pending' AND COALESCE(source, 'manual') <> 'osm'), 0)
       ) AS partner_apps_pending
   `);
-  const r = rows[0] || ({} as Partial<Record<keyof Counts, string>>);
+  const r = rows[0] ?? ({} as Partial<Record<keyof Counts, string>>);
+  const n = (k: keyof Counts) => Number(r[k] ?? 0);
   return {
-    disputes_pending: Number(r.disputes_pending || 0),
-    disputes_urgent: Number(r.disputes_urgent || 0),
-    returns_pending: Number(r.returns_pending || 0),
-    refunds_pending: Number(r.refunds_pending || 0),
-    stale_pending_orders: Number(r.stale_pending_orders || 0),
-    risky_orders_7d: Number(r.risky_orders_7d || 0),
-    partner_apps_pending: Number(r.partner_apps_pending || 0),
+    disputes_pending: n("disputes_pending"),
+    disputes_urgent: n("disputes_urgent"),
+    returns_pending: n("returns_pending"),
+    refunds_pending: n("refunds_pending"),
+    stale_pending_orders: n("stale_pending_orders"),
+    risky_orders_7d: n("risky_orders_7d"),
+    partner_apps_pending: n("partner_apps_pending"),
   };
 }
 
-type Card = {
-  href: string;
-  label: string;
-  count: number;
-  Icon: React.ComponentType<{ className?: string }>;
-  badgeText?: string | null;
-  tone: "ok" | "warn" | "danger";
-};
-
-function cardClasses(tone: Card["tone"]): string {
-  if (tone === "danger") return "border-red-300 bg-red-50 hover:bg-red-100 text-red-900";
-  if (tone === "warn") return "border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-900";
-  return "border-[#E5E5E5] bg-white hover:bg-gray-50 text-gray-700";
+function tone(count: number, dangerAt?: number): KpiTone {
+  if (count === 0) return "neutral";
+  return dangerAt !== undefined && count > dangerAt ? "danger" : "warning";
 }
 
 export default async function OpsAlertsBar() {
   const t = await getTranslations("adminShell.opsAlerts");
-  let counts: Counts;
+  let c: Counts;
   try {
-    counts = await getCounts();
+    c = await getCounts();
   } catch {
     return null;
   }
 
-  const cards: Card[] = [
-    {
-      href: "/admin/aplicatii?f=pending",
-      label: t("applications"),
-      count: counts.partner_apps_pending,
-      Icon: Inbox,
-      tone: counts.partner_apps_pending > 5 ? "danger" : counts.partner_apps_pending > 0 ? "warn" : "ok",
-    },
+  const cards = [
+    { href: "/admin/aplicatii?f=pending", label: t("applications"), count: c.partner_apps_pending, Icon: Inbox, tone: tone(c.partner_apps_pending, DANGER_AT.applications) },
     {
       href: "/admin/disputes?status=needs_response",
       label: t("disputes"),
-      count: counts.disputes_pending,
+      count: c.disputes_pending,
       Icon: Shield,
-      badgeText: counts.disputes_urgent > 0 ? t("urgentBadge", { count: counts.disputes_urgent }) : null,
-      tone: counts.disputes_urgent > 0 ? "danger" : counts.disputes_pending > 0 ? "warn" : "ok",
+      hint: c.disputes_urgent > 0 ? t("urgentBadge", { count: c.disputes_urgent }) : undefined,
+      tone: c.disputes_urgent > 0 ? ("danger" as const) : tone(c.disputes_pending),
     },
-    {
-      href: "/admin/returns?status=requested",
-      label: t("returns"),
-      count: counts.returns_pending,
-      Icon: RotateCcw,
-      tone: counts.returns_pending > 10 ? "danger" : counts.returns_pending > 0 ? "warn" : "ok",
-    },
-    {
-      href: "/admin/refunds",
-      label: t("refunds"),
-      count: counts.refunds_pending,
-      Icon: Coins,
-      tone: counts.refunds_pending > 0 ? "warn" : "ok",
-    },
-    {
-      href: "/admin/orders?status=pending_payment",
-      label: t("pendingOver24h"),
-      count: counts.stale_pending_orders,
-      Icon: AlertTriangle,
-      tone: counts.stale_pending_orders > 0 ? "warn" : "ok",
-    },
-    {
-      href: "/admin/risk?status=paid&min=50",
-      label: t("fraudRisk"),
-      count: counts.risky_orders_7d,
-      Icon: ShieldAlert,
-      tone: counts.risky_orders_7d > 3 ? "danger" : counts.risky_orders_7d > 0 ? "warn" : "ok",
-    },
+    { href: "/admin/returns?status=requested", label: t("returns"), count: c.returns_pending, Icon: RotateCcw, tone: tone(c.returns_pending, DANGER_AT.returns) },
+    { href: "/admin/refunds", label: t("refunds"), count: c.refunds_pending, Icon: Coins, tone: tone(c.refunds_pending) },
+    { href: "/admin/orders?status=pending_payment", label: t("pendingOver24h"), count: c.stale_pending_orders, Icon: AlertTriangle, tone: tone(c.stale_pending_orders) },
+    { href: "/admin/risk?status=paid&min=50", label: t("fraudRisk"), count: c.risky_orders_7d, Icon: ShieldAlert, tone: tone(c.risky_orders_7d, DANGER_AT.risk) },
   ];
 
-  const totalAlerts = cards.reduce((s, c) => s + (c.tone !== "ok" ? c.count : 0), 0);
-  if (totalAlerts === 0) {
-    return (
-      <div className="mb-6 bg-green-50 border border-green-200 rounded-2xl p-3 text-sm text-green-800 flex items-center gap-1.5">
-        <CheckCircle2 size={16} /> {t("allClear")}
-      </div>
-    );
-  }
-
+  const open = cards.filter((card) => card.count > 0);
   return (
-    <div className="mb-6">
-      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-        {t("title")}
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-        {cards.map((c) => (
-          <Link
-            key={c.href}
-            href={c.href}
-            className={`block border rounded-2xl p-3 transition ${cardClasses(c.tone)}`}
-          >
-            <div className="flex items-center gap-2">
-              <c.Icon className="w-4 h-4 shrink-0" />
-              <span className="text-xs font-semibold truncate">{c.label}</span>
-            </div>
-            <div className="mt-1 flex items-baseline justify-between gap-1">
-              <span className="text-2xl font-black">{c.count}</span>
-              {c.badgeText && (
-                <span className="text-[10px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded whitespace-nowrap">
-                  {c.badgeText}
-                </span>
-              )}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
+    <section className="space-y-2" aria-label={t("title")}>
+      <h2 className="text-sm font-semibold text-muted">{t("title")}</h2>
+      {open.length === 0 ? (
+        <p className="flex items-center gap-2 rounded-card bg-success-soft p-3 text-sm text-success">
+          <CheckCircle2 className="h-4 w-4" aria-hidden /> {t("allClear")}
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {open.map((card) => (
+            <KpiCard
+              key={card.href}
+              href={card.href}
+              label={card.label}
+              value={String(card.count)}
+              hint={card.hint}
+              icon={card.Icon}
+              tone={card.tone}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

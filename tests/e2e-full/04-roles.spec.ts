@@ -58,7 +58,9 @@ test('seller: dashboard + secțiuni se deschid', async ({ page }) => {
   }
 });
 
+// Acces de urgență: necesită ADMIN_BREAK_GLASS_ENABLED=1 pe server + emailul unui admin.
 const ADMIN_SECRET = process.env.E2E_ADMIN_SECRET;
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL;
 
 const ADMIN_SECTIONS = [
   '/admin', '/admin/users', '/admin/orders', '/admin/sellers', '/admin/videos',
@@ -69,12 +71,12 @@ const ADMIN_SECTIONS = [
 ];
 
 test('admin: fiecare secțiune se deschide și se populează', async ({ page }) => {
-  test.skip(!ADMIN_SECRET, 'E2E_ADMIN_SECRET nesetat — vezi NETESTABIL/raport');
+  test.skip(!ADMIN_SECRET || !ADMIN_EMAIL, 'E2E_ADMIN_SECRET/E2E_ADMIN_EMAIL nesetate — vezi NETESTABIL/raport');
   test.setTimeout(300_000);
-  // login admin: POST /api/admin/login cu parola
+  // login admin de urgență: POST /api/admin/login cu secretul + emailul adminului
   const login = await page.request.post('https://swypik.com/api/admin/login', {
     headers: { Origin: 'https://swypik.com', 'Content-Type': 'application/json' },
-    data: { password: ADMIN_SECRET },
+    data: { email: ADMIN_EMAIL, password: ADMIN_SECRET },
   });
   expect(login.ok(), `admin login: ${login.status()}`).toBeTruthy();
 

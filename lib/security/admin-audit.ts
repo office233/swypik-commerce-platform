@@ -2,12 +2,22 @@
  * Admin action audit log — records every mutation performed from the admin panel
  * (who, what, on which object, when) into `admin_audit_log`.
  *
+ * The actor is the named admin behind the request (per-admin session), a
+ * machine (`Bearer ADMIN_SECRET`), or the Multi-ERP (`erp`). Callers that
+ * already resolved the actor (requireAdmin) pass it explicitly.
+ *
  * Non-blocking: a failure to write the log is reported via the logger but never
  * fails the admin action itself.
  */
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { getAuthUser } from "@/lib/auth/getAuthUser";
+import {
+  getAdminActor,
+  getAdminActorFromRequest,
+  type AdminActor,
+} from "@/lib/security/admin-auth";
+
+export type AuditActorKind = AdminActor["kind"] | "erp" | "anonymous";
 
 export type AdminAuditEntry = {
   /** Dotted verb, e.g. "order.refund", "user.role_change", "video.remove". */
@@ -16,8 +26,12 @@ export type AdminAuditEntry = {
   targetId?: string | number | null;
   /** Small JSON-serialisable context (old/new values, reason). Never secrets. */
   details?: Record<string, unknown>;
-  /** The incoming request, used for the client IP. */
+  /** The incoming request, used for the client IP and to resolve the actor. */
   req?: Request;
+  /** Already-resolved actor (skips the lookup). */
+  actor?: AdminActor | null;
+  /** Non-admin callers (e.g. the ERP internal API) name themselves. */
+  actorKind?: AuditActorKind;
 };
 
 function clientIp(req?: Request): string | null {
@@ -31,21 +45,27 @@ function clientIp(req?: Request): string | null {
   );
 }
 
+async function resolveActor(entry: AdminAuditEntry): Promise<AdminActor | null> {
+  if (entry.actor !== undefined) return entry.actor;
+  if (entry.actorKind) return null;
+  try {
+    return entry.req ? await getAdminActorFromRequest(entry.req) : await getAdminActor();
+  } catch {
+    return null;
+  }
+}
+
 export async function logAdminAction(entry: AdminAuditEntry): Promise<void> {
   try {
-    let actorUserId: string | null = null;
-    try {
-      const user = await getAuthUser();
-      if (user.isAdmin && user.userId) actorUserId = user.userId;
-    } catch {
-      /* admin authenticated via the shared admin secret — no user id */
-    }
+    const actor = await resolveActor(entry);
+    const kind: AuditActorKind = entry.actorKind ?? actor?.kind ?? "anonymous";
     await dbQuery(
-      `INSERT INTO admin_audit_log (actor_user_id, actor_kind, action, target_type, target_id, details, ip)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)`,
+      `INSERT INTO admin_audit_log (actor_user_id, actor_kind, actor_role, action, target_type, target_id, details, ip)
+       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)`,
       [
-        actorUserId,
-        actorUserId ? "admin_user" : "admin_secret",
+        actor?.userId ?? null,
+        kind,
+        actor?.role ?? null,
         entry.action,
         entry.targetType ?? null,
         entry.targetId == null ? null : String(entry.targetId),

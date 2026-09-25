@@ -2,148 +2,143 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { ActionDialog } from "@/components/admin/ActionDialog";
+import { Field } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { ADMIN_ROLES, type AdminRole } from "@/lib/admin/permissions";
+
+/** Durate de suspendare oferite (zile); 36500 = permanent. */
+const SUSPEND_DAYS = [1, 7, 30, 36500] as const;
+const ACCOUNT_ROLES = ["shopper", "creator", "seller", "admin"] as const;
 
 type Props = {
   userId: string;
   username: string;
   role: string;
+  adminRole: string | null;
   isSuspended: boolean;
+  /** Adminul curent poate acorda/retrage roluri de admin (owner). */
+  canManageAdmins: boolean;
+  isSelf: boolean;
 };
 
-export default function UserActions({ userId, username, role, isSuspended }: Props) {
+export default function UserActions({ userId, username, role, adminRole, isSuspended, canManageAdmins, isSelf }: Props) {
   const t = useTranslations("adminUsers");
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const tc = useTranslations("adminConsole.users");
+  const ts = useTranslations("adminShell");
+  const [days, setDays] = useState<number>(7);
+  const [newRole, setNewRole] = useState<string>(role);
+  const [newAdminRole, setNewAdminRole] = useState<AdminRole>((adminRole as AdminRole) ?? "support");
 
-  const SUSPEND_OPTIONS: { days: number; label: string }[] = [
-    { days: 1, label: t("suspend1Day") },
-    { days: 7, label: t("suspend7Days") },
-    { days: 30, label: t("suspend30Days") },
-    { days: 36500, label: t("suspendPermanent") },
-  ];
-
-  const KNOWN_ERRORS: Record<string, string> = {
+  const errors: Record<string, string> = {
     forbidden: t("errForbidden"),
+    unauthorized: t("errForbidden"),
     invalid_id: t("errInvalidId"),
     invalid_role: t("errInvalidRole"),
     user_not_found: t("errUserNotFound"),
     cannot_demote_self: t("errCannotDemoteSelf"),
     last_admin_lockout: t("errLastAdminLockout"),
     role_change_failed: t("errRoleChangeFailed"),
+    cannot_suspend_admin: tc("errCannotSuspendAdmin"),
+    reason_required: tc("errReasonRequired"),
+    last_owner_lockout: tc("errLastOwner"),
+    cannot_change_own_role: tc("errOwnRole"),
   };
-
-  async function call(url: string, body?: unknown) {
-    setBusy(true);
-    setErr(null);
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setErr(KNOWN_ERRORS[data?.error] || data?.error || t("errorWithStatus", { status: res.status }));
-        setBusy(false);
-        return;
-      }
-      setOpen(false);
-      router.refresh();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : t("networkError"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function suspend(days: number) {
-    const reason = prompt(
-      t("suspendReasonPrompt", { username, duration: days >= 36500 ? t("permanent") : t("daysCount", { count: days }) })
-    );
-    if (reason === null) return;
-    await call(`/api/admin/users/${userId}/suspend`, { days, reason });
-  }
-
-  async function unsuspend() {
-    if (!confirm(t("confirmUnsuspend", { username }))) return;
-    await call(`/api/admin/users/${userId}/unsuspend`);
-  }
-
-  async function changeRole(newRole: "admin" | "user") {
-    const confirmMsg =
-      newRole === "admin"
-        ? t("confirmPromote", { username })
-        : t("confirmDemote", { username });
-    if (!confirm(confirmMsg)) return;
-    await call(`/api/admin/users/${userId}/role`, { role: newRole });
-  }
+  const durationLabel = (d: number) => (d >= 36500 ? t("suspendPermanent") : t("daysCount", { count: d }));
+  const roleOptions = ACCOUNT_ROLES.filter((r) => r !== "admin" || canManageAdmins || role === "admin").map((r) => ({
+    value: r,
+    label: tc(`accountRole.${r}`),
+  }));
+  const adminRoleOptions = ADMIN_ROLES.map((r) => ({ value: r, label: ts(`role.${r}`) }));
+  const adminLocked = role === "admin" && !canManageAdmins;
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        disabled={busy}
-        className="inline-flex items-center gap-1 rounded-lg border border-black/15 px-2.5 py-1 text-xs font-bold disabled:opacity-50"
-      >
-        {t("actions")} <ChevronDown className="w-3 h-3" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-lg border border-black/15 shadow-lg w-44 py-1 text-sm">
-          {!isSuspended && (
-            <>
-              <div className="px-3 py-1 text-[10px] font-black uppercase text-gray-400">{t("suspendSectionTitle")}</div>
-              {SUSPEND_OPTIONS.map((o) => (
-                <button
-                  key={o.days}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => suspend(o.days)}
-                  className="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-700 font-medium disabled:opacity-50"
-                >
-                  {o.label}
-                </button>
-              ))}
-            </>
-          )}
-          {isSuspended && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={unsuspend}
-              className="w-full text-left px-3 py-1.5 hover:bg-green-50 text-green-700 font-medium disabled:opacity-50"
-            >
-              {t("liftSuspension")}
-            </button>
-          )}
-          <div className="border-t border-black/10 my-1" />
-          <div className="px-3 py-1 text-[10px] font-black uppercase text-gray-400">{t("roleSectionTitle")}</div>
-          {role !== "admin" ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => changeRole("admin")}
-              className="w-full text-left px-3 py-1.5 hover:bg-purple-50 text-purple-700 font-medium disabled:opacity-50"
-            >
-              {t("promoteToAdmin")}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => changeRole("user")}
-              className="w-full text-left px-3 py-1.5 hover:bg-gray-50 text-gray-700 font-medium disabled:opacity-50"
-            >
-              {t("demoteToUser")}
-            </button>
-          )}
-          {err && <div className="px-3 py-1.5 text-xs text-red-600">{err}</div>}
-        </div>
-      )}
-    </div>
+    <>
+      {isSuspended ? (
+        <ActionDialog
+          label={t("liftSuspension")}
+          title={t("liftSuspension")}
+          description={t("confirmUnsuspend", { username })}
+          confirmLabel={t("liftSuspension")}
+          url={`/api/admin/users/${userId}/unsuspend`}
+          errors={errors}
+          successMessage={tc("unsuspendedToast")}
+        />
+      ) : role !== "admin" ? (
+        <ActionDialog
+          label={t("suspendSectionTitle")}
+          variant="danger"
+          title={tc("suspendTitle", { username })}
+          confirmLabel={t("suspendSectionTitle")}
+          url={`/api/admin/users/${userId}/suspend`}
+          body={(reason) => ({ days, reason })}
+          note={{ label: tc("reasonLabel"), required: true }}
+          errors={errors}
+          successMessage={tc("suspendedToast")}
+        >
+          <Field label={tc("durationLabel")}>
+            {(f) => (
+              <Select
+                {...f}
+                value={String(days)}
+                onChange={(e) => setDays(Number(e.target.value))}
+                options={SUSPEND_DAYS.map((d) => ({ value: String(d), label: durationLabel(d) }))}
+              />
+            )}
+          </Field>
+        </ActionDialog>
+      ) : null}
+
+      {!isSelf && !adminLocked ? (
+        <ActionDialog
+          label={t("roleSectionTitle")}
+          title={tc("roleTitle", { username })}
+          confirmLabel={tc("save")}
+          url={`/api/admin/users/${userId}/role`}
+          body={() => ({ role: newRole, ...(newRole === "admin" ? { adminRole: newAdminRole } : {}) })}
+          errors={errors}
+          successMessage={tc("roleToast")}
+        >
+          <Field label={t("thRole")}>
+            {(f) => <Select {...f} value={newRole} onChange={(e) => setNewRole(e.target.value)} options={roleOptions} />}
+          </Field>
+          {newRole === "admin" && role !== "admin" ? (
+            <Field label={tc("adminRoleLabel")} hint={tc("adminRoleHint")}>
+              {(f) => (
+                <Select
+                  {...f}
+                  value={newAdminRole}
+                  onChange={(e) => setNewAdminRole(e.target.value as AdminRole)}
+                  options={adminRoleOptions}
+                />
+              )}
+            </Field>
+          ) : null}
+        </ActionDialog>
+      ) : null}
+
+      {role === "admin" && canManageAdmins && !isSelf ? (
+        <ActionDialog
+          label={tc("adminRoleLabel")}
+          title={tc("adminRoleTitle", { username })}
+          confirmLabel={tc("save")}
+          url={`/api/admin/users/${userId}/admin-role`}
+          body={() => ({ adminRole: newAdminRole })}
+          errors={errors}
+          successMessage={tc("roleToast")}
+        >
+          <Field label={tc("adminRoleLabel")} hint={tc("adminRoleHint")}>
+            {(f) => (
+              <Select
+                {...f}
+                value={newAdminRole}
+                onChange={(e) => setNewAdminRole(e.target.value as AdminRole)}
+                options={adminRoleOptions}
+              />
+            )}
+          </Field>
+        </ActionDialog>
+      ) : null}
+    </>
   );
 }

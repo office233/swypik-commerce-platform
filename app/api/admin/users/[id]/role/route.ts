@@ -1,114 +1,105 @@
 /**
- * POST /api/admin/users/[id]/role — body {role: 'admin'|'user'|'creator'|'seller'|'shopper'}
+ * POST /api/admin/users/[id]/role — body { role, adminRole? }
+ *
+ * Roluri de cont: shopper | creator | seller | admin (cf. users_role_check;
+ * vechiul „user” încălca constrângerea). Permisiuni:
+ *   - schimbări între shopper/creator/seller: users.manage;
+ *   - a face pe cineva admin sau a retrage rolul de admin: admins.manage (doar owner).
+ *     Un secret de mașină scurs NU poate crea admini.
+ * Orice schimbare revocă sesiunile utilizatorului (inclusiv de admin).
  */
 import { NextResponse } from "next/server";
-import { hasAdminSession } from "@/lib/security/admin-auth";
-import { getDb } from "@/lib/db";
+import { z } from "zod";
+import { withTransaction, type TxQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { getAuthUser } from "@/lib/auth/getAuthUser";
+import { requireAdmin } from "@/lib/admin/guard";
+import { ADMIN_ROLES, hasPermission } from "@/lib/admin/permissions";
 import { logAdminAction } from "@/lib/security/admin-audit";
+import { revokeAdminSessionsForUser } from "@/lib/security/admin-auth";
+import { isUuidParam, invalidIdResponse } from "@/lib/validation/params";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED_ROLES = new Set(["admin", "user", "shopper", "creator", "seller"]);
+const ACCOUNT_ROLES = ["shopper", "creator", "seller", "admin"] as const;
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  if (!(await hasAdminSession())) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
-  const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(id)) {
-    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
-  }
-  const body = await req.json().catch(() => ({}));
-  const role = typeof body?.role === "string" ? body.role : "";
-  if (!ALLOWED_ROLES.has(role)) {
-    return NextResponse.json({ error: "invalid_role" }, { status: 400 });
-  }
+const Body = z.object({
+  role: z.enum(ACCOUNT_ROLES),
+  adminRole: z.enum(ADMIN_ROLES).optional(),
+});
 
-  const client = await getDb().connect();
-  try {
-    const exists = await client.query(`SELECT id, role FROM users WHERE id = $1`, [id]);
-    if (exists.rows.length === 0) {
-      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
-    }
-    const oldRole = exists.rows[0].role;
+type Outcome =
+  | { ok: true; oldRole: string; newRole: string; adminRole: string | null }
+  | { ok: false; status: number; error: string };
 
-    // Guardrail: never let a role change lock every admin out of the panel.
-    if (oldRole === "admin" && role !== "admin") {
-      // (a) Block an admin from demoting their own account — self-service
-      // demotion has no recovery path if it was their only route to /admin.
-      let actingUserId: string | null = null;
-      try {
-        const actor = await getAuthUser();
-        actingUserId = actor.isAdmin ? actor.userId : null;
-      } catch {
-        /* shared-secret admin session without a linked user id — skip self-check */
-      }
-      if (actingUserId && actingUserId === id) {
-        return NextResponse.json({ error: "cannot_demote_self" }, { status: 400 });
-      }
-
-      // (b) Block demoting the very last remaining admin account.
-      const otherAdmins = await client.query(
-        `SELECT COUNT(*)::int AS c FROM users WHERE role = 'admin' AND id <> $1`,
-        [id]
-      );
-      if ((otherAdmins.rows[0]?.c ?? 0) === 0) {
-        return NextResponse.json({ error: "last_admin_lockout" }, { status: 400 });
-      }
-    }
-
-    await client.query("BEGIN");
-    try {
-      await client.query(`UPDATE users SET role = $2, updated_at = NOW() WHERE id = $1`, [id, role]);
-      // Revoke all live sessions when role changes (privilege change → re-login).
-      if (oldRole !== role) {
-        await client.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [id]);
-        if (oldRole === "seller") {
-          // 2026-08-15 (audit, CRITIC): aici era `.catch(()=>{})`. La
-          // retrogradarea unui vânzător, dacă ștergerea sesiunilor eșua,
-          // eroarea dispărea — iar utilizatorul rămânea cu o sesiune de
-          // vânzător validă deși nu mai avea rolul. Escaladare de privilegii
-          // persistentă. Revocarea e parte din schimbarea de rol: dacă pică,
-          // rolul NU trebuie schimbat.
-          await client.query(`DELETE FROM seller_sessions WHERE seller_id IN (SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`, [id]);
-        }
-      }
-      await client.query(
-        `INSERT INTO moderation_actions (actor_user_id, target_user_id, action_type, reason, metadata)
-         VALUES (NULL, $1, 'warn', $2, $3::jsonb)`,
-        [
-          id,
-          `Schimbare rol: ${oldRole} -> ${role}`,
-          JSON.stringify({ source: "admin_users_page", old_role: oldRole, new_role: role, kind: "role_change" }),
-        ]
-      );
-      await client.query("COMMIT");
-      await logAdminAction({
-        action: "user.role_change",
-        targetType: "user",
-        targetId: id,
-        details: { oldRole, newRole: role },
-        req,
-      });
-      return NextResponse.json({ ok: true, role });
-    } catch (e) {
-      // ROLLBACK best-effort; eroarea originală rămâne cea propagată.
-      try { await client.query("ROLLBACK"); } catch { /* vezi catch-ul de mai jos */ }
-      throw e;
-    }
-  } catch (e) {
-    logger.error({ err: e, userId: id, role }, "[admin/users/role] schimbare de rol eșuată — tranzacție anulată");
-    return NextResponse.json(
-      { error: "role_change_failed" },
-      { status: 500 },
+async function revokeAll(q: TxQuery, id: string, oldRole: string) {
+  await q(`UPDATE user_sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`, [id]);
+  await revokeAdminSessionsForUser(id, q);
+  if (oldRole === "seller") {
+    await q(
+      `DELETE FROM seller_sessions WHERE seller_id IN (
+         SELECT s.id FROM sellers s JOIN users u ON lower(u.email) = lower(s.email) WHERE u.id = $1)`,
+      [id],
     );
-  } finally {
-    client.release();
   }
+}
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const actor = await requireAdmin(req, "users.manage");
+  if (actor instanceof NextResponse) return actor;
+
+  const { id } = await params;
+  if (!isUuidParam(id)) return invalidIdResponse();
+
+  const parsed = Body.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "invalid_role" }, { status: 400 });
+  const { role } = parsed.data;
+
+  let outcome: Outcome;
+  try {
+    outcome = await withTransaction<Outcome>(async (q) => {
+      const { rows } = await q<{ role: string }>(`SELECT role FROM users WHERE id = $1 FOR UPDATE`, [id]);
+      if (!rows[0]) return { ok: false, status: 404, error: "user_not_found" };
+      const oldRole = rows[0].role;
+      const touchesAdmin = role === "admin" || oldRole === "admin";
+      if (touchesAdmin && !hasPermission(actor.role, "admins.manage")) {
+        return { ok: false, status: 403, error: "forbidden" };
+      }
+      if (oldRole === "admin" && role !== "admin") {
+        if (actor.userId === id) return { ok: false, status: 400, error: "cannot_demote_self" };
+        const { rows: others } = await q<{ c: number }>(
+          `SELECT COUNT(*)::int AS c FROM users WHERE role = 'admin' AND admin_role = 'owner' AND id <> $1`,
+          [id],
+        );
+        if ((others[0]?.c ?? 0) === 0) return { ok: false, status: 400, error: "last_admin_lockout" };
+      }
+      if (oldRole === role) return { ok: true, oldRole, newRole: role, adminRole: null };
+
+      const adminRole = role === "admin" ? (parsed.data.adminRole ?? "support") : null;
+      await q(`UPDATE users SET role = $2, admin_role = $3, updated_at = now() WHERE id = $1`, [id, role, adminRole]);
+      await revokeAll(q, id, oldRole);
+      await q(
+        `INSERT INTO moderation_actions (actor_user_id, target_user_id, action_type, reason, metadata)
+         VALUES ($1, $2, 'warn', 'role_change', $3::jsonb)`,
+        [actor.userId, id, JSON.stringify({ source: "admin_users_page", kind: "role_change", old_role: oldRole, new_role: role })],
+      );
+      return { ok: true, oldRole, newRole: role, adminRole };
+    });
+  } catch (err) {
+    logger.error({ err, userId: id, role }, "[admin/users/role] schimbare de rol eșuată — tranzacție anulată");
+    return NextResponse.json({ error: "role_change_failed" }, { status: 500 });
+  }
+
+  if (!outcome.ok) return NextResponse.json({ error: outcome.error }, { status: outcome.status });
+  if (outcome.oldRole !== outcome.newRole) {
+    await logAdminAction({
+      action: "user.role_change",
+      targetType: "user",
+      targetId: id,
+      details: { oldRole: outcome.oldRole, newRole: outcome.newRole, adminRole: outcome.adminRole },
+      actor,
+      req,
+    });
+  }
+  return NextResponse.json({ ok: true, role: outcome.newRole, adminRole: outcome.adminRole });
 }

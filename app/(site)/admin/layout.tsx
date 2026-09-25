@@ -1,16 +1,30 @@
 import type { ReactNode } from "react";
-import { hasAdminSession, isAdminConfigured } from "@/lib/security/admin-auth";
+import type { Metadata } from "next";
+import { getAdminActor, isBreakGlassEnabled } from "@/lib/security/admin-auth";
 import AdminLoginForm from "./AdminLoginForm";
 import AdminShell from "./AdminShell";
 
+export const metadata: Metadata = {
+  title: "Swypik Admin",
+  robots: { index: false, follow: false },
+};
+
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  if (!isAdminConfigured()) {
-    return <AdminLoginForm mode="misconfigured" />;
+  const actor = await getAdminActor();
+  if (!actor || actor.role === "machine") {
+    return <AdminLoginForm breakGlass={isBreakGlassEnabled()} />;
   }
 
-  if (!(await hasAdminSession())) {
-    return <AdminLoginForm mode="login" />;
-  }
-
-  return <AdminShell>{children}</AdminShell>;
+  return (
+    <AdminShell
+      identity={{
+        email: actor.email,
+        username: actor.username,
+        role: actor.role,
+        breakGlass: actor.kind === "break_glass",
+      }}
+    >
+      {children}
+    </AdminShell>
+  );
 }

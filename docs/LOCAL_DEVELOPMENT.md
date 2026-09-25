@@ -181,7 +181,9 @@ Direct `process.env` references under `app/`, `lib/`, and `next.config.mjs`:
 | `NEXT_PUBLIC_APP_URL` | Stripe success/cancel URL base |
 | `STRIPE_SECRET_KEY` | Stripe Checkout |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook verification |
-| `ADMIN_SECRET` | Admin page fallback secret |
+| `ADMIN_SECRET` | Machine secret for admin APIs (`Authorization: Bearer`, scripts/cron); humans sign in with their own admin account |
+| `ADMIN_BREAK_GLASS_ENABLED` | `1` enables emergency `/admin` login with `ADMIN_SECRET` + an admin email (off by default) |
+| `ADMIN_SESSION_TTL_HOURS` | Admin session lifetime in hours (default 12) |
 | `ADMIN_DEBUG_SECRET` | Production debug route guard |
 | `IMPORT_SECRET` | Import API guard |
 | `OPENROUTER_API_KEY` | AI provider key |

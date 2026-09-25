@@ -1,286 +1,105 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { useTranslations } from "next-intl";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutDashboard,
-  Activity,
-  Clock,
-  ShoppingBag,
-  Undo2,
-  Coins,
-  Store,
-  Star,
-  Users,
-  UserCheck,
-  Briefcase,
-  FileText,
-  Video,
-  Film,
-  ShieldAlert,
-  Shield,
-  AlertTriangle,
-  Music,
-  Newspaper,
-  Wallet,
-  BarChart3,
-  Menu,
-  X,
-  LogOut,
-  ChevronLeft,
-  Truck,
-  Inbox,
-  BedDouble,
-  ScrollText,
-  UtensilsCrossed,
-  Trophy,
-  Banknote,
-} from "lucide-react";
+import { ChevronLeft, LogOut, Menu } from "lucide-react";
+import { navForRole } from "@/lib/admin/nav";
+import type { AdminRole } from "@/lib/admin/permissions";
+import { IconButton } from "@/components/ui/IconButton";
+import { Badge } from "@/components/ui/Badge";
+import { Sheet } from "@/components/ui/Sheet";
+import { AdminNavList } from "./_shell/AdminNavList";
 
-type NavItem = {
-  href: string;
-  labelKey: string;
-  icon: typeof LayoutDashboard;
-  comingSoon?: boolean;
+export type AdminShellIdentity = {
+  email: string | null;
+  username: string | null;
+  role: AdminRole;
+  breakGlass: boolean;
 };
 
-type NavSection = {
-  id: string;
-  titleKey: string;
-  icon: string;
-  items: NavItem[];
-};
-
-const sections: NavSection[] = [
-  {
-    id: "overview",
-    titleKey: "nav.section.overview",
-    icon: "\u{1F4CA}",
-    items: [
-      { href: "/admin", labelKey: "nav.item.dashboard", icon: LayoutDashboard },
-      { href: "/admin/aplicatii", labelKey: "nav.item.partnerApplications", icon: Inbox },
-      { href: "/admin/merchant-claims", labelKey: "nav.item.merchantClaims", icon: UtensilsCrossed },
-      { href: "/admin/health", labelKey: "nav.item.health", icon: Activity },
-      { href: "/admin/cron", labelKey: "nav.item.cron", icon: Clock },
-      { href: "/admin/audit", labelKey: "nav.item.audit", icon: ScrollText },
-    ],
-  },
-  {
-    id: "comert",
-    titleKey: "nav.section.commerce",
-    icon: "\u{1F6D2}",
-    items: [
-      { href: "/admin/orders", labelKey: "nav.item.orders", icon: ShoppingBag },
-      { href: "/admin/risk", labelKey: "nav.item.risk", icon: AlertTriangle },
-      { href: "/admin/strikes", labelKey: "nav.item.strikes", icon: Shield },
-      { href: "/admin/returns", labelKey: "nav.item.returns", icon: Undo2 },
-      { href: "/admin/refunds", labelKey: "nav.item.refunds", icon: Coins },
-      { href: "/admin/disputes", labelKey: "nav.item.disputes", icon: Shield },
-      { href: "/admin/marketplace", labelKey: "nav.item.marketplace", icon: Store },
-      { href: "/admin/reviews", labelKey: "nav.item.reviews", icon: Star },
-    ],
-  },
-  {
-    id: "utilizatori",
-    titleKey: "nav.section.users",
-    icon: "\u{1F465}",
-    items: [
-      { href: "/admin/users", labelKey: "nav.item.users", icon: Users },
-      { href: "/admin/creators", labelKey: "nav.item.creators", icon: UserCheck },
-      { href: "/admin/sellers", labelKey: "nav.item.sellers", icon: Briefcase },
-      { href: "/admin/applications", labelKey: "nav.item.creatorApplications", icon: FileText },
-      { href: "/admin/hosts", labelKey: "nav.item.hosts", icon: BedDouble },
-      { href: "/admin/fleet", labelKey: "nav.item.fleet", icon: Truck },
-      { href: "/admin/pricing", labelKey: "nav.item.pricing", icon: Coins },
-    ],
-  },
-  {
-    id: "continut",
-    titleKey: "nav.section.content",
-    icon: "\u{1F3AC}",
-    items: [
-      { href: "/admin/videos", labelKey: "nav.item.videos", icon: Video },
-      { href: "/admin/missions", labelKey: "nav.item.missions", icon: Trophy },
-      { href: "/admin/movies", labelKey: "nav.item.movies", icon: Film },
-      { href: "/admin/music", labelKey: "nav.item.music", icon: Music },
-      { href: "/admin/news", labelKey: "nav.item.news", icon: Newspaper },
-      { href: "/admin/moderation", labelKey: "nav.item.moderation", icon: ShieldAlert },
-    ],
-  },
-  {
-    id: "finante",
-    titleKey: "nav.section.finance",
-    icon: "\u{1F4B0}",
-    items: [
-      { href: "/admin/payouts", labelKey: "nav.item.payouts", icon: Wallet },
-      { href: "/admin/courier-payouts", labelKey: "nav.item.courierPayouts", icon: Truck },
-      { href: "/admin/creator-payouts", labelKey: "nav.item.creatorPayouts", icon: Banknote },
-      { href: "/admin/commissions", labelKey: "nav.item.commissions", icon: BarChart3 },
-    ],
-  },
-];
-
-function SidebarContent({
-  pathname,
-  onNavigate,
-  onLogout,
-}: {
-  pathname: string;
-  onNavigate?: () => void;
-  onLogout: () => void;
-}) {
+function IdentityBlock({ identity }: { identity: AdminShellIdentity }) {
   const t = useTranslations("adminShell");
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-4 py-4 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <Link href="/admin" onClick={onNavigate} className="text-white font-black text-base">
-            Swypik Admin
-          </Link>
-          <button
-            type="button"
-            onClick={onLogout}
-            aria-label={t("logOut")}
-            className="grid h-10 w-10 place-items-center rounded-md text-white/60 hover:text-white hover:bg-white/10 transition"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-        <Link
-          href="/"
-          onClick={onNavigate}
-          className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-white/50 hover:text-white"
-        >
-          <ChevronLeft className="w-3 h-3" />
-          {t("storefront")}
-        </Link>
+    <div className="min-w-0 space-y-1">
+      <p className="truncate text-sm font-medium text-fg">{identity.email ?? identity.username ?? "—"}</p>
+      <div className="flex flex-wrap gap-1">
+        <Badge tone="brand" size="sm">{t(`role.${identity.role}`)}</Badge>
+        {identity.breakGlass ? <Badge tone="danger" size="sm">{t("breakGlass")}</Badge> : null}
       </div>
-
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-5">
-        {sections.map((section) => (
-          <div key={section.id}>
-            <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/40 flex items-center gap-1.5">
-              <span>{section.icon}</span>
-              <span>{t(section.titleKey)}</span>
-            </div>
-            <div className="mt-1 space-y-0.5">
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                const active =
-                  pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const label = t(item.labelKey);
-
-                if (item.comingSoon) {
-                  return (
-                    <div
-                      key={item.href}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium text-white/30 cursor-not-allowed"
-                      aria-disabled="true"
-                      title={t("comingSoon")}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span className="flex-1 truncate">{label}</span>
-                      <span className="text-[9px] font-black uppercase tracking-wide bg-white/5 text-white/40 px-1.5 py-0.5 rounded">
-                        {t("soon")}
-                      </span>
-                    </div>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onNavigate}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition ${active
-                      ? "bg-white/15 text-white"
-                      : "text-white/60 hover:text-white hover:bg-white/10"
-                      }`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="flex-1 truncate">{label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </nav>
     </div>
   );
 }
 
-export default function AdminShell({ children }: { children: ReactNode }) {
+export default function AdminShell({ identity, children }: { identity: AdminShellIdentity; children: ReactNode }) {
   const t = useTranslations("adminShell");
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/admin";
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const groups = useMemo(() => navForRole(identity.role), [identity.role]);
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.refresh();
   }
 
+  const storefrontLink = (
+    <Link
+      href="/"
+      className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-muted hover:text-fg"
+    >
+      <ChevronLeft className="h-4 w-4" aria-hidden />
+      {t("storefront")}
+    </Link>
+  );
+
   return (
-    <div className="min-h-screen flex bg-[#F7F7F8]">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-60 shrink-0 bg-[#0D0D0D] text-white min-h-screen sticky top-0 h-screen flex-col">
-        <SidebarContent pathname={pathname} onLogout={handleLogout} />
+    <div className="flex min-h-dvh bg-canvas text-fg">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-subtle bg-surface md:flex">
+        <div className="flex h-header items-center justify-between px-4">
+          <Link href="/admin" className="text-base font-bold">{t("title")}</Link>
+          <IconButton label={t("logOut")} size="sm" onClick={handleLogout}>
+            <LogOut aria-hidden />
+          </IconButton>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+          <AdminNavList groups={groups} pathname={pathname} />
+        </div>
+        <div className="space-y-2 border-t border-subtle px-4 py-3">
+          <IdentityBlock identity={identity} />
+          {storefrontLink}
+        </div>
       </aside>
 
-      {/* Mobile topbar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0D0D0D] px-2 py-2 flex items-center justify-between shadow-lg">
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          aria-label={t("openMenu")}
-          className="grid h-11 w-11 place-items-center rounded-md text-white hover:bg-white/10"
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-header flex h-header items-center justify-between border-b border-subtle bg-surface/95 px-2 pt-safe-t backdrop-blur md:hidden">
+          <IconButton label={t("openMenu")} onClick={() => setDrawerOpen(true)}>
+            <Menu aria-hidden />
+          </IconButton>
+          <Link href="/admin" className="truncate text-base font-bold">{t("title")}</Link>
+          <IconButton label={t("logOut")} onClick={handleLogout}>
+            <LogOut aria-hidden />
+          </IconButton>
+        </header>
+
+        <Sheet
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          side="left"
+          title={t("title")}
+          footer={
+            <div className="space-y-2">
+              <IdentityBlock identity={identity} />
+              {storefrontLink}
+            </div>
+          }
         >
-          <Menu className="w-5 h-5" />
-        </button>
-        <Link href="/admin" className="text-white font-black text-base truncate max-w-[55%]">
-          Swypik Admin
-        </Link>
-        <button
-          type="button"
-          onClick={handleLogout}
-          aria-label={t("logOut")}
-          className="grid h-11 w-11 place-items-center rounded-md text-white/70 hover:text-white hover:bg-white/10"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
+          <AdminNavList groups={groups} pathname={pathname} onNavigate={() => setDrawerOpen(false)} />
+        </Sheet>
+
+        <main className="min-w-0 flex-1 overflow-x-hidden pb-safe-b">{children}</main>
       </div>
-
-      {/* Mobile drawer */}
-      {drawerOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <button
-            type="button"
-            aria-label={t("closeMenu")}
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <div className="relative w-64 max-w-[85vw] bg-[#0D0D0D] text-white h-full shadow-xl flex flex-col">
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(false)}
-              aria-label={t("close")}
-              className="absolute top-2 right-2 grid h-11 w-11 place-items-center rounded-md text-white/60 hover:text-white hover:bg-white/10 z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <SidebarContent
-              pathname={pathname}
-              onNavigate={() => setDrawerOpen(false)}
-              onLogout={handleLogout}
-            />
-          </div>
-        </div>
-      )}
-
-      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pt-14 md:pt-0">{children}</main>
     </div>
   );
 }

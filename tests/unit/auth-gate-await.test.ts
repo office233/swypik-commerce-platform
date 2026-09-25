@@ -31,6 +31,11 @@ const ASYNC_AUTH_GATES = [
   "getOptionalSocialUserId",
   "getAuthSession",
   "suspensionGuard",
+  // Consola de admin (sesiuni per administrator, 2026-09-26)
+  "requireAdmin",
+  "requireAdminPage",
+  "getAdminActor",
+  "getAdminActorFromRequest",
 ];
 
 function walk(dir: string): string[] {
@@ -99,9 +104,9 @@ describe("detectorul însuși", () => {
 });
 
 describe("porțile de autorizare async sunt întotdeauna await-uite", () => {
-  // Citite o singură dată: 7 porți × ~2000 fișiere recitite depășeau timeout-ul de 5s sub încărcare.
   const files = walk(APP_DIR);
-  const sources = new Map(files.map((file) => [file, readFileSync(file, "utf8")]));
+  // Citite o singură dată (înainte: o dată per poartă → timeout pe mașini încărcate).
+  const sources = new Map(files.map((f) => [f, readFileSync(f, "utf8")] as const));
 
   it("găsește fișiere de scanat (testul nu trece degeaba)", () => {
     expect(files.length).toBeGreaterThan(100);

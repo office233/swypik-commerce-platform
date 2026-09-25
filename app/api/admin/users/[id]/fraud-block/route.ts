@@ -6,15 +6,15 @@
  */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { hasAdminSession, isAdminRequest } from "@/lib/security/admin-auth";
+import { requireAdmin } from "@/lib/admin/guard";
 import { setUserFraudBlock } from "@/lib/risk/user-block";
 import { logAdminAction } from "@/lib/security/admin-audit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const ok = (await hasAdminSession()) || (await isAdminRequest(req));
-  if (!ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const actor = await requireAdmin(req, "commerce");
+  if (actor instanceof NextResponse) return actor;
 
   const { id: userId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(userId)) {
@@ -47,6 +47,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     targetType: "user",
     targetId: userId,
     details: { reason },
+    actor,
     req,
   });
 
