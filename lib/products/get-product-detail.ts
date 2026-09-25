@@ -284,7 +284,19 @@ export async function getProductDetail(
   // Cheap heuristic: if it's not a UUID and not purely numeric, treat as candidate slug too.
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  const { rows } = await dbQuery<DetailRow>(
+  // Calea fierbinte (link-urile interne folosesc UUID-ul): lookup pe cheia
+  // primară. `p.id::text = $1` din interogarea generală anula indexul PK → Seq
+  // Scan pe tot catalogul la fiecare pagină de produs (w6-performance, EXPLAIN).
+  const byPrimaryKey = isUuid
+    ? (await dbQuery<DetailRow>(
+        `${DETAIL_SELECT}
+          WHERE p.id = $1::uuid AND p.status = 'active' AND p.effective_label = 'safe'
+          LIMIT 1`,
+        [id],
+      )).rows
+    : [];
+
+  const { rows } = byPrimaryKey.length > 0 ? { rows: byPrimaryKey } : await dbQuery<DetailRow>(
     `
       ${DETAIL_SELECT}
       WHERE p.status = 'active'

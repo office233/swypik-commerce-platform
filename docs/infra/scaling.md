@@ -71,6 +71,14 @@ Peste ~6 noduri sau când vrem autoscaling pe CPU:
 
 ## 3. Postgres
 
+**Pool-ul per replică** (`lib/db.ts`, w6-performance): `PG_POOL_MAX` (implicit 15), `PG_IDLE_TIMEOUT_MS`
+(implicit 30 s — sub trafic în rafale, 10 s forța reconectări TCP către serverul de date la fiecare
+vârf), TCP keep-alive pornit (conexiunile inactive nu mai sunt tăiate tăcut de NAT/firewall).
+Regula de dimensionare: `replici web × PG_POOL_MAX + workeri video + cron + ~20 rezervă ≤ max_connections`
+(300 în `infra/azure/compose/data.yml`). Ex.: 4 replici × 30 = 120; 8 replici × 30 = 240 → peste
+asta, PgBouncer (pasul 2). Redis: un singur client ioredis per replică (multiplexat, keep-alive
+implicit) + un abonat pentru hub-ul realtime — nu necesită dimensionare.
+
 Ordinea firească, de la ieftin la scump:
 
 1. **Vertical** (primul pas, minute de oprire): `dataVmSize` E2as_v5 → E4as_v5 → E8as_v5,
