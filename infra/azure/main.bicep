@@ -458,4 +458,4 @@ output webPrivateIps array = [for i in range(0, webCount): web[i].outputs.privat
 output dataPrivateIp string = data.outputs.privateIp
 output workerPrivateIps array = [for i in range(0, workerCount): worker[i].outputs.privateIp]
 output natEgressIp string = natPip.properties.ipAddress
-output jumpHostPublicIp string = hasAdminSsh ? jumpPip.properties.ipAddress : ''
+output jumpHostPublicIp string = hasAdminSsh ? jumpPip!.properties.ipAddress : ''
