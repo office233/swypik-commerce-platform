@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "location": {
-      "value": "polandcentral"
+      "value": "swedencentral"
     },
     "namePrefix": {
       "value": "swypik-prod"
@@ -62,7 +62,7 @@
       }
     },
     "availabilityZone": {
-      "value": "3"
+      "value": "1"
     },
     "diskControllerType": {
       "value": "NVMe"

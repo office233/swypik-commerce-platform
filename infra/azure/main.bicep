@@ -36,7 +36,7 @@ targetScope = 'resourceGroup'
   'northeurope'
   'westeurope'
 ])
-param location string = 'polandcentral'
+param location string = 'swedencentral'
 
 @description('Prefix pentru numele resurselor.')
 @minLength(3)
@@ -55,7 +55,7 @@ param webCount int = 2
   '2'
   '3'
 ])
-param availabilityZone string = '3'
+param availabilityZone string = '1'
 
 @description('Controlerul de discuri: v6/v7 cer NVMe; v5 folosește SCSI.')
 @allowed([
