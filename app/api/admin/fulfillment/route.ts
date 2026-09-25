@@ -7,7 +7,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fulfillOrder, updateOrderTracking, cancelOrder } from "@/lib/suppliers/fulfillment";
-import { isAdminConfigured } from "@/lib/security/admin-auth";
 import { requireAuth } from "@/lib/auth/getAuthUser";
 import { frozenResponse, isEnabled } from "@/lib/feature-flags";
 import { logAdminAction } from "@/lib/security/admin-audit";
@@ -24,10 +23,6 @@ const BodySchema = z.object({
 export async function POST(req: Request) {
   if (!isEnabled("fulfillment")) return frozenResponse("fulfillment");
   try {
-    if (!isAdminConfigured()) {
-      return NextResponse.json({ success: false, error: "admin_secret_not_configured" }, { status: 503 });
-    }
-
     const __auth = await requireAuth(req, ["admin"]);
     if (__auth instanceof NextResponse) return __auth;
 

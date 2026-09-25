@@ -14,7 +14,9 @@ import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { encryptErpKey, hashErpKey } from "@/lib/seller/erp-credentials";
 import { verifyInternal, forbidden } from "../../_lib/auth";
-import { notifyFollowersNewPost } from "@/lib/notifications/dispatch";
+import { afterVideoDecision, decideVideo } from "@/lib/admin/moderation/video-decision";
+import { logAdminAction } from "@/lib/security/admin-audit";
+import { isUuidParam } from "@/lib/validation/params";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -101,37 +103,12 @@ export async function POST(req: Request) {
             );
             updated = rowCount ?? 0;
         } else if (type === "video") {
-            // Aprobare: clipul devine vizibil in feed. Respingere: ramane
-            // ascuns si primeste motivul in metadata (creatorul il vede in dashboard).
-            // BUG FIX 2026-08-04: feed-ul filtreaza pe visibility='public' —
-            // aprobarea trebuie sa si PUBLICE clipul (visibility + is_draft +
-            // published_at), altfel nu aparea niciodata in feed.
-            const { rowCount } = await dbQuery(
-                `UPDATE videos
-                        SET moderation_status = $2,
-                            visibility = CASE WHEN $2 = 'approved' THEN 'public' ELSE visibility END,
-                            is_draft = CASE WHEN $2 = 'approved' THEN false ELSE is_draft END,
-                            published_at = CASE WHEN $2 = 'approved' THEN COALESCE(published_at, NOW()) ELSE published_at END,
-                            metadata = COALESCE(metadata, '{}'::jsonb)
-                                       || jsonb_build_object('moderation_reason', $3::text),
-                            updated_at = NOW()
-                      WHERE id = $1 AND moderation_status = 'pending_review'`,
-                [id, approve ? "approved" : "rejected", reason ?? ""]
-            );
-            updated = rowCount ?? 0;
-
-            if (updated > 0 && approve) {
-                const { rows: vRows } = await dbQuery<{ creator_id: string; title: string | null }>(
-                    `SELECT creator_id, title FROM videos WHERE id = $1`,
-                    [id]
-                );
-                const v = vRows[0];
-                if (v?.creator_id) {
-                    notifyFollowersNewPost(v.creator_id, id, {
-                        title: v.title ? `Clip nou: ${v.title}` : undefined,
-                    }).catch((e) =>
-                        logger.warn({ err: e, videoId: id }, "new_post fan-out failed")
-                    );
+            // Aceeași regulă ca în consola de admin (lib/admin/moderation/video-decision.ts).
+            if (isUuidParam(id)) {
+                const result = await decideVideo({ videoId: id, decision, reason: reason ?? null, actorUserId: null });
+                if (result.ok) {
+                    updated = 1;
+                    await afterVideoDecision(result, decision);
                 }
             }
         }
@@ -140,6 +117,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "not_found_or_already_decided" }, { status: 404 });
         }
 
+        // Deciziile din Multi-ERP intră în același jurnal de audit ca cele din consolă.
+        await logAdminAction({
+            action: `${type}.${approve ? "approve" : "reject"}`,
+            targetType: type,
+            targetId: id,
+            details: { source: "erp", reason: reason ?? null },
+            actorKind: "erp",
+            req,
+        });
         logger.info({ type, id, decision }, "moderation decision applied");
         return NextResponse.json({ ok: true, type, id, decision });
     } catch (e) {

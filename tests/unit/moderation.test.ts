@@ -8,6 +8,13 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }) },
 }));
 
+const decideVideo = vi.fn();
+const afterVideoDecision = vi.fn(async () => undefined);
+vi.mock("@/lib/admin/moderation/video-decision", () => ({
+  decideVideo: (...a: unknown[]) => decideVideo(...a),
+  afterVideoDecision: (...a: unknown[]) => afterVideoDecision(...(a as [])),
+}));
+
 const SECRET = "test-internal-secret-value";
 process.env.INTERNAL_SECRET = SECRET;
 process.env.APP_ENCRYPTION_KEY = process.env.APP_ENCRYPTION_KEY || "b".repeat(64);
@@ -33,7 +40,12 @@ function decideReq(body: unknown, secret: string | null = SECRET) {
 
 beforeEach(() => {
   dbQuery.mockReset();
+  decideVideo.mockReset();
+  afterVideoDecision.mockClear();
 });
+
+const V1 = "11111111-1111-4111-8111-111111111111";
+const V2 = "22222222-2222-4222-8222-222222222222";
 
 // ── pending ──────────────────────────────────────────────────────────────
 describe("GET /api/internal/moderation/pending", () => {
@@ -206,19 +218,30 @@ describe("POST /api/internal/moderation/decide", () => {
     expect((await res.json()).error).toBe("not_found_or_already_decided");
   });
 
-  it("approves a pending video", async () => {
+  it("approves a pending video through the shared admin decision", async () => {
     dbQuery.mockResolvedValue({ rows: [], rowCount: 1 });
-    const res = await decidePOST(decideReq({ type: "video", id: "v1", decision: "approve" }));
+    decideVideo.mockResolvedValue({ ok: true, videoId: V1, creatorId: "c", title: null, published: true, casesClosed: 0 });
+    const res = await decidePOST(decideReq({ type: "video", id: V1, decision: "approve" }));
     expect(res.status).toBe(200);
-    expect(String(dbQuery.mock.calls[0][0])).toContain("UPDATE videos");
-    expect(dbQuery.mock.calls[0][1]).toEqual(["v1", "approved", ""]);
+    expect(decideVideo).toHaveBeenCalledWith({ videoId: V1, decision: "approve", reason: null, actorUserId: null });
+    expect(afterVideoDecision).toHaveBeenCalledTimes(1);
+    // Decizia ERP intră în jurnalul de audit (actor_kind = erp).
+    const audit = dbQuery.mock.calls.find((c) => String(c[0]).includes("admin_audit_log"));
+    expect(audit?.[1]).toEqual(expect.arrayContaining(["erp", "video.approve", "video", V1]));
   });
 
   it("rejects a video with a reason", async () => {
     dbQuery.mockResolvedValue({ rows: [], rowCount: 1 });
-    const res = await decidePOST(decideReq({ type: "video", id: "v2", decision: "reject", reason: "continut interzis" }));
+    decideVideo.mockResolvedValue({ ok: true, videoId: V2, creatorId: "c", title: null, published: false, casesClosed: 1 });
+    const res = await decidePOST(decideReq({ type: "video", id: V2, decision: "reject", reason: "continut interzis" }));
     expect(res.status).toBe(200);
-    expect(dbQuery.mock.calls[0][1]).toEqual(["v2", "rejected", "continut interzis"]);
+    expect(decideVideo).toHaveBeenCalledWith({ videoId: V2, decision: "reject", reason: "continut interzis", actorUserId: null });
+  });
+
+  it("returns 404 for an already-decided or non-uuid video", async () => {
+    decideVideo.mockResolvedValue({ ok: false, error: "already_decided" });
+    expect((await decidePOST(decideReq({ type: "video", id: V1, decision: "approve" }))).status).toBe(404);
+    expect((await decidePOST(decideReq({ type: "video", id: "v1", decision: "approve" }))).status).toBe(404);
   });
 
   it("legacy: returns 404 when nothing was updated", async () => {

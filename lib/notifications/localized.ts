@@ -15,7 +15,11 @@ export type LocalizedNotice =
   | "missionWinner"
   | "missionRejected"
   | "creatorPayoutPaid"
-  | "creatorPayoutRejected";
+  | "creatorPayoutRejected"
+  | "videoHidden"
+  | "videoRemoved"
+  | "videoRejected"
+  | "accountSuspended";
 
 async function userLocale(userId: string): Promise<string> {
   const { rows } = await dbQuery<{ locale: string | null }>(`SELECT locale FROM users WHERE id = $1`, [userId]);

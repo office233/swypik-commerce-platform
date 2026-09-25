@@ -35,6 +35,7 @@ import {
 } from "@/lib/auth/session";
 import {
   createAdminSessionAndGetCookie,
+  revokeAdminSessionsForUser,
   getAdminCookieName,
 } from "@/lib/security/admin-auth";
 import { CART_COOKIE, mergeAnonCartToUser } from "@/lib/cart/session";
@@ -251,7 +252,8 @@ async function issueSessionResponse(
 
   if (role === "admin") {
     try {
-      const adminCookie = await createAdminSessionAndGetCookie();
+      // Sesiune de admin legată de acest cont (per-admin, 12h; vezi lib/security/admin-auth.ts).
+      const adminCookie = await createAdminSessionAndGetCookie({ userId, kind: "otp", req });
       appendSetCookie(response, adminCookie);
     } catch (err) {
       logger.warn({ err }, "[auth] could not create admin cookie");
@@ -802,9 +804,8 @@ export async function POST(req: Request) {
          )`,
         [userId],
       ).catch(() => undefined);
-      // Nota: admin_sessions e o tabela globala fara coloana user_id, deci nu
-      // poate fi filtrata per-user aici; retrogradarea/dez-admin-izarea o
-      // gestioneaza separat fluxul din /admin/users.
+      // Sesiunile de admin sunt per cont (20260926_0100) — le închidem și pe ele.
+      await revokeAdminSessionsForUser(userId).catch(() => undefined);
       return NextResponse.json({ success: true });
     }
 

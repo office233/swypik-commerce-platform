@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbQuery } from "@/lib/db";
-import { hashAdminSessionToken, getAdminCookieName, isAdminToken } from "@/lib/security/admin-auth";
+import { getAdminCookieName, isAdminToken, resolveAdminSessionToken, type AdminActor } from "@/lib/security/admin-auth";
 import { isSessionTokenFormat } from "@/lib/auth/session";
 
 export type AuthRole = "shopper" | "creator" | "seller" | "admin" | "guest";
@@ -50,12 +50,9 @@ async function resolveSellerBySession(token: string): Promise<string | null> {
   return rows[0]?.seller_id ?? null;
 }
 
-async function resolveAdminBySession(token: string): Promise<boolean> {
-  const { rows } = await dbQuery(
-    `SELECT 1 FROM admin_sessions WHERE token = $1 AND expires_at > now() LIMIT 1`,
-    [hashAdminSessionToken(token)],
-  );
-  return rows.length > 0;
+/** Sesiunea de admin e legată de un cont (migrarea 20260926_0100). */
+async function resolveAdminBySession(token: string): Promise<AdminActor | null> {
+  return resolveAdminSessionToken(token);
 }
 
 const GUEST: AuthUser = { role: "guest", userId: null, sellerId: null, isAdmin: false, email: null };
@@ -64,7 +61,7 @@ export async function getAuthUser(): Promise<AuthUser> {
   const store = await cookies();
 
   const adminToken = store.get(getAdminCookieName())?.value;
-  const adminVerified = adminToken ? await resolveAdminBySession(adminToken).catch(() => false) : false;
+  const adminActor = adminToken ? await resolveAdminBySession(adminToken).catch(() => null) : null;
 
   const sellerToken = store.get(SELLER_COOKIE)?.value;
   const sellerId = sellerToken ? await resolveSellerBySession(sellerToken).catch(() => null) : null;
@@ -72,13 +69,13 @@ export async function getAuthUser(): Promise<AuthUser> {
   const shopperToken = store.get(SHOPPER_COOKIE)?.value;
   const userInfo = shopperToken ? await resolveUserBySession(shopperToken).catch(() => null) : null;
 
-  if (adminVerified) {
+  if (adminActor) {
     return {
       role: "admin",
-      userId: userInfo?.userId ?? null,
+      userId: adminActor.userId ?? userInfo?.userId ?? null,
       sellerId,
       isAdmin: true,
-      email: userInfo?.email ?? null,
+      email: adminActor.email ?? userInfo?.email ?? null,
     };
   }
 
