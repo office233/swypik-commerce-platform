@@ -5,7 +5,9 @@ import { withErrorHandling } from "@/lib/api-handler";
  */
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { getOrCreateCart, loadCartItems } from "@/lib/cart/session";
+import { getOrCreateCart } from "@/lib/cart/session";
+import { loadCart } from "@/lib/shop/cart";
+import { getShopConfig } from "@/lib/shop/config";
 import { CartItemPatchSchema, parseBody } from "@/lib/validation/schemas";
 import { rateLimit } from "@/lib/security/rate-limit";
 
@@ -27,17 +29,15 @@ async function PATCH_impl(req: Request, ctx: { params: Promise<{ id: string }> }
   const rawBody = await req.json().catch(() => ({}));
   const parsed = parseBody(CartItemPatchSchema, rawBody);
   if (!parsed.ok) {
-    return NextResponse.json({ error: parsed.error, issues: parsed.issues }, { status: 400, headers: NO_STORE });
+    return NextResponse.json({ code: "validation_error", issues: parsed.issues }, { status: 400, headers: NO_STORE });
   }
-  const quantity = parsed.data.quantity;
+  const quantity = Math.min(parsed.data.quantity, getShopConfig().maxLineQty);
   if (quantity === 0) {
     await dbQuery(`DELETE FROM cart_items WHERE id = $1`, [id]);
   } else {
     await dbQuery(`UPDATE cart_items SET quantity = $1, updated_at = now() WHERE id = $2`, [quantity, id]);
   }
-  const items = await loadCartItems(cart.cartId);
-  const subtotalCents = items.reduce((s, i) => s + i.priceCents * i.quantity, 0);
-  return NextResponse.json({ success: true, items, subtotalCents, currency: cart.currency }, { headers: NO_STORE });
+  return NextResponse.json({ success: true, ...(await loadCart(cart.cartId, cart.currency)) }, { headers: NO_STORE });
 }
 
 async function DELETE_impl(_req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -48,9 +48,7 @@ async function DELETE_impl(_req: Request, ctx: { params: Promise<{ id: string }>
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: NO_STORE });
   if (!(await ownItem(cart.cartId, id))) return NextResponse.json({ error: "not_found" }, { status: 404, headers: NO_STORE });
   await dbQuery(`DELETE FROM cart_items WHERE id = $1`, [id]);
-  const items = await loadCartItems(cart.cartId);
-  const subtotalCents = items.reduce((s, i) => s + i.priceCents * i.quantity, 0);
-  return NextResponse.json({ success: true, items, subtotalCents, currency: cart.currency }, { headers: NO_STORE });
+  return NextResponse.json({ success: true, ...(await loadCart(cart.cartId, cart.currency)) }, { headers: NO_STORE });
 }
 
 export const PATCH = withErrorHandling(PATCH_impl);

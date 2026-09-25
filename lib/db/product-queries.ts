@@ -668,7 +668,7 @@ function addCategoryTextFilters(where: string[], params: unknown[], paramIndex: 
   return paramIndex;
 }
 
-function buildSearchFilters(filters: ProductFilters) {
+export function buildSearchFilters(filters: ProductFilters) {
   const {
     search,
     category,

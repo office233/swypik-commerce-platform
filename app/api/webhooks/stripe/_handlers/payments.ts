@@ -13,6 +13,7 @@ import { onOrderPaid, onRidePaid, onLocalOrderPaid } from "@/lib/referral/valida
 import { markStayBookingPaidByCard, markStayBookingCardFailed } from "@/lib/stays/stripe-payment";
 import { APP_URL } from "@/lib/app-url";
 import { maybeSendOrderConfirmation } from "./shared";
+import { finalizePaidShopOrder } from "@/lib/shop/order-paid";
 import { FRAUD_REVIEW_SCORE, FRAUD_BLOCK_SCORE } from "@/lib/risk/thresholds";
 
 export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
@@ -146,7 +147,6 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     shippingAddress = {
       name: shipping.name,
       phone: shipping.phone,
-      // @ts-ignore
       line1: shipping.address?.line1,
       line2: shipping.address?.line2,
       city: shipping.address?.city,
@@ -156,12 +156,14 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     };
   }
 
-  const metadata = {
+  // `intent.charges` nu mai există în versiunile curente ale API-ului Stripe.
+  // Emailul clientului e salvat deja pe comandă la checkout; îl suprascriem
+  // doar cu o valoare reală (un `null` în merge-ul jsonb l-ar șterge).
+  const metadata: Record<string, unknown> = {
     stripe_payment_intent: intent.id,
-    // @ts-ignore - charges might not be fully typed in this SDK version
-    customer_email: intent.receipt_email || intent.charges?.data?.[0]?.billing_details?.email || null,
     fulfillment_status: "pending",
     shipping_address: shippingAddress,
+    ...(intent.receipt_email ? { customer_email: intent.receipt_email } : {}),
   };
 
   // Update the pending order to paid (idempotent via RETURNING gate).
@@ -189,6 +191,8 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     );
     // Referral: validat la prima comandă plătită (best-effort, nu blochează).
     await onOrderPaid(orderId, intent.id);
+    // Magazin: eliberează rezervarea, închide coșul, notifică cumpărătorul.
+    await finalizePaidShopOrder(orderId);
   }
 
   // Record payment transaction
@@ -209,9 +213,6 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   );
 
   await maybeSendOrderConfirmation(orderId);
-  await attributeOrder(orderId).catch((e) =>
-    logger.error({ err: e, orderId }, "[algo] video attribution failed"),
-  );
 
   if (transitionRows.length > 0) {
     try {

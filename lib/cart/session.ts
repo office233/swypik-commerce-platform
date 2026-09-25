@@ -65,50 +65,6 @@ export function buildCartCookie(token: string): string {
   return `${CART_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${CART_TOKEN_MAX_AGE}${isProd ? "; Secure" : ""}`;
 }
 
-export async function loadCartItems(cartId: string) {
-  const { rows } = await dbQuery<{
-    id: string;
-    external_product_id: string;
-    external_variant_id: string | null;
-    title: string;
-    quantity: number;
-    currency: string;
-    unit_amount_cents: number;
-    metadata: { image?: string | null; mergeable?: boolean } | null;
-    mp_title: string | null;
-    mp_price_cents: number | null;
-    mp_currency: string | null;
-    mp_image: string | null;
-  }>(
-    `SELECT ci.id, ci.external_product_id, ci.external_variant_id, ci.title, ci.quantity,
-            ci.currency, ci.unit_amount_cents, ci.metadata,
-            mp.title AS mp_title, mp.price_cents AS mp_price_cents,
-            mp.currency AS mp_currency, mp.image_url AS mp_image
-     FROM cart_items ci
-     LEFT JOIN marketplace_products mp
-       ON mp.id::text = ci.external_product_id OR mp.external_product_id = ci.external_product_id
-     WHERE ci.cart_id = $1 ORDER BY ci.created_at`,
-    [cartId],
-  );
-  return rows.map((r) => {
-    const title = r.title && r.title !== 'Produs' ? r.title : (r.mp_title || r.title || 'Produs');
-    const priceCents = r.unit_amount_cents && r.unit_amount_cents > 0 ? r.unit_amount_cents : (r.mp_price_cents || 0);
-    const currency = (r.currency || r.mp_currency || 'RON').toUpperCase();
-    const image = r.metadata?.image ?? r.mp_image ?? null;
-    return {
-      id: r.id,
-      productId: r.external_product_id,
-      variantId: r.external_variant_id,
-      title,
-      image,
-      quantity: r.quantity,
-      priceCents,
-      currency,
-      metadata: r.metadata ?? {},
-    };
-  });
-}
-
 /** Move all rows of anonCart into userCart, then delete anonCart. */
 export async function mergeAnonCartToUser(anonToken: string, userId: string): Promise<void> {
   if (!anonToken || !userId) return;
