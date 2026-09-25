@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import signal
 import sys
 import time
@@ -9,6 +10,8 @@ import time
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 
+from .ai_hooks import AzureAnalysisHook
+from .azure_ai import AzureAISettings
 from .config import Settings
 from .db import PostgresRepository
 from .ffmpeg_tools import FfmpegTranscoder
@@ -27,11 +30,15 @@ def main(argv: list[str] | None = None) -> int:
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(message)s")
     settings = Settings.from_env()
+    repository = PostgresRepository(settings)
+    # Subtitrări (Whisper) + moderarea thumbnail-ului (Content Safety) pe Azure AI.
+    ai_hook = AzureAnalysisHook(AzureAISettings.from_env(os.environ), repository)
     processor = VideoProcessor(
         settings,
         S3Storage(settings),
         FfmpegTranscoder(encoder=settings.video_encoder),
-        PostgresRepository(settings),
+        repository,
+        analysis_hooks=[ai_hook] if ai_hook.enabled else [],
     )
 
     if args.job_json:

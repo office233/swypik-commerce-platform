@@ -12,7 +12,18 @@ The worker:
 - uploads everything back to object storage;
 - reports progress (`stage` + `progress`) and final status to Postgres when `DATABASE_URL` is configured;
 - retries transient failures inline and records a stable `error_code` on failure;
-- exposes status and AI/moderation/tagging hooks for future pipeline extensions.
+- runs the Azure AI analysis hook (`video_worker/ai_hooks.py`) when configured: `audio.m4a` → Azure OpenAI Whisper → segments in `video_captions` (auto; a creator-edited track is never overwritten; WebVTT is served from the segments by `GET /api/videos/[id]/captions?format=vtt`), and `thumbnail.jpg` → Azure AI Content Safety → on review/block/unavailable an `image_ai` case in `moderation_cases` and `moderation_status='pending_review'`. The hook never fails the job.
+
+## Azure AI (optional)
+
+| env | meaning |
+|---|---|
+| `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_WHISPER_DEPLOYMENT` | Whisper (api-version 2024-06-01, 25 MB/file). `audio.m4a` is mono 16 kHz @ 48 kbps ≈ 0.36 MB/min, so any clip under ~69 min fits in one call. |
+| `AZURE_CONTENT_SAFETY_ENDPOINT`, `AZURE_CONTENT_SAFETY_KEY` | image:analyze (api-version 2024-09-01, 4 MB) |
+| `CONTENT_SAFETY_IMAGE_REVIEW_AT` / `_BLOCK_AT` | severity thresholds (default 2 / 4) |
+| `VIDEO_AUTO_CAPTIONS`, `VIDEO_IMAGE_MODERATION` | set `0` to disable each part (default on when configured) |
+
+429/5xx are retried (3 attempts, honouring `Retry-After`, max 8 s wait); after that captions are skipped and the thumbnail is held for review.
 
 ## Job Payload
 
