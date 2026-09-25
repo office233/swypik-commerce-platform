@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
-import { isAdminRequest } from "@/lib/security/admin-auth";
+import { requireAdmin } from "@/lib/admin/guard";
 import { logAdminAction } from "@/lib/security/admin-audit";
 import { isUuidParam, invalidIdResponse } from "@/lib/validation/params";
 import { DRIVER_DOCUMENT_TYPES } from "@/lib/rides/settings";
@@ -21,7 +21,8 @@ const BodySchema = z.object({
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const actor = await requireAdmin(req, "mobility");
+  if (actor instanceof NextResponse) return actor;
   const { id } = await params;
   if (!isUuidParam(id)) return invalidIdResponse();
   const parsed = BodySchema.safeParse(await req.json().catch(() => null));
@@ -41,6 +42,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   );
   if (!rows.length) return NextResponse.json({ error: "not_found" }, { status: 404 });
   await logAdminAction({
+        actor,
     action: "go.driver_document_review",
     targetType: "courier",
     targetId: id,

@@ -5,7 +5,8 @@
  */
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { requireAdminSession } from "@/lib/security/admin-auth";
+import { requireAdminPage } from "@/lib/admin/guard";
+import { AdminForbidden } from "@/components/admin/AdminForbidden";
 import GoConsole from "@/components/admin/go/GoConsole";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdminGoPage() {
-  await requireAdminSession();
+  if (!(await requireAdminPage("mobility"))) return <AdminForbidden />;
   return <GoConsole />;
 }

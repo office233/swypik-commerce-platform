@@ -6,7 +6,7 @@
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isAdminRequest } from "@/lib/security/admin-auth";
+import { requireAdmin } from "@/lib/admin/guard";
 import { logAdminAction } from "@/lib/security/admin-audit";
 import { isUuidParam, invalidIdResponse, uuidParamSchema } from "@/lib/validation/params";
 import { adminAssignRide, waiveCancelFee } from "@/lib/rides/admin-ops";
@@ -23,7 +23,8 @@ const ActionSchema = z.discriminatedUnion("action", [
 ]);
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const actor = await requireAdmin(req, "mobility");
+  if (actor instanceof NextResponse) return actor;
   const { id } = await params;
   if (!isUuidParam(id)) return invalidIdResponse();
 
@@ -36,6 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const r = await adminAssignRide(id, data.courier_id);
       if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.code });
       await logAdminAction({
+        actor,
         action: r.previous_driver_id ? "go.ride_reassign" : "go.ride_assign",
         targetType: "ride",
         targetId: id,
@@ -47,11 +49,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (data.action === "cancel") {
       const r = await cancelRide({ rideId: id, actor: "admin", reason: data.reason ?? "admin_cancel" });
       if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.code });
-      await logAdminAction({ action: "go.ride_cancel", targetType: "ride", targetId: id, details: { reason: data.reason ?? null }, req });
+      await logAdminAction({
+        actor,
+        action: "go.ride_cancel",
+        targetType: "ride",
+        targetId: id,
+        details: { reason: data.reason ?? null },
+        req,
+      });
       return NextResponse.json({ ok: true });
     }
     if (!(await waiveCancelFee(id))) return NextResponse.json({ error: "bad_state" }, { status: 409 });
-    await logAdminAction({ action: "go.cancel_fee_waive", targetType: "ride", targetId: id, req });
+    await logAdminAction({ actor, action: "go.cancel_fee_waive", targetType: "ride", targetId: id, req });
     return NextResponse.json({ ok: true });
   } catch (err) {
     logger.error({ err, rideId: id, action: data.action }, "[admin/go/rides] action failed");

@@ -9,7 +9,12 @@ const h = vi.hoisted(() => ({
   settings: { card_enabled: true, cash_enabled: false, free_cancel_grace_seconds: 120, fare_overrun_cap_bps: 2000, payment_auth_ttl_minutes: 15, required_driver_documents: [] as string[] },
 }));
 
-vi.mock("@/lib/security/admin-auth", () => ({ isAdminRequest: async () => h.admin }));
+vi.mock("@/lib/admin/guard", async () => {
+  const { NextResponse } = await import("next/server");
+  return {
+    requireAdmin: async () => (h.admin ? { kind: "admin_user", role: "ops" } : NextResponse.json({ error: "unauthorized" }, { status: 401 })),
+  };
+});
 vi.mock("@/lib/security/admin-audit", () => ({ logAdminAction: h.audit }));
 vi.mock("@/lib/rides/admin-ops", () => ({ adminAssignRide: h.assign, waiveCancelFee: h.waive }));
 vi.mock("@/lib/rides/transitions", () => ({ cancelRide: h.cancel }));

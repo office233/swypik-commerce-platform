@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
-import { isAdminRequest } from "@/lib/security/admin-auth";
+import { requireAdmin } from "@/lib/admin/guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +22,8 @@ const FILTER: Record<z.infer<typeof StatusSchema>, string> = {
 };
 
 export async function GET(req: Request) {
-  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const actor = await requireAdmin(req, "mobility");
+  if (actor instanceof NextResponse) return actor;
   const parsed = StatusSchema.safeParse(new URL(req.url).searchParams.get("status") ?? undefined);
   if (!parsed.success) return NextResponse.json({ error: "invalid_status" }, { status: 400 });
 

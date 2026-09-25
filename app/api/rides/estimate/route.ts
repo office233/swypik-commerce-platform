@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     const identifier = session?.userId || `ip:${clientIp}`;
     const rl = await rateLimit("rideEstimate", identifier);
     if (!rl.success) {
-        return NextResponse.json({ error: "Prea multe cereri." }, { status: 429 });
+        return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     }
 
     const body = await req.json().catch(() => null);
@@ -48,11 +48,11 @@ export async function POST(req: Request) {
     } catch (err) {
         if (err instanceof NoZoneError || (err as Error).message === "no_zone") {
             return NextResponse.json(
-                { error: "Swypik Go nu e disponibil încă în zona ta.", code: "no_zone" },
+                { error: "no_zone", code: "no_zone" },
                 { status: 422 },
             );
         }
         log.error({ err }, "estimate failed");
-        return NextResponse.json({ error: "Eroare la estimare." }, { status: 500 });
+        return NextResponse.json({ error: "estimate_failed" }, { status: 500 });
     }
 }
