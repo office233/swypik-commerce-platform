@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Sparkles, X, Send, Bot } from "lucide-react";
+import { Sparkles, Send } from "lucide-react";
+import { Sheet } from "@/components/ui/Sheet";
+import { IconButton } from "@/components/ui/IconButton";
+import { Textarea } from "@/components/ui/Input";
+import { cn } from "@/lib/ui/cn";
 
 type Task = "chat" | "product_description" | "price_suggestion" | "customer_reply";
-
 type Msg = { role: "user" | "assistant"; content: string };
 
+/**
+ * Copilotul AI al seller-ului (proxy către ERP-ul lui — de aceea layout-ul îl
+ * afișează doar cu ERP conectat). Buton compact deasupra BottomNav + sertar lateral.
+ */
 export default function SelenaAssistant() {
   const t = useTranslations("sellerGrowthSelena");
   const TASKS: Array<{ id: Task; label: string; placeholder: string }> = [
@@ -19,170 +26,121 @@ export default function SelenaAssistant() {
   const [open, setOpen] = useState(false);
   const [task, setTask] = useState<Task>("chat");
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content: t("welcomeMessage"),
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: t("welcomeMessage") }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const active = TASKS.find((tk) => tk.id === task) ?? TASKS[0];
 
-  const handleSend = async () => {
+  async function handleSend() {
     const text = input.trim();
     if (!text || loading) return;
     setInput("");
     setError(null);
     setMessages((prev) => [...prev, { role: "user", content: text }]);
     setLoading(true);
-
     try {
       const res = await fetch("/api/seller/selena", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task, message: text }),
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.success) {
-        // Fallback friendly AI responses if the AI backend proxy is offline
-        let fallbackReply: string;
-        if (task === "product_description") {
-          fallbackReply = t("fallbackDescription", { text });
-        } else if (task === "price_suggestion") {
-          fallbackReply = t("fallbackPrice");
-        } else {
-          fallbackReply = t("fallbackChat", { text });
-        }
-        setMessages((prev) => [...prev, { role: "assistant", content: json.answer || fallbackReply }]);
-        return;
-      }
-      setMessages((prev) => [...prev, { role: "assistant", content: String(json.answer || "") }]);
+      const json = (await res.json().catch(() => ({}))) as { success?: boolean; answer?: string };
+      if (!res.ok || !json.success || !json.answer) throw new Error("selena_failed");
+      setMessages((prev) => [...prev, { role: "assistant", content: String(json.answer) }]);
     } catch {
       setError(t("connectionError"));
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <>
-      {/* Floating Trigger Button */}
-      {!open && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-black text-xs shadow-2xl transition-all transform hover:scale-105 active:scale-95"
-          title={t("openTitle")}
-          aria-label={t("openTitle")}
+    <Sheet
+      open={open}
+      onOpenChange={setOpen}
+      side="right"
+      title={t("copilotName")}
+      description={t("fullName")}
+      trigger={
+        <IconButton
+          variant="primary"
+          size="lg"
+          label={t("openTitle")}
+          className="fixed right-4 z-40 shadow-elev-2"
+          style={{ bottom: "calc(var(--bottom-inset, 0px) + 1rem)" }}
         >
-          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-          <span>{t("copilotName")}</span>
-        </button>
-      )}
-
-      {/* Floating Chat Window */}
-      {open && (
-        <div className="fixed bottom-6 right-6 z-40 w-96 max-w-[calc(100vw-32px)] h-[540px] max-h-[calc(100vh-64px)] bg-white rounded-3xl shadow-2xl border border-violet-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5">
-          {/* Header */}
-          <div className="p-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold">
-                <Bot size={18} />
-              </div>
-              <div>
-                <h3 className="font-black text-sm leading-tight flex items-center gap-1.5">
-                  Ily AI <span className="text-[9px] px-1.5 py-0.2 bg-amber-400 text-black font-black rounded uppercase">{t("copilotTag")}</span>
-                </h3>
-                <p className="text-[10px] text-violet-200 font-medium">{t("fullName")}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
-              aria-label={t("closeLabel")}
+          <Sparkles aria-hidden />
+        </IconButton>
+      }
+      footer={
+        <div className="space-y-1">
+          <div className="relative">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleSend();
+                }
+              }}
+              rows={2}
+              placeholder={active.placeholder}
+              aria-label={active.placeholder}
+              className="pr-14"
+            />
+            <IconButton
+              variant="primary"
+              size="sm"
+              label={t("sendLabel")}
+              onClick={() => void handleSend()}
+              disabled={loading || !input.trim()}
+              className="absolute bottom-2 right-2"
             >
-              <X size={16} />
-            </button>
+              <Send aria-hidden />
+            </IconButton>
           </div>
-
-          {/* Quick Tasks */}
-          <div className="px-3 py-2 bg-neutral-50 border-b border-neutral-100 flex gap-1.5 overflow-x-auto">
-            {TASKS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTask(t.id)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition ${
-                  task === t.id
-                    ? "bg-[#0D0D0D] text-white"
-                    : "bg-white text-neutral-600 border border-neutral-200 hover:bg-neutral-100"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 p-3.5 overflow-y-auto space-y-3">
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`p-3 rounded-2xl text-xs leading-relaxed ${
-                  m.role === "user"
-                    ? "bg-[#0D0D0D] text-white ml-6 rounded-tr-sm"
-                    : "bg-violet-50 text-neutral-800 border border-violet-100 mr-6 rounded-tl-sm whitespace-pre-wrap"
-                }`}
-              >
-                <div className="font-bold text-[10px] opacity-70 mb-1 flex items-center gap-1">
-                  {m.role === "user" ? t("youLabel") : "Ily AI"}
-                </div>
-                {m.content}
-              </div>
-            ))}
-
-            {loading && (
-              <div className="p-3 bg-violet-50 rounded-2xl mr-6 border border-violet-100 text-xs text-violet-700 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 animate-spin" />
-                {t("thinking")}
-              </div>
-            )}
-            {error && <div className="text-xs text-red-600 px-2">{error}</div>}
-          </div>
-
-          {/* Input Area */}
-          <div className="p-3 border-t border-neutral-100 bg-white space-y-2">
-            <div className="relative">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                rows={2}
-                placeholder={active.placeholder}
-                className="w-full pr-10 pl-3 py-2 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
-              />
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={loading || !input.trim()}
-                aria-label={t("sendLabel")}
-                className="absolute right-2.5 bottom-2.5 w-7 h-7 rounded-lg bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition disabled:opacity-40"
-              >
-                <Send size={13} />
-              </button>
-            </div>
-            <p className="text-[10px] text-neutral-400 text-center">{t("enterHint")}</p>
-          </div>
+          <p className="text-center text-xs text-subtle">{t("enterHint")}</p>
         </div>
-      )}
-    </>
+      }
+    >
+      <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
+        {TASKS.map((tk) => (
+          <button
+            key={tk.id}
+            type="button"
+            onClick={() => setTask(tk.id)}
+            aria-pressed={task === tk.id}
+            className={cn(
+              "min-h-9 shrink-0 rounded-full px-3 text-xs font-semibold transition-colors duration-fast",
+              task === tk.id ? "bg-brand text-brand-fg" : "border border-subtle bg-surface text-muted hover:bg-surface-2",
+            )}
+          >
+            {tk.label}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-3" aria-live="polite">
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            className={cn(
+              "whitespace-pre-wrap rounded-card p-3 text-sm",
+              m.role === "user" ? "ml-8 bg-brand text-brand-fg" : "mr-8 bg-surface-2 text-fg",
+            )}
+          >
+            <p className="mb-1 text-xs font-semibold opacity-70">{m.role === "user" ? t("youLabel") : t("copilotName")}</p>
+            {m.content}
+          </div>
+        ))}
+        {loading ? (
+          <p className="mr-8 flex items-center gap-2 rounded-card bg-surface-2 p-3 text-sm text-muted">
+            <Sparkles className="h-4 w-4 animate-spin" aria-hidden />
+            {t("thinking")}
+          </p>
+        ) : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
+      </div>
+    </Sheet>
   );
 }

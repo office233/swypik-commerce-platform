@@ -2,54 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  Menu,
-  X,
-  BarChart3,
-  Package,
-  ShoppingBag,
-  UtensilsCrossed,
-  Home,
-  Coins,
-  Undo2,
-  Settings,
-  Upload,
-  Clapperboard,
-  FileText,
-  TrendingUp,
-  Banknote,
-  CircleDot,
-  Receipt,
-  Store,
-  Users,
-  Megaphone,
-  Flame,
-  Music,
-  type LucideIcon,
-} from "lucide-react";
-
-const ICONS: Record<string, LucideIcon> = {
-  barChart3: BarChart3,
-  package: Package,
-  shoppingBag: ShoppingBag,
-  utensilsCrossed: UtensilsCrossed,
-  home: Home,
-  coins: Coins,
-  undo2: Undo2,
-  settings: Settings,
-  upload: Upload,
-  clapperboard: Clapperboard,
-  fileText: FileText,
-  trendingUp: TrendingUp,
-  banknote: Banknote,
-  circleDot: CircleDot,
-  receipt: Receipt,
-  store: Store,
-  users: Users,
-  megaphone: Megaphone,
-  flame: Flame,
-  music: Music,
-};
+import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Menu } from "lucide-react";
+import { Sheet } from "@/components/ui/Sheet";
+import { IconButton } from "@/components/ui/IconButton";
+import { cn } from "@/lib/ui/cn";
+import { dashboardIcon } from "./dashboard-icons";
 
 export type MobileDashboardNavItem = {
   href: string;
@@ -60,80 +19,73 @@ export type MobileDashboardNavItem = {
 type Props = {
   title: string;
   section: string;
-  accentClassName: string;
+  /** Clasă (token) pentru partea evidențiată din titlu, ex. `text-brand`. */
+  accentClassName?: string;
   items: MobileDashboardNavItem[];
-  /** Traduceri opționale; implicit RO pentru apelanții care încă nu le transmit. */
+  /** Etichete explicite; implicit din `dashboardNav`. */
   openMenuLabel?: string;
+  /** Păstrat pentru compatibilitate — butonul de închidere vine din Sheet (`ui.close`). */
   closeMenuLabel?: string;
   menuLabel?: string;
 };
 
+function isActive(pathname: string, href: string, all: MobileDashboardNavItem[]): boolean {
+  // Rădăcina panoului (ex. /seller) e activă doar exact; altfel câștigă potrivirea cea mai lungă.
+  const matches = all.filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const best = matches.sort((a, b) => b.href.length - a.href.length)[0];
+  return best?.href === href;
+}
+
+/** Meniul panourilor de rol pe mobil: buton ☰ + bottom sheet cu intrările. */
 export default function MobileDashboardNav({
   title,
   section,
-  accentClassName,
+  accentClassName = "text-brand",
   items,
-  openMenuLabel = "Deschide meniul",
-  closeMenuLabel = "Inchide meniul",
-  menuLabel = "Meniu",
+  openMenuLabel,
+  menuLabel,
 }: Props) {
+  const t = useTranslations("dashboardNav");
+  const pathname = usePathname() ?? "";
   const [open, setOpen] = useState(false);
 
   return (
-    <>
-      <button
-        type="button"
-        aria-label={openMenuLabel}
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-        className="grid h-11 w-11 place-items-center rounded-xl border border-[#E5E5E5] bg-white text-2xl text-[#0D0D0D] active:scale-95"
-      >
-        <Menu size={22} />
-      </button>
-
-      {open && (
-        <div className="fixed inset-0 z-[80] md:hidden" role="dialog" aria-modal="true">
-          <button
-            type="button"
-            aria-label={closeMenuLabel}
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-[2rem] bg-white p-5 shadow-2xl safe-pb">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-[#6E6E80]">{menuLabel}</p>
-                <h2 className="text-xl font-black text-[#0D0D0D]">
-                  {title} <span className={accentClassName}>{section}</span>
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="grid h-11 w-11 place-items-center rounded-xl bg-[#F7F7F8] text-xl font-black text-[#0D0D0D]"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <nav className="space-y-2">
-              {items.map((item) => {
-                const Icon = ICONS[item.icon] ?? Menu;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className="flex min-h-12 items-center gap-3 rounded-2xl border border-[#E5E5E5] px-4 py-3 text-sm font-black text-[#0D0D0D] active:scale-[0.99]"
-                  >
-                    <Icon size={20} />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-        </div>
-      )}
-    </>
+    <Sheet
+      open={open}
+      onOpenChange={setOpen}
+      trigger={
+        <IconButton variant="secondary" label={openMenuLabel ?? t("openMenu")}>
+          <Menu aria-hidden />
+        </IconButton>
+      }
+      title={
+        <span>
+          <span className="block text-xs font-semibold uppercase tracking-wide text-subtle">{menuLabel ?? t("menu")}</span>
+          {title} {section ? <span className={accentClassName}>{section}</span> : null}
+        </span>
+      }
+    >
+      <nav className="space-y-1 pb-2">
+        {items.map((item) => {
+          const Icon = dashboardIcon(item.icon);
+          const active = isActive(pathname, item.href, items);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex min-h-12 items-center gap-3 rounded-control px-4 text-sm font-semibold transition-colors duration-fast",
+                active ? "bg-brand-soft text-brand-soft-fg" : "text-fg hover:bg-surface-2",
+              )}
+            >
+              <Icon className="h-5 w-5 shrink-0" aria-hidden />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </Sheet>
   );
 }

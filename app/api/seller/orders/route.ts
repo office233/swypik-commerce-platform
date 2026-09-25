@@ -1,334 +1,93 @@
+/**
+ * GET  /api/seller/orders?tab=all|todo|shipped|done|issues&q=&limit=&offset=
+ *      Comenzile seller-ului (doar item-urile lui), paginate, cu starea și
+ *      acțiunile permise (lib/seller/orders.ts) + numărul de comenzi per tab.
+ * POST /api/seller/orders { order_id, tracking_number, tracking_url? }
+ *      Expediere cu tracking simplu (compatibilitate; UI-ul folosește /awb).
+ */
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { dbQuery } from "@/lib/db";
-import { deriveOrderStatus } from "@/lib/commerce/order-status";
 import { getSellerSessionId } from "@/lib/security/seller-auth";
-import { sendCustomerShippingAlert } from "@/lib/email/service";
 import { rateLimit } from "@/lib/security/rate-limit";
-
 import { logger } from "@/lib/logger";
 import { SellerOrderTrackingSchema, parseBody } from "@/lib/validation/schemas";
+import { paginationSchema, queryObject } from "@/lib/validation/params";
+import { countSellerOrdersByTab, listSellerOrders } from "@/lib/seller/orders";
+import { recordSellerShipment } from "@/lib/seller/shipping";
+import { SELLER_ORDERS_PAGE_SIZE } from "@/lib/seller/config";
+
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request) {
+const QuerySchema = paginationSchema(SELLER_ORDERS_PAGE_SIZE, 50).extend({
+  tab: z.enum(["all", "todo", "shipped", "done", "issues"]).default("all"),
+  q: z.string().trim().max(80).optional(),
+});
+
+export async function GET(req: Request) {
+  const sellerId = await getSellerSessionId();
+  if (!sellerId) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+
+  const parsed = QuerySchema.safeParse(queryObject(new URL(req.url), ["tab", "q", "limit", "offset"]));
+  if (!parsed.success) return NextResponse.json({ success: false, error: "validation_error" }, { status: 400 });
+  const { tab, q, limit, offset } = parsed.data;
+
   try {
-    const sellerId = await getSellerSessionId();
-    if (!sellerId) {
-      return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
-    }
-
-    // Multi-seller safe: include only this seller's items in total/items
-    type SellerOrderItem = {
-      item_id: string;
-      title: string;
-      quantity: number;
-      unit_amount_cents: number;
-      metadata: { tracking_number?: string; tracking_url?: string; seller_id?: string } | null;
-      source_status: string | null;
-    };
-    type SellerOrderRow = {
-      order_id: string;
-      order_status: string;
-      order_meta: {
-        tracking_number?: string;
-        tracking_url?: string;
-        latest_tracking_number?: string;
-        latest_tracking_url?: string;
-        tracking_carrier?: string;
-        shipping_method?: string;
-        delivery_method?: string;
-        courier?: string;
-        shipping_address?: {
-          name?: string;
-          line1?: string;
-          line2?: string;
-          city?: string;
-          state?: string;
-          postal_code?: string;
-          country?: string;
-          phone?: string;
-        } | null;
-        customer_name?: string;
-        customer_email?: string;
-        customer_phone?: string;
-        easybox_locker?: string;
-        awb_details?: {
-          awb_number?: string;
-          carrier?: string;
-          courier_code?: string;
-          parcels_count?: number;
-          weight_kg?: number;
-          notes?: string;
-          locker_name?: string;
-          generated_at?: string;
-          tracking_url?: string;
-        } | null;
-        return_reason?: string;
-        return_requested_at?: string;
-      } | null;
-      created_at: string;
-      total_cents: number;
-      items: SellerOrderItem[] | null;
-    };
-    const { rows } = await dbQuery<SellerOrderRow>(
-      `SELECT
-         co.id as order_id,
-         co.status as order_status,
-         co.metadata as order_meta,
-         co.created_at,
-         COALESCE(SUM(coi.quantity * coi.unit_amount_cents) FILTER (WHERE coi.metadata->>'seller_id' = $1), 0) as total_cents,
-         json_agg(
-           json_build_object(
-             'item_id', coi.id,
-             'title', coi.title,
-             'quantity', coi.quantity,
-             'unit_amount_cents', coi.unit_amount_cents,
-             'metadata', coi.metadata,
-             'source_status', coi.source_status
-           )
-           ORDER BY coi.created_at
-         ) FILTER (WHERE coi.metadata->>'seller_id' = $1) as items
-       FROM commerce_orders co
-       JOIN commerce_order_items coi ON co.id = coi.order_id
-       WHERE co.id IN (
-         SELECT order_id FROM commerce_order_items WHERE metadata->>'seller_id' = $1
-       )
-       GROUP BY co.id, co.status, co.metadata, co.created_at
-       ORDER BY co.created_at DESC`,
-      [sellerId]
-    );
-
-    const orders = rows.map((row) => {
-      const items = row.items || [];
-      const allFulfilled = items.length > 0 && items.every((i) => i.source_status === "fulfilled");
-      const itemTracking = items.find((i) => i.metadata?.tracking_number)?.metadata?.tracking_number;
-      const itemTrackingUrl = items.find((i) => i.metadata?.tracking_url)?.metadata?.tracking_url;
-
-      const rawMethod =
-        row.order_meta?.shipping_method ||
-        row.order_meta?.delivery_method ||
-        row.order_meta?.tracking_carrier ||
-        row.order_meta?.awb_details?.carrier;
-
-      const addressStr = `${row.order_meta?.shipping_address?.line1 || ""} ${row.order_meta?.shipping_address?.line2 || ""}`;
-      let detectedMethod = "Livrare Standard";
-      if (rawMethod) {
-        detectedMethod = rawMethod;
-      } else if (row.order_meta?.easybox_locker || /easybox|sameday\s*box/i.test(addressStr)) {
-        detectedMethod = "Sameday Easybox";
-      } else if (/fan\s*courier|fan\s*box/i.test(addressStr)) {
-        detectedMethod = "Fan Courier";
-      }
-
-      const activeTracking =
-        itemTracking ||
-        row.order_meta?.awb_details?.awb_number ||
-        row.order_meta?.tracking_number ||
-        row.order_meta?.latest_tracking_number ||
-        null;
-
-      const activeTrackingUrl =
-        itemTrackingUrl ||
-        row.order_meta?.awb_details?.tracking_url ||
-        row.order_meta?.tracking_url ||
-        row.order_meta?.latest_tracking_url ||
-        null;
-
-      let status: string;
-      if (row.order_status === "return_requested" || row.order_status === "refunded") {
-        status = row.order_status;
-      } else if (allFulfilled || Boolean(activeTracking)) {
-        status = "fulfilled";
-      } else {
-        status = "pending_seller_action";
-      }
-
-      const statusInfo = deriveOrderStatus({
-        status: row.order_status,
-        fulfillmentStatus: status,
-        metadata: row.order_meta,
-        trackingNumber: activeTracking || undefined,
-      });
-
-      return {
-        ...row,
-        status,
-        status_label: status === "fulfilled" ? "Expediat" : statusInfo.label,
-        order_metadata: {
-          tracking_number: activeTracking,
-          tracking_url: activeTrackingUrl,
-          tracking_carrier: row.order_meta?.tracking_carrier || row.order_meta?.awb_details?.carrier || detectedMethod,
-          shipping_method: detectedMethod,
-          shipping_address: row.order_meta?.shipping_address || null,
-          customer_name: row.order_meta?.shipping_address?.name || row.order_meta?.customer_name || null,
-          customer_email: row.order_meta?.customer_email || null,
-          customer_phone: row.order_meta?.customer_phone || row.order_meta?.shipping_address?.phone || null,
-          easybox_locker: row.order_meta?.easybox_locker || row.order_meta?.awb_details?.locker_name || null,
-          awb_details: row.order_meta?.awb_details || null,
-          return_reason: row.order_meta?.return_reason || null,
-          return_requested_at: row.order_meta?.return_requested_at || null,
-        },
-      };
-    });
-
-    return NextResponse.json({ success: true, orders });
+    const [page, counts] = await Promise.all([
+      listSellerOrders(sellerId, { tab, q: q ?? null, limit, offset }),
+      countSellerOrdersByTab(sellerId),
+    ]);
+    return NextResponse.json({ success: true, orders: page.orders, hasMore: page.hasMore, counts, limit, offset });
   } catch (error) {
-    logger.error({ err: error }, "[Seller Orders API] GET Error:");
+    logger.error({ err: error }, "[Seller Orders API] GET Error");
     return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
   }
 }
 
+const SHIP_BLOCKED = new Set(["pending", "authorized", "cancelled", "refunded", "return_requested", "failed"]);
+
 export async function POST(req: Request) {
   try {
     const sellerId = await getSellerSessionId();
-    if (!sellerId) {
-      return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
-    }
+    if (!sellerId) return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
 
     const rl = await rateLimit("sellerOrders", sellerId);
     if (!rl.success) return NextResponse.json({ success: false, error: "rate_limited" }, { status: 429 });
 
-    const rawBody = await req.json().catch(() => null);
-    const parsed = parseBody(SellerOrderTrackingSchema, rawBody);
-    if (!parsed.ok) {
-      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
-    }
+    const parsed = parseBody(SellerOrderTrackingSchema, await req.json().catch(() => null));
+    if (!parsed.ok) return NextResponse.json({ success: false, error: "validation_error" }, { status: 400 });
     const { order_id, tracking_number, tracking_url } = parsed.data;
-    const trackingNumber = tracking_number;
-    // 2026-08-10 (audit P1): fara fallback extern hardcodat (track24.net putea
-    // fi preluat malitios). Daca nu exista template configurat si nici URL
-    // explicit de la seller, nu generam un link de tracking.
-    const trackingTemplate = process.env.TRACKING_URL_TEMPLATE || "";
+
+    // Fără fallback extern hardcodat: fără template configurat și fără URL explicit → fără link.
+    const template = process.env.TRACKING_URL_TEMPLATE || "";
     const trackingUrl =
-      tracking_url ??
-      (trackingTemplate
-        ? trackingTemplate.replace("{code}", encodeURIComponent(trackingNumber))
-        : null);
+      tracking_url ?? (template ? template.replace("{code}", encodeURIComponent(tracking_number)) : null);
 
-    const checkOrder = await dbQuery<{ status: string }>(
-      `SELECT co.status
-       FROM commerce_orders co
-       JOIN commerce_order_items coi ON co.id = coi.order_id
-       WHERE co.id = $1
-         AND coi.metadata->>'seller_id' = $2
-       LIMIT 1`,
-      [order_id, sellerId]
+    const check = await dbQuery<{ status: string; customer_email: string | null }>(
+      `SELECT co.status, co.metadata->>'customer_email' AS customer_email
+         FROM commerce_orders co
+         JOIN commerce_order_items coi ON co.id = coi.order_id
+        WHERE co.id = $1 AND coi.metadata->>'seller_id' = $2
+        LIMIT 1`,
+      [order_id, sellerId],
     );
-
-    if (checkOrder.rows.length === 0) {
-      return NextResponse.json({ success: false, error: "Comanda nu exista sau nu iti apartine." }, { status: 403 });
+    const order = check.rows[0];
+    if (!order) return NextResponse.json({ success: false, error: "not_found" }, { status: 403 });
+    if (SHIP_BLOCKED.has(order.status)) {
+      return NextResponse.json({ success: false, error: "invalid_status" }, { status: 409 });
     }
 
-    if (["cancelled", "refunded", "return_requested", "failed"].includes(checkOrder.rows[0].status)) {
-      return NextResponse.json({ success: false, error: "Comanda nu mai poate fi expediata in statusul curent." }, { status: 409 });
-    }
-
-    const { rows } = await dbQuery(
-      `UPDATE commerce_order_items
-       SET source_status = 'fulfilled',
-           metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
-             'tracking_number', $3::text,
-             'tracking_url', $4::text,
-             'fulfilled_at', NOW()::text
-           )
-       WHERE order_id = $1 AND metadata->>'seller_id' = $2
-       RETURNING order_id`,
-      [order_id, sellerId, trackingNumber, trackingUrl]
-    );
-
-    const supplierOrderId = `${order_id}:${sellerId}`;
-    const supplierOrderRes = await dbQuery(
-      `INSERT INTO supplier_orders (
-         commerce_order_id, supplier, supplier_order_id, status, metadata, submitted_at
-       ) VALUES ($1, 'seller', $2, 'shipped', $3::jsonb, now())
-       ON CONFLICT (supplier, supplier_order_id) WHERE supplier_order_id IS NOT NULL
-       DO UPDATE SET
-         status = 'shipped',
-         metadata = supplier_orders.metadata || EXCLUDED.metadata,
-         submitted_at = COALESCE(supplier_orders.submitted_at, EXCLUDED.submitted_at),
-         updated_at = now()
-       RETURNING id`,
-      [
-        order_id,
-        supplierOrderId,
-        JSON.stringify({ seller_id: sellerId, tracking_number: trackingNumber, tracking_url: trackingUrl }),
-      ]
-    );
-    const supplierOrderDbId = supplierOrderRes.rows[0]?.id || null;
-
-    await dbQuery(
-      `INSERT INTO fulfillment_shipments (
-         commerce_order_id, supplier_order_id, tracking_number, tracking_url, status, shipped_at, metadata
-       )
-       SELECT $1, $2, $3, $4, 'in_transit', now(), $5::jsonb
-       WHERE NOT EXISTS (
-         SELECT 1 FROM fulfillment_shipments
-         WHERE commerce_order_id = $1 AND tracking_number = $3
-       )`,
-      [
-        order_id,
-        supplierOrderDbId,
-        trackingNumber,
-        trackingUrl,
-        JSON.stringify({ source: "seller", seller_id: sellerId }),
-      ]
-    );
-
-    const statusRes = await dbQuery(
-      `SELECT
-         COUNT(*) FILTER (WHERE source_status NOT IN ('fulfilled', 'cancelled')) AS remaining_items,
-         COUNT(*) AS total_items
-       FROM commerce_order_items
-       WHERE order_id = $1`,
-      [order_id]
-    );
-    const remainingItems = Number(statusRes.rows[0]?.remaining_items || 0);
-    const orderMetadataPatch: Record<string, string> = {
-      fulfillment_status: remainingItems === 0 ? "shipped" : "partially_shipped",
-      latest_tracking_number: trackingNumber,
-    };
-    if (trackingUrl) orderMetadataPatch.latest_tracking_url = trackingUrl;
-
-    if (remainingItems === 0) {
-      orderMetadataPatch.tracking_number = trackingNumber;
-      if (trackingUrl) orderMetadataPatch.tracking_url = trackingUrl;
-    }
-
-    const trackingEntry = {
-      seller_id: sellerId,
-      tracking_number: trackingNumber,
-      tracking_url: trackingUrl,
-      added_at: new Date().toISOString(),
-    };
-
-    await dbQuery(
-      `UPDATE commerce_orders
-       SET metadata = jsonb_set(
-             COALESCE(metadata, '{}'::jsonb) || $2::jsonb,
-             '{tracking_numbers}',
-             COALESCE(metadata->'tracking_numbers', '[]'::jsonb) || jsonb_build_array($3::jsonb),
-             true
-           ),
-           status = CASE WHEN $4::int = 0 THEN 'fulfilled' ELSE status END,
-           fulfilled_at = CASE WHEN $4::int = 0 THEN COALESCE(fulfilled_at, now()) ELSE fulfilled_at END
-       WHERE id = $1`,
-      [order_id, JSON.stringify(orderMetadataPatch), JSON.stringify(trackingEntry), remainingItems]
-    );
-
-    try {
-      const orderRes = await dbQuery(
-        `SELECT metadata->>'customer_email' as customer_email FROM commerce_orders WHERE id = $1 LIMIT 1`,
-        [order_id]
-      );
-      if (orderRes.rows.length > 0 && orderRes.rows[0].customer_email) {
-        await sendCustomerShippingAlert(orderRes.rows[0].customer_email, trackingNumber);
-      }
-    } catch (emailErr) {
-      logger.error({ err: emailErr }, "[Seller Orders API] Failed to send tracking email:");
-    }
-
-    return NextResponse.json({ success: true, order: rows[0], trackingNumber, trackingUrl });
+    await recordSellerShipment({
+      orderId: order_id,
+      sellerId,
+      trackingNumber: tracking_number,
+      trackingUrl,
+      carrier: null,
+      customerEmail: order.customer_email,
+    });
+    return NextResponse.json({ success: true, order: { order_id }, trackingNumber: tracking_number, trackingUrl });
   } catch (error) {
-    logger.error({ err: error }, "[Seller Orders API] POST Error:");
-    return NextResponse.json({ success: false, error: "Eroare la actualizarea comenzii." }, { status: 500 });
+    logger.error({ err: error }, "[Seller Orders API] POST Error");
+    return NextResponse.json({ success: false, error: "server_error" }, { status: 500 });
   }
 }

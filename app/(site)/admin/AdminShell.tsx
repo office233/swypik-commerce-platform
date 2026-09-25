@@ -115,6 +115,7 @@ const sections: NavSection[] = [
       { href: "/admin/payouts", labelKey: "nav.item.payouts", icon: Wallet },
       { href: "/admin/courier-payouts", labelKey: "nav.item.courierPayouts", icon: Truck },
       { href: "/admin/creator-payouts", labelKey: "nav.item.creatorPayouts", icon: Banknote },
+      { href: "/admin/seller-payouts", labelKey: "nav.item.sellerPayouts", icon: Store },
       { href: "/admin/commissions", labelKey: "nav.item.commissions", icon: BarChart3 },
     ],
   },

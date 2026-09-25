@@ -22,8 +22,13 @@ export async function getSellerSessionId(): Promise<string | null> {
     // pastreaza intacte si blocheaza forma de OTP.
     if (!isSessionTokenFormat(token)) return null;
 
+    // Statusul seller-ului se re-verifică la fiecare cerere: un seller suspendat
+    // sau respins pierde accesul imediat, nu după expirarea sesiunii (30 zile).
     const { rows } = await dbQuery(
-      `SELECT seller_id FROM seller_sessions WHERE token = $1 AND expires_at > now()`,
+      `SELECT ss.seller_id
+         FROM seller_sessions ss
+         JOIN sellers s ON s.id = ss.seller_id
+        WHERE ss.token = $1 AND ss.expires_at > now() AND s.status IN ('approved', 'active')`,
       [hashToken(token)]
     );
 
