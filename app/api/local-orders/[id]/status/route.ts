@@ -13,6 +13,7 @@ import { LocalOrderStatusSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
 import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 import { getJobForOrder, publishJobEvent } from "@/lib/dispatch/engine";
+import { releaseJobForOrder } from "@/lib/dispatch/lifecycle";
 import { settleLocalOrder } from "@/lib/payments/mobility";
 import { sendPushToUser } from "@/lib/push/send";
 
@@ -133,6 +134,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         RETURNING id, order_number, status, updated_at`,
                 [id, status, reason ?? null],
             );
+
+            // Eliberează jobul de dispatch în aceeași tranzacție — altfel curierul
+            // rămânea „ocupat" pe veci după prima livrare (audit courier P0).
+            if (status === "delivered") {
+                await releaseJobForOrder(q, id, "completed");
+            } else if (status === "cancelled" || status === "rejected") {
+                await releaseJobForOrder(q, id, "cancelled");
+            }
 
             if (status === "delivered" && o.courier_id) {
                 await q(

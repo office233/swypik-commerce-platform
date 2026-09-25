@@ -34,21 +34,32 @@ export async function POST(req: Request) {
         }
         const d = parsed.data;
 
-        const { rows } = await dbQuery(
+        // Heartbeat: orice POST (cu sau fără GPS) reîmprospătează last_heartbeat_at;
+        // sweep-ul din dispatch-tick pune offline curierii tăcuți. Un curier
+        // suspendat (active=false) nu poate fi online.
+        const { rows } = await dbQuery<{ id: string; is_online: boolean; active: boolean }>(
             `UPDATE couriers
-          SET is_online = $2,
+          SET is_online = ($2 AND active),
+              last_heartbeat_at = CASE WHEN $2 AND active THEN now() ELSE last_heartbeat_at END,
               current_lat = COALESCE($3, current_lat),
               current_lng = COALESCE($4, current_lng),
               location_updated_at = CASE WHEN $3 IS NOT NULL THEN now() ELSE location_updated_at END,
               updated_at = now()
         WHERE user_id = $1 AND verification_status = 'approved'
-        RETURNING id, is_online`,
+        RETURNING id, is_online, active`,
             [session.userId, d.online, d.lat ?? null, d.lng ?? null],
         );
 
         if (!rows.length) {
             return NextResponse.json(
                 { success: false, error: "Contul de curier nu e aprobat încă." },
+                { status: 403 },
+            );
+        }
+
+        if (!rows[0].active) {
+            return NextResponse.json(
+                { success: false, error: "courier_suspended", online: false },
                 { status: 403 },
             );
         }
