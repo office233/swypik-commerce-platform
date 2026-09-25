@@ -17,6 +17,7 @@ import { duffelProvider } from "@/lib/fly/duffel";
 import { getMarketMin, isMarketConfigured } from "@/lib/fly/market";
 import { POPULAR_DESTINATIONS } from "@/lib/fly/destinations";
 import { setRouteMarkup, clearRouteMarkup, minMarkupRonCents } from "@/lib/fly/repricing";
+import { isFlyBookingEnabled } from "@/lib/fly/gate";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,10 @@ const ORIGIN = "OTP";
 async function GET_impl(req: NextRequest) {
     if (!(await authorize(req))) {
         return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+    // Fără furnizor de zboruri (FEATURE_FLY_BOOKING OFF) nu avem ce urmări.
+    if (!isFlyBookingEnabled()) {
+        return NextResponse.json({ success: true, skipped: true, reason: "fly_booking_disabled" });
     }
     const result = await runCron("fly-price-watch", async () => {
             const departDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { priceCheck } from "@/lib/fly/service";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { logger } from "@/lib/logger";
+import { flyBookingGuard } from "@/lib/fly/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ export const dynamic = "force-dynamic";
 const schema = z.object({ token: z.string().uuid() });
 
 export async function POST(req: Request) {
+    const closed = flyBookingGuard();
+    if (closed) return closed;
     const rl = await rateLimit("fly:price", getClientIP(req), { limit: 60, window: 60 });
     if (!rl.success) return NextResponse.json({ error: "rate limited" }, { status: 429 });
 

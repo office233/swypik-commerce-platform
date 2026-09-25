@@ -1,204 +1,156 @@
 "use client";
 
 /**
- * Calendar disponibilitate — gazda atinge zilele pe care vrea să le blocheze.
- * Zilele cu rezervări plătite sunt afișate ocupate și nu pot fi selectate.
+ * Calendarul gazdei: alegi listarea, atingi zilele (celule de 44px), apoi
+ * blochezi / deblochezi sau setezi un preț special. Nopțile rezervate sunt
+ * doar pentru citire.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Lock, Unlock, X } from "lucide-react";
-import { useTranslations, useLocale } from "next-intl";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { IconButton } from "@/components/ui/IconButton";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { useToast } from "@/components/ui/Toast";
+import { errorKey } from "@/components/stays/format";
+import { addDays, occupiedNights, todayIso } from "@/lib/stays/dates";
+import type { HostListing } from "@/lib/stays/listings";
+import { monthGrid } from "@/lib/stays/range-select";
+import { cn } from "@/lib/ui/cn";
+import type { HostLimits } from "./HostPanelClient";
 
-function ymd(d: Date): string {
-    return d.toISOString().slice(0, 10);
-}
+type Data = { blocked: Set<string>; priced: Map<string, number>; booked: Set<string> };
+const EMPTY: Data = { blocked: new Set(), priced: new Map(), booked: new Set() };
 
-// Data curentă a gazdei în fusul ei orar local (nu UTC) — folosită doar ca
-// reper pentru "trecut/viitor", nu pentru construcția grilei calendarului.
-function localYmd(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-}
-
-function monthGrid(year: number, month: number): (Date | null)[] {
-    const first = new Date(Date.UTC(year, month, 1));
-    const start = (first.getUTCDay() + 6) % 7; // luni = 0
-    const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-    const cells: (Date | null)[] = Array(start).fill(null);
-    for (let i = 1; i <= days; i++) cells.push(new Date(Date.UTC(year, month, i)));
-    return cells;
-}
-
-export default function AvailabilityCalendar({
-    listingId,
-    onClose,
-}: {
-    listingId: string;
-    onClose: () => void;
-}) {
-    const ts = useTranslations("stays");
+export default function AvailabilityCalendar({ listings, limits }: { listings: HostListing[]; limits: HostLimits }) {
+    const t = useTranslations("staysHost");
+    const tu = useTranslations("staysUi");
     const locale = useLocale();
-    const today = new Date();
-    const DAYS = [
-        ts("weekdayMon"), ts("weekdayTue"), ts("weekdayWed"), ts("weekdayThu"),
-        ts("weekdayFri"), ts("weekdaySat"), ts("weekdaySun"),
-    ];
-    // Cursorul de lună pornește de la ziua locală a gazdei, nu de la
-    // echivalentul UTC (care poate cădea în luna anterioară/următoare aproape
-    // de miezul nopții pentru fusuri orare la est de UTC).
-    const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
-    const [blocked, setBlocked] = useState<Set<string>>(new Set());
-    const [bookedDays, setBookedDays] = useState<Set<string>>(new Set());
+    const { toast } = useToast();
+    const today = todayIso();
+    const [listingId, setListingId] = useState(listings[0]?.id ?? "");
+    const [cursor, setCursor] = useState({ y: Number(today.slice(0, 4)), m: Number(today.slice(5, 7)) - 1 });
+    const [data, setData] = useState<Data>(EMPTY);
     const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const mountedRef = useRef(true);
-    useEffect(() => {
-        mountedRef.current = true;
-        return () => { mountedRef.current = false; };
-    }, []);
+    const [price, setPrice] = useState("");
+    const [busy, setBusy] = useState(false);
+    const { offset, days } = useMemo(() => monthGrid(cursor.y, cursor.m), [cursor]);
 
     const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            const from = ymd(new Date(Date.UTC(cursor.y, cursor.m, 1)));
-            const to = ymd(new Date(Date.UTC(cursor.y, cursor.m + 1, 0)));
-            const r = await fetch(`/api/host/listings/${listingId}/availability?from=${from}&to=${to}`, { credentials: "include" });
-            if (!r.ok) {
-                if (mountedRef.current) setError(ts("loadFailed"));
-                return;
-            }
-            const j = await r.json();
-            if (!mountedRef.current) return;
-            setBlocked(new Set<string>(j.blockedDays ?? []));
-            const bd = new Set<string>();
-            for (const range of j.bookedRanges ?? []) {
-                const s = new Date(range.check_in), e = new Date(range.check_out);
-                for (let d = new Date(s); d < e; d.setUTCDate(d.getUTCDate() + 1)) bd.add(ymd(d));
-            }
-            setBookedDays(bd);
-            setSelected(new Set());
-            setError(null);
-        } catch {
-            if (mountedRef.current) setError(ts("loadFailed"));
-        } finally {
-            if (mountedRef.current) setLoading(false);
+        if (!listingId) return;
+        const from = days[0];
+        const to = addDays(days[days.length - 1], 1);
+        const res = await fetch(`/api/host/listings/${listingId}/availability?from=${from}&to=${to}`).catch(() => null);
+        if (!res?.ok) return setData(EMPTY);
+        const j = (await res.json()) as {
+            blockedDays: string[];
+            pricedDays: { day: string; price_cents_override: number }[];
+            bookedRanges: { check_in: string; check_out: string }[];
+        };
+        setData({
+            blocked: new Set(j.blockedDays),
+            priced: new Map(j.pricedDays.map((p) => [p.day, p.price_cents_override])),
+            booked: occupiedNights(j.bookedRanges),
+        });
+    }, [listingId, days]);
+
+    useEffect(() => {
+        setSelected(new Set());
+        void load();
+    }, [load]);
+
+    if (!listings.length) return <EmptyState icon={CalendarDays} title={t("noListingsTitle")} description={t("calendarNeedsListing")} />;
+
+    const toggle = (d: string) =>
+        setSelected((s) => {
+            const n = new Set(s);
+            if (n.has(d)) n.delete(d);
+            else n.add(d);
+            return n;
+        });
+
+    const save = async (available: boolean, withPrice: boolean) => {
+        const cents = Math.round(Number(price.replace(",", ".")) * 100);
+        setBusy(true);
+        const res = await fetch(`/api/host/listings/${listingId}/availability`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ dates: [...selected].sort(), available, priceCentsOverride: withPrice ? cents : null }),
+        }).catch(() => null);
+        setBusy(false);
+        if (!res?.ok) {
+            const j = res ? ((await res.json().catch(() => ({}))) as { error?: string }) : {};
+            toast({ title: tu(errorKey(j.error)), tone: "danger" });
+            return;
         }
-    }, [listingId, cursor, ts]);
+        toast({ title: t("calendarSaved"), tone: "success" });
+        setSelected(new Set());
+        setPrice("");
+        void load();
+    };
 
-    useEffect(() => { load(); }, [load]);
-
-    async function apply(available: boolean) {
-        if (!selected.size) return;
-        setSaving(true);
-        setError(null);
-        try {
-            const r = await fetch(`/api/host/listings/${listingId}/availability`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ dates: [...selected], available }),
-            });
-            const j = await r.json().catch(() => ({}));
-            if (!mountedRef.current) return;
-            if (!r.ok) { setError(j.error ?? ts("saveFailed")); return; }
-            await load();
-        } finally {
-            if (mountedRef.current) setSaving(false);
-        }
-    }
-
-    const cells = monthGrid(cursor.y, cursor.m);
-    const monthName = new Date(Date.UTC(cursor.y, cursor.m, 1)).toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: "UTC" });
-    const todayStr = localYmd(today);
+    const title = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(cursor.y, cursor.m, 1)));
+    const shift = (delta: number) => setCursor(({ y, m }) => ({ y: Math.floor((y * 12 + m + delta) / 12), m: (y * 12 + m + delta) % 12 }));
+    const priceValid = Number(price.replace(",", ".")) * 100 >= limits.minPriceCents;
 
     return (
-        <div className="mt-3 rounded-2xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-2 flex items-center justify-between">
-                <h4 className="text-sm font-bold">{ts("availabilityTitle")}</h4>
-                <button onClick={onClose} aria-label={ts("closeCalendar")} className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800">
-                    <X size={16} />
-                </button>
+        <div className="space-y-3">
+            <Select aria-label={t("chooseListing")} value={listingId} onChange={(e) => setListingId(e.target.value)} options={listings.map((l) => ({ value: l.id, label: l.title }))} />
+            <div className="flex items-center justify-between">
+                <IconButton label={tu("prevMonth")} onClick={() => shift(-1)} disabled={cursor.y * 12 + cursor.m <= Number(today.slice(0, 4)) * 12 + Number(today.slice(5, 7)) - 1}>
+                    <ChevronLeft aria-hidden />
+                </IconButton>
+                <p className="text-base font-semibold capitalize text-fg">{title}</p>
+                <IconButton label={tu("nextMonth")} onClick={() => shift(1)}>
+                    <ChevronRight aria-hidden />
+                </IconButton>
             </div>
-
-            <div className="mb-2 flex items-center justify-between">
-                <button
-                    onClick={() => setCursor((c) => (c.m === 0 ? { y: c.y - 1, m: 11 } : { y: c.y, m: c.m - 1 }))}
-                    aria-label={ts("prevMonth")}
-                    className="rounded-lg px-2 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                >‹</button>
-                <span className="text-sm font-semibold capitalize">{monthName}</span>
-                <button
-                    onClick={() => setCursor((c) => (c.m === 11 ? { y: c.y + 1, m: 0 } : { y: c.y, m: c.m + 1 }))}
-                    aria-label={ts("nextMonth")}
-                    className="rounded-lg px-2 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                >›</button>
+            <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: offset }, (_, i) => <span key={`e${i}`} />)}
+                {days.map((d) => {
+                    const booked = data.booked.has(d);
+                    const past = d < today;
+                    const sel = selected.has(d);
+                    return (
+                        <button
+                            key={d}
+                            type="button"
+                            disabled={booked || past}
+                            aria-pressed={sel}
+                            onClick={() => toggle(d)}
+                            className={cn(
+                                "flex h-11 flex-col items-center justify-center rounded-control text-sm tabular-nums",
+                                sel ? "bg-brand text-brand-fg" : booked ? "bg-info-soft text-info" : data.blocked.has(d) ? "bg-danger-soft text-danger line-through" : "bg-surface text-fg",
+                                past && "opacity-40",
+                                data.priced.has(d) && !sel && "ring-1 ring-inset ring-warning",
+                            )}
+                        >
+                            {Number(d.slice(8, 10))}
+                        </button>
+                    );
+                })}
             </div>
-
-            {loading ? (
-                <div className="grid h-40 place-items-center"><Loader2 className="animate-spin text-neutral-400" size={20} /></div>
+            <ul className="flex flex-wrap gap-3 text-xs text-muted">
+                <li className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-info-soft" />{t("legendBooked")}</li>
+                <li className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-danger-soft" />{t("legendBlocked")}</li>
+                <li className="flex items-center gap-1"><span className="h-3 w-3 rounded ring-1 ring-warning" />{t("legendPriced")}</li>
+            </ul>
+            {selected.size > 0 ? (
+                <div className="space-y-2 rounded-card border border-subtle bg-surface p-3">
+                    <p className="text-sm font-semibold text-fg">{t("selectedDays", { count: selected.size })}</p>
+                    <div className="flex gap-2">
+                        <Button className="flex-1" variant="secondary" loading={busy} onClick={() => void save(false, false)}>{t("block")}</Button>
+                        <Button className="flex-1" variant="secondary" loading={busy} onClick={() => void save(true, false)}>{t("unblock")}</Button>
+                    </div>
+                    <div className="flex gap-2">
+                        <Input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t("specialPrice")} aria-label={t("specialPrice")} />
+                        <Button loading={busy} disabled={!priceValid} onClick={() => void save(true, true)}>{t("setPrice")}</Button>
+                    </div>
+                </div>
             ) : (
-                <>
-                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-neutral-400">
-                        {DAYS.map((d, i) => <div key={i}>{d}</div>)}
-                    </div>
-                    <div className="mt-1 grid grid-cols-7 gap-1">
-                        {cells.map((d, i) => {
-                            if (!d) return <div key={i} />;
-                            const s = ymd(d);
-                            const isPast = s < todayStr;
-                            const isBooked = bookedDays.has(s);
-                            const isBlocked = blocked.has(s);
-                            const isSel = selected.has(s);
-                            const disabled = isPast || isBooked;
-                            const statusLabel = isBooked ? ts("dayBooked") : isBlocked ? ts("dayBlocked") : isSel ? ts("daySelected") : ts("dayFree");
-                            return (
-                                <button
-                                    key={s}
-                                    disabled={disabled}
-                                    aria-label={`${d.getUTCDate()} ${monthName} — ${statusLabel}`}
-                                    onClick={() => setSelected((prev) => {
-                                        const n = new Set(prev);
-                                        if (n.has(s)) n.delete(s); else n.add(s);
-                                        return n;
-                                    })}
-                                    className={`aspect-square min-h-10 rounded-lg text-xs font-semibold transition ${isBooked ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                                        : isPast ? "text-neutral-300 dark:text-neutral-700"
-                                            : isSel ? "bg-emerald-600 text-white"
-                                                : isBlocked ? "bg-red-100 text-red-700 line-through dark:bg-red-950 dark:text-red-300"
-                                                    : "bg-neutral-50 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
-                                        }`}
-                                    title={statusLabel}
-                                >
-                                    {d.getUTCDate()}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-neutral-500">
-                        <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded bg-sky-200" /> {ts("dayBooked")}</span>
-                        <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded bg-red-200" /> {ts("dayBlocked")}</span>
-                        <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded bg-emerald-600" /> {ts("daySelected")}</span>
-                    </div>
-
-                    {error && <p className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950 dark:text-red-300">{error}</p>}
-
-                    {selected.size > 0 && (
-                        <div className="mt-3 flex gap-2">
-                            <button onClick={() => apply(false)} disabled={saving}
-                                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
-                                {saving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />} {ts("blockDays", { count: selected.size })}
-                            </button>
-                            <button onClick={() => apply(true)} disabled={saving}
-                                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
-                                {saving ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />} {ts("unblockDays")}
-                            </button>
-                        </div>
-                    )}
-                </>
+                <p className="text-sm text-muted">{t("calendarHint")}</p>
             )}
         </div>
     );

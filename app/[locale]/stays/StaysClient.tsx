@@ -1,304 +1,151 @@
 "use client";
 
 /**
- * Swypik Stays — căutare cazări. Model identic cu Fly: preț final în RON,
- * marja e internă, zero taxe la checkout. Până la activarea Duffel Stays pe
- * cont, API-ul răspunde stays_not_enabled iar UI-ul afișează starea "curând".
+ * Swypik Stays — căutare în cazările gazdelor Swypik (inventar propriu).
+ * Mobile-first: destinație, interval (calendar în sheet), oaspeți; rezultate
+ * cu stări de încărcare / gol / eroare. Fără promisiuni false („1M+”).
  */
-import { useEffect, useRef, useState } from "react";
-import { BedDouble, Loader2, MapPin, Star, AlertTriangle, CalendarDays, Users } from "lucide-react";
-import { useTranslations, useLocale } from "next-intl";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { CalendarCheck, Home, MapPin, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { IconButton } from "@/components/ui/IconButton";
+import { Input } from "@/components/ui/Input";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { DateRangeField } from "@/components/stays/DateRangeField";
+import { GuestStepper } from "@/components/stays/GuestStepper";
+import { StayCard } from "@/components/stays/StayCard";
+import { Link } from "@/lib/i18n/navigation";
+import { todayIso } from "@/lib/stays/dates";
+import type { Range } from "@/lib/stays/range-select";
+import type { StayResult } from "@/lib/stays/search";
 
-type City = { slug: string; name: string; country: string };
-type StayResult = {
-    searchResultId: string;
-    name: string;
-    stars: number | null;
-    photoUrl: string | null;
-    address: string | null;
-    totalCents: number;
-    currency: string;
-    nights: number;
-};
-type LocalListing = {
-    id: string;
-    title: string;
-    image_url: string | null;
-    location_city: string | null;
-    max_guests: number | null;
-    price_cents: number | null;
-};
+type Props = { maxNights: number; maxGuests: number };
+type Filters = { q: string; range: Range; guests: number };
 
-function CityInput({ value, onPick }: { value: City | null; onPick: (c: City | null) => void }) {
-    const t = useTranslations("stays");
-    const [text, setText] = useState(value ? value.name : "");
-    const [results, setResults] = useState<City[]>([]);
-    const [open, setOpen] = useState(false);
-    const boxRef = useRef<HTMLDivElement>(null);
-    const reqRef = useRef(0);
-
-    useEffect(() => {
-        const onDoc = (e: MouseEvent) => {
-            if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
-        };
-        document.addEventListener("mousedown", onDoc);
-        return () => document.removeEventListener("mousedown", onDoc);
-    }, []);
-
-    const search = async (q: string) => {
-        setText(q);
-        onPick(null);
-        if (q.trim().length < 2) { setResults([]); setOpen(false); return; }
-        const reqId = ++reqRef.current;
-        try {
-            const r = await fetch(`/api/stays/cities?q=${encodeURIComponent(q)}`);
-            if (reqId !== reqRef.current) return; // răspuns învechit, ignorat
-            if (!r.ok) { setResults([]); setOpen(false); return; }
-            const j = await r.json();
-            if (reqId !== reqRef.current) return;
-            setResults(j.cities ?? []);
-            setOpen((j.cities ?? []).length > 0);
-        } catch {
-            if (reqId === reqRef.current) { setResults([]); setOpen(false); }
-        }
-    };
-
-    return (
-        <div ref={boxRef} className="relative">
-            <label className="text-xs font-medium text-neutral-500">
-                {t("destinatie")}
-                <input
-                    value={text}
-                    onChange={(e) => search(e.target.value)}
-                    placeholder={t("destinationPlaceholder")}
-                    autoComplete="off"
-                    className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-800"
-                />
-            </label>
-            {open && (
-                <ul className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
-                    {results.map((c) => (
-                        <li key={c.slug}>
-                            <button
-                                type="button"
-                                onMouseDown={(e) => { e.preventDefault(); onPick(c); setText(c.name); setOpen(false); }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sky-50 dark:hover:bg-sky-950"
-                            >
-                                <MapPin size={14} className="shrink-0 text-sky-500" />
-                                <span className="font-semibold">{c.name}</span>
-                                <span className="text-neutral-500">— {c.country}</span>
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
+function toQuery(f: Filters): string {
+    const p = new URLSearchParams();
+    if (f.q.trim()) p.set("q", f.q.trim());
+    if (f.range.checkIn && f.range.checkOut) {
+        p.set("checkIn", f.range.checkIn);
+        p.set("checkOut", f.range.checkOut);
+    }
+    p.set("guests", String(f.guests));
+    return p.toString();
 }
 
-export default function StaysClient() {
-    const t = useTranslations("stays");
-    const locale = useLocale();
-    const plus = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
-
-    const [city, setCity] = useState<City | null>(null);
-    const [form, setForm] = useState({ checkIn: plus(14), checkOut: plus(16), adults: 2 });
-    const [loading, setLoading] = useState(false);
+export default function StaysClient({ maxNights, maxGuests }: Props) {
+    const t = useTranslations("staysUi");
+    const [filters, setFilters] = useState<Filters>({ q: "", range: { checkIn: null, checkOut: null }, guests: 2 });
+    const [applied, setApplied] = useState<Filters>(filters);
     const [results, setResults] = useState<StayResult[] | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [local, setLocal] = useState<LocalListing[]>([]);
+    const [failed, setFailed] = useState(false);
 
-    const lei = (cents: number) =>
-        new Intl.NumberFormat(locale, { style: "currency", currency: "RON", maximumFractionDigits: 2 }).format(cents / 100);
-
-    // Cazările gazdelor Swypik — mereu vizibile (inventar propriu, fără Duffel).
-    useEffect(() => {
-        let cancelled = false;
-        const q = city ? `?city=${encodeURIComponent(city.name)}` : "";
-        fetch(`/api/stays/local${q}`)
-            .then((r) => (r.ok ? r.json() : { listings: [] }))
-            .then((j) => { if (!cancelled) setLocal(j.listings ?? []); })
-            .catch(() => { if (!cancelled) setLocal([]); });
-        return () => { cancelled = true; };
-    }, [city]);
-
-    const search = async () => {
-        if (!city) return;
-        setLoading(true);
-        setError(null);
-        setNotice(null);
+    const load = useCallback(async (f: Filters) => {
         setResults(null);
+        setFailed(false);
         try {
-            const r = await fetch("/api/stays/search", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ city: city.slug, checkIn: form.checkIn, checkOut: form.checkOut, adults: form.adults }),
-            });
-            const j = await r.json().catch(() => ({}));
-            if (j.error === "stays_not_enabled") {
-                setNotice(t("staysComingSoonNotice"));
-            } else if (!r.ok) {
-                setError(j.error ?? t("searchFailed"));
-            } else {
-                setResults(j.results ?? []);
-            }
+            const res = await fetch(`/api/stays/search?${toQuery(f)}`);
+            if (!res.ok) throw new Error(String(res.status));
+            const j = (await res.json()) as { results: StayResult[] };
+            setResults(j.results);
         } catch {
-            setError(t("searchFailedRetry"));
-        } finally {
-            setLoading(false);
+            setFailed(true);
         }
+    }, []);
+
+    useEffect(() => {
+        void load(applied);
+    }, [applied, load]);
+
+    const submit = (e: FormEvent) => {
+        e.preventDefault();
+        setApplied(filters);
     };
+    const filtered = Boolean(applied.q.trim() || applied.range.checkIn);
+    const detailQuery = applied.range.checkIn ? toQuery({ ...applied, q: "" }) : undefined;
 
     return (
-        <div className="mx-auto max-w-lg px-4 pb-24 pt-6">
-            <header className="mb-5 flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600">
-                    <BedDouble size={20} className="text-white" />
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold">Swypik Stays</h1>
-                    <p className="text-xs text-neutral-500">{t("finalPriceNote")}</p>
-                </div>
-            </header>
-
-            <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-                <CityInput value={city} onPick={setCity} />
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                    <label className="text-xs font-medium text-neutral-500">
-                        {t("checkInLabel")}
-                        <input
-                            type="date"
-                            value={form.checkIn}
-                            min={plus(0)}
-                            onChange={(e) => setForm({ ...form, checkIn: e.target.value })}
-                            className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
+        <div className="min-h-dvh bg-canvas">
+            <PageHeader
+                title={t("title")}
+                actions={
+                    <IconButton asChild label={t("myBookings")}>
+                        <Link href="/account/stays">
+                            <CalendarCheck aria-hidden />
+                        </Link>
+                    </IconButton>
+                }
+            />
+            <main className="mx-auto max-w-lg space-y-4 px-gutter py-4">
+                <Card padding="md" className="shadow-elev-1">
+                    <form onSubmit={submit} className="space-y-3" role="search">
+                        <Input
+                            leadingIcon={<MapPin aria-hidden />}
+                            value={filters.q}
+                            onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+                            placeholder={t("destinationPlaceholder")}
+                            aria-label={t("destinationLabel")}
+                            enterKeyHint="search"
+                            maxLength={80}
                         />
-                    </label>
-                    <label className="text-xs font-medium text-neutral-500">
-                        {t("checkOutLabel")}
-                        <input
-                            type="date"
-                            value={form.checkOut}
-                            min={form.checkIn}
-                            onChange={(e) => setForm({ ...form, checkOut: e.target.value })}
-                            className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
+                        <DateRangeField
+                            value={filters.range}
+                            onChange={(range) => setFilters({ ...filters, range })}
+                            minDate={todayIso()}
+                            maxNights={maxNights}
                         />
-                    </label>
-                </div>
-                <label className="mt-3 block text-xs font-medium text-neutral-500">
-                    {t("personsLabel")}
-                    <select
-                        value={form.adults}
-                        onChange={(e) => setForm({ ...form, adults: Number(e.target.value) })}
-                        className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
-                    >
-                        {[1, 2, 3, 4, 5, 6].map((n) => (
-                            <option key={n} value={n}>{t("personsCount", { count: n })}</option>
-                        ))}
-                    </select>
-                </label>
-                <button
-                    onClick={search}
-                    disabled={!city || loading}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 font-semibold text-white shadow disabled:opacity-40"
-                >
-                    {loading ? <Loader2 size={16} className="animate-spin" /> : <BedDouble size={16} />}
-                    {loading ? t("searching") : t("searchButton")}
-                </button>
-            </div>
+                        <GuestStepper value={filters.guests} max={maxGuests} onChange={(guests) => setFilters({ ...filters, guests })} />
+                        <Button type="submit" block size="lg">
+                            <Search className="h-4 w-4" aria-hidden />
+                            {t("searchButton")}
+                        </Button>
+                    </form>
+                </Card>
 
-            {notice && (
-                <div className="mt-4 flex items-start gap-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                    <CalendarDays size={16} className="mt-0.5 shrink-0" /> {notice}
-                </div>
-            )}
-            {error && (
-                <div className="mt-4 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-                    <AlertTriangle size={16} className="mt-0.5 shrink-0" /> {error}
-                </div>
-            )}
-
-            {results && (
-                <div className="mt-5 space-y-3">
-                    <p className="text-sm text-neutral-500">
-                        {results.length} {t("cazariGasiteTotalulInclude")}
-                    </p>
-                    {results.map((s) => (
-                        <div key={s.searchResultId} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-                            {s.photoUrl && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={s.photoUrl} alt={s.name} width={640} height={160} className="h-40 w-full object-cover" loading="lazy" />
-                            )}
-                            <div className="p-3">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                        <h3 className="font-bold">{s.name}</h3>
-                                        {s.stars !== null && (
-                                            <span className="mt-0.5 flex items-center gap-0.5 text-xs text-amber-500">
-                                                {Array.from({ length: Math.round(s.stars) }).map((_, i) => <Star key={i} size={12} fill="currentColor" />)}
-                                            </span>
-                                        )}
-                                        {s.address && <p className="mt-0.5 text-xs text-neutral-500">{s.address}</p>}
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{lei(s.totalCents)}</div>
-                                        <div className="text-xs text-neutral-500">{t("nightsCount", { count: s.nights })} · {t("totalLabel")}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    {results.length === 0 && (
-                        <p className="rounded-xl bg-neutral-50 p-4 text-center text-sm text-neutral-500 dark:bg-neutral-900">
-                            {t("nicioCazareGasitaPentru")}
-                        </p>
+                <section aria-live="polite" aria-busy={results === null && !failed} className="space-y-3">
+                    {failed ? (
+                        <ErrorState title={t("searchErrorTitle")} description={t("searchErrorBody")} onRetry={() => void load(applied)} />
+                    ) : results === null ? (
+                        Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="aspect-[16/12] w-full rounded-card" />)
+                    ) : results.length === 0 ? (
+                        <EmptyState
+                            icon={Home}
+                            title={filtered ? t("emptyFilteredTitle") : t("emptyTitle")}
+                            description={filtered ? t("emptyFilteredBody") : t("emptyBody")}
+                            action={
+                                filtered ? (
+                                    <Button variant="secondary" onClick={() => setApplied({ ...filters, q: "", range: { checkIn: null, checkOut: null } })}>
+                                        {t("clearFilters")}
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    ) : (
+                        <>
+                            <p className="text-sm text-muted">{t("resultsCount", { count: results.length })}</p>
+                            {results.map((s) => (
+                                <StayCard key={s.id} stay={s} query={detailQuery} />
+                            ))}
+                        </>
                     )}
-                </div>
-            )}
+                </section>
 
-            {!results && !notice && !loading && (
-                <p className="mt-6 text-center text-xs text-neutral-400">
-                    <Users size={14} className="mr-1 inline" />
-                    {t("cazariDin1mProprietati")}
-                </p>
-            )}
-
-            {/* Cazări de la gazde Swypik — inventar propriu, live indiferent de Duffel */}
-            {local.length > 0 && (
-                <div className="mt-8">
-                    <h2 className="text-lg font-bold">
-                        {t("cazariDeLaGazde")} {city ? t("inCityName", { city: city.name }) : ""}
-                    </h2>
-                    <p className="mb-3 text-xs text-neutral-500">{t("verifiedNote")}</p>
-                    <div className="space-y-3">
-                        {local.map((l) => (
-                            <a key={l.id} href={`/stays/${l.id}`} className="block overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition active:scale-[0.99] dark:border-neutral-800 dark:bg-neutral-900">
-                                {l.image_url && (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={l.image_url} alt={l.title} width={640} height={160} className="h-40 w-full object-cover" loading="lazy" />
-                                )}
-                                <div className="p-3">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="min-w-0">
-                                            <h3 className="truncate font-bold">{l.title}</h3>
-                                            <p className="text-xs text-neutral-500">
-                                                {l.location_city} {t("panaLa")} {l.max_guests ?? "?"} {t("oaspeti")}
-                                            </p>
-                                        </div>
-                                        <div className="shrink-0 text-right">
-                                            <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
-                                                {lei(l.price_cents ?? 0)}
-                                            </div>
-                                            <div className="text-xs text-neutral-500">{t("perNight")}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        ))}
+                <Card variant="muted" padding="md" className="flex items-center gap-3">
+                    <Home className="h-6 w-6 shrink-0 text-brand" aria-hidden />
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-fg">{t("hostCtaTitle")}</p>
+                        <p className="text-sm text-muted">{t("hostCtaBody")}</p>
                     </div>
-                </div>
-            )}
+                    <Button asChild variant="soft" size="sm">
+                        <Link href="/stays/manage">{t("hostCtaButton")}</Link>
+                    </Button>
+                </Card>
+            </main>
         </div>
     );
 }

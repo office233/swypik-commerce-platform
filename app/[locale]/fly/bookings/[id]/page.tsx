@@ -1,4 +1,5 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isFlyBookingEnabled } from "@/lib/fly/gate";
 import { dbQuery } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
 import { getTranslations } from "next-intl/server";
@@ -23,6 +24,8 @@ type FlightBookingRow = {
 };
 
 export default async function FlyBookingPage({ params }: Params) {
+    // Rezervările Fly sunt închise până există un furnizor (FEATURE_FLY_BOOKING).
+    if (!isFlyBookingEnabled()) notFound();
     const { id, locale } = await params;
     const t = await getTranslations("flyBooking");
     const user = await getAuthUser();

@@ -93,7 +93,17 @@ const schema = z
         }
     });
 
+/** Escapare pentru emailul intern (datele vin din formular public). */
+function esc(v: unknown): string {
+    return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[c] ?? c);
+}
+
 export const POST = withErrorHandling(async function POST(req: Request) {
+    // Aplicația trebuie legată de un cont: o aplicație anonimă aprobată nu
+    // putea deveni niciodată gazdă (audit stays.md §4).
+    const session = await getAuthSession().catch(() => null);
+    if (!session) return NextResponse.json({ error: "unauthorized", code: "login_required" }, { status: 401 });
+
     const rl = await rateLimit("hosts:apply", getClientIP(req), { limit: 5, window: 3600 });
     if (!rl.success) {
         return NextResponse.json({ error: "Prea multe încercări. Reîncearcă mai târziu." }, { status: 429 });
@@ -107,7 +117,6 @@ export const POST = withErrorHandling(async function POST(req: Request) {
         );
     }
     const d = parsed.data;
-    const session = await getAuthSession().catch(() => null);
 
     // Anti-duplicat: o aplicație pending per email.
     const dup = await dbQuery<{ id: string }>(
@@ -140,7 +149,7 @@ export const POST = withErrorHandling(async function POST(req: Request) {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
          RETURNING id`,
         [
-            session?.userId ?? null, d.full_name, d.phone, d.email, d.entity_type,
+            session.userId, d.full_name, d.phone, d.email, d.entity_type,
             d.company_name ?? null, d.cui ?? null, d.property_name, d.property_type,
             d.address, d.city, d.county, d.rooms, d.max_guests,
             d.classification_cert ?? null, d.tourism_registered,
@@ -155,12 +164,12 @@ export const POST = withErrorHandling(async function POST(req: Request) {
     if (opsEmail) {
         sendEmail({
             to: opsEmail,
-            subject: `[Swypik] Aplicație nouă de GAZDĂ: ${d.property_name} (${d.city})`,
+            subject: `[Swypik] Aplicație nouă de GAZDĂ: ${d.property_name} (${d.city})`.replace(/[\r\n]+/g, " "),
             html: `<h2>Aplicație nouă de gazdă Stays</h2>
-<p><b>Proprietate:</b> ${d.property_name} (${d.property_type}, ${d.rooms} camere)<br/>
-<b>Locație:</b> ${d.city}, ${d.county}<br/>
-<b>Contact:</b> ${d.full_name} · ${d.phone} · ${d.email}<br/>
-<b>Formă juridică:</b> ${d.entity_type}${d.cui ? ` (${d.cui})` : ""}</p>
+<p><b>Proprietate:</b> ${esc(d.property_name)} (${esc(d.property_type)}, ${d.rooms} camere)<br/>
+<b>Locație:</b> ${esc(d.city)}, ${esc(d.county)}<br/>
+<b>Contact:</b> ${esc(d.full_name)} · ${esc(d.phone)} · ${esc(d.email)}<br/>
+<b>Formă juridică:</b> ${esc(d.entity_type)}${d.cui ? ` (${esc(d.cui)})` : ""}</p>
 <p><a href="${APP_URL}/admin/hosts">Deschide panoul de gazde</a></p>`,
         }).catch((err) => logger.warn({ err }, "[hosts/apply] ops email failed"));
     }

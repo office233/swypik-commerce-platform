@@ -1,11 +1,9 @@
-import { getTranslations } from "next-intl/server";
-import StaysCalendarClient from "./StaysCalendarClient";
+import { redirect } from "next/navigation";
 
-export async function generateMetadata() {
-  const t = await getTranslations("sellerStaysCalendar");
-  return { title: t("pageTitle") };
-}
-
-export default function StaysCalendarPage() {
-  return <StaysCalendarClient />;
+/**
+ * Calendarul vechi de seller pentru cazări a fost retras (model unic de gazdă,
+ * migrarea 20260926_0051). Gazdele își gestionează listările în /stays/manage.
+ */
+export default function StaysCalendarPage(): never {
+  redirect("/stays/manage");
 }
