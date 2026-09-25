@@ -35,6 +35,7 @@ beforeEach(() => {
     if (sql.includes("FROM conversation_participants") && sql.includes("user_id = $2") && sql.includes("SELECT 1")) {
       return { rows: state.participant ? [{ "?column?": 1 }] : [] };
     }
+    if (sql.includes("FROM user_blocks") && sql.includes("AS blocked")) return { rows: [{ blocked: state.blocks.length > 0 }] };
     if (sql.includes("FROM user_blocks")) return { rows: state.blocks };
     if (sql.includes("user_id <> $2")) return { rows: [{ user_id: B }] };
     if (sql.includes("INSERT INTO messages")) {
