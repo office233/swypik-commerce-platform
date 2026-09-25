@@ -38,12 +38,15 @@ export type LiveRide = {
   driver_name: string | null;
 };
 
+export type OwedFee = { id: string; cancel_fee_cents: number; currency: string; cancelled_at: string; pickup_address: string };
+
 export async function getGoOverview(): Promise<{
   drivers: OnlineDriver[];
   rides: LiveRide[];
+  owed_fees: OwedFee[];
   stats: { completed_today: number; cancelled_today: number; fees_owed: number; unpaid_issues: number };
 }> {
-  const [drivers, rides, stats] = await Promise.all([
+  const [drivers, rides, stats, owed] = await Promise.all([
     dbQuery<OnlineDriver>(
       `SELECT c.id, c.full_name, c.kind, c.city, c.vehicle_plate, c.current_lat, c.current_lng,
               COALESCE(c.last_heartbeat_at, c.location_updated_at)::text AS last_seen_at,
@@ -70,10 +73,16 @@ export async function getGoOverview(): Promise<{
          (SELECT count(*)::int FROM rides WHERE cancel_fee_status = 'owed') AS fees_owed,
          (SELECT count(*)::int FROM reconciliation_issues WHERE kind = 'unpaid_completed_ride' AND NOT resolved) AS unpaid_issues`,
     ),
+    dbQuery<OwedFee>(
+      `SELECT id, cancel_fee_cents, trim(currency) AS currency, cancelled_at::text, pickup_address
+         FROM rides WHERE cancel_fee_status = 'owed'
+        ORDER BY cancelled_at DESC LIMIT 50`,
+    ),
   ]);
   return {
     drivers: drivers.rows,
     rides: rides.rows,
+    owed_fees: owed.rows,
     stats: stats.rows[0] ?? { completed_today: 0, cancelled_today: 0, fees_owed: 0, unpaid_issues: 0 },
   };
 }

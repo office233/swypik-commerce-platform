@@ -8,25 +8,8 @@ import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
-export const DRIVER_DOCUMENT_TYPES = [
-  "id_card",
-  "driving_license",
-  "arr_attestation",
-  "rca_insurance",
-  "itp",
-  "vehicle_registration",
-  "criminal_record",
-] as const;
-export type DriverDocumentType = (typeof DRIVER_DOCUMENT_TYPES)[number];
-
-export type GoSettings = {
-  card_enabled: boolean;
-  cash_enabled: boolean;
-  free_cancel_grace_seconds: number;
-  fare_overrun_cap_bps: number;
-  payment_auth_ttl_minutes: number;
-  required_driver_documents: DriverDocumentType[];
-};
+export { DRIVER_DOCUMENT_TYPES, type DriverDocumentType, type GoSettings } from "./settings-shared";
+import { DRIVER_DOCUMENT_TYPES, type GoSettings } from "./settings-shared";
 
 function envInt(name: string, fallback: number): number {
   const n = Number(process.env[name]);

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { isEnabled } from "@/lib/feature-flags";
-import GoClient from "./GoClient";
+import { Suspense } from "react";
+import RequestScreen from "@/components/go/rider/RequestScreen";
 import PermissionsPrompt from "@/components/pwa/PermissionsPrompt";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,9 @@ export default function GoPage() {
   if (!isEnabled("go")) notFound();
   return (
     <>
-      <GoClient />
+      <Suspense>
+        <RequestScreen />
+      </Suspense>
       <PermissionsPrompt vertical="go" />
     </>
   );

@@ -1,9 +1,18 @@
 "use client";
 
-/** /go/history — curse anterioare cu bon detaliat (expand pe tap). */
-import { useEffect, useState } from "react";
+/** /go/history — cursele pasagerului, cu bon detaliat (expand pe tap). */
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations, useLocale } from "next-intl";
+import { History } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { goFetch, useGoFormat } from "@/components/go/format";
 
 type RideRow = {
   id: string;
@@ -14,162 +23,94 @@ type RideRow = {
   estimated_fare_cents: number | null;
   final_fare_cents: number | null;
   currency: string;
+  cancel_fee_cents: number | null;
   distance_km: string | null;
   duration_min: number | null;
   requested_at: string;
-  completed_at: string | null;
   driver_name: string | null;
   driver_rating: string | null;
 };
 
-const STATUS_BADGE: Record<string, string> = {
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-600",
-  in_progress: "bg-blue-100 text-blue-700",
-};
-
-const RIDE_STATUS_KEYS = [
-  "requested",
-  "searching",
-  "accepted",
-  "arriving",
-  "in_progress",
-  "completed",
-  "cancelled",
-];
-
-const VEHICLE_CLASS_KEYS: Record<string, string> = {
-  economy: "classEconomy",
-  comfort: "classComfort",
-  van: "classVan",
-};
+const TONE: Record<string, "success" | "danger" | "info"> = { completed: "success", cancelled: "danger" };
+const KNOWN_CLASS = new Set(["economy", "comfort", "van"]);
 
 export default function HistoryClient() {
   const t = useTranslations("goHistory");
   const tGo = useTranslations("go");
-  const locale = useLocale();
+  const f = useGoFormat();
   const [rides, setRides] = useState<RideRow[] | null>(null);
+  const [error, setError] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    setError(false);
+    const r = await goFetch<{ rides: RideRow[] }>("/api/rides?limit=50");
+    if (r.ok) setRides(r.data.rides);
+    else setError(true);
+  }, []);
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/rides?limit=50", { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? t("error"));
-        return res.json();
-      })
-      .then((d) => {
-        if (!cancelled) setRides(d.rides);
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e.message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [t]);
+    void load();
+  }, [load]);
 
-  const fmt = (c: number | null, cur: string) => {
-    if (c == null) return "—";
-    try {
-      return new Intl.NumberFormat(locale, { style: "currency", currency: cur }).format(c / 100);
-    } catch {
-      return `${(c / 100).toFixed(2)} ${cur}`;
-    }
-  };
-
-  const statusLabel = (status: string) => {
-    const key = RIDE_STATUS_KEYS.includes(status) ? `status.${status}` : null;
-    return key ? tGo(key) : status;
-  };
-
-  const classLabel = (vehicleClass: string) => {
-    const key = VEHICLE_CLASS_KEYS[vehicleClass];
-    return key ? tGo(key) : vehicleClass;
-  };
+  const row = (label: string, value: React.ReactNode) => (
+    <div className="flex justify-between gap-3">
+      <dt className="text-muted">{label}</dt>
+      <dd className="min-w-0 truncate text-right text-fg">{value}</dd>
+    </div>
+  );
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-lg bg-neutral-50 p-4 pb-24">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold tracking-tight">{t("title")}</h1>
-        <Link href="/go" className="rounded-2xl bg-neutral-900 px-4 py-2 text-[13px] font-bold text-white">
-          {t("newRide")}
-        </Link>
-      </div>
-
-      {error ? <p className="text-center text-[14px] text-red-600">{error}</p> : null}
-      {rides === null && !error ? (
-        <div className="flex justify-center py-12">
-          <span className="h-8 w-8 animate-spin rounded-full border-4 border-neutral-200 border-t-neutral-900" />
-        </div>
-      ) : null}
-      {rides?.length === 0 ? (
-        <p className="py-12 text-center text-[14px] text-neutral-500">{t("empty")}</p>
-      ) : null}
-
-      <ul className="space-y-2">
+    <div className="min-h-dvh bg-canvas">
+      <PageHeader
+        back="/go"
+        title={t("title")}
+        actions={
+          <Button asChild size="sm">
+            <Link href="/go">{t("newRide")}</Link>
+          </Button>
+        }
+      />
+      <div className="mx-auto max-w-lg space-y-2 px-gutter py-4">
+        {error ? <ErrorState description={t("error")} onRetry={() => void load()} /> : null}
+        {!rides && !error ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full" />) : null}
+        {rides?.length === 0 ? <EmptyState icon={History} title={t("empty")} /> : null}
         {rides?.map((r) => {
           const expanded = open === r.id;
-          const isActive = !["completed", "cancelled"].includes(r.status);
+          const total = r.status === "cancelled" ? r.cancel_fee_cents ?? 0 : r.final_fare_cents ?? r.estimated_fare_cents;
           return (
-            <li key={r.id} className="rounded-2xl border border-neutral-200 bg-white">
-              <button
-                type="button"
-                className="w-full p-3 text-left"
-                onClick={() => setOpen(expanded ? null : r.id)}
-              >
+            <Card key={r.id} padding="none">
+              <button type="button" className="min-h-[56px] w-full p-3 text-left" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : r.id)}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[14px] font-bold">
+                  <span className="truncate text-sm font-semibold text-fg">
                     {r.pickup_address.split(",")[0]} → {r.dropoff_address.split(",")[0]}
                   </span>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_BADGE[r.status] ?? "bg-neutral-100 text-neutral-600"}`}>
-                    {statusLabel(r.status)}
-                  </span>
+                  <Badge tone={TONE[r.status] ?? "info"}>{tGo(`status.${r.status}`)}</Badge>
                 </div>
-                <div className="mt-1 flex items-center justify-between text-[12px] text-neutral-500">
-                  <span>{new Date(r.requested_at).toLocaleString(locale)}</span>
-                  <span className="font-bold text-neutral-900">
-                    {fmt(r.final_fare_cents ?? r.estimated_fare_cents, r.currency)}
-                  </span>
+                <div className="mt-1 flex items-center justify-between text-xs text-muted">
+                  <span>{f.time(r.requested_at)}</span>
+                  <span className="font-semibold text-fg">{f.money(total, r.currency)}</span>
                 </div>
               </button>
-
               {expanded ? (
-                <div className="border-t border-dashed border-neutral-200 p-3 text-[13px]">
-                  <p className="font-semibold text-neutral-400">{t("receipt")}</p>
-                  <dl className="mt-1 space-y-1">
-                    <div className="flex justify-between"><dt>{t("class")}</dt><dd className="font-semibold">{classLabel(r.vehicle_class)}</dd></div>
-                    <div className="flex justify-between"><dt>{t("from")}</dt><dd className="max-w-[60%] truncate text-right">{r.pickup_address}</dd></div>
-                    <div className="flex justify-between"><dt>{t("to")}</dt><dd className="max-w-[60%] truncate text-right">{r.dropoff_address}</dd></div>
-                    {r.distance_km ? (
-                      <div className="flex justify-between"><dt>{t("distance")}</dt><dd>{tGo("distanceKm", { km: Number(r.distance_km).toFixed(1) })}</dd></div>
-                    ) : null}
-                    {r.duration_min ? (
-                      <div className="flex justify-between"><dt>{t("duration")}</dt><dd>{tGo("durationMin", { min: r.duration_min })}</dd></div>
-                    ) : null}
-                    {r.driver_name ? (
-                      <div className="flex justify-between">
-                        <dt>{t("driver")}</dt>
-                        <dd>{r.driver_name}{r.driver_rating ? ` (${Number(r.driver_rating).toFixed(2)})` : ""}</dd>
-                      </div>
-                    ) : null}
-                    <div className="flex justify-between border-t border-neutral-100 pt-1 font-extrabold">
-                      <dt>{t("total")}</dt>
-                      <dd>{fmt(r.final_fare_cents ?? r.estimated_fare_cents, r.currency)}</dd>
-                    </div>
+                <div className="space-y-2 border-t border-subtle p-3 text-sm">
+                  <dl className="space-y-1">
+                    {row(t("class"), KNOWN_CLASS.has(r.vehicle_class) ? tGo(`class.${r.vehicle_class}`) : r.vehicle_class)}
+                    {row(t("from"), r.pickup_address)}
+                    {row(t("to"), r.dropoff_address)}
+                    {r.distance_km ? row(t("distance"), tGo("distanceKm", { km: f.km(r.distance_km) })) : null}
+                    {r.duration_min ? row(t("duration"), tGo("durationMin", { min: r.duration_min })) : null}
+                    {r.driver_name ? row(t("driver"), `${r.driver_name}${r.driver_rating ? ` (★ ${Number(r.driver_rating).toFixed(2)})` : ""}`) : null}
+                    {row(t("total"), f.money(total, r.currency))}
                   </dl>
-                  {isActive ? (
-                    <Link href={`/go/${r.id}`} className="mt-2 block rounded-2xl bg-neutral-900 py-2 text-center text-[13px] font-bold text-white">
-                      {t("viewLive")}
-                    </Link>
-                  ) : null}
+                  <Button asChild variant="secondary" block>
+                    <Link href={`/go/${r.id}`}>{t("viewRide")}</Link>
+                  </Button>
                 </div>
               ) : null}
-            </li>
+            </Card>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }
