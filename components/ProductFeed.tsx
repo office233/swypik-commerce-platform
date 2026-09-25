@@ -792,7 +792,7 @@ export default function ProductFeed({ products, onAddToCart, onLoadMore, onClose
                 <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-white/70">
                   {product.rating > 0 && <span><Star size={11} className="mr-0.5 inline text-[#B45309]" fill="currentColor" />{product.rating.toFixed(1)}</span>}
                   <span>{product.isEstimatedSocial || product.orders === 0 ? t("badgePopular") : t("ordersSoldCount", { count: product.orders.toLocaleString() })}</span>
-                  <span><Truck size={11} className="mr-0.5 inline" />{product.deliveryDays}z</span>
+                  {product.deliveryDays > 0 && <span><Truck size={11} className="mr-0.5 inline" />{product.deliveryDays}z</span>}
                 </div>
               </div>
 

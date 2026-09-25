@@ -439,9 +439,13 @@ export async function getProductDetail(
   const categoryId = firstNumber(metadata.ae_category_id, row.ae_category_id, metadata.ae_root_category_id, row.ae_root_category_id);
   const priceCents = firstNumber(row.price_cents, 0) || 0;
   const compareAtCents = firstNumber(row.compare_at_price_cents, 0) || 0;
-  const rating = firstNumber(metadata.rating, row.rating);
+  // Rating DOAR din recenzii reale (product_reviews, nu cele ascunse). Valorile
+  // din metadata (ex. rating 4.9 din seed-ul Fly) sunt inventate — ignorate.
+  const { getProductRatingMap } = await import("@/lib/reviews/aggregate");
+  const ownRating = (await getProductRatingMap([String(row.id)])).get(String(row.id));
+  const rating = ownRating && ownRating.reviewCount > 0 ? Number(ownRating.avgRating.toFixed(2)) : null;
   const ordersCount = firstNumber(metadata.orders_count, row.orders_count);
-  const ratingCount = firstNumber(metadata.rating_count, row.rating_count);
+  const ratingCount = ownRating ? ownRating.reviewCount : 0;
   const storeRating = firstNumber(store.rating, row.store_rating, metadata.store_rating, 0) || 0;
   const hasRealOrders = ordersCount !== null && ordersCount > 0;
 
@@ -567,7 +571,7 @@ export async function getProductDetail(
             oldPrice: similarCompareAtCents > 0 ? similarCompareAtCents / 100 : undefined,
             image: String(firstString(similarRow.image_url, ...(Array.isArray(similarMetadata.images) ? similarMetadata.images : [])) || ""),
             hasVideo: firstBool(similarMetadata.has_video, similarRow.has_video, false),
-            rating: firstNumber(similarMetadata.rating, similarRow.rating, 0) || 0,
+            rating: agg && agg.reviewCount > 0 ? Number(agg.avgRating.toFixed(2)) : 0,
             ratingAvg: agg && agg.reviewCount > 0 ? Number(agg.avgRating.toFixed(2)) : null,
             ratingCount: agg ? agg.reviewCount : 0,
           };

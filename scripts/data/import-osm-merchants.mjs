@@ -292,8 +292,8 @@ try {
       `INSERT INTO local_merchants
          (kind, name, slug, description, cuisine_types, phone, email, address,
           location_country, location_city, location_lat, location_lng,
-         opening_hours, status, source, osm_type, osm_id, image_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'RO',$9,$10,$11,$12,$13,'osm',$14,$15,$16)
+         opening_hours, status, source, osm_type, osm_id, image_url, listing_mode)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'RO',$9,$10,$11,$12,$13,'osm',$14,$15,$16,'suggest_only')
        ON CONFLICT (osm_type, osm_id) WHERE osm_id IS NOT NULL
        DO UPDATE SET
          name = EXCLUDED.name,

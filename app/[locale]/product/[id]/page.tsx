@@ -242,13 +242,14 @@ export default async function ProductPage({ params }: Props) {
           name: "Swypik",
         },
       },
-      ...(product.rating && !product.isEstimatedSocial && {
+      // Doar recenzii reale (product_reviews) — niciodată rating din metadata seed.
+      ...(reviewsAgg.average !== null && reviewsAgg.total > 0 && {
         aggregateRating: {
           "@type": "AggregateRating",
-          ratingValue: product.rating,
+          ratingValue: reviewsAgg.average,
           bestRating: 5,
           worstRating: 1,
-          ratingCount: product.ordersCount || 1,
+          ratingCount: reviewsAgg.total,
         },
       }),
     };

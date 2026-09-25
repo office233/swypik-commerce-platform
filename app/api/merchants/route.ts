@@ -12,6 +12,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { MerchantCreateSchema, MerchantUpdateSchema, parseBody } from "@/lib/validation/schemas";
 import { isOpenNow, hasKnownHours } from "@/lib/merchants/hours";
 import { logger } from "@/lib/logger";
+import { LISTING_MODE_SELECT_SQL } from "@/lib/merchants/listing-mode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,11 @@ const PUBLIC_COLS = `
   id, kind, name, slug, description, cuisine_types, phone, address,
   location_country, location_city, location_lat, location_lng,
   delivery_radius_km, min_order_cents, delivery_fee_cents, avg_prep_minutes,
-  opening_hours, is_open_override, status, rating, image_url, created_at
+  opening_hours, is_open_override, status, image_url, created_at, source,
+  -- Rating-ul din DB e seed (nu există încă recenzii reale pentru restaurante):
+  -- nu-l expunem public.
+  NULL::numeric AS rating,
+  ${LISTING_MODE_SELECT_SQL}
 `;
 
 function slugify(input: string): string {
@@ -80,7 +85,7 @@ export async function GET(req: Request) {
               (SELECT count(1) FROM menu_items mi WHERE mi.merchant_id = m.id AND mi.is_available) AS menu_count
          FROM local_merchants m
         WHERE ${where.join(" AND ")}
-        ORDER BY ${hasGeo ? "distance_km ASC NULLS LAST," : ""} rating DESC NULLS LAST, created_at DESC
+        ORDER BY (listing_mode = 'orderable') DESC, ${hasGeo ? "distance_km ASC NULLS LAST," : ""} created_at DESC
         LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params,
     );
@@ -131,13 +136,13 @@ export async function POST(req: Request) {
          phone, email, address, location_country, location_city,
          location_lat, location_lng, delivery_radius_km,
          min_order_cents, delivery_fee_cents, avg_prep_minutes,
-         opening_hours, image_url, status
+         opening_hours, image_url, status, listing_mode
        ) VALUES (
          $1, $2, $3, $4, $5, $6,
          $7, $8, $9, $10, $11,
          $12, $13, $14,
          $15, $16, $17,
-         $18::jsonb, $19, 'pending'
+         $18::jsonb, $19, 'pending', 'orderable'
        )
        RETURNING ${PUBLIC_COLS}`,
       [

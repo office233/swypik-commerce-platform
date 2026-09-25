@@ -2,6 +2,7 @@ import { dbQuery } from "@/lib/db";
 import { parseScopedTagFilter } from "@/lib/db/category-filter-utils";
 import { UUID_RE } from "@/lib/validation/uuid";
 import { logger } from "@/lib/logger";
+import { getProductRatingMap } from "@/lib/reviews/aggregate";
 
 export type ProductFilters = {
   search?: string;
@@ -293,14 +294,6 @@ function getMetadataValue(metadata: ProductMetadata, path: string): unknown {
   }, metadata);
 }
 
-function hashCode(input: string): number {
-  let hash = 0;
-  for (let index = 0; index < input.length; index += 1) {
-    hash = ((hash << 5) - hash + input.charCodeAt(index)) | 0;
-  }
-  return Math.abs(hash);
-}
-
 function buildImages(row: { image_url: string | null }, metadata: ProductMetadata) {
   const images: string[] = [];
   if (row.image_url) images.push(row.image_url);
@@ -401,6 +394,16 @@ export async function loadProductTranslations(
   return out;
 }
 
+/** Completeaza rating-ul DOAR din recenzii reale (product_reviews, neascunse). */
+async function applyReviewRatings<T extends { id: string; rating: number }>(products: T[]): Promise<T[]> {
+  if (products.length === 0) return products;
+  const ratingMap = await getProductRatingMap(products.map((p) => p.id));
+  return products.map((p) => {
+    const agg = ratingMap.get(p.id);
+    return agg && agg.reviewCount > 0 ? { ...p, rating: Number(agg.avgRating.toFixed(1)) } : p;
+  });
+}
+
 function transformProduct(
   row: ProductRow,
   locale = "ro",
@@ -420,7 +423,6 @@ function transformProduct(
   // sanctionabila (OUG 34/2014, Directiva Omnibus). Acum: doar pret real.
   const oldPrice = oldPriceCents > 0 ? oldPriceCents / 100 : 0;
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
-  const seed = hashCode(`mp_${row.id}`);
 
   const tr = translationsMap?.get(String(row.id));
   const title = tr?.title
@@ -469,16 +471,18 @@ function transformProduct(
   const category = safeCategoryLabel(firstNonEmpty(taxLabels.leaf, taxLabels.subcategory, productType, leafCategory, rootCategory), title, rootCategory);
   const categoryId = toNumber(metadata.ae_category_id, row.ae_category_id, metadata.ae_root_category_id, row.ae_root_id);
   const orders = toNumber(metadata.orders_count, row.ae_orders_count, 0) || 0;
-  // FIX 2026-07-31: rating-ul default 4.5 era fals — produsele fara nicio
-  // recenzie apareau cu 4.5 stele si urcau artificial in sortarea "top rated".
-  // Acum 0 = fara rating; UI-ul trebuie sa ascunda stelele cand rating === 0.
-  const rating = Number((toNumber(metadata.rating, row.ae_rating, 0) || 0).toFixed(1));
+  // Rating-ul NU mai vine din metadata (seed-ul Fly punea 4.9 inventat). 0 =
+  // fara rating; valoarea reala e completata din product_reviews de
+  // applyReviewRatings() dupa transformare. UI-ul ascunde stelele la 0.
+  const rating = 0;
+  // Zile de livrare: doar valoarea reala din date (0 = necunoscut, UI-ul o
+  // ascunde) — nu mai inventam un default de 7 zile.
   const deliveryDays = toNumber(
     getMetadataValue(metadata, "shipping.days_min"),
     metadata.ship_days_min,
     row.ae_ship_days_min,
-    7,
-  ) || 7;
+    0,
+  ) || 0;
   const images = buildImages(row, metadata);
   const vendor = String(
     firstNonEmpty(
@@ -515,7 +519,8 @@ function transformProduct(
     title,
     titleEn: String(firstNonEmpty(row.ae_title, row.title, title) || title),
     description: row.description ? row.description.replace(/<[^>]*>/g, " ").trim().substring(0, 200) : title,
-    benefits: ["Livrare rapida in Romania", "Checkout securizat", "Produs verificat"],
+    // Fara beneficii/insigne generice fabricate ("Livrare rapida", "Produs verificat").
+    benefits: [] as string[],
     whyBuy: "",
     warnings: [] as string[],
     price,
@@ -525,8 +530,6 @@ function transformProduct(
     rating,
     orders,
     deliveryDays,
-    viewers: 7 + (seed % 25),
-    cartAdds: Math.max(3, Math.round(Math.max(orders, 20) * 0.14)),
     hasValidPrice,
     images,
     video: typeof video === "string" ? video : undefined,
@@ -541,12 +544,13 @@ function transformProduct(
     vendor,
     tags: [productType, leafCategory, rootCategory].filter(Boolean).join(", "),
     gradient: "from-orange-500 to-pink-500",
-    qualityScore: Math.min(10, Math.max(7, Math.round(rating * 2))),
+    // Scor neutru (nu mai derivam un "quality score" din rating-uri inventate).
+    qualityScore: 7,
     shipFree,
     shipDaysMin: toNumber(getMetadataValue(metadata, "shipping.days_min"), metadata.ship_days_min, row.ae_ship_days_min),
     shipDaysMax: toNumber(getMetadataValue(metadata, "shipping.days_max"), metadata.ship_days_max, row.ae_ship_days_max),
     socialProofLabel: orders > 500 ? `${orders}+ comenzi` : orders > 100 ? `${orders}+ vandute` : orders > 10 ? "Popular" : undefined,
-    commerceBadge: orders > 500 ? "Se vinde bine" : rating >= 4.8 && orders > 100 ? "Alegere sigura" : discountPercent >= 30 ? "Super reducere" : undefined,
+    commerceBadge: orders > 500 ? "Se vinde bine" : discountPercent >= 30 ? "Super reducere" : undefined,
     dealLabel: discountPercent >= 20 ? "Super Deal" : discountPercent >= 10 ? "Pret bun" : "Nou",
   };
 }
@@ -901,7 +905,9 @@ export async function searchProducts(filters: ProductFilters = {}) {
   const taxonomyMap = slugList.length > 0 ? await resolveTaxonomyLabels(slugList, locale) : undefined;
   const idList = sliced.map((r) => String(r.id)).filter(Boolean);
   const translationsMap = idList.length > 0 ? await loadProductTranslations(idList, locale) : undefined;
-  const products = sliced.map((row) => transformProduct(row, locale, taxonomyMap, translationsMap));
+  const products = await applyReviewRatings(
+    sliced.map((row) => transformProduct(row, locale, taxonomyMap, translationsMap)),
+  );
   return { products, total, offset, limit: cappedLimit, hasMore };
 }
 
@@ -925,7 +931,8 @@ export async function getProductById(id: string, locale = "ro") {
   const slug = typeof rows[0].taxonomy_node_slug === "string" ? rows[0].taxonomy_node_slug : "";
   const taxonomyMap = slug ? await resolveTaxonomyLabels([slug], locale) : undefined;
   const translationsMap = await loadProductTranslations([String(rows[0].id)], locale);
-  return transformProduct(rows[0], locale, taxonomyMap, translationsMap);
+  const [product] = await applyReviewRatings([transformProduct(rows[0], locale, taxonomyMap, translationsMap)]);
+  return product;
 }
 
 // Doar produse clasice pot fi cumparate prin checkout-ul de cos. Verticalele

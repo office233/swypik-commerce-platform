@@ -14,6 +14,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { LocalOrderCreateSchema, parseBody } from "@/lib/validation/schemas";
 import { logger } from "@/lib/logger";
+import { isMerchantOrderable } from "@/lib/merchants/listing-mode";
 import { maybeAutoDispatch } from "@/lib/dispatch/auto";
 import { resolveDeliveryFee } from "@/lib/pricing/delivery";
 import { haversineKm } from "@/lib/pricing/distance";
@@ -57,13 +58,18 @@ export async function POST(req: Request) {
         // Merchant activ + deschis
         const { rows: merchants } = await dbQuery(
             `SELECT id, name, status, min_order_cents, delivery_fee_cents, is_open_override, avg_prep_minutes,
-                delivery_radius_km, location_city, location_country, location_lat, location_lng
+                delivery_radius_km, location_city, location_country, location_lat, location_lng, listing_mode
          FROM local_merchants WHERE id = $1`,
             [d.merchant_id],
         );
         const merchant = merchants[0];
         if (!merchant || merchant.status !== "active") {
             return NextResponse.json({ success: false, error: "Restaurantul nu e disponibil." }, { status: 404 });
+        }
+        // Profilurile nerevendicate (ex. importate din OpenStreetMap) sunt doar
+        // „sugerează proprietarului" — nu se poate comanda de la ele.
+        if (!isMerchantOrderable(merchant)) {
+            return NextResponse.json({ success: false, code: "merchant_not_orderable", error: "Restaurantul nu primește încă comenzi prin Swypik." }, { status: 409 });
         }
         if (merchant.is_open_override === false) {
             return NextResponse.json({ success: false, error: "Restaurantul este închis momentan." }, { status: 409 });

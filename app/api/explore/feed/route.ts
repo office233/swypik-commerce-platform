@@ -929,7 +929,11 @@ export async function GET(request: NextRequest) {
             inventoryStatus: row.mp_inventory_status || null,
             taxonomyNodeSlug: row.mp_taxonomy_node_slug || null,
             shippingCents,
-            deliveryLabel: shippingCents === 0
+            // Listările de verticală (zboruri, cazări — metadata.vertical) nu se
+            // livrează: fără etichetă de livrare (era „Livrare inclusă" pe zboruri).
+            deliveryLabel: (row.mp_metadata as Record<string, unknown> | null)?.["vertical"]
+              ? null
+              : shippingCents === 0
               ? "Livrare inclusă"
               : shippingCents
                 ? `Livrare ${formatMoney(shippingCents, currency)}`
