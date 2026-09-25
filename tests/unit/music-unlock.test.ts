@@ -6,6 +6,13 @@ let stripeCreateCalls: Array<Record<string, unknown>> = [];
 let creditCalls: Array<Record<string, unknown>> = [];
 let debitCalls: Array<Record<string, unknown>> = [];
 let revokeMatches = true;
+let claimed = new Set<string>();
+let outcomes: Array<[unknown, unknown]> = [];
+let refundCalls: Array<Record<string, unknown>> = [];
+let grantMatches = true;
+let currentRow: { status: string; payment_intent_id: string | null } | null = null;
+let seasonPaid = false;
+const insertSql: string[] = [];
 
 const premiumTrack = { id: "t2", artist_user_id: "artist-1", status: "published", is_premium: true, price_cents: "300" };
 const freeTrack = { id: "t1", artist_user_id: "artist-1", status: "published", is_premium: false, price_cents: null };
@@ -18,6 +25,12 @@ vi.mock("@/lib/stripe/checkout", () => ({
       create: vi.fn(async (params: Record<string, unknown>) => {
         stripeCreateCalls.push(params);
         return createdIntent;
+      }),
+    },
+    refunds: {
+      create: vi.fn(async (params: Record<string, unknown>, opts: Record<string, unknown>) => {
+        refundCalls.push({ ...params, ...opts });
+        return { id: "re_1" };
       }),
     },
   }),
@@ -34,6 +47,18 @@ vi.mock("@/lib/wallet/ledger", () => ({
 }));
 
 async function query(sql: string, params: unknown[] = []) {
+  if (sql.startsWith("INSERT INTO media_unlock_payments")) {
+    const pi = String(params[0]);
+    if (claimed.has(pi)) return { rows: [], rowCount: 0 };
+    claimed.add(pi);
+    return { rows: [{ payment_intent_id: pi }], rowCount: 1 };
+  }
+  if (sql.startsWith("UPDATE media_unlock_payments")) { outcomes.push([params[0], params[1]]); return { rows: [], rowCount: 1 }; }
+  if (sql.startsWith("SELECT status, payment_intent_id FROM music_unlocks")) return { rows: currentRow ? [currentRow] : [], rowCount: currentRow ? 1 : 0 };
+  if (sql.startsWith("SELECT 1 FROM music_unlocks WHERE user_id")) return { rows: seasonPaid ? [{ "?column?": 1 }] : [], rowCount: seasonPaid ? 1 : 0 };
+  if (sql.startsWith("UPDATE music_unlocks SET amount_cents")) return { rows: [], rowCount: 1 };
+  if (sql.startsWith("INSERT INTO music_unlocks")) insertSql.push(sql);
+  if (sql.includes("UPDATE music_unlocks u") && sql.includes("SET status = 'paid'") && !grantMatches) return { rows: [], rowCount: 0 };
   if (sql.includes("FROM music_tracks t WHERE t.id = $1")) return { rows: [currentTrack], rowCount: 1 };
   if (sql.includes("FROM music_albums al WHERE al.id = $1")) {
     return { rows: [{ id: "al1", artist_user_id: "artist-1", status: "published", price_cents: null }], rowCount: 1 };
@@ -70,6 +95,13 @@ beforeEach(() => {
   creditCalls = [];
   debitCalls = [];
   revokeMatches = true;
+  claimed = new Set();
+  outcomes = [];
+  refundCalls = [];
+  grantMatches = true;
+  currentRow = null;
+  seasonPaid = false;
+  insertSql.length = 0;
   currentTrack = premiumTrack;
 });
 
@@ -142,5 +174,19 @@ describe("music/unlock — card (Stripe, RON)", () => {
     revokeMatches = false;
     await expect(revokeMusicUnlockForPayment("pi_other", "refund")).resolves.toBe(false);
     expect(debitCalls).toHaveLength(0);
+  });
+});
+
+describe("music/unlock — idempotență și plată dublă", () => {
+  it("retry Stripe → o singură cotă; plata duplicată cu alt intent → rambursată", async () => {
+    await markMusicUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 300, currency: "ron" });
+    await markMusicUnlockPaid({ paymentIntentId: "pi_1", unlockId: "unlock-1", amountReceivedCents: 300, currency: "ron" });
+    expect(creditCalls).toHaveLength(1);
+    grantMatches = false;
+    currentRow = { status: "paid", payment_intent_id: "pi_1" };
+    await markMusicUnlockPaid({ paymentIntentId: "pi_2", unlockId: "unlock-1", amountReceivedCents: 300, currency: "ron" });
+    expect(creditCalls).toHaveLength(1);
+    expect(refundCalls).toHaveLength(1);
+    expect(outcomes).toEqual([["pi_1", "granted"], ["pi_2", "duplicate_refunded"]]);
   });
 });

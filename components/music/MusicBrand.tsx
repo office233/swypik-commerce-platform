@@ -1,17 +1,16 @@
-import Link from "next/link";
-import { MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
+import { Link } from "@/lib/i18n/navigation";
+import { cn } from "@/lib/ui/cn";
 
-/**
- * Wordmark „SWYPIK MUSIC": alb + violet (`#7C3AED`) cu glow, aceleași litere
- * condensate ca la Movies (`MOVIES_DISPLAY_CLASS` — fontul se importă din
- * `components/movies/fonts`, nu se duplică).
- */
+/** Wordmark „SWYPIK MUSIC" — doar tokeni (gradientul de brand). */
 export default function MusicBrand({ href = "/music", size = "md" }: { href?: string; size?: "md" | "lg" }) {
-  const sizeClass = size === "lg" ? "text-4xl" : "text-2xl";
   return (
-    <Link href={href} aria-label="Swypik Music" className={`${MOVIES_DISPLAY_CLASS} inline-flex items-baseline gap-1 leading-none tracking-wide ${sizeClass}`}>
-      <span className="text-white">SWYPIK</span>
-      <span className="text-[#7C3AED] drop-shadow-[0_0_12px_rgba(124,58,237,0.55)]">MUSIC</span>
+    <Link
+      href={href}
+      aria-label="Swypik Music"
+      className={cn("inline-flex min-h-11 items-center gap-1.5 font-black leading-none tracking-tight", size === "lg" ? "text-3xl" : "text-lg")}
+    >
+      <span className="text-fg">SWYPIK</span>
+      <span className="bg-brand-gradient bg-clip-text text-transparent">MUSIC</span>
     </Link>
   );
 }
