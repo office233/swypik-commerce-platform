@@ -26,7 +26,7 @@ Coduri de ieșire: `0` toate serviciile au imagine nouă · `1` deploy incomplet
 | `video-worker` | `workers/video-worker` | Python, transcodare HLS |
 | `cron-worker` | `infra/hetzner/cron-worker` | `run.sh`, declanșator de cron |
 
-Restul (`postgres`, `redis`, `minio`, `mediamtx`) sunt imagini externe pinned;
+Restul (`postgres`, `redis`, `minio`) sunt imagini externe pinned;
 `caddy` și `pgbouncer` sunt dezactivate prin `profiles: [disabled]`.
 
 ### Trei capcane care ne-au costat producția
@@ -349,7 +349,7 @@ Doar acestea au `build:` în compose și pot rămâne în urmă la un deploy par
 | `video-worker` | `workers/video-worker` | Python: transcodare HLS (3 replici) |
 | `cron-worker` | `infra/hetzner/cron-worker` | `run.sh` — declanșatorul joburilor cron |
 
-Restul sunt imagini externe pinned (`postgres`, `redis`, `minio`, `mediamtx`) sau
+Restul sunt imagini externe pinned (`postgres`, `redis`, `minio`) sau
 dezactivate prin `profiles: [disabled]` (`caddy`, `pgbouncer`). Nu se reconstruiesc.
 
 ### ⚠️ Capcana: „deploy reușit" ≠ „cod nou în producție"

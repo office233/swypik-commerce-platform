@@ -3,11 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth/session";
-import { deleteRoom, isLiveKitConfigured } from "@/lib/livekit/server";
-import { liveRoomName } from "@/lib/live/config";
-import { markStreamEnded } from "@/lib/live/lifecycle";
+import { endLiveStream } from "@/lib/live/media";
 import { getLiveItems, getLiveStream } from "@/lib/live/queries";
-import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { invalidIdResponse, isUuidParam } from "@/lib/validation/params";
 import { parseBody } from "@/lib/validation/schemas";
@@ -58,11 +55,9 @@ async function PATCH_impl(req: NextRequest, { params }: Ctx) {
     );
   }
   if (status === "ended") {
-    await markStreamEnded({ streamId: id }, { includeScheduled: true });
-    // Închide camera LiveKit pentru toți spectatorii (best-effort).
-    if (isLiveKitConfigured()) {
-      await deleteRoom(liveRoomName(id)).catch((err) => logger.info({ err, streamId: id }, "[live] deleteRoom skipped"));
-    }
+    // ended + curăță heartbeat-urile din Redis + anunță spectatorii (SSE). Track-urile
+    // SFU ale gazdei expiră singure când browserul gazdei închide conexiunea.
+    await endLiveStream(id, { includeScheduled: true });
   }
   return NextResponse.json({ ok: true });
 }

@@ -18,7 +18,7 @@ import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
 import { useChat } from "./useChat";
 
-// SDK-ul LiveKit (greu) se încarcă doar când pornește un apel.
+// SDK-ul RealtimeKit (greu) se încarcă doar când pornește un apel.
 const ActiveCallOverlay = dynamic(() => import("../Calls/ActiveCallOverlay"), { ssr: false });
 
 export type ChatLimits = { maxBody: number; pageSize: number; maxImageMb: number };
@@ -103,8 +103,7 @@ export default function ChatScreen({ conversationId, viewerId, limits }: Props) 
 
       {calls.active ? (
         <ActiveCallOverlay
-          serverUrl={calls.active.serverUrl}
-          token={calls.active.token}
+          authToken={calls.active.authToken}
           callType={calls.active.callType}
           onDisconnect={calls.end}
         />

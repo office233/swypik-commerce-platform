@@ -11,10 +11,10 @@ vi.mock("@/lib/push/web-push", () => ({ sendPushToUser: push }));
 vi.mock("@/lib/auth/session", () => ({ getAuthSession: async () => ({ userId: "creator-1", role: "creator" }) }));
 vi.mock("@/lib/security/rate-limit", () => ({ rateLimit: async () => ({ success: true, remaining: 1 }) }));
 
-process.env.INTERNAL_SECRET = "internal-secret-123";
-
 import { POST as createStream } from "@/app/api/live/streams/route";
-import { POST as started } from "@/app/api/internal/live/started/route";
+import { markStreamLive } from "@/lib/live/lifecycle";
+
+const STREAM = "0f8fad5b-d9cb-469f-a165-70867728950e";
 
 beforeEach(() => {
   push.mockClear();
@@ -24,7 +24,7 @@ beforeEach(() => {
     if (sql.includes("INSERT INTO live_streams")) return { rows: [{ id: "s-1" }], rowCount: 1 };
     if (sql.includes("UPDATE live_streams ls SET status = 'live'")) {
       return state.prevStatus
-        ? { rows: [{ id: "s-1", creator_id: "creator-1", title: "T", prev_status: state.prevStatus }], rowCount: 1 }
+        ? { rows: [{ id: STREAM, creator_id: "creator-1", title: "T", prev_status: state.prevStatus }], rowCount: 1 }
         : { rows: [], rowCount: 0 };
     }
     if (sql.includes("FROM follows")) return { rows: [{ follower_user_id: "f-1" }], rowCount: 1 };
@@ -32,43 +32,33 @@ beforeEach(() => {
   });
 });
 
-function startedReq(secret = "internal-secret-123"): Request {
-  return new Request("http://localhost/api/internal/live/started", {
-    method: "POST",
-    // mediamtx trimite form-urlencoded (curl -d "path=$MTX_PATH")
-    headers: { "x-internal": secret, "content-type": "application/x-www-form-urlencoded" },
-    body: "path=live/abcdef123456",
-  });
-}
-
 describe("live stream lifecycle", () => {
-  it("creates streams as 'scheduled' even without scheduled_at", async () => {
+  it("creates Cloudflare SFU streams as 'scheduled' even without scheduled_at", async () => {
     const res = await createStream(
       new Request("http://localhost/api/live/streams", { method: "POST", body: JSON.stringify({ title: "Show" }) }) as never,
     );
     expect(res.status).toBe(200);
     expect((await res.json()).status).toBe("scheduled");
     const insert = dbQuery.mock.calls.find((c) => String(c[0]).includes("INSERT INTO live_streams"));
-    expect((insert?.[1] as unknown[]).at(-1)).toBe("scheduled");
+    const params = insert?.[1] as unknown[];
+    expect(params.at(-1)).toBe("scheduled");
+    expect(params).toContain("cf_sfu");
   });
 
-  it("goes live only through the signed media-server callback and notifies followers once", async () => {
-    expect((await started(startedReq("wrong-secret-xxx") as never)).status).toBe(403);
-    const res = await started(startedReq() as never);
-    expect(res.status).toBe(200);
+  it("goes live once and notifies followers once", async () => {
+    const went = await markStreamLive({ streamId: STREAM, creatorId: "creator-1" });
+    expect(went?.id).toBe(STREAM);
     expect(push).toHaveBeenCalledTimes(1);
   });
 
-  it("does not re-notify on encoder reconnect", async () => {
+  it("does not re-notify when the host reconnects while already live", async () => {
     state.prevStatus = "live";
-    const res = await started(startedReq() as never);
-    expect(res.status).toBe(200);
+    await markStreamLive({ streamId: STREAM, creatorId: "creator-1" });
     expect(push).not.toHaveBeenCalled();
   });
 
   it("does not revive an ended stream", async () => {
     state.prevStatus = null;
-    const res = await started(startedReq() as never);
-    expect(res.status).toBe(404);
+    expect(await markStreamLive({ streamId: STREAM })).toBeNull();
   });
 });

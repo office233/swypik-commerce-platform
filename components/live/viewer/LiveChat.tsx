@@ -7,18 +7,29 @@ import { IconButton } from "@/components/ui/IconButton";
 import { useToast } from "@/components/ui/Toast";
 import { Link } from "@/lib/i18n/navigation";
 
+/** Starea streamului publicată prin același SSE (`event: state`, Redis `live:stream:<id>`). */
+export type LiveStateUpdate = {
+  status: "scheduled" | "live" | "ended" | "failed";
+  viewers?: number;
+  publishedAt?: string | null;
+};
+
 type ChatMsg = { id: number; user_id: string; message: string; username: string | null; display_name: string | null };
 
 const MAX_VISIBLE = 50;
 
 /** Chat suprapus peste video (SSE existent din /api/live/streams/[id]/chat). */
-export function LiveChat({ streamId, canChat, signedIn }: { streamId: string; canChat: boolean; signedIn: boolean }) {
+type Props = { streamId: string; canChat: boolean; signedIn: boolean; onState?: (state: LiveStateUpdate) => void };
+
+export function LiveChat({ streamId, canChat, signedIn, onState }: Props) {
   const t = useTranslations("live.chat");
   const { toast } = useToast();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const onStateRef = useRef(onState);
+  onStateRef.current = onState;
 
   useEffect(() => {
     const es = new EventSource(`/api/live/streams/${streamId}/chat`);
@@ -26,6 +37,13 @@ export function LiveChat({ streamId, canChat, signedIn }: { streamId: string; ca
       try {
         const m = JSON.parse(e.data) as ChatMsg;
         setMessages((prev) => (prev.some((p) => p.id === m.id) ? prev : [...prev.slice(-(MAX_VISIBLE - 1)), m]));
+      } catch {
+        // payload invalid — ignorat
+      }
+    });
+    es.addEventListener("state", (e: MessageEvent<string>) => {
+      try {
+        onStateRef.current?.(JSON.parse(e.data) as LiveStateUpdate);
       } catch {
         // payload invalid — ignorat
       }

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/session";
 import { dbQuery } from "@/lib/db";
-import { isLiveKitConfigured } from "@/lib/livekit/server";
+import { isLiveMediaConfigured } from "@/lib/live/config";
 import LiveStudioClient, { type StudioStream } from "./LiveStudioClient";
 
 export const dynamic = "force-dynamic";
@@ -20,5 +20,5 @@ export default async function CreatorLivePage() {
       ORDER BY created_at DESC LIMIT $2`,
     [session.userId, STUDIO_LIST_LIMIT],
   );
-  return <LiveStudioClient streams={rows} configured={isLiveKitConfigured()} />;
+  return <LiveStudioClient streams={rows} configured={isLiveMediaConfigured()} />;
 }

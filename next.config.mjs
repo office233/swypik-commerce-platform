@@ -9,26 +9,21 @@ const isDev = process.env.NODE_ENV === "development";
 // Ținut într-o constantă fiindcă CSP-ul e definit în TREI locuri (aici de două
 // ori + `middleware.ts`); a fost deja o sursă de divergență.
 const SENTRY_CONNECT_SRC = "https://*.ingest.sentry.io";
-// LiveKit (Swypik Messenger calls) needs its own websocket host in connect-src
-// when configured. Built from NEXT_PUBLIC_LIVEKIT_URL (e.g. wss://foo.livekit.cloud)
-// so it stays in sync with the value the client SDK actually connects to.
-const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
-let LIVEKIT_CONNECT_SRC = "";
-try {
-  if (LIVEKIT_URL) {
-    const u = new URL(LIVEKIT_URL.replace(/^ws/, "http"));
-    LIVEKIT_CONNECT_SRC = `wss://${u.host} https://${u.host}`;
-  }
-} catch {
-  LIVEKIT_CONNECT_SRC = "";
-}
+// Cloudflare Realtime: RealtimeKit (apeluri Messenger) vorbește din browser cu
+// API-ul/socket-ul lui pe *.realtime.cloudflare.com. Live (SFU) NU are nevoie de
+// intrări aici: semnalizarea trece prin /api/live/* (same-origin), iar media
+// WebRTC/TURN (UDP/TCP, turn.cloudflare.com) nu e guvernată de connect-src.
+// Suprascriere/extindere: CSP_REALTIME_CONNECT_SRC (listă separată prin spații).
+const REALTIME_CONNECT_SRC =
+  process.env.CSP_REALTIME_CONNECT_SRC ||
+  "https://*.realtime.cloudflare.com wss://*.realtime.cloudflare.com";
 // Explicit allowlist — do NOT widen back to `https:` (open connect-src let any
 // page/script exfiltrate to arbitrary hosts). New modules (Movies, Music, News,
 // Gaming, Messenger) call third-party APIs (Audius,
 // Jamendo, Radio-Browser, CheapShark, OpenTDB, Gemini) ONLY from
 // server code (lib/**), never from the browser — see app/api/* proxies — so
 // none of those hosts need to be here.
-const CONNECT_SRC = `'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC}${LIVEKIT_CONNECT_SRC ? ` ${LIVEKIT_CONNECT_SRC}` : ""}`;
+const CONNECT_SRC = `'self' https://swypik.com https://www.swypik.com https://api.swypik.com https://media.swypik.com https://cdn.swypik.com https://api.stripe.com https://*.stripe.com ${SENTRY_CONNECT_SRC} ${REALTIME_CONNECT_SRC}`;
 // media-src stays broad (`https:`) on purpose: Swypik Music plays internet
 // radio streams (lib/audio/radio-browser.ts) whose stream URLs come from
 // arbitrary stations' own hosts picked at request time — there is no fixed
@@ -41,6 +36,7 @@ const cspHeader = `
   img-src 'self' data: blob: https:;
   media-src 'self' blob: data: https:;
     connect-src ${CONNECT_SRC};
+  worker-src 'self' blob:;
   frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
   object-src 'none';
@@ -56,6 +52,7 @@ const cspReportOnly = `
   img-src 'self' data: blob: https:;
   media-src 'self' blob: data: https:;
   connect-src ${CONNECT_SRC};
+  worker-src 'self' blob:;
   frame-src https://js.stripe.com https://hooks.stripe.com;
   font-src 'self' data:;
   object-src 'none';

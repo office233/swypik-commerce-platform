@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Eye, ShoppingBag, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,12 +10,11 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Link } from "@/lib/i18n/navigation";
 import type { LiveShopItem, LiveStreamPublic } from "@/lib/live/queries";
 import { LiveStateCard } from "../LiveStateCard";
-import { useLiveToken } from "../useLiveToken";
-import { LiveChat } from "./LiveChat";
+import type { LivePulse } from "../rtc/client";
+import { useViewerSubscriber } from "../rtc/useViewerSubscriber";
+import { LiveChat, type LiveStateUpdate } from "./LiveChat";
 import { PinnedProduct, ProductsSheet } from "./LiveProducts";
-
-// SDK-ul WebRTC se încarcă doar când streamul chiar e live.
-const LiveVideo = dynamic(() => import("./LiveVideo"), { ssr: false });
+import LiveVideo from "./LiveVideo";
 
 type Props = {
   initialStream: LiveStreamPublic;
@@ -26,7 +24,11 @@ type Props = {
   pollMs: number;
 };
 
-/** Viewer full-screen (ImmersiveSurface): video LiveKit, chat suprapus, produs fixat. */
+/**
+ * Viewer full-screen (ImmersiveSurface): video WebRTC din SFU-ul Cloudflare,
+ * chat suprapus, produs fixat. Starea (live/ended, spectatori, republicare)
+ * vine prin SSE (`event: state`) + heartbeat; poll-ul rămâne plasă de siguranță.
+ */
 export default function LiveViewer({ initialStream, initialItems, configured, signedIn, pollMs }: Props) {
   const t = useTranslations("live.viewer");
   const [stream, setStream] = useState(initialStream);
@@ -34,7 +36,15 @@ export default function LiveViewer({ initialStream, initialItems, configured, si
   const [productsOpen, setProductsOpen] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const isLive = stream.status === "live";
-  const token = useLiveToken(stream.id, "viewer", configured && isLive, retryKey);
+  const publishedAt = useRef(initialStream.sfu_published_at);
+
+  const applyState = useCallback((u: LiveStateUpdate | LivePulse) => {
+    setStream((s) => ({ ...s, status: u.status, viewer_count: u.viewers ?? s.viewer_count }));
+    // Gazda a republicat (reconectare): tragem noua sesiune.
+    if (u.publishedAt && publishedAt.current && u.publishedAt !== publishedAt.current) setRetryKey((k) => k + 1);
+    if (u.publishedAt) publishedAt.current = u.publishedAt;
+  }, []);
+  const player = useViewerSubscriber(stream.id, configured && isLive, retryKey, applyState);
 
   // Status, spectatori, produs fixat: reîmprospătare periodică (până la final).
   useEffect(() => {
@@ -45,13 +55,14 @@ export default function LiveViewer({ initialStream, initialItems, configured, si
         if (!res.ok) return;
         const data = (await res.json()) as { stream: LiveStreamPublic; items: LiveShopItem[] };
         setStream(data.stream);
+        applyState({ status: data.stream.status, viewers: data.stream.viewer_count, publishedAt: data.stream.sfu_published_at });
         setItems(data.items);
       } catch {
         // rețea — următorul tick
       }
     }, pollMs);
     return () => clearInterval(timer);
-  }, [stream.id, stream.status, pollMs]);
+  }, [stream.id, stream.status, pollMs, applyState]);
 
   const name = stream.display_name || (stream.username ? `@${stream.username}` : t("creatorFallback"));
   const pinned = items.find((i) => i.is_pinned) ?? null;
@@ -60,9 +71,9 @@ export default function LiveViewer({ initialStream, initialItems, configured, si
   if (!configured) stage = <LiveStateCard kind="unconfigured" />;
   else if (stream.status === "scheduled") stage = <LiveStateCard kind="scheduled" scheduledAt={stream.scheduled_at} />;
   else if (!isLive) stage = <LiveStateCard kind="ended" />;
-  else if (token.status === "ready") {
-    stage = <LiveVideo connection={token.connection} onDisconnected={() => setRetryKey((k) => k + 1)} />;
-  } else if (token.status === "error") {
+  else if (player.state.status === "playing") {
+    stage = <LiveVideo media={player.media} />;
+  } else if (player.state.status === "error") {
     stage = <LiveStateCard kind="error" onRetry={() => setRetryKey((k) => k + 1)} />;
   } else stage = <LiveStateCard kind="connecting" />;
 
@@ -101,7 +112,7 @@ export default function LiveViewer({ initialStream, initialItems, configured, si
 
       {/* Zona de jos (deasupra BottomNav prin --bottom-inset): chat + produs fixat + produse */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 space-y-2 bg-gradient-to-t from-black/60 to-transparent px-gutter pb-[calc(var(--bottom-inset)+0.75rem)] pt-16">
-        {isLive || stream.status === "scheduled" ? <LiveChat streamId={stream.id} canChat={isLive} signedIn={signedIn} /> : null}
+        {isLive || stream.status === "scheduled" ? <LiveChat streamId={stream.id} canChat={isLive} signedIn={signedIn} onState={applyState} /> : null}
         {pinned ? <PinnedProduct item={pinned} /> : null}
         {items.length > 0 ? (
           <Button variant="secondary" size="sm" className="pointer-events-auto" onClick={() => setProductsOpen(true)}>

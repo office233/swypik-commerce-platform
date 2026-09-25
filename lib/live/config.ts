@@ -1,7 +1,9 @@
 /**
- * Swypik Live — nume de cameră/identități LiveKit și limite reglabile din env
- * (LIVE_<NUME>_LIMIT / _WINDOW, LIVE_NOTIFY_PUSH_MAX, LIVE_POLL_MS …).
+ * Swypik Live — limite și temporizări reglabile din env
+ * (LIVE_<NUME>_LIMIT / _WINDOW, LIVE_NOTIFY_PUSH_MAX, LIVE_POLL_MS,
+ * LIVE_HEARTBEAT_TTL, LIVE_HEARTBEAT_INTERVAL_MS …).
  */
+import { isSfuConfigured } from "@/lib/realtime/config";
 import type { RateLimitConfig } from "@/lib/security/rate-limit";
 
 function envInt(name: string, fallback: number): number {
@@ -18,48 +20,30 @@ function limit(key: string, defLimit: number, defWindow: number): RateLimitConfi
 export const LIVE_CONFIG = {
   /** Câți followeri primesc push la pornirea unui live (notificarea in-app o primesc toți). */
   get notifyPushMax() { return envInt("LIVE_NOTIFY_PUSH_MAX", 500); },
-  /** Cât de des își reîmprospătează viewer-ul numărul de spectatori și produsele. */
+  /** Plasă de siguranță: cât de des își reîmprospătează clientul streamul (SSE face restul). */
   get viewerPollMs() { return envInt("LIVE_POLL_MS", 15000); },
-  /** Valabilitatea token-ului LiveKit. */
-  get tokenTtl() { return process.env.LIVE_TOKEN_TTL || "4h"; },
+  /** După câte secunde fără heartbeat de la gazdă streamul se încheie. */
+  get heartbeatTtlSec() { return envInt("LIVE_HEARTBEAT_TTL", 20); },
+  /** Cât de des trimit gazda și spectatorii heartbeat (trebuie < TTL). */
+  get heartbeatIntervalMs() { return Math.min(envInt("LIVE_HEARTBEAT_INTERVAL_MS", 7000), envInt("LIVE_HEARTBEAT_TTL", 20) * 500); },
+  /** Cât trăiește legătura sesiune SFU spectator → stream (pentru răspunsul SDP și heartbeat). */
+  get viewerSessionTtlSec() { return envInt("LIVE_VIEWER_SESSION_TTL", 6 * 3600); },
   rate: {
-    get hostToken() { return limit("HOST_TOKEN", 20, 60); },
-    get viewerTokenIp() { return limit("VIEWER_TOKEN_IP", 60, 60); },
+    get hostPublish() { return limit("HOST_PUBLISH", 20, 60); },
+    get viewerWatchIp() { return limit("VIEWER_WATCH_IP", 60, 60); },
+    get heartbeatIp() { return limit("HEARTBEAT_IP", 600, 60); },
+    get iceIp() { return limit("ICE_IP", 60, 60); },
   },
 } as const;
 
-const ROOM_PREFIX = "live-";
-const HOST_PREFIX = "host:";
-const VIEWER_PREFIX = "viewer:";
-
-export function liveRoomName(streamId: string): string {
-  return `${ROOM_PREFIX}${streamId}`;
+/**
+ * Media Live funcționează doar cu SFU-ul Cloudflare configurat ȘI Redis
+ * (heartbeat-uri, spectatori, fan-out). Altfel: 503 onest + mesaj în UI.
+ */
+export function isLiveMediaConfigured(): boolean {
+  return isSfuConfigured() && Boolean(process.env.REDIS_URL?.trim());
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Id-ul streamului dintr-un nume de cameră `live-<uuid>`, altfel null (ex. camere de apel). */
-export function streamIdFromRoom(roomName: string | undefined | null): string | null {
-  if (!roomName?.startsWith(ROOM_PREFIX)) return null;
-  const id = roomName.slice(ROOM_PREFIX.length);
-  return UUID_RE.test(id) ? id : null;
-}
-
-export function hostIdentity(userId: string): string {
-  return `${HOST_PREFIX}${userId}`;
-}
-
-export function viewerIdentity(userIdOrGuest: string): string {
-  return `${VIEWER_PREFIX}${userIdOrGuest}`;
-}
-
-/** User id-ul gazdei dintr-o identitate `host:<uuid>`, altfel null. */
-export function hostUserIdFromIdentity(identity: string | undefined | null): string | null {
-  if (!identity?.startsWith(HOST_PREFIX)) return null;
-  const id = identity.slice(HOST_PREFIX.length);
-  return UUID_RE.test(id) ? id : null;
-}
-
-export function isViewerIdentity(identity: string | undefined | null): boolean {
-  return Boolean(identity?.startsWith(VIEWER_PREFIX));
-}
+/** Numele track-urilor publicate de gazdă (validate la publicare). */
+export const LIVE_TRACK_NAMES = ["video", "audio"] as const;
+export type LiveTrackName = (typeof LIVE_TRACK_NAMES)[number];
