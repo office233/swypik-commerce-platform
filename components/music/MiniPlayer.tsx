@@ -11,7 +11,7 @@ import { useMusicPlayer } from "./MusicPlayerProvider";
 
 const BOTTOM_NAV_HIDDEN_PATHS = [
     "/movies", "/music", "/go", "/checkout", "/reels/record", "/seller", "/sellers",
-    "/creator", "/admin", "/auth", "/upload", "/product", "/courier", "/developers",
+    "/creator", "/admin", "/auth", "/upload", "/product", "/courier",
 ];
 const BOTTOM_NAV_HEIGHT_PX = 56;
 

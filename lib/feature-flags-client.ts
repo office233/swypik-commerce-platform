@@ -36,7 +36,6 @@ export const CLIENT_FEATURES = {
   // Squad Buy a fost ȘTERS (2026-09-26). Rămâne constant false DOAR pentru că
   // CategorySidebar/EcosystemBar (navigație, altă echipă) îl mai citesc; șterge
   // cheia după ce acele linkuri dispar. Nu mai citește niciun env.
-  squadBuy: false,
   // Swypik Cares (donații) — trebuie setat ÎMPREUNĂ cu FEATURE_CARES (server).
   cares: flag(process.env.NEXT_PUBLIC_FEATURE_CARES, false),
   // OFF by default — explicit opt-in via NEXT_PUBLIC_FEATURE_X=1 at build time,
