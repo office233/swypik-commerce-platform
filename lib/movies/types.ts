@@ -1,3 +1,5 @@
+import type { LicenseType, PublicAttribution, TitleFormat } from "./license";
+
 export type SeriesStatus = "draft" | "pending_review" | "published" | "archived";
 export type EpisodeStatus = "draft" | "published";
 
@@ -20,6 +22,13 @@ export type MovieSeriesRow = {
     episode_price_cents: number | null;
     is_adult: boolean;
     license_note: string | null;
+    /** Metadate de licență (migrarea 20260926_0040) — obligatorii la publicare, vezi lib/movies/license.ts. */
+    format: TitleFormat;
+    license_type: LicenseType | null;
+    attribution_text: string | null;
+    license_source_url: string | null;
+    license_territories: string[];
+    license_expires_at: string | null;
     published_at: string | null;
     created_at: string;
     updated_at: string;
@@ -105,4 +114,7 @@ export type SeriesDto = {
     isAdult: boolean;
     episodeCount: number;
     owner: { id: string; name: string; isOfficial: boolean };
+    format: TitleFormat;
+    /** Atribuirea cerută de licență (CC BY etc.), afișată pe pagina titlului. */
+    attribution: PublicAttribution | null;
 };

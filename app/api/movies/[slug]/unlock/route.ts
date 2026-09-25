@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { parseBody } from "@/lib/validation/schemas";
 import { getSeriesBySlug } from "@/lib/movies/repository";
 import { createEpisodeUnlockIntent, createSeasonUnlockIntent } from "@/lib/movies/unlock";
+import { getUnlockStatus } from "@/lib/movies/unlock-status";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,28 @@ const BodySchema = z.union([
     z.object({ episodeId: z.string().uuid() }),
     z.object({ season: z.literal(true) }),
 ]);
+
+const StatusQuerySchema = z.object({ episodeId: z.string().uuid().optional() });
+
+/**
+ * GET /api/movies/[slug]/unlock?episodeId=… (fără episodeId = sezonul):
+ * starea deblocării pentru userul curent — clientul o interoghează după
+ * confirmarea plății, până când webhook-ul Stripe o marchează `paid`.
+ */
+export const GET = withErrorHandling(async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+    if (!isEnabled("movies")) return frozenResponse("movies");
+    const user = await getAuthUser();
+    if (!user.userId) return NextResponse.json({ error: "auth_required" }, { status: 401 });
+    const rl = await rateLimit("moviesProgress", user.userId);
+    if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    const parsed = StatusQuerySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
+    if (!parsed.success) return NextResponse.json({ error: "invalid_query" }, { status: 400 });
+    const { slug } = await params;
+    const series = await getSeriesBySlug(slug);
+    if (!series) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    const status = await getUnlockStatus(user.userId, series.id, parsed.data.episodeId ?? null);
+    return NextResponse.json({ status }, { headers: { "cache-control": "private, no-store" } });
+});
 
 const FAILURE_STATUS = {
     not_found: 404,

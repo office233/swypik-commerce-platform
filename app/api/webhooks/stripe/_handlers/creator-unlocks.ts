@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { logger } from "@/lib/logger";
 import { markMovieUnlockPaid, revokeMovieUnlockForPayment } from "@/lib/movies/unlock";
 import { markMusicUnlockPaid, revokeMusicUnlockForPayment } from "@/lib/music/unlock";
+import { isKnownUnlockPayment } from "@/lib/media/unlock-payments";
 
 /** `metadata.kind` values that this handler owns (routed from `route.ts`). */
 export const CREATOR_UNLOCK_KINDS = new Set(["movie_unlock", "music_track_unlock", "music_album_unlock"]);
@@ -40,5 +41,7 @@ export async function handleCreatorUnlockPaymentSucceeded(event: Stripe.Event): 
 export async function revokeCreatorUnlockForPayment(paymentIntentId: string, reason: string): Promise<boolean> {
     const movie = await revokeMovieUnlockForPayment(paymentIntentId, reason);
     if (movie) return true;
-    return revokeMusicUnlockForPayment(paymentIntentId, reason);
+    if (await revokeMusicUnlockForPayment(paymentIntentId, reason)) return true;
+    // Rambursarea automată a unei plăți duplicate: aparține deblocărilor, nu comenzilor.
+    return isKnownUnlockPayment(paymentIntentId);
 }

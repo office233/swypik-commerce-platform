@@ -6,7 +6,11 @@ import { syncEpisodeVisibility } from "./visibility";
 const SERIES_COLS = `id, slug, owner_user_id, title, synopsis, genres, language_code, cover_url, poster_url,
     trailer_video_id, status, free_episodes, episode_price_units::text AS episode_price_units,
     episode_price_cents::text AS episode_price_cents, is_adult,
-    license_note, published_at, created_at, updated_at`;
+    license_note, format, license_type, attribution_text, license_source_url, license_territories,
+    license_expires_at, published_at, created_at, updated_at`;
+
+/** Titlu vizibil public: publicat și cu licența neexpirată (alias `s`). */
+export const PUBLIC_SERIES_SQL = `s.status = 'published' AND (s.license_expires_at IS NULL OR s.license_expires_at > now())`;
 
 /** Aceleași coloane, prefixate cu aliasul `s.` (pentru JOIN-uri). */
 const SERIES_COLS_S = SERIES_COLS.split(",").map((c) => `s.${c.trim()}`).join(", ");
@@ -36,7 +40,7 @@ export type ListSeriesOpts = { genre?: string; sort: "trending" | "new"; limit: 
 /** Trending = deblocări + progres în ultimele 7 zile; New = published_at. */
 export async function listPublishedSeries(opts: ListSeriesOpts) {
     const params: unknown[] = [opts.limit, opts.offset];
-    const where: string[] = [`s.status = 'published'`];
+    const where: string[] = [PUBLIC_SERIES_SQL];
     if (!opts.includeAdult) where.push(`s.is_adult = false`);
     if (opts.genre) {
         params.push(opts.genre);
@@ -82,7 +86,7 @@ export async function listOriginals(limit: number, includeAdult: boolean) {
                 u.display_name AS owner_name
            FROM movie_series s
            LEFT JOIN users u ON u.id = s.owner_user_id
-          WHERE s.status = 'published' AND s.owner_user_id = $1 ${includeAdult ? `` : `AND s.is_adult = false`}
+          WHERE ${PUBLIC_SERIES_SQL} AND s.owner_user_id = $1 ${includeAdult ? `` : `AND s.is_adult = false`}
           ORDER BY s.published_at DESC NULLS LAST
           LIMIT $2`,
         [SWYPIK_OFFICIAL_ID, limit],
@@ -98,7 +102,7 @@ export async function listWatchlist(userId: string, limit: number) {
            FROM movie_watchlist w
            JOIN movie_series s ON s.id = w.series_id
            LEFT JOIN users u ON u.id = s.owner_user_id
-          WHERE w.user_id = $1 AND s.status = 'published'
+          WHERE w.user_id = $1 AND ${PUBLIC_SERIES_SQL}
           ORDER BY w.created_at DESC
           LIMIT $2`,
         [userId, limit],
@@ -178,7 +182,7 @@ export async function listContinueWatching(userId: string, limit: number) {
            FROM movie_watch_progress p
            JOIN movie_episodes e ON e.id = p.episode_id
            JOIN movie_series s ON s.id = e.series_id
-          WHERE p.user_id = $1 AND p.completed = false AND s.status = 'published'
+          WHERE p.user_id = $1 AND p.completed = false AND ${PUBLIC_SERIES_SQL}
           ORDER BY s.id, p.updated_at DESC
           LIMIT $2`,
         [userId, limit],

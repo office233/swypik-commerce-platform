@@ -1,51 +1,27 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useHlsVideo } from "@/lib/video/useHlsVideo";
+import { Link } from "@/lib/i18n/navigation";
+import ImmersiveSurface from "@/components/theme/ImmersiveSurface";
+import { IconButton } from "@/components/ui/IconButton";
+import { Button } from "@/components/ui/Button";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import PaywallSlide from "@/components/movies/PaywallSlide";
-import { moviesDisplayFont, MOVIES_DISPLAY_CLASS } from "@/components/movies/fonts";
 import type { EpisodeDto, SeriesDto } from "@/lib/movies/types";
+import EpisodeVideo from "./EpisodeVideo";
 
 type SeriesPayload = { series: SeriesDto; episodes: EpisodeDto[]; viewer: { isAuthed: boolean } };
-type PlayOk = { videoId: string; playbackUrl: string; poster: string | null };
+type PlayOk = { playbackUrl: string; poster: string | null };
 type PlayLocked = { error: "locked"; priceCents: number | null; seasonPriceCents: number | null; requireAuth: boolean };
 type PlayState = { kind: "loading" } | { kind: "ok"; data: PlayOk } | { kind: "locked"; data: PlayLocked } | { kind: "error" };
 
 const PROGRESS_INTERVAL_MS = 5000;
 const SWIPE_THRESHOLD_PX = 80;
 const PROGRESS_DOTS_MAX = 40;
-
-function EpisodeVideo({
-  src, poster, muted, onEnded, onTime, onError, resumeMs,
-}: {
-  src: string; poster: string | null; muted: boolean; onEnded: () => void; onTime: (ms: number, durationMs: number) => void; onError: () => void; resumeMs: number;
-}) {
-  const ref = useHlsVideo(src);
-  useEffect(() => {
-    const v = ref.current;
-    if (!v) return;
-    const seek = () => {
-      if (resumeMs > 0 && v.currentTime < resumeMs / 1000) v.currentTime = resumeMs / 1000;
-    };
-    v.addEventListener("loadedmetadata", seek, { once: true });
-    v.play().catch(() => undefined);
-    return () => v.removeEventListener("loadedmetadata", seek);
-  }, [ref, src, resumeMs]);
-  return (
-    <video
-      ref={ref}
-      className="h-full w-full object-cover"
-      playsInline
-      muted={muted}
-      poster={poster ?? undefined}
-      onEnded={onEnded}
-      onError={onError}
-      onTimeUpdate={(e) => onTime(e.currentTarget.currentTime * 1000, e.currentTarget.duration * 1000)}
-    />
-  );
-}
+/** O eroare de redare (token expirat etc.) reîncarcă sursa, dar nu la infinit. */
+const MAX_PLAY_RELOADS = 2;
 
 export default function PlayerClient({ slug, initialEpisode }: { slug: string; initialEpisode: number }) {
   const t = useTranslations("movies");
@@ -54,6 +30,7 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
   const [play, setPlay] = useState<PlayState>({ kind: "loading" });
   const [muted, setMuted] = useState(false);
   const lastSentRef = useRef(0);
+  const reloadsRef = useRef(0);
 
   const loadSeries = useCallback(
     () => fetch(`/api/movies/${slug}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(setPayload).catch(() => setPlay({ kind: "error" })),
@@ -63,14 +40,15 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
 
   const loadPlay = useCallback(async (n: number) => {
     setPlay({ kind: "loading" });
-    const res = await fetch(`/api/movies/${slug}/episodes/${n}/play`).catch(() => null);
+    const res = await fetch(`/api/movies/${slug}/episodes/${n}/play`, { cache: "no-store" }).catch(() => null);
     if (!res) { setPlay({ kind: "error" }); return; }
-    const data = await res.json();
-    if (res.ok) setPlay({ kind: "ok", data });
-    else if (res.status === 402) setPlay({ kind: "locked", data });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data) setPlay({ kind: "ok", data });
+    else if (res.status === 402 && data) setPlay({ kind: "locked", data });
     else setPlay({ kind: "error" });
   }, [slug]);
   useEffect(() => {
+    reloadsRef.current = 0;
     void loadPlay(current);
     window.history.replaceState(null, "", `/movies/${slug}/${current}`);
   }, [current, loadPlay, slug]);
@@ -79,8 +57,7 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
   const total = payload?.episodes.length ?? 0;
 
   const sendProgress = useCallback((positionMs: number, completed: boolean) => {
-    // Vizitatorii anonimi nu au progres (nu există user în DB).
-    if (!episode || !payload?.viewer?.isAuthed) return;
+    if (!episode || !payload?.viewer?.isAuthed) return; // anonimii nu au progres
     const body = JSON.stringify({ episodeId: episode.id, positionMs: Math.round(positionMs), completed });
     if (navigator.sendBeacon) navigator.sendBeacon("/api/movies/progress", new Blob([body], { type: "application/json" }));
     else void fetch("/api/movies/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
@@ -99,6 +76,12 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
     if (current < total) setCurrent((c) => c + 1);
   }, [current, total, episode, sendProgress]);
 
+  const onVideoError = useCallback(() => {
+    if (reloadsRef.current >= MAX_PLAY_RELOADS) { setPlay({ kind: "error" }); return; }
+    reloadsRef.current += 1;
+    void loadPlay(current);
+  }, [current, loadPlay]);
+
   // Swipe vertical: sus = următorul, jos = anteriorul.
   const touchStart = useRef<number | null>(null);
   const onTouchStart = (e: React.TouchEvent) => { touchStart.current = e.touches[0].clientY; };
@@ -111,65 +94,62 @@ export default function PlayerClient({ slug, initialEpisode }: { slug: string; i
   };
 
   return (
-    <div className={`${moviesDisplayFont.variable} fixed inset-0 bg-black text-white`} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      {play.kind === "ok" && episode && (
-        <EpisodeVideo
-          src={play.data.playbackUrl}
-          poster={play.data.poster}
-          muted={muted}
-          onEnded={goNext}
-          onTime={onTime}
-          onError={() => void loadPlay(current)}
-          resumeMs={episode.progress?.completed ? 0 : episode.progress?.positionMs ?? 0}
-        />
-      )}
-      {play.kind === "locked" && episode && payload && (
-        <PaywallSlide
-          slug={slug}
-          episodeId={episode.id}
-          episodeNumber={current}
-          totalEpisodes={total}
-          priceCents={play.data.priceCents}
-          seasonPriceCents={play.data.seasonPriceCents}
-          poster={payload.series.posterUrl}
-          onUnlocked={() => { void loadSeries(); void loadPlay(current); }}
-        />
-      )}
-      {play.kind === "error" && <div className="flex h-full items-center justify-center text-white/70">{t("loadError")}</div>}
+    <ImmersiveSurface fullscreen>
+      <div className="fixed inset-0 bg-canvas" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        {play.kind === "loading" && <Skeleton className="h-full w-full rounded-none" />}
+        {play.kind === "ok" && episode && (
+          <EpisodeVideo
+            src={play.data.playbackUrl}
+            poster={play.data.poster}
+            muted={muted}
+            onEnded={goNext}
+            onTime={onTime}
+            onError={onVideoError}
+            resumeMs={episode.progress?.completed ? 0 : episode.progress?.positionMs ?? 0}
+          />
+        )}
+        {play.kind === "locked" && episode && payload && (
+          <PaywallSlide
+            slug={slug}
+            episodeId={episode.id}
+            episodeNumber={current}
+            totalEpisodes={total}
+            priceCents={play.data.priceCents}
+            seasonPriceCents={play.data.seasonPriceCents}
+            poster={payload.series.posterUrl}
+            onUnlocked={() => { void loadSeries(); void loadPlay(current); }}
+          />
+        )}
+        {play.kind === "error" && <ErrorState title={t("loadError")} onRetry={() => { reloadsRef.current = 0; void loadPlay(current); }} className="h-full justify-center" />}
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-3 px-4" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
-        <Link href={`/movies/${slug}`} aria-label={t("back")} className="pointer-events-auto rounded-full bg-black/50 p-2.5 backdrop-blur">
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="flex flex-1 gap-1">
-          {payload?.episodes.slice(0, PROGRESS_DOTS_MAX).map((e) => (
-            <span key={e.id} className={`h-0.5 flex-1 rounded ${e.number < current ? "bg-white" : e.number === current ? "bg-gradient-to-r from-[#7C3AED] to-[#EC4899]" : "bg-white/25"}`} />
-          ))}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-3 px-gutter pt-safe-t">
+          <IconButton asChild variant="overlay" label={t("back")} className="pointer-events-auto mt-2">
+            <Link href={`/movies/${slug}`}><ArrowLeft aria-hidden /></Link>
+          </IconButton>
+          <div className="mt-2 flex flex-1 gap-1" aria-hidden>
+            {payload?.episodes.slice(0, PROGRESS_DOTS_MAX).map((e) => (
+              <span key={e.id} className={e.number < current ? "h-0.5 flex-1 rounded bg-fg" : e.number === current ? "h-0.5 flex-1 rounded bg-brand" : "h-0.5 flex-1 rounded bg-fg/25"} />
+            ))}
+          </div>
+          <IconButton variant="overlay" label={muted ? t("unmute") : t("mute")} onClick={() => setMuted((m) => !m)} className="pointer-events-auto mt-2">
+            {muted ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
+          </IconButton>
         </div>
-        <button
-          type="button"
-          onClick={() => setMuted((m) => !m)}
-          aria-label={muted ? t("unmute") : t("mute")}
-          className="pointer-events-auto rounded-full bg-black/50 p-2.5 backdrop-blur"
-        >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        </button>
+
+        {payload && episode && play.kind === "ok" && (
+          <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-canvas/90 to-transparent px-gutter pb-safe-b pt-16">
+            <div className="mb-6">
+              <p className="text-sm text-muted">{payload.series.title}</p>
+              <h2 className="text-lg font-bold text-fg">{t("episodeOf", { n: current, total })} · {episode.title}</h2>
+              {current < total && (
+                <Button variant="secondary" size="sm" className="mt-3" onClick={goNext}>
+                  {t("nextEpisode")} <ChevronDown className="h-4 w-4" aria-hidden />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-
-      {payload && episode && play.kind === "ok" && (
-        <div
-          className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 to-transparent px-5 pt-16"
-          style={{ paddingBottom: "max(32px, env(safe-area-inset-bottom))" }}
-        >
-          <p className={`${MOVIES_DISPLAY_CLASS} text-lg tracking-wider text-white/80`}>{payload.series.title}</p>
-          <h2 className="text-lg font-black">{t("episodeOf", { n: current, total })} · {episode.title}</h2>
-          {current < total && (
-            <button type="button" onClick={goNext} className="mt-3 rounded-xl bg-white/15 px-4 py-2 text-xs font-bold backdrop-blur active:scale-95">
-              {t("nextEpisode")} ↓
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    </ImmersiveSurface>
   );
 }

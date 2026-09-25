@@ -1,12 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Loader2, X } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import { haptic } from "@/lib/haptic";
+import { pollUntil } from "@/lib/media/poll";
+import { Button } from "@/components/ui/Button";
 import { useFormatPrice } from "@/components/i18n/useFormatPrice";
+import UnlockConfirmForm from "./UnlockConfirmForm";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -21,62 +24,15 @@ type Props = {
   onUnlocked: () => void;
 };
 
-function ConfirmForm({ onDone, onCancel, amountCents }: { onDone: () => void; onCancel: () => void; amountCents: number }) {
-  const t = useTranslations("movies");
-  const formatPrice = useFormatPrice();
-  const stripe = useStripe();
-  const elements = useElements();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+type Phase =
+  | { kind: "idle" }
+  | { kind: "form"; clientSecret: string; amountCents: number }
+  /** Plata e confirmată la Stripe; așteptăm webhook-ul care dă accesul. */
+  | { kind: "waiting" }
+  | { kind: "slow" };
 
-  const submit = async () => {
-    if (!stripe || !elements) return;
-    setBusy(true);
-    setError(null);
-    const { error: submitError } = await elements.submit();
-    if (submitError) {
-      setError(submitError.message || t("error"));
-      setBusy(false);
-      return;
-    }
-    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required",
-    });
-    if (confirmError) {
-      setError(confirmError.message || t("error"));
-      setBusy(false);
-      return;
-    }
-    if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "processing") {
-      onDone();
-      return;
-    }
-    setError(t("error"));
-    setBusy(false);
-  };
-
-  return (
-    <div className="space-y-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-black uppercase tracking-wide text-white/60">{t("payWithCard")}</p>
-        <button type="button" onClick={onCancel} aria-label={t("close")} className="rounded-full bg-white/10 p-1.5 text-white/70">
-          <X size={14} />
-        </button>
-      </div>
-      <PaymentElement options={{ layout: "tabs" }} />
-      {error && <p className="text-xs font-semibold text-amber-300">{error}</p>}
-      <button
-        type="button"
-        onClick={submit}
-        disabled={busy || !stripe || !elements}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3.5 text-sm font-black text-black active:scale-95 disabled:opacity-50"
-      >
-        {busy ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
-        {busy ? t("unlocking") : `${t("plateste")} ${formatPrice(amountCents, { sourceCurrency: "RON" })}`}
-      </button>
-    </div>
-  );
+function statusUrl(slug: string, target: Target): string {
+  return "episodeId" in target ? `/api/movies/${slug}/unlock?episodeId=${target.episodeId}` : `/api/movies/${slug}/unlock`;
 }
 
 export default function UnlockButton({ slug, target, priceCents, label, onUnlocked }: Props) {
@@ -85,7 +41,9 @@ export default function UnlockButton({ slug, target, priceCents, label, onUnlock
   const formatPrice = useFormatPrice();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const start = async () => {
     haptic("tap");
@@ -110,7 +68,7 @@ export default function UnlockButton({ slug, target, priceCents, label, onUnlock
         onUnlocked();
         return;
       }
-      setClientSecret(data.clientSecret);
+      setPhase({ kind: "form", clientSecret: data.clientSecret, amountCents: data.amountCents });
     } catch {
       setNotice(t("error"));
     } finally {
@@ -118,36 +76,57 @@ export default function UnlockButton({ slug, target, priceCents, label, onUnlock
     }
   };
 
-  const onDone = () => {
-    setClientSecret(null);
-    // Webhook-ul Stripe marchează deblocarea plătită aproape instant; reîncărcăm datele.
-    onUnlocked();
+  // După confirmare: așteptăm ca webhook-ul să marcheze deblocarea `paid`,
+  // abia apoi reîncărcăm playerul (altfel userul vede din nou paywall-ul).
+  const waitForAccess = async () => {
+    setPhase({ kind: "waiting" });
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    const result = await pollUntil(
+      () => fetch(statusUrl(slug, target), { cache: "no-store", signal: ctrl.signal }).then((r) => r.json() as Promise<{ status?: string }>),
+      (d) => d.status === "paid",
+      { signal: ctrl.signal },
+    );
+    if (ctrl.signal.aborted) return;
+    if (result) {
+      haptic("success");
+      setPhase({ kind: "idle" });
+      onUnlocked();
+    } else {
+      setPhase({ kind: "slow" });
+    }
   };
 
-  if (clientSecret) {
+  if (phase.kind === "form") {
     return (
-      <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "night" } }}>
-        <ConfirmForm onDone={onDone} onCancel={() => setClientSecret(null)} amountCents={priceCents ?? 0} />
+      <Elements stripe={stripePromise} options={{ clientSecret: phase.clientSecret, appearance: { theme: "night" } }}>
+        <UnlockConfirmForm amountCents={phase.amountCents} onConfirmed={waitForAccess} onCancel={() => setPhase({ kind: "idle" })} />
       </Elements>
+    );
+  }
+  if (phase.kind === "waiting" || phase.kind === "slow") {
+    return (
+      <div className="space-y-2 rounded-card bg-surface-2 p-4 text-center" aria-live="polite">
+        <p className="text-sm text-fg">{phase.kind === "waiting" ? t("confirmingPayment") : t("paymentPendingSlow")}</p>
+        <Button block variant="secondary" loading={phase.kind === "waiting"} onClick={waitForAccess} disabled={phase.kind === "waiting"}>
+          {t("checkAgain")}
+        </Button>
+      </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      <button
-        type="button"
-        onClick={start}
-        disabled={busy || priceCents === null}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3.5 text-sm font-black text-black active:scale-95 disabled:opacity-50"
-      >
-        {busy ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
+      <Button block size="lg" onClick={start} loading={busy} disabled={priceCents === null}>
+        {!busy && <Lock className="h-4 w-4" aria-hidden />}
         {busy
           ? t("unlocking")
           : priceCents === null
             ? t("priceComingSoon")
             : `${label} · ${formatPrice(priceCents, { sourceCurrency: "RON" })}`}
-      </button>
-      {notice && <p className="text-center text-xs text-amber-300">{notice}</p>}
+      </Button>
+      {notice && <p role="alert" className="text-center text-sm text-warning">{notice}</p>}
     </div>
   );
 }

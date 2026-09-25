@@ -6,7 +6,7 @@ import type { SeriesDto } from "@/lib/movies/types";
 const dto = (id: string, genres: string[], isOfficial = false): SeriesDto => ({
   id, slug: id, title: id, synopsis: "", genres, coverUrl: null, posterUrl: null, trailerVideoId: null,
   freeEpisodes: 3, episodePriceCents: 500, seasonPriceCents: 0, seasonDiscountPct: 40, isAdult: false, episodeCount: 10,
-  owner: { id: "o", name: "Swypik", isOfficial },
+  owner: { id: "o", name: "Swypik", isOfficial }, format: "series", attribution: null,
 });
 
 describe("movies/genres", () => {
