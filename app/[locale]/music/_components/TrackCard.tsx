@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Music2, Pause, Play } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { useMusicPlayer } from "@/components/music/MusicPlayerProvider";
+import { usePreconnectStream } from "@/components/music/player/preconnect";
 import { haptic } from "@/lib/haptic";
 import { cn } from "@/lib/ui/cn";
 import type { TrackDto } from "@/lib/music/types";
@@ -15,6 +16,7 @@ export default function TrackCard({ track, queue, index, rank }: Props) {
   const t = useTranslations("music");
   const { current, playing, play, toggle } = useMusicPlayer();
   const [imgError, setImgError] = useState(false);
+  const warmStream = usePreconnectStream(track);
   const isCurrent = current?.id === track.id;
   const isPlaying = isCurrent && playing;
 
@@ -28,6 +30,7 @@ export default function TrackCard({ track, queue, index, rank }: Props) {
     <button
       type="button"
       onClick={handle}
+      {...warmStream}
       aria-label={`${isPlaying ? t("pause") : t("play")}: ${track.title}`}
       aria-pressed={isPlaying}
       className="group w-[38vw] max-w-[150px] shrink-0 snap-start text-left"

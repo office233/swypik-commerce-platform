@@ -95,6 +95,8 @@ export type TrackDto = {
     liked: boolean;
     source?: "swypik" | "radio" | "audius" | "jamendo" | "podcast";
     streamUrl?: string;
+    /** Alternative https pentru `streamUrl`, încercate în ordine de player dacă fluxul nu pornește. */
+    streamUrlFallbacks?: string[];
     isLive?: boolean;
 };
 

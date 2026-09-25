@@ -22,7 +22,7 @@ const SEEK_STEP_MS = 5_000;
 export default function MiniPlayer() {
   const t = useTranslations("music");
   const pathname = usePathname();
-  const { current, playing, positionMs, durationMs, toggle, next, seek, close } = useMusicPlayer();
+  const { current, playing, positionMs, durationMs, toggle, next, seek, close, streamError } = useMusicPlayer();
   const [showFullScreen, setShowFullScreen] = useState(false);
 
   if (!current) return null;
@@ -74,7 +74,11 @@ export default function MiniPlayer() {
               <span className="truncate text-sm font-semibold">{current.title}</span>
               {current.isLive && <Badge size="sm" tone="danger">{t("audio.liveBadge")}</Badge>}
             </span>
-            <span className="block truncate text-xs text-muted">{current.artist.stageName}</span>
+            {streamError ? (
+              <span role="status" className="block truncate text-xs font-semibold text-danger">{t("player.streamUnavailable")}</span>
+            ) : (
+              <span className="block truncate text-xs text-muted">{current.artist.stageName}</span>
+            )}
           </button>
           <IconButton variant="primary" label={playing ? t("pause") : t("play")} onClick={() => { haptic("tap"); toggle(); }}>
             {playing ? <Pause fill="currentColor" aria-hidden /> : <Play fill="currentColor" aria-hidden />}
