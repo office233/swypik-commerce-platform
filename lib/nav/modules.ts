@@ -21,6 +21,7 @@ import {
   Gamepad2,
   HelpCircle,
   Home,
+  KeyRound,
   LayoutGrid,
   MessageSquareText,
   Music,
@@ -37,6 +38,8 @@ import {
   Target,
   Truck,
   User,
+  Luggage,
+  Video,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -62,7 +65,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   "settings",
 ];
 
-export type ViewerRole = "guest" | "shopper" | "creator" | "seller" | "courier" | "fleet" | "admin";
+export type ViewerRole = "guest" | "shopper" | "creator" | "seller" | "courier" | "fleet" | "host" | "admin";
 
 export type NavModule = {
   id: string;
@@ -128,6 +131,18 @@ export const NAV_MODULES: readonly NavModule[] = [
     roles: ["creator"],
     become: { route: "/become-a-creator", labelKey: "becomeCreator" },
   },
+  // Studioul live al creatorului (fără CTA propriu: „Devino creator" e mai sus).
+  { id: "liveStudio", route: "/creator/live", icon: Video, group: "business", labelKey: "liveStudio", flag: "live", roles: ["creator"] },
+  {
+    id: "host",
+    route: "/stays/manage",
+    icon: KeyRound,
+    group: "business",
+    labelKey: "host",
+    flag: "stays",
+    roles: ["host"],
+    become: { route: "/join/host", labelKey: "becomeHost" },
+  },
   {
     id: "courier",
     route: "/courier",
@@ -150,6 +165,7 @@ export const NAV_MODULES: readonly NavModule[] = [
 
   // ── Setări & ajutor (tema, limba și linkurile legale sunt randate separat de AppMenu) ──
   { id: "account", route: "/account", icon: User, group: "settings", labelKey: "account" },
+  { id: "myStays", route: "/account/stays", icon: Luggage, group: "settings", labelKey: "myStays", flag: "stays" },
   { id: "help", route: "/help", icon: HelpCircle, group: "settings", labelKey: "help" },
 ];
 

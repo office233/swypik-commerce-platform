@@ -16,6 +16,7 @@ import { maybeSendOrderConfirmation } from "./shared";
 import { finalizePaidShopOrder } from "@/lib/shop/order-paid";
 import { FRAUD_REVIEW_SCORE, FRAUD_BLOCK_SCORE } from "@/lib/risk/thresholds";
 import { markMissionFunded } from "@/lib/missions/funding";
+import { awardMilestoneXp } from "@/lib/gaming/activity-xp";
 
 export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
   const intent = event.data.object as Stripe.PaymentIntent;
@@ -182,13 +183,13 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   };
 
   // Update the pending order to paid (idempotent via RETURNING gate).
-  const { rows: transitionRows } = await dbQuery<{ id: string }>(
+  const { rows: transitionRows } = await dbQuery<{ id: string; buyer_user_id: string | null }>(
     `UPDATE commerce_orders 
      SET status = 'paid', 
          placed_at = COALESCE(placed_at, now()),
          metadata = metadata || $1::jsonb
      WHERE id = $2 AND status = 'pending'
-     RETURNING id`,
+     RETURNING id, buyer_user_id::text AS buyer_user_id`,
     [JSON.stringify(metadata), orderId]
   );
 
@@ -208,6 +209,8 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     await onOrderPaid(orderId, intent.id);
     // Magazin: eliberează rezervarea, închide coșul, notifică cumpărătorul.
     await finalizePaidShopOrder(orderId);
+    // Arcade: prima comandă plătită → XP „first_purchase” (idempotent, nu aruncă).
+    await awardMilestoneXp(transitionRows[0].buyer_user_id, "first_purchase");
   }
 
   // Record payment transaction

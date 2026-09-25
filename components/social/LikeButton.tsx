@@ -98,6 +98,7 @@ export default function LikeButton({
     );
   }
 
+  // Overlay = rail-ul feed-ului: aceeași formă ca RailButton (iconiță 28px + număr, țintă ≥ 48px).
   return (
     <button
       type="button"
@@ -108,18 +109,14 @@ export default function LikeButton({
         void toggle();
       }}
       className={cn(
-        "inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 text-xs font-semibold text-white drop-shadow active:scale-95",
+        "flex min-h-12 min-w-12 flex-col items-center justify-center gap-0.5 rounded-control text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
         className,
       )}
     >
-      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/30 backdrop-blur-md">
-        <Heart
-          aria-hidden
-          className={cn("h-6 w-6 transition-transform duration-fast", state.active && "scale-110 text-danger")}
-          fill={state.active ? "currentColor" : "none"}
-        />
+      <span className="flex h-11 w-11 items-center justify-center drop-shadow-md motion-safe:transition-transform motion-safe:duration-fast motion-safe:active:scale-90">
+        <Heart aria-hidden className={cn("h-7 w-7", state.active ? "fill-danger text-danger" : "fill-transparent")} />
       </span>
-      <span>{count}</span>
+      <span className="text-xs font-semibold tabular-nums drop-shadow">{count}</span>
     </button>
   );
 }

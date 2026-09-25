@@ -12,6 +12,7 @@ import { profilePath } from "@/lib/social/links";
 import { cn } from "@/lib/ui/cn";
 import LikeButton from "../LikeButton";
 import { CommentText } from "./CommentText";
+import { commentDomId } from "./focus";
 import type { CommentItemData } from "./types";
 
 export type CommentItemHandlers = {
@@ -19,6 +20,8 @@ export type CommentItemHandlers = {
   onMore: (comment: CommentItemData) => void;
   onLoadReplies: (comment: CommentItemData) => void;
   onLiked: (id: string, liked: boolean, count: number) => void;
+  /** Comentariul evidențiat (deep link din notificări). */
+  focusId?: string | null;
 };
 
 function AuthorLink({ comment, children, className }: { comment: CommentItemData; children: ReactNode; className?: string }) {
@@ -38,7 +41,15 @@ export function CommentItem({ comment, isReply = false, ...h }: { comment: Comme
   const hiddenReplies = Math.max(0, comment.replyCount - comment.replies.length);
 
   return (
-    <li className={cn("flex gap-3", isReply ? "pt-3" : "py-3")}>
+    <li
+      id={commentDomId(comment.id)}
+      aria-current={h.focusId === comment.id ? "true" : undefined}
+      className={cn(
+        "flex gap-3",
+        isReply ? "pt-3" : "py-3",
+        h.focusId === comment.id && "-mx-2 rounded-card bg-brand-soft px-2 motion-safe:transition-colors motion-safe:duration-slow",
+      )}
+    >
       <AuthorLink comment={comment} className="shrink-0">
         <Avatar src={comment.author.avatarUrl} name={comment.author.displayName} size={isReply ? "sm" : "md"} />
       </AuthorLink>

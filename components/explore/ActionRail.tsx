@@ -5,12 +5,13 @@ import { EyeOff, MessageCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/Avatar";
 import type { FeedVideo } from "@/lib/feed/types";
-import FeedFollowAction from "./actions/FeedFollowAction";
-import FeedLikeAction from "./actions/FeedLikeAction";
+import FollowButton from "@/components/social/FollowButton";
+import LikeButton from "@/components/social/LikeButton";
 import FeedSaveAction from "./actions/FeedSaveAction";
 import FeedShareAction from "./actions/FeedShareAction";
 import RailButton from "./actions/RailButton";
 import { compactCount } from "./format";
+import { withLike, withSave } from "./patches";
 
 export type ActionRailProps = {
   video: FeedVideo;
@@ -20,7 +21,11 @@ export type ActionRailProps = {
   onNotInterested: () => void;
 };
 
-/** Coloana de acțiuni din dreapta: creator (+follow), like, comentarii, salvare, share, „nu mă interesează”. */
+/**
+ * Coloana de acțiuni din dreapta: creator (+follow), like, comentarii, salvare, share, „nu mă interesează”.
+ * Like/follow = componentele sociale comune (PUT/DELETE idempotente); starea confirmată
+ * de server se scrie înapoi în payload-ul feed-ului (patches.ts).
+ */
 export default function ActionRail({ video, onPatch, onFollowChange, onOpenComments, onNotInterested }: ActionRailProps) {
   const t = useTranslations("explore");
   const locale = useLocale();
@@ -39,19 +44,22 @@ export default function ActionRail({ video, onPatch, onFollowChange, onOpenComme
           <Link href={`/u/${encodeURIComponent(handle)}`} aria-label={t("openCreatorProfile", { name: displayName })} className="block rounded-full ring-2 ring-white">
             <Avatar src={video.creator.avatar} name={displayName} size="md" />
           </Link>
-          <FeedFollowAction
-            creatorId={video.creator.id}
-            creatorName={displayName}
-            following={video.viewer.following}
-            onChange={(following) => onFollowChange(video.creator.id, following)}
+          <FollowButton
+            variant="badge"
+            userId={video.creator.id}
+            initialFollowing={video.viewer.following}
+            label={t("followCreator", { name: displayName })}
+            onChange={(s) => onFollowChange(video.creator.id, s.following)}
+            className="absolute -bottom-3 left-1/2 -translate-x-1/2 ring-2 ring-black"
           />
         </div>
       ) : null}
-      <FeedLikeAction
-        videoId={video.id}
-        liked={video.viewer.liked}
-        count={video.likes}
-        onChange={({ liked, count }) => onPatch((v) => ({ ...v, likes: count, viewer: { ...v.viewer, liked } }))}
+      <LikeButton
+        variant="overlay"
+        targetId={video.id}
+        initialLiked={video.viewer.liked}
+        initialCount={video.likes}
+        onChange={(s) => onPatch(withLike(s))}
       />
       <RailButton
         label={t("discutii")}
@@ -63,7 +71,7 @@ export default function ActionRail({ video, onPatch, onFollowChange, onOpenComme
         videoId={video.id}
         saved={video.viewer.saved}
         count={video.saves}
-        onChange={({ saved, count }) => onPatch((v) => ({ ...v, saves: count, viewer: { ...v.viewer, saved } }))}
+        onChange={(s) => onPatch(withSave(s))}
       />
       <FeedShareAction videoId={video.id} count={video.shares} onShared={(count) => onPatch((v) => ({ ...v, shares: count }))} />
       <RailButton label={t("notInterested")} onClick={onNotInterested} icon={<EyeOff aria-hidden />} />

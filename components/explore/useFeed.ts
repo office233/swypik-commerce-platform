@@ -5,6 +5,7 @@ import { fetchFeedPage, type FeedQuery } from "@/lib/feed/client/feed-source";
 import { getSessionId } from "@/lib/feed/track";
 import { logger } from "@/lib/logger";
 import type { FeedItem, FeedSource, FeedVideo } from "@/lib/feed/types";
+import { withFollowing } from "./patches";
 
 /** Contextul de servire al unui item (logat în impresii: evaluare off-policy). */
 export type ServeInfo = { requestId: string | null; position: number; ab: string | null };
@@ -92,13 +93,7 @@ export function useFeed({ source, category, creatorId, pinnedVideoId, locale }: 
   }, []);
 
   const patchCreator = useCallback((creatorId: string, following: boolean) => {
-    setItems((cur) =>
-      cur.map((it) =>
-        it.kind === "video" && it.video.creator.id === creatorId
-          ? { ...it, video: { ...it.video, viewer: { ...it.video.viewer, following } } }
-          : it,
-      ),
-    );
+    setItems((cur) => withFollowing(cur, creatorId, following));
   }, []);
 
   const removeVideo = useCallback((videoId: string) => {

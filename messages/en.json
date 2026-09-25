@@ -4454,13 +4454,17 @@
       "fleet": "Fleet partner",
       "admin": "Admin",
       "account": "My account",
-      "help": "Help"
+      "help": "Help",
+      "liveStudio": "Live studio",
+      "host": "Host panel",
+      "myStays": "My stays"
     },
     "become": {
       "becomeSeller": "Become a seller",
       "becomeCreator": "Become a creator",
       "becomeCourier": "Become a courier or driver",
-      "becomeFleet": "Become a fleet partner"
+      "becomeFleet": "Become a fleet partner",
+      "becomeHost": "Become a host"
     },
     "theme": {
       "label": "Theme",

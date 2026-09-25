@@ -49,11 +49,18 @@ export function useViewer(enabled = true): {
     (u: string) => fetchJson<{ partner?: { status?: string | null } | null }>(u),
     SWR_OPTS,
   );
+  // Gazdă Stays activă (aplicație aprobată, nesuspendată) → „Panou gazdă" în loc de „Devino gazdă".
+  const host = useSWR(
+    enabled && loggedIn ? "/api/host/listings" : null,
+    (u: string) => fetchJson<{ approved?: boolean }>(u),
+    SWR_OPTS,
+  );
   const courierProfile = courier.data?.courier ?? null;
   const fleetPartner = fleet.data?.partner ?? null;
   const roles = rolesFromViewer(viewer, {
     courierApproved: hasActiveProfile(courierProfile?.verification_status, Boolean(courierProfile)),
     fleetApproved: hasActiveProfile(fleetPartner?.status, Boolean(fleetPartner)),
+    hostApproved: host.data?.approved === true,
   });
   return { viewer, roles, loading: enabled && me.isLoading };
 }

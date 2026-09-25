@@ -4454,13 +4454,17 @@
       "fleet": "Socio de flota",
       "admin": "Administración",
       "account": "Mi cuenta",
-      "help": "Ayuda"
+      "help": "Ayuda",
+      "liveStudio": "Estudio en directo",
+      "host": "Panel de anfitrión",
+      "myStays": "Mis estancias"
     },
     "become": {
       "becomeSeller": "Hazte vendedor",
       "becomeCreator": "Hazte creador",
       "becomeCourier": "Hazte repartidor o conductor",
-      "becomeFleet": "Hazte socio de flota"
+      "becomeFleet": "Hazte socio de flota",
+      "becomeHost": "Hazte anfitrión"
     },
     "theme": {
       "label": "Tema",

@@ -20,6 +20,8 @@ export type FollowButtonProps = {
   size?: "sm" | "md";
   block?: boolean;
   onChange?: (state: { following: boolean; followerCount: number }) => void;
+  /** Eticheta accesibilă a badge-ului (ex. „Urmărește {nume}"); implicit „Urmărește". */
+  label?: string;
   className?: string;
 };
 
@@ -35,6 +37,7 @@ export default function FollowButton({
   size = "md",
   block,
   onChange,
+  label,
   className,
 }: FollowButtonProps) {
   const t = useTranslations("social.follow");
@@ -86,7 +89,7 @@ export default function FollowButton({
       <button
         type="button"
         onClick={onClick}
-        aria-label={t("follow")}
+        aria-label={label ?? t("follow")}
         className={cn(
           "relative grid h-6 w-6 place-items-center rounded-full bg-brand text-brand-fg shadow-elev-1 before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']",
           className,

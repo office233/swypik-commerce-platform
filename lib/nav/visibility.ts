@@ -118,10 +118,10 @@ export function activeBottomNavKey(pathname: string): BottomNavKey | null {
 
 type MeResponse = { role?: string | null; isAdmin?: boolean; sellerId?: string | null } | null;
 
-/** Rolurile derivate din /api/auth/me (+ statusul de curier/partener de flotă). */
+/** Rolurile derivate din /api/auth/me (+ statusul de curier/partener de flotă/gazdă Stays). */
 export function rolesFromViewer(
   me: MeResponse,
-  extra: { courierApproved?: boolean; fleetApproved?: boolean } = {},
+  extra: { courierApproved?: boolean; fleetApproved?: boolean; hostApproved?: boolean } = {},
 ): Set<ViewerRole> {
   const roles = new Set<ViewerRole>();
   if (!me) {
@@ -134,5 +134,6 @@ export function rolesFromViewer(
   if (me.role === "admin" || me.isAdmin) roles.add("admin");
   if (extra.courierApproved) roles.add("courier");
   if (extra.fleetApproved) roles.add("fleet");
+  if (extra.hostApproved) roles.add("host");
   return roles;
 }

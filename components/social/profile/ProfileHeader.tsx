@@ -2,18 +2,22 @@ import { BadgeCheck, Link2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import LevelBadge from "@/components/gaming/LevelBadge";
+import type { LevelBadge as LevelBadgeData } from "@/lib/gaming/level";
 import type { PublicUserProfile } from "@/lib/social/user-profile";
 
 type Props = {
   locale: string;
   profile: PublicUserProfile["profile"];
   badges: PublicUserProfile["badges"];
+  /** Nivelul XP (Swypik Arcade) — doar când FEATURE_GAMING e pornit (getProfileLevelBadge). */
+  level?: LevelBadgeData | null;
 };
 
 const LEVEL_KEYS = { bronze: "badgeLevelBronze", silver: "badgeLevelSilver", gold: "badgeLevelGold" } as const;
 
 /** Antetul profilului (server): avatar, nume, handle, insigne, bio, linkuri, categorii. */
-export async function ProfileHeader({ locale, profile, badges }: Props) {
+export async function ProfileHeader({ locale, profile, badges, level }: Props) {
   const t = await getTranslations({ locale, namespace: "social.profile" });
   const tp = await getTranslations({ locale, namespace: "userProfile" });
 
@@ -26,8 +30,9 @@ export async function ProfileHeader({ locale, profile, badges }: Props) {
       </div>
       <p className="text-sm text-muted">{profile.handle}</p>
 
-      {badges.topSeller || badges.level !== "none" ? (
+      {badges.topSeller || badges.level !== "none" || level ? (
         <div className="flex flex-wrap justify-center gap-1.5">
+          {level ? <LevelBadge badge={level} /> : null}
           {badges.topSeller ? <Badge tone="warning">{tp("badgeTopSeller")}</Badge> : null}
           {badges.level !== "none" ? (
             <Badge tone="brand">{tp("badgeCreatorLevel", { level: tp(LEVEL_KEYS[badges.level]) })}</Badge>

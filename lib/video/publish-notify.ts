@@ -2,9 +2,11 @@
  * Notificarea followerilor la un clip nou — o singură dată per clip și doar
  * când clipul chiar se vede în feed (ready + public + aprobat). Apelată la
  * publicare, la aprobarea unui admin și din cronul publish-scheduled (care
- * prinde și clipurile publicate cât încă se procesau).
+ * prinde și clipurile publicate cât încă se procesau). Tot aici se acordă XP-ul
+ * „primul clip publicat" (Arcade) — momentul unic în care clipul devine vizibil.
  */
 import { dbQuery } from "@/lib/db";
+import { awardMilestoneXp } from "@/lib/gaming/activity-xp";
 import { logger } from "@/lib/logger";
 import { notifyFollowersNewPost } from "@/lib/notifications/dispatch";
 
@@ -25,6 +27,8 @@ export async function notifyFollowersOnce(videoId: string): Promise<boolean> {
   notifyFollowersNewPost(creatorId, videoId).catch((err) =>
     logger.warn({ err, videoId }, "[publish-notify] fan-out failed"),
   );
+  // Primul clip ajuns în feed → XP „first_upload" (idempotent, nu aruncă niciodată).
+  await awardMilestoneXp(creatorId, "first_upload");
   return true;
 }
 

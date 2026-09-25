@@ -8,6 +8,8 @@
  * Render with components/gaming/LevelBadge.tsx.
  */
 import { dbQuery } from "@/lib/db";
+import { isEnabled } from "@/lib/feature-flags";
+import { logger } from "@/lib/logger";
 import { levelProgress, type LevelProgress } from "./level-math";
 
 export { levelForXp, xpForLevel, levelProgress, nextStreak, xpDay } from "./level-math";
@@ -30,6 +32,20 @@ export async function getLevelBadge(userId: string): Promise<LevelBadge> {
     [userId],
   );
   return toLevelBadge(rows[0]);
+}
+
+/**
+ * Badge-ul din antetul profilului public: `null` când modulul gaming e OFF
+ * (fără citire din DB) sau la eroare — profilul nu cade din cauza nivelului.
+ */
+export async function getProfileLevelBadge(userId: string): Promise<LevelBadge | null> {
+  if (!isEnabled("gaming")) return null;
+  try {
+    return await getLevelBadge(userId);
+  } catch (err) {
+    logger.warn({ err, userId }, "[gaming] profile level badge failed");
+    return null;
+  }
 }
 
 /** Batch variant; users without a gaming profile get the level-1 badge. */

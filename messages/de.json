@@ -4454,13 +4454,17 @@
       "fleet": "Flottenpartner",
       "admin": "Verwaltung",
       "account": "Mein Konto",
-      "help": "Hilfe"
+      "help": "Hilfe",
+      "liveStudio": "Live-Studio",
+      "host": "Gastgeber-Bereich",
+      "myStays": "Meine Unterkünfte"
     },
     "become": {
       "becomeSeller": "Verkäufer werden",
       "becomeCreator": "Creator werden",
       "becomeCourier": "Kurier oder Fahrer werden",
-      "becomeFleet": "Flottenpartner werden"
+      "becomeFleet": "Flottenpartner werden",
+      "becomeHost": "Gastgeber werden"
     },
     "theme": {
       "label": "Design",
