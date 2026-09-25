@@ -1,277 +1,158 @@
+/**
+ * Admin — utilizatori: căutare, filtre de stare, suspendare/ridicare, roluri
+ * (cont + rol de admin). Tabel pe desktop, carduri pe telefon.
+ */
 import Link from "next/link";
-import { getTranslations, getLocale } from "next-intl/server";
-import { BadgeCheck } from "lucide-react";
-import { dbQuery } from "@/lib/db";
-import { requireAdminSession } from "@/lib/security/admin-auth";
-import UserActions from "./UserActions";
+import { getLocale, getTranslations } from "next-intl/server";
+import { BadgeCheck, Users } from "lucide-react";
+import { AdminPage, LinkTabs, Pager } from "@/components/admin/AdminPage";
+import { AdminTable } from "@/components/admin/AdminTable";
+import { AdminForbidden } from "@/components/admin/AdminForbidden";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Input } from "@/components/ui/Input";
+import { requireAdminPage } from "@/lib/admin/guard";
+import { hasPermission, isAdminRole } from "@/lib/admin/permissions";
+import {
+  isSuspended,
+  listAdminUsers,
+  parseUserStatus,
+  USER_STATUS_FILTERS,
+  USERS_PAGE_SIZE,
+  type AdminUserRow,
+} from "@/lib/admin/users-query";
 import { logger } from "@/lib/logger";
+import UserActions from "./UserActions";
 
 export const dynamic = "force-dynamic";
 
-type UserRow = {
-  id: string;
-  username: string;
-  email: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
-  role: string;
-  is_verified: boolean;
-  suspended_until: string | null;
-  suspension_reason: string | null;
-  created_at: string;
-  active_sessions: string;
-  videos_count: string;
-  followers_count: string;
-};
-
-const PAGE_SIZE = 50;
-
-function fmtDate(d: string | null, locale: string): string {
-  if (!d) return "-";
-  try {
-    return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(d));
-  } catch {
-    return "-";
-  }
-}
+const TAB_KEY = { all: "tabAll", active: "tabActive", suspended: "tabSuspended", admin: "tabAdmins" } as const;
 
 export default async function AdminUsersPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
+  const actor = await requireAdminPage("users.manage");
+  if (!actor) return <AdminForbidden />;
+
   const t = await getTranslations("adminUsers");
+  const ts = await getTranslations("adminShell");
+  const tc = await getTranslations("adminConsole.users");
   const locale = await getLocale();
-  await requireAdminSession();
   const sp = await searchParams;
-  const q = (sp.q || "").trim() || null;
-  const status = ["active", "suspended", "admin"].includes(sp.status || "") ? sp.status! : "all";
-  const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
-  const offset = (page - 1) * PAGE_SIZE;
+  const q = (sp.q ?? "").trim().slice(0, 100) || null;
+  const status = parseUserStatus(sp.status);
+  const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
 
-  let users: UserRow[] = [];
-  let totalCount = 0;
-  let loadError: string | null = null;
-
+  let data: { rows: AdminUserRow[]; total: number } | null = null;
   try {
-    const filterSql =
-      status === "active"
-        ? "(suspended_until IS NULL OR suspended_until < now())"
-        : status === "suspended"
-          ? "(suspended_until IS NOT NULL AND suspended_until > now())"
-          : status === "admin"
-            ? "(role = 'admin')"
-            : "TRUE";
-
-    const searchSql = q
-      ? "AND (username ILIKE '%'||$1||'%' OR email ILIKE '%'||$1||'%' OR display_name ILIKE '%'||$1||'%')"
-      : "";
-
-    const params: (string | number)[] = q ? [q, PAGE_SIZE, offset] : [PAGE_SIZE, offset];
-    const limitIdx = q ? "$2" : "$1";
-    const offsetIdx = q ? "$3" : "$2";
-
-    const sql = `
-      SELECT id, username, email, display_name, avatar_url, role, is_verified,
-             suspended_until, suspension_reason, created_at,
-             (SELECT COUNT(*) FROM user_sessions WHERE user_id = u.id AND expires_at > now() AND revoked_at IS NULL) AS active_sessions,
-             (SELECT COUNT(*) FROM videos WHERE creator_id = u.id) AS videos_count,
-             (SELECT COUNT(*) FROM follows WHERE following_user_id = u.id) AS followers_count
-      FROM users u
-      WHERE ${filterSql} ${searchSql}
-      ORDER BY created_at DESC
-      LIMIT ${limitIdx} OFFSET ${offsetIdx}
-    `;
-    const res = await dbQuery(sql, params);
-    users = res.rows as UserRow[];
-
-    const countSql = `SELECT COUNT(*)::int AS c FROM users u WHERE ${filterSql} ${searchSql}`;
-    const countParams = q ? [q] : [];
-    const cRes = await dbQuery(countSql, countParams);
-    totalCount = cRes.rows[0]?.c || 0;
+    data = await listAdminUsers({ q, status, page });
   } catch (err) {
     logger.error({ err }, "[admin/users] failed to load users");
-    loadError = t("loadError");
   }
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const statusTabs: { id: "all" | "active" | "suspended" | "admin"; label: string }[] = [
-    { id: "all", label: t("tabAll") },
-    { id: "active", label: t("tabActive") },
-    { id: "suspended", label: t("tabSuspended") },
-    { id: "admin", label: t("tabAdmins") },
-  ];
-
-  function tabHref(s: string) {
+  const href = (next: { status?: string; page?: number }) => {
     const u = new URLSearchParams();
+    const s = next.status ?? status;
     if (s !== "all") u.set("status", s);
     if (q) u.set("q", q);
-    return `/admin/users${u.toString() ? "?" + u.toString() : ""}`;
-  }
-
-  function pageHref(p: number) {
-    const u = new URLSearchParams();
-    if (status !== "all") u.set("status", status);
-    if (q) u.set("q", q);
-    if (p > 1) u.set("page", String(p));
-    return `/admin/users${u.toString() ? "?" + u.toString() : ""}`;
-  }
+    if (next.page && next.page > 1) u.set("page", String(next.page));
+    const qs = u.toString();
+    return `/admin/users${qs ? `?${qs}` : ""}`;
+  };
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / USERS_PAGE_SIZE));
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+  const canManageAdmins = hasPermission(actor.role, "admins.manage");
 
   return (
-    <div className="p-4 md:p-8">
-      <h1 className="text-3xl font-black text-[#0D0D0D] mb-6">{t("pageTitle")}</h1>
-
-      <form method="get" action="/admin/users" className="mb-4 flex gap-2 max-w-xl">
-        <input
-          type="text"
-          name="q"
-          defaultValue={q || ""}
-          placeholder={t("searchPlaceholder")}
-          className="flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm"
-        />
-        {status !== "all" && <input type="hidden" name="status" value={status} />}
-        <button type="submit" className="rounded-lg bg-black text-white px-4 py-2 text-sm font-bold">
-          {t("searchBtn")}
-        </button>
+    <AdminPage title={t("pageTitle")} description={data ? t("summaryLine", { total: data.total, page, totalPages }) : undefined}>
+      <form method="get" action="/admin/users" className="flex max-w-xl gap-2" role="search">
+        <Input name="q" type="search" defaultValue={q ?? ""} placeholder={t("searchPlaceholder")} aria-label={t("searchPlaceholder")} />
+        {status !== "all" ? <input type="hidden" name="status" value={status} /> : null}
+        <Button type="submit">{t("searchBtn")}</Button>
       </form>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {statusTabs.map((tab) => (
-          <Link
-            key={tab.id}
-            href={tabHref(tab.id)}
-            className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-bold border min-h-[40px] ${status === tab.id ? "bg-[#0D0D0D] text-white border-[#0D0D0D]" : "bg-white text-[#0D0D0D] border-black/15"
-              }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
+      <LinkTabs
+        label={tc("statusFilter")}
+        active={status}
+        tabs={USER_STATUS_FILTERS.map((s) => ({ id: s, label: t(TAB_KEY[s]), href: href({ status: s, page: 1 }) }))}
+      />
 
-      {loadError && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {loadError}
-        </div>
+      {data === null ? (
+        <p role="alert" className="rounded-card bg-danger-soft p-4 text-sm text-danger">{t("loadError")}</p>
+      ) : (
+        <AdminTable
+          rows={data.rows}
+          rowKey={(u) => u.id}
+          caption={t("pageTitle")}
+          empty={<EmptyState icon={Users} title={t("noUsersFound")} />}
+          columns={[
+            {
+              key: "user",
+              header: t("thUser"),
+              primary: true,
+              cell: (u) => (
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar src={u.avatar_url ?? undefined} name={u.display_name ?? u.username} size="sm" />
+                  <div className="min-w-0">
+                    <Link href={`/u/${u.username}`} className="flex items-center gap-1 font-semibold text-fg hover:underline">
+                      @{u.username}
+                      {u.is_verified ? <BadgeCheck className="h-4 w-4 text-info" aria-label={t("verified")} /> : null}
+                    </Link>
+                    <p className="truncate text-sm text-muted">{u.email ?? "—"}</p>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "role",
+              header: t("thRole"),
+              cell: (u) => (
+                <span className="flex flex-wrap gap-1">
+                  <Badge tone={u.role === "admin" ? "brand" : "neutral"} size="sm">{tc(`accountRole.${u.role}`)}</Badge>
+                  {u.role === "admin" && isAdminRole(u.admin_role) ? (
+                    <Badge tone="info" size="sm">{ts(`role.${u.admin_role}`)}</Badge>
+                  ) : null}
+                </span>
+              ),
+            },
+            {
+              key: "status",
+              header: t("thStatus"),
+              cell: (u) =>
+                isSuspended(u) ? (
+                  <Badge tone="danger" size="sm" title={u.suspension_reason ?? undefined}>{t("suspended")}</Badge>
+                ) : (
+                  <Badge tone="success" size="sm">{t("active")}</Badge>
+                ),
+            },
+            { key: "videos", header: t("thVideos"), align: "end", cell: (u) => u.videos_count },
+            { key: "sessions", header: t("thSessions"), align: "end", cell: (u) => u.active_sessions },
+            { key: "created", header: t("thRegistered"), cell: (u) => dateFmt.format(new Date(u.created_at)) },
+          ]}
+          actions={(u) => (
+            <UserActions
+              userId={u.id}
+              username={u.username}
+              role={u.role}
+              adminRole={u.admin_role}
+              isSuspended={isSuspended(u)}
+              canManageAdmins={canManageAdmins}
+              isSelf={actor.userId === u.id}
+            />
+          )}
+        />
       )}
 
-      <div className="mb-3 text-sm text-gray-600">
-        {t("summaryLine", { total: totalCount, page, totalPages })}
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-[#E5E5E5] overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-[#F7F7F8] border-b border-[#E5E5E5] font-bold text-[#0D0D0D]">
-            <tr>
-              <th className="px-4 py-3">{t("thUser")}</th>
-              <th className="px-4 py-3">{t("thEmail")}</th>
-              <th className="px-4 py-3">{t("thRole")}</th>
-              <th className="px-4 py-3">{t("thStatus")}</th>
-              <th className="px-4 py-3 text-right">{t("thFollowers")}</th>
-              <th className="px-4 py-3 text-right">{t("thVideos")}</th>
-              <th className="px-4 py-3 text-right">{t("thSessions")}</th>
-              <th className="px-4 py-3">{t("thRegistered")}</th>
-              <th className="px-4 py-3">{t("thActions")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#E5E5E5]">
-            {users.map((u) => {
-              const isSuspended = u.suspended_until && new Date(u.suspended_until) > new Date();
-              return (
-                <tr key={u.id} className="hover:bg-[#F7F7F8]/50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {u.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">
-                          {u.username.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <Link
-                          href={`/u/${u.username}`}
-                          className="font-bold text-[#0D0D0D] hover:underline"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          @{u.username}
-                        </Link>
-                        {u.display_name && <div className="text-xs text-gray-500 truncate max-w-[160px]">{u.display_name}</div>}
-                      </div>
-                      {u.is_verified && <span title={t("verified")}><BadgeCheck size={14} className="text-blue-500" /></span>}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{u.email || "-"}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${u.role === "admin"
-                          ? "bg-purple-100 text-purple-700"
-                          : u.role === "creator" || u.role === "seller"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                    >
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {isSuspended ? (
-                      <span
-                        className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700"
-                        title={u.suspension_reason || ""}
-                      >
-                        {t("suspended")}
-                      </span>
-                    ) : (
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                        {t("active")}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{u.followers_count}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{u.videos_count}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{u.active_sessions}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{fmtDate(u.created_at, locale)}</td>
-                  <td className="px-4 py-3">
-                    <UserActions
-                      userId={u.id}
-                      username={u.username}
-                      role={u.role}
-                      isSuspended={!!isSuspended}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-            {users.length === 0 && !loadError && (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                  {t("noUsersFound")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center gap-2">
-          {page > 1 && (
-            <Link href={pageHref(page - 1)} className="rounded-lg border border-black/15 px-3 py-1.5 text-sm font-bold">
-              &larr; {t("previous")}
-            </Link>
-          )}
-          <span className="text-sm text-gray-600 px-2">
-            {page} / {totalPages}
-          </span>
-          {page < totalPages && (
-            <Link href={pageHref(page + 1)} className="rounded-lg border border-black/15 px-3 py-1.5 text-sm font-bold">
-              {t("next")} &rarr;
-            </Link>
-          )}
-        </div>
-      )}
-    </div>
+      <Pager
+        page={page}
+        totalPages={totalPages}
+        hrefFor={(p) => href({ page: p })}
+        labels={{ previous: t("previous"), next: t("next"), status: `${page} / ${totalPages}` }}
+      />
+    </AdminPage>
   );
 }

@@ -4,8 +4,11 @@
 import { dbQuery } from "@/lib/db";
 import { getTranslations, getLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { isUuidParam } from "@/lib/validation/params";
 import Link from "next/link";
 import ModerationActions from "./ModerationActions";
+import { requireAdminPage } from "@/lib/admin/guard";
+import { AdminForbidden } from "@/components/admin/AdminForbidden";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +63,8 @@ export default async function ModerationDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-    const t = await getTranslations("adminModeration");
+  if (!(await requireAdminPage("moderation"))) return <AdminForbidden />;
+  const t = await getTranslations("adminModeration");
   const locale = await getLocale();
   const REASONS: Record<string, string> = {
     spam: t("reasonSpam"),
@@ -73,52 +77,52 @@ export default async function ModerationDetailPage({
     other: t("reasonOther"),
   };
   const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return notFound();
+  if (!isUuidParam(id)) return notFound();
   const r = await getReportDetail(id);
   if (!r) return notFound();
   const related = r.target_video_id ? await getRelatedReports(r.target_video_id) : [];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <Link href="/admin/moderation" className="text-sm text-[#FE2C55] hover:underline">
+    <div className="mx-auto max-w-4xl space-y-5 px-gutter py-5 md:px-8 md:py-8">
+      <Link href="/admin/moderation" className="inline-flex min-h-11 items-center text-sm font-medium text-brand">
         ← {t("backToQueue")}
       </Link>
-      <h1 className="text-2xl font-black mt-2 mb-4">{t("videoReportTitle")}</h1>
+      <h1 className="text-2xl font-semibold text-fg">{t("videoReportTitle")}</h1>
 
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-black/10 p-4">
-          <h2 className="font-bold mb-3">{t("reportedVideo")}</h2>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-card border border-subtle bg-surface p-4">
+          <h2 className="mb-3 font-semibold text-fg">{t("reportedVideo")}</h2>
           <div className="flex gap-3">
             {r.thumbnail_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={r.thumbnail_url}
                 alt=""
-                className="w-32 h-44 object-cover rounded-lg bg-black/10"
+                className="h-44 w-32 shrink-0 rounded-control bg-surface-2 object-cover"
               />
             ) : (
-              <div className="w-32 h-44 bg-black/10 rounded-lg" />
+              <div className="h-44 w-32 shrink-0 rounded-control bg-surface-2" aria-hidden />
             )}
             <div className="flex-1 text-sm">
-              <div className="font-bold">{r.title || t("untitled")}</div>
-              <div className="text-black/60 mt-1">
+              <div className="font-semibold">{r.title || t("untitled")}</div>
+              <div className="text-muted mt-1">
                 {t("creatorLabel")}:{" "}
                 {r.creator_username ? (
-                  <Link href={`/u/${r.creator_username}`} className="text-[#FE2C55]">
+                  <Link href={`/u/${r.creator_username}`} className="text-brand">
                     @{r.creator_username}
                   </Link>
                 ) : (
                   "—"
                 )}
               </div>
-              <div className="text-black/60">{t("statusLabel")}: {r.video_status}</div>
+              <div className="text-muted">{t("statusLabel")}: {r.video_status}</div>
               {r.is_hidden && (
-                <span className="inline-block mt-1 text-xs font-bold text-orange-600">
+                <span className="mt-1 inline-block text-xs font-semibold text-warning">
                   {t("hiddenBadge")}
                 </span>
               )}
               {r.suspended_until && (
-                <div className="mt-1 text-xs font-bold text-red-600">
+                <div className="mt-1 text-xs font-semibold text-danger">
                   {t("suspendedUntil")}{" "}
                   {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(r.suspended_until))}
                 </div>
@@ -128,7 +132,7 @@ export default async function ModerationDetailPage({
                   href={r.playback_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-block mt-2 text-xs text-[#FE2C55] hover:underline"
+                  className="mt-2 inline-flex min-h-9 items-center text-sm font-medium text-brand"
                 >
                   {t("openPlayback")} ↗
                 </a>
@@ -137,33 +141,33 @@ export default async function ModerationDetailPage({
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-black/10 p-4">
-          <h2 className="font-bold mb-3">{t("currentReport")}</h2>
+        <div className="rounded-card border border-subtle bg-surface p-4">
+          <h2 className="mb-3 font-semibold text-fg">{t("currentReport")}</h2>
           <dl className="text-sm space-y-1">
             <div>
-              <dt className="inline font-bold">{t("categoryLabel")}: </dt>
+              <dt className="inline font-semibold">{t("categoryLabel")}: </dt>
               <dd className="inline">{REASONS[r.reason] || r.reason}</dd>
             </div>
             <div>
-              <dt className="inline font-bold">{t("statusLabel")}: </dt>
+              <dt className="inline font-semibold">{t("statusLabel")}: </dt>
               <dd className="inline">{r.status}</dd>
             </div>
             <div>
-              <dt className="inline font-bold">{t("reporterLabel")}: </dt>
+              <dt className="inline font-semibold">{t("reporterLabel")}: </dt>
               <dd className="inline">
                 {r.reporter_username ? `@${r.reporter_username}` : t("anonymous")}
               </dd>
             </div>
             <div>
-              <dt className="inline font-bold">{t("dateLabel")}: </dt>
+              <dt className="inline font-semibold">{t("dateLabel")}: </dt>
               <dd className="inline">
                 {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(r.created_at))}
               </dd>
             </div>
             {r.note && (
               <div className="mt-2">
-                <dt className="font-bold">{t("noteLabel")}</dt>
-                <dd className="text-black/70 whitespace-pre-wrap">{r.note}</dd>
+                <dt className="font-semibold">{t("noteLabel")}</dt>
+                <dd className="text-muted whitespace-pre-wrap">{r.note}</dd>
               </div>
             )}
           </dl>
@@ -172,18 +176,18 @@ export default async function ModerationDetailPage({
 
       <ModerationActions reportId={r.id} videoId={r.target_video_id} creatorId={r.creator_id} />
 
-      <div className="mt-6 bg-white rounded-2xl border border-black/10 p-4">
-        <h2 className="font-bold mb-3">{t("allReportsOnVideo", { count: related.length })}</h2>
-        <ul className="text-sm divide-y divide-black/5">
+      <div className="rounded-card border border-subtle bg-surface p-4">
+        <h2 className="mb-3 font-semibold text-fg">{t("allReportsOnVideo", { count: related.length })}</h2>
+        <ul className="text-sm divide-y divide-subtle">
           {related.map((rr) => (
             <li key={rr.id} className="py-2">
-              <span className="font-bold">{REASONS[rr.reason] || rr.reason}</span>
-              <span className="text-black/60">
+              <span className="font-semibold">{REASONS[rr.reason] || rr.reason}</span>
+              <span className="text-muted">
                 {" "}
                 · {rr.reporter_username ? `@${rr.reporter_username}` : t("anonymous")} ·{" "}
                 {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(rr.created_at))} · {rr.status}
               </span>
-              {rr.note && <div className="text-black/70 mt-1">{rr.note}</div>}
+              {rr.note && <div className="text-muted mt-1">{rr.note}</div>}
             </li>
           ))}
         </ul>
