@@ -1,6 +1,7 @@
 /**
- * moderateText — single source of truth for text moderation across
- * comments / bios / posts / search queries.
+ * moderateText — single source of truth for HEURISTIC text moderation across
+ * comments / bios / posts / search queries (synchronous, no network).
+ * For the AI layer (Azure AI Content Safety) use `moderateUserText` in ./ai-text.
  *
  * Wraps the v2 safety classifier and turns the label into an action that
  * the calling route can apply directly.
@@ -18,6 +19,23 @@ export type ModerationOutcome = {
   /** User-facing message (RO) explaining a rejection or hide. */
   message?: string;
 };
+
+/** Mesajul (RO) pentru o respingere / ascundere, după context și etichetă. */
+export function moderationMessage(
+  action: ModerationAction,
+  ctx: ModerationContext,
+  label: SafetyLabel,
+): string | undefined {
+  if (action === "allow") return undefined;
+  if (label === "blocked") return "Conținutul conține termeni interziși și nu poate fi publicat.";
+  if (label === "sensitive" && (ctx === "bio" || ctx === "display_name")) {
+    return "Conținutul profilului trebuie să fie neutru, fără referințe sugestive.";
+  }
+  if (action === "hide") return "Mesajul a fost marcat ca explicit și este vizibil doar pentru tine și moderatori.";
+  return ctx === "search"
+    ? "Termenii de căutare conțin conținut pentru adulți și nu sunt permiși aici."
+    : "Acest text conține conținut pentru adulți și nu poate fi publicat pe Swypik.";
+}
 
 /**
  * Decide what to do with a piece of user-generated text.
@@ -46,32 +64,15 @@ export function moderateText(
   });
 
   let action: ModerationAction = "allow";
-  let message: string | undefined;
-
   switch (result.label) {
     case "blocked":
       action = "reject";
-      message = "Conținutul conține termeni interziși și nu poate fi publicat.";
       break;
     case "adult":
-      if (ctx === "bio" || ctx === "display_name" || ctx === "search" || ctx === "post") {
-        action = "reject";
-        message =
-          ctx === "search"
-            ? "Termenii de căutare conțin conținut pentru adulți și nu sunt permiși aici."
-            : "Acest text conține conținut pentru adulți și nu poate fi publicat pe Swypik.";
-      } else {
-        action = "hide";
-        message = "Mesajul a fost marcat ca explicit și este vizibil doar pentru tine și moderatori.";
-      }
+      action = ctx === "comment" ? "hide" : "reject";
       break;
     case "sensitive":
-      if (ctx === "bio" || ctx === "display_name") {
-        action = "reject";
-        message = "Conținutul profilului trebuie să fie neutru, fără referințe sugestive.";
-      } else {
-        action = "allow";
-      }
+      action = ctx === "bio" || ctx === "display_name" ? "reject" : "allow";
       break;
     case "safe":
     default:
@@ -84,6 +85,6 @@ export function moderateText(
     reasons: result.reasons,
     signals: result.signals,
     action,
-    message,
+    message: moderationMessage(action, ctx, result.label),
   };
 }

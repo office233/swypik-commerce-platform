@@ -18,14 +18,15 @@
  *   - find_me / dupe_hunt require ≥2 options.
  *   - Each option needs productId OR externalUrl.
  *
- * Title + body are run through `moderateText("post")` — blocked/adult ⇒ 422.
+ * Title + body are run through `moderateUserText("post")` (heuristic + Azure
+ * Content Safety) — blocked/adult/AI review ⇒ 422.
  */
 
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { dbQuery, getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth/getAuthUser";
-import { moderateText } from "@/lib/moderation/moderateText";
+import { moderateUserText } from "@/lib/moderation/ai-text";
 import { recordStrike, suspensionGuard } from "@/lib/moderation/strikes";
 import { rateLimit } from "@/lib/security/rate-limit";
 
@@ -306,7 +307,7 @@ export async function POST(req: Request) {
       : null;
 
   // Moderation gate on combined text — context="post" ⇒ blocked/adult reject (422).
-  const modCheck = moderateText(`${title}\n${text ?? ""}`, "post");
+  const modCheck = await moderateUserText(`${title}\n${text ?? ""}`, "post");
   if (modCheck.action === "reject") {
     void recordStrike({
       userId: auth.userId,

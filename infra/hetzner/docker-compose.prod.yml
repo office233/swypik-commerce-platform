@@ -162,9 +162,9 @@ services:
     env_file:
       # Server-only runtime secrets pass through as-is from .env.production —
       # no defaults here, missing values fail loudly in the code that reads
-      # them (lib/realtime/config.ts,
-      # lib/audio/jamendo.ts, lib/news/ai-journalist.ts): CF_REALTIME_*,
-      # CF_REALTIMEKIT_*, CF_TURN_*, GEMINI_API_KEY, JAMENDO_CLIENT_ID.
+      # them (lib/realtime/config.ts, lib/audio/jamendo.ts, lib/ai/azure):
+      # CF_REALTIME_*, CF_REALTIMEKIT_*, CF_TURN_*, AZURE_OPENAI_* /
+      # AZURE_CONTENT_SAFETY_*, JAMENDO_CLIENT_ID.
       - .env.production
     depends_on:
       postgres:

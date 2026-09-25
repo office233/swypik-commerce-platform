@@ -43,7 +43,6 @@
 /api/age-verification/opt-in
 /api/age-verification/start
 /api/age-verification/status
-/api/ai/suggest-hashtags
 /api/apply-seller
 /api/audio/tracks
 /api/auth
@@ -88,8 +87,6 @@
 /api/creator/upload-session/[id]
 /api/creator/upload-session/[id]/complete
 /api/creator/upload-session/[id]/parts
-/api/creator/upload-suggestions
-/api/creator/upload-suggestions/regenerate
 /api/creator/videos
 /api/creator/videos/[id]
 /api/creator/videos/[id]/captions

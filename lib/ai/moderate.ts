@@ -1,52 +1,34 @@
 /**
- * AI Content Moderation pe text generat de user (titluri video, descrieri).
- * Folosește Copilot 2-pass auth via fetchCopilot.
- * Defaults `flagged=false` la orice eroare — moderation never blocks happy path.
+ * Moderare AI a textului generat de utilizatori — Azure AI Content Safety.
+ *
+ *   neconfigurat      → flagged=false (decision "not_configured"; euristica locală rămâne)
+ *   allow             → flagged=false
+ *   review / block    → flagged=true, reasons "sexual:4", …
+ *   indisponibil      → flagged=true, reasons ["moderation_unavailable"] (429 F0 după retry,
+ *                       timeout, 5xx) → apelantul ține conținutul „pending review”.
  */
-
-import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { AzureAIError, analyzeText, isContentSafetyConfigured, safetyVerdict, textThresholds, type SafetyDecision } from "./azure";
 import { logger } from "@/lib/logger";
 
-const SYSTEM = `Ești un clasificator de moderare de conținut pentru un marketplace românesc.
-Analizează textul primit și raportează dacă conține: violență, hate speech, conținut sexual explicit, spam evident, autovătămare, drogări, doxxing.
-Returnează STRICT JSON: {"flagged": boolean, "reasons": string[]}.
-"reasons" e listă de etichete scurte ("violence","hate","sexual","spam","self_harm","drugs","doxxing"). Fără text explicativ.`;
+export const MODERATION_UNAVAILABLE = "moderation_unavailable";
 
-export type ModerateResult = { flagged: boolean; reasons: string[] };
+export type ModerateDecision = SafetyDecision | "unavailable" | "not_configured";
+export type ModerateResult = { flagged: boolean; reasons: string[]; decision: ModerateDecision; maxSeverity: number };
 
-export async function moderate(text: string): Promise<ModerateResult> {
-  const trimmed = String(text || "").slice(0, 4000).trim();
-  if (!trimmed) return { flagged: false, reasons: [] };
-  if (getCopilotGhuTokens().length === 0) return { flagged: false, reasons: [] };
-
+export async function moderate(text: string, feature = "video"): Promise<ModerateResult> {
+  const trimmed = String(text || "").trim();
+  if (!trimmed) return { flagged: false, reasons: [], decision: "allow", maxSeverity: 0 };
+  if (!isContentSafetyConfigured()) return { flagged: false, reasons: [], decision: "not_configured", maxSeverity: 0 };
   try {
-    const model = (process.env.MODERATION_TEXT_MODEL || "gpt-4o-mini").replace(/^openai\//, "");
-    const { res } = await fetchCopilot("/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: trimmed },
-        ],
-        temperature: 0,
-        max_tokens: 80,
-        response_format: { type: "json_object" },
-      }),
-    });
-    if (!res.ok) {
-      logger.warn({ status: res.status }, "[moderate] http");
-      return { flagged: false, reasons: [] };
-    }
-    const json: any = await res.json();
-    const content = json?.choices?.[0]?.message?.content || "{}";
-    const parsed = JSON.parse(content);
+    const verdict = safetyVerdict(await analyzeText(trimmed, feature), textThresholds());
     return {
-      flagged: Boolean(parsed.flagged),
-      reasons: Array.isArray(parsed.reasons) ? parsed.reasons.map(String) : [],
+      flagged: verdict.decision !== "allow",
+      reasons: verdict.reasons,
+      decision: verdict.decision,
+      maxSeverity: verdict.maxSeverity,
     };
-  } catch {
-    return { flagged: false, reasons: [] };
+  } catch (err) {
+    logger.warn({ feature, code: err instanceof AzureAIError ? err.code : "unknown" }, "[moderate] content safety unavailable");
+    return { flagged: true, reasons: [MODERATION_UNAVAILABLE], decision: "unavailable", maxSeverity: 0 };
   }
 }

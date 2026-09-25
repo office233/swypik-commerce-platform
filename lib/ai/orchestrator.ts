@@ -1,14 +1,12 @@
 import type { ShoppingSession } from "@/lib/sales/shopping-session";
 import { buildSessionPrompt } from "@/lib/sales/shopping-session";
 import { getCategories } from "@/lib/db/product-queries";
-import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { chatJson, isAzureChatConfigured, type ChatMessage } from "./azure";
+import { OrchestratorOutputSchema } from "./orchestrator-schema";
 import { logger } from "@/lib/logger";
 
 const log = logger.child({ service: "ai-orchestrator" });
 
-function hasAIProvider(): boolean { return getCopilotGhuTokens().length > 0; }
-
-function getModel(): string { return (process.env.ORCHESTRATOR_MODEL || process.env.OPENROUTER_MODEL || "gpt-4o-mini").replace(/^openai\//, ""); }
 
 // ─── Dynamic category cache (60s TTL + force refresh) ───
 let cachedCategories: { name: string; nameEn: string; count: number }[] = [];
@@ -270,28 +268,21 @@ export async function orchestrate(userMessage: string, chatHistory: { role: "use
   }
 
   const categories = await loadCategories();
-  if (!hasAIProvider()) return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
+  if (!isAzureChatConfigured()) return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
 
   try {
     const contextSummary = productContext.slice(0, 10).map((p) => ({ id: p.id, title: p.title, price: p.price, category: p.category, rating: p.rating, orders: p.orders }));
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{CATEGORIES}}", buildCategoryPrompt(categories));
-    const messages: any[] = [{ role: "system", content: systemPrompt }, { role: "system", content: buildSessionPrompt(shoppingSession) }, ...chatHistory.slice(-10)];
+    const messages: ChatMessage[] = [{ role: "system", content: systemPrompt }, { role: "system", content: buildSessionPrompt(shoppingSession) }, ...chatHistory.slice(-10)];
     if (contextSummary.length) messages.push({ role: "system", content: `Products in context: ${JSON.stringify(contextSummary)}` });
     messages.push({ role: "user", content: userMessage });
-    const { res } = await fetchCopilot("/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: getModel(), messages, temperature: 0.72, max_tokens: 750, response_format: { type: "json_object" } }),
+    const { data: result } = await chatJson(messages, {
+      feature: "shop-chat",
+      schema: OrchestratorOutputSchema,
+      schemaName: "shop_assistant_reply",
+      maxCompletionTokens: 1500,
     });
-    if (!res.ok) {
-      logger.warn({ status: res.status }, "[AI Orchestrator] http");
-      return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);
-    }
-    const completion: any = await res.json();
-    const content = completion?.choices?.[0]?.message?.content || "{}";
-    const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const result = JSON.parse(cleaned);
-    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, category: result.category || undefined, bundleQueries: Array.isArray(result.bundleQueries) ? result.bundleQueries.slice(0, 3) : [], productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p: any) => String(p.id)) : undefined };
+    return { intent: result.intent || "general_chat", reply: result.reply || "Spune-mi ce cauti si iti aleg rapid varianta potrivita.", searchQuery: result.searchQuery, category: result.category || undefined, bundleQueries: (result.bundleQueries ?? []).slice(0, 3), productId: result.productId, productTitle: result.productTitle, maxPrice: result.maxPrice, sort: result.sort, shouldAskFollowUp: Boolean(result.shouldAskFollowUp), excludeIds: result.intent === "refine_search" ? productContext.map((p: any) => String(p.id)) : undefined };
   } catch (error) {
     logger.error({ err: error }, "[AI Orchestrator] Error");
     return fallbackOrchestrate(userMessage, productContext, shoppingSession, categories);

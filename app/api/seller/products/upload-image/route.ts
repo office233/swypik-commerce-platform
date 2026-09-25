@@ -3,6 +3,7 @@ import { getSellerSessionId } from "@/lib/security/seller-auth";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { uploadFile, isStorageConfigured } from "@/lib/storage/upload";
 import { logger } from "@/lib/logger";
+import { moderateImage } from "@/lib/moderation/ai-image";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -51,6 +52,15 @@ export async function POST(req: Request) {
     const mimeType = sniffImageMime(buffer);
     if (!mimeType) {
       return NextResponse.json({ success: false, error: "Format neacceptat. Doar JPEG, PNG sau WebP." }, { status: 415 });
+    }
+    // Azure AI Content Safety: doar „block” respinge; „review” trece (produsul are
+    // propria moderare la publicare), dar rămâne semnalat în log pentru audit.
+    const moderation = await moderateImage(buffer, "image.product");
+    if (moderation.decision === "block") {
+      return NextResponse.json({ success: false, code: "image_rejected" }, { status: 422 });
+    }
+    if (moderation.decision === "review") {
+      logger.warn({ sellerId, reasons: moderation.reasons }, "[seller/upload-image] image flagged for review");
     }
     const rawName = (form?.get("filename") as string) || "image";
     const name = rawName.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 100) || "image";

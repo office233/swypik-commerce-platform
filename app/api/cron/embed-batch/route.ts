@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { dbQuery } from "@/lib/db";
-import { embed, toPgVector, EmbeddingError } from "@/lib/ai/embeddings";
+import { embed, toPgVector, EmbeddingError, isEmbeddingConfigured } from "@/lib/ai/embeddings";
 import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
 
 export const dynamic = "force-dynamic";
@@ -110,6 +110,10 @@ async function processVideos(): Promise<{ done: number; errors: number; lastErro
 async function handlePOST(req: Request) {
   if (!(await authorize(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Fără deployment de embeddings pe Azure, căutarea semantică e oprită — nu e o eroare.
+  if (!isEmbeddingConfigured()) {
+    return NextResponse.json({ ok: true, skipped: "embeddings_not_configured", products: 0, videos: 0, errors: 0 });
   }
   const products = await processProducts();
   const videos = await processVideos();

@@ -95,7 +95,18 @@ one_of S "STORAGE access key" S3_ACCESS_KEY S3_ACCESS_KEY_ID AWS_ACCESS_KEY_ID R
 one_of S "STORAGE secret key" S3_SECRET_KEY S3_SECRET_ACCESS_KEY AWS_SECRET_ACCESS_KEY R2_SECRET_ACCESS_KEY
 one_of S "STORAGE bucket" S3_BUCKET S3_MEDIA_BUCKET R2_BUCKET
 one_of S "STORAGE URL public (CDN)" S3_PUBLIC_URL S3_PUBLIC_BASE_URL R2_PUBLIC_URL R2_PUBLIC_BASE_URL
-for k in SENTRY_DSN OPS_ALERT_EMAIL PARTNER_PROVISION_SECRET GITHUB_MODELS_TOKENS; do
+# AI = Azure AI Foundry (EU Data Zone): chat, Whisper (subtitrări), Content Safety (moderare).
+# Fără ele aplicația merge, dar fără AI: moderarea rămâne doar euristică, știrile și subtitrările se opresc.
+for k in AZURE_OPENAI_ENDPOINT AZURE_OPENAI_API_KEY AZURE_OPENAI_CHAT_DEPLOYMENT AZURE_OPENAI_WHISPER_DEPLOYMENT \
+         AZURE_CONTENT_SAFETY_ENDPOINT AZURE_CONTENT_SAFETY_KEY; do
+  need S "$k" "Azure AI"
+done
+if has S AZURE_OPENAI_ENDPOINT && [[ ! "${S[AZURE_OPENAI_ENDPOINT]}" =~ ^https://[a-z0-9-]+\.openai\.azure\.com/?$ ]]; then
+  err AZURE_OPENAI_ENDPOINT "format neașteptat (https://<resursă>.openai.azure.com)"
+fi
+has S AZURE_CONTENT_SAFETY_ENDPOINT && [[ "${S[AZURE_CONTENT_SAFETY_ENDPOINT]}" != https://* ]] && err AZURE_CONTENT_SAFETY_ENDPOINT "trebuie https://"
+has S AZURE_OPENAI_EMBEDDING_DEPLOYMENT || warn AZURE_OPENAI_EMBEDDING_DEPLOYMENT "lipsește — căutarea semantică (pgvector) e oprită"
+for k in SENTRY_DSN OPS_ALERT_EMAIL PARTNER_PROVISION_SECRET; do
   has S "$k" || warn "$k" "lipsește (recomandat)"
 done
 
@@ -146,7 +157,7 @@ for m in MOVIES MUSIC NEWS GAMING MESSENGER DM CARES VIRAL_CATALOG; do
     err "FEATURE_$m" "diferă de NEXT_PUBLIC_FEATURE_$m (ambele se coc la build)"
   fi
 done
-if truthy "${S[FEATURE_NEWS]:-0}"; then need S GEMINI_API_KEY "FEATURE_NEWS"; need S NEWS_GEMINI_MODEL "FEATURE_NEWS"; fi
+if truthy "${S[FEATURE_NEWS]:-0}"; then one_of S "NEWS AI deployment (FEATURE_NEWS)" NEWS_AI_DEPLOYMENT AZURE_OPENAI_CHAT_DEPLOYMENT; fi
 if truthy "${S[FEATURE_MESSENGER]:-0}"; then
   for k in LIVEKIT_API_KEY LIVEKIT_API_SECRET LIVEKIT_URL NEXT_PUBLIC_LIVEKIT_URL; do has S "$k" || warn "$k" "FEATURE_MESSENGER e pornit (apelurile se mută pe Cloudflare Realtime)"; done
 fi
@@ -156,6 +167,10 @@ truthy "${S[FEATURE_CARES]:-0}" && warn FEATURE_CARES "pornit — decizia owner:
 # Chei eliminate (crypto/SWYP, YouTube/TMDB, Mystery Drop, MinIO) — de scos
 for k in "${!S[@]}"; do
   if [[ "$k" =~ (SWYP|CHAIN|TREASURY|_PK$|RPC_URL|COINGECKO|MYSTERY|YOUTUBE|TMDB|MINIO_) ]]; then warn "$k" "cheie a unei funcții eliminate — scoate-o"; fi
+  # Furnizori AI înlocuiți de Azure AI Foundry (STUDIAI_* rămâne doar pentru scripts/data, nu runtime).
+  if [[ "$k" =~ ^(GEMINI_|NEWS_GEMINI_|GITHUB_MODELS|OPENROUTER_|ORCHESTRATOR_MODEL|MODERATION_(TEXT_)?MODEL|TRANSLATE_MODEL|STUDIAI_) ]]; then
+    warn "$k" "furnizor AI vechi — runtime-ul folosește doar AZURE_* (scoate-o)"
+  fi
 done
 
 if [ -n "$DATA_ENV" ]; then

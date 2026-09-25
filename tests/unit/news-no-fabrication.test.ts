@@ -19,8 +19,10 @@ import { runNewsIngestionPipeline } from "@/lib/news/rss-ingester";
 describe("news pipeline never fabricates articles", () => {
   beforeEach(() => {
     inserts.length = 0;
-    delete process.env.GEMINI_API_KEY;
-    delete process.env.OPENAI_API_KEY;
+    delete process.env.AZURE_OPENAI_ENDPOINT;
+    delete process.env.AZURE_OPENAI_API_KEY;
+    delete process.env.AZURE_OPENAI_CHAT_DEPLOYMENT;
+    delete process.env.NEWS_AI_DEPLOYMENT;
   });
 
   it("returns null (no template article) when no AI key is configured", async () => {
@@ -44,22 +46,28 @@ describe("news pipeline never fabricates articles", () => {
     vi.unstubAllGlobals();
   });
 
-  it("ignores OPENAI_API_KEY (no cross-provider key fallback)", async () => {
+  it("stays off with a deployment but no Azure endpoint/key (no other provider fallback)", async () => {
     process.env.OPENAI_API_KEY = "sk-test";
-    process.env.NEWS_GEMINI_MODEL = "some-model";
+    process.env.GEMINI_API_KEY = "legacy";
+    process.env.NEWS_AI_DEPLOYMENT = "some-model";
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
     const out = await generateAutonomousNewsArticle({ title: "Headline", source: "BBC", summary: "Summary", url: "https://bbc.co.uk/x" });
     expect(out).toBeNull();
-    delete process.env.NEWS_GEMINI_MODEL;
+    expect(fetchSpy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
   });
 
   it("publishes nothing when every live feed is unreachable", async () => {
-    process.env.GEMINI_API_KEY = "test-key";
-    process.env.NEWS_GEMINI_MODEL = "test-model";
+    process.env.AZURE_OPENAI_ENDPOINT = "https://res.openai.azure.com";
+    process.env.AZURE_OPENAI_API_KEY = "test-key";
+    process.env.NEWS_AI_DEPLOYMENT = "test-model";
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
     const res = await runNewsIngestionPipeline();
     expect(res.ingested).toBe(0);
     expect(inserts).toHaveLength(0);
     vi.unstubAllGlobals();
-    delete process.env.NEWS_GEMINI_MODEL;
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Product translation via StudiAI (Claude Opus 4.7).
+ * Product translation via Azure OpenAI (structured output, lib/ai/azure).
  * Used by the seller wizard fan-out and by the batch script.
  *
  * Produces SEO-friendly titles + descriptions per target locale and persists
@@ -9,13 +9,12 @@
 
 import { z } from "zod";
 import { dbQuery } from "@/lib/db";
-import { chat, parseJsonLoose, isStudiAIConfigured } from "@/lib/ai/studiai";
+import { AzureAIError, chatDeployment, chatJson, isAzureChatConfigured } from "@/lib/ai/azure";
 import { logger } from "@/lib/logger";
 import type { Locale } from "@/lib/i18n/config";
 
-const MODEL = process.env.STUDIAI_MODEL || "claude-opus-4-7";
 const PROMPT_VERSION = "v2";
-const MODEL_TAG = `${MODEL}-prompt-${PROMPT_VERSION}`;
+const modelTag = () => `azure:${chatDeployment() ?? "unset"}-prompt-${PROMPT_VERSION}`;
 
 const TranslateSchema = z.object({
   title: z.string().min(10).max(250),
@@ -86,7 +85,7 @@ async function translateOne(
   sourceLocale: Locale,
   targetLocale: Locale,
 ): Promise<TranslateResult | null> {
-  if (!isStudiAIConfigured()) return null;
+  if (!isAzureChatConfigured()) return null;
   if (sourceLocale === targetLocale) {
     return {
       title,
@@ -98,20 +97,13 @@ async function translateOne(
   }
   const userPayload = JSON.stringify({ source_title: title, source_description: description || "" });
   try {
-    const text = await chat(
+    const { data: parsed } = await chatJson(
       [
         { role: "system", content: SYSTEM(sourceLocale, targetLocale) },
         { role: "user", content: userPayload },
       ],
-      { temperature: 0.2, maxTokens: 900, responseJson: true, timeoutMs: 20_000 },
+      { feature: "product-translate", schema: TranslateSchema, schemaName: "product_translation", maxCompletionTokens: 2500, timeoutMs: 20_000 },
     );
-    const raw = parseJsonLoose<unknown>(text);
-    const validated = TranslateSchema.safeParse(raw);
-    if (!validated.success) {
-      logger.warn({ err: validated.error.issues.slice(0, 3), sourceLocale, targetLocale }, "[translator] schema invalid");
-      return null;
-    }
-    const parsed = validated.data;
     return {
       title: parsed.title.slice(0, 250),
       description: parsed.description ? String(parsed.description).slice(0, 2000) : null,
@@ -119,8 +111,8 @@ async function translateOne(
       seo_description: parsed.seo_description ? String(parsed.seo_description).slice(0, 220) : null,
       slug: parsed.slug ? slugify(String(parsed.slug)) : slugify(String(parsed.title)),
     };
-  } catch (e: any) {
-    logger.warn({ err: e?.message, sourceLocale, targetLocale }, "[translator] studiai error");
+  } catch (e) {
+    logger.warn({ code: e instanceof AzureAIError ? e.code : "unknown", sourceLocale, targetLocale }, "[translator] azure error");
     return null;
   }
 }
@@ -150,7 +142,7 @@ export async function translateProductToLocales(args: {
                seo_description = EXCLUDED.seo_description,
                source = CASE WHEN product_translations.source = 'seller' THEN 'seller' ELSE 'llm' END,
                model_tag = EXCLUDED.model_tag`,
-        [args.productId, loc, r.title, r.description, r.slug, r.seo_title, r.seo_description, MODEL_TAG],
+        [args.productId, loc, r.title, r.description, r.slug, r.seo_title, r.seo_description, modelTag()],
       );
       written.push(loc);
     } catch (e: any) {

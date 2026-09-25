@@ -11,7 +11,7 @@ Swypik = platforma social commerce (TikTok Shop style) care combina video-uri sc
 - **Cache:** Redis 7 (Docker)
 - **Storage:** Cloudflare R2 (video + imagini)
 - **Payments:** Stripe (Checkout Sessions + Webhooks)
-- **AI:** GitHub Models API (`https://models.github.ai/inference`) cu `GITHUB_TOKEN`. Fallback: OpenRouter. Vezi `lib/ai/moderation.ts`.
+- **AI:** Azure AI Foundry (EU Data Zone, platit din creditele Azure) — un singur modul `lib/ai/azure/*`: chat `AZURE_OPENAI_CHAT_DEPLOYMENT` (gpt-5.4-mini, structured output), Whisper (subtitrari, si in `workers/video-worker`), Content Safety (moderare text + imagine, praguri `CONTENT_SAFETY_*`). Fara alti furnizori (GitHub Models / OpenRouter / Gemini eliminati 2026-09-26); StudiAI ramane doar in scripturile offline `scripts/data`, `scripts/eval`.
 - **Edge:** Cloudflare Tunnel (`cloudflared`, systemd in distro) → `http://localhost:3005` (web-next). Caddy NU ruleaza local (profil `disabled` in `docker-compose.vps.yml`).
 - **Deploy:** Docker Compose in distro-ul WSL2 `swypik` de pe masina asta (NU exista VPS Hetzner — actualizat 2026-09-22)
 
@@ -78,8 +78,9 @@ GitHub `main` = sursa de adevar; `/opt/swypik/app` e doar clona de rulare.
 │   └── ...
 ├── lib/
 │   ├── ai/
-│   │   ├── moderation.ts         # GitHub Models classifier
-│   │   └── safety-filter.ts      # blocks weapons/drugs; tags adult-only
+│   │   ├── azure/                # Azure AI Foundry: chat, whisper, content-safety, embeddings
+│   │   ├── moderate.ts           # Content Safety pe text (publicare video) → moderation_cases
+│   │   └── moderation.ts         # filtru pe ieșirea chatului de shopping
 │   ├── feed/
 │   │   └── track.ts              # batched sendBeacon emitter
 │   ├── movies/                   # acces/pret (pure), unlock cu cardul (Stripe, RON) + cota creator, proxy HLS cu token
@@ -104,7 +105,7 @@ GitHub `main` = sursa de adevar; `/opt/swypik/app` e doar clona de rulare.
 │   ├── Caddyfile                 # reverse_proxy platform-api:8080
 │   ├── deploy.sh
 │   └── .env.production
-├── scripts/translate.mjs         # GitHub Copilot translator (ae_*)
+├── scripts/data/                 # traduceri/clasificari offline (StudiAI, nu runtime)
 └── workers/ (in lucru, era services/video-worker/)
 ```
 
@@ -137,12 +138,12 @@ Toate gated prin `lib/feature-flags.ts` (server) + `feature-flags-client.ts` (cl
 | `FEATURE_RETURNS` | OFF | |
 | `FEATURE_EMAIL_MARKETING` | OFF | |
 | `FEATURE_SEO_PAGES` | OFF | |
-| `FEATURE_AI_CHAT_FULL` | OFF | Necesita `GITHUB_TOKEN` in `.env.production` |
+| `FEATURE_AI_CHAT_FULL` | OFF | Necesita `AZURE_OPENAI_*` in `.env.production` |
 | `FEATURE_CARES` | OFF | Swypik Cares (donatii, `/cares`, `/cauze`, `/api/donations|campaigns|causes`) — pana exista un partener ONG (+ `NEXT_PUBLIC_FEATURE_CARES`). Squad Buy si App Store/Developers au fost sterse 2026-09-26 (tabelele raman) |
 | `FEATURE_VIRAL_CATALOG` | OFF | Catalog demo de produse (date de exemplu) |
 | `FEATURE_MOVIES` | OFF | Swypik Movies (+ `NEXT_PUBLIC_FEATURE_MOVIES`); migrarea `20260921_0003_movies.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-movies-design.md` |
 | `FEATURE_MUSIC` | OFF | Swypik Music (+ `NEXT_PUBLIC_FEATURE_MUSIC`); migrarea `20260922_0001_music.sql`; spec in `docs/superpowers/specs/2026-09-21-swypik-music-design.md` |
-| `FEATURE_NEWS` | OFF | Swypik AI News (+ `NEXT_PUBLIC_FEATURE_NEWS`); necesita `GEMINI_API_KEY` |
+| `FEATURE_NEWS` | OFF | Swypik AI News (+ `NEXT_PUBLIC_FEATURE_NEWS`); necesita `AZURE_OPENAI_*` (+ optional `NEWS_AI_DEPLOYMENT`) |
 | `FEATURE_GAMING` | OFF | Swypik Arcade (+ `NEXT_PUBLIC_FEATURE_GAMING`) |
 | `FEATURE_MESSENGER` | OFF | Swypik Messenger — mesaje & apeluri video (+ `NEXT_PUBLIC_FEATURE_MESSENGER`); apelurile audio/video (Cloudflare RealtimeKit) necesita `CF_REALTIMEKIT_*` + `NEXT_PUBLIC_CALLS_ENABLED=1` (vezi `docs/infra/realtime.md`) |
 
@@ -181,7 +182,7 @@ runtime) — altfel paginile index prerandate si bundle-ul de browser raman
 4. **NU sterge tabele/coloane** fara backup `pg_dump`
 5. **Mobile-first design** — UI optimizat pentru mobil (BottomNav 5 items)
 6. **Deploy:** rebuild web-next + `up -d --force-recreate --no-deps web-next`
-7. **GitHub Models** pentru AI, NU OpenRouter (per user-memory)
+7. **Azure AI Foundry** (`lib/ai/azure`) pentru tot AI-ul — nu reintroduce GitHub Models / OpenRouter / Gemini
 8. **Go platform-api** este ACTIV — nu sterge
 
 ## Fluxuri principale
@@ -189,7 +190,7 @@ runtime) — altfel paginile index prerandate si bundle-ul de browser raman
 2. **Creator:** apply → upload video via `app/api/creator/upload-session` (→ platform-api Go) → comision la vanzari
 3. **Seller:** dashboard → import AliExpress → catalog → orders
 4. **Admin:** `/admin` → login cu contul propriu (`users.role=admin`, OTP) → sesiune de admin personală 12h, roluri `users.admin_role` (owner/ops/finance/moderator/support, `lib/admin/permissions.ts`), meniu din `lib/admin/nav.ts`, audit în `admin_audit_log` (`/admin/audit`). `ADMIN_SECRET` = doar Bearer pentru scripturi/cron (+ acces de urgență cu `ADMIN_BREAK_GLASS_ENABLED=1` și emailul unui admin)
-5. **AI chat:** `/chat` → GitHub Models → moderation output filter
+5. **AI chat:** `/chat` → Azure OpenAI (structured output) → Content Safety pe raspuns
 
 ## TODO restant (per plan Faza 0-6, 2026-05-14)
 - ✓ Faza 0 Backup (mvp-freeze pushed)

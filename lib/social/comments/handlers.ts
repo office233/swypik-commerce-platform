@@ -4,7 +4,8 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
-import { moderateText } from "@/lib/moderation/moderateText";
+import { moderateUserText, type AiModerationOutcome } from "@/lib/moderation/ai-text";
+import { openModerationCase } from "@/lib/moderation/cases";
 import { recordStrike } from "@/lib/moderation/strikes";
 import { rateLimit, getClientIP } from "@/lib/security/rate-limit";
 import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/config";
@@ -84,7 +85,8 @@ export async function getComments(req: NextRequest, { params }: Ctx) {
   }
 }
 
-function moderationStrike(userId: string, videoId: string, m: ReturnType<typeof moderateText>) {
+function moderationStrike(userId: string, videoId: string, m: AiModerationOutcome) {
+  if (m.degraded) return;
   void recordStrike({
     userId,
     label: m.label === "blocked" ? "blocked" : "adult",
@@ -116,7 +118,7 @@ export async function postComment(req: NextRequest, { params }: Ctx) {
     const rl = await rateLimit("videoComment", session.userId);
     if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
-    const moderation = moderateText(text.text, "comment");
+    const moderation = await moderateUserText(text.text, "comment");
     if (moderation.action === "reject") {
       moderationStrike(session.userId, videoId, moderation);
       return NextResponse.json({ error: "comment_rejected", reasons: moderation.reasons }, { status: 422 });
@@ -134,6 +136,15 @@ export async function postComment(req: NextRequest, { params }: Ctx) {
       locale: localeOf(req),
       ctx: { viewerId: session.userId, viewerIsAccount: isAccount, videoOwnerId: null },
     });
+    // Ascuns de AI (sau AI indisponibil) → caz în coada de moderare, ca adminul să-l poată reabilita.
+    if (moderation.action === "hide" && moderation.ai) {
+      void openModerationCase({
+        target: { kind: "comment", id: created.comment.id },
+        source: "ai_auto",
+        reasons: moderation.reasons,
+        severity: moderation.degraded ? "low" : "medium",
+      });
+    }
 
     if (status === "visible") {
       if (isAccount) {

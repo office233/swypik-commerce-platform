@@ -1,65 +1,41 @@
 /**
- * Speech-to-text via Copilot 2-pass auth Whisper.
- * Fallback: stub returnând { text:'', segments:[] } cu warning.
- *
- * GitHub Copilot nu garantează Whisper public; folosim env-flag pt control.
- * Dacă `GITHUB_MODELS_WHISPER` ≠ "1" → fallback stub direct.
+ * Speech-to-text pentru subtitrări — Azure OpenAI Whisper (`lib/ai/azure`).
+ * Neconfigurat / eroare → { text:'', segments:[] }; apelantul (lib/video/captions)
+ * transformă asta în „captions_unavailable” (503).
  */
-
-import { fetchCopilot, getCopilotGhuTokens } from "./github-models-tokens";
+import { AzureAIError, isAzureWhisperConfigured, transcribeAudio, WHISPER_MAX_BYTES } from "./azure";
 import { logger } from "@/lib/logger";
 
 export type CaptionSegment = { start: number; end: number; text: string };
 export type TranscribeResult = { text: string; segments: CaptionSegment[] };
 
-const WHISPER_MODEL = (process.env.GITHUB_MODELS_WHISPER_MODEL || "whisper-1").replace(/^openai\//, "");
-const ENABLED = process.env.GITHUB_MODELS_WHISPER === "1";
+const EMPTY: TranscribeResult = { text: "", segments: [] };
 
-export async function transcribe(
-  audioBuffer: Buffer,
-  lang?: string,
-  filename = "audio.mp3",
-): Promise<TranscribeResult> {
-  if (!ENABLED) {
-    logger.warn("[transcribe] disabled (GITHUB_MODELS_WHISPER!=1) → empty stub");
-    return { text: "", segments: [] };
-  }
-  if (getCopilotGhuTokens().length === 0) {
-    logger.warn("[transcribe] no Copilot tokens → empty stub");
-    return { text: "", segments: [] };
-  }
-  if (audioBuffer.length > 25 * 1024 * 1024) {
-    logger.warn("[transcribe] audio >25MB → skipped");
-    return { text: "", segments: [] };
-  }
+function mimeFor(filename: string): string {
+  if (filename.endsWith(".m4a") || filename.endsWith(".mp4")) return "audio/mp4";
+  if (filename.endsWith(".wav")) return "audio/wav";
+  return "audio/mpeg";
+}
 
+export async function transcribe(audioBuffer: Buffer, lang?: string, filename = "audio.m4a"): Promise<TranscribeResult> {
+  if (!isAzureWhisperConfigured()) {
+    logger.warn("[transcribe] Azure Whisper not configured → empty");
+    return EMPTY;
+  }
+  if (audioBuffer.length > WHISPER_MAX_BYTES) {
+    logger.warn({ bytes: audioBuffer.length }, "[transcribe] audio >25MB → skipped");
+    return EMPTY;
+  }
   try {
-    const form = new FormData();
-    form.append("file", new Blob([new Uint8Array(audioBuffer)], { type: "audio/mpeg" }), filename);
-    form.append("model", WHISPER_MODEL);
-    form.append("response_format", "verbose_json");
-    if (lang) form.append("language", lang);
-
-    const { res } = await fetchCopilot("/audio/transcriptions", {
-      method: "POST",
-      body: form,
+    const out = await transcribeAudio(audioBuffer, {
+      feature: "captions",
+      language: lang,
+      filename,
+      mimeType: mimeFor(filename),
     });
-    if (!res.ok) {
-      logger.warn({ status: res.status }, "[transcribe] http");
-      return { text: "", segments: [] };
-    }
-    const json: any = await res.json();
-    const text = String(json?.text || "");
-    const segments: CaptionSegment[] = Array.isArray(json?.segments)
-      ? json.segments.map((s: any) => ({
-          start: Number(s.start) || 0,
-          end: Number(s.end) || 0,
-          text: String(s.text || "").trim(),
-        }))
-      : [];
-    return { text, segments };
+    return { text: out.text, segments: out.segments };
   } catch (e) {
-    logger.warn({ err: e }, "[transcribe] failed");
-    return { text: "", segments: [] };
+    logger.warn({ code: e instanceof AzureAIError ? e.code : "unknown", status: (e as AzureAIError)?.status }, "[transcribe] failed");
+    return EMPTY;
   }
 }

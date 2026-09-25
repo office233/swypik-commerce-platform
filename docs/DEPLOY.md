@@ -187,12 +187,13 @@ Obligatorii **doar în producție** (în dev au fallback-uri locale):
 | `STRIPE_SECRET_KEY` | plăți |
 | `STRIPE_WEBHOOK_SECRET` | verificarea semnăturii webhook Stripe |
 | `OAUTH_REDIRECT_BASE` | baza pentru callback-urile OAuth |
-| `STUDIAI_BASE_URL`, `STUDIAI_API_KEY` | gateway LLM (fără fallback în producție) |
+| `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_WHISPER_DEPLOYMENT` | Azure AI Foundry (chat, subtitrări) — `lib/ai/azure` |
+| `AZURE_CONTENT_SAFETY_ENDPOINT`, `AZURE_CONTENT_SAFETY_KEY` | moderare text + imagine (praguri `CONTENT_SAFETY_*`) |
 | `GO_API_URL` | platform API Go (upload video, feed) |
 
 > În dev, `GO_API_URL` cade pe `http://localhost:8080`, `OAUTH_REDIRECT_BASE` pe
-> `http://localhost:3000`, `STUDIAI_BASE_URL` pe gateway-ul public. În producție lipsa lor
-> produce un **log de eroare explicit** (nu crash silențios).
+> `http://localhost:3000`. Fără cheile Azure AI, funcțiile AI se opresc curat (moderare doar
+> euristică, fără știri/subtitrări); în producție lipsa GO_API_URL / OAUTH produce un **log de eroare explicit**.
 
 ## 3. Variabile recomandate / de business
 

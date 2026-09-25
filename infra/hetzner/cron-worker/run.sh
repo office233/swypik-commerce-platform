@@ -116,7 +116,7 @@ while true; do
   # data (news_raw_items.url UNIQUE) + advisory lock pe rulare, deci o rulare
   # repetata/suprapusa nu dubleaza articole. Plafoane: NEWS_MAX_ARTICLES_PER_RUN
   # / _PER_DAY. 410 = FEATURE_NEWS oprit (SKIP); 503 = lipsesc
-  # GEMINI_API_KEY / NEWS_GEMINI_MODEL; 502 = toate feed-urile/rezumatele au esuat.
+  # AZURE_OPENAI_* (+ NEWS_AI_DEPLOYMENT sau AZURE_OPENAI_CHAT_DEPLOYMENT); 502 = toate feed-urile/rezumatele au esuat.
   if [ $((TICK % 7200)) -lt 60 ]; then
     run_job news-pipeline POST
   fi

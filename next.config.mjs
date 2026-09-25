@@ -22,7 +22,7 @@ const REALTIME_CONNECT_SRC =
 // Explicit allowlist — do NOT widen back to `https:` (open connect-src let any
 // page/script exfiltrate to arbitrary hosts). New modules (Movies, Music, News,
 // Gaming, Messenger) call third-party APIs (Audius,
-// Jamendo, Radio-Browser, CheapShark, OpenTDB, Gemini) ONLY from
+// Jamendo, Radio-Browser, CheapShark, OpenTDB, Azure AI) ONLY from
 // server code (lib/**), never from the browser — see app/api/* proxies — so
 // none of those hosts need to be here.
 // Media (R2 + CDN, docs/infra/r2.md): originile vin din env — CDN-ul public,

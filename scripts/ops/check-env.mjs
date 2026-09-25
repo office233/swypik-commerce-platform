@@ -48,8 +48,12 @@ const REQUIRED = [
   { name: "STRIPE_SECRET_KEY", why: "plăți", prodOnly: true },
   { name: "STRIPE_WEBHOOK_SECRET", why: "verificarea semnăturii webhook Stripe", prodOnly: true },
   { name: "OAUTH_REDIRECT_BASE", why: "callback OAuth în producție", prodOnly: true },
-  { name: "STUDIAI_BASE_URL", why: "gateway LLM (fără fallback în producție)", prodOnly: true },
-  { name: "STUDIAI_API_KEY", why: "cheie LLM", prodOnly: true },
+  { name: "AZURE_OPENAI_ENDPOINT", why: "Azure AI Foundry (chat, Whisper)", prodOnly: true },
+  { name: "AZURE_OPENAI_API_KEY", why: "cheie Azure OpenAI", prodOnly: true },
+  { name: "AZURE_OPENAI_CHAT_DEPLOYMENT", why: "deployment chat (știri, asistent shop, traduceri)", prodOnly: true },
+  { name: "AZURE_OPENAI_WHISPER_DEPLOYMENT", why: "deployment Whisper (subtitrări)", prodOnly: true },
+  { name: "AZURE_CONTENT_SAFETY_ENDPOINT", why: "moderare text + imagine", prodOnly: true },
+  { name: "AZURE_CONTENT_SAFETY_KEY", why: "cheie Content Safety", prodOnly: true },
   { name: "GO_API_URL", why: "platform API Go (upload video, feed)", prodOnly: true },
 ];
 

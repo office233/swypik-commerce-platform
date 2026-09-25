@@ -88,7 +88,7 @@ async function runPipeline(targetCategory: string | undefined): Promise<Pipeline
         continue; // stays unprocessed → retried on a later run, up to maxAttemptsPerItem
       }
       const categoryId = await categoryIdForSlug(generated.category_slug);
-      const articleId = categoryId ? await insertArticle({ generated, topic, categoryId, status, model: ai.model }) : null;
+      const articleId = categoryId ? await insertArticle({ generated, topic, categoryId, status, model: `azure:${ai.deployment}` }) : null;
       await markRawItemProcessed(rawItemId);
       if (!articleId) continue;
       categories.add(generated.category_slug);

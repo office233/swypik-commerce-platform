@@ -5,6 +5,8 @@
  * decodată cu sharp (un fișier care doar pretinde că e imagine e respins),
  * rotită după EXIF, curățată de metadate (GPS!) și redusă la 512px WebP, apoi
  * urcată în storage-ul existent (`uploadFile`, prefix `avatars/<userId>`).
+ * Moderare Azure AI Content Safety: „block” → 422 `avatar_rejected`; „review” sau
+ * AI indisponibil → avatarul se salvează și se deschide un caz pe utilizator.
  * Erorile sunt coduri stabile, traduse pe client. 3 încărcări/oră per user.
  */
 import { NextResponse } from "next/server";
@@ -14,6 +16,8 @@ import { dbQuery } from "@/lib/db";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { uploadFile, MAX_FILE_SIZE } from "@/lib/storage/upload";
 import { logger } from "@/lib/logger";
+import { moderateImage, needsReview } from "@/lib/moderation/ai-image";
+import { openModerationCase } from "@/lib/moderation/cases";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -61,11 +65,23 @@ export async function POST(request: Request) {
     return fail("avatar_invalid_image");
   }
 
+  const moderation = await moderateImage(processed, "image.avatar");
+  if (moderation.decision === "block") return fail("avatar_rejected", 422);
+
   try {
     const result = await uploadFile(processed, "avatar.webp", "image/webp", {
       keyPrefix: `avatars/${session.userId}`,
     });
     await dbQuery(`UPDATE users SET avatar_url = $1 WHERE id = $2`, [result.url, session.userId]);
+    if (needsReview(moderation)) {
+      void openModerationCase({
+        target: { kind: "user", id: session.userId },
+        source: "image_ai",
+        reasons: moderation.reasons,
+        severity: moderation.decision === "unavailable" ? "low" : "medium",
+        metadata: { kind: "avatar", url: result.url },
+      });
+    }
     return NextResponse.json({ avatar_url: result.url });
   } catch (err: unknown) {
     logger.error({ err }, "[users/me/avatar POST]");

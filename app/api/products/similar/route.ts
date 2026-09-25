@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
-import { embed, toPgVector } from "@/lib/ai/embeddings";
+import { embed, toPgVector, isEmbeddingConfigured } from "@/lib/ai/embeddings";
 
 export const dynamic = "force-dynamic";
 
@@ -177,6 +177,9 @@ export async function GET(req: Request) {
       const textProducts = await searchByText(text, limit);
       if (textProducts.length > 0) {
         return NextResponse.json({ products: textProducts, mode: "text" }, { headers: HEADERS });
+      }
+      if (!isEmbeddingConfigured()) {
+        return NextResponse.json({ products: [], reason: "embeddings-off" }, { headers: HEADERS });
       }
       const vec = await embed(text);
       pgVec = toPgVector(vec);
