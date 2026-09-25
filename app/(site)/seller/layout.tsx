@@ -11,6 +11,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import SelenaAssistant from "./SelenaAssistant";
 
+// Sesiunea seller (cookie) decide chrome-ul: fără încercări de prerandare statică.
+export const dynamic = "force-dynamic";
+
 /**
  * Panoul seller-ului: sidebar desktop + meniu mobil din ACEEAȘI listă
  * (lib/seller/nav.ts). Fără sesiune (pagina de login) → doar conținutul.
