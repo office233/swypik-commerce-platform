@@ -9,6 +9,8 @@ import PushNotificationCard from "@/components/push/PushNotificationCard";
 import MyModes from "@/components/account/MyModes";
 import { useTranslations } from "next-intl";
 import { SUPPORT_EMAIL } from "@/lib/contact";
+import { VideoGrid } from "@/components/social/profile/VideoGrid";
+import { AccountSocialSummary } from "@/components/account/AccountSocialSummary";
 
 type AccountPageClientProps = {
   redirectTo: string;
@@ -16,6 +18,7 @@ type AccountPageClientProps = {
 
 export default function AccountPageClient({ redirectTo }: AccountPageClientProps) {
   const t = useTranslations("account");
+  const ts = useTranslations("social.profile");
   const [view, setView] = useState<"loading" | "login" | "verify" | "account">("loading");
   const [customer, setCustomer] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -296,22 +299,8 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             </div>
           </div>
           <h2 className="text-xl font-black">{customer?.display_name || t("defaultCreatorName")}</h2>
-          <p className="text-sm text-white/60 mb-4">@{customer?.username || "user"}</p>
-
-          <div className="flex items-center justify-center gap-8 w-full px-8 mb-6">
-            <div className="text-center">
-              <p className="text-lg font-black">0</p>
-              <p className="text-xs text-white/60">{t("urmariri")}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-black">0</p>
-              <p className="text-xs text-white/60">{t("urmaritori")}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-black">0</p>
-              <p className="text-xs text-white/60">Aprecieri</p>
-            </div>
-          </div>
+          <p className="text-sm text-white/60 mb-1">@{customer?.username || "user"}</p>
+          <AccountSocialSummary username={customer?.username ?? null} />
 
           <div className="flex gap-3 w-full">
             <Link
@@ -375,28 +364,28 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             className={`flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 text-xs font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "videos" ? "border-white text-white" : "border-transparent text-white/50"}`}
           >
             <Grid size={18} />
-            <span>Clipuri</span>
+            <span>{ts("tabVideos")}</span>
           </button>
           <button
             onClick={() => setActiveTab("saved")}
             className={`flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 text-xs font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "saved" ? "border-white text-white" : "border-transparent text-white/50"}`}
           >
             <Bookmark size={18} />
-            <span>Salvate</span>
+            <span>{ts("tabSaved")}</span>
           </button>
           <Link
             href="/account/liked"
             className="flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 border-transparent text-xs font-bold text-white/50 transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none"
           >
             <Heart size={18} />
-            <span>Apreciate</span>
+            <span>{ts("tabLiked")}</span>
           </Link>
           <button
             onClick={() => setActiveTab("orders")}
             className={`flex-1 py-3 min-h-[44px] flex items-center justify-center gap-1 border-b-2 text-xs font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 focus-visible:outline-none ${activeTab === "orders" ? "border-white text-white" : "border-transparent text-white/50"}`}
           >
             <Package size={18} />
-            <span>Comenzi</span>
+            <span>{ts("tabOrders")}</span>
           </button>
         </div>
 
@@ -486,10 +475,19 @@ export default function AccountPageClient({ redirectTo }: AccountPageClientProps
             </div>
           )}
 
+          {/* Pagina de cont e (încă) mereu închisă la culoare: tokenii grilei în varianta dark. */}
           {activeTab === "saved" && (
-            <div className="py-20 text-center text-white/40">
-              <Bookmark size={32} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm">{t("clipuriSalvateVorAparea")}</p>
+            <div className="py-2" data-theme="dark">
+              {customer?.username ? (
+                <VideoGrid username={customer.username} tab="saved" initial={null} emptyTitle={ts("emptySavedVideos")} />
+              ) : null}
+              <Link
+                href="/account/saved"
+                className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white/10 text-sm font-bold text-white hover:bg-white/15"
+              >
+                <Bookmark size={16} aria-hidden />
+                {ts("savedProducts")}
+              </Link>
             </div>
           )}
 

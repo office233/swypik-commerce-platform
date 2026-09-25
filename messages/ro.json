@@ -346,8 +346,6 @@
     "codulAFostTrimis": "Codul a fost trimis la",
     "codDeTest": "🔧 Cod de Test",
     "setari": "Setări",
-    "urmariri": "Urmăriri",
-    "urmaritori": "Urmăritori",
     "publica": "Publică",
     "editeaza": "Editează",
     "coinsProvocari": "Coins & Provocări",
@@ -361,7 +359,6 @@
     "nuAiPublicatInca": "Nu ai publicat încă niciun clip.",
     "clipEsuat": "Eșuat",
     "clipInProcesare": "În procesare",
-    "clipuriSalvateVorAparea": "Clipuri salvate vor apărea aici.",
     "nuAiNicioComanda": "Nu ai nicio comandă.",
     "comanda": "Comanda #",
     "legalTerms": "Termeni",
@@ -806,18 +803,7 @@
     "inapoi2": "Înapoi"
   },
   "accountEdit": {
-    "inapoi": "Înapoi",
-    "editeazaProfilul": "Editează profilul",
-    "schimbaAvatarul": "Schimbă avatarul",
-    "schimbaFotografia": "Schimbă fotografia",
-    "numeleTau": "Numele tău",
-    "anuleaza": "Anulează",
-    "salveaza": "Salvează",
-    "adaugaLink": "+ Adaugă link",
-    "displayName": "Nume afișat",
-    "linkLabelPlaceholder": "Etichetă (ex: Site-ul meu)",
-    "removeLink": "Șterge linkul",
-    "eroareLaSalvare": "Eroare la salvare."
+    "editeazaProfilul": "Editează profilul"
   },
   "returnForm": {
     "produsePentruRetur": "Produse pentru retur",
@@ -1598,11 +1584,7 @@
     "markAllRead": "Marchează toate citite",
     "loading": "Se încarcă...",
     "emptyTitle": "Nicio notificare încă",
-    "emptyBody": "Aici vei vedea aprecieri, comentarii și follow-uri noi.",
-    "justNow": "acum",
-    "minutesShort": "{count}m",
-    "hoursShort": "{count}h",
-    "daysShort": "{count}z"
+    "emptyBody": "Aici vei vedea aprecieri, comentarii și follow-uri noi."
   },
   "permissionsPrompt": {
     "eatsTitle": "Livrare mai rapidă",
@@ -3396,10 +3378,7 @@
   "missions": {},
   "commentsSheet": {
     "title": "Comentarii",
-    "total": "{count} total",
-    "close": "Închide comentariile",
     "loading": "Se încarcă...",
-    "retry": "Reîncearcă",
     "emptyTitle": "Nu sunt comentarii încă",
     "emptySubtitle": "Începe conversația despre clip.",
     "replyingTo": "Răspunzi lui {name}",
@@ -3412,12 +3391,6 @@
     "tooLongError": "Comentariul trebuie să aibă cel mult 500 de caractere.",
     "submitError": "Comentariul nu a fost trimis.",
     "sentToModeration": "Comentariul a fost trimis la moderare.",
-    "now": "acum",
-    "reply": "Răspunde",
-    "unlike": "Anulează aprecierea",
-    "likeComment": "Apreciază comentariul",
-    "likeReply": "Apreciază răspunsul",
-    "delete": "Șterge",
     "deleteError": "Comentariul nu a putut fi șters.",
     "rateLimitedError": "Prea multe încercări — mai încearcă puțin mai târziu.",
     "unauthorizedError": "Trebuie să fii autentificat pentru asta.",
@@ -3959,24 +3932,13 @@
     "metaDescriptionFallback": "Vezi profilul, clipurile și activitatea lui {name} pe Swypik.",
     "metaOgDescriptionFallback": "Profil public Swypik",
     "metaFallbackTitle": "Profil Swypik",
-    "back": "Înapoi",
     "verifiedProfile": "Profil verificat",
     "promotedProducts": "Produse promovate",
-    "clips": "Clipuri",
-    "oneClipPublic": "1 clip public",
-    "nClipsPublic": "{count} clipuri publice",
-    "badgeVerified": "Verificat",
     "badgeTopSeller": "Top Seller",
     "badgeLevelBronze": "Bronze",
     "badgeLevelSilver": "Silver",
     "badgeLevelGold": "Gold",
-    "badgeCreatorLevel": "Creator {level}",
-    "noPublicClips": "Nu există clipuri publice",
-    "noPublicClipsBody": "{name} nu a publicat încă clipuri vizibile pentru comunitate.",
-    "exploreOtherClips": "Explorează alte clipuri",
-    "profileUnavailable": "Profil indisponibil",
-    "profileUnavailableBody": "Nu am putut încărca profilul acum. Încearcă din nou sau revino la feed.",
-    "backToFeed": "Înapoi la feed"
+    "badgeCreatorLevel": "Creator {level}"
   },
   "verifiedBadge": {
     "verifiedAccount": "Cont verificat"
@@ -5434,6 +5396,26 @@
     "accountSuspended": {
       "title": "Contul tău a fost suspendat",
       "body": "Pentru încălcarea regulilor comunității, contul e suspendat {days} zile. Scrie-ne dacă crezi că e o greșeală."
+    },
+    "social": {
+      "follow": {
+        "title": "{name} a început să te urmărească"
+      },
+      "videoLike": {
+        "title": "{name} ți-a apreciat clipul"
+      },
+      "commentLike": {
+        "title": "{name} ți-a apreciat comentariul"
+      },
+      "comment": {
+        "title": "{name} a comentat la clipul tău"
+      },
+      "reply": {
+        "title": "{name} ți-a răspuns la comentariu"
+      },
+      "mention": {
+        "title": "{name} te-a menționat într-un comentariu"
+      }
     }
   },
   "creatorApplicationEmail": {
@@ -7040,6 +7022,167 @@
       "endError": "Nu am putut încheia streamul.",
       "confirmEndTitle": "Închei transmisiunea?",
       "confirmEndDescription": "Spectatorii vor fi deconectați și streamul nu mai poate fi repornit."
+    }
+  },
+  "social": {
+    "like": {
+      "like": "Apreciază",
+      "unlike": "Anulează aprecierea",
+      "error": "Aprecierea nu a putut fi salvată.",
+      "rateLimited": "Prea multe aprecieri — mai încearcă puțin mai târziu."
+    },
+    "follow": {
+      "follow": "Urmărește",
+      "following": "Urmărești",
+      "blocked": "Nu poți urmări acest cont.",
+      "rateLimited": "Prea multe încercări — mai încearcă puțin mai târziu.",
+      "error": "Nu am putut actualiza urmărirea."
+    },
+    "report": {
+      "sent": "Mulțumim! Raportul a fost trimis echipei de moderare.",
+      "error": "Raportul nu a putut fi trimis.",
+      "titleUser": "Raportează contul",
+      "titleComment": "Raportează comentariul",
+      "description": "Alege motivul. Raportul e confidențial.",
+      "submit": "Trimite raportul",
+      "reasonLabel": "Motivul raportului",
+      "detailsPlaceholder": "Detalii (opțional)",
+      "reasons": {
+        "spam": "Spam",
+        "harassment": "Hărțuire sau bullying",
+        "hate": "Discurs instigator la ură",
+        "violence": "Violență sau amenințări",
+        "sexual_content": "Conținut sexual",
+        "scam": "Înșelătorie sau fraudă",
+        "other": "Altceva"
+      }
+    },
+    "comments": {
+      "time": {
+        "now": "acum",
+        "minutes": "{count} min",
+        "hours": "{count} h",
+        "days": "{count} z",
+        "weeks": "{count} săpt."
+      },
+      "creator": "Creator",
+      "pinned": "Fixat",
+      "reply": "Răspunde",
+      "moreActions": "Mai multe acțiuni",
+      "viewReplies": "Vezi încă {count, plural, one {un răspuns} other {# răspunsuri}}",
+      "actionsTitle": "Comentariu",
+      "unpin": "Anulează fixarea",
+      "pin": "Fixează sus",
+      "delete": "Șterge",
+      "report": "Raportează",
+      "deleteConfirmTitle": "Ștergi comentariul?",
+      "deleteConfirmWithReplies": "Comentariul și răspunsurile lui vor fi șterse definitiv.",
+      "deleteConfirmBody": "Comentariul va fi șters definitiv.",
+      "cancel": "Renunță",
+      "loadMore": "Încarcă mai multe",
+      "rejectedError": "Comentariul încalcă regulile comunității.",
+      "disabledError": "Comentariile sunt dezactivate pentru acest clip.",
+      "blockedError": "Nu poți comenta aici."
+    },
+    "profile": {
+      "title": "Profil",
+      "clipAlt": "Clip",
+      "loadError": "Nu am putut încărca clipurile.",
+      "retry": "Reîncearcă",
+      "noFollowers": "Niciun urmăritor încă",
+      "noFollowing": "Nu urmărește pe nimeni încă",
+      "loadMore": "Încarcă mai multe",
+      "followers": "Urmăritori",
+      "following": "Urmăriri",
+      "likes": "Aprecieri",
+      "videos": "Clipuri",
+      "editProfile": "Editează profilul",
+      "share": "Distribuie profilul",
+      "shareTitle": "{name} pe Swypik",
+      "linkCopied": "Link copiat",
+      "shareError": "Nu am putut distribui linkul.",
+      "moreActions": "Mai multe opțiuni",
+      "settings": "Setări",
+      "unblock": "Deblochează",
+      "block": "Blochează",
+      "report": "Raportează",
+      "blockedToast": "L-ai blocat pe {name}.",
+      "unblockedToast": "Cont deblocat.",
+      "actionError": "Acțiunea nu a reușit. Încearcă din nou.",
+      "blockConfirmTitle": "Blochezi pe {name}?",
+      "blockConfirmBody": "Nu vă veți mai putea urmări, menționa sau comenta unul la celălalt. Urmăririle dintre voi se anulează.",
+      "cancel": "Renunță",
+      "likedPublic": "Arată clipurile apreciate pe profilul public",
+      "tabVideos": "Clipuri",
+      "tabLiked": "Apreciate",
+      "tabSaved": "Salvate",
+      "tabOrders": "Comenzi",
+      "emptyOwnVideos": "Nu ai publicat încă niciun clip",
+      "emptyVideos": "Niciun clip public",
+      "emptyVideosBody": "{name} nu a publicat încă clipuri.",
+      "emptyLiked": "Niciun clip apreciat încă",
+      "likedPrivateTitle": "Aprecierile sunt private",
+      "likedPrivateBody": "{name} a ales să nu-și arate clipurile apreciate.",
+      "emptySavedVideos": "Niciun clip salvat încă",
+      "savedProducts": "Produse salvate",
+      "emptySavedProducts": "Niciun produs salvat încă.",
+      "website": "Site",
+      "productAlt": "Produs",
+      "youBlockedTitle": "Ai blocat acest cont",
+      "youBlockedBody": "Deblochează-l din meniul ⋯ ca să-i vezi din nou clipurile.",
+      "unavailableTitle": "Profil indisponibil",
+      "unavailableBody": "Conținutul acestui cont nu îți este disponibil.",
+      "backToFeed": "Înapoi la feed",
+      "viewPublicProfile": "Vezi profilul public"
+    },
+    "edit": {
+      "changePhoto": "Schimbă fotografia",
+      "avatarUpdated": "Fotografia a fost actualizată.",
+      "username": "Nume de utilizator",
+      "usernameAvailable": "Disponibil",
+      "usernameAliasHint": "Linkurile vechi către profilul tău vor redirecționa automat.",
+      "usernameHint": "3–30 caractere: litere mici, cifre și _",
+      "links": "Linkuri publice",
+      "linkLabel": "Etichetă",
+      "linkUrl": "https://…",
+      "removeLink": "Șterge linkul",
+      "addLink": "Adaugă link",
+      "displayName": "Nume afișat",
+      "bio": "Bio",
+      "bioPlaceholder": "Spune ceva despre tine…",
+      "categories": "Categorii preferate",
+      "categoriesHint": "Separate prin virgulă, maxim 8",
+      "cancel": "Renunță",
+      "save": "Salvează",
+      "saved": "Profil salvat.",
+      "errors": {
+        "avatar_type": "Folosește o imagine JPG, PNG sau WebP.",
+        "avatar_too_large": "Imaginea depășește 5 MB.",
+        "avatar_empty": "Fișierul este gol.",
+        "avatar_invalid_image": "Fișierul nu este o imagine validă.",
+        "rate_limited": "Prea multe modificări — mai încearcă peste câteva minute.",
+        "avatar_upload_failed": "Fotografia nu a putut fi încărcată.",
+        "display_name_rejected": "Numele nu respectă regulile comunității.",
+        "bio_rejected": "Bio-ul nu respectă regulile comunității.",
+        "username_invalid": "Folosește 3–30 caractere: litere mici, cifre și _.",
+        "username_reserved": "Acest nume este rezervat.",
+        "username_taken": "Acest nume de utilizator este deja folosit.",
+        "links_save_failed": "Linkurile nu au putut fi salvate.",
+        "categories_save_failed": "Categoriile nu au putut fi salvate.",
+        "profile_update_failed": "Profilul nu a putut fi salvat.",
+        "validation_error": "Verifică datele introduse."
+      }
+    },
+    "notifications": {
+      "time": {
+        "now": "acum",
+        "minutes": "{count} min",
+        "hours": "{count} h",
+        "days": "{count} z",
+        "weeks": "{count} săpt."
+      },
+      "unread": "Necitită",
+      "loadMore": "Încarcă mai multe"
     }
   }
 }

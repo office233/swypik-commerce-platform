@@ -1,96 +1,62 @@
 "use client";
 
-import Link from "next/link";
 import { Bell, CheckCheck } from "lucide-react";
-import TopBar from "@/components/TopBar";
 import { useTranslations } from "next-intl";
+import { NotificationRow } from "@/components/notifications/NotificationRow";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useNotifications } from "@/lib/notifications/use-notifications";
 
 export default function NotificationsClient() {
   const t = useTranslations("notificationsPage");
-
-  function timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return t("justNow");
-    if (m < 60) return t("minutesShort", { count: m });
-    const h = Math.floor(m / 60);
-    if (h < 24) return t("hoursShort", { count: h });
-    const d = Math.floor(h / 24);
-    return t("daysShort", { count: d });
-  }
-
-  const { items, unread, loading, marking, markAll, markOne } = useNotifications();
+  const ts = useTranslations("social.notifications");
+  const { items, unread, loading, marking, markAll, markOne, hasMore, loadingMore, loadMore } = useNotifications(30);
 
   return (
-    <main className="min-h-screen bg-white text-[#0D0D0D]">
-      <TopBar />
-
-      <div className="mx-auto max-w-lg px-4 py-5 pb-24">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-black tracking-tight">{t("title")}</h1>
-          <button
-            type="button"
-            onClick={markAll}
-            disabled={marking || unread === 0}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#0D0D0D] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#0E906F] disabled:opacity-40"
-          >
-            <CheckCheck className="h-3.5 w-3.5" />
-            {t("markAllRead")}
-          </button>
-        </div>
-
+    <div className="min-h-dvh bg-canvas">
+      <PageHeader
+        title={t("title")}
+        actions={
+          <Button variant="ghost" size="sm" onClick={markAll} disabled={marking || unread === 0}>
+            <CheckCheck aria-hidden className="h-4 w-4" />
+            <span className="sr-only sm:not-sr-only">{t("markAllRead")}</span>
+          </Button>
+        }
+      />
+      <main className="mx-auto max-w-lg py-2">
         {loading ? (
-          <div className="py-20 text-center text-sm text-[#6E6E80]">
-            {t("loading")}
+          <div className="flex flex-col gap-4 px-gutter py-3" aria-busy="true" aria-label={t("loading")}>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex flex-1 flex-col gap-2">
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#E5E5E5] bg-[#F9FAFB] px-6 py-16 text-center">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#0D0D0D]/10 text-[#0D0D0D]">
-              <Bell className="h-6 w-6" />
-            </div>
-            <h2 className="mt-4 text-base font-black">{t("emptyTitle")}</h2>
-            <p className="mt-1 text-sm text-[#6E6E80]">{t("emptyBody")}</p>
-          </div>
+          <EmptyState icon={Bell} title={t("emptyTitle")} description={t("emptyBody")} className="py-16" />
         ) : (
-          <ul className="divide-y divide-[#F0F0F0] overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white shadow-sm">
-            {items.map((n) => {
-              const unreadRow = !n.read_at;
-              const url = n.action_url || "#";
-              return (
-                <li key={n.id}>
-                  <Link
-                    href={url}
-                    onClick={() => {
-                      if (unreadRow) markOne(n.id);
-                    }}
-                    className={`flex gap-3 px-4 py-3 transition hover:bg-[#F9FAFB] ${unreadRow ? "bg-[#0D0D0D]/5" : ""
-                      }`}
-                  >
-                    <span
-                      className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${unreadRow ? "bg-[#0D0D0D]" : "bg-transparent"
-                        }`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold text-[#0D0D0D]">
-                        {n.title || n.notification_type}
-                      </div>
-                      {n.body && (
-                        <div className="mt-0.5 line-clamp-2 text-xs text-[#6E6E80]">
-                          {n.body}
-                        </div>
-                      )}
-                      <div className="mt-1 text-[11px] font-medium text-[#A1A1AA]">
-                        {timeAgo(n.created_at)}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            <ul className="divide-y divide-subtle">
+              {items.map((n) => (
+                <NotificationRow key={n.id} n={n} onOpen={(row) => !row.read_at && void markOne(row.id)} />
+              ))}
+            </ul>
+            {hasMore ? (
+              <div className="flex justify-center py-4">
+                <Button variant="secondary" size="sm" loading={loadingMore} onClick={() => void loadMore()}>
+                  {ts("loadMore")}
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

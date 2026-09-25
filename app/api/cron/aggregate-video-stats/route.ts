@@ -112,8 +112,9 @@ async function syncVideoCounters() {
     `WITH truth AS (
        SELECT v.id,
               (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)                    AS likes,
+              -- aceeași definiție ca triggerul trg_comments_social_counter (doar 'visible')
               (SELECT COUNT(*) FROM comments c
-                  WHERE c.video_id = v.id AND c.status NOT IN ('deleted','hidden'))      AS comments,
+                  WHERE c.video_id = v.id AND c.status = 'visible')                     AS comments,
               (SELECT COUNT(DISTINCT s.user_id) FROM saves s WHERE s.video_id = v.id)   AS saves,
               (SELECT COUNT(*) FROM shares sh WHERE sh.video_id = v.id)                 AS shares,
               (SELECT COUNT(DISTINCT COALESCE(fe.ip_hash, fe.session_id, fe.id::text)) FROM feed_events fe

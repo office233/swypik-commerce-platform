@@ -18,6 +18,9 @@ type Row = {
   metadata: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
+  actor_username: string | null;
+  actor_display_name: string | null;
+  actor_avatar_url: string | null;
 };
 
 async function GET_impl(request: Request) {
@@ -34,17 +37,26 @@ async function GET_impl(request: Request) {
   const params: unknown[] = [userId];
   let cursorClause = "";
   if (cursor) {
-    cursorClause = ` AND created_at < $2`;
+    cursorClause = ` AND n.created_at < $2`;
     params.push(cursor);
   }
   params.push(limit + 1);
 
   const { rows } = await dbQuery<Row>(
-    `SELECT id, user_id, actor_user_id, notification_type, title, body,
-            video_id, comment_id, action_url, metadata, read_at, created_at
-       FROM notifications
-      WHERE user_id = $1${cursorClause}
-      ORDER BY created_at DESC
+    // Actorul (avatar + nume) pentru rândurile din listă — fără notificări de la
+    // conturi care între timp au fost blocate de destinatar.
+    `SELECT n.id, n.user_id, n.actor_user_id, n.notification_type, n.title, n.body,
+            n.video_id, n.comment_id, n.action_url, n.metadata, n.read_at, n.created_at,
+            a.username AS actor_username, a.display_name AS actor_display_name,
+            a.avatar_url AS actor_avatar_url
+       FROM notifications n
+       LEFT JOIN users a ON a.id = n.actor_user_id
+      WHERE n.user_id = $1${cursorClause}
+        AND NOT EXISTS (
+          SELECT 1 FROM user_blocks ub
+           WHERE ub.blocker_user_id = n.user_id AND ub.blocked_user_id = n.actor_user_id
+        )
+      ORDER BY n.created_at DESC
       LIMIT $${params.length}`,
     params,
   );

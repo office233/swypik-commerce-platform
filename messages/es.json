@@ -211,8 +211,6 @@
     "codulAFostTrimis": "El código ha sido enviado a",
     "codDeTest": "🔧 Código de Prueba",
     "setari": "Configuración",
-    "urmariri": "Siguiendo",
-    "urmaritori": "Seguidores",
     "publica": "Publicar",
     "editeaza": "Editar",
     "coinsProvocari": "Monedas y Desafíos",
@@ -226,7 +224,6 @@
     "nuAiPublicatInca": "Aún no has publicado ningún vídeo.",
     "clipEsuat": "Fallido",
     "clipInProcesare": "Procesando",
-    "clipuriSalvateVorAparea": "Los vídeos guardados aparecerán aquí.",
     "nuAiNicioComanda": "No tienes ningún pedido.",
     "comanda": "Pedido #",
     "legalTerms": "Términos",
@@ -671,18 +668,7 @@
     "inapoi2": "Atrás"
   },
   "accountEdit": {
-    "inapoi": "Atrás",
-    "editeazaProfilul": "Editar perfil",
-    "schimbaAvatarul": "Cambiar avatar",
-    "schimbaFotografia": "Cambiar foto",
-    "numeleTau": "Tu nombre",
-    "anuleaza": "Cancelar",
-    "salveaza": "Guardar",
-    "adaugaLink": "+ Añadir enlace",
-    "displayName": "Nombre visible",
-    "linkLabelPlaceholder": "Etiqueta (ej.: Mi sitio)",
-    "removeLink": "Eliminar enlace",
-    "eroareLaSalvare": "Error al guardar."
+    "editeazaProfilul": "Editar perfil"
   },
   "returnForm": {
     "produsePentruRetur": "Productos a devolver",
@@ -1598,11 +1584,7 @@
     "markAllRead": "Marcar todas como leídas",
     "loading": "Cargando...",
     "emptyTitle": "Aún no hay notificaciones",
-    "emptyBody": "Aquí verás nuevos me gusta, comentarios y seguidores.",
-    "justNow": "ahora",
-    "minutesShort": "{count}m",
-    "hoursShort": "{count}h",
-    "daysShort": "{count}d"
+    "emptyBody": "Aquí verás nuevos me gusta, comentarios y seguidores."
   },
   "permissionsPrompt": {
     "eatsTitle": "Entrega más rápida",
@@ -3396,10 +3378,7 @@
   "missions": {},
   "commentsSheet": {
     "title": "Comentarios",
-    "total": "{count} en total",
-    "close": "Cerrar comentarios",
     "loading": "Cargando...",
-    "retry": "Reintentar",
     "emptyTitle": "Aún no hay comentarios",
     "emptySubtitle": "Inicia la conversación sobre este clip.",
     "replyingTo": "Respondiendo a {name}",
@@ -3412,12 +3391,6 @@
     "tooLongError": "El comentario debe tener como máximo 500 caracteres.",
     "submitError": "El comentario no se envió.",
     "sentToModeration": "El comentario se envió a moderación.",
-    "now": "ahora",
-    "reply": "Responder",
-    "unlike": "Quitar me gusta",
-    "likeComment": "Me gusta el comentario",
-    "likeReply": "Me gusta la respuesta",
-    "delete": "Eliminar",
     "deleteError": "No se pudo eliminar el comentario.",
     "rateLimitedError": "Demasiados intentos — inténtalo de nuevo en un momento.",
     "unauthorizedError": "Debes iniciar sesión para eso.",
@@ -3959,24 +3932,13 @@
     "metaDescriptionFallback": "Mira el perfil, los clips y la actividad de {name} en Swypik.",
     "metaOgDescriptionFallback": "Perfil público de Swypik",
     "metaFallbackTitle": "Perfil de Swypik",
-    "back": "Atrás",
     "verifiedProfile": "Perfil verificado",
     "promotedProducts": "Productos promocionados",
-    "clips": "Clips",
-    "oneClipPublic": "1 clip público",
-    "nClipsPublic": "{count} clips públicos",
-    "badgeVerified": "Verificado",
     "badgeTopSeller": "Mejor vendedor",
     "badgeLevelBronze": "Bronce",
     "badgeLevelSilver": "Plata",
     "badgeLevelGold": "Oro",
-    "badgeCreatorLevel": "Creador {level}",
-    "noPublicClips": "No hay clips públicos",
-    "noPublicClipsBody": "{name} todavía no ha publicado clips visibles para la comunidad.",
-    "exploreOtherClips": "Explorar otros clips",
-    "profileUnavailable": "Perfil no disponible",
-    "profileUnavailableBody": "No hemos podido cargar este perfil ahora. Inténtalo de nuevo o vuelve al feed.",
-    "backToFeed": "Volver al feed"
+    "badgeCreatorLevel": "Creador {level}"
   },
   "verifiedBadge": {
     "verifiedAccount": "Cuenta verificada"
@@ -5434,6 +5396,26 @@
     "accountSuspended": {
       "title": "Tu cuenta ha sido suspendida",
       "body": "Por incumplir las normas de la comunidad, la cuenta queda suspendida {days} días. Escríbenos si crees que es un error."
+    },
+    "social": {
+      "follow": {
+        "title": "{name} empezó a seguirte"
+      },
+      "videoLike": {
+        "title": "A {name} le gustó tu clip"
+      },
+      "commentLike": {
+        "title": "A {name} le gustó tu comentario"
+      },
+      "comment": {
+        "title": "{name} comentó tu clip"
+      },
+      "reply": {
+        "title": "{name} respondió a tu comentario"
+      },
+      "mention": {
+        "title": "{name} te mencionó en un comentario"
+      }
     }
   },
   "creatorApplicationEmail": {
@@ -7040,6 +7022,167 @@
       "endError": "No pudimos terminar la transmisión.",
       "confirmEndTitle": "¿Terminar la transmisión?",
       "confirmEndDescription": "Los espectadores se desconectarán y la transmisión no podrá reiniciarse."
+    }
+  },
+  "social": {
+    "like": {
+      "like": "Me gusta",
+      "unlike": "Ya no me gusta",
+      "error": "No se pudo guardar tu me gusta.",
+      "rateLimited": "Demasiados me gusta: inténtalo de nuevo en un momento."
+    },
+    "follow": {
+      "follow": "Seguir",
+      "following": "Siguiendo",
+      "blocked": "No puedes seguir esta cuenta.",
+      "rateLimited": "Demasiados intentos: inténtalo de nuevo en un momento.",
+      "error": "No se pudo actualizar el seguimiento."
+    },
+    "report": {
+      "sent": "¡Gracias! Tu denuncia se ha enviado al equipo de moderación.",
+      "error": "No se pudo enviar la denuncia.",
+      "titleUser": "Denunciar cuenta",
+      "titleComment": "Denunciar comentario",
+      "description": "Elige un motivo. Las denuncias son confidenciales.",
+      "submit": "Enviar denuncia",
+      "reasonLabel": "Motivo de la denuncia",
+      "detailsPlaceholder": "Detalles (opcional)",
+      "reasons": {
+        "spam": "Spam",
+        "harassment": "Acoso o bullying",
+        "hate": "Discurso de odio",
+        "violence": "Violencia o amenazas",
+        "sexual_content": "Contenido sexual",
+        "scam": "Estafa o fraude",
+        "other": "Otro motivo"
+      }
+    },
+    "comments": {
+      "time": {
+        "now": "ahora",
+        "minutes": "{count} min",
+        "hours": "{count} h",
+        "days": "{count} d",
+        "weeks": "{count} sem"
+      },
+      "creator": "Creador",
+      "pinned": "Fijado",
+      "reply": "Responder",
+      "moreActions": "Más acciones",
+      "viewReplies": "Ver {count, plural, one {1 respuesta más} other {# respuestas más}}",
+      "actionsTitle": "Comentario",
+      "unpin": "Desfijar",
+      "pin": "Fijar arriba",
+      "delete": "Eliminar",
+      "report": "Denunciar",
+      "deleteConfirmTitle": "¿Eliminar el comentario?",
+      "deleteConfirmWithReplies": "El comentario y sus respuestas se eliminarán definitivamente.",
+      "deleteConfirmBody": "El comentario se eliminará definitivamente.",
+      "cancel": "Cancelar",
+      "loadMore": "Cargar más",
+      "rejectedError": "Este comentario infringe las normas de la comunidad.",
+      "disabledError": "Los comentarios están desactivados en este clip.",
+      "blockedError": "No puedes comentar aquí."
+    },
+    "profile": {
+      "title": "Perfil",
+      "clipAlt": "Clip",
+      "loadError": "No se pudieron cargar los clips.",
+      "retry": "Reintentar",
+      "noFollowers": "Aún no tiene seguidores",
+      "noFollowing": "Aún no sigue a nadie",
+      "loadMore": "Cargar más",
+      "followers": "Seguidores",
+      "following": "Siguiendo",
+      "likes": "Me gusta",
+      "videos": "Clips",
+      "editProfile": "Editar perfil",
+      "share": "Compartir perfil",
+      "shareTitle": "{name} en Swypik",
+      "linkCopied": "Enlace copiado",
+      "shareError": "No se pudo compartir el enlace.",
+      "moreActions": "Más opciones",
+      "settings": "Ajustes",
+      "unblock": "Desbloquear",
+      "block": "Bloquear",
+      "report": "Denunciar",
+      "blockedToast": "Has bloqueado a {name}.",
+      "unblockedToast": "Cuenta desbloqueada.",
+      "actionError": "No ha funcionado. Inténtalo de nuevo.",
+      "blockConfirmTitle": "¿Bloquear a {name}?",
+      "blockConfirmBody": "No podréis seguiros, mencionaros ni comentaros. Los seguimientos actuales se eliminan.",
+      "cancel": "Cancelar",
+      "likedPublic": "Mostrar los clips que me gustan en mi perfil público",
+      "tabVideos": "Clips",
+      "tabLiked": "Me gusta",
+      "tabSaved": "Guardados",
+      "tabOrders": "Pedidos",
+      "emptyOwnVideos": "Aún no has publicado ningún clip",
+      "emptyVideos": "No hay clips públicos",
+      "emptyVideosBody": "{name} aún no ha publicado clips.",
+      "emptyLiked": "Aún no hay clips que te gusten",
+      "likedPrivateTitle": "Los me gusta son privados",
+      "likedPrivateBody": "{name} ha decidido no mostrar los clips que le gustan.",
+      "emptySavedVideos": "Aún no hay clips guardados",
+      "savedProducts": "Productos guardados",
+      "emptySavedProducts": "Aún no hay productos guardados.",
+      "website": "Sitio web",
+      "productAlt": "Producto",
+      "youBlockedTitle": "Has bloqueado esta cuenta",
+      "youBlockedBody": "Desbloquéala desde el menú ⋯ para volver a ver sus clips.",
+      "unavailableTitle": "Perfil no disponible",
+      "unavailableBody": "El contenido de esta cuenta no está disponible para ti.",
+      "backToFeed": "Volver al feed",
+      "viewPublicProfile": "Ver perfil público"
+    },
+    "edit": {
+      "changePhoto": "Cambiar foto",
+      "avatarUpdated": "Foto actualizada.",
+      "username": "Nombre de usuario",
+      "usernameAvailable": "Disponible",
+      "usernameAliasHint": "Los enlaces antiguos a tu perfil redirigirán automáticamente.",
+      "usernameHint": "3–30 caracteres: minúsculas, números y _",
+      "links": "Enlaces públicos",
+      "linkLabel": "Etiqueta",
+      "linkUrl": "https://…",
+      "removeLink": "Quitar enlace",
+      "addLink": "Añadir enlace",
+      "displayName": "Nombre visible",
+      "bio": "Biografía",
+      "bioPlaceholder": "Cuéntale algo a la gente sobre ti…",
+      "categories": "Categorías favoritas",
+      "categoriesHint": "Separadas por comas, máximo 8",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "saved": "Perfil guardado.",
+      "errors": {
+        "avatar_type": "Usa una imagen JPG, PNG o WebP.",
+        "avatar_too_large": "La imagen supera los 5 MB.",
+        "avatar_empty": "El archivo está vacío.",
+        "avatar_invalid_image": "El archivo no es una imagen válida.",
+        "rate_limited": "Demasiados cambios: inténtalo de nuevo en unos minutos.",
+        "avatar_upload_failed": "No se pudo subir la foto.",
+        "display_name_rejected": "Este nombre infringe las normas de la comunidad.",
+        "bio_rejected": "Esta biografía infringe las normas de la comunidad.",
+        "username_invalid": "Usa 3–30 caracteres: minúsculas, números y _.",
+        "username_reserved": "Este nombre está reservado.",
+        "username_taken": "Este nombre de usuario ya está en uso.",
+        "links_save_failed": "No se pudieron guardar los enlaces.",
+        "categories_save_failed": "No se pudieron guardar las categorías.",
+        "profile_update_failed": "No se pudo guardar el perfil.",
+        "validation_error": "Revisa los datos introducidos."
+      }
+    },
+    "notifications": {
+      "time": {
+        "now": "ahora",
+        "minutes": "{count} min",
+        "hours": "{count} h",
+        "days": "{count} d",
+        "weeks": "{count} sem"
+      },
+      "unread": "Sin leer",
+      "loadMore": "Cargar más"
     }
   }
 }

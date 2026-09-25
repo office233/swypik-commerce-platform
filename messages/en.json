@@ -346,8 +346,6 @@
     "codulAFostTrimis": "Code sent to",
     "codDeTest": "🔧 Test Code",
     "setari": "Settings",
-    "urmariri": "Following",
-    "urmaritori": "Followers",
     "publica": "Publish",
     "editeaza": "Edit",
     "coinsProvocari": "Coins & Challenges",
@@ -361,7 +359,6 @@
     "nuAiPublicatInca": "You haven't posted any videos yet.",
     "clipEsuat": "Failed",
     "clipInProcesare": "Processing",
-    "clipuriSalvateVorAparea": "Saved videos will appear here.",
     "nuAiNicioComanda": "No orders yet.",
     "comanda": "Order #",
     "legalTerms": "Terms",
@@ -806,18 +803,7 @@
     "inapoi2": "Back"
   },
   "accountEdit": {
-    "inapoi": "Back",
-    "editeazaProfilul": "Edit profile",
-    "schimbaAvatarul": "Change avatar",
-    "schimbaFotografia": "Change photo",
-    "numeleTau": "Your name",
-    "anuleaza": "Cancel",
-    "salveaza": "Save",
-    "adaugaLink": "+ Add link",
-    "displayName": "Display name",
-    "linkLabelPlaceholder": "Label (e.g. My website)",
-    "removeLink": "Remove link",
-    "eroareLaSalvare": "Error while saving."
+    "editeazaProfilul": "Edit profile"
   },
   "returnForm": {
     "produsePentruRetur": "Items to return",
@@ -1598,11 +1584,7 @@
     "markAllRead": "Mark all as read",
     "loading": "Loading...",
     "emptyTitle": "No notifications yet",
-    "emptyBody": "You'll see new likes, comments and follows here.",
-    "justNow": "now",
-    "minutesShort": "{count}m",
-    "hoursShort": "{count}h",
-    "daysShort": "{count}d"
+    "emptyBody": "You'll see new likes, comments and follows here."
   },
   "permissionsPrompt": {
     "eatsTitle": "Faster delivery",
@@ -3396,10 +3378,7 @@
   "missions": {},
   "commentsSheet": {
     "title": "Comments",
-    "total": "{count} total",
-    "close": "Close comments",
     "loading": "Loading...",
-    "retry": "Retry",
     "emptyTitle": "No comments yet",
     "emptySubtitle": "Start the conversation about this clip.",
     "replyingTo": "Replying to {name}",
@@ -3412,12 +3391,6 @@
     "tooLongError": "Comment must be at most 500 characters.",
     "submitError": "Comment was not sent.",
     "sentToModeration": "Comment was sent to moderation.",
-    "now": "now",
-    "reply": "Reply",
-    "unlike": "Unlike",
-    "likeComment": "Like comment",
-    "likeReply": "Like reply",
-    "delete": "Delete",
     "deleteError": "Could not delete the comment.",
     "rateLimitedError": "Too many attempts — try again in a bit.",
     "unauthorizedError": "You need to be signed in for that.",
@@ -3959,24 +3932,13 @@
     "metaDescriptionFallback": "See {name}'s profile, clips and activity on Swypik.",
     "metaOgDescriptionFallback": "Public Swypik profile",
     "metaFallbackTitle": "Swypik profile",
-    "back": "Back",
     "verifiedProfile": "Verified profile",
     "promotedProducts": "Promoted products",
-    "clips": "Clips",
-    "oneClipPublic": "1 public clip",
-    "nClipsPublic": "{count} public clips",
-    "badgeVerified": "Verified",
     "badgeTopSeller": "Top Seller",
     "badgeLevelBronze": "Bronze",
     "badgeLevelSilver": "Silver",
     "badgeLevelGold": "Gold",
-    "badgeCreatorLevel": "{level} Creator",
-    "noPublicClips": "No public clips",
-    "noPublicClipsBody": "{name} hasn't published any clips visible to the community yet.",
-    "exploreOtherClips": "Explore other clips",
-    "profileUnavailable": "Profile unavailable",
-    "profileUnavailableBody": "We couldn't load this profile right now. Try again or go back to the feed.",
-    "backToFeed": "Back to feed"
+    "badgeCreatorLevel": "{level} Creator"
   },
   "verifiedBadge": {
     "verifiedAccount": "Verified account"
@@ -5434,6 +5396,26 @@
     "accountSuspended": {
       "title": "Your account was suspended",
       "body": "For breaking the community guidelines, the account is suspended for {days} days. Contact us if you think this is a mistake."
+    },
+    "social": {
+      "follow": {
+        "title": "{name} started following you"
+      },
+      "videoLike": {
+        "title": "{name} liked your clip"
+      },
+      "commentLike": {
+        "title": "{name} liked your comment"
+      },
+      "comment": {
+        "title": "{name} commented on your clip"
+      },
+      "reply": {
+        "title": "{name} replied to your comment"
+      },
+      "mention": {
+        "title": "{name} mentioned you in a comment"
+      }
     }
   },
   "creatorApplicationEmail": {
@@ -7040,6 +7022,167 @@
       "endError": "We couldn't end the stream.",
       "confirmEndTitle": "End the stream?",
       "confirmEndDescription": "Viewers will be disconnected and the stream can't be restarted."
+    }
+  },
+  "social": {
+    "like": {
+      "like": "Like",
+      "unlike": "Unlike",
+      "error": "Couldn't save your like.",
+      "rateLimited": "Too many likes — try again in a moment."
+    },
+    "follow": {
+      "follow": "Follow",
+      "following": "Following",
+      "blocked": "You can't follow this account.",
+      "rateLimited": "Too many attempts — try again in a moment.",
+      "error": "Couldn't update follow."
+    },
+    "report": {
+      "sent": "Thanks! Your report was sent to our moderation team.",
+      "error": "Couldn't send the report.",
+      "titleUser": "Report account",
+      "titleComment": "Report comment",
+      "description": "Choose a reason. Reports are confidential.",
+      "submit": "Send report",
+      "reasonLabel": "Report reason",
+      "detailsPlaceholder": "Details (optional)",
+      "reasons": {
+        "spam": "Spam",
+        "harassment": "Harassment or bullying",
+        "hate": "Hate speech",
+        "violence": "Violence or threats",
+        "sexual_content": "Sexual content",
+        "scam": "Scam or fraud",
+        "other": "Something else"
+      }
+    },
+    "comments": {
+      "time": {
+        "now": "now",
+        "minutes": "{count}m",
+        "hours": "{count}h",
+        "days": "{count}d",
+        "weeks": "{count}w"
+      },
+      "creator": "Creator",
+      "pinned": "Pinned",
+      "reply": "Reply",
+      "moreActions": "More actions",
+      "viewReplies": "View {count, plural, one {1 more reply} other {# more replies}}",
+      "actionsTitle": "Comment",
+      "unpin": "Unpin",
+      "pin": "Pin to top",
+      "delete": "Delete",
+      "report": "Report",
+      "deleteConfirmTitle": "Delete comment?",
+      "deleteConfirmWithReplies": "The comment and its replies will be permanently deleted.",
+      "deleteConfirmBody": "The comment will be permanently deleted.",
+      "cancel": "Cancel",
+      "loadMore": "Load more",
+      "rejectedError": "This comment breaks the community guidelines.",
+      "disabledError": "Comments are turned off for this clip.",
+      "blockedError": "You can't comment here."
+    },
+    "profile": {
+      "title": "Profile",
+      "clipAlt": "Clip",
+      "loadError": "Couldn't load clips.",
+      "retry": "Try again",
+      "noFollowers": "No followers yet",
+      "noFollowing": "Not following anyone yet",
+      "loadMore": "Load more",
+      "followers": "Followers",
+      "following": "Following",
+      "likes": "Likes",
+      "videos": "Clips",
+      "editProfile": "Edit profile",
+      "share": "Share profile",
+      "shareTitle": "{name} on Swypik",
+      "linkCopied": "Link copied",
+      "shareError": "Couldn't share the link.",
+      "moreActions": "More options",
+      "settings": "Settings",
+      "unblock": "Unblock",
+      "block": "Block",
+      "report": "Report",
+      "blockedToast": "You blocked {name}.",
+      "unblockedToast": "Account unblocked.",
+      "actionError": "That didn't work. Please try again.",
+      "blockConfirmTitle": "Block {name}?",
+      "blockConfirmBody": "You won't be able to follow, mention or comment on each other. Existing follows are removed.",
+      "cancel": "Cancel",
+      "likedPublic": "Show liked clips on my public profile",
+      "tabVideos": "Clips",
+      "tabLiked": "Liked",
+      "tabSaved": "Saved",
+      "tabOrders": "Orders",
+      "emptyOwnVideos": "You haven't posted any clips yet",
+      "emptyVideos": "No public clips",
+      "emptyVideosBody": "{name} hasn't posted any clips yet.",
+      "emptyLiked": "No liked clips yet",
+      "likedPrivateTitle": "Likes are private",
+      "likedPrivateBody": "{name} chose not to show their liked clips.",
+      "emptySavedVideos": "No saved clips yet",
+      "savedProducts": "Saved products",
+      "emptySavedProducts": "No saved products yet.",
+      "website": "Website",
+      "productAlt": "Product",
+      "youBlockedTitle": "You blocked this account",
+      "youBlockedBody": "Unblock it from the ⋯ menu to see their clips again.",
+      "unavailableTitle": "Profile unavailable",
+      "unavailableBody": "This account's content isn't available to you.",
+      "backToFeed": "Back to feed",
+      "viewPublicProfile": "View public profile"
+    },
+    "edit": {
+      "changePhoto": "Change photo",
+      "avatarUpdated": "Photo updated.",
+      "username": "Username",
+      "usernameAvailable": "Available",
+      "usernameAliasHint": "Old links to your profile will redirect automatically.",
+      "usernameHint": "3–30 characters: lowercase letters, numbers and _",
+      "links": "Public links",
+      "linkLabel": "Label",
+      "linkUrl": "https://…",
+      "removeLink": "Remove link",
+      "addLink": "Add link",
+      "displayName": "Display name",
+      "bio": "Bio",
+      "bioPlaceholder": "Tell people about yourself…",
+      "categories": "Favourite categories",
+      "categoriesHint": "Comma-separated, up to 8",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saved": "Profile saved.",
+      "errors": {
+        "avatar_type": "Use a JPG, PNG or WebP image.",
+        "avatar_too_large": "The image is larger than 5 MB.",
+        "avatar_empty": "The file is empty.",
+        "avatar_invalid_image": "The file isn't a valid image.",
+        "rate_limited": "Too many changes — try again in a few minutes.",
+        "avatar_upload_failed": "Couldn't upload the photo.",
+        "display_name_rejected": "This name breaks the community guidelines.",
+        "bio_rejected": "This bio breaks the community guidelines.",
+        "username_invalid": "Use 3–30 characters: lowercase letters, numbers and _.",
+        "username_reserved": "This name is reserved.",
+        "username_taken": "This username is already taken.",
+        "links_save_failed": "Couldn't save your links.",
+        "categories_save_failed": "Couldn't save your categories.",
+        "profile_update_failed": "Couldn't save your profile.",
+        "validation_error": "Please check your details."
+      }
+    },
+    "notifications": {
+      "time": {
+        "now": "now",
+        "minutes": "{count}m",
+        "hours": "{count}h",
+        "days": "{count}d",
+        "weeks": "{count}w"
+      },
+      "unread": "Unread",
+      "loadMore": "Load more"
     }
   }
 }
