@@ -2,36 +2,46 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { buildFeedUrl, fetchFeedPage, parseFeedPage } from "@/lib/feed/client/feed-source";
 
 describe("buildFeedUrl", () => {
-  it("prima pagină For You cu sesiune, categorie și clip fixat", () => {
-    const url = buildFeedUrl({ page: 1, sessionId: "s 1", category: "beauty", pinnedVideoId: "v1" });
+  it("prima pagină For You: fără cursor, cu clip fixat, categorie, limbă", () => {
+    const url = buildFeedUrl({ sessionId: "s 1", category: "beauty", pinnedVideoId: "v1", locale: "en" });
     const sp = new URL(url, "https://x.test").searchParams;
     expect(url.startsWith("/api/explore/feed?")).toBe(true);
-    expect(sp.get("limit")).toBe("30");
-    expect(sp.get("page")).toBe("1");
+    expect(sp.get("limit")).toBe("12");
+    expect(sp.has("cursor")).toBe(false);
+    expect(sp.has("page")).toBe(false);
     expect(sp.get("session_id")).toBe("s 1");
-    expect(sp.get("taxonomy_node_slug")).toBe("beauty");
+    expect(sp.get("category")).toBe("beauty");
+    expect(sp.get("locale")).toBe("en");
     expect(sp.get("v")).toBe("v1");
     expect(sp.has("source")).toBe(false);
   });
 
-  it("paginile următoare nu mai trimit clipul fixat; Following trimite source", () => {
-    const sp = new URL(buildFeedUrl({ page: 3, source: "following", pinnedVideoId: "v1", creatorId: "c1" }), "https://x.test")
+  it("paginile următoare trimit cursorul și nu mai trimit clipul fixat; Following trimite source", () => {
+    const sp = new URL(buildFeedUrl({ cursor: "abc", source: "following", pinnedVideoId: "v1", creatorId: "c1" }), "https://x.test")
       .searchParams;
-    expect(sp.get("page")).toBe("3");
+    expect(sp.get("cursor")).toBe("abc");
     expect(sp.get("source")).toBe("following");
     expect(sp.has("v")).toBe(false);
     expect(sp.get("creator_id")).toBe("c1");
   });
-
-  it("normalizează pagina invalidă la 1", () => {
-    expect(new URL(buildFeedUrl({ page: 0 }), "https://x.test").searchParams.get("page")).toBe("1");
-  });
 });
 
 describe("parseFeedPage", () => {
-  it("tolerează răspunsuri incomplete", () => {
-    expect(parseFeedPage(null)).toEqual({ videos: [], hasMore: false });
-    expect(parseFeedPage({ videos: [{ id: "a" }], hasMore: 1 })).toEqual({ videos: [{ id: "a" }], hasMore: true });
+  it("tolerează răspunsuri incomplete și filtrează itemii invalizi", () => {
+    expect(parseFeedPage(null)).toEqual({ items: [], nextCursor: null, hasMore: false, requestId: null, ab: null });
+    const page = parseFeedPage({
+      items: [{ kind: "video", key: "video:a", video: { id: "a" } }, { kind: "news", key: "x" }, 5],
+      nextCursor: "c",
+      hasMore: true,
+      requestId: "r",
+    });
+    expect(page.items).toHaveLength(1);
+    expect(page.hasMore).toBe(true);
+    expect(page.requestId).toBe("r");
+  });
+
+  it("hasMore fără cursor = false (nu putem continua)", () => {
+    expect(parseFeedPage({ items: [], hasMore: true, nextCursor: null }).hasMore).toBe(false);
   });
 });
 
@@ -40,14 +50,16 @@ describe("fetchFeedPage", () => {
 
   it("returnează null la eroare HTTP", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("x", { status: 500 })));
-    expect(await fetchFeedPage({ page: 1 })).toBeNull();
+    expect(await fetchFeedPage({})).toBeNull();
   });
 
-  it("parsează pagina", async () => {
-    const fetchMock = vi.fn(async () => Response.json({ videos: [{ id: "v" }], hasMore: false }));
+  it("parsează pagina și trimite cursorul", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ items: [{ kind: "video", key: "video:v", video: { id: "v" } }], nextCursor: null, hasMore: false }),
+    );
     vi.stubGlobal("fetch", fetchMock);
-    const page = await fetchFeedPage<{ id: string }>({ page: 2 });
-    expect(page).toEqual({ videos: [{ id: "v" }], hasMore: false });
-    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toContain("page=2");
+    const page = await fetchFeedPage({ cursor: "k2" });
+    expect(page?.items).toHaveLength(1);
+    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toContain("cursor=k2");
   });
 });

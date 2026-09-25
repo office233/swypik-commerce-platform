@@ -61,7 +61,11 @@ Bulk variant (`{ events: [...] }`). The owner spec refers to this endpoint as
 `/api/feed/events/batch`. Max **50** events per request, **20 batches /
 min** per session.
 
-### `GET /api/feed/recommendations?limit=20[&session_id=…]`
+### `GET /api/feed/recommendations` — ELIMINAT (2026-09-26)
+
+Înlocuit de ranker-ul unic din `lib/feed/` servit de `GET /api/explore/feed`
+(candidați → scor pe rate netezite → bandit Thompson → diversitate → cursor).
+Descrierea istorică de mai jos nu mai e validă.
 
 Returns the personalised ranking for the calling user (or session). Pulls the
 last 200 candidate videos, aggregates 14-day signals from `feed_events`, and

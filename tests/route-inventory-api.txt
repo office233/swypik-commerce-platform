@@ -131,7 +131,6 @@
 /api/feed/event
 /api/feed/events/batch
 /api/feed/offers
-/api/feed/recommendations
 /api/feed/universal
 /api/fleet-partners
 /api/fly/deals
