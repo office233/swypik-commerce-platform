@@ -3,6 +3,7 @@ import { dbQuery } from "@/lib/db";
 import { sendRefundEmail } from "@/lib/email/service";
 import { logger } from "@/lib/logger";
 import { revokeCreatorUnlockForPayment } from "./creator-unlocks";
+import { reverseCreatorCommissionsForPaymentIntent } from "@/lib/creator/commission";
 
 export async function handleChargeRefunded(event: Stripe.Event) {
   const charge = event.data.object as Stripe.Charge;
@@ -38,6 +39,13 @@ export async function handleChargeRefunded(event: Stripe.Event) {
            OR metadata->>'stripe_payment_intent' = $1`,
       [pi, orderStatus, charge.amount_refunded || 0, event.id]
     );
+
+    // Comisioanele de creator deja creditate în portofel se retrag la refund total.
+    if (isFullRefund) {
+      await reverseCreatorCommissionsForPaymentIntent(pi, "charge_refunded").catch((err) =>
+        logger.error({ err, pi }, "[webhook] creator commission reversal failed"),
+      );
+    }
 
     // Itemele se anulează DOAR la refund total. La refund parțial (bunăvoință
     // pentru un singur produs) restul comenzii se onorează normal, iar

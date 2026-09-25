@@ -44,10 +44,11 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
   const params: unknown[] = [];
-  let where = "";
+  // Doar cererile curierilor; cele ale creatorilor au coada lor (/api/admin/creator-payouts).
+  let where = "WHERE pr.kind = 'courier'";
   if (status && ["pending", "paid", "rejected"].includes(status)) {
     params.push(status);
-    where = "WHERE pr.status = $1";
+    where += " AND pr.status = $1";
   }
   try {
     const { rows } = await dbQuery(
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
     const { rows } = await dbQuery<PayoutRow>(
       `UPDATE payout_requests
           SET status = $2, admin_note = $3, resolved_at = now(), resolved_by = 'admin'
-        WHERE id = $1 AND status = 'pending'
+        WHERE id = $1 AND status = 'pending' AND kind = 'courier'
         RETURNING id, user_id, amount_cents::text, status`,
       [id, action, note ?? null],
     );

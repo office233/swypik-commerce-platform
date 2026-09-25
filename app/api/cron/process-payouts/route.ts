@@ -1,8 +1,10 @@
 /**
- * Cron Job: Automatic Seller Payouts (Stripe Transfers)
+ * Cron Job: payout-uri după fereastra de retur (RETURN_WINDOW_DAYS, default 14).
  *
- * Runs on a schedule and transfers money to sellers / creators whose orders
- * have been fulfilled for more than 14 days (return window expired).
+ *   - Selleri: transfer Stripe Connect per item (doar cu FEATURE_STRIPE_CONNECT).
+ *   - Creatori: comisionul se creditează în portofelul RON (ledger) — rulează
+ *     mereu, independent de Connect; retragerea e un flux separat
+ *     (POST /api/creator/payouts → aprobare admin).
  *
  * Concurrency safety:
  *   - Each candidate row is "claimed" via an atomic single-row UPDATE that
@@ -32,9 +34,9 @@
  */
 
 import { NextResponse } from "next/server";
-import { frozenResponse, isEnabled } from "@/lib/feature-flags";
+import { isEnabled } from "@/lib/feature-flags";
 import { dbQuery } from "@/lib/db";
-import { CREATOR_COMMISSION_BPS, applyBps } from "@/lib/config/commerce";
+import { accrueCreatorCommissions } from "@/lib/creator/commission";
 import { getStripe } from "@/lib/stripe/checkout";
 import { timingSafeEqual } from "crypto";
 import { runCron, cronSkippedResponse } from "@/lib/cron/runCron";
@@ -51,25 +53,8 @@ const RETURN_WINDOW_DAYS =
 // How long a claim is considered "in-flight" before another worker may retry it.
 const CLAIM_TTL_MINUTES = 10;
 
-async function handleGET(req: Request) {
-  if (!isEnabled("stripeConnect")) return frozenResponse("stripeConnect");
-  // 1. Authorization
-  const authHeader = req.headers.get("authorization");
-  const token =
-    authHeader?.replace("Bearer ", "") ||
-    req.headers.get("x-cron-secret");
-  const cronSecretHeader =
-    req.headers.get("cron-secret") || req.headers.get("CRON_SECRET");
-
-  const providedSecret = token || cronSecretHeader;
-
-  const expected = process.env.CRON_SECRET;
-  if (!expected || !providedSecret ||
-    Buffer.byteLength(providedSecret) !== Buffer.byteLength(expected) ||
-    !timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expected))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+/** Transferuri Stripe Connect către selleri (doar cu FEATURE_STRIPE_CONNECT). */
+async function processSellerPayouts(): Promise<{ paid: number; skippedClaimed: number }> {
   // 2. Query eligible items for Seller payouts (local seller)
   const { rows: sellerItems } = await dbQuery<{
     item_id: string;
@@ -107,42 +92,8 @@ async function handleGET(req: Request) {
     [String(RETURN_WINDOW_DAYS)]
   );
 
-  // 3. Query eligible items for Creator payouts
-  const { rows: creatorItems } = await dbQuery<{
-    item_id: string;
-    order_id: string;
-    title: string;
-    creator_id: string;
-    commissionable_cents: number;
-    stripe_account_id: string | null;
-  }>(
-    `SELECT
-       coi.id AS item_id,
-       coi.order_id,
-       coi.title,
-       coi.creator_id::text AS creator_id,
-       coi.commissionable_amount_cents AS commissionable_cents,
-       cca.provider_account_id AS stripe_account_id
-     FROM commerce_order_items coi
-     JOIN creator_connect_accounts cca
-       ON cca.creator_id = coi.creator_id AND cca.payouts_enabled = true AND cca.account_status = 'active'
-     JOIN users creator_user
-       ON creator_user.id = coi.creator_id
-     LEFT JOIN commerce_orders co
-       ON co.id = coi.order_id
-     WHERE coi.source_status = 'fulfilled'
-       AND coi.updated_at < NOW() - ($1 || ' days')::interval
-       AND coi.creator_id IS NOT NULL
-       AND (coi.payout_status IS NULL OR coi.payout_status = 'pending')
-       AND coi.commissionable_amount_cents > 0
-      AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))
-      AND COALESCE((creator_user.metadata->'fraud_user_block'->>'blocked')::boolean, false) = false`,
-    [String(RETURN_WINDOW_DAYS)]
-  );
-
   const stripe = getStripe();
   let paidSellerCount = 0;
-  let paidCreatorCount = 0;
   let skippedClaimedCount = 0;
 
   // 4. Process Seller Payouts
@@ -241,106 +192,42 @@ async function handleGET(req: Request) {
       );
     }
   }
+  return { paid: paidSellerCount, skippedClaimed: skippedClaimedCount };
+}
 
-  // 5. Process Creator Payouts
-  for (const item of creatorItems) {
-    // Atomic claim — see seller loop for rationale.
-    const claim = await dbQuery(
-      `UPDATE commerce_order_items
-         SET metadata = coalesce(metadata, '{}'::jsonb)
-                      || jsonb_build_object('creator_payout_processing_at', NOW()::text)
-       WHERE id = $1
-         AND (payout_status IS NULL OR payout_status = 'pending')
-         AND COALESCE(
-               NULLIF(metadata->>'creator_payout_processing_at','')::timestamptz,
-               'epoch'::timestamptz
-             ) < NOW() - ($2 || ' minutes')::interval
-         AND EXISTS (
-           SELECT 1
-             FROM creator_connect_accounts cca
-             JOIN users creator_user ON creator_user.id = commerce_order_items.creator_id
-             LEFT JOIN commerce_orders co ON co.id = commerce_order_items.order_id
-            WHERE cca.creator_id = commerce_order_items.creator_id
-              AND cca.payouts_enabled = true
-              AND cca.account_status = 'active'
-              AND COALESCE((creator_user.metadata->'fraud_user_block'->>'blocked')::boolean, false) = false
-              AND (co.status IS NULL OR co.status NOT IN ('refunded','cancelled','return_requested','failed'))
-         )
-       RETURNING id`,
-      [item.item_id, String(CLAIM_TTL_MINUTES)]
-    );
-    if (claim.rowCount === 0) {
-      skippedClaimedCount++;
-      continue;
-    }
+async function handleGET(req: Request) {
+  // 1. Authorization
+  const authHeader = req.headers.get("authorization");
+  const token =
+    authHeader?.replace("Bearer ", "") ||
+    req.headers.get("x-cron-secret");
+  const cronSecretHeader =
+    req.headers.get("cron-secret") || req.headers.get("CRON_SECRET");
 
-    try {
-      const creatorPayoutCents = Math.max(1, applyBps(item.commissionable_cents, CREATOR_COMMISSION_BPS));
+  const providedSecret = token || cronSecretHeader;
 
-      // Intentie pre-transfer (vezi comentariul din bucla seller).
-      await dbQuery(
-        `UPDATE commerce_order_items
-           SET metadata = coalesce(metadata, '{}'::jsonb)
-                        || jsonb_build_object(
-                             'creator_payout_status', 'transfer_initiated',
-                             'creator_idempotency_key', $2::text
-                           )
-         WHERE id = $1`,
-        [item.item_id, `swypik:creator-payout:${item.item_id}`]
-      );
-      const transfer = await stripe.transfers.create(
-        {
-          amount: creatorPayoutCents,
-          currency: "ron",
-          destination: item.stripe_account_id!,
-          description: `Creator commission for "${item.title}"`,
-          metadata: { order_id: item.order_id, item_id: item.item_id, type: 'creator' },
-        },
-        { idempotencyKey: `swypik:creator-payout:${item.item_id}` }
-      );
-
-      await dbQuery(
-        `UPDATE commerce_order_items
-           SET payout_status = 'paid',
-               metadata = coalesce(metadata, '{}'::jsonb)
-                        || jsonb_build_object(
-                             'creator_transfer_id', $2::text,
-                             'creator_paid_at', NOW()::text
-                           )
-         WHERE id = $1`,
-        [item.item_id, transfer.id]
-      );
-
-      await dbQuery(
-        `INSERT INTO connect_transfers
-           (connect_account_id, provider, provider_transfer_id, destination_account_id, status, currency, amount_cents, submitted_at, completed_at, metadata)
-         VALUES
-           ((SELECT id FROM creator_connect_accounts WHERE provider_account_id = $1 LIMIT 1), 'stripe', $2, $1, 'succeeded', 'RON', $3, NOW(), NOW(), jsonb_build_object('item_id', $4::text))
-         ON CONFLICT (provider, provider_transfer_id) DO NOTHING`,
-        [item.stripe_account_id, transfer.id, creatorPayoutCents, item.item_id]
-      );
-      paidCreatorCount++;
-    } catch (e: any) {
-      logger.error({ err: e }, `[payout-cron] creator payout failed for item ${item.item_id}`);
-      await dbQuery(
-        `UPDATE commerce_order_items
-           SET payout_status = 'failed',
-               metadata = coalesce(metadata, '{}'::jsonb)
-                        || jsonb_build_object(
-                             'creator_payout_error', $2::text,
-                             'creator_payout_failed_at', NOW()::text
-                           )
-         WHERE id = $1`,
-        [item.item_id, String(e?.message || 'unknown_error').slice(0, 500)]
-      );
-    }
+  const expected = process.env.CRON_SECRET;
+  if (!expected || !providedSecret ||
+    Buffer.byteLength(providedSecret) !== Buffer.byteLength(expected) ||
+    !timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expected))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // 2-4. Selleri: transferuri Stripe Connect (dezactivate fără flag).
+  const seller = isEnabled("stripeConnect") ? await processSellerPayouts() : null;
+
+  // 5. Comisioanele creatorilor: maturare în portofelul RON (ledger) — sursa
+  // unică de adevăr pentru câștiguri; retragerea se face din portofel
+  // (POST /api/creator/payouts). Nu mai depinde de creator_connect_accounts.
+  const creator = await accrueCreatorCommissions(RETURN_WINDOW_DAYS);
 
   return {
     success: true,
-    sellerPayouts: paidSellerCount,
-    creatorPayouts: paidCreatorCount,
-    skippedClaimed: skippedClaimedCount,
+    sellerPayouts: seller ? seller.paid : "stripe_connect_disabled",
+    creatorCommissionsAccrued: creator.accrued,
+    creatorCommissionsBlocked: creator.blocked,
+    creatorCommissionsSkipped: creator.skipped,
+    skippedClaimed: seller?.skippedClaimed ?? 0,
   };
 }
 

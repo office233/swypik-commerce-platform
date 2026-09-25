@@ -15,7 +15,8 @@
 import { dbQuery, withTransaction } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { loadFeedWeights } from "@/lib/algo/scoring";
-import { CREATOR_COMMISSION_RATE_BPS } from "@/lib/creator/earnings";
+import { CREATOR_COMMISSION_BPS as CREATOR_COMMISSION_RATE_BPS } from "@/lib/config/commerce";
+import { creditUserTx } from "@/lib/wallet/ledger";
 
 const ATTRIBUTION_WINDOW_DAYS = 7;
 
@@ -199,8 +200,10 @@ export async function distributeCreatorFund(
 
       if (meetsThreshold && amount > 0) {
         // Bani reali (cenți) → ledger-ul financiar, idempotent pe payout id.
-        const { creditUser } = await import("@/lib/wallet/ledger");
-        await creditUser({
+        // În ACEEAȘI tranzacție cu rândul de payout: dacă tranzacția externă
+        // face rollback, nici creditul nu rămâne (înainte creditUser deschidea
+        // propria tranzacție → dublă creditare la reluare).
+        await creditUserTx(q, {
           userId: c.creator_id,
           amountCents: amount,
           refType: "creator_fund_payout",

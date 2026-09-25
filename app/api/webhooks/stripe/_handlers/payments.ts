@@ -14,6 +14,7 @@ import { markStayBookingPaidByCard, markStayBookingCardFailed } from "@/lib/stay
 import { APP_URL } from "@/lib/app-url";
 import { maybeSendOrderConfirmation } from "./shared";
 import { FRAUD_REVIEW_SCORE, FRAUD_BLOCK_SCORE } from "@/lib/risk/thresholds";
+import { markMissionFunded } from "@/lib/missions/funding";
 
 export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
   const intent = event.data.object as Stripe.PaymentIntent;
@@ -52,6 +53,15 @@ export async function handlePaymentIntentSucceededEvent(event: Stripe.Event) {
   } else if (intent.metadata?.kind === "stay_booking" && intent.metadata?.stay_booking_id) {
     // Stays: rezervare plătită cu cardul → confirmare + credit gazdă.
     await markStayBookingPaidByCard(intent.metadata.stay_booking_id);
+  } else if (intent.metadata?.kind === "mission_funding") {
+    // Misiuni: fondul de premii plătit de seller → misiunea devine activă
+    // (idempotent: doar rândurile încă nefinanțate trec în funded).
+    await markMissionFunded({
+      paymentIntentId: intent.id,
+      missionId: intent.metadata.mission_id ?? null,
+      amountReceivedCents: intent.amount_received ?? intent.amount,
+      currency: intent.currency,
+    });
   } else if (intent.metadata?.kind === "donation" && intent.metadata?.donation_id) {
     // Swypik Cares: donație plătită → paid + agregate campanie (idempotent
     // prin guard-ul payment_status='pending').
