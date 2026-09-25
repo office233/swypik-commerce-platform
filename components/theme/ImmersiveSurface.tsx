@@ -27,7 +27,7 @@ export default function ImmersiveSurface({ children, fullscreen = false, classNa
       data-theme="dark"
       data-immersive=""
       {...(fullscreen ? { "data-immersive-fullscreen": "" } : {})}
-      className={cn("bg-canvas text-fg", fullscreen ? "min-h-dvh" : "min-h-full", className)}
+      className={cn("bg-canvas text-fg", fullscreen ? "min-h-dvh" : "min-h-[calc(100dvh-var(--bottom-inset,0px))]", className)}
     >
       {children}
     </div>
