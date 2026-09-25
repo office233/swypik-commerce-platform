@@ -36,13 +36,52 @@ param customData string
 param osDiskType string = 'StandardSSD_LRS'
 param osDiskSizeGB int = 64
 
-@description('Disc de date Premium SSD (GiB) pe LUN 0; 0 = fără disc de date.')
+@description('Disc de date Premium SSD v2 (GiB) pe LUN 0; 0 = fără disc de date.')
 param dataDiskSizeGB int = 0
+
+@description('IOPS / MB/s provizionate pe discul de date Premium SSD v2.')
+param dataDiskIops int = 3000
+param dataDiskMBps int = 125
+
+@description('Zona de disponibilitate (Premium SSD v2 cere VM și disc în aceeași zonă). Gol = fără zonă.')
+param zone string = ''
+
+@description('Controlerul de discuri: v6/v7 cer NVMe; v5 folosește SCSI.')
+@allowed([
+  'NVMe'
+  'SCSI'
+])
+param diskControllerType string = 'NVMe'
 
 @description('VM Spot (evacuabil; doar pentru worker-e fără stare).')
 param useSpot bool = false
 
 var hasDataDisk = dataDiskSizeGB > 0
+var zones = empty(zone) ? null : [
+  zone
+]
+
+// Discul Postgres: resursă separată (supraviețuiește ștergerii VM-ului). Premium SSD v2
+// nu suportă cache pe host și cere aceeași zonă ca VM-ul.
+resource dataDisk 'Microsoft.Compute/disks@2024-03-02' = if (hasDataDisk) {
+  name: '${name}-data'
+  location: location
+  tags: union(tags, {
+    role: role
+  })
+  zones: zones
+  sku: {
+    name: 'PremiumV2_LRS'
+  }
+  properties: {
+    creationData: {
+      createOption: 'Empty'
+    }
+    diskSizeGB: dataDiskSizeGB
+    diskIOPSReadWrite: dataDiskIops
+    diskMBpsReadWrite: dataDiskMBps
+  }
+}
 var roleTags = union(tags, {
   role: role
 })
@@ -75,6 +114,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   name: name
   location: location
   tags: roleTags
+  zones: zones
   identity: {
     type: 'SystemAssigned'
   }
@@ -118,6 +158,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
       }
     }
     storageProfile: {
+      diskControllerType: diskControllerType
       imageReference: {
         publisher: 'Canonical'
         offer: 'ubuntu-24_04-lts'
@@ -136,16 +177,14 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
       }
       dataDisks: hasDataDisk ? [
         {
-          // LUN 0 → /dev/disk/azure/scsi1/lun0 (formatat + montat /srv/data de cloud-init)
+          // LUN 0 → /dev/disk/azure/data/by-lun/0 (NVMe) sau scsi1/lun0 (SCSI); formatat + montat /srv/data de cloud-init
           lun: 0
-          name: '${name}-data'
-          createOption: 'Empty'
-          diskSizeGB: dataDiskSizeGB
-          caching: 'ReadOnly'
+          createOption: 'Attach'
+          caching: 'None'
           // Discul cu Postgres supraviețuiește ștergerii VM-ului.
           deleteOption: 'Detach'
           managedDisk: {
-            storageAccountType: 'Premium_LRS'
+            id: dataDisk.id
           }
         }
       ] : []

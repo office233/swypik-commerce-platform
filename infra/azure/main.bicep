@@ -49,23 +49,46 @@ param namePrefix string = 'swypik-prod'
 @maxValue(10)
 param webCount int = 2
 
-@description('Dimensiunea VM-urilor web (familia DASv5 are cotă în abonament). D2as_v5 = 2 vCPU/8 GiB.')
-param webVmSize string = 'Standard_D2as_v5'
+@description('Zona de disponibilitate pentru toate VM-urile și discul de date. În polandcentral seria v7 e disponibilă abonamentului doar în zona 3 (verificat 2026-09-26 cu az vm list-skus).')
+@allowed([
+  '1'
+  '2'
+  '3'
+])
+param availabilityZone string = '3'
 
-@description('Dimensiunea VM-ului data (Postgres + Redis). E2as_v5 = 2 vCPU/16 GiB; E4as_v5 (4/32) sau D4as_v5 (4/16) la creștere — resize = câteva minute de oprire.')
-param dataVmSize string = 'Standard_E2as_v5'
+@description('Controlerul de discuri: v6/v7 cer NVMe; v5 folosește SCSI.')
+@allowed([
+  'NVMe'
+  'SCSI'
+])
+param diskControllerType string = 'NVMe'
 
-@description('Discul Premium SSD al VM-ului data (GiB). 128 = P10 (500 IOPS); 256 = P15 (1100 IOPS) la creștere.')
+@description('Dimensiunea VM-urilor web. D2as_v7 = 2 vCPU/8 GiB (AMD EPYC generația cea mai nouă, NVMe).')
+param webVmSize string = 'Standard_D2as_v7'
+
+@description('Dimensiunea VM-ului data (Postgres + Redis). E2as_v7 = 2 vCPU/16 GiB; E4as_v7 (4/32) la creștere — resize = câteva minute de oprire.')
+param dataVmSize string = 'Standard_E2as_v7'
+
+@description('Discul Premium SSD v2 al VM-ului data (GiB). IOPS/MB/s se setează separat de mărime.')
 @minValue(64)
-param dataDiskSizeGB int = 128
+param dataDiskSizeGB int = 256
+
+@description('IOPS provizionate pe discul de date (Premium SSD v2: 3000 incluse gratuit).')
+@minValue(3000)
+param dataDiskIops int = 3000
+
+@description('Debit provizionat pe discul de date în MB/s (Premium SSD v2: 125 incluse gratuit).')
+@minValue(125)
+param dataDiskMBps int = 125
 
 @description('Numărul de VM-uri worker (video). 0 = fără worker dedicat.')
 @minValue(0)
 @maxValue(10)
 param workerCount int = 1
 
-@description('Dimensiunea VM-urilor worker. D2as_v5 = 2 vCPU/8 GiB; D4as_v5 (4/16) dacă coada de transcodare crește.')
-param workerVmSize string = 'Standard_D2as_v5'
+@description('Dimensiunea VM-urilor worker. D2as_v7 = 2 vCPU/8 GiB; D4as_v7 (4/16) dacă coada de transcodare crește.')
+param workerVmSize string = 'Standard_D2as_v7'
 
 @description('Worker-ele ca VM Spot (ieftin, evacuabil). Implicit NU: abonamentul are cotă Spot de doar 3 vCPU.')
 param workerUseSpot bool = false
@@ -365,10 +388,14 @@ module data 'modules/vm.bicep' = {
     privateIp: dataPrivateIp
     adminUsername: adminUsername
     adminSshPublicKey: adminSshPublicKey
+    zone: availabilityZone
+    diskControllerType: diskControllerType
     customData: roleCloudInit(cloudInitTemplate, 'data', deploySshPublicKey)
     osDiskType: 'Premium_LRS'
     osDiskSizeGB: 32
     dataDiskSizeGB: dataDiskSizeGB
+    dataDiskIops: dataDiskIops
+    dataDiskMBps: dataDiskMBps
   }
 }
 
@@ -385,6 +412,8 @@ module web 'modules/vm.bicep' = [for i in range(1, webCount): {
     publicIpId: (i == 1 && hasAdminSsh) ? jumpPip.id : ''
     adminUsername: adminUsername
     adminSshPublicKey: adminSshPublicKey
+    zone: availabilityZone
+    diskControllerType: diskControllerType
     customData: roleCloudInit(cloudInitTemplate, 'web', deploySshPublicKey)
     osDiskType: osDiskType
     osDiskSizeGB: osDiskSizeGB
@@ -403,6 +432,8 @@ module worker 'modules/vm.bicep' = [for i in range(1, workerCount): {
     privateIp: '${workerIpBase}.${9 + i}'
     adminUsername: adminUsername
     adminSshPublicKey: adminSshPublicKey
+    zone: availabilityZone
+    diskControllerType: diskControllerType
     customData: roleCloudInit(cloudInitTemplate, 'worker', deploySshPublicKey)
     osDiskType: osDiskType
     osDiskSizeGB: osDiskSizeGB

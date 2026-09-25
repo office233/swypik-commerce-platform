@@ -220,11 +220,25 @@ write_files:
       # ── disc de date (rolul data): Azure LUN 0 sau volum Hetzner ──
       mkdir -p /srv/data
       if [ "$ROLE" = data ]; then
+        # Azure NVMe (v6/v7, azure-vm-utils): /dev/disk/azure/data/by-lun/0; Azure SCSI (v5): scsi1/lun0;
+        # Hetzner: volum by-id. Fallback NVMe: singurul disc NVMe care nu conține rădăcina.
         dev=""
-        for c in /dev/disk/azure/scsi1/lun0 /dev/disk/by-id/scsi-0HC_Volume_*; do
-          [ -e "$c" ] && { dev=$(readlink -f "$c"); break; }
+        root_disk=$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null | head -1)
+        for _ in $(seq 1 30); do
+          for c in /dev/disk/azure/data/by-lun/0 /dev/disk/azure/scsi1/lun0 /dev/disk/by-id/scsi-0HC_Volume_*; do
+            [ -e "$c" ] && { dev=$(readlink -f "$c"); break; }
+          done
+          if [ -z "$dev" ]; then
+            for d in $(lsblk -dnpo NAME,TYPE | awk '$2=="disk" && $1 ~ /nvme/ {print $1}'); do
+              [ "$(basename "$d")" = "$root_disk" ] && continue
+              dev="$d"; break
+            done
+          fi
+          [ -n "$dev" ] && break
+          sleep 2
         done
         [ -n "$dev" ] || { echo "EROARE: discul de date nu există"; exit 1; }
+        echo "disc de date: $dev"
         if ! blkid -L swypikdata >/dev/null 2>&1; then
           # Doar un disc GOL se formatează (fără semnătură de FS/partiție).
           if [ -z "$(blkid -o value -s TYPE "$dev" 2>/dev/null)" ] && [ -z "$(lsblk -no NAME "$dev" | tail -n +2)" ]; then
