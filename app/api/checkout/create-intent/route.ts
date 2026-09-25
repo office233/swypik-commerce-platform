@@ -12,7 +12,7 @@ import { logger } from "@/lib/logger";
 import { clientIp } from "@/lib/rate-limit";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { parseBody } from "@/lib/validation/schemas";
-import { createOrReuseCheckout } from "@/lib/shop/checkout";
+import { PaymentInProgressError, createOrReuseCheckout } from "@/lib/shop/checkout";
 import { PricingError } from "@/lib/shop/pricing";
 import { ShopCheckoutSchema } from "@/lib/shop/schemas";
 
@@ -79,6 +79,9 @@ export async function POST(req: Request) {
       { headers: NO_STORE },
     );
   } catch (error: unknown) {
+    if (error instanceof PaymentInProgressError) {
+      return fail(error.code, 409, { orderId: error.orderId });
+    }
     if (error instanceof PricingError) {
       const status = error.code === "insufficient_stock" ? 409 : 400;
       return fail(error.code, status, { productId: error.productId, available: error.available });

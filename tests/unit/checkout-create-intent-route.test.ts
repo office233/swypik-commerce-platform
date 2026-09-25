@@ -19,10 +19,19 @@ const isUserFraudBlocked = vi.fn(async () => false);
 vi.mock("@/lib/risk/user-block", () => ({ isUserFraudBlocked: () => isUserFraudBlocked() }));
 
 const createOrReuseCheckout = vi.fn();
-vi.mock("@/lib/shop/checkout", () => ({ createOrReuseCheckout: (c: unknown) => createOrReuseCheckout(c) }));
+vi.mock("@/lib/shop/checkout", () => {
+  class PaymentInProgressError extends Error {
+    readonly code = "payment_in_progress";
+    constructor(public readonly orderId: string) {
+      super("payment_in_progress");
+    }
+  }
+  return { PaymentInProgressError, createOrReuseCheckout: (c: unknown) => createOrReuseCheckout(c) };
+});
 
 import { POST } from "@/app/api/checkout/create-intent/route";
 import { PricingError } from "@/lib/shop/pricing";
+import { PaymentInProgressError } from "@/lib/shop/checkout";
 
 const USER = { userId: "user-1", email: "ana@example.com", role: "shopper", sellerId: null, isAdmin: false };
 const RESULT = {
@@ -116,6 +125,13 @@ describe("POST /api/checkout/create-intent", () => {
     expect(res.status).toBe(200);
     expect((await res.json()).reused).toBe(true);
     expect(createOrReuseCheckout).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns 409 payment_in_progress instead of replacing an order being paid", async () => {
+    createOrReuseCheckout.mockRejectedValue(new PaymentInProgressError("order-9"));
+    const res = await POST(req({}));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: "payment_in_progress", orderId: "order-9" });
   });
 
   it("refuses fraud-blocked accounts", async () => {

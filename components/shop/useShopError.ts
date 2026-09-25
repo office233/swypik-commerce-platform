@@ -24,6 +24,7 @@ const KNOWN_CODES = new Set([
   "already_reviewed",
   "not_verified_buyer",
   "network",
+  "payment_in_progress",
 ]);
 
 /** Transformă `{ code }` dintr-un răspuns API în mesaj tradus. */

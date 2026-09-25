@@ -57,8 +57,37 @@ async function resolveAttributions(lines: PricedCart["lines"]): Promise<Map<stri
   return new Map(entries);
 }
 
+/** Plata comenzii curente e deja în curs/încasată (webhook-ul încă n-a ajuns) — nu o înlocuim. */
+export class PaymentInProgressError extends Error {
+  readonly code = "payment_in_progress";
+  constructor(public readonly orderId: string) {
+    super("payment_in_progress");
+    this.name = "PaymentInProgressError";
+  }
+}
+
+const LOCKED_INTENT_STATUSES = new Set(["succeeded", "processing", "requires_capture"]);
+
+/**
+ * Dacă plata comenzii pending a coșului a fost deja trimisă, schimbarea coșului
+ * NU are voie să anuleze comanda: banii ar fi încasați pe o comandă anulată
+ * (webhook-ul sare peste tot ce nu mai e `pending`).
+ */
+async function assertNoPaymentInFlight(cartId: string): Promise<void> {
+  const { rows } = await dbQuery<{ id: string; pi: string | null }>(
+    `SELECT id::text AS id, metadata->>'stripe_payment_intent' AS pi
+       FROM commerce_orders WHERE status = 'pending' AND metadata->>'cart_id' = $1 LIMIT 1`,
+    [cartId],
+  );
+  const pending = rows[0];
+  if (!pending?.pi) return;
+  const intent = await getStripe().paymentIntents.retrieve(pending.pi);
+  if (LOCKED_INTENT_STATUSES.has(intent.status)) throw new PaymentInProgressError(pending.id);
+}
+
 export async function createOrReuseCheckout(ctx: CheckoutRequestContext): Promise<CheckoutResult> {
   const config = getShopConfig();
+  await assertNoPaymentInFlight(ctx.cartId);
 
   const outcome = await withTransaction<TxOutcome>(async (q) => {
     const inputs = await loadCartLines(q, ctx.cartId);

@@ -125,6 +125,15 @@ describe("createOrReuseCheckout", () => {
     expect(reservedQuery?.params[1]).toBe("order-old");
   });
 
+  it("refuses to supersede an order whose payment is already processing", async () => {
+    pendingOrder = { id: "order-old", total_cents: 13000, fingerprint: fingerprintFor(2), pi: "pi_old", token: "tok" };
+    cartQty = 3;
+    stripe.paymentIntents.retrieve.mockResolvedValueOnce({ id: "pi_old", client_secret: "s", status: "processing" });
+    await expect(createOrReuseCheckout(ctx)).rejects.toMatchObject({ code: "payment_in_progress", orderId: "order-old" });
+    expect(calls.some((c) => c.sql.includes("SET status = 'cancelled'"))).toBe(false);
+    expect(stripe.paymentIntents.cancel).not.toHaveBeenCalled();
+  });
+
   it("marks the order failed and rethrows when Stripe refuses", async () => {
     stripe.paymentIntents.create.mockRejectedValueOnce(Object.assign(new Error("auth"), { type: "StripeAuthenticationError" }));
     await expect(createOrReuseCheckout(ctx)).rejects.toThrow("auth");
