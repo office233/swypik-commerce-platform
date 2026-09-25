@@ -51,6 +51,12 @@ vi.mock("@/lib/notifications/dispatch", () => ({
     return 0;
   },
 }));
+vi.mock("@/lib/video/publish-notify", () => ({
+  notifyFollowersOnce: async (...a: unknown[]) => {
+    h.fanout.push(a);
+    return true;
+  },
+}));
 vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 
 import { POST as dismiss } from "@/app/api/admin/moderation/[id]/dismiss/route";
@@ -159,7 +165,7 @@ describe("video decisions (pending / flagged)", () => {
     expect(audit()).toHaveLength(0);
   });
 
-  it("approving a pending clip publishes it, closes cases, fans out and audits", async () => {
+  it("approving a pending clip unlocks it for the feed (keeps creator's visibility), closes cases, fans out once and audits", async () => {
     h.txResponses = [
       { rows: [{ id: TARGET_VIDEO, creator_id: TARGET_USER, title: "Clip", moderation_status: "pending_review" }] },
       { rows: [{ c: 1 }] },
@@ -168,13 +174,15 @@ describe("video decisions (pending / flagged)", () => {
     ];
     const res = await decideVideo(videoReq({ decision: "approve" }), idParams(TARGET_VIDEO));
     expect(await res.json()).toMatchObject({ ok: true, published: true });
-    expect(txSql()).toContain("visibility = 'public'");
+    expect(txSql()).toContain("moderation_status = 'approved'");
+    // Aprobarea nu publică draft-uri/programate — visibility rămâne a creatorului.
+    expect(txSql()).not.toContain("visibility = 'public'");
     expect(txSql()).toContain("UPDATE moderation_cases");
     expect(audit()[0].slice(0, 6)).toEqual([
       MODERATOR.userId, "admin_user", "moderator", "video.moderation_approve", "video", TARGET_VIDEO,
     ]);
     await new Promise((r) => setTimeout(r, 0));
-    expect(h.fanout).toHaveLength(1);
+    expect(h.fanout).toEqual([[TARGET_VIDEO]]);
   });
 
   it("rejecting a flagged (already approved) clip hides it and notifies the creator", async () => {

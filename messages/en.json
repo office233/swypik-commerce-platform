@@ -2512,16 +2512,18 @@
     "errRefundFailed": "Wallet refund failed — please check manually."
   },
   "adminShell": {
-    "comingSoon": "Coming soon",
-    "closeMenu": "Close menu",
-    "close": "Close",
     "nav": {
       "section": {
         "overview": "Overview",
-        "commerce": "Commerce",
         "users": "Users",
-        "content": "Content",
-        "finance": "Finance"
+        "finance": "Finance",
+        "moderation": "Moderation",
+        "shopping": "Shopping",
+        "food": "Food",
+        "mobility": "Mobility & delivery",
+        "stays": "Stays",
+        "entertainment": "Entertainment & creators",
+        "system": "System"
       },
       "item": {
         "dashboard": "Dashboard",
@@ -2554,13 +2556,13 @@
         "merchantClaims": "Restaurant claims",
         "missions": "Creator missions",
         "creatorPayouts": "Creator withdrawals",
-        "news": "News"
+        "news": "News",
+        "go": "Swypik Go (rides)"
       }
     },
     "storefront": "View storefront",
     "logOut": "Log out",
     "openMenu": "Open admin menu",
-    "soon": "Soon",
     "opsAlerts": {
       "title": "Ops alerts",
       "applications": "Applications",
@@ -2571,6 +2573,16 @@
       "fraudRisk": "Fraud risk",
       "urgentBadge": "{count} <24h",
       "allClear": "No operational alerts. All queues are clear."
+    },
+    "title": "Swypik Admin",
+    "navLabel": "Admin console menu",
+    "breakGlass": "Emergency access",
+    "role": {
+      "owner": "Owner",
+      "ops": "Operations",
+      "finance": "Finance",
+      "moderator": "Moderator",
+      "support": "Support"
     }
   },
   "adminApplications": {
@@ -2713,7 +2725,6 @@
     "actionsTitle": "Actions",
     "internalReason": "Internal reason (optional)",
     "journalPlaceholder": "Note for the log...",
-    "pageTitle": "Content moderation",
     "statusTriaged": "In review",
     "noteLabel": "Note:",
     "statusOpen": "Open",
@@ -2760,14 +2771,11 @@
     "hideVideo": "Hide video",
     "banCreator": "Ban creator 7 days",
     "deletePermanently": "Delete permanently",
-    "loading": "...",
     "errorForbidden": "You don't have the required permission.",
     "errorInvalidId": "Invalid identifier.",
     "errorCreatorNotFound": "Creator not found.",
     "errorReportInvalidNoVideo": "Invalid report or no associated video.",
-    "errorReportNotFound": "Report not found.",
-    "errorGeneric": "Error {status}",
-    "errorNetwork": "Network error"
+    "errorReportNotFound": "Report not found."
   },
   "adminPayouts": {
     "pendingLabel": "Pending",
@@ -2917,7 +2925,6 @@
   },
   "adminUsers": {
     "searchPlaceholder": "Search by username, email or name...",
-    "thActions": "Actions",
     "loadError": "Failed to load users.",
     "tabAll": "All",
     "tabActive": "Active",
@@ -2927,10 +2934,8 @@
     "searchBtn": "Search",
     "summaryLine": "{total} users · page {page} of {totalPages}",
     "thUser": "User",
-    "thEmail": "Email",
     "thRole": "Role",
     "thStatus": "Status",
-    "thFollowers": "Followers",
     "thVideos": "Videos",
     "thSessions": "Sessions",
     "thRegistered": "Registered",
@@ -2940,9 +2945,6 @@
     "noUsersFound": "No users found.",
     "previous": "Previous",
     "next": "Next",
-    "suspend1Day": "1 day",
-    "suspend7Days": "7 days",
-    "suspend30Days": "30 days",
     "suspendPermanent": "Permanent",
     "errForbidden": "You don't have the required permission.",
     "errInvalidId": "Invalid identifier.",
@@ -2951,20 +2953,11 @@
     "errCannotDemoteSelf": "You can't demote your own account. Ask another admin to do this.",
     "errLastAdminLockout": "You can't demote the last remaining admin — it would lock everyone out of the panel.",
     "errRoleChangeFailed": "The role could not be changed. No changes were applied.",
-    "errorWithStatus": "Error {status}",
-    "networkError": "Network error",
-    "suspendReasonPrompt": "Reason for suspending @{username} ({duration}):",
-    "permanent": "permanent",
     "daysCount": "{count} days",
     "confirmUnsuspend": "Lift the suspension for @{username}?",
-    "confirmPromote": "Promote @{username} to \"admin\" role?",
-    "confirmDemote": "Demote @{username} to \"user\" role?",
-    "actions": "Actions",
     "suspendSectionTitle": "Suspend",
     "liftSuspension": "Lift suspension",
-    "roleSectionTitle": "Role",
-    "promoteToAdmin": "Promote to admin",
-    "demoteToUser": "Demote to user"
+    "roleSectionTitle": "Role"
   },
   "adminVideos": {
     "thDuration": "Duration",
@@ -4319,66 +4312,20 @@
     }
   },
   "adminLogin": {
-    "passwordRequired": "Admin password is required.",
-    "incorrectPassword": "Incorrect admin password.",
-    "tooManyAttempts": "Too many login attempts. Please wait.",
-    "misconfiguredTitle": "ADMIN_SECRET is not configured.",
-    "loginFailed": "Login failed.",
     "authFailed": "Authentication failed.",
     "unreachable": "Could not reach the admin login endpoint.",
-    "misconfiguredBody": "ADMIN_SECRET is missing. Configure it before using the admin surface.",
-    "signInBody": "Sign in with the admin password to manage orders, marketplace products, and sellers.",
-    "passwordLabel": "Admin password",
-    "passwordPlaceholder": "Enter admin password",
+    "passwordLabel": "Emergency secret",
     "signingIn": "Signing in...",
     "enterAdmin": "Enter admin",
-    "misconfiguredHint": "Set `ADMIN_SECRET` in the environment and reload the page."
-  },
-  "adminDashboard": {
-    "errorLoading": "Error loading stats",
-    "dashboardLiveData": "Dashboard • Live data",
-    "stripeDashboard": "Stripe Dashboard",
-    "serverHealth": "Server Health",
-    "storefront": "Storefront",
-    "kpiTotalOrders": "Total orders",
-    "kpiRevenue": "Revenue",
-    "kpiAverageOrder": "Average order",
-    "kpiUniqueCustomers": "Unique customers",
-    "periodToday": "Today",
-    "periodLast7Days": "Last 7 days",
-    "periodLast30Days": "Last 30 days",
-    "orders": "orders",
-    "revenue": "revenue",
-    "revenueLast14Days": "Revenue • Last 14 days",
-    "revenueBarTitle": "{label}: {revenue} lei ({orders} orders)",
-    "noOrdersLast14Days": "No orders in the last 14 days.",
-    "orderStatus": "Order status",
-    "noOrders": "No orders",
-    "fulfillment": "Fulfillment",
-    "notAvailable": "N/A",
-    "customerLocations": "Customer locations",
-    "noCustomerLocations": "No customer locations yet",
-    "catalogSnapshot": "Catalog snapshot",
-    "totalProducts": "Total products",
-    "withImages": "With images",
-    "withVideo": "With video",
-    "averagePrice": "Average price",
-    "videoManagerTitle": "Video Manager",
-    "videoManagerBody": "Review, approve, and manage creator video assets",
-    "recentOrders": "Recent orders",
-    "thOrder": "Order",
-    "thCustomer": "Customer",
-    "thItems": "Items",
-    "thTotal": "Total",
-    "thStatus": "Status",
-    "thFulfillment": "Fulfillment",
-    "thLocation": "Location",
-    "thDate": "Date",
-    "itemsCount": "{count} items",
-    "statusPending": "pending",
-    "noOrdersYet": "No orders yet. The first order will appear here.",
-    "footer": "Swypik Admin • Powered by PostgreSQL + Stripe + Hetzner",
-    "currencyLei": "lei"
+    "title": "Admin console",
+    "accountSignInBody": "Sign in with your Swypik admin account. You'll get a code by email; the admin session expires after a few hours.",
+    "accountSignInCta": "Sign in with Swypik account",
+    "breakGlassTitle": "Emergency access",
+    "breakGlassBody": "Only when normal sign-in is unavailable. Requires the emergency secret and the email of an admin account; every use is logged.",
+    "emailLabel": "Admin account email",
+    "errInvalidCredentials": "Incorrect secret or email.",
+    "errTooManyAttempts": "Too many attempts. Wait a few minutes.",
+    "errBreakGlassDisabled": "Emergency access is disabled."
   },
   "adminAudit": {
     "pageTitle": "Audit log",
@@ -4390,8 +4337,6 @@
     "thActor": "Actor",
     "thIp": "IP",
     "thDetails": "Details",
-    "actorSharedSecret": "shared secret",
-    "actorUnknown": "unknown",
     "empty": "No audit events yet.",
     "loadError": "Could not load the audit log.",
     "pageOf": "Page {page} of {totalPages} · {total} events",
@@ -5921,6 +5866,22 @@
     "creatorPayoutRejected": {
       "title": "Withdrawal declined",
       "body": "{amount, number, ::currency/RON} has been returned to your wallet."
+    },
+    "videoHidden": {
+      "title": "Your clip was hidden",
+      "body": "After review, the clip doesn't follow the community guidelines. Contact us if you think this is a mistake."
+    },
+    "videoRemoved": {
+      "title": "Your clip was removed",
+      "body": "The clip breaks the community guidelines and was removed. Contact us if you think this is a mistake."
+    },
+    "videoRejected": {
+      "title": "Your clip wasn't approved",
+      "body": "See the reason in your creator dashboard; you can upload a corrected version."
+    },
+    "accountSuspended": {
+      "title": "Your account was suspended",
+      "body": "For breaking the community guidelines, the account is suspended for {days} days. Contact us if you think this is a mistake."
     }
   },
   "creatorApplicationEmail": {
@@ -6797,6 +6758,111 @@
       "published": "Publish",
       "archived": "Archive",
       "draft": "Back to draft"
+    }
+  },
+  "adminConsole": {
+    "common": {
+      "forbiddenTitle": "You don't have access to this section",
+      "forbiddenBody": "Your admin role doesn't include this permission. Ask an owner to change your role.",
+      "cancel": "Cancel",
+      "errorStatus": "Error {status}",
+      "errorNetwork": "Network error. Try again."
+    },
+    "dashboard": {
+      "title": "Overview",
+      "subtitle": "Platform indicators and what is waiting for a decision.",
+      "rangeLabel": "Period",
+      "range": {
+        "24h": "Last 24 hours",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days"
+      },
+      "orders": "Paid orders",
+      "gmv": "Gross value (GMV)",
+      "newUsers": "New users",
+      "videosPending": "Clips awaiting approval",
+      "videosFlagged": "Flagged clips",
+      "openReports": "Open reports",
+      "payoutRequests": "Payout requests",
+      "payoutSplit": "{courier} couriers · {creator} creators",
+      "failedJobs": "Failed jobs",
+      "jobSplit": "{cron} cron · {video} video processing",
+      "recentActivity": "Recent admin activity",
+      "viewAll": "Full log",
+      "noActivity": "No admin actions yet."
+    },
+    "moderation": {
+      "title": "Moderation",
+      "subtitle": "User reports, new clips awaiting approval and automatically flagged ones.",
+      "tabsLabel": "Moderation queues",
+      "tab": {
+        "reports": "Reports",
+        "pending": "Pending",
+        "flagged": "Flagged"
+      },
+      "statusFilter": "Report status",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approveTitle": "Approve this clip?",
+      "approveBody": "“{title}” becomes public in the feed (if it was awaiting approval) and open flags are closed.",
+      "rejectTitle": "Reject this clip?",
+      "rejectBody": "“{title}” is hidden from the feed and the creator receives the reason.",
+      "noteOptional": "Note (optional)",
+      "reasonRequired": "Reason (shown to the creator)",
+      "reasonPlaceholder": "E.g. explicit content, copyright…",
+      "approvedToast": "Clip approved",
+      "rejectedToast": "Clip rejected",
+      "errNotFound": "The clip no longer exists.",
+      "errAlreadyDecided": "Another admin has already decided on this clip.",
+      "errReasonRequired": "Enter the rejection reason.",
+      "errForbidden": "You don't have the moderation permission.",
+      "emptyPending": "No clips are awaiting approval.",
+      "emptyFlagged": "No flagged clips.",
+      "untitled": "(untitled)",
+      "preview": "Preview",
+      "status": {
+        "pending_review": "Pending review",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      }
+    },
+    "users": {
+      "statusFilter": "Status filter",
+      "accountRole": {
+        "shopper": "Shopper",
+        "creator": "Creator",
+        "seller": "Seller",
+        "admin": "Admin",
+        "moderator": "Moderator (legacy)"
+      },
+      "errCannotSuspendAdmin": "An admin can't be suspended. Remove the admin role first.",
+      "errReasonRequired": "Enter a reason.",
+      "errLastOwner": "At least one owner must remain.",
+      "errOwnRole": "You can't change your own role.",
+      "suspendTitle": "Suspend @{username}?",
+      "reasonLabel": "Reason (shown to the user)",
+      "durationLabel": "Duration",
+      "suspendedToast": "User suspended",
+      "unsuspendedToast": "Suspension lifted",
+      "roleTitle": "Role of @{username}",
+      "save": "Save",
+      "roleToast": "Role updated",
+      "adminRoleLabel": "Admin role",
+      "adminRoleHint": "Owner: everything · Operations: orders, partners, content · Finance: money · Moderator: moderation and users · Support: users and orders.",
+      "adminRoleTitle": "Admin role of @{username}"
+    },
+    "audit": {
+      "actorPlaceholder": "Actor (email or username)",
+      "targetPlaceholder": "Target ID",
+      "filter": "Filter",
+      "kind": {
+        "admin_user": "Admin",
+        "break_glass": "Emergency access",
+        "machine": "Script / cron",
+        "erp": "Multi-ERP",
+        "admin_secret": "Shared password (legacy)",
+        "anonymous": "Unauthenticated"
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth/getAuthUser";
+import { requireAdmin } from "@/lib/admin/guard";
 import { isEnabled, frozenResponse } from "@/lib/feature-flags";
 import { withErrorHandling } from "@/lib/api-handler";
 import { ADMIN_NEWS_STATUSES, listArticlesForAdmin, type AdminNewsStatus } from "@/lib/news/admin-repository";
@@ -12,7 +12,7 @@ const PAGE = 50;
 /** GET /api/admin/news?status=draft|published|archived&offset= — review queue + archive. */
 export const GET = withErrorHandling(async function GET(req: Request) {
   if (!isEnabled("news")) return frozenResponse("news");
-  const auth = await requireAuth(req, ["admin"]);
+  const auth = await requireAdmin(req, "content");
   if (auth instanceof NextResponse) return auth;
 
   const url = new URL(req.url);

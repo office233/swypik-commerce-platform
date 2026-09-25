@@ -2512,16 +2512,18 @@
     "errRefundFailed": "Refund în sold a eșuat — verifică manual."
   },
   "adminShell": {
-    "comingSoon": "În curând",
-    "closeMenu": "Închide meniul",
-    "close": "Închide",
     "nav": {
       "section": {
         "overview": "Prezentare generală",
-        "commerce": "Comerț",
         "users": "Utilizatori",
-        "content": "Conținut",
-        "finance": "Finanțe"
+        "finance": "Finanțe",
+        "moderation": "Moderare",
+        "shopping": "Cumpărături",
+        "food": "Mâncare",
+        "mobility": "Mobilitate și livrări",
+        "stays": "Cazări",
+        "entertainment": "Divertisment și creatori",
+        "system": "Sistem"
       },
       "item": {
         "dashboard": "Dashboard",
@@ -2554,13 +2556,13 @@
         "merchantClaims": "Revendicări restaurante",
         "missions": "Misiuni creatori",
         "creatorPayouts": "Retrageri creatori",
-        "news": "Știri"
+        "news": "Știri",
+        "go": "Swypik Go (curse)"
       }
     },
     "storefront": "Vezi site-ul",
     "logOut": "Deconectare",
     "openMenu": "Deschide meniul admin",
-    "soon": "Curând",
     "opsAlerts": {
       "title": "Alerte operaționale",
       "applications": "Aplicații",
@@ -2571,6 +2573,16 @@
       "fraudRisk": "Risc fraudă",
       "urgentBadge": "{count} <24h",
       "allClear": "Niciun alert operațional. Toate cozile sunt curate."
+    },
+    "title": "Swypik Admin",
+    "navLabel": "Meniul consolei de admin",
+    "breakGlass": "Acces de urgență",
+    "role": {
+      "owner": "Proprietar",
+      "ops": "Operațiuni",
+      "finance": "Financiar",
+      "moderator": "Moderator",
+      "support": "Suport"
     }
   },
   "adminApplications": {
@@ -2713,7 +2725,6 @@
     "actionsTitle": "Acțiuni",
     "internalReason": "Motiv intern (opțional)",
     "journalPlaceholder": "Notă pentru jurnal...",
-    "pageTitle": "Moderare conținut",
     "statusTriaged": "În analiză",
     "noteLabel": "Notă:",
     "statusOpen": "Deschise",
@@ -2760,14 +2771,11 @@
     "hideVideo": "Ascunde video",
     "banCreator": "Banează creator 7 zile",
     "deletePermanently": "Elimină permanent",
-    "loading": "...",
     "errorForbidden": "Nu ai permisiunea necesară.",
     "errorInvalidId": "Identificator invalid.",
     "errorCreatorNotFound": "Creatorul nu a fost găsit.",
     "errorReportInvalidNoVideo": "Raport invalid sau fără video asociat.",
-    "errorReportNotFound": "Raportul nu a fost găsit.",
-    "errorGeneric": "Eroare {status}",
-    "errorNetwork": "Eroare de rețea"
+    "errorReportNotFound": "Raportul nu a fost găsit."
   },
   "adminPayouts": {
     "pendingLabel": "În așteptare",
@@ -2917,7 +2925,6 @@
   },
   "adminUsers": {
     "searchPlaceholder": "Caută după username, email sau nume...",
-    "thActions": "Acțiuni",
     "loadError": "Eroare la încărcarea utilizatorilor.",
     "tabAll": "Toți",
     "tabActive": "Activi",
@@ -2927,10 +2934,8 @@
     "searchBtn": "Caută",
     "summaryLine": "{total} utilizatori · pagina {page} din {totalPages}",
     "thUser": "Utilizator",
-    "thEmail": "Email",
     "thRole": "Rol",
     "thStatus": "Status",
-    "thFollowers": "Urmăritori",
     "thVideos": "Video-uri",
     "thSessions": "Sesiuni",
     "thRegistered": "Înregistrat",
@@ -2940,9 +2945,6 @@
     "noUsersFound": "Niciun utilizator găsit.",
     "previous": "Anterior",
     "next": "Următor",
-    "suspend1Day": "1 zi",
-    "suspend7Days": "7 zile",
-    "suspend30Days": "30 zile",
     "suspendPermanent": "Permanent",
     "errForbidden": "Nu ai permisiunea necesară.",
     "errInvalidId": "Identificator invalid.",
@@ -2951,20 +2953,11 @@
     "errCannotDemoteSelf": "Nu îți poți retrograda propriul cont. Cere altui admin să facă asta.",
     "errLastAdminLockout": "Nu poți retrograda ultimul admin rămas — ar bloca accesul la panou.",
     "errRoleChangeFailed": "Rolul nu a putut fi schimbat. Nicio modificare nu a fost aplicată.",
-    "errorWithStatus": "Eroare {status}",
-    "networkError": "Eroare de rețea",
-    "suspendReasonPrompt": "Motiv suspendare @{username} ({duration}):",
-    "permanent": "permanent",
     "daysCount": "{count} zile",
     "confirmUnsuspend": "Ridici suspendarea pentru @{username}?",
-    "confirmPromote": "Promovezi @{username} la rol \"admin\"?",
-    "confirmDemote": "Retrogradezi @{username} la rol \"user\"?",
-    "actions": "Acțiuni",
     "suspendSectionTitle": "Suspendă",
     "liftSuspension": "Ridică suspendarea",
-    "roleSectionTitle": "Rol",
-    "promoteToAdmin": "Promovează la admin",
-    "demoteToUser": "Retrogradează la user"
+    "roleSectionTitle": "Rol"
   },
   "adminVideos": {
     "thDuration": "Durată",
@@ -4319,66 +4312,20 @@
     }
   },
   "adminLogin": {
-    "passwordRequired": "Parola de admin este obligatorie.",
-    "incorrectPassword": "Parolă de admin incorectă.",
-    "tooManyAttempts": "Prea multe încercări de autentificare. Așteaptă puțin.",
-    "misconfiguredTitle": "ADMIN_SECRET nu este configurat.",
-    "loginFailed": "Autentificare eșuată.",
     "authFailed": "Autentificare eșuată.",
     "unreachable": "Nu s-a putut contacta serviciul de autentificare admin.",
-    "misconfiguredBody": "ADMIN_SECRET lipsește. Configurează-l înainte de a folosi panoul de admin.",
-    "signInBody": "Autentifică-te cu parola de admin pentru a gestiona comenzi, produse din marketplace și vânzători.",
-    "passwordLabel": "Parolă admin",
-    "passwordPlaceholder": "Introdu parola de admin",
+    "passwordLabel": "Secret de urgență",
     "signingIn": "Se autentifică...",
     "enterAdmin": "Intră în admin",
-    "misconfiguredHint": "Setează `ADMIN_SECRET` în mediul de rulare și reîncarcă pagina."
-  },
-  "adminDashboard": {
-    "errorLoading": "Eroare la încărcarea statisticilor",
-    "dashboardLiveData": "Dashboard • Date live",
-    "stripeDashboard": "Dashboard Stripe",
-    "serverHealth": "Stare server",
-    "storefront": "Vitrină",
-    "kpiTotalOrders": "Total comenzi",
-    "kpiRevenue": "Venituri",
-    "kpiAverageOrder": "Comandă medie",
-    "kpiUniqueCustomers": "Clienți unici",
-    "periodToday": "Astăzi",
-    "periodLast7Days": "Ultimele 7 zile",
-    "periodLast30Days": "Ultimele 30 zile",
-    "orders": "comenzi",
-    "revenue": "venituri",
-    "revenueLast14Days": "Venituri • Ultimele 14 zile",
-    "revenueBarTitle": "{label}: {revenue} lei ({orders} comenzi)",
-    "noOrdersLast14Days": "Nicio comandă în ultimele 14 zile.",
-    "orderStatus": "Status comenzi",
-    "noOrders": "Nicio comandă",
-    "fulfillment": "Livrare",
-    "notAvailable": "N/A",
-    "customerLocations": "Locații clienți",
-    "noCustomerLocations": "Încă nu există locații de clienți",
-    "catalogSnapshot": "Instantaneu catalog",
-    "totalProducts": "Total produse",
-    "withImages": "Cu imagini",
-    "withVideo": "Cu video",
-    "averagePrice": "Preț mediu",
-    "videoManagerTitle": "Manager video",
-    "videoManagerBody": "Revizuiește, aprobă și gestionează materialele video ale creatorilor",
-    "recentOrders": "Comenzi recente",
-    "thOrder": "Comandă",
-    "thCustomer": "Client",
-    "thItems": "Articole",
-    "thTotal": "Total",
-    "thStatus": "Status",
-    "thFulfillment": "Livrare",
-    "thLocation": "Locație",
-    "thDate": "Data",
-    "itemsCount": "{count} articole",
-    "statusPending": "în așteptare",
-    "noOrdersYet": "Nicio comandă încă. Prima comandă va apărea aici.",
-    "footer": "Swypik Admin • Powered by PostgreSQL + Stripe + Hetzner",
-    "currencyLei": "lei"
+    "title": "Consola de admin",
+    "accountSignInBody": "Intră cu contul tău Swypik de administrator. Primești un cod pe email; sesiunea de admin expiră după câteva ore.",
+    "accountSignInCta": "Intră cu contul Swypik",
+    "breakGlassTitle": "Acces de urgență",
+    "breakGlassBody": "Doar când login-ul normal nu funcționează. Cere secretul de urgență și emailul unui cont de admin; fiecare folosire e înregistrată.",
+    "emailLabel": "Emailul contului de admin",
+    "errInvalidCredentials": "Secret sau email incorect.",
+    "errTooManyAttempts": "Prea multe încercări. Așteaptă câteva minute.",
+    "errBreakGlassDisabled": "Accesul de urgență este dezactivat."
   },
   "adminAudit": {
     "pageTitle": "Jurnal audit",
@@ -4390,8 +4337,6 @@
     "thActor": "Actor",
     "thIp": "IP",
     "thDetails": "Detalii",
-    "actorSharedSecret": "secret partajat",
-    "actorUnknown": "necunoscut",
     "empty": "Niciun eveniment de audit încă.",
     "loadError": "Nu am putut încărca jurnalul de audit.",
     "pageOf": "Pagina {page} din {totalPages} · {total} evenimente",
@@ -5921,6 +5866,22 @@
     "creatorPayoutRejected": {
       "title": "Retragere respinsă",
       "body": "Suma de {amount, number, ::currency/RON} a revenit în portofelul tău."
+    },
+    "videoHidden": {
+      "title": "Clipul tău a fost ascuns",
+      "body": "După verificare, clipul nu respectă regulile comunității. Scrie-ne dacă crezi că e o greșeală."
+    },
+    "videoRemoved": {
+      "title": "Clipul tău a fost eliminat",
+      "body": "Clipul încalcă regulile comunității și a fost eliminat. Scrie-ne dacă crezi că e o greșeală."
+    },
+    "videoRejected": {
+      "title": "Clipul tău nu a fost aprobat",
+      "body": "Vezi motivul în panoul de creator și poți încărca o variantă corectată."
+    },
+    "accountSuspended": {
+      "title": "Contul tău a fost suspendat",
+      "body": "Pentru încălcarea regulilor comunității, contul e suspendat {days} zile. Scrie-ne dacă crezi că e o greșeală."
     }
   },
   "creatorApplicationEmail": {
@@ -6797,6 +6758,111 @@
       "published": "Publică",
       "archived": "Arhivează",
       "draft": "Înapoi la ciornă"
+    }
+  },
+  "adminConsole": {
+    "common": {
+      "forbiddenTitle": "Nu ai acces la această secțiune",
+      "forbiddenBody": "Rolul tău de admin nu include această permisiune. Cere-i unui proprietar să-ți schimbe rolul.",
+      "cancel": "Anulează",
+      "errorStatus": "Eroare {status}",
+      "errorNetwork": "Eroare de rețea. Încearcă din nou."
+    },
+    "dashboard": {
+      "title": "Prezentare generală",
+      "subtitle": "Indicatorii platformei și ce așteaptă o decizie.",
+      "rangeLabel": "Interval",
+      "range": {
+        "24h": "Ultimele 24 de ore",
+        "7d": "Ultimele 7 zile",
+        "30d": "Ultimele 30 de zile"
+      },
+      "orders": "Comenzi plătite",
+      "gmv": "Valoare brută (GMV)",
+      "newUsers": "Utilizatori noi",
+      "videosPending": "Clipuri de aprobat",
+      "videosFlagged": "Clipuri semnalate",
+      "openReports": "Rapoarte deschise",
+      "payoutRequests": "Cereri de retragere",
+      "payoutSplit": "{courier} curieri · {creator} creatori",
+      "failedJobs": "Joburi eșuate",
+      "jobSplit": "{cron} cron · {video} procesare video",
+      "recentActivity": "Activitate recentă a adminilor",
+      "viewAll": "Tot jurnalul",
+      "noActivity": "Nicio acțiune de admin încă."
+    },
+    "moderation": {
+      "title": "Moderare",
+      "subtitle": "Rapoartele utilizatorilor, clipurile noi care așteaptă aprobarea și cele semnalate automat.",
+      "tabsLabel": "Cozi de moderare",
+      "tab": {
+        "reports": "Rapoarte",
+        "pending": "În așteptare",
+        "flagged": "Semnalate"
+      },
+      "statusFilter": "Starea raportului",
+      "approve": "Aprobă",
+      "reject": "Respinge",
+      "approveTitle": "Aprobi clipul?",
+      "approveBody": "„{title}” devine public în feed (dacă aștepta aprobarea), iar semnalările deschise se închid.",
+      "rejectTitle": "Respingi clipul?",
+      "rejectBody": "„{title}” e ascuns din feed, iar creatorul primește motivul.",
+      "noteOptional": "Notă (opțional)",
+      "reasonRequired": "Motiv (îl vede creatorul)",
+      "reasonPlaceholder": "Ex.: conținut explicit, drepturi de autor…",
+      "approvedToast": "Clip aprobat",
+      "rejectedToast": "Clip respins",
+      "errNotFound": "Clipul nu mai există.",
+      "errAlreadyDecided": "Clipul a fost deja decis de alt admin.",
+      "errReasonRequired": "Scrie motivul respingerii.",
+      "errForbidden": "Nu ai permisiunea de moderare.",
+      "emptyPending": "Niciun clip nu așteaptă aprobarea.",
+      "emptyFlagged": "Niciun clip semnalat.",
+      "untitled": "(fără titlu)",
+      "preview": "Previzualizare",
+      "status": {
+        "pending_review": "În așteptare",
+        "approved": "Aprobat",
+        "rejected": "Respins"
+      }
+    },
+    "users": {
+      "statusFilter": "Filtru de stare",
+      "accountRole": {
+        "shopper": "Cumpărător",
+        "creator": "Creator",
+        "seller": "Vânzător",
+        "admin": "Admin",
+        "moderator": "Moderator (vechi)"
+      },
+      "errCannotSuspendAdmin": "Un admin nu poate fi suspendat. Retrage-i întâi rolul de admin.",
+      "errReasonRequired": "Scrie motivul.",
+      "errLastOwner": "Trebuie să rămână cel puțin un proprietar.",
+      "errOwnRole": "Nu-ți poți schimba propriul rol.",
+      "suspendTitle": "Suspenzi pe @{username}?",
+      "reasonLabel": "Motiv (îl vede utilizatorul)",
+      "durationLabel": "Durată",
+      "suspendedToast": "Utilizator suspendat",
+      "unsuspendedToast": "Suspendare ridicată",
+      "roleTitle": "Rolul lui @{username}",
+      "save": "Salvează",
+      "roleToast": "Rol actualizat",
+      "adminRoleLabel": "Rol de admin",
+      "adminRoleHint": "Proprietar: tot · Operațiuni: comenzi, parteneri, conținut · Financiar: bani · Moderator: moderare și utilizatori · Suport: utilizatori și comenzi.",
+      "adminRoleTitle": "Rolul de admin al lui @{username}"
+    },
+    "audit": {
+      "actorPlaceholder": "Actor (email sau username)",
+      "targetPlaceholder": "ID țintă",
+      "filter": "Filtrează",
+      "kind": {
+        "admin_user": "Admin",
+        "break_glass": "Acces de urgență",
+        "machine": "Script / cron",
+        "erp": "Multi-ERP",
+        "admin_secret": "Parolă comună (vechi)",
+        "anonymous": "Neautentificat"
+      }
     }
   }
 }

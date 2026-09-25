@@ -2512,16 +2512,18 @@
     "errRefundFailed": "Rückerstattung auf das Guthaben fehlgeschlagen — bitte manuell prüfen."
   },
   "adminShell": {
-    "comingSoon": "Demnächst",
-    "closeMenu": "Menü schließen",
-    "close": "Schließen",
     "nav": {
       "section": {
         "overview": "Übersicht",
-        "commerce": "Handel",
         "users": "Nutzer",
-        "content": "Inhalte",
-        "finance": "Finanzen"
+        "finance": "Finanzen",
+        "moderation": "Moderation",
+        "shopping": "Shopping",
+        "food": "Essen",
+        "mobility": "Mobilität & Lieferung",
+        "stays": "Unterkünfte",
+        "entertainment": "Unterhaltung & Creator",
+        "system": "System"
       },
       "item": {
         "dashboard": "Dashboard",
@@ -2554,13 +2556,13 @@
         "merchantClaims": "Restaurant-Ansprüche",
         "missions": "Creator-Missionen",
         "creatorPayouts": "Creator-Auszahlungen",
-        "news": "Nachrichten"
+        "news": "Nachrichten",
+        "go": "Swypik Go (Fahrten)"
       }
     },
     "storefront": "Shop ansehen",
     "logOut": "Abmelden",
     "openMenu": "Admin-Menü öffnen",
-    "soon": "Bald",
     "opsAlerts": {
       "title": "Betriebswarnungen",
       "applications": "Anträge",
@@ -2571,6 +2573,16 @@
       "fraudRisk": "Betrugsrisiko",
       "urgentBadge": "{count} <24h",
       "allClear": "Keine Betriebswarnungen. Alle Warteschlangen sind leer."
+    },
+    "title": "Swypik Admin",
+    "navLabel": "Menü der Admin-Konsole",
+    "breakGlass": "Notfallzugang",
+    "role": {
+      "owner": "Inhaber",
+      "ops": "Betrieb",
+      "finance": "Finanzen",
+      "moderator": "Moderator",
+      "support": "Support"
     }
   },
   "adminApplications": {
@@ -2713,7 +2725,6 @@
     "actionsTitle": "Aktionen",
     "internalReason": "Interner Grund (optional)",
     "journalPlaceholder": "Notiz für das Protokoll...",
-    "pageTitle": "Inhaltsmoderation",
     "statusTriaged": "In Prüfung",
     "noteLabel": "Notiz:",
     "statusOpen": "Offen",
@@ -2760,14 +2771,11 @@
     "hideVideo": "Video ausblenden",
     "banCreator": "Ersteller 7 Tage sperren",
     "deletePermanently": "Dauerhaft löschen",
-    "loading": "...",
     "errorForbidden": "Du hast nicht die erforderliche Berechtigung.",
     "errorInvalidId": "Ungültige Kennung.",
     "errorCreatorNotFound": "Ersteller nicht gefunden.",
     "errorReportInvalidNoVideo": "Ungültige Meldung oder kein zugehöriges Video.",
-    "errorReportNotFound": "Meldung nicht gefunden.",
-    "errorGeneric": "Fehler {status}",
-    "errorNetwork": "Netzwerkfehler"
+    "errorReportNotFound": "Meldung nicht gefunden."
   },
   "adminPayouts": {
     "pendingLabel": "Ausstehend",
@@ -2917,7 +2925,6 @@
   },
   "adminUsers": {
     "searchPlaceholder": "Nach Benutzername, E-Mail oder Name suchen...",
-    "thActions": "Aktionen",
     "loadError": "Benutzer konnten nicht geladen werden.",
     "tabAll": "Alle",
     "tabActive": "Aktiv",
@@ -2927,10 +2934,8 @@
     "searchBtn": "Suchen",
     "summaryLine": "{total} Benutzer · Seite {page} von {totalPages}",
     "thUser": "Benutzer",
-    "thEmail": "E-Mail",
     "thRole": "Rolle",
     "thStatus": "Status",
-    "thFollowers": "Follower",
     "thVideos": "Videos",
     "thSessions": "Sitzungen",
     "thRegistered": "Registriert",
@@ -2940,9 +2945,6 @@
     "noUsersFound": "Keine Benutzer gefunden.",
     "previous": "Zurück",
     "next": "Weiter",
-    "suspend1Day": "1 Tag",
-    "suspend7Days": "7 Tage",
-    "suspend30Days": "30 Tage",
     "suspendPermanent": "Dauerhaft",
     "errForbidden": "Du hast nicht die erforderliche Berechtigung.",
     "errInvalidId": "Ungültige Kennung.",
@@ -2951,20 +2953,11 @@
     "errCannotDemoteSelf": "Du kannst dein eigenes Konto nicht herabstufen. Bitte einen anderen Admin darum.",
     "errLastAdminLockout": "Du kannst den letzten verbleibenden Admin nicht herabstufen — das würde alle vom Panel aussperren.",
     "errRoleChangeFailed": "Die Rolle konnte nicht geändert werden. Es wurden keine Änderungen übernommen.",
-    "errorWithStatus": "Fehler {status}",
-    "networkError": "Netzwerkfehler",
-    "suspendReasonPrompt": "Grund für die Sperrung von @{username} ({duration}):",
-    "permanent": "dauerhaft",
     "daysCount": "{count} Tage",
     "confirmUnsuspend": "Sperrung für @{username} aufheben?",
-    "confirmPromote": "@{username} zur Rolle \"admin\" befördern?",
-    "confirmDemote": "@{username} zur Rolle \"user\" herabstufen?",
-    "actions": "Aktionen",
     "suspendSectionTitle": "Sperren",
     "liftSuspension": "Sperrung aufheben",
-    "roleSectionTitle": "Rolle",
-    "promoteToAdmin": "Zu Admin befördern",
-    "demoteToUser": "Zu User herabstufen"
+    "roleSectionTitle": "Rolle"
   },
   "adminVideos": {
     "thDuration": "Dauer",
@@ -4319,66 +4312,20 @@
     }
   },
   "adminLogin": {
-    "passwordRequired": "Admin-Passwort ist erforderlich.",
-    "incorrectPassword": "Falsches Admin-Passwort.",
-    "tooManyAttempts": "Zu viele Anmeldeversuche. Bitte warten.",
-    "misconfiguredTitle": "ADMIN_SECRET ist nicht konfiguriert.",
-    "loginFailed": "Anmeldung fehlgeschlagen.",
     "authFailed": "Authentifizierung fehlgeschlagen.",
     "unreachable": "Der Admin-Login-Dienst konnte nicht erreicht werden.",
-    "misconfiguredBody": "ADMIN_SECRET fehlt. Konfiguriere es, bevor du den Admin-Bereich nutzt.",
-    "signInBody": "Melde dich mit dem Admin-Passwort an, um Bestellungen, Marketplace-Produkte und Verkäufer zu verwalten.",
-    "passwordLabel": "Admin-Passwort",
-    "passwordPlaceholder": "Admin-Passwort eingeben",
+    "passwordLabel": "Notfallgeheimnis",
     "signingIn": "Anmeldung läuft...",
     "enterAdmin": "Admin betreten",
-    "misconfiguredHint": "Setze `ADMIN_SECRET` in der Umgebung und lade die Seite neu."
-  },
-  "adminDashboard": {
-    "errorLoading": "Fehler beim Laden der Statistiken",
-    "dashboardLiveData": "Dashboard • Live-Daten",
-    "stripeDashboard": "Stripe-Dashboard",
-    "serverHealth": "Serverstatus",
-    "storefront": "Shop",
-    "kpiTotalOrders": "Bestellungen gesamt",
-    "kpiRevenue": "Umsatz",
-    "kpiAverageOrder": "Durchschnittliche Bestellung",
-    "kpiUniqueCustomers": "Eindeutige Kunden",
-    "periodToday": "Heute",
-    "periodLast7Days": "Letzte 7 Tage",
-    "periodLast30Days": "Letzte 30 Tage",
-    "orders": "Bestellungen",
-    "revenue": "Umsatz",
-    "revenueLast14Days": "Umsatz • Letzte 14 Tage",
-    "revenueBarTitle": "{label}: {revenue} lei ({orders} Bestellungen)",
-    "noOrdersLast14Days": "Keine Bestellungen in den letzten 14 Tagen.",
-    "orderStatus": "Bestellstatus",
-    "noOrders": "Keine Bestellungen",
-    "fulfillment": "Auftragsabwicklung",
-    "notAvailable": "k. A.",
-    "customerLocations": "Kundenstandorte",
-    "noCustomerLocations": "Noch keine Kundenstandorte",
-    "catalogSnapshot": "Katalog-Überblick",
-    "totalProducts": "Produkte gesamt",
-    "withImages": "Mit Bildern",
-    "withVideo": "Mit Video",
-    "averagePrice": "Durchschnittspreis",
-    "videoManagerTitle": "Video-Manager",
-    "videoManagerBody": "Video-Inhalte der Creator prüfen, freigeben und verwalten",
-    "recentOrders": "Aktuelle Bestellungen",
-    "thOrder": "Bestellung",
-    "thCustomer": "Kunde",
-    "thItems": "Artikel",
-    "thTotal": "Gesamt",
-    "thStatus": "Status",
-    "thFulfillment": "Abwicklung",
-    "thLocation": "Standort",
-    "thDate": "Datum",
-    "itemsCount": "{count} Artikel",
-    "statusPending": "ausstehend",
-    "noOrdersYet": "Noch keine Bestellungen. Die erste Bestellung erscheint hier.",
-    "footer": "Swypik Admin • Basierend auf PostgreSQL + Stripe + Hetzner",
-    "currencyLei": "lei"
+    "title": "Admin-Konsole",
+    "accountSignInBody": "Melde dich mit deinem Swypik-Adminkonto an. Du erhältst einen Code per E-Mail; die Admin-Sitzung läuft nach einigen Stunden ab.",
+    "accountSignInCta": "Mit Swypik-Konto anmelden",
+    "breakGlassTitle": "Notfallzugang",
+    "breakGlassBody": "Nur wenn die normale Anmeldung nicht funktioniert. Erfordert das Notfallgeheimnis und die E-Mail eines Adminkontos; jede Nutzung wird protokolliert.",
+    "emailLabel": "E-Mail des Adminkontos",
+    "errInvalidCredentials": "Geheimnis oder E-Mail falsch.",
+    "errTooManyAttempts": "Zu viele Versuche. Warte ein paar Minuten.",
+    "errBreakGlassDisabled": "Der Notfallzugang ist deaktiviert."
   },
   "adminAudit": {
     "pageTitle": "Prüfprotokoll",
@@ -4390,8 +4337,6 @@
     "thActor": "Akteur",
     "thIp": "IP",
     "thDetails": "Details",
-    "actorSharedSecret": "gemeinsames Secret",
-    "actorUnknown": "unbekannt",
     "empty": "Noch keine Audit-Ereignisse.",
     "loadError": "Prüfprotokoll konnte nicht geladen werden.",
     "pageOf": "Seite {page} von {totalPages} · {total} Ereignisse",
@@ -5921,6 +5866,22 @@
     "creatorPayoutRejected": {
       "title": "Auszahlung abgelehnt",
       "body": "{amount, number, ::currency/RON} wurden deiner Wallet wieder gutgeschrieben."
+    },
+    "videoHidden": {
+      "title": "Dein Clip wurde ausgeblendet",
+      "body": "Nach Prüfung verstößt der Clip gegen die Community-Richtlinien. Melde dich, wenn du das für einen Fehler hältst."
+    },
+    "videoRemoved": {
+      "title": "Dein Clip wurde entfernt",
+      "body": "Der Clip verstößt gegen die Community-Richtlinien und wurde entfernt. Melde dich, wenn du das für einen Fehler hältst."
+    },
+    "videoRejected": {
+      "title": "Dein Clip wurde nicht freigegeben",
+      "body": "Den Grund findest du im Creator-Dashboard; du kannst eine korrigierte Version hochladen."
+    },
+    "accountSuspended": {
+      "title": "Dein Konto wurde gesperrt",
+      "body": "Wegen Verstößen gegen die Community-Richtlinien ist das Konto {days} Tage gesperrt. Melde dich, wenn du das für einen Fehler hältst."
     }
   },
   "creatorApplicationEmail": {
@@ -6797,6 +6758,111 @@
       "published": "Veröffentlichen",
       "archived": "Archivieren",
       "draft": "Zurück zu Entwurf"
+    }
+  },
+  "adminConsole": {
+    "common": {
+      "forbiddenTitle": "Du hast keinen Zugriff auf diesen Bereich",
+      "forbiddenBody": "Deine Admin-Rolle enthält diese Berechtigung nicht. Bitte einen Inhaber, deine Rolle zu ändern.",
+      "cancel": "Abbrechen",
+      "errorStatus": "Fehler {status}",
+      "errorNetwork": "Netzwerkfehler. Versuche es erneut."
+    },
+    "dashboard": {
+      "title": "Übersicht",
+      "subtitle": "Plattform-Kennzahlen und was auf eine Entscheidung wartet.",
+      "rangeLabel": "Zeitraum",
+      "range": {
+        "24h": "Letzte 24 Stunden",
+        "7d": "Letzte 7 Tage",
+        "30d": "Letzte 30 Tage"
+      },
+      "orders": "Bezahlte Bestellungen",
+      "gmv": "Bruttowert (GMV)",
+      "newUsers": "Neue Nutzer",
+      "videosPending": "Clips zur Freigabe",
+      "videosFlagged": "Markierte Clips",
+      "openReports": "Offene Meldungen",
+      "payoutRequests": "Auszahlungsanfragen",
+      "payoutSplit": "{courier} Kuriere · {creator} Creator",
+      "failedJobs": "Fehlgeschlagene Jobs",
+      "jobSplit": "{cron} Cron · {video} Videoverarbeitung",
+      "recentActivity": "Letzte Admin-Aktivität",
+      "viewAll": "Gesamtes Protokoll",
+      "noActivity": "Noch keine Admin-Aktionen."
+    },
+    "moderation": {
+      "title": "Moderation",
+      "subtitle": "Meldungen von Nutzern, neue Clips zur Freigabe und automatisch markierte Clips.",
+      "tabsLabel": "Moderationswarteschlangen",
+      "tab": {
+        "reports": "Meldungen",
+        "pending": "Ausstehend",
+        "flagged": "Markiert"
+      },
+      "statusFilter": "Status der Meldung",
+      "approve": "Freigeben",
+      "reject": "Ablehnen",
+      "approveTitle": "Diesen Clip freigeben?",
+      "approveBody": "„{title}“ wird im Feed öffentlich (falls es auf Freigabe wartete), offene Markierungen werden geschlossen.",
+      "rejectTitle": "Diesen Clip ablehnen?",
+      "rejectBody": "„{title}“ wird aus dem Feed ausgeblendet und der Creator erhält den Grund.",
+      "noteOptional": "Notiz (optional)",
+      "reasonRequired": "Grund (für den Creator sichtbar)",
+      "reasonPlaceholder": "Z. B. expliziter Inhalt, Urheberrecht…",
+      "approvedToast": "Clip freigegeben",
+      "rejectedToast": "Clip abgelehnt",
+      "errNotFound": "Der Clip existiert nicht mehr.",
+      "errAlreadyDecided": "Ein anderer Admin hat bereits über diesen Clip entschieden.",
+      "errReasonRequired": "Gib den Ablehnungsgrund an.",
+      "errForbidden": "Du hast keine Moderationsberechtigung.",
+      "emptyPending": "Keine Clips warten auf Freigabe.",
+      "emptyFlagged": "Keine markierten Clips.",
+      "untitled": "(ohne Titel)",
+      "preview": "Vorschau",
+      "status": {
+        "pending_review": "Prüfung ausstehend",
+        "approved": "Freigegeben",
+        "rejected": "Abgelehnt"
+      }
+    },
+    "users": {
+      "statusFilter": "Statusfilter",
+      "accountRole": {
+        "shopper": "Käufer",
+        "creator": "Creator",
+        "seller": "Verkäufer",
+        "admin": "Admin",
+        "moderator": "Moderator (alt)"
+      },
+      "errCannotSuspendAdmin": "Ein Admin kann nicht gesperrt werden. Entferne zuerst die Admin-Rolle.",
+      "errReasonRequired": "Gib einen Grund an.",
+      "errLastOwner": "Mindestens ein Inhaber muss bleiben.",
+      "errOwnRole": "Du kannst deine eigene Rolle nicht ändern.",
+      "suspendTitle": "@{username} sperren?",
+      "reasonLabel": "Grund (für den Nutzer sichtbar)",
+      "durationLabel": "Dauer",
+      "suspendedToast": "Nutzer gesperrt",
+      "unsuspendedToast": "Sperre aufgehoben",
+      "roleTitle": "Rolle von @{username}",
+      "save": "Speichern",
+      "roleToast": "Rolle aktualisiert",
+      "adminRoleLabel": "Admin-Rolle",
+      "adminRoleHint": "Inhaber: alles · Betrieb: Bestellungen, Partner, Inhalte · Finanzen: Geld · Moderator: Moderation und Nutzer · Support: Nutzer und Bestellungen.",
+      "adminRoleTitle": "Admin-Rolle von @{username}"
+    },
+    "audit": {
+      "actorPlaceholder": "Akteur (E-Mail oder Benutzername)",
+      "targetPlaceholder": "Ziel-ID",
+      "filter": "Filtern",
+      "kind": {
+        "admin_user": "Admin",
+        "break_glass": "Notfallzugang",
+        "machine": "Skript / Cron",
+        "erp": "Multi-ERP",
+        "admin_secret": "Gemeinsames Passwort (alt)",
+        "anonymous": "Nicht angemeldet"
+      }
     }
   }
 }

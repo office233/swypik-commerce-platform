@@ -7,8 +7,8 @@ const articles = new Map<string, { status: string; sources: number }>();
 const ID = "11111111-1111-4111-8111-111111111111";
 
 vi.mock("@/lib/feature-flags", () => ({ isEnabled: () => true, frozenResponse: () => new Response(null, { status: 410 }) }));
-vi.mock("@/lib/auth/getAuthUser", () => ({
-  requireAuth: async () => (isAdmin ? { role: "admin", userId: "admin-1", isAdmin: true } : NextResponse.json({ error: "Forbidden" }, { status: 403 })),
+vi.mock("@/lib/admin/guard", () => ({
+  requireAdmin: async () => (isAdmin ? { userId: "admin-1", role: "owner", kind: "admin_user" } : NextResponse.json({ error: "forbidden" }, { status: 403 })),
 }));
 vi.mock("@/lib/security/admin-audit", () => ({ logAdminAction: async (e: unknown) => { audit.push(e); } }));
 vi.mock("@/lib/db", () => ({
