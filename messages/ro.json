@@ -2727,6 +2727,17 @@
         "title": "Coadă video",
         "desc": "Streamuri Redis (jobs + eșuate)"
       }
+    },
+    "vitals": {
+      "title": "Viteza reală (Web Vitals)",
+      "desc": "p75 măsurat în browserele vizitatorilor, ultimele 500 de eșantioane per rută. Verde = bun, galben = de îmbunătățit, roșu = slab.",
+      "error": "Nu am putut citi metricile (Redis indisponibil).",
+      "emptyTitle": "Încă nu sunt date",
+      "emptyDesc": "Metricile apar după primele vizite de după deploy.",
+      "route": "Rută",
+      "samples": "Eșantioane",
+      "p75": "{metric} p75",
+      "otherRoutes": "alte rute"
     }
   },
   "adminMarketplace": {
@@ -3695,7 +3706,10 @@
     "catalogInPreparationBody": "Piesele artiștilor Swypik apar aici după aprobare. Până atunci, ascultă radio și surse deschise.",
     "becomeArtist": "Publică-ți muzica",
     "confirmingPayment": "Confirmăm plata… piesa pornește imediat ce e aprobată.",
-    "paymentPendingSlow": "Plata e încă în procesare. Încearcă din nou peste un minut."
+    "paymentPendingSlow": "Plata e încă în procesare. Încearcă din nou peste un minut.",
+    "player": {
+      "streamUnavailable": "Fluxul nu e disponibil acum. Atinge play ca să reîncerci."
+    }
   },
   "gaming": {
     "meta": {

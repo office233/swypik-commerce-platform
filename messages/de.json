@@ -2727,6 +2727,17 @@
         "title": "Video-Warteschlange",
         "desc": "Redis-Streams (Jobs + fehlgeschlagen)"
       }
+    },
+    "vitals": {
+      "title": "Echte Geschwindigkeit (Web Vitals)",
+      "desc": "p75 in den Browsern der Besucher gemessen, letzte 500 Messwerte pro Route. Grün = gut, gelb = verbesserungswürdig, rot = schlecht.",
+      "error": "Die Metriken konnten nicht gelesen werden (Redis nicht verfügbar).",
+      "emptyTitle": "Noch keine Daten",
+      "emptyDesc": "Die Metriken erscheinen nach den ersten Besuchen nach einem Deployment.",
+      "route": "Route",
+      "samples": "Messwerte",
+      "p75": "{metric} p75",
+      "otherRoutes": "andere Routen"
     }
   },
   "adminMarketplace": {
@@ -3695,7 +3706,10 @@
     "catalogInPreparationBody": "Titel von Swypik-Künstlern erscheinen hier nach der Freigabe. Bis dahin: Radio und offene Quellen hören.",
     "becomeArtist": "Veröffentliche deine Musik",
     "confirmingPayment": "Zahlung wird bestätigt … der Titel startet, sobald sie freigegeben ist.",
-    "paymentPendingSlow": "Deine Zahlung wird noch verarbeitet. Versuch es in einer Minute erneut."
+    "paymentPendingSlow": "Deine Zahlung wird noch verarbeitet. Versuch es in einer Minute erneut.",
+    "player": {
+      "streamUnavailable": "Dieser Stream ist gerade nicht verfügbar. Tippe auf Wiedergabe, um es erneut zu versuchen."
+    }
   },
   "gaming": {
     "meta": {

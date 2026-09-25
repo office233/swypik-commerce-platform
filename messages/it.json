@@ -2727,6 +2727,17 @@
         "title": "Coda video",
         "desc": "Stream Redis (job + falliti)"
       }
+    },
+    "vitals": {
+      "title": "Velocità reale (Web Vitals)",
+      "desc": "p75 misurato nei browser dei visitatori, ultimi 500 campioni per percorso. Verde = buono, ambra = da migliorare, rosso = scarso.",
+      "error": "Impossibile leggere le metriche (Redis non disponibile).",
+      "emptyTitle": "Ancora nessun dato",
+      "emptyDesc": "Le metriche compaiono dopo le prime visite successive a un deploy.",
+      "route": "Percorso",
+      "samples": "Campioni",
+      "p75": "{metric} p75",
+      "otherRoutes": "altri percorsi"
     }
   },
   "adminMarketplace": {
@@ -3695,7 +3706,10 @@
     "catalogInPreparationBody": "I brani degli artisti Swypik appaiono qui dopo l'approvazione. Nel frattempo ascolta radio e fonti aperte.",
     "becomeArtist": "Pubblica la tua musica",
     "confirmingPayment": "Conferma del pagamento… il brano parte appena viene approvato.",
-    "paymentPendingSlow": "Il pagamento è ancora in elaborazione. Riprova tra un minuto."
+    "paymentPendingSlow": "Il pagamento è ancora in elaborazione. Riprova tra un minuto.",
+    "player": {
+      "streamUnavailable": "Questo stream non è disponibile al momento. Tocca play per riprovare."
+    }
   },
   "gaming": {
     "meta": {

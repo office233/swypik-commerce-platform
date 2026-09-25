@@ -2727,6 +2727,17 @@
         "title": "File d'attente vidéo",
         "desc": "Flux Redis (jobs + échecs)"
       }
+    },
+    "vitals": {
+      "title": "Vitesse réelle (Web Vitals)",
+      "desc": "p75 mesuré dans les navigateurs des visiteurs, 500 derniers échantillons par route. Vert = bon, orange = à améliorer, rouge = mauvais.",
+      "error": "Impossible de lire les métriques (Redis indisponible).",
+      "emptyTitle": "Pas encore de données",
+      "emptyDesc": "Les métriques apparaissent après les premières visites suivant un déploiement.",
+      "route": "Route",
+      "samples": "Échantillons",
+      "p75": "{metric} p75",
+      "otherRoutes": "autres routes"
     }
   },
   "adminMarketplace": {
@@ -3695,7 +3706,10 @@
     "catalogInPreparationBody": "Les titres des artistes Swypik apparaissent ici après validation. En attendant, écoute la radio et les sources ouvertes.",
     "becomeArtist": "Publie ta musique",
     "confirmingPayment": "Confirmation du paiement… le titre démarre dès qu'il est approuvé.",
-    "paymentPendingSlow": "Ton paiement est encore en cours. Réessaie dans une minute."
+    "paymentPendingSlow": "Ton paiement est encore en cours. Réessaie dans une minute.",
+    "player": {
+      "streamUnavailable": "Ce flux est indisponible pour le moment. Appuie sur lecture pour réessayer."
+    }
   },
   "gaming": {
     "meta": {

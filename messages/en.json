@@ -2727,6 +2727,17 @@
         "title": "Video queue",
         "desc": "Redis streams (jobs + failed)"
       }
+    },
+    "vitals": {
+      "title": "Real-user speed (Web Vitals)",
+      "desc": "p75 measured in visitors' browsers, last 500 samples per route. Green = good, amber = needs improvement, red = poor.",
+      "error": "Could not read the metrics (Redis unavailable).",
+      "emptyTitle": "No data yet",
+      "emptyDesc": "Metrics appear after the first visits following a deploy.",
+      "route": "Route",
+      "samples": "Samples",
+      "p75": "{metric} p75",
+      "otherRoutes": "other routes"
     }
   },
   "adminMarketplace": {
@@ -3695,7 +3706,10 @@
     "catalogInPreparationBody": "Tracks by Swypik artists appear here once approved. Meanwhile, listen to radio and open sources.",
     "becomeArtist": "Publish your music",
     "confirmingPayment": "Confirming your payment… the track starts as soon as it's approved.",
-    "paymentPendingSlow": "Your payment is still processing. Try again in a minute."
+    "paymentPendingSlow": "Your payment is still processing. Try again in a minute.",
+    "player": {
+      "streamUnavailable": "This stream is unavailable right now. Tap play to retry."
+    }
   },
   "gaming": {
     "meta": {

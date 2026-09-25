@@ -2727,6 +2727,17 @@
         "title": "Cola de video",
         "desc": "Streams de Redis (trabajos + fallidos)"
       }
+    },
+    "vitals": {
+      "title": "Velocidad real (Web Vitals)",
+      "desc": "p75 medido en los navegadores de los visitantes, últimas 500 muestras por ruta. Verde = bueno, ámbar = mejorable, rojo = deficiente.",
+      "error": "No se pudieron leer las métricas (Redis no disponible).",
+      "emptyTitle": "Aún no hay datos",
+      "emptyDesc": "Las métricas aparecen tras las primeras visitas después de un despliegue.",
+      "route": "Ruta",
+      "samples": "Muestras",
+      "p75": "{metric} p75",
+      "otherRoutes": "otras rutas"
     }
   },
   "adminMarketplace": {
@@ -3695,7 +3706,10 @@
     "catalogInPreparationBody": "Las canciones de los artistas de Swypik aparecen aquí tras su aprobación. Mientras tanto, escucha radio y fuentes abiertas.",
     "becomeArtist": "Publica tu música",
     "confirmingPayment": "Confirmando el pago… la canción empezará en cuanto se apruebe.",
-    "paymentPendingSlow": "Tu pago aún se está procesando. Inténtalo de nuevo en un minuto."
+    "paymentPendingSlow": "Tu pago aún se está procesando. Inténtalo de nuevo en un minuto.",
+    "player": {
+      "streamUnavailable": "Esta emisión no está disponible ahora. Toca reproducir para reintentar."
+    }
   },
   "gaming": {
     "meta": {
