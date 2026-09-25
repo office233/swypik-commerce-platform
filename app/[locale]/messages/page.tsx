@@ -1,30 +1,23 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { isEnabled } from "@/lib/feature-flags";
-import { getOptionalSocialUserId } from "@/lib/social/session";
-import MessengerClient from "./MessengerClient";
+import { redirect } from "@/lib/i18n/navigation";
+import { conversationPath, INBOX_PATH } from "@/lib/dm/links";
+import { isUuidParam } from "@/lib/validation/params";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { c?: string };
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ c?: string }>;
+};
 
 /**
- * Server wrapper: gates the whole messenger UI behind FEATURE_MESSENGER and
- * resolves the viewer before handing off to the client component. `?c=` lets
- * /messages/[id] and /messages/new deep-link into a specific conversation
- * without duplicating the chat UI.
+ * Lista de conversații trăiește în Inbox (tab-ul Mesaje). `/messages?c=<id>`
+ * (link-uri vechi) deschide direct conversația.
  */
-export default async function SwypikMessengerPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  if (!isEnabled("messenger")) notFound();
-
-  const userId = await getOptionalSocialUserId();
-  if (!userId) {
-    redirect("/auth/login?next=/messages");
-  }
-
-  const sp = await searchParams;
-  return <MessengerClient viewerId={userId} initialConversationId={sp?.c} />;
+export default async function MessagesIndexPage({ params, searchParams }: Props) {
+  if (!isEnabled("messenger") && !isEnabled("dm")) notFound();
+  const [{ locale }, sp] = await Promise.all([params, searchParams]);
+  const target = sp?.c && isUuidParam(sp.c) ? conversationPath(sp.c) : `${INBOX_PATH}?tab=messages`;
+  return redirect({ href: target, locale });
 }

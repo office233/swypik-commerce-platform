@@ -1,47 +1,47 @@
-import { redirect } from "next/navigation";
 import { getAccountUserId } from "@/lib/social/session";
 import { getOrCreateDmConversation } from "@/lib/dm/repository";
+import { parseDmEntry, resolveDmPeer } from "@/lib/dm/entry-points";
+import { conversationPath, dmEntryHref, INBOX_PATH } from "@/lib/dm/links";
 import { isEnabled } from "@/lib/feature-flags";
+import { redirect } from "@/lib/i18n/navigation";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type SearchParams = { user?: string };
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default async function NewMessagePage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  if (!isEnabled("dm") && !isEnabled("messenger")) {
-    redirect("/inbox");
-  }
+/**
+ * Punctul unic de intrare în chat: `/messages/new?user|seller|order|food_order=<id>`.
+ * Rezolvă interlocutorul pe server (cu verificare de acces), deschide DM-ul
+ * și redirecționează în `/messages/<id>`.
+ */
+export default async function NewMessagePage({ params, searchParams }: Props) {
+  const { locale } = await params;
+  if (!isEnabled("dm") && !isEnabled("messenger")) return redirect({ href: INBOX_PATH, locale });
 
-  const sp = await searchParams;
-  const peerId = (sp?.user || "").trim();
-  if (!peerId) {
-    redirect("/inbox");
-  }
+  const entry = parseDmEntry(await searchParams);
+  if (!entry) return redirect({ href: INBOX_PATH, locale });
 
   // Cont real obligatoriu (fără shell anonim creat la randare).
   const userId = await getAccountUserId();
   if (!userId) {
-    redirect(`/auth?next=${encodeURIComponent(`/messages/new?user=${peerId}`)}`);
+    return redirect({ href: `/auth?next=${encodeURIComponent(dmEntryHref(entry))}`, locale });
   }
 
-  if (peerId === userId) {
-    redirect("/inbox");
-  }
-
+  let target = INBOX_PATH;
   try {
-    const { conversationId } = await getOrCreateDmConversation(
-      userId,
-      peerId,
-    );
-    // Single messenger surface: [id] redirects into /messages with the
-    // conversation preselected instead of duplicating the chat UI.
-    redirect(isEnabled("messenger") ? `/messages?c=${conversationId}` : `/messages/${conversationId}`);
+    const peerId = await resolveDmPeer(entry, userId);
+    if (peerId) {
+      const { conversationId } = await getOrCreateDmConversation(userId, peerId);
+      target = conversationPath(conversationId);
+    }
   } catch (err) {
-    redirect("/inbox");
+    // Blocat / peer inexistent: înapoi în Inbox, fără pagină de eroare.
+    logger.info({ err, kind: entry.kind }, "[dm] entry point not resolved");
   }
+  return redirect({ href: target, locale });
 }

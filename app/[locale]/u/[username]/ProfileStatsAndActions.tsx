@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { MessageButton } from "@/components/messenger/MessageButton";
 
 type ProfileStatsAndActionsProps = {
   userId: string;
@@ -108,6 +109,7 @@ export default function ProfileStatsAndActions({
           >
             {pending ? "Se salveaza..." : following ? "Urmaresti" : "Urmareste"}
           </button>
+          <MessageButton entry={{ kind: "user", id: userId }} />
           {error && <p className="max-w-xs text-center text-xs font-bold text-red-300">{error}</p>}
         </div>
       )}

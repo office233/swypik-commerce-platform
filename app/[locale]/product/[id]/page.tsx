@@ -8,6 +8,7 @@ import { cache } from "react";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProductActions } from "@/components/shop/product/ProductActions";
+import { MessageButton } from "@/components/messenger/MessageButton";
 import { ProductView } from "@/components/shop/product/ProductView";
 import { ReviewsSection } from "@/components/shop/reviews/ReviewsSection";
 import { getAuthSession } from "@/lib/auth/session";
@@ -100,7 +101,14 @@ export default async function ProductPage({ params, searchParams }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd([buildProductJsonLd(detail, summary, locale), breadcrumb]) }}
       />
-      <PageHeader back title={detail.product.title} actions={<ProductActions productId={productId} title={detail.product.title} />} />
+      <PageHeader back title={detail.product.title} actions={
+          <>
+            {detail.product.seller ? (
+              <MessageButton appearance="icon" entry={{ kind: "seller", id: detail.product.seller.id }} labelKey="messageSeller" />
+            ) : null}
+            <ProductActions productId={productId} title={detail.product.title} />
+          </>
+        } />
       <ProductView
         detail={detail}
         clips={clips}

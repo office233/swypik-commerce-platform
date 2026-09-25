@@ -1,15 +1,26 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { getAuthSession } from "@/lib/auth/session";
-import InboxClient from "./InboxClient";
+import { redirect } from "@/lib/i18n/navigation";
+import InboxClient, { type InboxTab } from "./InboxClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function InboxPage() {
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ tab?: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "dm.inbox" });
+  return { title: t("metaTitle"), robots: { index: false, follow: false } };
+}
+
+export default async function InboxPage({ params, searchParams }: Props) {
+  const [{ locale }, sp] = await Promise.all([params, searchParams]);
   const session = await getAuthSession();
-  if (!session) redirect("/auth?next=/inbox");
-  return (
-    <main className="min-h-screen bg-white text-[#0D0D0D] dark:bg-[#0D0D0D] dark:text-white">
-      <InboxClient />
-    </main>
-  );
+  if (!session) return redirect({ href: "/auth?next=/inbox", locale });
+  const initialTab: InboxTab = sp?.tab === "notifications" ? "notifications" : "messages";
+  return <InboxClient viewerId={session.userId} initialTab={initialTab} />;
 }

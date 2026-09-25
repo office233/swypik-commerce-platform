@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Clapperboard, Package, Star, Store } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { MessageButton } from "@/components/messenger/MessageButton";
 import { getProductRatingMap } from "@/lib/reviews/aggregate";
 import { notFound } from "next/navigation";
 import { dbQuery } from "@/lib/db";
@@ -198,12 +199,10 @@ export default async function SellerStorefrontPage({ params }: Props) {
               Membru din {memberSince}
             </p>
           </div>
-          <Link
-            href={`/messages/new?user=${seller.id}`}
-            className="inline-flex items-center justify-center rounded-xl bg-[#0D0D0D] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1f1f1f]"
-          >
-            Trimite mesaj
-          </Link>
+          {/* Id-ul vânzătorului (nu user id-ul) — serverul rezolvă contul din spate. */}
+          {seller.user_id ? (
+            <MessageButton entry={{ kind: "seller", id: seller.id }} labelKey="messageSeller" variant="primary" />
+          ) : null}
         </header>
 
         {/* Stats */}

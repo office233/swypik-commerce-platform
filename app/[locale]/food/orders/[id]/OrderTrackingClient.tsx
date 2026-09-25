@@ -19,6 +19,7 @@ import TrackingTimeline from "@/components/food/tracking/TrackingTimeline";
 import TrackingMap, { etaMinutes } from "@/components/food/tracking/TrackingMap";
 import OrderSummaryCard from "@/components/food/tracking/OrderSummaryCard";
 import CancelOrderButton from "@/components/food/tracking/CancelOrderButton";
+import { MessageButton } from "@/components/messenger/MessageButton";
 
 const card = "flex items-center gap-3 rounded-card border border-subtle bg-surface p-4";
 
@@ -113,6 +114,8 @@ export default function OrderTrackingClient({ orderId }: { orderId: string }) {
             <a href={`tel:${order.merchant.phone}`}><Phone size={16} aria-hidden /> {t("callRestaurant")}</a>
           </Button>
         ) : null}
+
+        <MessageButton entry={{ kind: "food_order", id: order.id }} labelKey="contactRestaurant" block />
 
         {!cancelled ? (
           <Button asChild variant="ghost" block>

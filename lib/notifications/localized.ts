@@ -21,7 +21,7 @@ export type LocalizedNotice =
   | "videoRejected"
   | "accountSuspended";
 
-async function userLocale(userId: string): Promise<string> {
+export async function userLocale(userId: string): Promise<string> {
   const { rows } = await dbQuery<{ locale: string | null }>(`SELECT locale FROM users WHERE id = $1`, [userId]);
   const loc = rows[0]?.locale ?? routing.defaultLocale;
   return (routing.locales as readonly string[]).includes(loc) ? loc : routing.defaultLocale;
